@@ -27,7 +27,7 @@ public class IntelProvider {
     {
         for (int i = 0; i < tokens.size(); i++)
         {
-            if (tokens.get(i).getType() == TokenType.TYPE)
+            if (tokens.get(i).getType() == TokenType.DATA_TYPE)
             {
                 if (tokens.get(i).getText().equals("num"))
                 {
