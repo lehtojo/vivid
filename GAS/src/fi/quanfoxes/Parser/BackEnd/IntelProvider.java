@@ -6,8 +6,8 @@ import fi.quanfoxes.Lexer.TokenType;
 import java.util.List;
 
 public class IntelProvider {
-    public List<Variable> variables;
-    public Intell_Backend backend = new Intell_Backend();
+    public List<Variables> variables;
+    public Intel_backend backend = new Intel_backend();
     public String opcode = " ";
     public String Repeater = " ";
 
@@ -26,7 +26,7 @@ public class IntelProvider {
     {
         for (int i = 0; i < tokens.size(); i++)
         {
-            if (tokens.get(i).getType() == TokenType.TYPE)
+            if (tokens.get(i).getType() == TokenType.DATA_TYPE)
             {
                 if (tokens.get(i).getText().equals("num"))
                 {

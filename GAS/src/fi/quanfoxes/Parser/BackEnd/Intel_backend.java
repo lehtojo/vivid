@@ -4,7 +4,7 @@ import fi.quanfoxes.Lexer.Token;
 
 import java.util.List;
 
-public class Intell_Backend {
+public class Intel_backend {
     public String opcode = " ";
     public String Repeater = " ";
 

@@ -97,7 +97,7 @@ public class LexerTest {
     }
 
     @Test
-    public void tokens1 () throws Exception {
+    public void tokens_math () throws Exception {
         DataTypeDatabase.add(new DataType("num"));
 
         List<Token> actual = Lexer.getTokens("num a = 2 * b");
@@ -112,5 +112,69 @@ public class LexerTest {
         );
 
         assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_math_functions () throws Exception {
+        DataTypeDatabase.add(new DataType("num"));
+
+        List<Token> actual = Lexer.getTokens("num a = banana() + apple(5 % b)");
+        List<Token> excepted = Arrays.asList
+        (
+                new DataTypeToken("num"),
+                new VariableToken("a"),
+                new OperatorToken(OperatorType.ASSIGN),
+                new FunctionToken("banana()", "banana", new ContentToken("()")),
+                new OperatorToken(OperatorType.ADD),
+                new FunctionToken("apple(5 % b)", "apple", new ContentToken("(5 % b)",
+
+                    new NumberToken(5),
+                    new OperatorToken(OperatorType.MODULUS),
+                    new VariableToken("b")
+                ))
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_math_functions_and_content () throws Exception {
+        DataTypeDatabase.add(new DataType("num"));
+
+        List<Token> actual = Lexer.getTokens("num variable = banana() * ( apple() & 3 | 55 ^ 777 )");
+        List<Token> excepted = Arrays.asList
+        (
+                new DataTypeToken("num"),
+                new VariableToken("variable"),
+                new OperatorToken(OperatorType.ASSIGN),
+                new FunctionToken("banana()", "banana", new ContentToken("()")),
+                new OperatorToken(OperatorType.MULTIPLY),
+                new ContentToken("( apple() & 3 | 55 ^ 777 )",
+                    new FunctionToken("apple()", "apple", new ContentToken("()")),
+                    new OperatorToken(OperatorType.AND),
+                    new NumberToken(3),
+                    new OperatorToken(OperatorType.OR),
+                    new NumberToken(55),
+                    new OperatorToken(OperatorType.XOR),
+                    new NumberToken(777)
+                )
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_unrecognized_token () throws Exception {
+        DataTypeDatabase.add(new DataType("num"));
+
+        try {
+            Lexer.getTokens("num a = b ` c");
+        }
+        catch (Exception e) {
+            assertSame(e.getMessage(), "Unrecognized token");
+            return;
+        }
+
+        assertSame(1, 2);
     }
 }

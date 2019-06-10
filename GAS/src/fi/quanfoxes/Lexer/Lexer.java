@@ -30,7 +30,7 @@ public class Lexer {
     }
 
     private static boolean isOperator (char c) {
-        return c >= 33 && c <= 47 || c >= 58 && c <= 63 || c == 124 || c == 126;
+        return c >= 33 && c <= 47 || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
     }
 
     private static boolean isText(char c) {
@@ -64,7 +64,7 @@ public class Lexer {
 
     private static int skipSpaces(String text, int position) {
 
-        while (Character.isSpaceChar(text.charAt(position))) {
+        while (position < text.length() && Character.isSpaceChar(text.charAt(position))) {
             position++;
         }
 
@@ -104,6 +104,7 @@ public class Lexer {
         // Content area can be determined
         if (area.type == TextType.CONTENT) {
             area.end = skipContent(text, area.start);
+            area.text = text.substring(area.start, area.end);
             return area;
         }
 
@@ -125,7 +126,7 @@ public class Lexer {
 
                 // Token is function when it has text and content part
                 area.type = TextType.FUNCTION;
-                area.data = new FunctionTokenAreaData(i);
+                area.data = new FunctionTokenAreaData(i - area.start);
 
                 i = skipContent(text, i);
                 break;
@@ -183,6 +184,8 @@ public class Lexer {
     }
 
     public static List<Token> getTokens (String line) throws Exception {
+        line = line.trim();
+
         final List<Token> tokens = new ArrayList<>();
         int position = 0;
 

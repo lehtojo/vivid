@@ -1,6 +1,7 @@
 package fi.quanfoxes.Lexer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,15 +15,18 @@ public class FunctionToken extends Token {
         FunctionTokenAreaData data = (FunctionTokenAreaData)area.data;
         name = area.text.substring(0, data.contentStartIndex);
 
-        int start = data.contentStartIndex + 1;
-        int end = data.contentStartIndex + area.text.length() - 1;
-
-        String content = area.text.substring(start, end);
+        String content = area.text.substring(data.contentStartIndex, area.text.length());
         String[] parameters = content.split(",");
 
         for (String parameter : parameters) {
             this.parameters.add(new ContentToken(parameter));
         }
+    }
+
+    public FunctionToken(String full, String name, ContentToken... parameters) {
+        super(full, TokenType.FUNCTION);
+        this.name = name;
+        this.parameters = Arrays.asList(parameters);
     }
 
     public String getName() {
