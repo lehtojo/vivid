@@ -1,16 +1,20 @@
 package tests;
 
-import fi.quanfoxes.Lexer.Lexer;
+import fi.quanfoxes.DataType;
+import fi.quanfoxes.DataTypeDatabase;
+import fi.quanfoxes.Lexer.*;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LexerTest {
 
     public void assertTokenArea (String input, int start, Lexer.TextType exceptedType, int exceptedStart, int exceptedEnd) throws Exception {
-        Lexer lexer = new Lexer();
-        Lexer.TokenArea area = lexer.getNextTokenArea(input, start);
+        Lexer.TokenArea area = Lexer.getNextTokenArea(input, start);
 
         assertSame(exceptedType, area.type);
         assertSame(exceptedStart, area.start);
@@ -90,5 +94,23 @@ public class LexerTest {
         }
 
         assertSame(1, 2);
+    }
+
+    @Test
+    public void tokens1 () throws Exception {
+        DataTypeDatabase.add(new DataType("num"));
+
+        List<Token> actual = Lexer.getTokens("num a = 2 * b");
+        List<Token> excepted = Arrays.asList
+        (
+            new DataTypeToken("num"),
+            new VariableToken("a"),
+            new OperatorToken(OperatorType.ASSIGN),
+            new NumberToken((byte)2),
+            new OperatorToken(OperatorType.MULTIPLY),
+            new VariableToken("b")
+        );
+
+        assertIterableEquals(excepted, actual);
     }
 }

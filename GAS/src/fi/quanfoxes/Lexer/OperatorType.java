@@ -23,5 +23,6 @@ public enum OperatorType{
     ASSIGN_MODULUS,
     ASSIGN_AND,
     ASSIGN_OR,
-    ASSIGN_XOR
+    ASSIGN_XOR,
+    ASSIGN
 }

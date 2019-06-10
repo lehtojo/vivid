@@ -1,5 +1,8 @@
 package fi.quanfoxes.Lexer;
 
+import fi.quanfoxes.DataTypeDatabase;
+import fi.quanfoxes.KeywordDatabase;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,10 +19,14 @@ public class Lexer {
 
     public static class TokenArea {
 
+        public TextType type;
+
         public String text;
+
         public int start;
         public int end;
-        public TextType type;
+
+        public Object data;
     }
 
     private static boolean isOperator (char c) {
@@ -57,17 +64,11 @@ public class Lexer {
 
     private static int skipSpaces(String text, int position) {
 
-        int i = position;
-
-        while (i < text.length()) {
-            if (Character.isSpaceChar(text.charAt(i))) {
-                break;
-            }
-
-            i++;
+        while (Character.isSpaceChar(text.charAt(position))) {
+            position++;
         }
 
-        return i;
+        return position;
     }
 
     private static int skipContent(String text, int start) throws Exception {
@@ -92,7 +93,7 @@ public class Lexer {
         throw new Exception("Couldn't find closing parenthesis");
     }
 
-    private static TokenArea getNextTokenArea(String text, int position) throws Exception {
+    public static TokenArea getNextTokenArea(String text, int position) throws Exception {
 
         int i = skipSpaces(text, position);
 
@@ -124,6 +125,8 @@ public class Lexer {
 
                 // Token is function when it has text and content part
                 area.type = TextType.FUNCTION;
+                area.data = new FunctionTokenAreaData(i);
+
                 i = skipContent(text, i);
                 break;
             }
@@ -150,10 +153,22 @@ public class Lexer {
         return area;
     }
 
+    private static Token parseTextToken (TokenArea area) {
+        if (DataTypeDatabase.exists(area.text)) {
+            return new DataTypeToken(area);
+        }
+        else if (KeywordDatabase.exists(area.text)) {
+            return new KeywordToken(area);
+        }
+        else {
+            return new VariableToken(area);
+        }
+    }
+
     private static Token parseToken (TokenArea area) throws Exception {
         switch (area.type) {
             case TEXT:
-                return null;
+                return parseTextToken(area);
             case NUMBER:
                 return new NumberToken(area);
             case OPERATOR:
@@ -161,9 +176,9 @@ public class Lexer {
             case CONTENT:
                 return new ContentToken(area);
             case FUNCTION:
-                return null;
+                return new FunctionToken(area);
             default:
-                throw new Exception("Unregonized token");
+                throw new Exception("Unrecognized token");
         }
     }
 

@@ -2,10 +2,10 @@ package fi.quanfoxes.Lexer;
 
 public enum TokenType
 {
-    UNKNOWN,
     OPERATOR,
     FUNCTION,
-    TYPE,
+    DATA_TYPE,
+    KEYWORD,
     CONTENT,
     NUMBER,
     VARIABLE,
