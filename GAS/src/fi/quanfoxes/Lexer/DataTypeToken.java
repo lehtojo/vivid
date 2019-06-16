@@ -9,17 +9,22 @@ public class DataTypeToken extends Token {
     private DataType dataType;
 
     public DataTypeToken(Lexer.TokenArea area) {
-        super(area.text, TokenType.DATA_TYPE);
+        super(TokenType.DATA_TYPE);
         dataType = DataTypeDatabase.get(area.text);
     }
 
     public DataTypeToken(String name) {
-        super(name, TokenType.DATA_TYPE);
+        super(TokenType.DATA_TYPE);
         this.dataType = DataTypeDatabase.get(name);
     }
 
     public DataType getDataType() {
         return dataType;
+    }
+
+    @Override
+    public String getText() {
+        return dataType.getName();
     }
 
     @Override

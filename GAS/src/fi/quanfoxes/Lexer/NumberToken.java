@@ -8,7 +8,7 @@ public class NumberToken extends Token {
     private int bits;
 
     public NumberToken(Lexer.TokenArea area) {
-        super(area.text, TokenType.NUMBER);
+        super(TokenType.NUMBER);
         number = Long.parseLong(area.text);
         calculateBitCount();
     }
@@ -31,31 +31,31 @@ public class NumberToken extends Token {
     }
 
     public NumberToken(byte number) {
-        super(String.valueOf(number), TokenType.NUMBER);
+        super(TokenType.NUMBER);
         this.number = (long)number;
         calculateBitCount();
     }
 
     public NumberToken(short number) {
-        super(String.valueOf(number), TokenType.NUMBER);
+        super(TokenType.NUMBER);
         this.number = (long)number;
         calculateBitCount();
     }
 
     public NumberToken(int number) {
-        super(String.valueOf(number), TokenType.NUMBER);
+        super(TokenType.NUMBER);
         this.number = (long)number;
         calculateBitCount();
     }
 
     public NumberToken(long number) {
-        super(String.valueOf(number), TokenType.NUMBER);
+        super(TokenType.NUMBER);
         this.number = number;
         calculateBitCount();
     }
 
-    public<T extends Number> T getNumber () {
-        return (T)number;
+    public Number getNumber () {
+        return number;
     }
 
     public NumberType getNumberType () {
@@ -64,6 +64,22 @@ public class NumberToken extends Token {
 
     public int getBitCount () {
         return bits;
+    }
+
+    @Override
+    public String getText() {
+        switch (numberType) {
+            case BYTE:
+                return String.valueOf(number.byteValue());
+            case SHORT:
+                return String.valueOf(number.shortValue());
+            case INT:
+                return String.valueOf(number.intValue());
+            case LONG:
+                return String.valueOf(number.longValue());
+            default:
+                return "";
+        }
     }
 
     @Override

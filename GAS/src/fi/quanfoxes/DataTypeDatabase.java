@@ -5,6 +5,11 @@ import java.util.ArrayList;
 public class DataTypeDatabase {
     private static ArrayList<DataType> dataTypes = new ArrayList<>();
 
+    public static void initialize () {
+        dataTypes.add(new DataType("num"));
+        dataTypes.add(new DataType("state"));
+    }
+
     public static void add (DataType dataType) {
         dataTypes.add(dataType);
     }

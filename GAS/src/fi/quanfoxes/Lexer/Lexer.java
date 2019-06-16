@@ -13,7 +13,6 @@ public class Lexer {
         TEXT,
         NUMBER,
         CONTENT,
-        FUNCTION,
         OPERATOR
     }
 
@@ -113,22 +112,11 @@ public class Lexer {
 
             if (isContent(text.charAt(i))) {
 
-                // Numbers and operators cannot have content
-                if (area.type != TextType.TEXT) {
-
-                    // There cannot be number and content tokens side by side
-                    if (area.type == TextType.NUMBER) {
-                        throw new Exception("Missing operator between number and parenthesis");
-                    }
-
-                    break;
+                // There cannot be number and content tokens side by side
+                if (area.type == TextType.NUMBER) {
+                    throw new Exception("Missing operator between number and parenthesis");
                 }
 
-                // Token is function when it has text and content part
-                area.type = TextType.FUNCTION;
-                area.data = new FunctionTokenAreaData(i - area.start);
-
-                i = skipContent(text, i);
                 break;
             }
 
@@ -162,7 +150,7 @@ public class Lexer {
             return new KeywordToken(area);
         }
         else {
-            return new VariableToken(area);
+            return new NameToken(area);
         }
     }
 
@@ -176,11 +164,36 @@ public class Lexer {
                 return new OperatorToken(area);
             case CONTENT:
                 return new ContentToken(area);
-            case FUNCTION:
-                return new FunctionToken(area);
             default:
                 throw new Exception("Unrecognized token");
         }
+    }
+
+    private static void scanFunctions (List<Token> tokens) {
+        if (tokens.size() < 2) {
+            return;
+        }
+
+        for (int i = tokens.size() - 2; i >= 0; i--) {
+            final Token current = tokens.get(i);
+
+            if (current.getType() == TokenType.NAME) {
+                final Token next = tokens.get(i + 1);
+
+                if (next.getType() == TokenType.CONTENT) {
+                    final Token function = new FunctionToken((NameToken)current,
+                                                            (ContentToken) next);
+                    tokens.set(i, function);
+                    tokens.remove(i + 1);
+
+                    // TODO: Function cannot be produced next since now created token isn't content
+                }
+            }
+        }
+    }
+
+    private static void postProcess (List<Token> tokens) {
+        scanFunctions(tokens);
     }
 
     public static List<Token> getTokens (String line) throws Exception {
@@ -197,6 +210,8 @@ public class Lexer {
 
             position = area.end;
         }
+
+        postProcess(tokens);
 
         return tokens;
     }

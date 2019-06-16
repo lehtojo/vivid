@@ -1,40 +1,29 @@
 package fi.quanfoxes.Lexer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 public class FunctionToken extends Token {
-    private String name;
-    private List<ContentToken> parameters = new ArrayList<>();
+    private NameToken name;
+    private ContentToken parameters;
 
-    public FunctionToken(Lexer.TokenArea area) throws Exception {
-        super(area.text, TokenType.FUNCTION);
+    public FunctionToken(NameToken name, ContentToken parameters) {
+        super(TokenType.FUNCTION);
 
-        FunctionTokenAreaData data = (FunctionTokenAreaData)area.data;
-        name = area.text.substring(0, data.contentStartIndex);
-
-        String content = area.text.substring(data.contentStartIndex, area.text.length());
-        String[] parameters = content.split(",");
-
-        for (String parameter : parameters) {
-            this.parameters.add(new ContentToken(parameter));
-        }
-    }
-
-    public FunctionToken(String full, String name, ContentToken... parameters) {
-        super(full, TokenType.FUNCTION);
         this.name = name;
-        this.parameters = Arrays.asList(parameters);
+        this.parameters = parameters;
     }
 
     public String getName() {
-        return name;
+        return name.getName();
     }
 
-    public List<ContentToken> getParameters() {
+    public ContentToken getParameters() {
         return parameters;
+    }
+
+    @Override
+    public String getText() {
+        return name.getText() + parameters.getText();
     }
 
     @Override

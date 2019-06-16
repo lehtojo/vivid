@@ -2,6 +2,7 @@ package tests;
 
 import fi.quanfoxes.DataType;
 import fi.quanfoxes.DataTypeDatabase;
+import fi.quanfoxes.KeywordDatabase;
 import fi.quanfoxes.Lexer.*;
 import org.junit.jupiter.api.Test;
 
@@ -42,17 +43,17 @@ public class LexerTest {
 
     @Test
     public void tokenArea_simpleFunction() throws Exception {
-        assertTokenArea("apple() * apple();", 0, Lexer.TextType.FUNCTION, 0, 7);
+        assertTokenArea("apple() * apple();", 0, Lexer.TextType.TEXT, 0, 5);
     }
 
     @Test
     public void tokenArea_functionWithParameters() throws Exception {
-        assertTokenArea("num a = banana(1 + 2 * (3 - 4));", 7, Lexer.TextType.FUNCTION, 8, 31);
+        assertTokenArea("num a = banana(1 + 2 * (3 - 4));", 7, Lexer.TextType.TEXT, 8, 14);
     }
 
     @Test
     public void tokenArea_richFunctionName() throws Exception {
-        assertTokenArea("a = this_Is-Very_Weird_Function(apple() + banana() * 3 / 2) % 2;", 3, Lexer.TextType.FUNCTION,4, 59);
+        assertTokenArea("a = this_Is-Very_Weird_Function(apple() + banana() * 3 / 2) % 2;", 3, Lexer.TextType.TEXT,4, 31);
     }
 
     @Test
@@ -98,17 +99,17 @@ public class LexerTest {
 
     @Test
     public void tokens_math () throws Exception {
-        DataTypeDatabase.add(new DataType("num"));
+        DataTypeDatabase.initialize();
 
         List<Token> actual = Lexer.getTokens("num a = 2 * b");
         List<Token> excepted = Arrays.asList
         (
             new DataTypeToken("num"),
-            new VariableToken("a"),
+            new NameToken("a"),
             new OperatorToken(OperatorType.ASSIGN),
             new NumberToken((byte)2),
             new OperatorToken(OperatorType.MULTIPLY),
-            new VariableToken("b")
+            new NameToken("b")
         );
 
         assertIterableEquals(excepted, actual);
@@ -116,21 +117,20 @@ public class LexerTest {
 
     @Test
     public void tokens_math_functions () throws Exception {
-        DataTypeDatabase.add(new DataType("num"));
+        DataTypeDatabase.initialize();
 
         List<Token> actual = Lexer.getTokens("num a = banana() + apple(5 % b)");
         List<Token> excepted = Arrays.asList
         (
                 new DataTypeToken("num"),
-                new VariableToken("a"),
+                new NameToken("a"),
                 new OperatorToken(OperatorType.ASSIGN),
-                new FunctionToken("banana()", "banana", new ContentToken("()")),
+                new FunctionToken(new NameToken("banana"), new ContentToken("()")),
                 new OperatorToken(OperatorType.ADD),
-                new FunctionToken("apple(5 % b)", "apple", new ContentToken("(5 % b)",
-
-                    new NumberToken(5),
+                new FunctionToken(new NameToken("apple"), new ContentToken(
+                    new NumberToken((byte)5),
                     new OperatorToken(OperatorType.MODULUS),
-                    new VariableToken("b")
+                    new NameToken("b")
                 ))
         );
 
@@ -139,25 +139,109 @@ public class LexerTest {
 
     @Test
     public void tokens_math_functions_and_content () throws Exception {
-        DataTypeDatabase.add(new DataType("num"));
+        DataTypeDatabase.initialize();
 
         List<Token> actual = Lexer.getTokens("num variable = banana() * ( apple() & 3 | 55 ^ 777 )");
         List<Token> excepted = Arrays.asList
         (
                 new DataTypeToken("num"),
-                new VariableToken("variable"),
+                new NameToken("variable"),
                 new OperatorToken(OperatorType.ASSIGN),
-                new FunctionToken("banana()", "banana", new ContentToken("()")),
+                new FunctionToken(new NameToken("banana"), new ContentToken("()")),
                 new OperatorToken(OperatorType.MULTIPLY),
-                new ContentToken("( apple() & 3 | 55 ^ 777 )",
-                    new FunctionToken("apple()", "apple", new ContentToken("()")),
-                    new OperatorToken(OperatorType.AND),
+                new ContentToken(
+                    new FunctionToken(new NameToken("apple"), new ContentToken("()")),
+                    new OperatorToken(OperatorType.BITWISE_AND),
                     new NumberToken(3),
-                    new OperatorToken(OperatorType.OR),
+                    new OperatorToken(OperatorType.BITWISE_OR),
                     new NumberToken(55),
-                    new OperatorToken(OperatorType.XOR),
+                    new OperatorToken(OperatorType.BITWISE_XOR),
                     new NumberToken(777)
                 )
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_keyword () throws Exception {
+        DataTypeDatabase.initialize();
+        KeywordDatabase.initialize();
+
+        List<Token> actual = Lexer.getTokens("type banana");
+        List<Token> excepted = Arrays.asList
+        (
+            new KeywordToken(KeywordDatabase.get("type")),
+            new NameToken("banana")
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_loop () throws Exception {
+        DataTypeDatabase.initialize();
+        KeywordDatabase.initialize();
+
+        List<Token> actual = Lexer.getTokens("loop (3)");
+        List<Token> excepted = Arrays.asList
+        (
+            new KeywordToken(KeywordDatabase.get("loop")),
+            new ContentToken(new NumberToken(3))
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_if () throws Exception {
+        DataTypeDatabase.initialize();
+        KeywordDatabase.initialize();
+
+        List<Token> actual = Lexer.getTokens("if (a <= b)");
+        List<Token> excepted = Arrays.asList
+        (
+            new KeywordToken(KeywordDatabase.get("if")),
+            new ContentToken(
+                    new NameToken("a"),
+                    new OperatorToken(OperatorType.LESS_OR_EQUAL),
+                    new NameToken("b"))
+        );
+
+        assertIterableEquals(excepted, actual);
+    }
+
+    @Test
+    public void tokens_advanced_if () throws Exception {
+        DataTypeDatabase.initialize();
+        KeywordDatabase.initialize();
+
+        List<Token> actual = Lexer.getTokens("if (a > b && (a < (c + apple(d / e, f % banana()))))");
+        List<Token> excepted = Arrays.asList
+        (
+                new KeywordToken(KeywordDatabase.get("if")),
+                new ContentToken(
+                        new NameToken("a"),
+                        new OperatorToken(OperatorType.GREATER_THAN),
+                        new NameToken("b"),
+                        new OperatorToken(OperatorType.AND),
+                        new ContentToken(
+                                new NameToken("a"),
+                                new OperatorToken(OperatorType.LESS_THAN),
+                                new ContentToken(
+                                        new NameToken("c"),
+                                        new OperatorToken(OperatorType.ADD),
+                                        new FunctionToken(new NameToken("apple"),
+                                                new ContentToken(
+                                                        new ContentToken(
+                                                                new NameToken("d"),
+                                                                new OperatorToken(OperatorType.DIVIDE),
+                                                                new NameToken("e")),
+                                                new ContentToken(
+                                                        new NameToken("f"),
+                                                        new OperatorToken(OperatorType.MODULUS),
+                                                        new FunctionToken(new NameToken("banana"),
+                                                                new ContentToken("()"))))))))
         );
 
         assertIterableEquals(excepted, actual);

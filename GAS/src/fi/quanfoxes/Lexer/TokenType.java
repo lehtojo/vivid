@@ -8,5 +8,5 @@ public enum TokenType
     KEYWORD,
     CONTENT,
     NUMBER,
-    VARIABLE,
+    NAME,
 }

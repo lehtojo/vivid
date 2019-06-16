@@ -9,12 +9,22 @@ public class KeywordToken extends Token {
     private Keyword keyword;
 
     public KeywordToken(Lexer.TokenArea area) {
-        super(area.text, TokenType.KEYWORD);
+        super(TokenType.KEYWORD);
         keyword = KeywordDatabase.get(area.text);
+    }
+
+    public KeywordToken(Keyword keyword) {
+        super(TokenType.KEYWORD);
+        this.keyword = keyword;
     }
 
     public Keyword getKeyword() {
         return keyword;
+    }
+
+    @Override
+    public String getText() {
+        return keyword.getName();
     }
 
     @Override
