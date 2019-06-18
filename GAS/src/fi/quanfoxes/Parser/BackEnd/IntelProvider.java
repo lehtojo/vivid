@@ -33,7 +33,7 @@ public class IntelProvider {
                 {
                     // do something m8
                 }
-                if (tokens.get(i+1).getType() == TokenType.VARIABLE)
+                if (tokens.get(i+1).getType() == TokenType.NAME)
                 {
                     boolean exists = false;
                     int value = 0;
@@ -92,7 +92,7 @@ public class IntelProvider {
                                     }
                                 }
                             }
-                            if (tokens.get(i+3).getType() == TokenType.VARIABLE)
+                            if (tokens.get(i+3).getType() == TokenType.NAME)
                             {
                                 boolean exist2 = false;
                                 int value2;

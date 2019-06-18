@@ -24,8 +24,6 @@ public class Lexer {
 
         public int start;
         public int end;
-
-        public Object data;
     }
 
     private static boolean isOperator (char c) {
@@ -214,11 +212,5 @@ public class Lexer {
         postProcess(tokens);
 
         return tokens;
-    }
-
-    public void analyze (String[] lines) {
-        for (String line : lines) {
-
-        }
     }
 }
