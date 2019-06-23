@@ -7,9 +7,15 @@ public class NumberToken extends Token {
     private NumberType numberType;
     private int bits;
 
-    public NumberToken(Lexer.TokenArea area) {
+    /*public NumberToken(Lexer.TokenArea area) {
         super(TokenType.NUMBER);
         number = Long.parseLong(area.text);
+        calculateBitCount();
+    }*/
+
+    public NumberToken(String text) {
+        super(TokenType.NUMBER);
+        number = Long.parseLong(text);
         calculateBitCount();
     }
 

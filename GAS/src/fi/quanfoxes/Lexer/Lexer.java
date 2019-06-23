@@ -8,6 +8,9 @@ import java.util.List;
 
 public class Lexer {
 
+    private static final String OPENING_PARENTHESIS = "{[(";
+    private static final String CLOSING_PARENTHESIS  = "}])";
+
     public enum TextType {
         UNSPECIFIED,
         TEXT,
@@ -27,36 +30,52 @@ public class Lexer {
     }
 
     private static boolean isOperator (char c) {
-        return c >= 33 && c <= 47 || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
+        return c >= 33 && c <= 47 && c != 46 || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
+    }
+
+    private static boolean isDigit(char c) {
+        return c >= 48 && c <= 57;
     }
 
     private static boolean isText(char c) {
-        return Character.isLetter(c) || "_-".contains(String.valueOf(c));
+        return c >= 65 && c <= 90 || c >= 97 && c <= 122 || c == 46 || c == 95;
+    }
+
+    private static boolean isContent (char c) {
+        return OPENING_PARENTHESIS.indexOf(c) > 0;
     }
 
     private static TextType getType (char c) {
 
-        if (Character.isDigit(c)) {
-            return TextType.NUMBER;
-        }
-        else if (isText(c)) {
+        if (isText(c)) {
             return TextType.TEXT;
         }
-        else {
-
-            if (isContent(c)) {
-                return TextType.CONTENT;
-            }
-            else if (isOperator(c)) {
-                return TextType.OPERATOR;
-            }
+        else if (isDigit(c)) {
+            return TextType.NUMBER;
+        }
+        else if (isContent(c)) {
+            return TextType.CONTENT;
+        }
+        else if (isOperator(c)) {
+            return TextType.OPERATOR;
         }
 
         return TextType.UNSPECIFIED;
     }
 
-    private static boolean isContent (char c) {
-        return c == '(' || c == '{';
+    private static boolean isPartOf (TextType baseType, TextType currentType, char c) {
+        if (currentType == baseType || baseType == TextType.UNSPECIFIED) {
+            return true;
+        }
+
+        switch (baseType) {
+            case TEXT:
+                return currentType == TextType.NUMBER;
+            case NUMBER:
+                return c == '.';
+            default:
+                return false;
+        }
     }
 
     private static int skipSpaces(String text, int position) {
@@ -69,14 +88,20 @@ public class Lexer {
     }
 
     private static int skipContent(String text, int start) throws Exception {
+
         int count = 0;
         int position = start;
 
+        final char opening = text.charAt(position);
+        final char closing = CLOSING_PARENTHESIS.charAt(OPENING_PARENTHESIS.indexOf(opening));
+
         while (position < text.length()) {
-            if (text.charAt(position) == '(') {
+            final char c = text.charAt(position);
+
+            if (c == opening) {
                 count++;
             }
-            else if (text.charAt(position) == ')') {
+            else if (c == closing) {
                 count--;
             }
 
@@ -90,13 +115,13 @@ public class Lexer {
         throw new Exception("Couldn't find closing parenthesis");
     }
 
-    public static TokenArea getNextTokenArea(String text, int position) throws Exception {
+    public static TokenArea getNextTokenArea(String text, int start) throws Exception {
 
-        int i = skipSpaces(text, position);
+        var position = skipSpaces(text, start);
 
         final TokenArea area = new TokenArea();
-        area.start = i;
-        area.type = getType(text.charAt(i));
+        area.start = position;
+        area.type = getType(text.charAt(position));
 
         // Content area can be determined
         if (area.type == TextType.CONTENT) {
@@ -106,9 +131,11 @@ public class Lexer {
         }
 
         // Possible types are now: TEXT, NUMBER, OPERATOR
-        while (i < text.length()) {
+        while (position < text.length()) {
 
-            if (isContent(text.charAt(i))) {
+            final char c = text.charAt(position);
+
+            if (isContent(c)) {
 
                 // There cannot be number and content tokens side by side
                 if (area.type == TextType.NUMBER) {
@@ -118,50 +145,43 @@ public class Lexer {
                 break;
             }
 
-            TextType type = getType(text.charAt(i));
+            final TextType type = getType(c);
 
-            if (area.type == TextType.TEXT) {
-
-                // Operators cannot be part of text
-                if (type == TextType.OPERATOR || type == TextType.UNSPECIFIED) {
-                    break;
-                }
-            }
-            else if (area.type != type) {
+            if (!isPartOf(area.type, type, c)) {
                 break;
             }
 
-            i++;
+            position++;
         }
 
-        area.end = i;
+        area.end = position;
         area.text = text.substring(area.start, area.end);
 
         return area;
     }
 
-    private static Token parseTextToken (TokenArea area) {
-        if (DataTypeDatabase.exists(area.text)) {
-            return new DataTypeToken(area);
+    private static Token parseTextToken (final String text) {
+        if (DataTypeDatabase.exists(text)) {
+            return new DataTypeToken(text);
         }
-        else if (KeywordDatabase.exists(area.text)) {
-            return new KeywordToken(area);
+        else if (KeywordDatabase.exists(text)) {
+            return new KeywordToken(text);
         }
         else {
-            return new NameToken(area);
+            return new NameToken(text);
         }
     }
 
     private static Token parseToken (TokenArea area) throws Exception {
         switch (area.type) {
             case TEXT:
-                return parseTextToken(area);
+                return parseTextToken(area.text);
             case NUMBER:
-                return new NumberToken(area);
+                return new NumberToken(area.text);
             case OPERATOR:
-                return new OperatorToken(area);
+                return new OperatorToken(area.text);
             case CONTENT:
-                return new ContentToken(area);
+                return new ContentToken(area.text);
             default:
                 throw new Exception("Unrecognized token");
         }
@@ -190,8 +210,13 @@ public class Lexer {
         }
     }
 
+    private static void reduceMath(List<Token> tokens) {
+
+    }
+
     private static void postProcess (List<Token> tokens) {
         scanFunctions(tokens);
+        reduceMath(tokens);
     }
 
     public static List<Token> getTokens (String line) throws Exception {
@@ -201,9 +226,9 @@ public class Lexer {
         int position = 0;
 
         while (position != line.length()) {
-            TokenArea area = getNextTokenArea(line, position);
+            final TokenArea area = getNextTokenArea(line, position);
 
-            Token token = parseToken(area);
+            final Token token = parseToken(area);
             tokens.add(token);
 
             position = area.end;

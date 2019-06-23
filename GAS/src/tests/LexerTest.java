@@ -53,7 +53,7 @@ public class LexerTest {
 
     @Test
     public void tokenArea_richFunctionName() throws Exception {
-        assertTokenArea("a = this_Is-Very_Weird_Function(apple() + banana() * 3 / 2) % 2;", 3, Lexer.TextType.TEXT,4, 31);
+        assertTokenArea("a = this_Is_Very_Weird_Function(apple() + banana() * 3 / 2) % 2;", 3, Lexer.TextType.TEXT,4, 31);
     }
 
     @Test

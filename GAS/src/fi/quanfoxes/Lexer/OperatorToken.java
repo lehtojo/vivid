@@ -6,9 +6,9 @@ public class OperatorToken extends Token {
 
     private OperatorType operator;
 
-    public OperatorToken(Lexer.TokenArea area) {
+    public OperatorToken(String text) {
         super(TokenType.OPERATOR);
-        operator = OperatorType.get(area.text);
+        operator = OperatorType.get(text);
     }
 
     public OperatorToken(OperatorType type) {

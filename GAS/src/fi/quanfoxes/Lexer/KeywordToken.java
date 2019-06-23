@@ -8,9 +8,9 @@ import java.util.Objects;
 public class KeywordToken extends Token {
     private Keyword keyword;
 
-    public KeywordToken(Lexer.TokenArea area) {
+    public KeywordToken(final String text) {
         super(TokenType.KEYWORD);
-        keyword = KeywordDatabase.get(area.text);
+        keyword = KeywordDatabase.get(text);
     }
 
     public KeywordToken(Keyword keyword) {
