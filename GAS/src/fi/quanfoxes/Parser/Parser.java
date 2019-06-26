@@ -109,10 +109,6 @@ public class Parser {
         Patterns tree = Patterns.getRoot();
         Pattern best = null;
 
-        if (DEBUG && !tree.hasEntries()) {
-            throw new Exception("INTERNAL_PARSER_ERROR: There aren't any patterns added");
-        }
-
         while (true) {
             final List<Pattern> patterns = new ArrayList<>();
 
@@ -134,6 +130,13 @@ public class Parser {
                     }
                 }
 
+                int b = {
+                        4
+                        +
+                                0
+                }
+                        5
+
                 // When there are no more entries the best pattern must be chosen
                 if (!tree.hasEntries()) {
 
@@ -152,7 +155,6 @@ public class Parser {
 
             if (!patterns.isEmpty()) {
                 Pattern pattern = patterns.stream().max(Comparator.comparingInt(Pattern::getWeight)).get();
-
             }
             else {
                 break; // There are no more patterns
