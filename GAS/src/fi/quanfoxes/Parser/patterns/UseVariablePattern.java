@@ -23,8 +23,6 @@ public class UseVariablePattern extends Pattern {
     public List<Instruction> build(final List<Token> tokens) {
         final NameToken nameToken = (NameToken)tokens.get(0);
 
-        return Collections.singletonList(
-                new BindVariableInstruction(nameToken.getName())
-        );
+        return null;
     }
 }

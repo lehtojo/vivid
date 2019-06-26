@@ -87,7 +87,7 @@ public class IntelProvider {
                     Right_byteSize = "dword";
                 }
                 if (addInstruction.getRigth().getType() == TokenType.NUMBER) {
-                    NumberToken source = (NumberToken) addInstruction.getLeft();
+                    NumberToken source = (NumberToken) addInstruction.getRigth();
                     Destination = source.getNumber().toString();
                     opcode = "mov";
                     Source = Destination;
@@ -99,13 +99,26 @@ public class IntelProvider {
                     {
                         Destination = "ebx";
                     }
+
                     Intell_Backend backend = new Intell_Backend();
+                    backend.Destination = Destination;
+                    backend.Source = Source;
+                    backend.Left_immediate = Left_immediate;
+                    backend.Left_Math = Left_Math;
+                    backend.Left_Number = Left_Number;
+                    backend.opcode = opcode;
+                    backend.Repeater = Repeater;
+                    backend.Right_byteSize = Right_byteSize;
+                    backend.Right_immediate = Right_immediate;
+                    backend.Right_Math = Right_Math;
+                    backend.Right_Number = Right_Number;
+
                     String result = backend.Combine();
                     output.write(result);
                     output.newLine();
                 }
                 if (addInstruction.getRigth().getType() == TokenType.NAME) {
-                    NameToken destination = (NameToken) addInstruction.getLeft();
+                    NameToken destination = (NameToken) addInstruction.getRigth();
                     Variable var = Variables.get(destination.getName());
                     int offset = var.offset;
                     Left_immediate = true;

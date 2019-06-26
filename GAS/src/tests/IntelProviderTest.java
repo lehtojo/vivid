@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 public class IntelProviderTest {
     @Test
     public void addition_variableAndNumber () throws Exception {
+        DataTypeDatabase.initialize();
+
         IntelProvider provider = new IntelProvider();
         StringWriter writer = new StringWriter();
         provider.setOutput(writer);

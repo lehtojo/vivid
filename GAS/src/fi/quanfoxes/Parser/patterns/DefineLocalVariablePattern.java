@@ -25,8 +25,7 @@ public class DefineLocalVariablePattern extends Pattern {
         final NameToken nameToken = (NameToken)tokens.get(1);
 
         return Arrays.asList(
-            new CreateLocalVariableInstruction(dataTypeToken.getDataType(), nameToken.getName()),
-            new BindVariableInstruction(nameToken.getName())
+            new CreateLocalVariableInstruction(dataTypeToken.getDataType(), nameToken.getName())
         );
     }
 }

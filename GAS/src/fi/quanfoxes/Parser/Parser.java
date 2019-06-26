@@ -130,13 +130,6 @@ public class Parser {
                     }
                 }
 
-                int b = {
-                        4
-                        +
-                                0
-                }
-                        5
-
                 // When there are no more entries the best pattern must be chosen
                 if (!tree.hasEntries()) {
 
@@ -152,7 +145,7 @@ public class Parser {
                     best = null;
                 }
             }
-
+            
             if (!patterns.isEmpty()) {
                 Pattern pattern = patterns.stream().max(Comparator.comparingInt(Pattern::getWeight)).get();
             }
