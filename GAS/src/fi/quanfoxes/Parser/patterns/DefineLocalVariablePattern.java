@@ -3,7 +3,6 @@ package fi.quanfoxes.Parser.patterns;
 import fi.quanfoxes.Lexer.*;
 import fi.quanfoxes.Parser.Instruction;
 import fi.quanfoxes.Parser.Pattern;
-import fi.quanfoxes.Parser.instructions.BindVariableInstruction;
 import fi.quanfoxes.Parser.instructions.CreateLocalVariableInstruction;
 
 import java.util.Arrays;

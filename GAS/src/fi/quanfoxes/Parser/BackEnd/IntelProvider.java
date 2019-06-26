@@ -1,12 +1,15 @@
 package fi.quanfoxes.Parser.BackEnd;
 
+import fi.quanfoxes.Lexer.FunctionToken;
 import fi.quanfoxes.Lexer.NumberToken;
 import fi.quanfoxes.Lexer.Token;
 import fi.quanfoxes.Lexer.TokenType;
 import fi.quanfoxes.Parser.Instruction;
 import fi.quanfoxes.Parser.instructions.Mul;
+import fi.quanfoxes.Parser.instructions.AddInstruction;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class IntelProvider {
     public List<Variable> variables;
@@ -24,7 +27,6 @@ public class IntelProvider {
     public String Right_byteSize = " ";
     public String Right_Math = " ";
     public String Right_Number = " ";
-
     public int eax = 0;
     public int ebx = 0;
     public int ecx = 0;
@@ -34,14 +36,7 @@ public class IntelProvider {
     public List<Integer> Stack;
     public List<Integer> Heap;
 
-    public void getNextInstructon(Instruction instruction)
-    {
-        if (instruction instanceof Mul)
-        {
-            Mul mul = (Mul) instruction;
-            if ()
-        }
-    }
+
 
     public int getFreeRegister()
     {

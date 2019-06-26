@@ -5,7 +5,6 @@ import fi.quanfoxes.Lexer.Token;
 import fi.quanfoxes.Lexer.TokenType;
 import fi.quanfoxes.Parser.Instruction;
 import fi.quanfoxes.Parser.Pattern;
-import fi.quanfoxes.Parser.instructions.BindVariableInstruction;
 
 import java.util.Collections;
 import java.util.List;

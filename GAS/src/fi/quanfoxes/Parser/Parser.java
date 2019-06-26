@@ -2,16 +2,13 @@ package fi.quanfoxes.Parser;
 
 import fi.quanfoxes.Lexer.Token;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Parser {
     private static final boolean DEBUG = true;
 
-    public static List<Instruction> parse(final List<Token> line) throws Exception {
+    /*public static List<Instruction> parse(final List<Token> line) throws Exception {
 
         // To resolve operator execution order each pattern is given a priority
         // Parser finds the pattern with highest priority and processes it and returns a token to represent the result
@@ -100,6 +97,68 @@ public class Parser {
                 best = null;
             }
         }
+
+        return instructions;
+    }*/
+
+    public static List<Instruction> parse(final List<Token> line) throws Exception {
+
+        final List<Instruction> instructions = new ArrayList<>();
+        final List<Token> tokens = new ArrayList<>();
+
+        Patterns tree = Patterns.getRoot();
+        Pattern best = null;
+
+        if (DEBUG && !tree.hasEntries()) {
+            throw new Exception("INTERNAL_PARSER_ERROR: There aren't any patterns added");
+        }
+
+        while (true) {
+            final List<Pattern> patterns = new ArrayList<>();
+
+            // Find all patterns from the line
+            for (final Token token : line) {
+
+                // Proceed forward based on token type
+                tree = tree.filter(token.getType());
+                tokens.add(token);
+
+                if (tree.hasPatterns()) {
+
+                    // Try if any pattern passes the current token list
+                    final Optional<Pattern> pattern = tree.getPatterns().stream()
+                            .findFirst().filter(p -> p.passes(tokens));
+
+                    if (pattern.isPresent()) {
+                        best = pattern.get();
+                    }
+                }
+
+                // When there are no more entries the best pattern must be chosen
+                if (!tree.hasEntries()) {
+
+                    if (best == null) {
+                        throw new Exception("Syntax doesn't match any known patterns");
+                    }
+
+                    patterns.add(best);
+
+                    // Reset the pattern tree
+                    tree = Patterns.getRoot();
+                    tokens.clear();
+                    best = null;
+                }
+            }
+
+            if (!patterns.isEmpty()) {
+                Pattern pattern = patterns.stream().max(Comparator.comparingInt(Pattern::getWeight)).get();
+
+            }
+            else {
+                break; // There are no more patterns
+            }
+        }
+
 
         return instructions;
     }
