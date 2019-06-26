@@ -1,4 +1,4 @@
-package fi.quanfoxes.Parser.BackEnd;
+package fi.quanfoxes.Parser.BackEnd.Intel;
 
 import fi.quanfoxes.Lexer.Token;
 
