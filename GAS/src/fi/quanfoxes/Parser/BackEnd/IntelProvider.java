@@ -1,10 +1,15 @@
 package fi.quanfoxes.Parser.BackEnd;
 
+import fi.quanfoxes.Lexer.FunctionToken;
 import fi.quanfoxes.Lexer.NumberToken;
 import fi.quanfoxes.Lexer.Token;
 import fi.quanfoxes.Lexer.TokenType;
+import fi.quanfoxes.Parser.Instruction;
+import fi.quanfoxes.Parser.instructions.AddInstruction;
+import fi.quanfoxes.Parser.instructions.EnterIntegerAdditionMode;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class IntelProvider {
     public List<Variable> variables;
@@ -22,6 +27,27 @@ public class IntelProvider {
     public String Right_byteSize = " ";
     public String Right_Math = " ";
     public String Right_Number = " ";
+
+    public void a (List<Instruction> instructions) {
+
+        Stream<Integer> a;
+
+        while (instructions.avalable()) {
+            Instruction instruction = instructions.next();
+
+            if (instruction instanceof AddInstruction) {
+                AddInstruction add = (AddInstruction)instruction;
+
+                Token source = add.getSource();
+
+                if (source.getType() == TokenType.FUNCTION) {
+                    FunctionToken function = (FunctionToken)source;
+                    function.getParameters().
+                }
+            }
+        }
+
+    }
 
     public void Translator(List<Token> tokens)
     {

@@ -2,14 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0bfd17c1-c868-4d7c-a86f-86d34cfe97d9" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Instruction.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/AddInstruction.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/DivideInstruction.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/MultiplyInstruction.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/OperatorInstruction.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/SubtractInstruction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/KeywordDatabase.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/KeywordDatabase.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindVariableInstruction.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DefineLocalVariablePattern.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DefineLocalVariablePattern.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/UseVariablePattern.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/UseVariablePattern.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -26,34 +31,25 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/CreateLocalVariableInstruction.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="364">
-              <caret line="33" column="38" selection-start-line="33" selection-start-column="38" selection-end-line="33" selection-end-column="38" />
+            <state relative-caret-position="84">
+              <caret line="5" column="13" selection-start-line="5" selection-start-column="13" selection-end-line="5" selection-end-column="13" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#5168#5169#0" expanded="true" />
-                <element signature="e#5205#5206#0" expanded="true" />
+                <element signature="e#414#415#0" expanded="true" />
+                <element signature="e#445#446#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Instruction.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="42">
-              <caret line="2" column="24" selection-start-line="2" selection-start-column="24" selection-end-line="2" selection-end-column="24" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="306">
-              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
+            <state relative-caret-position="533">
+              <caret line="154" selection-start-line="154" selection-end-line="154" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -62,10 +58,13 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns.java">
+        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DefineLocalVariablePattern.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="986">
-              <caret line="29" selection-start-line="29" selection-end-line="29" />
+            <state relative-caret-position="399">
+              <caret line="27" column="23" selection-start-line="27" selection-start-column="23" selection-end-line="27" selection-end-column="23" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -73,8 +72,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="29" column="62" selection-start-line="29" selection-start-column="62" selection-end-line="29" selection-end-column="62" />
+            <state relative-caret-position="735">
+              <caret line="44" column="45" selection-start-line="44" selection-start-column="45" selection-end-line="44" selection-end-column="45" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -83,56 +82,13 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Intell_Backend.java">
+        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/OperatorInstruction.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-105">
-              <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Variable.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="42">
-              <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/KeywordDatabase.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="672">
-              <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+            <state relative-caret-position="315">
+              <caret line="18" column="16" selection-start-line="18" selection-start-column="16" selection-end-line="18" selection-end-column="16" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="408">
-              <caret line="12" column="5" lean-forward="true" selection-start-line="12" selection-start-column="5" selection-end-line="12" selection-end-column="5" />
-              <folding>
-                <element signature="imports" expanded="true" />
-                <element signature="e#223#224#0" expanded="true" />
-                <element signature="e#259#260#0" expanded="true" />
-                <element signature="e#315#316#0" expanded="true" />
-                <element signature="e#345#346#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/OperatorToken.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="525">
-              <caret line="29" column="35" selection-start-line="29" selection-start-column="35" selection-end-line="29" selection-end-column="35" />
             </state>
           </provider>
         </entry>
@@ -172,24 +128,41 @@
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/DataType.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Variables.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Intel_backend.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/KeywordDatabase.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/DataTypeDatabase.java" />
         <option value="$PROJECT_DIR$/src/Functions.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/DataTypeToken.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/FunctionToken.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/KeywordToken.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/NumberToken.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Token.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/NameToken.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/OperatorToken.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/OperatorType.java" />
-        <option value="$PROJECT_DIR$/src/tests/LexerTest.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/ContentToken.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java" />
-        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/NumberToken.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/OperatorToken.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/KeywordToken.java" />
+        <option value="$PROJECT_DIR$/src/tests/LexerTest.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns/CreateLocalVariablePattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/CreateLocalVariableInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindVariableInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/CreateLocalVariablePattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/InitializeLocalVariablePattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DeclareLocalVariablePattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/UseVariablePattern.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns.java" />
         <option value="$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DefineLocalVariablePattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/EnterIntegerAdditionMode.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/ComponentType.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/AddInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/SubtractInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/MultiplyInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/DivideInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/NumberComponent.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/Component.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/OperatorInstruction.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java" />
+        <option value="$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java" />
       </list>
     </option>
   </component>
@@ -200,10 +173,9 @@
     </treeState>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="260" />
-    <option name="y" value="52" />
-    <option name="width" value="1400" />
-    <option name="height" value="1000" />
+    <option name="y" value="25" />
+    <option name="width" value="960" />
+    <option name="height" value="1055" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -211,6 +183,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="PackagesPane" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -221,11 +194,6 @@
             <path>
               <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
               <item name="GAS" type="462c0819:PsiDirectoryNode" />
-              <item name=".idea" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GAS" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -233,40 +201,11 @@
               <item name="GAS" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="quanfoxes" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GAS" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="quanfoxes" type="462c0819:PsiDirectoryNode" />
-              <item name="Lexer" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GAS" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="quanfoxes" type="462c0819:PsiDirectoryNode" />
-              <item name="Parser" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GAS" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="quanfoxes" type="462c0819:PsiDirectoryNode" />
-              <item name="Parser" type="462c0819:PsiDirectoryNode" />
-              <item name="BackEnd" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="GAS" type="b2602c69:ProjectViewProjectNode" />
-              <item name="GAS" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
-              <item name="tests" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
       <pane id="Scope" />
     </panes>
   </component>
@@ -277,13 +216,14 @@
     <property name="Repository.Attach.Sources" value="false" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="project.structure.last.edited" value="Libraries" />
+    <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RecentsManager">
     <key name="CreateClassDialog.RecentsKey">
+      <recent name="fi.quanfoxes.Parser.instructions" />
       <recent name="fi.quanfoxes.Lexer" />
       <recent name="fi.quanfoxes" />
     </key>
@@ -322,6 +262,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="LexerTest.tokenArea_operatorAndContent" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="GAS" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="tests.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="" />
+      <option name="MAIN_CLASS_NAME" value="tests.LexerTest" />
+      <option name="METHOD_NAME" value="tokenArea_operatorAndContent" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="LexerTest.tokens_advanced_if" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="GAS" />
       <extension name="coverage">
@@ -354,22 +310,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="LexerTest.tokens_loop" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="GAS" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="tests.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="" />
-      <option name="MAIN_CLASS_NAME" value="tests.LexerTest" />
-      <option name="METHOD_NAME" value="tokens_loop" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="LexerTest.tokens_math_functions" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="GAS" />
       <extension name="coverage">
@@ -389,10 +329,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="JUnit.LexerTest" />
+        <item itemvalue="JUnit.LexerTest.tokenArea_operatorAndContent" />
         <item itemvalue="JUnit.LexerTest.tokens_advanced_if" />
         <item itemvalue="JUnit.LexerTest.tokens_math_functions" />
         <item itemvalue="JUnit.LexerTest.tokens_if" />
-        <item itemvalue="JUnit.LexerTest.tokens_loop" />
       </list>
     </recent_temporary>
   </component>
@@ -410,41 +350,41 @@
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="LexerTest_tokens_advanced_if - 2019.06.16 at 16h 56m 27s.xml">
-      <configuration name="LexerTest.tokens_advanced_if" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest_tokens_advanced_if - 2019.06.16 at 16h 56m 55s.xml">
-      <configuration name="LexerTest.tokens_advanced_if" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 00m 47s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 01m 36s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 02m 29s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 02m 39s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 04m 43s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="LexerTest - 2019.06.16 at 17h 05m 13s.xml">
-      <configuration name="LexerTest" configurationId="JUnit" />
-    </history-entry>
     <history-entry file="LexerTest - 2019.06.16 at 17h 05m 27s.xml">
       <configuration name="LexerTest" configurationId="JUnit" />
     </history-entry>
     <history-entry file="LexerTest - 2019.06.16 at 17h 05m 46s.xml">
       <configuration name="LexerTest" configurationId="JUnit" />
     </history-entry>
+    <history-entry file="LexerTest - 2019.06.19 at 11h 11m 57s.xml">
+      <configuration name="LexerTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest - 2019.06.19 at 11h 12m 35s.xml">
+      <configuration name="LexerTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest - 2019.06.19 at 17h 45m 38s.xml">
+      <configuration name="LexerTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest_tokenArea_operatorAndContent - 2019.06.19 at 17h 48m 50s.xml">
+      <configuration name="LexerTest.tokenArea_operatorAndContent" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest_tokenArea_operatorAndContent - 2019.06.19 at 17h 49m 57s.xml">
+      <configuration name="LexerTest.tokenArea_operatorAndContent" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest_tokenArea_operatorAndContent - 2019.06.19 at 17h 51m 39s.xml">
+      <configuration name="LexerTest.tokenArea_operatorAndContent" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest - 2019.06.19 at 17h 56m 47s.xml">
+      <configuration name="LexerTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="LexerTest - 2019.06.19 at 17h 57m 41s.xml">
+      <configuration name="LexerTest" configurationId="JUnit" />
+    </history-entry>
   </component>
   <component name="ToolWindowManager">
     <frame x="-1" y="25" width="1922" height="1060" extended-state="6" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.291889" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.29242262" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
@@ -454,12 +394,12 @@
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" weight="0.032608695" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.3347826" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.34021738" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Floobits" order="7" />
-      <window_info anchor="bottom" id="Terminal" order="8" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="8" visible="true" weight="0.032608695" />
       <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
       <window_info anchor="bottom" id="Version Control" order="10" />
       <window_info anchor="bottom" id="Messages" order="11" weight="0.35326087" />
@@ -479,9 +419,9 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/tests/LexerTest.java</url>
-          <line>246</line>
+          <line>70</line>
           <properties />
-          <option name="timeStamp" value="2" />
+          <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -510,75 +450,6 @@
     </SUITE>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/OpCode.java" />
-    <entry file="jar://$MAVEN_REPOSITORY$/org/junit/jupiter/junit-jupiter-api/5.5.0-RC1/junit-jupiter-api-5.5.0-RC1.jar!/org/junit/jupiter/api/Assertions.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1176">
-          <caret line="56" column="33" selection-start-line="56" selection-start-column="23" selection-end-line="56" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Main.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="594">
-          <caret line="39" selection-start-line="39" selection-end-line="39" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/GAS.iml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="462">
-          <caret line="22" column="9" lean-forward="true" selection-start-line="22" selection-start-column="9" selection-end-line="22" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/lang/Number.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="126">
-          <caret line="9" column="22" selection-start-line="9" selection-start-column="22" selection-end-line="9" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/Optional.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="123">
-          <caret line="40" selection-start-line="40" selection-end-line="40" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Intell_BackEnd.java" />
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Keyword.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="273">
-          <caret line="15" column="13" lean-forward="true" selection-start-line="15" selection-start-column="13" selection-end-line="15" selection-end-column="13" />
-          <folding>
-            <element signature="e#167#168#0" expanded="true" />
-            <element signature="e#194#195#0" expanded="true" />
-            <element signature="e#500#501#0" expanded="true" />
-            <element signature="e#541#542#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/DataType.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="273">
-          <caret line="13" column="5" lean-forward="true" selection-start-line="13" selection-start-column="5" selection-end-line="13" selection-end-column="5" />
-          <folding>
-            <element signature="e#106#107#0" expanded="true" />
-            <element signature="e#138#139#0" expanded="true" />
-            <element signature="e#169#170#0" expanded="true" />
-            <element signature="e#196#197#0" expanded="true" />
-            <element signature="e#507#508#0" expanded="true" />
-            <element signature="e#548#549#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Variables.java" />
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/StackMemoryLocation.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="42">
@@ -608,27 +479,7 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Intel_backend.java" />
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/MemoryLocation.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="42">
-          <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/org/junit/platform/junit-platform-commons/1.5.0-RC1/junit-platform-commons-1.5.0-RC1.jar!/org/junit/platform/commons/util/ReflectionUtils.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="356" selection-start-line="356" selection-end-line="356" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/stream/Stream.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="293">
-          <caret line="62" column="22" selection-start-line="62" selection-start-column="22" selection-end-line="62" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar://$MAVEN_REPOSITORY$/org/junit/platform/junit-platform-commons/1.5.0-RC1/junit-platform-commons-1.5.0-RC1.jar!/org/junit/platform/commons/util/ReflectionUtils.class" />
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/DataTypeDatabase.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="189">
@@ -657,13 +508,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/lang/Enum.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="67" selection-start-line="67" selection-end-line="67" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/lang/Enum.class" />
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/TokenType.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="147">
@@ -706,26 +551,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/tests/LexerTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3906">
-          <caret line="196" column="47" selection-start-line="196" selection-start-column="47" selection-end-line="196" selection-end-column="47" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/KeywordToken.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="12" column="27" selection-start-line="12" selection-start-column="27" selection-end-line="12" selection-end-column="27" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/FunctionToken.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="252">
@@ -733,86 +558,76 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/NumberToken.java">
+    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/TreeMap.class" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/ContentToken.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1197">
-          <caret line="59" selection-start-line="59" selection-end-line="59" />
+        <state relative-caret-position="189">
+          <caret line="9" column="18" lean-forward="true" selection-start-line="9" selection-start-column="18" selection-end-line="9" selection-end-column="18" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/ContentToken.java">
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/NumberToken.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1155">
-          <caret line="55" selection-start-line="55" selection-end-line="55" />
+        <state relative-caret-position="84">
+          <caret line="13" column="7" selection-start-line="13" selection-start-column="7" selection-end-line="13" selection-end-column="7" />
+          <folding>
+            <element signature="e#1538#1539#0" expanded="true" />
+            <element signature="e#1567#1568#0" expanded="true" />
+            <element signature="e#1609#1610#0" expanded="true" />
+            <element signature="e#1642#1643#0" expanded="true" />
+            <element signature="e#1675#1676#0" expanded="true" />
+            <element signature="e#1702#1703#0" expanded="true" />
+            <element signature="e#2588#2589#0" expanded="true" />
+            <element signature="e#2667#2668#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/KeywordToken.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="252">
+          <caret line="12" column="38" selection-start-line="12" selection-start-column="38" selection-end-line="12" selection-end-column="38" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/Stack.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="22">
+          <caret line="10" column="11" selection-start-line="10" selection-start-column="11" selection-end-line="10" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/Vector.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="304">
+          <caret line="401" column="18" selection-start-line="401" selection-start-column="18" selection-end-line="401" selection-end-column="18" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/OperatorToken.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="525">
-          <caret line="29" column="35" selection-start-line="29" selection-start-column="35" selection-end-line="29" selection-end-column="35" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/TreeMap.class">
-      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="273">
-          <caret line="310" column="47" lean-forward="true" selection-start-line="310" selection-start-column="47" selection-end-line="310" selection-end-column="47" />
+          <caret line="13" column="45" lean-forward="true" selection-start-line="13" selection-start-column="45" selection-end-line="13" selection-end-column="45" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Instruction.java">
+    <entry file="jrt:///usr/lib/jvm/java-1.11.0-openjdk-amd64!/java.base/java/util/stream/Stream.class">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="42">
-          <caret line="2" column="24" selection-start-line="2" selection-start-column="24" selection-end-line="2" selection-end-column="24" />
+        <state relative-caret-position="283">
+          <caret line="96" column="12" selection-start-line="96" selection-start-column="12" selection-end-line="96" selection-end-column="12" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/KeywordDatabase.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="672">
-          <caret line="34" lean-forward="true" selection-start-line="34" selection-end-line="34" />
+          <caret line="34" selection-start-line="34" selection-end-line="34" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="306">
-          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="12" column="5" lean-forward="true" selection-start-line="12" selection-start-column="5" selection-end-line="12" selection-end-column="5" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#223#224#0" expanded="true" />
-            <element signature="e#259#260#0" expanded="true" />
-            <element signature="e#315#316#0" expanded="true" />
-            <element signature="e#345#346#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="986">
-          <caret line="29" selection-start-line="29" selection-end-line="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Intell_Backend.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-105">
-          <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
         </state>
       </provider>
     </entry>
@@ -823,24 +638,194 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java">
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Instruction.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="29" column="62" selection-start-line="29" selection-start-column="62" selection-end-line="29" selection-end-column="62" />
+        <state relative-caret-position="42">
+          <caret line="2" column="24" selection-start-line="2" selection-start-column="24" selection-end-line="2" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/tests/LexerTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-580">
+          <caret line="200" selection-start-line="200" selection-end-line="200" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java">
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/UseVariablePattern.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="364">
-          <caret line="33" column="38" selection-start-line="33" selection-start-column="38" selection-end-line="33" selection-end-column="38" />
+        <state relative-caret-position="84">
+          <caret line="12" column="13" selection-start-line="12" selection-start-column="13" selection-end-line="12" selection-end-column="13" />
           <folding>
             <element signature="imports" expanded="true" />
-            <element signature="e#5168#5169#0" expanded="true" />
-            <element signature="e#5205#5206#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/MemoryLocation.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="42">
+          <caret line="2" column="13" selection-start-line="2" selection-start-column="13" selection-end-line="2" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Lexer/Lexer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="113">
+          <caret line="213" lean-forward="true" selection-start-line="213" selection-end-line="213" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DeclareLocalVariablePattern.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="231">
+          <caret line="11" column="40" lean-forward="true" selection-start-line="11" selection-start-column="40" selection-end-line="11" selection-end-column="40" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#371#372#0" expanded="true" />
+            <element signature="e#429#430#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindVariable.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindNumber.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindFunction.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/Intell_Backend.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-139">
+          <caret line="6" column="13" selection-start-line="6" selection-start-column="13" selection-end-line="6" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/ComponentType.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/BindVariableInstruction.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/DivideInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="63">
+          <caret line="3" column="4" selection-start-line="3" selection-start-column="4" selection-end-line="3" selection-end-column="4" />
+          <folding>
+            <element signature="e#174#175#0" expanded="true" />
+            <element signature="e#216#217#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/MultiplyInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="63">
+          <caret line="3" column="4" selection-start-line="3" selection-start-column="4" selection-end-line="3" selection-end-column="4" />
+          <folding>
+            <element signature="e#178#179#0" expanded="true" />
+            <element signature="e#220#221#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/SubtractInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="42">
+          <caret line="2" column="62" selection-start-line="2" selection-start-column="62" selection-end-line="2" selection-end-column="62" />
+          <folding>
+            <element signature="e#179#180#0" expanded="true" />
+            <element signature="e#221#222#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/AddInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="21">
+          <caret line="1" selection-start-line="1" selection-end-line="1" />
+          <folding>
+            <element signature="e#209#210#0" expanded="true" />
+            <element signature="e#251#252#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/Component.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/NumberComponent.java" />
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Pattern.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="399">
+          <caret line="21" column="22" selection-start-line="21" selection-start-column="22" selection-end-line="21" selection-end-column="22" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#367#368#0" expanded="true" />
+            <element signature="e#403#404#0" expanded="true" />
+            <element signature="e#437#438#0" expanded="true" />
+            <element signature="e#466#467#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Patterns.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="302">
+          <caret line="66" column="20" selection-start-line="66" selection-start-column="20" selection-end-line="66" selection-end-column="20" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#1610#1611#0" expanded="true" />
+            <element signature="e#1650#1651#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/CreateLocalVariableInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="84">
+          <caret line="5" column="13" selection-start-line="5" selection-start-column="13" selection-end-line="5" selection-end-column="13" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#414#415#0" expanded="true" />
+            <element signature="e#445#446#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/patterns/DefineLocalVariablePattern.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="399">
+          <caret line="27" column="23" selection-start-line="27" selection-start-column="23" selection-end-line="27" selection-end-column="23" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/BackEnd/IntelProvider.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="735">
+          <caret line="44" column="45" selection-start-line="44" selection-start-column="45" selection-end-line="44" selection-end-column="45" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/instructions/OperatorInstruction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="315">
+          <caret line="18" column="16" selection-start-line="18" selection-start-column="16" selection-end-line="18" selection-end-column="16" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/fi/quanfoxes/Parser/Parser.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="533">
+          <caret line="154" selection-start-line="154" selection-end-line="154" />
+          <folding>
+            <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -902,6 +887,17 @@
               <list>
                 <option value="0.2" />
                 <option value="0.6" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="ProjectJDKs.UI">
+        <settings>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
               </list>
             </option>
           </splitter-proportions>
