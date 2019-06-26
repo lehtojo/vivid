@@ -12,11 +12,11 @@ public class OperatorInstruction extends Instruction {
         this.destination = destination;
     }
 
-    public Token getSource() {
+    public Token getLeft() {
         return source;
     }
 
-    public Token getDestination() {
+    public Token getRigth() {
         return destination;
     }
 }
