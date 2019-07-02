@@ -3,14 +3,24 @@ package fi.quanfoxes;
 import java.util.Objects;
 
 public class Keyword {
-    private String name;
+    private KeywordType type;
+    private String identifier;
 
-    public Keyword(String name) {
-        this.name = name;
+    public Keyword(String identifier) {
+        this(KeywordType.NORMAL, identifier);
     }
 
-    public String getName() {
-        return name;
+    public Keyword(KeywordType type, String identifier) {
+        this.type = type;
+        this.identifier = identifier;
+    }
+
+    public KeywordType getType() {
+        return type;
+    }
+
+    public String getIdentifier() {
+        return identifier;
     }
 
     @Override
@@ -18,11 +28,12 @@ public class Keyword {
         if (this == o) return true;
         if (!(o instanceof Keyword)) return false;
         Keyword keyword = (Keyword) o;
-        return Objects.equals(name, keyword.name);
+        return Objects.equals(type, keyword.type) &&
+               Objects.equals(identifier, keyword.identifier);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(identifier, type);
     }
 }

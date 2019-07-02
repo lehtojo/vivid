@@ -3,14 +3,10 @@ package fi.quanfoxes.Lexer;
 import java.util.*;
 
 public class ContentToken extends Token {
-    private List<ContentToken> sections = new ArrayList<>();
-    private List<Token> tokens;
+    private ArrayList<ContentToken> sections = new ArrayList<>();
+    private ArrayList<Token> tokens = new ArrayList<>();
 
-    public ContentToken(final Lexer.TokenArea area) throws Exception {
-        this(area.text);
-    }
-
-    private boolean isComma (final Token token) {
+    private boolean isComma (Token token) {
         return token.getType() == TokenType.OPERATOR && ((OperatorToken)token).getOperator() == OperatorType.COMMA;
     }
 
@@ -28,7 +24,7 @@ public class ContentToken extends Token {
         return indices;
     }
 
-    public ContentToken(final String text) throws Exception {
+    public ContentToken(String text) throws Exception {
         super(TokenType.CONTENT);
 
         // Make sure there is content
@@ -36,9 +32,9 @@ public class ContentToken extends Token {
 
             sections = new ArrayList<>();
 
-            final String content = text.substring(1, text.length() - 1);
-            final List<Token> tokens = Lexer.getTokens(content);
-            final Stack<Integer> sections = findSections(tokens);
+            String content = text.substring(1, text.length() - 1);
+            ArrayList<Token> tokens = Lexer.getTokens(content);
+            Stack<Integer> sections = findSections(tokens);
 
             if (sections.empty()) {
                 this.tokens = tokens;
@@ -53,7 +49,7 @@ public class ContentToken extends Token {
             while (!sections.empty()) {
                 end = sections.pop();
 
-                final List<Token> section = tokens.subList(position, end);
+                List<Token> section = tokens.subList(position, end);
 
                 if (section.isEmpty()) {
                     throw new Exception("Parameter cannot be empty");
@@ -68,28 +64,28 @@ public class ContentToken extends Token {
 
     public ContentToken(List<Token> tokens) {
         super(TokenType.CONTENT);
-        this.tokens = tokens;
+        this.tokens = new ArrayList<>(tokens);
     }
 
     public ContentToken(Token... tokens) {
         super(TokenType.CONTENT);
-        this.tokens = Arrays.asList(tokens);
+        this.tokens = new ArrayList<>(Arrays.asList(tokens));
     }
 
     public ContentToken(ContentToken... sections) {
         super(TokenType.CONTENT);
-        this.sections = Arrays.asList(sections);
+        this.sections = new ArrayList<>(Arrays.asList(sections));
     }
 
     public boolean hasSections() {
         return !sections.isEmpty();
     }
 
-    public List<Token> getTokens() {
+    public ArrayList<Token> getTokens() {
         return hasSections() ? sections.get(0).getTokens() : tokens;
     }
 
-    public List<Token> getTokens(int section) {
+    public ArrayList<Token> getTokens(int section) {
         return sections.get(section).getTokens();
     }
 
@@ -104,7 +100,7 @@ public class ContentToken extends Token {
     @Override
     public String getText() {
         if (hasSections()) {
-            final StringBuilder builder = new StringBuilder("(");
+            StringBuilder builder = new StringBuilder("(");
 
             for (int i = 0; i < sections.size() - 1; i++) {
                 builder.append(sections.get(i).getText()).append(", ");

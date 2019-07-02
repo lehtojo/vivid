@@ -2,19 +2,15 @@ package fi.quanfoxes.Lexer;
 
 import java.util.Objects;
 
-public class NameToken extends Token {
+public class IdentifierToken extends Token {
     private String name;
 
-    public NameToken(Lexer.TokenArea area) {
-        this(area.text);
-    }
-
-    public NameToken(String name) {
-        super(TokenType.NAME);
+    public IdentifierToken(String name) {
+        super(TokenType.IDENTIFIER);
         this.name = name;
     }
 
-    public String getName () {
+    public String getIdentifier() {
         return name;
     }
 
@@ -26,9 +22,9 @@ public class NameToken extends Token {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof NameToken)) return false;
+        if (!(o instanceof IdentifierToken)) return false;
         if (!super.equals(o)) return false;
-        NameToken nameToken = (NameToken) o;
+        IdentifierToken nameToken = (IdentifierToken) o;
         return Objects.equals(name, nameToken.name);
     }
 

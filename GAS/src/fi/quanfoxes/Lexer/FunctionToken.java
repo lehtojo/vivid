@@ -3,10 +3,10 @@ package fi.quanfoxes.Lexer;
 import java.util.Objects;
 
 public class FunctionToken extends Token {
-    private NameToken name;
+    private IdentifierToken name;
     private ContentToken parameters;
 
-    public FunctionToken(NameToken name, ContentToken parameters) {
+    public FunctionToken(IdentifierToken name, ContentToken parameters) {
         super(TokenType.FUNCTION);
 
         this.name = name;
@@ -14,7 +14,7 @@ public class FunctionToken extends Token {
     }
 
     public String getName() {
-        return name.getName();
+        return name.getIdentifier();
     }
 
     public ContentToken getParameters() {

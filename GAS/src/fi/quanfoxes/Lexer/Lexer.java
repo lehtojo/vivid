@@ -1,10 +1,8 @@
 package fi.quanfoxes.Lexer;
 
-import fi.quanfoxes.DataTypeDatabase;
-import fi.quanfoxes.KeywordDatabase;
+import fi.quanfoxes.Keywords;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Lexer {
 
@@ -42,7 +40,7 @@ public class Lexer {
     }
 
     private static boolean isContent (char c) {
-        return OPENING_PARENTHESIS.indexOf(c) > 0;
+        return OPENING_PARENTHESIS.indexOf(c) >= 0;
     }
 
     private static TextType getType (char c) {
@@ -161,14 +159,15 @@ public class Lexer {
     }
 
     private static Token parseTextToken (final String text) {
-        if (DataTypeDatabase.exists(text)) {
-            return new DataTypeToken(text);
+
+        if (OperatorType.has(text)) {
+            return new OperatorToken(text);
         }
-        else if (KeywordDatabase.exists(text)) {
+        else if (Keywords.exists(text)) {
             return new KeywordToken(text);
         }
         else {
-            return new NameToken(text);
+            return new IdentifierToken(text);
         }
     }
 
@@ -187,54 +186,20 @@ public class Lexer {
         }
     }
 
-    private static void scanFunctions (List<Token> tokens) {
-        if (tokens.size() < 2) {
-            return;
-        }
+    public static ArrayList<Token> getTokens (String section) throws Exception {
+        section = section.trim();
 
-        for (int i = tokens.size() - 2; i >= 0; i--) {
-            final Token current = tokens.get(i);
-
-            if (current.getType() == TokenType.NAME) {
-                final Token next = tokens.get(i + 1);
-
-                if (next.getType() == TokenType.CONTENT) {
-                    final Token function = new FunctionToken((NameToken)current,
-                                                            (ContentToken) next);
-                    tokens.set(i, function);
-                    tokens.remove(i + 1);
-
-                    // TODO: Function cannot be produced next since now created token isn't content
-                }
-            }
-        }
-    }
-
-    private static void reduceMath(List<Token> tokens) {
-
-    }
-
-    private static void postProcess (List<Token> tokens) {
-        scanFunctions(tokens);
-        reduceMath(tokens);
-    }
-
-    public static List<Token> getTokens (String line) throws Exception {
-        line = line.trim();
-
-        final List<Token> tokens = new ArrayList<>();
+        ArrayList<Token> tokens = new ArrayList<>();
         int position = 0;
 
-        while (position != line.length()) {
-            final TokenArea area = getNextTokenArea(line, position);
+        while (position != section.length()) {
+            TokenArea area = getNextTokenArea(section, position);
 
-            final Token token = parseToken(area);
+            Token token = parseToken(area);
             tokens.add(token);
 
             position = area.end;
         }
-
-        postProcess(tokens);
 
         return tokens;
     }

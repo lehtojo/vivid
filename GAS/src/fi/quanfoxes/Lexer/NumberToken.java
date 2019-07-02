@@ -7,12 +7,6 @@ public class NumberToken extends Token {
     private NumberType numberType;
     private int bits;
 
-    /*public NumberToken(Lexer.TokenArea area) {
-        super(TokenType.NUMBER);
-        number = Long.parseLong(area.text);
-        calculateBitCount();
-    }*/
-
     public NumberToken(String text) {
         super(TokenType.NUMBER);
         number = Long.parseLong(text);
@@ -23,16 +17,16 @@ public class NumberToken extends Token {
         bits = (int)(Math.log(Long.highestOneBit(number)) / Math.log(2)) + 1;
 
         if (bits <= 8) {
-            numberType = NumberType.BYTE;
+            numberType = NumberType.UINT8;
         }
         else if (bits <= 16) {
-            numberType = NumberType.SHORT;
+            numberType = NumberType.UINT16;
         }
         else if (bits <= 32) {
-            numberType = NumberType.INT;
+            numberType = NumberType.UINT32;
         }
         else if (bits <= 64) {
-            numberType = NumberType.LONG;
+            numberType = NumberType.UINT64;
         }
     }
 
@@ -75,13 +69,13 @@ public class NumberToken extends Token {
     @Override
     public String getText() {
         switch (numberType) {
-            case BYTE:
+            case UINT8:
                 return String.valueOf(number.byteValue());
-            case SHORT:
+            case INT16:
                 return String.valueOf(number.shortValue());
-            case INT:
+            case INT32:
                 return String.valueOf(number.intValue());
-            case LONG:
+            case INT64:
                 return String.valueOf(number.longValue());
             default:
                 return "";

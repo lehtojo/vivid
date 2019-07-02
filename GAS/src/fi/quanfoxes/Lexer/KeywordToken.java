@@ -1,7 +1,7 @@
 package fi.quanfoxes.Lexer;
 
 import fi.quanfoxes.Keyword;
-import fi.quanfoxes.KeywordDatabase;
+import fi.quanfoxes.Keywords;
 
 import java.util.Objects;
 
@@ -10,10 +10,10 @@ public class KeywordToken extends Token {
 
     public KeywordToken(final String text) {
         super(TokenType.KEYWORD);
-        keyword = KeywordDatabase.get(text);
+        keyword = Keywords.get(text);
     }
 
-    public KeywordToken(Keyword keyword) {
+    public KeywordToken(final Keyword keyword) {
         super(TokenType.KEYWORD);
         this.keyword = keyword;
     }
@@ -24,7 +24,7 @@ public class KeywordToken extends Token {
 
     @Override
     public String getText() {
-        return keyword.getName();
+        return keyword.getIdentifier();
     }
 
     @Override

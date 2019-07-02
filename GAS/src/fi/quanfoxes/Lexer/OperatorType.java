@@ -1,55 +1,80 @@
 package fi.quanfoxes.Lexer;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public enum OperatorType{
-    ADD("+"),
-    SUBTRACT("-"),
-    MULTIPLY("*"),
-    DIVIDE("/"),
-    MODULUS("%"),
-    GREATER_THAN(">"),
-    GREATER_OR_EQUAL(">="),
-    LESS_THAN("<"),
-    LESS_OR_EQUAL("<="),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
-    AND("&&"),
-    OR("||"),
-    BITWISE_AND("&"),
-    BITWISE_OR("|"),
-    BITWISE_XOR("^"),
-    NOT("!"),
-    ASSIGN_ADD("+="),
-    ASSIGN_SUBTRACT("-="),
-    ASSIGN_MULTIPLY("*="),
-    ASSIGN_DIVIDE("/="),
-    ASSIGN_MODULUS("%="),
-    ASSIGN_AND("&="),
-    ASSIGN_OR("|="),
-    ASSIGN_XOR("^="),
-    ASSIGN("="),
-    COMMA(",");
+    DOT(".", 20),
 
-    private String text;
-    private static Map map = new HashMap<>();
+    // Priority -1: Increment and decrement operators are processed independently
+    INCREMENT("++", -1),
+    DECREMENT("--", -1),
 
-    OperatorType(String text) {
-        this.text = text;
+    POWER("^", 15),
+
+    MULTIPLY("*", 12),
+    DIVIDE("/", 12),
+    MODULUS("%", 12),
+
+    ADD("+", 11),
+    SUBTRACT("-", 11),
+
+    SHIFT_LEFT("<<", 10),
+    SHIFT_RIGHT(">>", 10),
+
+    GREATER_THAN(">", 9),
+    GREATER_OR_EQUAL(">=", 9),
+    LESS_THAN("<", 9),
+    LESS_OR_EQUAL("<=", 9),
+
+    EQUALS("==", 8),
+    NOT_EQUALS("!=", 8),
+
+    BITWISE_AND("and", 7),
+    BITWISE_XOR("xor", 6),
+    BITWISE_OR("or", 5),
+    AND("&&", 4),
+    OR("||", 3),
+
+    ASSIGN("=", 1),
+    ASSIGN_POWER("^=", 1),
+    ASSIGN_ADD("+=", 1),
+    ASSIGN_SUBTRACT("-=", 1),
+    ASSIGN_MULTIPLY("*=", 1),
+    ASSIGN_DIVIDE("/=", 1),
+    ASSIGN_OR("|=", 1),
+
+    // Priority -1: Comma operator is processed independently
+    COMMA(",", -1);
+
+    private String identifier;
+    private int priority;
+
+    private static HashMap<String, OperatorType> map = new HashMap<>();
+
+    OperatorType(String text, int priority) {
+        this.identifier = text;
+        this.priority = priority;
     }
 
     static {
         for (OperatorType operator : OperatorType.values()) {
-            map.put(operator.text, operator);
+            map.put(operator.identifier, operator);
         }
     }
 
     public static OperatorType get(String text) {
-        return (OperatorType) map.get(text);
+        return map.get(text);
     }
 
-    public String getText() {
-        return text;
+    public static boolean has(String text) {
+        return map.containsKey(text);
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public String getIdentifier() {
+        return identifier;
     }
 }

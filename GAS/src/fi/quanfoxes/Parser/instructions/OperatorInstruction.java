@@ -4,19 +4,19 @@ import fi.quanfoxes.Lexer.Token;
 import fi.quanfoxes.Parser.Instruction;
 
 public class OperatorInstruction extends Instruction {
-    private Token source;
-    private Token destination;
+    private Token left;
+    private Token right;
 
-    public OperatorInstruction(Token source, Token destination) {
-        this.source = source;
-        this.destination = destination;
+    public OperatorInstruction(Token left, Token right) {
+        this.left = left;
+        this.right = right;
     }
 
     public Token getLeft() {
-        return source;
+        return left;
     }
 
-    public Token getRigth() {
-        return destination;
+    public Token getRight() {
+        return right;
     }
 }

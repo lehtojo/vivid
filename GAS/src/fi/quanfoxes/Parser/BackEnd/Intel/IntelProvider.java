@@ -1,6 +1,6 @@
 package fi.quanfoxes.Parser.BackEnd.Intel;
 
-import fi.quanfoxes.Lexer.NameToken;
+import fi.quanfoxes.Lexer.IdentifierToken;
 import fi.quanfoxes.Lexer.NumberToken;
 import fi.quanfoxes.Lexer.TokenType;
 import fi.quanfoxes.Parser.Instruction;
@@ -56,18 +56,18 @@ public class IntelProvider {
             Instruction present = instructions.get(i);
 
             if (present instanceof CreateLocalVariableInstruction) {
-                CreateLocalVariableInstruction local = (CreateLocalVariableInstruction)present;
+                //CreateLocalVariableInstruction local = (CreateLocalVariableInstruction)present;
 
-                if (Variables.containsKey(local.getName()))
-                {
-                    throw new Exception("Local variable already exists");
-                }
+                //if (Variables.containsKey(local.getName()))
+                //{
+                //    throw new Exception("Local variable already exists");
+                //}
 
-                Variable variable = new Variable();
-                variable.name = local.getName();
-                variable.offset = 0;
-                variable.value = 0;
-                Variables.put(local.getName(), variable);
+                //Variable variable = new Variable();
+                //variable.name = local.getName();
+                //variable.offset = 0;
+                //variable.value = 0;
+                //Variables.put(local.getName(), variable);
             }
 
             if (present instanceof AddInstruction) {
@@ -76,9 +76,9 @@ public class IntelProvider {
                     NumberToken source = (NumberToken) addInstruction.getLeft();
                     Source = source.getNumber().toString();
                 }
-                if (addInstruction.getLeft().getType() == TokenType.NAME) {
-                    NameToken source = (NameToken) addInstruction.getLeft();
-                    Variable var = Variables.get(source.getName());
+                if (addInstruction.getLeft().getType() == TokenType.IDENTIFIER) {
+                    IdentifierToken source = (IdentifierToken) addInstruction.getLeft();
+                    Variable var = Variables.get(source.getIdentifier());
                     int offset = var.offset;
                     Right_immediate = true;
                     Source = "ebp";
@@ -86,8 +86,8 @@ public class IntelProvider {
                     Right_Number = String.valueOf(offset);
                     Right_byteSize = "dword";
                 }
-                if (addInstruction.getRigth().getType() == TokenType.NUMBER) {
-                    NumberToken source = (NumberToken) addInstruction.getRigth();
+                if (addInstruction.getRight().getType() == TokenType.NUMBER) {
+                    NumberToken source = (NumberToken) addInstruction.getRight();
                     Destination = source.getNumber().toString();
                     opcode = "mov";
                     Source = Destination;
@@ -117,9 +117,9 @@ public class IntelProvider {
                     output.write(result);
                     output.newLine();
                 }
-                if (addInstruction.getRigth().getType() == TokenType.NAME) {
-                    NameToken destination = (NameToken) addInstruction.getRigth();
-                    Variable var = Variables.get(destination.getName());
+                if (addInstruction.getRight().getType() == TokenType.IDENTIFIER) {
+                    IdentifierToken destination = (IdentifierToken) addInstruction.getRight();
+                    Variable var = Variables.get(destination.getIdentifier());
                     int offset = var.offset;
                     Left_immediate = true;
                     Destination = "ebp";

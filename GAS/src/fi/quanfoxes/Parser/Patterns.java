@@ -1,95 +1,79 @@
 package fi.quanfoxes.Parser;
 
-/*
-
-num a
-num a = 9 * b
-num b = a + (6 * c)
-num c = apple()
-
-if (a > b)
-
-[DataType][Name] -> Reserve variable & Set active
-[Name] -> Set active
-[Operator]:
-    [Assign] -> Enter assign mode -> Override active as destination
-    [Add] -> Enter result mode -> Override active as source
-    [Boolean operator] Enter compare mode -> Override active as source
-
-[Number/Content]
-
-[Keyword]
-
-
-
- */
-
+import fi.quanfoxes.Lexer.Flag;
 import fi.quanfoxes.Lexer.TokenType;
-import fi.quanfoxes.Parser.patterns.DeclareLocalVariablePattern;
-import fi.quanfoxes.Parser.patterns.DefineLocalVariablePattern;
-import fi.quanfoxes.Parser.patterns.UseVariablePattern;
+import fi.quanfoxes.Parser.patterns.*;
 
 import java.util.*;
 
 public class Patterns {
-    private Map<TokenType, Patterns> entries = new HashMap<>();
-    private List<Pattern> patterns = new ArrayList<>();
+    private HashMap<Integer, Patterns> branches = new HashMap<>();
+    private ArrayList<Pattern> leaves = new ArrayList<>();
 
-    private void build(final Pattern pattern, final Stack<TokenType> path) {
-        if (path.empty()) {
-            patterns.add(pattern);
+    private Patterns getOrGrowBranch(int branch) {
+        if (branches.containsKey(branch)) {
+            return branches.get(branch);
+        }
+        else {
+            Patterns patterns = new Patterns();
+            branches.put(branch, patterns);
+            return patterns;
+        }
+    }
+
+    private void grow(Pattern pattern, ArrayList<Integer> path) {
+        if (path.isEmpty()) {
+            leaves.add(pattern);
             return;
         }
 
-        final TokenType node = path.pop();
+        int mask = path.remove(0);
 
-        if (entries.containsKey(node)) {
-            entries.get(node).build(pattern, path);
+        for (int i = 0; i < TokenType.COUNT; i++) {
+            int type = 1 << i;
+
+            if (Flag.has(mask, type)) {
+                Patterns branch = getOrGrowBranch(type);
+                branch.grow(pattern, new ArrayList<>(path));
+            }
         }
-        else {
-            final Patterns patterns = new Patterns();
-            patterns.build(pattern, path);
-            entries.put(node, patterns);
+    }
+
+    public Patterns navigate(final int type) {
+        if (branches.containsKey(type)) {
+            return branches.get(type);
         }
+
+        return null;
     }
 
-    private void build(final Pattern pattern) {
-        final Stack<TokenType> path = new Stack<>();
-
-        final List<TokenType> nodes = pattern.getPath();
-        Collections.reverse(nodes);
-
-        path.addAll(nodes);
-
-        build(pattern, path);
+    public List<Pattern> getLeaves() {
+        return leaves;
     }
 
-    public Patterns filter(final TokenType type) {
-        return entries.get(type);
+    public boolean hasBranches() { return !branches.isEmpty(); }
+    public boolean hasLeaves() {
+        return !leaves.isEmpty();
     }
 
-    public List<Pattern> getPatterns() {
-        return patterns;
-    }
-
-    public boolean hasEntries() { return !entries.isEmpty(); }
-    public boolean hasPatterns() {
-        return !patterns.isEmpty();
-    }
+    // ----------------------------------------------------------
 
     private static Patterns root = new Patterns();
-
-    private static void add(final Pattern pattern) {
-        root.build(pattern);
-    }
-
     public static Patterns getRoot() {
         return root;
     }
 
+    private static void add(final Pattern pattern) {
+        root.grow(pattern, pattern.getPath());
+    }
+
     static {
-        add(new DefineLocalVariablePattern());
+        add(new ContentPattern());
         add(new DeclareLocalVariablePattern());
-        add(new UseVariablePattern());
+        add(new MemberFunctionPattern());
+        add(new MemberVariablePattern());
+        add(new OperatorPattern());
+        add(new TypePattern());
+        add(new UnarySignPattern());
     }
 }

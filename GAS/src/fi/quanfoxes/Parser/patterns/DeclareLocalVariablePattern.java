@@ -1,30 +1,63 @@
 package fi.quanfoxes.Parser.patterns;
 
 import fi.quanfoxes.Lexer.*;
-import fi.quanfoxes.Parser.Instruction;
-import fi.quanfoxes.Parser.Pattern;
-import fi.quanfoxes.Parser.instructions.CreateLocalVariableInstruction;
+import fi.quanfoxes.Parser.*;
+import fi.quanfoxes.Parser.nodes.*;
 
-import java.util.Collections;
 import java.util.List;
 
 public class DeclareLocalVariablePattern extends Pattern {
+    private static final int PRIORITY = 17;
+
+    private static final int TYPE = 0;
+    private static final int IDENTIFIER = 1;
+
     public DeclareLocalVariablePattern() {
-        super(TokenType.DATA_TYPE, TokenType.NAME);
+        super(TokenType.IDENTIFIER | TokenType.PROCESSED, TokenType.IDENTIFIER);
     }
 
     @Override
-    public boolean passes(final List<Token> tokens) {
+    public int priority(List<Token> tokens) {
+        return PRIORITY;
+    }
+
+    @Override
+    public boolean passes(List<Token> tokens) {
+        Token token = tokens.get(TYPE);
+
+        if (token.getType() == TokenType.PROCESSED) {
+            ProcessedToken program = (ProcessedToken)token;
+            return program.getNode() instanceof ContextNode;
+        }
+
         return true;
     }
 
     @Override
-    public List<Instruction> build(final List<Token> tokens) {
-        final DataTypeToken dataTypeToken = (DataTypeToken)tokens.get(0);
-        final NameToken nameToken = (NameToken)tokens.get(1);
+    public Node build(Node parent, List<Token> tokens) throws Exception {
+        ContextNode context = (ContextNode)parent;
+        Token token = tokens.get(TYPE);
 
-        return Collections.singletonList(
-                new CreateLocalVariableInstruction(dataTypeToken.getDataType(), nameToken.getName())
-        );
+        TypeNode type;
+
+        if (token.getType() == TokenType.PROCESSED) {
+            ProcessedToken program = (ProcessedToken)token;
+            type = (TypeNode)program.getNode();
+        }
+        else {
+            IdentifierToken identifier = (IdentifierToken)token;
+            type = Parser.getRoot().getType(identifier.getIdentifier());
+
+            if (type == null) {
+                throw new Exception("Type is not recognized");
+            }
+        }
+
+        IdentifierToken identifier = (IdentifierToken)tokens.get(IDENTIFIER);
+
+        VariableNode variable = new VariableNode(identifier.getIdentifier(), type);
+        context.declare(variable);
+
+        return variable;
     }
 }

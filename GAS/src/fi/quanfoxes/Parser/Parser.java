@@ -1,160 +1,109 @@
 package fi.quanfoxes.Parser;
 
 import fi.quanfoxes.Lexer.Token;
+import fi.quanfoxes.Lexer.TokenType;
+import fi.quanfoxes.Parser.nodes.ContextNode;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Parser {
-    private static final boolean DEBUG = true;
+    private static ContextNode root = new ContextNode();
 
-    /*public static List<Instruction> parse(final List<Token> line) throws Exception {
+    public static final int MAX_PRIORITY = 20;
+    public static final int STRUCTURAL_MAX_PRIORITY = 20;
+    public static final int STRUCTURAL_MIN_PRIORITY = 19;
+    public static final int MIN_PRIORITY = 1;
 
-        // To resolve operator execution order each pattern is given a priority
-        // Parser finds the pattern with highest priority and processes it and returns a token to represent the result
-        // Every line of tokens is therefore dynamic
+    private static class PatternInfo {
+        private Pattern pattern;
+        private List<Token> tokens;
 
-        // Example:
-        // num a = b * c + d * e
-        // num a = b * c + [ResultToken ID=1]
-        // num a = [ResultToken ID=2] + [ResultToken ID=1]
-        // num a = [ResultToken ID=3]
-        //
-        // Pattern for creating local variables is now recognized
-        // [Datatype][Name][Operator: assign][ResultToken] => [ResultToken].type == [DatatypeToken].type
-        //
-        // --------------------------------------------------------------------------------------------------
-        //
-        // num b = if line.empty() then 0 else 1
-        // num b = if [ResultToken ID=1] then 0 else 1
-        //
-        // Pattern for short if statement is now recognized
-        // [Keyword: if][ResultToken][Keyword: then][Number][Keyword: else][Number]
-        //
-        // num b = [ResultToken ID=2]
-        //
-        // Pattern for creating local variables is now recognized
-        // [Datatype][Name][Operator: assign][ResultToken] => [ResultToken].type == [DatatypeToken].type
-        //
-        // --------------------------------------------------------------------------------------------------
-        //
-        // Lines are processed one by one
-        // Processing must be implemented by using stream since for example if statement need multiple lines
-        
-
-        final List<Instruction> instructions = new ArrayList<>();
-        final List<Token> tokens = new ArrayList<>();
-
-        Patterns patterns = Patterns.getRoot();
-        Pattern best = null;
-
-        if (DEBUG && !patterns.hasEntries()) {
-            throw new Exception("INTERNAL_PARSER_ERROR: There aren't any patterns added");
+        PatternInfo(Pattern pattern, List<Token> tokens) {
+            this.pattern = pattern;
+            this.tokens = tokens;
         }
 
-        for (final Token token : line) {
-            patterns = patterns.filter(token.getType());
+        Pattern getPattern() {
+            return pattern;
+        }
+
+        List<Token> getTokens() {
+            return tokens;
+        }
+
+        void replace(Token token) {
+            tokens.clear();
             tokens.add(token);
+        }
+    }
 
-            if (patterns.hasPatterns()) {
+    private static PatternInfo findNextPatternByPriority(ArrayList<Token> section, int priority) {
 
-                if (DEBUG) {
-                    // Find out which patterns are passed
-                    final List<Pattern> passed = patterns.getPatterns().stream()
-                            .filter(p -> p.passes(tokens)).collect(Collectors.toList());
+        for (int start = 0; start < section.size(); start++) {
 
-                    // Same syntax should not mean two different things
-                    if (passed.size() > 1) {
-                        throw new Exception("INTERNAL_PARSER_ERROR: Syntax matches multiple known patterns");
-                    }
+            // Start from the root
+            Patterns tree = Patterns.getRoot();
+            PatternInfo best = null;
 
-                    // Since there cannot be more than one passed pattern the first pattern is chosen
-                    best = passed.get(0);
+            // Try finding the next pattern
+            for (int end = start; end < section.size(); end++) {
+
+                // Navigate forward on the tree
+                tree = tree.navigate(section.get(end).getType());
+
+                // When tree becomes null the end of the tree is reached
+                if (tree == null) {
+                    break;
                 }
-                else {
-                    // Try if any pattern passes token list
-                    final Optional<Pattern> pattern = patterns.getPatterns().stream()
-                            .findFirst().filter(p -> p.passes(tokens));
 
-                    if (pattern.isPresent()) {
-                        best = pattern.get();
+                if (tree.hasLeaves()) {
+                    List<Token> tokens = section.subList(start, end + 1);
+
+                    for (Pattern pattern : tree.getLeaves()) {
+                        if (pattern.priority(tokens) == priority && pattern.passes(tokens)) {
+                            best = new PatternInfo(pattern, tokens);
+                            break;
+                        }
                     }
                 }
             }
 
-            // When there are no more entries best pattern must be chosen
-            if (!patterns.hasEntries()) {
-
-                if (best == null) {
-                    throw new Exception("Syntax doesn't match any known patterns");
-                }
-
-                instructions.addAll(best.build(tokens));
-
-                // Reset the filtering
-                patterns = Patterns.getRoot();
-                tokens.clear();
-                best = null;
+            if (best != null) {
+                return best;
             }
         }
 
-        return instructions;
-    }*/
+        return null;
+    }
 
-    public static List<Instruction> parse(final List<Token> line) throws Exception {
+    public static void parse(Node parent, ArrayList<Token> section) throws Exception {
+        parse(parent, section, MIN_PRIORITY, MAX_PRIORITY);
+    }
 
-        final List<Instruction> instructions = new ArrayList<>();
-        final List<Token> tokens = new ArrayList<>();
+    public static void parse(Node parent, ArrayList<Token> section, int minPriority, int maxPriority) throws Exception {
 
-        Patterns tree = Patterns.getRoot();
-        Pattern best = null;
+        for (int priority = maxPriority; priority >= minPriority; priority--) {
+            PatternInfo info;
 
-        while (true) {
-            final List<Pattern> patterns = new ArrayList<>();
+            while ((info = findNextPatternByPriority(section, priority)) != null) {
+                Pattern pattern = info.getPattern();
+                Node node = pattern.build(parent, info.getTokens());
 
-            // Find all patterns from the line
-            for (final Token token : line) {
-
-                // Proceed forward based on token type
-                tree = tree.filter(token.getType());
-                tokens.add(token);
-
-                if (tree.hasPatterns()) {
-
-                    // Try if any pattern passes the current token list
-                    final Optional<Pattern> pattern = tree.getPatterns().stream()
-                            .findFirst().filter(p -> p.passes(tokens));
-
-                    if (pattern.isPresent()) {
-                        best = pattern.get();
-                    }
-                }
-
-                // When there are no more entries the best pattern must be chosen
-                if (!tree.hasEntries()) {
-
-                    if (best == null) {
-                        throw new Exception("Syntax doesn't match any known patterns");
-                    }
-
-                    patterns.add(best);
-
-                    // Reset the pattern tree
-                    tree = Patterns.getRoot();
-                    tokens.clear();
-                    best = null;
-                }
-            }
-            
-            if (!patterns.isEmpty()) {
-                Pattern pattern = patterns.stream().max(Comparator.comparingInt(Pattern::getWeight)).get();
-            }
-            else {
-                break; // There are no more patterns
+                ProcessedToken token = new ProcessedToken(node);
+                info.replace(token);
             }
         }
 
+        // Combine all programmed tokens in order
+        for (Token token : section) {
+            if (token.getType() == TokenType.PROCESSED) {
+                ProcessedToken program = (ProcessedToken)token;
+                parent.add(program.getNode());
+            }
+        }
+    }
 
-        return instructions;
+    public static ContextNode getRoot() {
+        return root;
     }
 }

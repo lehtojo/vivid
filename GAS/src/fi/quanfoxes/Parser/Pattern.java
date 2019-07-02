@@ -1,31 +1,23 @@
 package fi.quanfoxes.Parser;
 
 import fi.quanfoxes.Lexer.Token;
-import fi.quanfoxes.Lexer.TokenType;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public abstract class Pattern {
-    private List<TokenType> path;
-    private int weight;
+    private ArrayList<Integer> path;
 
-    public Pattern(TokenType... path) {
-        this.path = Arrays.asList(path);
+    public Pattern(Integer... path) {
+        this.path = new ArrayList<>(Arrays.asList(path));
     }
 
-    public void setWeight(int weight) {
-        this.weight = weight;
-    }
+    public abstract int priority(List<Token> tokens);
+    public abstract boolean passes(List<Token> tokens);
+    public abstract Node build(Node parent, List<Token> tokens) throws Exception;
 
-    public int getWeight() {
-        return weight;
-    }
-
-    public abstract boolean passes(final List<Token> tokens);
-    public abstract List<Instruction> build(final List<Token> tokens);
-
-    public List<TokenType> getPath() {
+    public ArrayList<Integer> getPath() {
         return path;
     }
 }

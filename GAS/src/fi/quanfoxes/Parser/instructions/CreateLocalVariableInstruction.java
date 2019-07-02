@@ -1,22 +1,21 @@
 package fi.quanfoxes.Parser.instructions;
 
-import fi.quanfoxes.DataType;
 import fi.quanfoxes.Parser.Instruction;
 
 public class CreateLocalVariableInstruction extends Instruction {
-    private DataType dataType;
+   /* private DataType type;
     private String name;
 
-    public CreateLocalVariableInstruction(DataType dataType, String name) {
-        this.dataType = dataType;
+    public CreateLocalVariableInstruction(DataType type, String name) {
+        this.type = type;
         this.name = name;
     }
 
-    public DataType getDataType() {
-        return dataType;
+    public DataType getType() {
+        return type;
     }
 
     public String getName() {
         return name;
-    }
+    }*/
 }

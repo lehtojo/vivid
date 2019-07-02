@@ -22,7 +22,7 @@ public class OperatorToken extends Token {
 
     @Override
     public String getText() {
-        return operator.getText();
+        return operator.getIdentifier();
     }
 
     @Override

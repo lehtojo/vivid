@@ -3,15 +3,15 @@ package fi.quanfoxes.Lexer;
 import java.util.Objects;
 
 public abstract class Token {
-    private TokenType type;
+    private int type;
 
-    public Token(TokenType type) {
+    public Token(final int type) {
         this.type = type;
     }
 
     public abstract String getText();
 
-    public TokenType getType() {
+    public int getType() {
         return type;
     }
 
