@@ -1,0 +1,52 @@
+{
+    // Documentation: https://go.microsoft.com/fwlink/?LinkId=733558
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "mvn compile",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Rebuild",
+            "type": "shell",
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Clean",
+                "Build"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Package",
+            "type": "shell",
+            "command": "mvn package",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Package (Ignore tests)",
+            "type": "shell",
+            "command": "mvn package -Dmaven.test.skip=true",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "rm -rf target",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build tests",
+            "type": "shell",
+            "command": "mvn test -DskipTests",
+            "group": "build",
+            "problemMatcher": []
+        }
+    ]
+}

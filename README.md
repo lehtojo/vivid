@@ -1,2 +1,1 @@
-# GAS
-GAS compiler
+# GZ - Zigzag
