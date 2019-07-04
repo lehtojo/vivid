@@ -1,1 +1,1 @@
-# GZ - Zigzag
+# Zigzag Compiler
