@@ -1,24 +1,127 @@
 package fi.quanfoxes;
 
-import fi.quanfoxes.Lexer.*;
-import fi.quanfoxes.Parser.Parser;
-import fi.quanfoxes.Parser.nodes.*;
+import fi.quanfoxes.lexer.*;
+import fi.quanfoxes.parser.Context;
+import fi.quanfoxes.parser.Node;
+import fi.quanfoxes.parser.Parser;
+import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.nodes.*;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.List;
 
 public class ParserTest {
 
+    public void members(Node root, List<Exception> errors) throws Exception {
+        Node node = root.getFirstChild();
+
+        while (node != null) {
+            if (node instanceof TypeNode) {
+                TypeNode type = (TypeNode) node;
+
+                try {
+                    type.parse();
+                }
+                catch (Exception e) {
+                    errors.add(e);
+                }
+
+                members(type, errors);
+            }
+
+            node = node.getNext();
+        }
+    }
+
+    public static void functions(Node parent, List<Exception> errors) throws Exception {
+        Node node = parent.getFirstChild();
+
+        while (node != null) {
+            if (node instanceof TypeNode) {
+                TypeNode type = (TypeNode)node;
+                functions(type, errors);
+
+            } else if (node instanceof FunctionNode) {
+                FunctionNode function = (FunctionNode)node;
+                
+                try {
+                    function.parse();
+                } catch (Exception e) {
+                    errors.add(e);
+                }   
+            }
+
+            node = node.getNext();
+        }
+    }
+
+    private class Result {
+        public Context context = new Context();
+        public Node root = new Node();
+        public List<Exception> errors = new ArrayList<>();
+    }
+
+    public Result parse(String... sources) throws Exception {
+        ArrayList<ArrayList<Token>> sections = new ArrayList<>();
+        
+        for (String source : sources) {
+            sections.add(Lexer.getTokens(source));
+        }
+
+        Result result = new Result();
+
+        for (ArrayList<Token> tokens : sections) {
+            Parser.parse(result.root, result.context, tokens);
+        }
+        
+        members(result.root, result.errors);
+
+        if (result.errors.size() > 0) {
+            return result;
+        }
+
+        functions(result.root, result.errors);
+
+        return result;
+    }
+
     @Test
     public void unarySign() throws Exception {
-        String code = "short mass = -777 * 2";
+        Result result = parse("short mass = -777 * 2");
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        // Verify -------------------------------------
+        Context context = Parser.initialize();
+        Node root = new Node();
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens);
+        // short mass
+        Variable variable = new Variable(context, context.getType("short"), "mass", AccessModifier.PUBLIC);
+        VariableNode mass = new VariableNode(variable);
+
+        // -777 * 2
+        OperatorNode multiply = new OperatorNode(OperatorType.MULTIPLY);
+        
+        // -777
+        NumberNode negative = new NumberNode(NumberType.UINT16, 777);
+        NegateNode negate = new NegateNode(negative);
+
+        // 2
+        NumberNode two = new NumberNode(NumberType.UINT8, 2);
+
+        multiply.add(negate);
+        multiply.add(two);
+
+        // short mass = -777 * 2
+        OperatorNode operator = new OperatorNode(OperatorType.ASSIGN);
+        operator.add(mass);
+        operator.add(multiply);
+
+        root.add(operator);
+
+        assertEquals(context, result.context);
+        assertEquals(root, result.root);
     }
 
     @Test
@@ -27,8 +130,9 @@ public class ParserTest {
 
         ArrayList<Token> tokens = Lexer.getTokens(code);
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens);
+        Context context = Parser.initialize();
+        Node root = new Node();
+        Parser.parse(root, context, tokens);
     }
 
     @Test
@@ -38,8 +142,9 @@ public class ParserTest {
 
         ArrayList<Token> tokens = Lexer.getTokens(code);
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens);
+        Context context = Parser.initialize();
+        Node root = new Node();
+        Parser.parse(root, context, tokens);
     }
 
     @Test
@@ -48,8 +153,9 @@ public class ParserTest {
 
         ArrayList<Token> tokens = Lexer.getTokens(code);
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens);
+        Context context = Parser.initialize();
+        Node root = new Node();
+        Parser.parse(root, context, tokens);
     }
 
     @Test
@@ -61,8 +167,22 @@ public class ParserTest {
 
         ArrayList<Token> tokens = Lexer.getTokens(code);
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens, Parser.STRUCTURAL_MIN_PRIORITY, Parser.STRUCTURAL_MAX_PRIORITY);
+        Context context = Parser.initialize();
+        Node root = new Node();
+        Parser.parse(root, context, tokens, Parser.MEMBERS, Parser.MAX_PRIORITY);
+
+        ArrayList<Exception> errors = new ArrayList<>();
+        members(root, errors);
+
+        if (errors.size() > 0) {
+            throw new Exception(errors.stream().toString());
+        }
+
+        functions(root, errors);
+
+        if (errors.size() > 0) {
+            throw new Exception(errors.stream().toString());
+        }
     }
 
     @Test
@@ -78,21 +198,21 @@ public class ParserTest {
 
         ArrayList<Token> tokens = Lexer.getTokens(code);
 
-        ContextNode root = Parser.initialize();
-        Parser.parse(root, tokens, Parser.STRUCTURAL_MIN_PRIORITY, Parser.STRUCTURAL_MAX_PRIORITY);
+        Context context = Parser.initialize();
+        Node root = new Node();
+        Parser.parse(root, context, tokens, Parser.MEMBERS, Parser.MAX_PRIORITY);
 
-        Runtime runtime = Runtime.getRuntime();
-        ExecutorService executors = Executors.newFixedThreadPool(runtime.availableProcessors());
+        ArrayList<Exception> errors = new ArrayList<>();
+        members(root, errors);
 
-        ContextNode context = (ContextNode)root.getFirstChild();
-
-        while (context != null) {
-
-
-            context = (ContextNode)context.getNext();
+        if (errors.size() > 0) {
+            throw new Exception(errors.stream().toString());
         }
 
-        TypeNode type = root.getType("spoon");
-        type.getFunction("getSum").parse();
+        functions(root, errors);
+
+        if (errors.size() > 0) {
+            throw new Exception(errors.stream().toString());
+        }
     }
 }

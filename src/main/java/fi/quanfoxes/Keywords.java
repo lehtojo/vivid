@@ -7,11 +7,13 @@ public class Keywords {
     public static Keyword BREAK = new FlowKeyword("break");
     public static Keyword CASE = new FlowKeyword("case");
     public static Keyword CONTINUE = new FlowKeyword("continue");
+    public static Keyword DEINIT = new Keyword("deinit");
     public static Keyword ELSE = new FlowKeyword("else");
     public static Keyword EXTERNAL = new Keyword("external");
     public static Keyword FUNC = new Keyword("func");
     public static Keyword GOTO = new FlowKeyword("goto");
     public static Keyword IF = new FlowKeyword("if");
+    public static Keyword INIT = new Keyword("init");
     public static Keyword LOCK = new FlowKeyword("lock");
     public static Keyword LOOP = new FlowKeyword("loop");
     public static Keyword NEW = new Keyword("new");
@@ -23,6 +25,7 @@ public class Keywords {
     public static Keyword STATIC = new AccessModifierKeyword("static", AccessModifier.STATIC);
     public static Keyword THIS = new Keyword("this");
     public static Keyword TYPE = new Keyword("type");
+    public static Keyword WHILE = new Keyword("while");
 
     private static HashMap<String, Keyword> keywords = new HashMap<>();
 
@@ -31,11 +34,13 @@ public class Keywords {
         keywords.put(BREAK.getIdentifier(), BREAK);
         keywords.put(CASE.getIdentifier(), CASE);
         keywords.put(CONTINUE.getIdentifier(), CONTINUE);
+        keywords.put(DEINIT.getIdentifier(), DEINIT);
         keywords.put(ELSE.getIdentifier(), ELSE);
         keywords.put(EXTERNAL.getIdentifier(), EXTERNAL);
         keywords.put(FUNC.getIdentifier(), FUNC);
         keywords.put(GOTO.getIdentifier(), GOTO);
         keywords.put(IF.getIdentifier(), IF);
+        keywords.put(INIT.getIdentifier(), INIT);
         keywords.put(LOCK.getIdentifier(), LOCK);
         keywords.put(LOOP.getIdentifier(), LOOP);
         keywords.put(NEW.getIdentifier(), NEW);
@@ -47,6 +52,7 @@ public class Keywords {
         keywords.put(STATIC.getIdentifier(), STATIC);
         keywords.put(THIS.getIdentifier(), THIS);
         keywords.put(TYPE.getIdentifier(), TYPE);
+        keywords.put(WHILE.getIdentifier(), WHILE);
     }
 
     public static boolean exists (String name) {

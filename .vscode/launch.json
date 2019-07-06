@@ -12,6 +12,15 @@
         },
         {
             "type": "java",
+            "name": "Debug (Arguments)",
+            "request": "launch",
+            "mainClass": "fi.quanfoxes.Main",
+            "projectName": "gz",
+            "preLaunchTask": "Build",
+            "args": "examples/Player.g examples/Game.g examples/Enemy.g"
+        },
+        {
+            "type": "java",
             "name": "Debug (Tests)",
             "request": "launch",
             "mainClass": "${file}",

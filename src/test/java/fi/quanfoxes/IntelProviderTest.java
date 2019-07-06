@@ -1,10 +1,5 @@
 package fi.quanfoxes;
 
-import fi.quanfoxes.Lexer.IdentifierToken;
-import fi.quanfoxes.Lexer.NumberToken;
-import fi.quanfoxes.Parser.BackEnd.Intel.IntelProvider;
-import fi.quanfoxes.Parser.instructions.AddInstruction;
-import fi.quanfoxes.Parser.instructions.CreateLocalVariableInstruction;
 import org.junit.Test;
 
 import java.io.StringWriter;
