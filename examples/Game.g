@@ -1,7 +1,16 @@
 public func start (num args)
 {
-    Player player = new Player()
-    Enemy enemy = new Enemy()
+    var player
+    var enemy
+
+    var countdown = 10
+
+    for (var i = countdown, i >= 1, i--) {
+
+    }
+
+    player = new Player()
+    enemy = new Enemy()
 
     while (player.is_alive() && enemy.is_alive())
     {

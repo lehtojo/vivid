@@ -1,9 +1,7 @@
 package fi.quanfoxes.parser.BackEnd.Intel;
 
 import java.io.*;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class IntelProvider {
     public List<Variable> variables;

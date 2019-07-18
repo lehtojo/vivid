@@ -1,6 +1,9 @@
 package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.AccessModifier;
+import fi.quanfoxes.Keyword;
+import fi.quanfoxes.Keywords;
+import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.*;
 import fi.quanfoxes.parser.*;
 import fi.quanfoxes.parser.nodes.*;
@@ -20,7 +23,8 @@ public class VariablePattern extends Pattern {
         // long file_size
         // MyType awesome_type
         // MyType.MySubtype awesome_subtype
-        super(TokenType.IDENTIFIER | TokenType.PROCESSED, TokenType.IDENTIFIER);
+        // var awesome
+        super(TokenType.IDENTIFIER | TokenType.KEYWORD | TokenType.PROCESSED, TokenType.IDENTIFIER);
     }
 
     @Override
@@ -36,6 +40,10 @@ public class VariablePattern extends Pattern {
             ProcessedToken program = (ProcessedToken)token;
             return program.getNode() instanceof TypeNode;
         }
+        else if (token.getType() == TokenType.KEYWORD) {
+            Keyword keyword = ((KeywordToken)token).getKeyword();
+            return keyword == Keywords.VAR;
+        }
 
         return true;
     }
@@ -49,14 +57,17 @@ public class VariablePattern extends Pattern {
 
             return type.getType();
         }
+        else if (token.getType() == TokenType.KEYWORD) {
+            return Types.UNKNOWN;
+        }
         else {
             IdentifierToken identifier = (IdentifierToken)token;
-            return context.getType(identifier.getIdentifier());
+            return context.getType(identifier.getValue());
         }
     }
 
     private String getName(List<Token> tokens) {
-        return ((IdentifierToken)tokens.get(NAME)).getIdentifier();
+        return ((IdentifierToken)tokens.get(NAME)).getValue();
     }
 
     @Override

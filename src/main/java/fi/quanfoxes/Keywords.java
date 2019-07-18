@@ -25,6 +25,7 @@ public class Keywords {
     public static Keyword STATIC = new AccessModifierKeyword("static", AccessModifier.STATIC);
     public static Keyword THIS = new Keyword("this");
     public static Keyword TYPE = new Keyword("type");
+    public static Keyword VAR = new Keyword("var");
     public static Keyword WHILE = new Keyword("while");
 
     private static HashMap<String, Keyword> keywords = new HashMap<>();
@@ -52,6 +53,7 @@ public class Keywords {
         keywords.put(STATIC.getIdentifier(), STATIC);
         keywords.put(THIS.getIdentifier(), THIS);
         keywords.put(TYPE.getIdentifier(), TYPE);
+        keywords.put(VAR.getIdentifier(), VAR);
         keywords.put(WHILE.getIdentifier(), WHILE);
     }
 

@@ -51,7 +51,7 @@ public class Main {
     }
 
     public static void members(Node root) throws Exception {
-        Node node = root.getFirstChild();
+        Node node = root.getFirst();
 
         while (node != null) {
             if (node instanceof TypeNode) {
@@ -73,7 +73,7 @@ public class Main {
 
     public static ArrayList<Future<Integer>> functions(Node parent) throws Exception {
         ArrayList<Future<Integer>> tasks = new ArrayList<>();
-        Node node = parent.getFirstChild();
+        Node node = parent.getFirst();
 
         while (node != null) {
             if (node instanceof TypeNode) {
@@ -103,6 +103,8 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         
+        long start = System.nanoTime();
+
         // Create thread pool for multi-threading
         Runtime runtime = Runtime.getRuntime();
         executors = Executors.newFixedThreadPool(runtime.availableProcessors());
@@ -126,6 +128,8 @@ public class Main {
             }
         }
 
+        long lexer_start = System.nanoTime();
+
         ArrayList<Future<ArrayList<Token>>> sections = new ArrayList<>();
 
         // Tokenize each source file
@@ -145,13 +149,15 @@ public class Main {
             }
         }
 
+        long parser_start = System.nanoTime();
+
         // Create a root node for storing global types, functions and variables
         Context context = Parser.initialize();
         Node root = new Node();
 
         // Form types and subtypes
         for (Future<ArrayList<Token>> section : sections) {
-            Parser.parse(root, context, section.get(), TypePattern.PRIORITY);
+            Parser.parse(root, context, section.get(), Parser.MEMBERS, Parser.MAX_PRIORITY);
         }
 
         // Parse member variables and functions in all types
@@ -171,6 +177,15 @@ public class Main {
             System.exit(-3);
             return;
         }
+
+        long end = System.nanoTime();
+
+        System.out.println(              "=====================");
+        System.out.println(String.format("Disk: %.1f ms", (lexer_start - start) / 1000000.0f));
+        System.out.println(String.format("Lexer: %.1f ms", (parser_start - lexer_start) / 1000000.0f));
+        System.out.println(String.format("Parser: %.1f ms", (end - parser_start) / 1000000.0f));
+        System.out.println(String.format("Total: %.1f ms", (end - start) / 1000000.0f));
+        System.out.println(              "=====================");
 
         System.exit(0);
     }

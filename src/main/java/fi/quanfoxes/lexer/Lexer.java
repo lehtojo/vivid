@@ -22,8 +22,52 @@ public class Lexer {
 
         public String text;
 
-        public int start;
-        public int end;
+        public Position start;
+        public Position end;
+    }
+
+    public static class Position {
+        private int line;
+        private int character;
+
+        private int absolute;
+
+        public Position() {
+            this(0, 0, 0);
+        }
+
+        public Position(int line, int character, int absolute) {
+            this.line = line;
+            this.character = character;
+            this.absolute = absolute;
+        }
+
+        public void nextLine() {
+            line++;
+            character = 0;
+            absolute++;
+        }
+
+        public void nextCharacter() {
+            character++;
+            absolute++;
+        }
+
+        public int getLine() {
+            return line;
+        }
+
+        public int getCharacter() {
+            return character;
+        }
+
+        public int getAbsolute() {
+            return absolute;
+        }
+
+        public Position clone() {
+            return new Position(line, character, absolute);
+        }
     }
 
     private static boolean isOperator (char c) {
@@ -75,6 +119,25 @@ public class Lexer {
         }
     }
 
+    private static Position skipSpaces(String text, Position position) {
+
+        while (position.getAbsolute() < text.length()) {
+            char c = text.charAt(position.absolute);
+
+            if (!Character.isSpaceChar(c)) {
+                break;
+            }
+            else if (c == '\n') {
+                position.nextLine();
+            }
+            else {
+                position.nextCharacter();
+            }
+        }
+
+        return position;
+    }
+
     private static int skipSpaces(String text, int position) {
 
         while (position < text.length() && Character.isSpaceChar(text.charAt(position))) {
@@ -82,6 +145,40 @@ public class Lexer {
         }
 
         return position;
+    }
+
+    private static Position skipContent(String text, Position start) throws Exception {
+
+        Position position = start.clone();
+
+        char opening = text.charAt(position.getAbsolute());
+        char closing = CLOSING_PARENTHESIS.charAt(OPENING_PARENTHESIS.indexOf(opening));
+        
+        int count = 0;
+
+        while (position.getAbsolute() < text.length()) {
+            char c = text.charAt(position.getAbsolute());
+
+            if (c == '\n') {
+                position.nextLine();
+            }
+            else {
+                if (c == opening) {
+                    count++;
+                }
+                else if (c == closing) {
+                    count--;
+                }
+
+                position.nextCharacter();
+            }
+
+            if (count == 0) {
+                return position;
+            }
+        }
+
+        throw new Exception("Couldn't find closing parenthesis");
     }
 
     private static int skipContent(String text, int start) throws Exception {
@@ -112,25 +209,30 @@ public class Lexer {
         throw new Exception("Couldn't find closing parenthesis");
     }
 
-    public static Area getNextToken(String text, int start) throws Exception {
+    public static Area getNextToken(String text, Position start) throws Exception {
 
-        int position = skipSpaces(text, start);
+        //int position = skipSpaces(text, start);
+        Position position = skipSpaces(text, start);
+
+        if (position.getAbsolute() == text.length()) {
+            return null;
+        }
 
         Area area = new Area();
-        area.start = position;
-        area.type = getType(text.charAt(position));
+        area.start = position.clone();
+        area.type = getType(text.charAt(position.getAbsolute()));
 
         // Content area can be determined
         if (area.type == Type.CONTENT) {
             area.end = skipContent(text, area.start);
-            area.text = text.substring(area.start, area.end);
+            area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
             return area;
         }
 
         // Possible types are now: TEXT, NUMBER, OPERATOR
-        while (position < text.length()) {
+        while (position.getAbsolute() < text.length()) {
 
-            char c = text.charAt(position);
+            char c = text.charAt(position.getAbsolute());
 
             if (isContent(c)) {
 
@@ -148,16 +250,21 @@ public class Lexer {
                 break;
             }
 
-            position++;
+            if (c == '\n') {
+                position.nextLine();
+            }
+            else {
+                position.nextCharacter();
+            }
         }
 
         area.end = position;
-        area.text = text.substring(area.start, area.end);
+        area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
 
         return area;
     }
 
-    private static Token parseTextToken (final String text) {
+    private static Token parseTextToken (String text) {
 
         if (OperatorType.has(text)) {
             return new OperatorToken(text);
@@ -219,15 +326,20 @@ public class Lexer {
     }
 
     public static ArrayList<Token> getTokens (String section) throws Exception {
-        section = section.trim();
+        //section = section.trim();
 
         ArrayList<Token> tokens = new ArrayList<>();
-        int position = 0;
+        Position position = new Position();
 
-        while (position != section.length()) {
+        while (position.getAbsolute() < section.length()) {
             Area area = getNextToken(section, position);
 
+            if (area == null) {
+                break;
+            }
+
             Token token = parseToken(area);
+            token.setPosition(area.start);
             tokens.add(token);
 
             position = area.end;

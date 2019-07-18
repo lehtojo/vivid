@@ -10,9 +10,14 @@ public class Function extends Context {
 
     private ArrayList<Type> parameters = new ArrayList<>();
 
-    public Function(Context context, String name, int modifiers) throws Exception {
+    private Type returnType;
+
+    private ArrayList<Node> usages = new ArrayList<>();
+
+    public Function(Context context, String name, int modifiers, Type returnType) throws Exception {
         this.name = name;
         this.modifiers = modifiers;
+        this.returnType = returnType;
 
         super.link(context);
         context.declare(this);
@@ -27,7 +32,7 @@ public class Function extends Context {
     }
 
     public void setParameters(Node node) {
-        VariableNode parameter = (VariableNode)node.getFirstChild();
+        VariableNode parameter = (VariableNode)node.getFirst();
         
         while (parameter != null) {
             Variable variable = parameter.getVariable();
@@ -43,5 +48,21 @@ public class Function extends Context {
 
     public int getParameterCount() {
         return parameters.size();
+    }
+
+    public Type getReturnType() {
+        return returnType;
+    }
+
+    public void setReturnType(Type type) {
+        this.returnType = type;
+    }
+
+    public void addUsage(Node node) {
+        usages.add(node);
+    }
+
+    public ArrayList<Node> getUsages() {
+        return usages;
     }
 }

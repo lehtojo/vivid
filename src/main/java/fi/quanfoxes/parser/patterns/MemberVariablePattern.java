@@ -12,7 +12,9 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.ProcessedToken;
 import fi.quanfoxes.parser.Type;
+import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.nodes.DotOperatorNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
@@ -52,7 +54,7 @@ public class MemberVariablePattern extends Pattern {
 
         if (token.getType() == TokenType.PROCESSED) {
             Node node = ((ProcessedToken)token).getNode();
-            return (node instanceof TypeNode);
+            return (node instanceof DotOperatorNode) || (node instanceof TypeNode);
         }
 
         return true;
@@ -66,28 +68,37 @@ public class MemberVariablePattern extends Pattern {
         Token token = tokens.get(TYPE);
 
         if (token.getType() == TokenType.PROCESSED) {
-            ProcessedToken processed = (ProcessedToken)token;
-            TypeNode type = (TypeNode)processed.getNode();
+            Node node = ((ProcessedToken)token).getNode();
+            
+            if (node instanceof TypeNode) {
+                TypeNode type = (TypeNode)node;
+                return type.getType();
+            }
 
-            return type.getType();
+            return new UnresolvedType(context, node);
         }
         else {
-            IdentifierToken identifier = (IdentifierToken)token;
-            return context.getType(identifier.getIdentifier());
+            IdentifierToken id = (IdentifierToken)token;
+
+            if (context.isTypeDeclared(id.getValue())) {
+                return context.getType(id.getValue());
+            }
+
+            return new UnresolvedType(context, id.getValue());
         }
     }
 
     private String getName(List<Token> tokens) {
-        return ((IdentifierToken)tokens.get(NAME)).getIdentifier();
+        return ((IdentifierToken)tokens.get(NAME)).getValue();
     }
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
-        AccessModifierKeyword modifier = getAccessModifier(tokens);
+        int modifier = getAccessModifier(tokens).getModifier();
         Type type = getType(context, tokens);
         String name = getName(tokens);
 
-        Variable variable = new Variable(context, type, name, modifier.getModifier());
+        Variable variable = new Variable(context, type, name, modifier);
 
         return new VariableNode(variable);
     }

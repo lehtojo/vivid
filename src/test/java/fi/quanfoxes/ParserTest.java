@@ -16,7 +16,7 @@ import java.util.List;
 public class ParserTest {
 
     public void members(Node root, List<Exception> errors) throws Exception {
-        Node node = root.getFirstChild();
+        Node node = root.getFirst();
 
         while (node != null) {
             if (node instanceof TypeNode) {
@@ -37,7 +37,7 @@ public class ParserTest {
     }
 
     public static void functions(Node parent, List<Exception> errors) throws Exception {
-        Node node = parent.getFirstChild();
+        Node node = parent.getFirst();
 
         while (node != null) {
             if (node instanceof TypeNode) {

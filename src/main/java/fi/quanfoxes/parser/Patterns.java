@@ -69,11 +69,13 @@ public class Patterns {
 
     static {
         add(new ContentPattern());
-        add(new VariablePattern());
+        add(new DotPattern());
         add(new MemberFunctionPattern());
         add(new MemberVariablePattern());
         add(new OperatorPattern());
         add(new TypePattern());
         add(new UnarySignPattern());
+        add(new VariablePattern());
+        add(new WhilePattern());
     }
 }

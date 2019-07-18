@@ -3,13 +3,19 @@ package fi.quanfoxes.parser.patterns;
 import fi.quanfoxes.AccessModifierKeyword;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.Keywords;
+import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.*;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
-import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
+import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.Type;
+import fi.quanfoxes.parser.UnresolvedType;
+import fi.quanfoxes.parser.nodes.DotOperatorNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.TypeNode;
+import fi.quanfoxes.parser.nodes.UnresolvedIdentifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +24,7 @@ public class MemberFunctionPattern extends Pattern {
     public static final int PRIORITY = 19;
 
     private static final int MODIFIER = 0;
+    private static final int RETURN_TYPE = 1;
     private static final int HEAD = 2;
     private static final int BODY = 3;
 
@@ -27,7 +34,7 @@ public class MemberFunctionPattern extends Pattern {
         // Examples:
         // public func getThreadCount () {...}
         // protected func getSum (num a, num b) {...}
-        super(TokenType.KEYWORD, TokenType.KEYWORD, TokenType.FUNCTION, TokenType.CONTENT);
+        super(TokenType.KEYWORD, TokenType.KEYWORD | TokenType.IDENTIFIER | TokenType.PROCESSED, TokenType.FUNCTION, TokenType.CONTENT);
     }
 
     @Override
@@ -43,37 +50,75 @@ public class MemberFunctionPattern extends Pattern {
             return false;
         }
 
-        KeywordToken function = (KeywordToken)tokens.get(1);
-        return function.getKeyword() == Keywords.FUNC;
+        Token token = tokens.get(RETURN_TYPE);
+
+        switch (token.getType()) {
+
+            case TokenType.KEYWORD:
+                return ((KeywordToken)token).getKeyword() == Keywords.FUNC;
+
+            case TokenType.IDENTIFIER:
+                return true;
+                
+            case TokenType.PROCESSED:
+                Node node = ((ProcessedToken)token).getNode();
+                return (node instanceof DotOperatorNode) || (node instanceof TypeNode);
+        }
+
+        return false;
     }
 
     private AccessModifierKeyword getAccessModifier(List<Token> tokens) {
         return (AccessModifierKeyword)((KeywordToken)tokens.get(MODIFIER)).getKeyword();
     }
 
-    private Node getParameters(Function function, ContentToken content) throws Exception {
-        Node parameters = new Node();
-
-        for (int i = 0; i < content.getSectionCount(); i++) {
-            ArrayList<Token> tokens = content.getTokens(i);
-            Parser.parse(parameters, function, tokens, VariablePattern.PRIORITY);
-        }
-
-        return parameters;
-    }
-
     private ArrayList<Token> getBody(List<Token> tokens) {
         return ((ContentToken)tokens.get(BODY)).getTokens();
+    }
+
+    private Type getReturnType(Context context, List<Token> tokens) throws Exception {
+        Token token = tokens.get(RETURN_TYPE);
+
+        switch (token.getType()) {
+
+            case TokenType.KEYWORD:
+                return Types.UNKNOWN;
+
+            case TokenType.IDENTIFIER:
+                IdentifierToken id = (IdentifierToken)token;
+                
+                if (context.isTypeDeclared(id.getValue())) {
+                    return context.getType(id.getValue());
+                }
+                else {
+                    return new UnresolvedType(context, id.getValue());
+                }
+
+             case TokenType.PROCESSED:
+                ProcessedToken processed = (ProcessedToken)token;
+                Node node = processed.getNode();
+
+                if (node instanceof TypeNode) {
+                    TypeNode type = (TypeNode)node;
+                    return type.getType();
+                }
+                else {
+                    return new UnresolvedType(context, node);
+                }
+        }
+
+        throw new Exception("INTERNAL_ERROR");
     }
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
         AccessModifierKeyword modifier = getAccessModifier(tokens);
+        Type returnType = getReturnType(context, tokens);
         FunctionToken head = (FunctionToken)tokens.get(HEAD);
         ArrayList<Token> body = getBody(tokens);
 
-        Function function = new Function(context, head.getName(), modifier.getModifier());
-        function.setParameters(getParameters(function, head.getParameters()));
+        Function function = new Function(context, head.getName(), modifier.getModifier(), returnType);
+        function.setParameters(head.getParameters(function));
 
         return new FunctionNode(function, body);
     }

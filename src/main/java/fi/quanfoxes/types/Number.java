@@ -1,8 +1,8 @@
 package fi.quanfoxes.types;
 
+import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.lexer.NumberType;
 import fi.quanfoxes.parser.Type;
-import fi.quanfoxes.parser.Context;
 
 import java.util.Objects;
 
@@ -10,8 +10,8 @@ public abstract class Number extends Type {
     private NumberType type;
     private int bits;
 
-    public Number(Context context, NumberType type, int bits, String name) throws Exception {
-        super(context, name);
+    public Number(NumberType type, int bits, String name) {
+        super(name, AccessModifier.PUBLIC);
         this.type = type;
         this.bits = bits;
     }

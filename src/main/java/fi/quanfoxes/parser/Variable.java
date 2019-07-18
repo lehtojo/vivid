@@ -1,5 +1,7 @@
 package fi.quanfoxes.parser;
 
+import java.util.ArrayList;
+
 public class Variable {
     private String name;
     private Type type;
@@ -8,6 +10,8 @@ public class Variable {
     private Context context;
 
     private int alignment;
+
+    private ArrayList<Node> usages = new ArrayList<>();
 
     public Variable(Context context, Type type, String name, int modifiers) throws Exception {
         this.name = name;
@@ -22,8 +26,16 @@ public class Variable {
         return name;
     }
 
+    public void setType(Type type) {
+        this.type = type;
+    }
+
     public Type getType() {
         return type;
+    }
+
+    public boolean isTypeUnresolved() {
+        return type instanceof UnresolvedType;
     }
 
     public int getModifiers() {
@@ -40,5 +52,13 @@ public class Variable {
 
     public int getAlignment() {
         return alignment;
+    }
+
+    public void addUsage(Node node) {
+        usages.add(node);
+    }
+
+    public ArrayList<Node> getUsages() {
+        return usages;
     }
 }

@@ -29,7 +29,7 @@ public type Player
         }
     }
     
-    public func get_actions_remaining()
+    public num get_actions_remaining()
     {
         return mana / action_cost
     }
@@ -44,7 +44,7 @@ public type Player
         mana += amount
     }
 
-    public func is_alive ()
+    public bool is_alive ()
     {
         return health > 0
     }

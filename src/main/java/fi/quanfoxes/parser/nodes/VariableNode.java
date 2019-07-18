@@ -8,6 +8,7 @@ public class VariableNode extends Node {
 
     public VariableNode(Variable variable) {
         this.variable = variable;
+        this.variable.addUsage(this);
     }
 
     public Variable getVariable() {

@@ -1,6 +1,7 @@
 package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.lexer.ContentToken;
+import fi.quanfoxes.lexer.ParenthesisType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
@@ -28,7 +29,10 @@ public class ContentPattern extends Pattern {
 
     @Override
     public boolean passes(List<Token> tokens) {
-        return true;
+        // Only content with parenthesis type of '()' or '[]' can be automatically parsed
+        ContentToken content = (ContentToken)tokens.get(CONTENT);
+        return content.getParenthesisType() == ParenthesisType.PARENTHESIS || 
+                    content.getParenthesisType() == ParenthesisType.BRACKETS;
     }
 
     @Override

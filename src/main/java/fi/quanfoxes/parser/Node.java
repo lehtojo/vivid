@@ -23,11 +23,11 @@ public class Node {
         return next;
     }
 
-    public Node getFirstChild() {
+    public Node getFirst() {
         return first;
     }
 
-    public Node getLastChild() {
+    public Node getLast() {
         return last;
     }
 
@@ -82,6 +82,47 @@ public class Node {
 
         if (right != null) {
             right.previous = left;
+        }
+    }
+
+    public void replaceWith(Node node) {
+        Node iterator = first;
+
+        // Update the parent of each child
+        while (iterator != null) {
+            iterator.parent = node;
+            iterator = iterator.next;
+        }
+
+        if (previous == null) {
+            // Since this node is the first, parent must be updated
+            parent.first = node;
+        }
+        else {
+            // Update the previous node
+            previous.next = node;
+        }
+
+        if (next == null) {
+            // Since this node is the last, parent must be updated
+            parent.last = node;
+        }
+        else {
+            // Update the next node
+            next.previous = node;
+        }
+    }
+
+    public void onLink() throws Exception {}
+
+    public void link() throws Exception {
+        onLink();
+
+        Node iterator = first;
+        
+        while (iterator != null) {
+            iterator.link();    
+            iterator = iterator.next;
         }
     }
 

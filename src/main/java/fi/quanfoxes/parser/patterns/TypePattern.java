@@ -56,7 +56,7 @@ public class TypePattern extends Pattern {
     }
 
     private String getName(List<Token> tokens, int start) {
-        return ((IdentifierToken)tokens.get(start + IDENTIFIER_OFFSET)).getIdentifier();
+        return ((IdentifierToken)tokens.get(start + IDENTIFIER_OFFSET)).getValue();
     }
 
     private ArrayList<Token> getBody(List<Token> tokens, int start) {
@@ -81,7 +81,7 @@ public class TypePattern extends Pattern {
         ArrayList<Token> body = getBody(tokens, start);
 
         // Create this type and parse its possible subtypes
-        Type type = new Type(context, name);
+        Type type = new Type(context, name, modifiers);
         Parser.parse(type, body, PRIORITY);
 
         return new TypeNode(type, body);

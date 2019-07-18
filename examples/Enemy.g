@@ -21,7 +21,7 @@ public type Enemy
         player.apply_damage(attack_damage)
     }
 
-    public func is_alive ()
+    public bool is_alive ()
     {
         return health > 0
     }

@@ -42,7 +42,7 @@ public class UnarySignPattern extends Pattern {
         switch (token.getType()) {
             case TokenType.IDENTIFIER:
                 IdentifierToken identifier = (IdentifierToken)token;
-                Variable variable = context.getVariable(identifier.getIdentifier());
+                Variable variable = context.getVariable(identifier.getValue());
                 return new VariableNode(variable);
             case TokenType.NUMBER:
                 NumberToken number = (NumberToken)token;
