@@ -35,11 +35,15 @@ public class Variable {
     }
 
     public boolean isTypeUnresolved() {
-        return type instanceof UnresolvedType;
+        return type instanceof Resolvable;
     }
 
     public int getModifiers() {
         return modifiers;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
     }
 
     public Context getContext() {

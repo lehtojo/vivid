@@ -85,7 +85,7 @@ public class Node {
         }
     }
 
-    public void replaceWith(Node node) {
+    public void replace(Node node) {
         Node iterator = first;
 
         // Update the parent of each child
@@ -96,7 +96,9 @@ public class Node {
 
         if (previous == null) {
             // Since this node is the first, parent must be updated
-            parent.first = node;
+            if (parent != null) {
+                parent.first = node;  
+            }
         }
         else {
             // Update the previous node
@@ -105,24 +107,13 @@ public class Node {
 
         if (next == null) {
             // Since this node is the last, parent must be updated
-            parent.last = node;
+            if (parent != null) {
+                parent.last = node;
+            }
         }
         else {
             // Update the next node
             next.previous = node;
-        }
-    }
-
-    public void onLink() throws Exception {}
-
-    public void link() throws Exception {
-        onLink();
-
-        Node iterator = first;
-        
-        while (iterator != null) {
-            iterator.link();    
-            iterator = iterator.next;
         }
     }
 

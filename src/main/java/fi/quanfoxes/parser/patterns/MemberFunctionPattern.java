@@ -10,12 +10,12 @@ import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.nodes.DotOperatorNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
-import fi.quanfoxes.parser.nodes.UnresolvedIdentifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,8 +102,8 @@ public class MemberFunctionPattern extends Pattern {
                     TypeNode type = (TypeNode)node;
                     return type.getType();
                 }
-                else {
-                    return new UnresolvedType(context, node);
+                else if (node instanceof Resolvable) {
+                    return new UnresolvedType(context, (Resolvable)node);
                 }
         }
 

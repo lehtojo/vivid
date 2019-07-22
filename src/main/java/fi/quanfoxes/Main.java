@@ -5,12 +5,13 @@ import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
+import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
-import fi.quanfoxes.parser.patterns.TypePattern;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -71,8 +72,7 @@ public class Main {
         }
     }
 
-    public static ArrayList<Future<Integer>> functions(Node parent) throws Exception {
-        ArrayList<Future<Integer>> tasks = new ArrayList<>();
+    public static void functions(Node parent) throws Exception {
         Node node = parent.getFirst();
 
         while (node != null) {
@@ -82,23 +82,34 @@ public class Main {
 
             } else if (node instanceof FunctionNode) {
                 FunctionNode function = (FunctionNode)node;
-                
-                tasks.add(executors.submit(() -> {
-                    try {
-                        function.parse();
-                    } catch (Exception e) {
-                        errors.add(e);
-                        return 1;
-                    }        
 
-                    return 0;
-                }));
+                try {
+                    function.parse();
+                } catch (Exception e) {
+                    errors.add(e);
+                } 
             }
 
             node = node.getNext();
         }
+    }
 
-        return tasks;
+    private static class Parse {
+        private Context context;
+        private Node node;
+
+        public Parse(Context context, Node node) {
+            this.context = context;
+            this.node = node;
+        }
+
+        public Context getContext() {
+            return context;
+        }
+
+        public Node getNode() {
+            return node;
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -151,32 +162,29 @@ public class Main {
 
         long parser_start = System.nanoTime();
 
-        // Create a root node for storing global types, functions and variables
-        Context context = Parser.initialize();
+        List<Parse> parses = new ArrayList<>();
+
+        for (Future<ArrayList<Token>> section : sections) {
+            Context context = Parser.initialize();
+            Node root = new Node();
+
+            Parser.parse(root, context, section.get(), Parser.MEMBERS, Parser.MAX_PRIORITY);
+            
+            members(root);  
+            functions(root);
+
+            parses.add(new Parse(context, root));
+        }
+
+        Context context = new Context();
         Node root = new Node();
 
-        // Form types and subtypes
-        for (Future<ArrayList<Token>> section : sections) {
-            Parser.parse(root, context, section.get(), Parser.MEMBERS, Parser.MAX_PRIORITY);
+        for (Parse parse : parses) {
+            context.merge(parse.getContext());
+            root.add(parse.getNode());
         }
 
-        // Parse member variables and functions in all types
-        members(root);
-        
-        if (!errors.isEmpty()) {
-            errors.forEach(e -> System.out.println("ERROR: " + e.getMessage()));
-            System.exit(-3);
-            return;
-        }
-
-        // Parse function bodies
-        wait(functions(root));
-
-        if (!errors.isEmpty()) {
-            errors.forEach(e -> System.out.println("ERROR: " + e.getMessage()));
-            System.exit(-3);
-            return;
-        }
+        Resolver.resolve(context, root, errors);
 
         long end = System.nanoTime();
 

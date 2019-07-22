@@ -11,6 +11,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
@@ -74,8 +75,11 @@ public class MemberVariablePattern extends Pattern {
                 TypeNode type = (TypeNode)node;
                 return type.getType();
             }
-
-            return new UnresolvedType(context, node);
+            else if (node instanceof Resolvable) {
+                return new UnresolvedType(context, (Resolvable)node);
+            }
+    
+            throw new Exception("Node must be resolvable");
         }
         else {
             IdentifierToken id = (IdentifierToken)token;

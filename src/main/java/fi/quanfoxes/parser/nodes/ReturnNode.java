@@ -19,21 +19,44 @@ public class ReturnNode extends Node implements Resolvable {
             return (Type)contextable.getContext();
         }
 
-        throw new Exception("Couldn't resolve the return type");
+        throw new Exception("Couldn't resolve return type");
     }
 
     @Override
-    public boolean resolve(Context context) throws Exception {
+    public Node resolve(Context context) throws Exception {
         // Returned object must be resolved first
-        Resolver.resolve(context, getFirst());
+        Node node = getFirst();
 
+        if (node instanceof Resolvable) {
+            Resolvable resolvable = (Resolvable)node;
+            Node resolved = resolvable.resolve(context);
+
+            node.replace(resolved);
+            node = resolved;
+        }
+        
         // Find the parent function where the return value can be assigned
-        Function function = context.findParentFunction();
-        Type type = getReturnType(getFirst());
+        Function function = context.getFunctionContext();
 
-        // Try to update the return type
-        function.setReturnType(type);
+        Type current = function.getReturnType();
+        Type type = getReturnType(node);
 
-        return false;
+        if (type == null) {
+            throw new Exception("Couldn't resolve return type");
+        }
+        
+        if (current != type) {
+            if (current != null) {
+                type = (Type)Resolver.getSharedContext(current, type);
+            }
+
+            if (type == null) {
+                throw new Exception("Invalid return type");
+            }
+    
+            function.setReturnType(type);
+        }
+        
+        return null;
     }
 }

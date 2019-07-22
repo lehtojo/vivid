@@ -32,7 +32,7 @@ public class TypeNode extends Node implements Contextable {
     }
 
     @Override
-    public Context getContext() throws Exception {
+    public Context getContext() {
         return type;
     }
 }

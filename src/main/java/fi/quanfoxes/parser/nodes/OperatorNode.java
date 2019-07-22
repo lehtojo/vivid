@@ -1,7 +1,5 @@
 package fi.quanfoxes.parser.nodes;
 
-import java.util.Arrays;
-
 import fi.quanfoxes.lexer.*;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
@@ -54,6 +52,6 @@ public class OperatorNode extends Node implements Contextable {
             return null;
         }
 
-        return Resolver.getSharedContext(Arrays.asList(left, right));
+        return Resolver.getSharedContext(left, right);
     }
 }

@@ -4,20 +4,19 @@ import java.util.List;
 
 import fi.quanfoxes.lexer.FunctionToken;
 import fi.quanfoxes.lexer.IdentifierToken;
+import fi.quanfoxes.lexer.NumberToken;
 import fi.quanfoxes.lexer.OperatorToken;
 import fi.quanfoxes.lexer.OperatorType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
-import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.ProcessedToken;
-import fi.quanfoxes.parser.Type;
-import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.nodes.DotOperatorNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.NumberNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.UnresolvedFunction;
 import fi.quanfoxes.parser.nodes.UnresolvedIdentifier;
@@ -67,80 +66,70 @@ public class DotPattern extends Pattern {
         return true;
     }
 
-    private Node getUnresolved(Context context, Token token) throws Exception {
+    private Node getUnresolved(Context environment, Token token) throws Exception {
         switch(token.getType()) {
-            case TokenType.FUNCTION:
-                FunctionToken function = (FunctionToken)token;
-                return new UnresolvedFunction(function.getName()).setParameters(function.getParameters(context));
-
             case TokenType.IDENTIFIER:
                 IdentifierToken id = (IdentifierToken)token;
                 return new UnresolvedIdentifier(id.getValue());
-
-            default:
-                throw new Exception("INTERNAL_ERROR");
+            case TokenType.FUNCTION:
+                FunctionToken function = (FunctionToken)token;
+                return new UnresolvedFunction(function.getName())
+                                .setParameters(function.getParameters(environment));
         }
+        
+        throw new Exception("Couldn't resolve token");
     }
 
-    private Node getNode(Context base, Node left, Token token) throws Exception {
-        Context context = base;
-
-        // Check if the right side is being resolved
-        if (left != null) {
-            // Try to get the return context of the left side
-            if (left instanceof Contextable) {
-                Contextable contextable = (Contextable)left;
-                context = contextable.getContext();
-            }
-            else {
-                // Since the left side wasn't contextable, it means it couldn't be resolved
-                // When left side isn't resolved, the right side cannot be resolved
-                return getUnresolved(base, token);
-            }
-        }
-
+    private Node getNode(Context environment, Context primary, Token token) throws Exception {
         switch(token.getType()) {
-
-            case TokenType.FUNCTION:
-                FunctionToken properties = (FunctionToken)token;
-                Node parameters = properties.getParameters(base);
-
-                if (context.isFunctionDeclared(properties.getName())) {
-                    Function function = context.getFunction(properties.getName());
-                    return new FunctionNode(function).setParameters(parameters);
-                }
-                else {
-                    return new UnresolvedFunction(properties.getName()).setParameters(parameters);
-                }
-
             case TokenType.IDENTIFIER:
                 IdentifierToken id = (IdentifierToken)token;
 
-                if (context.isVariableDeclared(id.getValue())) {
-                    Variable variable = context.getVariable(id.getValue());
-                    return new VariableNode(variable);
+                if (primary.isVariableDeclared(id.getValue())) {
+                    return new VariableNode(primary.getVariable(id.getValue()));
                 }
-                else if (context.isTypeDeclared(id.getValue())) {
-                    Type type = context.getType(id.getValue());
-                    return new TypeNode(type);
+                else if (primary.isTypeDeclared(id.getValue())) {
+                    return new TypeNode(primary.getType(id.getValue()));
                 }
                 else {
-                    return new UnresolvedIdentifier(id.getValue());
+                    return getUnresolved(environment, token);
                 }
+
+            case TokenType.FUNCTION:
+                FunctionToken function = (FunctionToken)token;
+
+                if (primary.isFunctionDeclared(function.getName())) {
+                    return new FunctionNode(primary.getFunction(function.getName()));
+                }
+                else {
+                    return getUnresolved(environment, token);
+                }
+
+            case TokenType.NUMBER:
+                NumberToken number = (NumberToken)token;
+                return new NumberNode(number.getNumberType(), number.getNumber());
 
             case TokenType.PROCESSED:
                 ProcessedToken processed = (ProcessedToken)token;
                 return processed.getNode();
-
-            default:
-                throw new Exception("INTERNAL_ERROR");
         }
+
+        throw new Exception("Couldn't resolve token");
     }
 
     @Override
-    public Node build(Context context, List<Token> tokens) throws Exception {
-        Node left = getNode(context, null, tokens.get(LEFT));
-        Node right = getNode(context, left, tokens.get(RIGHT));
+    public Node build(Context environment, List<Token> tokens) throws Exception {
+        Node left = getNode(environment, environment, tokens.get(LEFT));
+        Node right;
+
+        if (left instanceof Contextable) {
+            Contextable contextable = (Contextable)left;
+            Context primary = contextable.getContext();
+            right = getNode(environment, primary, tokens.get(RIGHT));
+        }
+        else {
+            right = getUnresolved(environment, tokens.get(RIGHT));
+        }
 
         DotOperatorNode dot = new DotOperatorNode();
         dot.setOperands(left, right);

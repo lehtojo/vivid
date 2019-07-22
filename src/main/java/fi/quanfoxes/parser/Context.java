@@ -3,6 +3,8 @@ package fi.quanfoxes.parser;
 import java.util.Collection;
 import java.util.HashMap;
 
+import fi.quanfoxes.parser.nodes.TypeNode;
+
 public class Context {
     private Context context;
 
@@ -10,34 +12,55 @@ public class Context {
     private HashMap<String, Function> functions = new HashMap<>();
     private HashMap<String, Type> types = new HashMap<>();
 
-    protected void onLink() {
+    protected void update() {
         for (Variable variable : getVariables()) {
             if (variable.isTypeUnresolved()) {
-                UnresolvedType unresolved = (UnresolvedType)variable.getType();
+                Resolvable resolvable = (Resolvable)variable.getType();
 
                 try {
-                    Type type = unresolved.resolve();
-                    variable.setType(type);
+                    TypeNode type = (TypeNode)resolvable.resolve(this);
+                    variable.setType(type.getType());
 
-                } catch (Exception e) {
-                    // Resolve function fails when it cannot find the type
-                    // Since there are usually multiple linkages, resolve can fail multiple times until the type is found
-                }
+                } catch (Exception e) {}
             }
+        }
+
+        for (Type type : getTypes()) {
+            type.update();
+        }
+
+        for (Function function : getFunctions()) {
+            function.update();
         }
     }
 
     public void link(Context context) {
         this.context = context;
-        this.onLink();
+        this.update();
+    }
 
-        for (Type type : getTypes()) {
-            type.onLink();
+    public void merge(Context context) {
+        types.putAll(context.types);
+        functions.putAll(context.functions);
+        variables.putAll(context.variables);
+
+        for (Type type : context.types.values()) {
+            type.setParent(this);
         }
 
-        for (Function function : getFunctions()) {
-            function.onLink();
+        for (Function function : context.functions.values()) {
+            function.setParent(this);
         }
+
+        for (Variable variable : context.variables.values()) {
+            variable.setContext(this);
+        }
+
+        update();
+    }
+
+    public void setParent(Context context) {
+        this.context = context;
     }
 
     public Context getParent() {
@@ -140,12 +163,20 @@ public class Context {
         return types.values();
     }
 
-    public Type findParentType() {
-        return (context instanceof Type) ? (Type)context : context.findParentType();
+    public Type getTypeContext() {
+        if (this instanceof Type) {
+            return (Type)this;
+        }
+
+        return (context instanceof Type) ? (Type)context : context.getTypeContext();
     }
 
-    public Function findParentFunction() {
-        return (context instanceof Function) ? (Function)context : context.findParentFunction();
+    public Function getFunctionContext() {
+        if (this instanceof Function) {
+            return (Function)this;
+        }
+
+        return (context instanceof Function) ? (Function)context : context.getFunctionContext();
     }
 
     public boolean isType() {

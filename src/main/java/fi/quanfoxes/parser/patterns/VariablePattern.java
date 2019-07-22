@@ -38,7 +38,7 @@ public class VariablePattern extends Pattern {
 
         if (token.getType() == TokenType.PROCESSED) {
             ProcessedToken program = (ProcessedToken)token;
-            return program.getNode() instanceof TypeNode;
+            return program.getNode() instanceof Contextable;
         }
         else if (token.getType() == TokenType.KEYWORD) {
             Keyword keyword = ((KeywordToken)token).getKeyword();
@@ -53,16 +53,26 @@ public class VariablePattern extends Pattern {
 
         if (token.getType() == TokenType.PROCESSED) {
             ProcessedToken processed = (ProcessedToken)token;
-            TypeNode type = (TypeNode)processed.getNode();
+            Node node = processed.getNode();
 
-            return type.getType();
+            if (node instanceof Resolvable) {
+                return new UnresolvedType(context, (Resolvable)node);
+            }
+
+            throw new Exception("Node must be resolvable");
         }
         else if (token.getType() == TokenType.KEYWORD) {
             return Types.UNKNOWN;
         }
         else {
-            IdentifierToken identifier = (IdentifierToken)token;
-            return context.getType(identifier.getValue());
+            IdentifierToken id = (IdentifierToken)token;
+
+            if (context.isTypeDeclared(id.getValue())) {
+                return context.getType(id.getValue());
+            }
+            else {
+                return new UnresolvedType(context, id.getValue());
+            }
         }
     }
 

@@ -21,34 +21,44 @@ public class DotOperatorNode extends OperatorNode implements Resolvable, Context
         throw new Exception("Couldn't resolve the context");
     }
 
-    public Node resolve(Context context, Node node) throws Exception {
+    /*public Node resolve(Context context, Node node) throws Exception {
         if (node instanceof UnresolvedIdentifier) {
             UnresolvedIdentifier id = (UnresolvedIdentifier)node;
-            return id.try_resolve(context);
+            return id.getResolvedNode(context);
         }
         else if (node instanceof UnresolvedFunction) {
             UnresolvedFunction function = (UnresolvedFunction)node;
-            return function.try_resolve(context);
+            return function.getResolvedNode(context);
         }
         else {
             return node;
         }
-    }
+    }*/
 
     @Override
-    public boolean resolve(Context base) throws Exception {
+    public Node resolve(Context base) throws Exception {
         Node left = getFirst();
-        Node resolvedLeft = resolve(base, left);
-        
-        Context context = getContext(resolvedLeft);
-
         Node right = getLast();
-        Node resolvedRight = resolve(context, right);
 
-        left.replaceWith(resolvedLeft);
-        right.replaceWith(resolvedRight);
+        if (left instanceof Resolvable) {
+            Resolvable resolvable = (Resolvable)left;
+            Node resolved = resolvable.resolve(base);
 
-        return false;
+            left.replace(resolved);
+            left = resolved;
+        }
+
+        if (right instanceof Resolvable) {
+            Context context = getContext(left);
+
+            Resolvable resolvable = (Resolvable)right;
+            Node resolved = resolvable.resolve(context);
+
+            right.replace(resolved);
+            right = resolved;
+        }
+
+        return null;
     }
 
     @Override

@@ -11,7 +11,7 @@ public class UnresolvedIdentifier extends Node implements Resolvable {
         this.value = value;
     }
 
-    public Node try_resolve(Context context) throws Exception {
+    public Node getResolvedNode(Context context) throws Exception {
         if (context.isTypeDeclared(value)) {
             return new TypeNode(context.getType(value));
         }
@@ -24,9 +24,7 @@ public class UnresolvedIdentifier extends Node implements Resolvable {
     }
 
     @Override
-    public boolean resolve(Context context) throws Exception {
-        Node resolved = try_resolve(context);
-        replaceWith(resolved);
-        return true;
+    public Node resolve(Context context) throws Exception {
+        return getResolvedNode(context);
     }
 }

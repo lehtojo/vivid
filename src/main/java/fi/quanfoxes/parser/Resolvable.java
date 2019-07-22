@@ -1,5 +1,5 @@
 package fi.quanfoxes.parser;
 
 public interface Resolvable {
-    public boolean resolve(Context context) throws Exception;
+    public Node resolve(Context context) throws Exception;
 }

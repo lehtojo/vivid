@@ -22,7 +22,7 @@ public class UnresolvedFunction extends Node implements Resolvable {
         return this;
     }
 
-    public Node try_resolve(Context context) throws Exception {
+    public Node getResolvedNode(Context context) throws Exception {
         if (context.isFunctionDeclared(value)) {
             return new FunctionNode(context.getFunction(value));
         }
@@ -32,9 +32,7 @@ public class UnresolvedFunction extends Node implements Resolvable {
     }
 
     @Override
-    public boolean resolve(Context context) throws Exception {
-        Node resolved = try_resolve(context);
-        replaceWith(resolved);
-        return true;
+    public Node resolve(Context context) throws Exception {
+        return getResolvedNode(context);
     }
 }

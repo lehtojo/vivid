@@ -73,6 +73,7 @@ public class Patterns {
         add(new MemberFunctionPattern());
         add(new MemberVariablePattern());
         add(new OperatorPattern());
+        add(new ReturnPattern());
         add(new TypePattern());
         add(new UnarySignPattern());
         add(new VariablePattern());

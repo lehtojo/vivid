@@ -1,41 +1,78 @@
 package fi.quanfoxes.parser;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import fi.quanfoxes.Types;
-import fi.quanfoxes.lexer.OperatorType;
-import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.FunctionNode;
-import fi.quanfoxes.parser.nodes.OperatorNode;
-import fi.quanfoxes.parser.nodes.VariableNode;
+import fi.quanfoxes.parser.nodes.TypeNode;
+import fi.quanfoxes.types.Number;
 
 public class Resolver {
 
-    public static void resolve(Context context, Node root) {
-        Node iterator = root.getFirst();
+    /*
 
-        while (iterator != null) {
-            if (iterator instanceof Resolvable) {
-                Resolvable resolvable = (Resolvable) iterator;
+        TODO: Resolve functions returns new node tree on success, otherwise null 
 
-                try {
-                    if (!resolvable.resolve(context)) {
-                        iterator = iterator.getNext();
-                        continue;
-                    }
-                } catch (Exception e) {
-                    // Resolve functions are intended to fail
-                }
+        */
+
+    /**
+    * Tries to resolve any unresolved nodes in a node tree
+    * @param context Context to use when resolving
+    * @param node Node tree
+    * @param errors Output list for errors
+    * @return Returns a resolved node tree on success, otherwise null
+    */
+    public static Node resolve(Context context, Node node, List<Exception> errors) {
+        if (node instanceof Resolvable) {
+            Resolvable resolvable = (Resolvable)node;
+
+            try {
+                Node resolved = resolvable.resolve(context);
+                return resolved == null ? node : resolved;
+            }
+            catch (Exception e) {
+                errors.add(e);
             }
 
-            Resolver.resolve(context, iterator);
+            return null;
+        }
+        else {
+            Node iterator = node.getFirst();
 
-            iterator = iterator.getNext();
+            while (iterator != null) {
+                Node resolved;
+
+                if (iterator instanceof TypeNode) {
+                    TypeNode type = (TypeNode)iterator;
+                    resolved = Resolver.resolve(type.getType(), iterator, errors);
+                }
+                else if (iterator instanceof FunctionNode) {
+                    FunctionNode function = (FunctionNode)iterator;
+                    resolved = Resolver.resolve(function.getFunction(), iterator, errors);
+                }
+                else {
+                    resolved = Resolver.resolve(context, iterator, errors);
+                }
+
+                if (resolved != null) {
+                    iterator.replace(resolved);
+                }
+
+                iterator = iterator.getNext();
+            }
+
+            return node;
         }
     }
 
+    private static Context getSharedNumber(Number a, Number b) {
+        return a.getBitCount() > b.getBitCount() ? a : b;
+    }
+
     public static Context getSharedContext(Context a, Context b) {
+        if (a instanceof Number && b instanceof Number) {
+            return getSharedNumber((Number)a, (Number)b);
+        }
+
         Context context = a;
         
         while (context != null) {
@@ -56,20 +93,28 @@ public class Resolver {
         return null;
     }
 
-    public static Context getSharedContext(List<Context> contexts) {
+    /*public static Context getSharedContext(List<Context> contexts) {
+        if (contexts.size() < 2) {
+            return contexts.get(0);
+        }
+
         Context target = contexts.get(0);
         
         while (target != null) {
             
             for (int i = 1; i < contexts.size(); i++) {
-                
+                Context context = contexts.get(i);
+
+                if (context == target) {
+
+                }
             }
 
             target = target.getParent();
         }
 
         return null;
-    }
+    }*/
 
     /*private static Type getNodeReturnType(Node node) {
         Type type = Types.UNKNOWN;

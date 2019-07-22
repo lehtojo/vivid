@@ -1,6 +1,5 @@
 package fi.quanfoxes.parser.patterns;
 
-import fi.quanfoxes.Keyword;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.lexer.ContentToken;
 import fi.quanfoxes.lexer.KeywordToken;
@@ -51,17 +50,19 @@ public class WhilePattern extends Pattern {
         return (condition.getNode() instanceof ContentNode);
     }
 
+    private ArrayList<Token> getBodyTokens(List<Token> tokens) {
+        ContentToken content = (ContentToken)tokens.get(BODY);
+        return content.getTokens();
+    }
+
     @Override
     public Node build(Context base, List<Token> tokens) throws Exception {
-        ProcessedToken condition = (ProcessedToken)tokens.get(CONDITION);
-        ArrayList<Token> body = ((ContentToken)tokens.get(BODY)).getTokens();
-
         Context context = new Context();
         context.link(base);
-        
-        //Parser.parse(context, section)
 
-        //return new WhileNode(condition.getNode(), body.getNode());
-        return null;
+        Node body = Parser.parse(context, getBodyTokens(tokens));
+        Node condition = ((ProcessedToken)tokens.get(CONDITION)).getNode();
+
+        return new WhileNode(context, condition, body);
     }
 }

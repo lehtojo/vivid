@@ -29,7 +29,7 @@ public type Player
         }
     }
     
-    public num get_actions_remaining()
+    public func get_actions_remaining()
     {
         return mana / action_cost
     }
