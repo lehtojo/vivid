@@ -1,8 +1,10 @@
 package fi.quanfoxes.parser;
 
+import java.util.Iterator;
 import java.util.Objects;
+import java.lang.Iterable;
 
-public class Node {
+public class Node implements Iterator<Node>, Iterable<Node> {
     private Node parent;
 
     private Node previous;
@@ -10,26 +12,6 @@ public class Node {
 
     private Node first;
     private Node last;
-
-    public Node getParent() {
-        return parent;
-    }
-
-    public Node getPrevious() {
-        return previous;
-    }
-
-    public Node getNext() {
-        return next;
-    }
-
-    public Node getFirst() {
-        return first;
-    }
-
-    public Node getLast() {
-        return last;
-    }
 
     public void insert(Node position, Node child) {
         if (position == first) {
@@ -117,6 +99,25 @@ public class Node {
         }
     }
 
+    public void merge(Node node) {
+        Node iterator = node.first;
+
+        while (iterator != null) {
+            add(iterator);
+            iterator = iterator.next;
+        }
+
+        node.destroy();
+    }
+
+    public void destroy() {
+        parent = null;
+        previous = null;
+        next = null;
+        first = null;
+        last = null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -137,5 +138,36 @@ public class Node {
                 "children:\n" + first +
                 "},\n" +
                 next.toString();
+    }
+
+    @Override
+    public Iterator<Node> iterator() {
+        return this;
+	}
+
+    @Override
+    public boolean hasNext() {
+        return next != null;
+    }
+
+    @Override
+    public Node next() {
+        return next;
+    }
+
+    public Node previous() {
+        return previous;
+    }
+
+    public Node parent() {
+        return parent;
+    }
+
+    public Node first() {
+        return first;
+    }
+
+    public Node last() {
+        return last;
     }
 }

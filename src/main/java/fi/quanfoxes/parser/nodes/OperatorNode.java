@@ -17,17 +17,18 @@ public class OperatorNode extends Node implements Contextable {
         return operator;
     }
 
-    public void setOperands(Node left, Node right) {
+    public OperatorNode setOperands(Node left, Node right) {
         super.add(left);
         super.add(right);
+        return this;
     }
 
     public Node getLeft() {
-        return getFirst();
+        return first();
     }
 
     public Node getRight() {
-        return getLast();
+        return last();
     }
 
     @Override

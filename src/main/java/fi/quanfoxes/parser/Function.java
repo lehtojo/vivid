@@ -15,19 +15,23 @@ public class Function extends Context {
     private int modifiers;
 
     private Map<String, Variable> parameters = new HashMap<>();
-    //private ArrayList<Type> parameters = new ArrayList<>();
 
-    private Type returnType;
+    private Type result;
 
-    private ArrayList<Node> usages = new ArrayList<>();
+    private List<Node> usages = new ArrayList<>();
 
-    public Function(Context context, String name, int modifiers, Type returnType) throws Exception {
+    public Function(Context context, String name, int modifiers, Type result) throws Exception {
         this.name = name;
         this.modifiers = modifiers;
-        this.returnType = returnType;
+        this.result = result;
 
         super.link(context);
         context.declare(this);
+    }
+
+    public Function(Context context, int modifiers) {
+        this.modifiers = modifiers;
+        super.link(context);
     }
 
     @Override
@@ -63,13 +67,13 @@ public class Function extends Context {
     }
 
     public void setParameters(Node node) {
-        VariableNode parameter = (VariableNode)node.getFirst();
+        VariableNode parameter = (VariableNode)node.first();
         
         while (parameter != null) {
             Variable variable = parameter.getVariable();
             parameters.put(variable.getName(), variable);
 
-            parameter = (VariableNode)parameter.getNext();
+            parameter = (VariableNode)parameter.next();
         }
     }
 
@@ -82,18 +86,18 @@ public class Function extends Context {
     }
 
     public Type getReturnType() {
-        return returnType;
+        return result;
     }
 
     public void setReturnType(Type type) {
-        this.returnType = type;
+        this.result = type;
     }
 
     public void addUsage(Node node) {
         usages.add(node);
     }
 
-    public ArrayList<Node> getUsages() {
+    public List<Node> getUsages() {
         return usages;
     }
 }

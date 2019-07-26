@@ -37,8 +37,8 @@ public class VariablePattern extends Pattern {
         Token token = tokens.get(TYPE);
 
         if (token.getType() == TokenType.PROCESSED) {
-            ProcessedToken program = (ProcessedToken)token;
-            return program.getNode() instanceof Contextable;
+            ProcessedToken processed = (ProcessedToken)token;
+            return processed.getNode() instanceof LinkNode;
         }
         else if (token.getType() == TokenType.KEYWORD) {
             Keyword keyword = ((KeywordToken)token).getKeyword();
@@ -55,7 +55,7 @@ public class VariablePattern extends Pattern {
             ProcessedToken processed = (ProcessedToken)token;
             Node node = processed.getNode();
 
-            if (node instanceof Resolvable) {
+            if (node instanceof LinkNode) {
                 return new UnresolvedType(context, (Resolvable)node);
             }
 

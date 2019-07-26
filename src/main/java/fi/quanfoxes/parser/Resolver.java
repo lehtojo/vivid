@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import fi.quanfoxes.parser.nodes.FunctionNode;
@@ -7,13 +8,7 @@ import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.types.Number;
 
 public class Resolver {
-
-    /*
-
-        TODO: Resolve functions returns new node tree on success, otherwise null 
-
-        */
-
+    
     /**
     * Tries to resolve any unresolved nodes in a node tree
     * @param context Context to use when resolving
@@ -36,7 +31,7 @@ public class Resolver {
             return null;
         }
         else {
-            Node iterator = node.getFirst();
+            Node iterator = node.first();
 
             while (iterator != null) {
                 Node resolved;
@@ -57,14 +52,14 @@ public class Resolver {
                     iterator.replace(resolved);
                 }
 
-                iterator = iterator.getNext();
+                iterator = iterator.next();
             }
 
             return node;
         }
     }
 
-    private static Context getSharedNumber(Number a, Number b) {
+    private static Type getSharedNumber(Number a, Number b) {
         return a.getBitCount() > b.getBitCount() ? a : b;
     }
 
@@ -93,119 +88,72 @@ public class Resolver {
         return null;
     }
 
-    /*public static Context getSharedContext(List<Context> contexts) {
-        if (contexts.size() < 2) {
-            return contexts.get(0);
+    /**
+     * Returns the shared type between the two given types
+     * @return Success: Shared type between the two given types, Failure: null
+     */
+    public static Type getSharedType(Type a, Type b) {
+        if (a instanceof Number && b instanceof Number) {
+            return getSharedNumber((Number)a, (Number)b);
         }
 
-        Context target = contexts.get(0);
+        Type type = a;
         
-        while (target != null) {
-            
-            for (int i = 1; i < contexts.size(); i++) {
-                Context context = contexts.get(i);
+        while (type != null) {
+            Type iterator = b;
 
-                if (context == target) {
-
+            while (iterator != null) {
+                
+                if (iterator == type) {
+                    return type;
                 }
+                
+                Context parent = iterator.getParent();
+
+                if (!parent.isType()) {
+                    return null;
+                }
+
+                iterator = (Type)parent;
             }
 
-            target = target.getParent();
+            Context parent = type.getParent();
+
+            if (!parent.isType()) {
+                return null;
+            }
+
+            type = (Type)parent;
         }
 
         return null;
-    }*/
-
-    /*private static Type getNodeReturnType(Node node) {
-        Type type = Types.UNKNOWN;
-        
-        if (node instanceof FunctionNode) {
-            Function function = ((FunctionNode)node).getFunction();
-
-            if (function.getReturnType() != Types.UNKNOWN) {
-                type = function.getReturnType();
-            }
-        }
-        else if (node instanceof VariableNode) {
-            VariableNode variable = (VariableNode)node;
-            type = variable.getVariable().getType();
-        }
-        else if (node instanceof OperatorNode) {
-            OperatorNode operator = (OperatorNode)node;
-
-            if (operator.getOperator() == OperatorType.DOT) {
-
-                if (operator.getRight() instanceof FunctionNode) {
-                    Function function = ((FunctionNode)operator.getRight()).getFunction();
-
-                    if (function.getReturnType() != Types.UNKNOWN) {
-                        type = function.getReturnType();
-                    }
-                }
-                else if (operator.getRight() instanceof VariableNode) {
-                    VariableNode variable = (VariableNode)operator.getRight();
-        
-                    if (variable.getVariable() != null) {
-                        type = variable.getVariable().getType();
-                    }
-                }
-            }
-        }
-
-        return type;
     }
 
-    private static Type getAssignType(OperatorNode assign) throws Exception {
-        Node left = assign.getLeft();
-        Node right = assign.getRight();
-
-        if (left instanceof FunctionNode) {
-            throw new Exception("Function cannot be assigned");
-        }
-        else if (left instanceof OperatorNode) {
-            // TODO: a = b = c, a += b += c, ...
-            throw new Exception("Operator result cannot be assigned");
-        }
-
-        Type type = getNodeReturnType(left);
-
-        if (type == Types.UNKNOWN) {
-            type = getNodeReturnType(right);
-        }
-
-        return type;
-    }
-
-    private static void resolve(Variable variable) throws Exception {
+    /**
+     * Returns all child node types
+     * @return Types of children nodes
+     * @throws Exception Throws if any child isn't contextable
+     */
+    public static List<Type> getTypes(Node node) throws Exception {
         List<Type> types = new ArrayList<>();
+        Node iterator = node.first();
         
-        for (Node usage : variable.getUsages()) {
-            Node parent = usage.getParent();
-            Type type = Types.UNKNOWN;
+        while (iterator != null) {
+            if (iterator instanceof Contextable) {
+                Contextable contextable = (Contextable)iterator;
+                Context context = contextable.getContext();
 
-            if (parent instanceof OperatorNode) {
-                OperatorNode operator = (OperatorNode)parent;
-
-                if (operator.getOperator() == OperatorType.ASSIGN) {
-                    type = getAssignType(operator);
+                if (context == null || !context.isType()) {
+                    throw new Exception("Couldn't resolve type");
+                }
+                else {
+                    types.add((Type)context);
                 }
             }
 
-            if (type != Types.UNKNOWN) {
-                types.add(type);
-            }
+            iterator = iterator.next();
         }
 
-        for (Type type : types) {
-            
-        }
+        return types;
     }
-
-    public static void resolve(Context context, Node root) throws Exception {
-        for (Variable variable : context.getVariables()) {
-            if (variable.getType() == Types.UNKNOWN) {
-                resolve(variable);
-            }
-        }
-    }*/
 }

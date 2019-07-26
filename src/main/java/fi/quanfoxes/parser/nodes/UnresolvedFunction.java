@@ -1,8 +1,14 @@
 package fi.quanfoxes.parser.nodes;
 
+import java.util.List;
+
 import fi.quanfoxes.parser.Context;
+import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Resolvable;
+import fi.quanfoxes.parser.Resolver;
+import fi.quanfoxes.parser.Singleton;
+import fi.quanfoxes.parser.Type;
 
 public class UnresolvedFunction extends Node implements Resolvable {
     private String value;
@@ -12,23 +18,26 @@ public class UnresolvedFunction extends Node implements Resolvable {
     }
 
     public UnresolvedFunction setParameters(Node parameters) {
-        Node parameter = parameters.getFirst();
+        Node parameter = parameters.first();
 
         while (parameter != null) {
+            Node next = parameter.next();
             super.add(parameter);
-            parameter = parameter.getNext();
+            parameter = next;
         }
 
         return this;
     }
 
     public Node getResolvedNode(Context context) throws Exception {
-        if (context.isFunctionDeclared(value)) {
-            return new FunctionNode(context.getFunction(value));
+        List<Type> parameters = Resolver.getTypes(this); 
+        Function function = Singleton.getFunctionByName(context, value, parameters);
+
+        if (function == null) {
+            throw new Exception(String.format("Couldn't resolve function '%s'", value));
         }
-        else {
-            throw new Exception("Couldn't resolve function");
-        }
+
+        return new FunctionNode(function).setParameters(this);
     }
 
     @Override

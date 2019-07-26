@@ -30,7 +30,7 @@
         {
             "label": "Package (Ignore tests)",
             "type": "shell",
-            "command": "mvn package -Dmaven.test.skip=true",
+            "command": "mvn -D maven.test.skip=true package",
             "group": "build",
             "problemMatcher": []
         },

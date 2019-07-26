@@ -39,7 +39,7 @@ public class Patterns {
         }
     }
 
-    public Patterns navigate(final int type) {
+    public Patterns navigate(int type) {
         if (branches.containsKey(type)) {
             return branches.get(type);
         }
@@ -59,6 +59,7 @@ public class Patterns {
     // ----------------------------------------------------------
 
     private static Patterns root = new Patterns();
+
     public static Patterns getRoot() {
         return root;
     }
@@ -68,12 +69,16 @@ public class Patterns {
     }
 
     static {
+        add(new ConstructionPattern());
+        add(new ConstructorPattern());
         add(new ContentPattern());
-        add(new DotPattern());
+        add(new IfPattern());
+        add(new LinkPattern());
         add(new MemberFunctionPattern());
         add(new MemberVariablePattern());
         add(new OperatorPattern());
         add(new ReturnPattern());
+        add(new SingletonPattern());
         add(new TypePattern());
         add(new UnarySignPattern());
         add(new VariablePattern());

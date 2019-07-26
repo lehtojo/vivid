@@ -1,12 +1,11 @@
 package fi.quanfoxes.lexer;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
-import fi.quanfoxes.parser.patterns.VariablePattern;
 
 public class FunctionToken extends Token {
     private IdentifierToken name;
@@ -27,8 +26,8 @@ public class FunctionToken extends Token {
         Node node = new Node();
 
         for (int i = 0; i < parameters.getSectionCount(); i++) {
-            ArrayList<Token> tokens = parameters.getTokens(i);
-            Parser.parse(node, context, tokens, VariablePattern.PRIORITY);
+            List<Token> tokens = parameters.getTokens(i);
+            Parser.parse(node, context, tokens);
         }
 
         return node;

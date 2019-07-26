@@ -19,7 +19,7 @@ public class UnresolvedIdentifier extends Node implements Resolvable {
             return new VariableNode(context.getVariable(value));
         }
         else {
-            throw new Exception("Couldn't resolve identifier");
+            throw new Exception(String.format("Couldn't resolve identifier '%s'", value));
         }
     }
 

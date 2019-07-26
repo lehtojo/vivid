@@ -8,16 +8,17 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class FunctionNode extends Node implements Contextable {
     private Function function;
-    private ArrayList<Token> body;
+    private List<Token> body;
 
     public FunctionNode(Function function) throws Exception {
         this(function, new ArrayList<>());
     }
 
-    public FunctionNode(Function function, ArrayList<Token> body) throws Exception {
+    public FunctionNode(Function function, List<Token> body) throws Exception {
         this.function = function;
         this.function.addUsage(this);
         this.body = body;
@@ -29,11 +30,11 @@ public class FunctionNode extends Node implements Contextable {
     }
 
     public FunctionNode setParameters(Node parameters) {
-        Node parameter = parameters.getFirst();
+        Node parameter = parameters.first();
 
         while (parameter != null) {
             super.add(parameter);
-            parameter = parameter.getNext();
+            parameter = parameter.next();
         }
 
         return this;

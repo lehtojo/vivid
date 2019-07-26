@@ -25,7 +25,7 @@ public class ReturnNode extends Node implements Resolvable {
     @Override
     public Node resolve(Context context) throws Exception {
         // Returned object must be resolved first
-        Node node = getFirst();
+        Node node = first();
 
         if (node instanceof Resolvable) {
             Resolvable resolvable = (Resolvable)node;
@@ -36,7 +36,7 @@ public class ReturnNode extends Node implements Resolvable {
         }
         
         // Find the parent function where the return value can be assigned
-        Function function = context.getFunctionContext();
+        Function function = context.getFunctionParent();
 
         Type current = function.getReturnType();
         Type type = getReturnType(node);
@@ -46,12 +46,14 @@ public class ReturnNode extends Node implements Resolvable {
         }
         
         if (current != type) {
+            Type shared = type;
+
             if (current != null) {
-                type = (Type)Resolver.getSharedContext(current, type);
+                shared = Resolver.getSharedType(current, type);
             }
 
-            if (type == null) {
-                throw new Exception("Invalid return type");
+            if (shared == null) {
+                throw new Exception(String.format("Type '%s' isn't compatible with the current return type '%s'", type.getName(), current.getName()));
             }
     
             function.setReturnType(type);

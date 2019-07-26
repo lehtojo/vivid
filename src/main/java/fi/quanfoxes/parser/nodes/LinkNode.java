@@ -6,9 +6,9 @@ import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Resolvable;
 
-public class DotOperatorNode extends OperatorNode implements Resolvable, Contextable {
+public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
-    public DotOperatorNode() {
+    public LinkNode() {
         super(OperatorType.DOT);
     }
 
@@ -21,24 +21,10 @@ public class DotOperatorNode extends OperatorNode implements Resolvable, Context
         throw new Exception("Couldn't resolve the context");
     }
 
-    /*public Node resolve(Context context, Node node) throws Exception {
-        if (node instanceof UnresolvedIdentifier) {
-            UnresolvedIdentifier id = (UnresolvedIdentifier)node;
-            return id.getResolvedNode(context);
-        }
-        else if (node instanceof UnresolvedFunction) {
-            UnresolvedFunction function = (UnresolvedFunction)node;
-            return function.getResolvedNode(context);
-        }
-        else {
-            return node;
-        }
-    }*/
-
     @Override
     public Node resolve(Context base) throws Exception {
-        Node left = getFirst();
-        Node right = getLast();
+        Node left = first();
+        Node right = last();
 
         if (left instanceof Resolvable) {
             Resolvable resolvable = (Resolvable)left;
@@ -63,7 +49,7 @@ public class DotOperatorNode extends OperatorNode implements Resolvable, Context
 
     @Override
     public Context getContext() throws Exception {
-        Node right = getLast();
+        Node right = last();
         return getContext(right);
     }
 }

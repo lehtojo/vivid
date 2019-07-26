@@ -22,51 +22,51 @@ public class LexerTest {
 
     @Test
     public void tokenArea_typeDetectionStart() throws Exception {
-        assertTokenArea("num a = 0;", 0, Lexer.Type.TEXT, 0, 3);
+        assertTokenArea("num a = 0", 0, Lexer.Type.TEXT, 0, 3);
     }
 
     @Test
     public void tokenArea_numberDetection() throws Exception {
-        assertTokenArea("num a = 1234;", 8, Lexer.Type.NUMBER, 8, 12);
+        assertTokenArea("num a = 1234", 8, Lexer.Type.NUMBER, 8, 12);
     }
 
     @Test
     public void tokenArea_decimalNumberDetection() throws Exception {
-        assertTokenArea("num a = 1.234;", 8, Lexer.Type.NUMBER, 8, 13);
+        assertTokenArea("num a = 1.234", 8, Lexer.Type.NUMBER, 8, 13);
     }
     @Test
     public void tokenArea_assignOperator() throws Exception {
-        assertTokenArea("num a = 1.234;", 5, Lexer.Type.OPERATOR, 6, 7);
+        assertTokenArea("num a = 1.234", 5, Lexer.Type.OPERATOR, 6, 7);
     }
 
     @Test
     public void tokenArea_simpleFunction() throws Exception {
-        assertTokenArea("apple() * apple();", 0, Lexer.Type.TEXT, 0, 5);
+        assertTokenArea("apple() * apple()", 0, Lexer.Type.TEXT, 0, 5);
     }
 
     @Test
     public void tokenArea_functionWithParameters() throws Exception {
-        assertTokenArea("num a = banana(1 + 2 * (3 - 4));", 7, Lexer.Type.TEXT, 8, 14);
+        assertTokenArea("num a = banana(1 + 2 * (3 - 4))", 7, Lexer.Type.TEXT, 8, 14);
     }
 
     @Test
     public void tokenArea_richFunctionName() throws Exception {
-        assertTokenArea("a = this_Is_Very_Weird_Function(apple() + banana() * 3 / 2) % 2;", 3, Lexer.Type.TEXT,4, 31);
+        assertTokenArea("a = this_Is_Very_Weird_Function(apple() + banana() * 3 / 2) % 2", 3, Lexer.Type.TEXT,4, 31);
     }
 
     @Test
     public void tokenArea_hexadecimal() throws Exception {
-        assertTokenArea("0xFF;", 0, Lexer.Type.NUMBER, 0, 4);
+        assertTokenArea("0xFF", 0, Lexer.Type.NUMBER, 0, 4);
     }
 
     @Test
     public void tokenArea_simpleContent() throws Exception {
-        assertTokenArea("decimal b = apple() + (4 * banana() + 5) & orange();", 21, Lexer.Type.CONTENT, 22, 40);
+        assertTokenArea("decimal b = apple() + (4 * banana() + 5) & orange()", 21, Lexer.Type.CONTENT, 22, 40);
     }
 
     @Test
     public void tokenArea_operatorAndContent() throws Exception {
-        assertTokenArea("c = 5*(4+a);", 5, Lexer.Type.OPERATOR, 5, 6);
+        assertTokenArea("c = 5*(4+a)", 5, Lexer.Type.OPERATOR, 5, 6);
     }
 
     @Test
@@ -85,7 +85,7 @@ public class LexerTest {
     @Test
     public void tokenArea_missingOperator()  {
         try {
-            assertTokenArea("a = 4(3/a);", 4, Lexer.Type.NUMBER, 4, 5);
+            assertTokenArea("a = 4(3/a)", 4, Lexer.Type.NUMBER, 4, 5);
         }
         catch (Exception e) {
             assertSame(1, 1);

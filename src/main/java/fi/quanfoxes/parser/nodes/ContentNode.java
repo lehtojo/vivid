@@ -8,7 +8,7 @@ public class ContentNode extends Node implements Contextable {
 
     @Override
     public Context getContext() throws Exception {
-        Contextable contextable = (Contextable)getFirst();
+        Contextable contextable = (Contextable)first();
         return contextable.getContext();
     }
 }

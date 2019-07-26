@@ -10,7 +10,6 @@ import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.nodes.ContentNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ContentPattern extends Pattern {
@@ -41,7 +40,7 @@ public class ContentPattern extends Pattern {
         ContentNode content = new ContentNode(); 
 
         for (int i = 0; i < token.getSectionCount(); i++) {
-            ArrayList<Token> section = token.getTokens(i);
+            List<Token> section = token.getTokens(i);
             content.add(Parser.parse(context, section));
         }
 

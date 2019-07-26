@@ -19,6 +19,7 @@ import java.util.concurrent.Future;
 public class Main {
     private static final int FILE_LOAD_ERROR = -1;
     private static final int LEXER_ERROR = -2;
+    private static final int PARSE_ERROR = -3;
 
     public static ExecutorService executors;
     public static ArrayList<Exception> errors = new ArrayList<>();
@@ -43,7 +44,7 @@ public class Main {
         }
     }
 
-    public static <T> void wait(ArrayList<Future<T>> tasks) {
+    public static <T> void wait(List<Future<T>> tasks) {
         int i = 0;
 
         while (i < tasks.size()) {
@@ -52,7 +53,7 @@ public class Main {
     }
 
     public static void members(Node root) throws Exception {
-        Node node = root.getFirst();
+        Node node = root.first();
 
         while (node != null) {
             if (node instanceof TypeNode) {
@@ -68,12 +69,12 @@ public class Main {
                 members(type);
             }
 
-            node = node.getNext();
+            node = node.next();
         }
     }
 
     public static void functions(Node parent) throws Exception {
-        Node node = parent.getFirst();
+        Node node = parent.first();
 
         while (node != null) {
             if (node instanceof TypeNode) {
@@ -90,7 +91,7 @@ public class Main {
                 } 
             }
 
-            node = node.getNext();
+            node = node.next();
         }
     }
 
@@ -114,24 +115,23 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         
-        long start = System.nanoTime();
+        long a = System.nanoTime();
 
         // Create thread pool for multi-threading
         Runtime runtime = Runtime.getRuntime();
         executors = Executors.newFixedThreadPool(runtime.availableProcessors());
 
-        ArrayList<Future<String>> files = new ArrayList<>();
+        List<Future<String>> files = new ArrayList<>();
 
         // Load source files
         for (String filename : args) {
-            Future<String> file = executors.submit(() -> load(filename));
-            files.add(file);
+            files.add(executors.submit(() -> load(filename)));
         }
 
         // Wait for all threads to finish
         wait(files);
 
-        // Make sure all files are loaded successfully
+        // Verify all files are loaded successfully
         for (Future<String> file : files) {
             if (file.get() == null) {
                 System.exit(FILE_LOAD_ERROR);
@@ -139,60 +139,74 @@ public class Main {
             }
         }
 
-        long lexer_start = System.nanoTime();
+        long b = System.nanoTime();
 
-        ArrayList<Future<ArrayList<Token>>> sections = new ArrayList<>();
+        List<Future<List<Token>>> tokenized_files = new ArrayList<>();
 
-        // Tokenize each source file
+        // Tokenize each file
         for (Future<String> file : files) {
-            Future<ArrayList<Token>> section = executors.submit(() -> Lexer.getTokens(file.get()));
-            sections.add(section);
+            tokenized_files.add(executors.submit(() -> Lexer.getTokens(file.get())));
         }
 
         // Wait for all threads to finish
-        wait(sections);
+        wait(tokenized_files);
 
-        // Make sure all files are tokenized successfully
-        for (Future<ArrayList<Token>> section : sections) {
+        // Verify all files are tokenized successfully
+        for (Future<List<Token>> section : tokenized_files) {
             if (section.get() == null) {
                 System.exit(LEXER_ERROR);
                 return;
             }
         }
 
-        long parser_start = System.nanoTime();
+        long c = System.nanoTime();
 
-        List<Parse> parses = new ArrayList<>();
+        List<Future<Parse>> parses = new ArrayList<>();
 
-        for (Future<ArrayList<Token>> section : sections) {
-            Context context = Parser.initialize();
-            Node root = new Node();
+        // Parse each tokenized file
+        for (Future<List<Token>> file : tokenized_files) {
+            parses.add(executors.submit(() -> {
+                Context context = Parser.initialize();
+                Node node = Parser.parse(context, file.get());
 
-            Parser.parse(root, context, section.get(), Parser.MEMBERS, Parser.MAX_PRIORITY);
-            
-            members(root);  
-            functions(root);
+                members(node);  
+                functions(node);
 
-            parses.add(new Parse(context, root));
+                return new Parse(context, node);
+            }));
         }
 
+        // Wait for all threads to finish
+        wait(tokenized_files);
+
+        // Verify all files are parsed successfully
+        for (Future<Parse> parse : parses) {
+            if (parse.get() == null) {
+                System.exit(PARSE_ERROR);
+                return;
+            }
+        }
+
+        // Merge all parsed files
         Context context = new Context();
         Node root = new Node();
 
-        for (Parse parse : parses) {
+        for (Future<Parse> iterator : parses) {
+            Parse parse = iterator.get();
             context.merge(parse.getContext());
-            root.add(parse.getNode());
+            root.merge(parse.getNode());
         }
 
+        // Try to resolve any problems in the node tree
         Resolver.resolve(context, root, errors);
 
-        long end = System.nanoTime();
+        long d = System.nanoTime();
 
         System.out.println(              "=====================");
-        System.out.println(String.format("Disk: %.1f ms", (lexer_start - start) / 1000000.0f));
-        System.out.println(String.format("Lexer: %.1f ms", (parser_start - lexer_start) / 1000000.0f));
-        System.out.println(String.format("Parser: %.1f ms", (end - parser_start) / 1000000.0f));
-        System.out.println(String.format("Total: %.1f ms", (end - start) / 1000000.0f));
+        System.out.println(String.format("Disk: %.1f ms", (b - a) / 1000000.0f));
+        System.out.println(String.format("Lexer: %.1f ms", (c - b) / 1000000.0f));
+        System.out.println(String.format("Parser: %.1f ms", (d - c) / 1000000.0f));
+        System.out.println(String.format("Total: %.1f ms", (d - a) / 1000000.0f));
         System.out.println(              "=====================");
 
         System.exit(0);

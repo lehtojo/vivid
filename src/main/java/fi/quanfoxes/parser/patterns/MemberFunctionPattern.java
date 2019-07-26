@@ -13,7 +13,7 @@ import fi.quanfoxes.parser.ProcessedToken;
 import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
-import fi.quanfoxes.parser.nodes.DotOperatorNode;
+import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
@@ -62,7 +62,7 @@ public class MemberFunctionPattern extends Pattern {
                 
             case TokenType.PROCESSED:
                 Node node = ((ProcessedToken)token).getNode();
-                return (node instanceof DotOperatorNode) || (node instanceof TypeNode);
+                return (node instanceof LinkNode) || (node instanceof TypeNode);
         }
 
         return false;
