@@ -1,6 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
-import fi.quanfoxes.lexer.OperatorType;
+import fi.quanfoxes.lexer.Operators;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Node;
@@ -9,7 +9,7 @@ import fi.quanfoxes.parser.Resolvable;
 public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
     public LinkNode() {
-        super(OperatorType.DOT);
+        super(Operators.DOT);
     }
 
     private Context getContext(Node node) throws Exception {

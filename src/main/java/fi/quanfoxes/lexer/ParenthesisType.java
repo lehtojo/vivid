@@ -2,7 +2,6 @@ package fi.quanfoxes.lexer;
 
 import java.util.HashMap;
 
-// ([{
 public enum ParenthesisType {
     PARENTHESIS('('),
     BRACKETS('['),

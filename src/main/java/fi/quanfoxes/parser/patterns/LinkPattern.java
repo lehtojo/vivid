@@ -3,7 +3,6 @@ package fi.quanfoxes.parser.patterns;
 import java.util.List;
 
 import fi.quanfoxes.lexer.OperatorToken;
-import fi.quanfoxes.lexer.OperatorType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
@@ -14,6 +13,7 @@ import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.lexer.Operators;
 
 public class LinkPattern extends Pattern {
     public static final int PRIORITY = 19;
@@ -40,7 +40,7 @@ public class LinkPattern extends Pattern {
         OperatorToken operator = (OperatorToken)tokens.get(OPERATOR);
         
         // The operator between left and right token must be dot
-        if (operator.getOperator() != OperatorType.DOT) {
+        if (operator.getOperator() != Operators.DOT) {
             return false;
         }
 

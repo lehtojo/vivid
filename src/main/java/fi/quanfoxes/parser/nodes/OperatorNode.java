@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.*;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
@@ -7,13 +8,13 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Resolver;
 
 public class OperatorNode extends Node implements Contextable {
-    private OperatorType operator;
+    private Operator operator;
 
-    public OperatorNode(OperatorType operator) {
+    public OperatorNode(Operator operator) {
         this.operator = operator;
     }
 
-    public OperatorType getOperator() {
+    public Operator getOperator() {
         return operator;
     }
 
@@ -31,8 +32,7 @@ public class OperatorNode extends Node implements Contextable {
         return last();
     }
 
-    @Override
-    public Context getContext() throws Exception {
+    private Context getClassicContext() throws Exception {
         Context left;
 
         if (getLeft() instanceof Contextable) {
@@ -54,5 +54,32 @@ public class OperatorNode extends Node implements Contextable {
         }
 
         return Resolver.getSharedContext(left, right);
+    }
+
+    private Context getComparisonContext() {
+        return Types.BOOL;
+    }
+
+    private Context getActionContext() throws Exception {
+        if (getLeft() instanceof Contextable) {
+            Contextable contextable = (Contextable)getLeft();
+            return contextable.getContext();
+        }
+        
+        return null;
+    }
+
+    @Override
+    public Context getContext() throws Exception {
+        switch (operator.getType()) {
+            case CLASSIC:
+                return getClassicContext();
+            case COMPARISON:
+                return getComparisonContext();
+            case ACTION:
+                return getActionContext();
+            default:
+                throw new Exception("Independent operator doesn't belong here");
+        }
     }
 }

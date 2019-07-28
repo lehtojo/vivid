@@ -31,12 +31,12 @@ public class UnarySignPattern extends Pattern {
         OperatorToken operator = (OperatorToken)tokens.get(OPERATOR);
         OperatorToken sign = (OperatorToken)tokens.get(SIGN);
 
-        return operator.getOperator() != OperatorType.INCREMENT && operator.getOperator() != OperatorType.DECREMENT &&
-                (sign.getOperator() == OperatorType.ADD || sign.getOperator() == OperatorType.SUBTRACT);
+        return operator.getOperator() != Operators.INCREMENT && operator.getOperator() != Operators.DECREMENT &&
+                (sign.getOperator() == Operators.ADD || sign.getOperator() == Operators.SUBTRACT);
     }
 
     private boolean isPositive(OperatorToken sign) {
-        return sign.getOperator() == OperatorType.ADD;
+        return sign.getOperator() == Operators.ADD;
     }
 
     @Override

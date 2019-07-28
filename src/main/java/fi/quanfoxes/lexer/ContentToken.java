@@ -20,7 +20,7 @@ public class ContentToken extends Token {
      * @return True if the given token is a comma operator
      */
     private boolean isComma (Token token) {
-        return token.getType() == TokenType.OPERATOR && ((OperatorToken)token).getOperator() == OperatorType.COMMA;
+        return token.getType() == TokenType.OPERATOR && ((OperatorToken)token).getOperator() == Operators.COMMA;
     }
 
     /**

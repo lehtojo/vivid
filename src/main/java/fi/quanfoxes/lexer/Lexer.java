@@ -353,7 +353,7 @@ public class Lexer {
      * @return Text converted into a token
      */
     private static Token parseTextToken(String text) {
-        if (OperatorType.exists(text)) {
+        if (Operators.exists(text)) {
             return new OperatorToken(text);
         }
         else if (Keywords.exists(text)) {

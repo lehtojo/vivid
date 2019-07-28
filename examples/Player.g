@@ -44,9 +44,13 @@ public type Player
         mana += amount
     }
 
-    public bool is_alive ()
+    public func is_alive ()
     {
         return health > 0
+    }
+
+    func getNumberTag() {
+        return 7;
     }
 }
 

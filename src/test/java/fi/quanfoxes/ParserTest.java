@@ -101,7 +101,7 @@ public class ParserTest {
         VariableNode mass = new VariableNode(variable);
 
         // -777 * 2
-        OperatorNode multiply = new OperatorNode(OperatorType.MULTIPLY);
+        OperatorNode multiply = new OperatorNode(Operators.MULTIPLY);
         
         // -777
         NumberNode negative = new NumberNode(NumberType.UINT16, 777);
@@ -114,7 +114,7 @@ public class ParserTest {
         multiply.add(two);
 
         // short mass = -777 * 2
-        OperatorNode operator = new OperatorNode(OperatorType.ASSIGN);
+        OperatorNode operator = new OperatorNode(Operators.ASSIGN);
         operator.add(mass);
         operator.add(multiply);
 

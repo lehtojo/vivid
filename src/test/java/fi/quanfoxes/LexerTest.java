@@ -102,9 +102,9 @@ public class LexerTest {
         (
             new IdentifierToken("num"),
             new IdentifierToken("a"),
-            new OperatorToken(OperatorType.ASSIGN),
+            new OperatorToken(Operators.ASSIGN),
             new NumberToken((byte)2),
-            new OperatorToken(OperatorType.MULTIPLY),
+            new OperatorToken(Operators.MULTIPLY),
             new IdentifierToken("b")
         );
 
@@ -118,14 +118,14 @@ public class LexerTest {
         (
                 new IdentifierToken("num"),
                 new IdentifierToken("a"),
-                new OperatorToken(OperatorType.ASSIGN),
+                new OperatorToken(Operators.ASSIGN),
                 new FunctionToken(new IdentifierToken("banana"),
                 new ContentToken()),
-                new OperatorToken(OperatorType.ADD),
+                new OperatorToken(Operators.ADD),
                 new FunctionToken(new IdentifierToken("apple"),
                 new ContentToken(
                     new NumberToken((byte)5),
-                    new OperatorToken(OperatorType.MODULUS),
+                    new OperatorToken(Operators.MODULUS),
                     new IdentifierToken("b")
                 ))
         );
@@ -140,18 +140,18 @@ public class LexerTest {
         (
                 new IdentifierToken("num"),
                 new IdentifierToken("variable"),
-                new OperatorToken(OperatorType.ASSIGN),
+                new OperatorToken(Operators.ASSIGN),
                 new FunctionToken(new IdentifierToken("banana"),
                 new ContentToken()),
-                new OperatorToken(OperatorType.MULTIPLY),
+                new OperatorToken(Operators.MULTIPLY),
                 new ContentToken(
                     new FunctionToken(new IdentifierToken("apple"),
                     new ContentToken()),
-                    new OperatorToken(OperatorType.BITWISE_AND),
+                    new OperatorToken(Operators.BITWISE_AND),
                     new NumberToken(3),
-                    new OperatorToken(OperatorType.BITWISE_OR),
+                    new OperatorToken(Operators.BITWISE_OR),
                     new NumberToken(55),
-                    new OperatorToken(OperatorType.BITWISE_XOR),
+                    new OperatorToken(Operators.BITWISE_XOR),
                     new NumberToken(777)
                 )
         );
@@ -194,7 +194,7 @@ public class LexerTest {
             new KeywordToken(Keywords.get("if")),
             new ContentToken(
                     new IdentifierToken("a"),
-                    new OperatorToken(OperatorType.LESS_OR_EQUAL),
+                    new OperatorToken(Operators.LESS_OR_EQUAL),
                     new IdentifierToken("b"))
         );
 
@@ -210,25 +210,25 @@ public class LexerTest {
                 new KeywordToken(Keywords.get("if")),
                 new ContentToken(
                         new IdentifierToken("a"),
-                        new OperatorToken(OperatorType.GREATER_THAN),
+                        new OperatorToken(Operators.GREATER_THAN),
                         new IdentifierToken("b"),
-                        new OperatorToken(OperatorType.AND),
+                        new OperatorToken(Operators.AND),
                         new ContentToken(
                                 new IdentifierToken("a"),
-                                new OperatorToken(OperatorType.LESS_THAN),
+                                new OperatorToken(Operators.LESS_THAN),
                                 new ContentToken(
                                         new IdentifierToken("c"),
-                                        new OperatorToken(OperatorType.ADD),
+                                        new OperatorToken(Operators.ADD),
                                         new FunctionToken(
                                                 new IdentifierToken("apple"),
                                                 new ContentToken(
                                                         new ContentToken(
                                                                 new IdentifierToken("d"),
-                                                                new OperatorToken(OperatorType.DIVIDE),
+                                                                new OperatorToken(Operators.DIVIDE),
                                                                 new IdentifierToken("e")),
                                                         new ContentToken(
                                                             new IdentifierToken("f"),
-                                                            new OperatorToken(OperatorType.MODULUS),
+                                                            new OperatorToken(Operators.MODULUS),
                                                             new FunctionToken(
                                                                 new IdentifierToken("banana"),
                                                                 new ContentToken())))))))

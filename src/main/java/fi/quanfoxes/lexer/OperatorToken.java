@@ -4,19 +4,19 @@ import java.util.Objects;
 
 public class OperatorToken extends Token {
 
-    private OperatorType operator;
+    private Operator operator;
 
-    public OperatorToken(String text) {
+    public OperatorToken(String identifier) {
         super(TokenType.OPERATOR);
-        operator = OperatorType.get(text);
+        this.operator = Operators.get(identifier);
     }
 
-    public OperatorToken(OperatorType type) {
+    public OperatorToken(Operator operator) {
         super(TokenType.OPERATOR);
-        operator = type;
+        this.operator = operator;
     }
 
-    public OperatorType getOperator ()  {
+    public Operator getOperator ()  {
         return operator;
     }
 
