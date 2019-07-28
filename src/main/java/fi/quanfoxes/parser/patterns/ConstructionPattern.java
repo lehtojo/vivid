@@ -9,7 +9,7 @@ import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.ConstructionNode;
 import fi.quanfoxes.parser.nodes.LinkNode;
@@ -22,11 +22,9 @@ public class ConstructionPattern extends Pattern {
 
     public ConstructionPattern() {
         // Pattern:
-        // new Type() / new Type.Subtype()
-        // Examples:
         // new Type(...)
         // new Type.Subtype(...)
-        super(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.PROCESSED);
+        super(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.DYNAMIC);
     }
 
     @Override
@@ -44,9 +42,9 @@ public class ConstructionPattern extends Pattern {
 
         Token token = tokens.get(CONSTRUCTOR);
 
-        if (token.getType() == TokenType.PROCESSED) {
-            ProcessedToken processed = (ProcessedToken)token;
-            return processed.getNode() instanceof LinkNode;
+        if (token.getType() == TokenType.DYNAMIC) {
+            DynamicToken dynamic = (DynamicToken)token;
+            return dynamic.getNode() instanceof LinkNode;
         }
 
         return true;
@@ -54,9 +52,6 @@ public class ConstructionPattern extends Pattern {
 
 	@Override
 	public Node build(Context context, List<Token> tokens) throws Exception {
-        Token token = tokens.get(CONSTRUCTOR);
-        Node constructor = Singleton.parse(context, token);
-        
-        return new ConstructionNode(constructor);
+        return new ConstructionNode(Singleton.parse(context, tokens.get(CONSTRUCTOR)));
 	}
 }

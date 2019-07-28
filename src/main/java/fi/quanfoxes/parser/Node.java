@@ -13,6 +13,11 @@ public class Node implements Iterator<Node>, Iterable<Node> {
     private Node first;
     private Node last;
 
+    /**
+     * Inserts the given node before the given node position
+     * @param position Given node will be inserted before this node
+     * @param child Node to insert
+     */
     public void insert(Node position, Node child) {
         if (position == first) {
             first = child;
@@ -34,6 +39,10 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         child.next = right;
     }
 
+    /**
+     * Adds the given node to the end
+     * @param child Node to add
+     */
     public void add(Node child) {
         child.parent = this;
         child.previous = last;

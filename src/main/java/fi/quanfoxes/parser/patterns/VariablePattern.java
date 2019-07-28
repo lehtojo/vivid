@@ -18,13 +18,8 @@ public class VariablePattern extends Pattern {
 
     public VariablePattern() {
         // Pattern:
-        // (Datatype / Processed datatype) (Name)
-        // Examples:
-        // long file_size
-        // MyType awesome_type
-        // MyType.MySubtype awesome_subtype
-        // var awesome
-        super(TokenType.IDENTIFIER | TokenType.KEYWORD | TokenType.PROCESSED, TokenType.IDENTIFIER);
+        // Type / Type.Subtype ...
+        super(TokenType.IDENTIFIER | TokenType.KEYWORD | TokenType.DYNAMIC, TokenType.IDENTIFIER);
     }
 
     @Override
@@ -36,9 +31,9 @@ public class VariablePattern extends Pattern {
     public boolean passes(List<Token> tokens) {
         Token token = tokens.get(TYPE);
 
-        if (token.getType() == TokenType.PROCESSED) {
-            ProcessedToken processed = (ProcessedToken)token;
-            return processed.getNode() instanceof LinkNode;
+        if (token.getType() == TokenType.DYNAMIC) {
+            DynamicToken dynamic = (DynamicToken)token;
+            return dynamic.getNode() instanceof LinkNode;
         }
         else if (token.getType() == TokenType.KEYWORD) {
             Keyword keyword = ((KeywordToken)token).getKeyword();
@@ -51,9 +46,9 @@ public class VariablePattern extends Pattern {
     private Type getType(Context context, List<Token> tokens) throws Exception {
         Token token = tokens.get(TYPE);
 
-        if (token.getType() == TokenType.PROCESSED) {
-            ProcessedToken processed = (ProcessedToken)token;
-            Node node = processed.getNode();
+        if (token.getType() == TokenType.DYNAMIC) {
+            DynamicToken dynamic = (DynamicToken)token;
+            Node node = dynamic.getNode();
 
             if (node instanceof LinkNode) {
                 return new UnresolvedType(context, (Resolvable)node);

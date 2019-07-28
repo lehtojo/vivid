@@ -15,10 +15,6 @@ public class SingletonPattern extends Pattern {
     public SingletonPattern() {
         // Pattern:
         // Identifier / Function
-        // Examples:
-        // my_variable
-        // my_function()
-        // my_function(...)
         super(TokenType.IDENTIFIER | TokenType.FUNCTION);
     }
 
@@ -36,5 +32,4 @@ public class SingletonPattern extends Pattern {
 	public Node build(Context context, List<Token> tokens) throws Exception {
 		return Singleton.parse(context, tokens.get(0));
 	}
-
 }

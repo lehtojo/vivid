@@ -1,4 +1,4 @@
-public func start (num args)
+public static func start (num args)
 {
     Player player
     Enemy enemy

@@ -12,6 +12,9 @@ public class Context {
     private HashMap<String, Functions> functions = new HashMap<>();
     private HashMap<String, Type> types = new HashMap<>();
 
+    /**
+     * Updates types, function and variables when new context is linked
+     */
     protected void update() {
         for (Variable variable : getVariables()) {
             if (variable.isTypeUnresolved()) {
@@ -34,6 +37,10 @@ public class Context {
         }
     }
 
+    /**
+     * Links this context with the given context, allowing access to the information of the given context
+     * @param context Context to link with
+     */
     public void link(Context context) {
         this.context = context;
         this.update();
@@ -65,10 +72,18 @@ public class Context {
         update();
     }
 
+    /**
+     * Sets the parent of this context
+     * @param context New parent context
+     */
     public void setParent(Context context) {
         this.context = context;
     }
 
+    /**
+     * Returns the parent of this context
+     * @return Parent of this context
+     */
     public Context getParent() {
         return context;
     }
@@ -116,42 +131,66 @@ public class Context {
         variables.put(variable.getName(), variable);
     }
 
+    /**
+     * Returns whether a variable with the given name is declared locally
+     * @param name Variable name to look for
+     * @return True, if a variable with the given name is declared locally, otherwise false
+     */
     public boolean isLocalTypeDeclared(String name) {
         return types.containsKey(name); 
     }
 
+    /**
+     * Returns whether a function with the given name is declared locally
+     * @param name Function name to look for
+     * @return True, if a function with the given name is declared locally, otherwise false
+     */
     public boolean isLocalFunctionDeclared(String name) {
         return functions.containsKey(name);
     }
 
+    /**
+     * Returns whether a variable with the given name is declared locally
+     * @param name Variable name to look for
+     * @return True, if a variable with the given name is declared locally, otherwise false
+     */
     public boolean isLocalVariableDeclared(String name) {
         return variables.containsKey(name);
     }
 
+    /**
+     * Returns whether a variable with the given name is declared locally or globally
+     * @param name Variable name to look for
+     * @return True, if a variable with the given name is declared locally or globally, otherwise false
+     */
     public boolean isVariableDeclared(String name) {
         return variables.containsKey(name) || (context != null && context.isVariableDeclared(name));
     }
 
+    /**
+     * Returns whether a type with the given name is declared locally or globally
+     * @param name Type name to look for
+     * @return True, if a type with the given name is declared locally or globally, otherwise false
+     */
     public boolean isTypeDeclared(String name) {
         return types.containsKey(name) || (context != null && context.isTypeDeclared(name));
     }
 
+    /**
+     * Returns whether a function with the given name is declared locally or globally
+     * @param name Function name to look for
+     * @return True, if a function with the given name is declared locally or globally, otherwise false
+     */
     public boolean isFunctionDeclared(String name) {
         return functions.containsKey(name) || (context != null && context.isFunctionDeclared(name));
     }
 
-    public Variable getVariable(String name) throws Exception {
-        if (variables.containsKey(name)) {
-            return variables.get(name);
-        }
-        else if (context != null) {
-            return context.getVariable(name);
-        }
-        else {
-            throw new Exception("Couldn't find variable named " + name);
-        }
-    }
-
+    /**
+     * Tries to return type by name locally or globally
+     * @param name Type name to look for
+     * @return Type corresponding to the given name
+     * @throws Exception Throws if the type wasn't found
+     */
     public Type getType(String name) throws Exception {
         if (types.containsKey(name)) {
             return types.get(name);
@@ -160,10 +199,16 @@ public class Context {
             return context.getType(name);
         }
         else {
-            throw new Exception("Couldn't find type named " + name);
+            throw new Exception(String.format("Couldn't find type '%s'", name));
         }
     }
 
+    /**
+     * Tries to return function by name locally or globally
+     * @param name Function name to look for
+     * @return Function corresponding to the given name
+     * @throws Exception Throws if the function wasn't found
+     */
     public Functions getFunction(String name) throws Exception {
         if (functions.containsKey(name)) {
             return functions.get(name);
@@ -172,7 +217,25 @@ public class Context {
             return context.getFunction(name);
         }
         else {
-            throw new Exception("Couldn't find function named " + name);
+            throw new Exception(String.format("Couldn't find function '%s'", name));
+        }
+    }
+
+    /**
+     * Tries to return variable by name locally or globally
+     * @param name Variable name to look for
+     * @return Variable corresponding to the given name
+     * @throws Exception Throws if the variable wasn't found
+     */
+    public Variable getVariable(String name) throws Exception {
+        if (variables.containsKey(name)) {
+            return variables.get(name);
+        }
+        else if (context != null) {
+            return context.getVariable(name);
+        }
+        else {
+            throw new Exception(String.format("Couldn't find variable '%s'", name));
         }
     }
 

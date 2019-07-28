@@ -8,16 +8,17 @@ import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Type;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class TypeNode extends Node implements Contextable {
     private Type type;
-    private ArrayList<Token> body;
+    private List<Token> body;
 
     public TypeNode(Type type) {
         this(type, new ArrayList<>());
     }
 
-    public TypeNode(Type type, ArrayList<Token> body) {
+    public TypeNode(Type type, List<Token> body) {
         this.type = type;
         this.body = body;
     }

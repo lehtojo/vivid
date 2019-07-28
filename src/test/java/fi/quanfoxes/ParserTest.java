@@ -65,7 +65,7 @@ public class ParserTest {
     }
 
     public Result parse(String... sources) throws Exception {
-        ArrayList<ArrayList<Token>> sections = new ArrayList<>();
+        List<List<Token>> sections = new ArrayList<>();
         
         for (String source : sources) {
             sections.add(Lexer.getTokens(source));
@@ -73,7 +73,7 @@ public class ParserTest {
 
         Result result = new Result();
 
-        for (ArrayList<Token> tokens : sections) {
+        for (List<Token> tokens : sections) {
             Parser.parse(result.root, result.context, tokens);
         }
         
@@ -128,7 +128,7 @@ public class ParserTest {
     public void simpleLocalVariableMath() throws Exception {
         String code = "num a = 3 + 5 * 7";
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        List<Token> tokens = Lexer.getTokens(code);
 
         Context context = Parser.initialize();
         Node root = new Node();
@@ -140,7 +140,7 @@ public class ParserTest {
         String code = "num a = 3 + 5 * 7 " +
                       "long b = a / 6 / 5 - 4 ";
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        List<Token> tokens = Lexer.getTokens(code);
 
         Context context = Parser.initialize();
         Node root = new Node();
@@ -151,7 +151,7 @@ public class ParserTest {
     public void simpleType () throws Exception {
         String code = "public type spoon {}";
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        List<Token> tokens = Lexer.getTokens(code);
 
         Context context = Parser.initialize();
         Node root = new Node();
@@ -165,7 +165,7 @@ public class ParserTest {
                       "   private tiny b" +
                       "}";
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        List<Token> tokens = Lexer.getTokens(code);
 
         Context context = Parser.initialize();
         Node root = new Node();
@@ -196,7 +196,7 @@ public class ParserTest {
                       "   }" +
                       "}";
 
-        ArrayList<Token> tokens = Lexer.getTokens(code);
+        List<Token> tokens = Lexer.getTokens(code);
 
         Context context = Parser.initialize();
         Node root = new Node();

@@ -4,6 +4,7 @@ import java.util.List;
 
 import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.AccessModifierKeyword;
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.lexer.ContentToken;
@@ -20,7 +21,7 @@ import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 
 public class ConstructorPattern extends Pattern {
-    public static final int PRIORITY = 19;
+    public static final int PRIORITY = 20;
 
     private static final int MODIFIED_CONSTRUCTOR_LENGTH = 4;
 
@@ -101,7 +102,11 @@ public class ConstructorPattern extends Pattern {
         ContentToken parameters = getParameters(tokens, start);
         List<Token> body = getBody(tokens, start).getTokens();
 
-        Type type = context.getTypeParent();
+        if (!context.isType()) {
+            throw Errors.get(tokens.get(0).getPosition(), "Constructor must be inside of a type");
+        }
+        
+        Type type = (Type)context;
 
         Function constructor = new Function(context, modifiers);
         constructor.setParameters(Singleton.getContent(context, parameters));

@@ -12,7 +12,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.nodes.ContentNode;
 import fi.quanfoxes.parser.nodes.IfNode;
 
@@ -26,11 +26,7 @@ public class IfPattern extends Pattern {
     public IfPattern() {
         // Pattern:
         // if (...) {...}
-        // Examples:
-        // if (true) {...}
-        // if (false) {...}
-        // if (a > b) {...}
-        super(TokenType.KEYWORD, TokenType.PROCESSED, TokenType.CONTENT);
+        super(TokenType.KEYWORD, TokenType.DYNAMIC, TokenType.CONTENT);
     }
 
     @Override
@@ -47,7 +43,7 @@ public class IfPattern extends Pattern {
             return false;
         }
 
-        ProcessedToken condition = (ProcessedToken)tokens.get(CONDITION);
+        DynamicToken condition = (DynamicToken)tokens.get(CONDITION);
 
         if (!(condition.getNode() instanceof ContentNode)) {
             return false;
@@ -64,7 +60,7 @@ public class IfPattern extends Pattern {
      * @return If statement's condition in node tree form
      */
     private Node getCondition(List<Token> tokens) {
-        ProcessedToken token = (ProcessedToken)tokens.get(CONDITION);
+        DynamicToken token = (DynamicToken)tokens.get(CONDITION);
         ContentNode condition = (ContentNode)token.getNode();
         return condition.first();
     }
@@ -74,7 +70,6 @@ public class IfPattern extends Pattern {
      * @param context Context to use while parsing
      * @param tokens If statement pattern represented in tokens
      * @return Parsed body in node tree form
-     * @throws Exception Parsing can fail in many ways
      */
     private Node getBody(Context context, List<Token> tokens) throws Exception {
         ContentToken content = (ContentToken)tokens.get(BODY);

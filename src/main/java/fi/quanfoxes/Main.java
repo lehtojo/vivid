@@ -9,7 +9,8 @@ import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
-import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -25,21 +26,11 @@ public class Main {
     public static ArrayList<Exception> errors = new ArrayList<>();
 
     public static String load(String file) {
-
         try {
-            StringBuilder builder = new StringBuilder();
-            BufferedReader reader = new BufferedReader(new FileReader(file), 1024);
-
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                builder.append(line.replace("\t", "")).append(" ");
-            }
-
-            reader.close();
-            return builder.toString();
-        } catch (Exception e) {
-            System.out.println("ERROR: Couldn't load " + file);
+            return Files.readString(Paths.get(file)).replace("\t", " ").replace("\r\n", "\n");
+        }
+        catch (Exception e) {
+            errors.add(new Exception(String.format("Couldn't load file '%s'", file)));
             return null;
         }
     }
@@ -95,6 +86,12 @@ public class Main {
         }
     }
 
+    private static void complain() {
+        for (Exception error : errors) {
+            System.out.printf("ERROR: %s\n", error.getMessage());
+        }
+    }
+
     private static class Parse {
         private Context context;
         private Node node;
@@ -134,6 +131,7 @@ public class Main {
         // Verify all files are loaded successfully
         for (Future<String> file : files) {
             if (file.get() == null) {
+                complain();
                 System.exit(FILE_LOAD_ERROR);
                 return;
             }
@@ -145,7 +143,15 @@ public class Main {
 
         // Tokenize each file
         for (Future<String> file : files) {
-            tokenized_files.add(executors.submit(() -> Lexer.getTokens(file.get())));
+            tokenized_files.add(executors.submit(() -> {
+                try {
+                    return Lexer.getTokens(file.get());
+                }
+                catch (Exception e) {
+                    errors.add(e);
+                    return null;
+                }
+            }));
         }
 
         // Wait for all threads to finish
@@ -154,6 +160,7 @@ public class Main {
         // Verify all files are tokenized successfully
         for (Future<List<Token>> section : tokenized_files) {
             if (section.get() == null) {
+                complain();
                 System.exit(LEXER_ERROR);
                 return;
             }
@@ -182,6 +189,7 @@ public class Main {
         // Verify all files are parsed successfully
         for (Future<Parse> parse : parses) {
             if (parse.get() == null) {
+                complain();
                 System.exit(PARSE_ERROR);
                 return;
             }

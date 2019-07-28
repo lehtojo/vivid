@@ -11,6 +11,11 @@ public class FunctionToken extends Token {
     private IdentifierToken name;
     private ContentToken parameters;
 
+    /**
+     * Creates a function token with name and parameters
+     * @param name
+     * @param parameters
+     */
     public FunctionToken(IdentifierToken name, ContentToken parameters) {
         super(TokenType.FUNCTION);
 
@@ -18,10 +23,20 @@ public class FunctionToken extends Token {
         this.parameters = parameters;
     }
 
+    /**
+     * Returns the name of the function
+     * @return Name of the function
+     */
     public String getName() {
         return name.getValue();
     }
 
+    /**
+     * Parses the parameters with the given context
+     * @param context Context used to parse parameters
+     * @return Parameters in node tree form
+     * @throws Exception Various reasons related to the parsing of the parameters
+     */
     public Node getParameters(Context context) throws Exception {
         Node node = new Node();
 

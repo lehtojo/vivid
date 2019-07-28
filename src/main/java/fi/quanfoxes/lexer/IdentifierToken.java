@@ -3,20 +3,28 @@ package fi.quanfoxes.lexer;
 import java.util.Objects;
 
 public class IdentifierToken extends Token {
-    private String name;
+    private String value;
 
-    public IdentifierToken(String name) {
+    /**
+     * Creates an identifier token that holds the given text value
+     * @param value Text value to hold
+     */
+    public IdentifierToken(String value) {
         super(TokenType.IDENTIFIER);
-        this.name = name;
+        this.value = value;
     }
 
+    /**
+     * Returns the value that the identifier holds
+     * @return Identifier's value
+     */
     public String getValue() {
-        return name;
+        return value;
     }
 
     @Override
     public String getText() {
-        return name;
+        return value;
     }
 
     @Override
@@ -24,12 +32,12 @@ public class IdentifierToken extends Token {
         if (this == o) return true;
         if (!(o instanceof IdentifierToken)) return false;
         if (!super.equals(o)) return false;
-        IdentifierToken nameToken = (IdentifierToken) o;
-        return Objects.equals(name, nameToken.name);
+        IdentifierToken id = (IdentifierToken) o;
+        return Objects.equals(value, id.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), name);
+        return Objects.hash(super.hashCode(), value);
     }
 }

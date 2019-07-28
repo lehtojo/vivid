@@ -119,8 +119,8 @@ public class Singleton {
                 return getNumber((NumberToken)token);
             case TokenType.CONTENT:
                 return getContent(primary, (ContentToken)token);
-            case TokenType.PROCESSED:
-                return ((ProcessedToken)token).getNode();
+            case TokenType.DYNAMIC:
+                return ((DynamicToken)token).getNode();
         }
 
         return null;
@@ -137,6 +137,6 @@ public class Singleton {
                                 .setParameters(function.getParameters(environment));
         }
         
-        throw new Exception("Couldn't resolve token");
+        throw new Exception(String.format("Couldn't create unresolved token (%d)", token.getType()));
     }
 }

@@ -120,7 +120,7 @@ public class LexerTest {
                 new IdentifierToken("a"),
                 new OperatorToken(OperatorType.ASSIGN),
                 new FunctionToken(new IdentifierToken("banana"),
-                new ContentToken("()")),
+                new ContentToken()),
                 new OperatorToken(OperatorType.ADD),
                 new FunctionToken(new IdentifierToken("apple"),
                 new ContentToken(
@@ -142,11 +142,11 @@ public class LexerTest {
                 new IdentifierToken("variable"),
                 new OperatorToken(OperatorType.ASSIGN),
                 new FunctionToken(new IdentifierToken("banana"),
-                new ContentToken("()")),
+                new ContentToken()),
                 new OperatorToken(OperatorType.MULTIPLY),
                 new ContentToken(
                     new FunctionToken(new IdentifierToken("apple"),
-                    new ContentToken("()")),
+                    new ContentToken()),
                     new OperatorToken(OperatorType.BITWISE_AND),
                     new NumberToken(3),
                     new OperatorToken(OperatorType.BITWISE_OR),
@@ -231,7 +231,7 @@ public class LexerTest {
                                                             new OperatorToken(OperatorType.MODULUS),
                                                             new FunctionToken(
                                                                 new IdentifierToken("banana"),
-                                                                new ContentToken("()"))))))))
+                                                                new ContentToken())))))))
         );
 
         assertEquals(excepted, actual);

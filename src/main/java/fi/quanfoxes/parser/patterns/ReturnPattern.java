@@ -7,7 +7,7 @@ import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.ReturnNode;
 
 import java.util.List;
@@ -19,7 +19,10 @@ public class ReturnPattern extends Pattern {
     private static final int OBJECT = 1;
 
     public ReturnPattern() {
-        super(TokenType.KEYWORD, TokenType.PROCESSED);
+        // Pattern:
+        // return ...
+        super(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.IDENTIFIER | 
+                    TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC);
     }
 
     @Override
@@ -35,7 +38,6 @@ public class ReturnPattern extends Pattern {
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
-        ProcessedToken processed = (ProcessedToken)tokens.get(OBJECT);
-        return new ReturnNode(processed.getNode());
+        return new ReturnNode(Singleton.parse(context, tokens.get(OBJECT)));
     }
 }

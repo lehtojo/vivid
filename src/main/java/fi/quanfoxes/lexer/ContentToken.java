@@ -2,17 +2,32 @@ package fi.quanfoxes.lexer;
 
 import java.util.*;
 
+import fi.quanfoxes.Errors;
+import fi.quanfoxes.lexer.Lexer.Position;
+
 public class ContentToken extends Token {
     private ParenthesisType type;
-    private ArrayList<ContentToken> sections = new ArrayList<>();
-    private ArrayList<Token> tokens = new ArrayList<>();
+
+    private List<ContentToken> sections = new ArrayList<>();
+    private List<Token> tokens = new ArrayList<>();
 
     private static final int OPENING = 0;
+    private static final int EMPTY = 2;
 
+    /**
+     * Returns whether the given token is a comma operator
+     * @param token Token to test
+     * @return True if the given token is a comma operator
+     */
     private boolean isComma (Token token) {
         return token.getType() == TokenType.OPERATOR && ((OperatorToken)token).getOperator() == OperatorType.COMMA;
     }
 
+    /**
+     * Finds the indices of potential comma operators in the given token list
+     * @param tokens Token list to iterate through
+     * @return Indices of all comma operators in the given list
+     */
     private Stack<Integer> findSections(List<Token> tokens) {
         Stack<Integer> indices = new Stack<>();
 
@@ -27,17 +42,20 @@ public class ContentToken extends Token {
         return indices;
     }
 
-    public ContentToken(String text) throws Exception {
+    /**
+     * Creates a content token with content and a position
+     * @param raw Raw content text to tokenize
+     * @param position Position of this content token
+     * @throws Exception Various reasons: Empty sections inside content, Lexer
+     */
+    public ContentToken(String raw, Position position) throws Exception {
         super(TokenType.CONTENT);
-        this.type = ParenthesisType.get(text.charAt(OPENING));
+        this.type = ParenthesisType.get(raw.charAt(OPENING));
 
-        // Make sure there is content
-        if (text.length() > 2) {
+        if (raw.length() != EMPTY) {
 
-            sections = new ArrayList<>();
-
-            String content = text.substring(1, text.length() - 1);
-            ArrayList<Token> tokens = Lexer.getTokens(content);
+            String content = raw.substring(1, raw.length() - 1);
+            List<Token> tokens = Lexer.getTokens(content, position.clone().nextCharacter());
             Stack<Integer> sections = findSections(tokens);
 
             if (sections.empty()) {
@@ -47,52 +65,78 @@ public class ContentToken extends Token {
 
             sections.add(0, tokens.size());
 
-            int position = 0;
+            int start = 0;
             int end;
 
             while (!sections.empty()) {
                 end = sections.pop();
 
-                List<Token> section = tokens.subList(position, end);
+                List<Token> section = tokens.subList(start, end);
 
                 if (section.isEmpty()) {
-                    throw new Exception("Parameter cannot be empty");
+                    Position comma = tokens.get(start).getPosition();
+                    throw Errors.get(comma.nextCharacter(), "Parameter cannot be empty");
                 }
 
                 this.sections.add(new ContentToken(section));
 
-                position = end + 1;
+                start = end + 1;
             }
         }
     }
 
+    /**
+     * Creates a content token from tokens
+     * @param tokens Content in token list form
+     */
     public ContentToken(List<Token> tokens) {
         super(TokenType.CONTENT);
         this.type = ParenthesisType.PARENTHESIS;
         this.tokens = new ArrayList<>(tokens);
     }
 
+    /**
+     * Creates a content token from tokens
+     * @param tokens Content in token list form
+     */
     public ContentToken(Token... tokens) {
         super(TokenType.CONTENT);
         this.type = ParenthesisType.PARENTHESIS;
         this.tokens = new ArrayList<>(Arrays.asList(tokens));
     }
 
+    /**
+     * Creates a content token, which has multiple sections
+     * @param tokens Sections in content token form
+     */
     public ContentToken(ContentToken... sections) {
         super(TokenType.CONTENT);
         this.type = ParenthesisType.PARENTHESIS;
         this.sections = new ArrayList<>(Arrays.asList(sections));
     }
 
+    /**
+     * Return whether this content token has sections
+     * @return True if this content token has sections, otherwise false
+     */
     private boolean isTable() {
         return sections.size() > 0;
     }
 
-    public ArrayList<Token> getTokens() {
+    /**
+     * Returns the tokens of the first section
+     * @return Tokens of the first section
+     */
+    public List<Token> getTokens() {
         return getTokens(0);
     }
 
-    public ArrayList<Token> getTokens(int section) {
+    /**
+     * Returns 
+     * @param section
+     * @return
+     */
+    public List<Token> getTokens(int section) {
         return isTable() ? sections.get(section).getTokens() : tokens;
     }
 

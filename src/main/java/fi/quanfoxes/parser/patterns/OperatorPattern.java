@@ -19,15 +19,10 @@ public class OperatorPattern extends Pattern {
 
     public OperatorPattern() {
         // Pattern:
-        // (Variable / Number / (...)) (Operator) (Variable / Number / (...))
-        // Examples:
-        // a * 777
-        // 5 * b
-        // -1 + (a + b)
-        // (a * b) ^ 2
-        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.PROCESSED, 
+        // Function / Variable / Number / (...) Operator Function / Variable / Number / (...)
+        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC, 
               TokenType.OPERATOR,
-              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.PROCESSED);
+              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC);
     }
 
     @Override

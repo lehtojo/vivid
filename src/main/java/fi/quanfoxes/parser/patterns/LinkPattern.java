@@ -10,7 +10,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.LinkNode;
@@ -25,13 +25,7 @@ public class LinkPattern extends Pattern {
     public LinkPattern() {
         // Pattern:
         // (Variable / Type / Processed) (.) (Variable / Type)
-        // Examples:
-        // thread_pool.thread_count     => DotOperator { VariableNode, VariableNode } ?
-        // thread_pool.start()          => DotOperator { VariableNode, FunctionNode }
-        // get_configuration().save()   => DotOperator { FunctionNode, FunctionNode }
-        // ThreadPool.create()          => FunctionNode
-        // ThreadPool.Worker            => TypeNode
-        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.PROCESSED, 
+        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC, 
               TokenType.OPERATOR, 
               TokenType.FUNCTION | TokenType.IDENTIFIER);
     }
@@ -51,8 +45,8 @@ public class LinkPattern extends Pattern {
         }
 
         // When left token is a processed, it must be contextable
-        if (tokens.get(LEFT).getType() == TokenType.PROCESSED) {
-            ProcessedToken token = (ProcessedToken)tokens.get(LEFT);
+        if (tokens.get(LEFT).getType() == TokenType.DYNAMIC) {
+            DynamicToken token = (DynamicToken)tokens.get(LEFT);
             return (token.getNode() instanceof Contextable);
         }
 

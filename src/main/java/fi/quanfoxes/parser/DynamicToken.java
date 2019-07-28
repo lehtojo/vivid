@@ -5,11 +5,11 @@ import fi.quanfoxes.lexer.TokenType;
 
 import java.util.Objects;
 
-public class ProcessedToken extends Token {
+public class DynamicToken extends Token {
     private Node node;
 
-    public ProcessedToken(Node node) {
-        super(TokenType.PROCESSED);
+    public DynamicToken(Node node) {
+        super(TokenType.DYNAMIC);
         this.node = node;
     }
 
@@ -27,7 +27,7 @@ public class ProcessedToken extends Token {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        ProcessedToken token = (ProcessedToken) o;
+        DynamicToken token = (DynamicToken) o;
         return Objects.equals(node, token.node);
     }
 

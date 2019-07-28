@@ -9,11 +9,10 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.nodes.ContentNode;
 import fi.quanfoxes.parser.nodes.WhileNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class WhilePattern extends Pattern {
@@ -29,7 +28,7 @@ public class WhilePattern extends Pattern {
         // Examples:
         // while (a && b) {...}
         // while (true) {...}
-        super(TokenType.KEYWORD, TokenType.PROCESSED, TokenType.CONTENT);
+        super(TokenType.KEYWORD, TokenType.DYNAMIC, TokenType.CONTENT);
     }
 
     @Override
@@ -45,12 +44,12 @@ public class WhilePattern extends Pattern {
             return false;
         }
 
-        ProcessedToken condition = (ProcessedToken)tokens.get(CONDITION);
+        DynamicToken condition = (DynamicToken)tokens.get(CONDITION);
 
         return (condition.getNode() instanceof ContentNode);
     }
 
-    private ArrayList<Token> getBodyTokens(List<Token> tokens) {
+    private List<Token> getBodyTokens(List<Token> tokens) {
         ContentToken content = (ContentToken)tokens.get(BODY);
         return content.getTokens();
     }
@@ -61,7 +60,7 @@ public class WhilePattern extends Pattern {
         context.link(base);
 
         Node body = Parser.parse(context, getBodyTokens(tokens));
-        Node condition = ((ProcessedToken)tokens.get(CONDITION)).getNode();
+        Node condition = ((DynamicToken)tokens.get(CONDITION)).getNode();
 
         return new WhileNode(context, condition, body);
     }

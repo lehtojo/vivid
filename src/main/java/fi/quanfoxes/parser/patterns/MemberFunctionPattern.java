@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.patterns;
 
+import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.AccessModifierKeyword;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.Keywords;
@@ -9,7 +10,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.ProcessedToken;
+import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
@@ -17,24 +18,21 @@ import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MemberFunctionPattern extends Pattern {
-    public static final int PRIORITY = 19;
+    public static final int PRIORITY = 20;
 
-    private static final int MODIFIER = 0;
-    private static final int RETURN_TYPE = 1;
-    private static final int HEAD = 2;
-    private static final int BODY = 3;
+    private static final int RETURN_TYPE = 0;
+    private static final int HEAD = 1;
+    private static final int BODY = 2;
+
+    private static final int UNMODIFIED_LENGTH = 3;
 
     public MemberFunctionPattern() {
         // Pattern:
-        // [private / protected / public] (func) (Name) ( (...) ) ( {...} )
-        // Examples:
-        // public func getThreadCount () {...}
-        // protected func getSum (num a, num b) {...}
-        super(TokenType.KEYWORD, TokenType.KEYWORD | TokenType.IDENTIFIER | TokenType.PROCESSED, TokenType.FUNCTION, TokenType.CONTENT);
+        // [private / protected / public] [static] Type / Type.Subtype / func ... (...) {...}
+        super(TokenType.KEYWORD | TokenType.OPTIONAL, TokenType.KEYWORD | TokenType.OPTIONAL, TokenType.KEYWORD | TokenType.IDENTIFIER | TokenType.DYNAMIC, TokenType.FUNCTION, TokenType.CONTENT);
     }
 
     @Override
@@ -44,40 +42,54 @@ public class MemberFunctionPattern extends Pattern {
 
     @Override
     public boolean passes(List<Token> tokens) {
-        KeywordToken modifier = (KeywordToken)tokens.get(MODIFIER);
+        int count = tokens.size() - UNMODIFIED_LENGTH;
 
-        if (modifier.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) {
-            return false;
+        for (int i = 0; i < count; i++) {
+            KeywordToken modifier = (KeywordToken)tokens.get(i);
+
+            if (modifier.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) {
+                return false;
+            }
         }
-
-        Token token = tokens.get(RETURN_TYPE);
+        
+        Token token = tokens.get(count + RETURN_TYPE);
 
         switch (token.getType()) {
-
             case TokenType.KEYWORD:
                 return ((KeywordToken)token).getKeyword() == Keywords.FUNC;
-
             case TokenType.IDENTIFIER:
-                return true;
-                
-            case TokenType.PROCESSED:
-                Node node = ((ProcessedToken)token).getNode();
+                return true;             
+            case TokenType.DYNAMIC:
+                Node node = ((DynamicToken)token).getNode();
                 return (node instanceof LinkNode) || (node instanceof TypeNode);
         }
 
         return false;
     }
 
-    private AccessModifierKeyword getAccessModifier(List<Token> tokens) {
-        return (AccessModifierKeyword)((KeywordToken)tokens.get(MODIFIER)).getKeyword();
+    private int getModifiers(List<Token> tokens, int count) {
+        if (count == 0) {
+            return AccessModifier.PUBLIC;
+        }
+
+        int modifiers = 0;
+
+        for (int i = 0; i < count; i++) {
+            KeywordToken token = (KeywordToken)tokens.get(i);
+            AccessModifierKeyword modifier = (AccessModifierKeyword)token.getKeyword();
+
+            modifiers |= modifier.getModifier();
+        }
+
+        return modifiers;
     }
 
-    private ArrayList<Token> getBody(List<Token> tokens) {
-        return ((ContentToken)tokens.get(BODY)).getTokens();
+    private List<Token> getBody(List<Token> tokens, int start) {
+        return ((ContentToken)tokens.get(start + BODY)).getTokens();
     }
 
-    private Type getReturnType(Context context, List<Token> tokens) throws Exception {
-        Token token = tokens.get(RETURN_TYPE);
+    private Type getReturnType(Context context, List<Token> tokens, int start) throws Exception {
+        Token token = tokens.get(start + RETURN_TYPE);
 
         switch (token.getType()) {
 
@@ -94,9 +106,9 @@ public class MemberFunctionPattern extends Pattern {
                     return new UnresolvedType(context, id.getValue());
                 }
 
-             case TokenType.PROCESSED:
-                ProcessedToken processed = (ProcessedToken)token;
-                Node node = processed.getNode();
+             case TokenType.DYNAMIC:
+                DynamicToken dynamic = (DynamicToken)token;
+                Node node = dynamic.getNode();
 
                 if (node instanceof TypeNode) {
                     TypeNode type = (TypeNode)node;
@@ -111,13 +123,15 @@ public class MemberFunctionPattern extends Pattern {
     }
 
     @Override
-    public Node build(Context context, List<Token> tokens) throws Exception {
-        AccessModifierKeyword modifier = getAccessModifier(tokens);
-        Type returnType = getReturnType(context, tokens);
-        FunctionToken head = (FunctionToken)tokens.get(HEAD);
-        ArrayList<Token> body = getBody(tokens);
+    public Node build(Context context, List<Token> tokens) throws Exception {    
+        int count = tokens.size() - UNMODIFIED_LENGTH;
 
-        Function function = new Function(context, head.getName(), modifier.getModifier(), returnType);
+        int modifiers = getModifiers(tokens, count);
+        Type result = getReturnType(context, tokens, count);
+        FunctionToken head = (FunctionToken)tokens.get(count + HEAD);
+        List<Token> body = getBody(tokens, count);
+
+        Function function = new Function(context, head.getName(), modifiers, result);
         function.setParameters(head.getParameters(function));
 
         return new FunctionNode(function, body);

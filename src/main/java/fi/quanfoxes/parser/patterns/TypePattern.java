@@ -9,21 +9,19 @@ import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
-
 public class TypePattern extends Pattern {
-    public static final int PRIORITY = 20;
+    public static final int PRIORITY = 21;
 
-    private static final int ACCESS_MODIFIED_TYPE_LENGTH = 4;
+    private static final int MODIFIED_LENGTH = 4;
 
-    private static final int IDENTIFIER_OFFSET = 1;
-    private static final int BODY_OFFSET = 2;
+    private static final int NAME = 1;
+    private static final int BODY = 2;
 
     public TypePattern() {
-        // [private / protected / public] type (name) {}
-        super(TokenType.KEYWORD, TokenType.KEYWORD, TokenType.IDENTIFIER, TokenType.CONTENT);
+        // [private / protected / public] type ... {...}
+        super(TokenType.KEYWORD | TokenType.OPTIONAL, TokenType.KEYWORD, TokenType.IDENTIFIER, TokenType.CONTENT);
     }
 
     @Override
@@ -39,7 +37,7 @@ public class TypePattern extends Pattern {
     public boolean passes(List<Token> tokens) {
         int start = 0;
 
-        if (tokens.size() == ACCESS_MODIFIED_TYPE_LENGTH) {
+        if (tokens.size() == MODIFIED_LENGTH) {
 
             Keyword modifier = getModifierKeyword(tokens);
 
@@ -56,11 +54,11 @@ public class TypePattern extends Pattern {
     }
 
     private String getName(List<Token> tokens, int start) {
-        return ((IdentifierToken)tokens.get(start + IDENTIFIER_OFFSET)).getValue();
+        return ((IdentifierToken)tokens.get(start + NAME)).getValue();
     }
 
-    private ArrayList<Token> getBody(List<Token> tokens, int start) {
-        return ((ContentToken)tokens.get(start + BODY_OFFSET)).getTokens();
+    private List<Token> getBody(List<Token> tokens, int start) {
+        return ((ContentToken)tokens.get(start + BODY)).getTokens();
     }
 
     @Override
@@ -69,7 +67,7 @@ public class TypePattern extends Pattern {
         int start = 0;
 
         // Check if this type has access modifiers
-        if (tokens.size() == ACCESS_MODIFIED_TYPE_LENGTH) {
+        if (tokens.size() == MODIFIED_LENGTH) {
             AccessModifierKeyword modifier = (AccessModifierKeyword)getModifierKeyword(tokens);
             modifiers = modifier.getModifier();
 
@@ -78,7 +76,7 @@ public class TypePattern extends Pattern {
 
         // Get type name and its body
         String name = getName(tokens, start);
-        ArrayList<Token> body = getBody(tokens, start);
+        List<Token> body = getBody(tokens, start);
 
         // Create this type and parse its possible subtypes
         Type type = new Type(context, name, modifiers);

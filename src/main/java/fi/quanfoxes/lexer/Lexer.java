@@ -1,8 +1,10 @@
 package fi.quanfoxes.lexer;
 
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.Keywords;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Lexer {
 
@@ -32,61 +34,151 @@ public class Lexer {
 
         private int absolute;
 
+        /**
+         * Creates an empty position, whose position is at zero
+         */
         public Position() {
             this(0, 0, 0);
         }
 
+        /**
+         * Creates position with given properties
+         * @param line Line number of the position
+         * @param character Character position in the given line
+         * @param absolute Character position from the start
+         */
         public Position(int line, int character, int absolute) {
             this.line = line;
             this.character = character;
             this.absolute = absolute;
         }
 
-        public void nextLine() {
+        /**
+         * Adds positions together
+         * @param position Position to add to this position
+         * @return This position and given position added together
+         */
+        public Position add(Position position) {
+            return new Position(line + position.line, character + position.character, absolute + position.absolute);
+        }
+
+        /**
+         * Moves to the next character, increments the line number
+         */
+        public Position nextLine() {
             line++;
             character = 0;
             absolute++;
+            return this;
         }
 
-        public void nextCharacter() {
+        /**
+         * Moves to the next character
+         */
+        public Position nextCharacter() {
             character++;
             absolute++;
+            return this;
         }
 
+        /**
+         * Returns the line number
+         * @return Line number
+         */
         public int getLine() {
             return line;
         }
 
+        /**
+         * Returns the friendly line number
+         * @return Friendly line number
+         */
+        public int getFriendlyLine() {
+            return line + 1;
+        }
+
+        /**
+         * Returns the character position in the current line
+         * @return Character position in the current line
+         */
         public int getCharacter() {
             return character;
         }
 
+        /**
+         * Returns the friendly character position
+         * @return Friendly character position
+         */
+        public int getFriendlyCharacter() {
+            return character + 1;
+        }
+
+        /**
+         * Returns the character position from the start of text
+         * @return Character position from the start of text
+         */
         public int getAbsolute() {
             return absolute;
         }
 
+        /**
+         * Returns the friendly character position from the start of text
+         * @return Friendly character position from the start of text
+         */
+        public int getFriendlyAbsolute() {
+            return absolute + 1;
+        }
+
+        /**
+         * Clones this position
+         */
         public Position clone() {
             return new Position(line, character, absolute);
         }
     }
 
+    /**
+     * Returns whether the given character is an operator
+     * @param c Character to test
+     * @return True if given character is an operator, otherwise false
+     */
     private static boolean isOperator (char c) {
         return c >= 33 && c <= 47 || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
     }
 
+    /**
+     * Returns whether the given character is a digit
+     * @param c Character to test
+     * @return True if given character is a digit, otherwise false
+     */
     private static boolean isDigit(char c) {
         return c >= 48 && c <= 57;
     }
 
+    /**
+     * Returns whether the given character is text
+     * @param c Character to test
+     * @return True if given character is text, otherwise false
+     */
     private static boolean isText(char c) {
         return c >= 65 && c <= 90 || c >= 97 && c <= 122 || c == 95;
     }
 
-    private static boolean isContent (char c) {
+    /**
+     * Returns whether the given character is content
+     * @param c Character to test
+     * @return True if given character is content, otherwise false
+     */
+    private static boolean isContent(char c) {
         return OPENING_PARENTHESIS.indexOf(c) >= 0;
     }
 
-    private static Type getType (char c) {
+    /**
+     * Returns the type of the given character
+     * @param c Character to use
+     * @return Type of the character
+     */
+    private static Type getType(char c) {
 
         if (isText(c)) {
             return Type.TEXT;
@@ -104,7 +196,14 @@ public class Lexer {
         return Type.UNSPECIFIED;
     }
 
-    private static boolean isPartOf (Type base, Type current, char c) {
+    /**
+     * Returns whether given character is part of the given type of text
+     * @param base Type of the text before the given character
+     * @param current Type of the given character
+     * @param c Character to test
+     * @return True if the given character is part of the text, otherwise false
+     */
+    private static boolean isPartOf(Type base, Type current, char c) {
         if (current == base || base == Type.UNSPECIFIED) {
             return true;
         }
@@ -119,16 +218,22 @@ public class Lexer {
         }
     }
 
+    /**
+     * Skips all spaces, starting from the given position
+     * @param text Text to iterate
+     * @param position Starting point in the text
+     * @return Position after spaces in the text
+     */
     private static Position skipSpaces(String text, Position position) {
 
         while (position.getAbsolute() < text.length()) {
             char c = text.charAt(position.absolute);
-
-            if (!Character.isSpaceChar(c)) {
-                break;
-            }
-            else if (c == '\n') {
+            
+            if (c == '\n') {
                 position.nextLine();
+            }
+            else if (!Character.isSpaceChar(c)) {
+                break;
             }
             else {
                 position.nextCharacter();
@@ -138,15 +243,13 @@ public class Lexer {
         return position;
     }
 
-    private static int skipSpaces(String text, int position) {
-
-        while (position < text.length() && Character.isSpaceChar(text.charAt(position))) {
-            position++;
-        }
-
-        return position;
-    }
-
+    /**
+     * Skips over parenthesis content until finds the closing parenthesis
+     * @param text Text to iterate
+     * @param start Opening parenthesis as position in the text
+     * @return Success: Position after the closing parenthesis
+     * @throws Exception Throws if closing parenthesis wasn't found
+     */
     private static Position skipContent(String text, Position start) throws Exception {
 
         Position position = start.clone();
@@ -178,42 +281,22 @@ public class Lexer {
             }
         }
 
-        throw new Exception("Couldn't find closing parenthesis");
+        throw Errors.get(start, "Couldn't find closing parenthesis");
     }
 
-    private static int skipContent(String text, int start) throws Exception {
-
-        int count = 0;
-        int position = start;
-
-        char opening = text.charAt(position);
-        char closing = CLOSING_PARENTHESIS.charAt(OPENING_PARENTHESIS.indexOf(opening));
-
-        while (position < text.length()) {
-            char c = text.charAt(position);
-
-            if (c == opening) {
-                count++;
-            }
-            else if (c == closing) {
-                count--;
-            }
-
-            position++;
-
-            if (count == 0) {
-                return position;
-            }
-        }
-
-        throw new Exception("Couldn't find closing parenthesis");
-    }
-
+    /**
+     * Returns the next token text area, starting from the given position
+     * @param text Text to iterate
+     * @param start Starting point in the text
+     * @return Next token text area
+     * @throws Exception 
+     */
     public static Area getNextToken(String text, Position start) throws Exception {
 
-        //int position = skipSpaces(text, start);
+        // Firsly the spaces must be skipped to find the next token
         Position position = skipSpaces(text, start);
 
+        // Verify there's text to iterate
         if (position.getAbsolute() == text.length()) {
             return null;
         }
@@ -238,7 +321,7 @@ public class Lexer {
 
                 // There cannot be number and content tokens side by side
                 if (area.type == Type.NUMBER) {
-                    throw new Exception("Missing operator between number and parenthesis");
+                    throw Errors.get(position, "Missing operator between number and parenthesis");
                 }
 
                 break;
@@ -264,9 +347,13 @@ public class Lexer {
         return area;
     }
 
-    private static Token parseTextToken (String text) {
-
-        if (OperatorType.has(text)) {
+    /**
+     * Converts given text into a token
+     * @param text Text to convert
+     * @return Text converted into a token
+     */
+    private static Token parseTextToken(String text) {
+        if (OperatorType.exists(text)) {
             return new OperatorToken(text);
         }
         else if (Keywords.exists(text)) {
@@ -277,7 +364,14 @@ public class Lexer {
         }
     }
 
-    private static Token parseToken (Area area) throws Exception {
+    /**
+     * Converts given token area into a token
+     * @param area Token area to convert into a token
+     * @param anchor Position that the given area is relative to
+     * @return Token area converted into a token
+     * @throws Exception Various reasons: Unrecognized token, ...
+     */
+    private static Token parseToken(Area area, Position anchor) throws Exception {
         switch (area.type) {
             case TEXT:
                 return parseTextToken(area.text);
@@ -286,15 +380,19 @@ public class Lexer {
             case OPERATOR:
                 return new OperatorToken(area.text);
             case CONTENT:
-                return new ContentToken(area.text);
+                return new ContentToken(area.text, anchor.add(area.start));
             default:
-                throw new Exception("Unrecognized token");
+                throw Errors.get(anchor.add(area.start), new Exception(String.format("Unrecognized token '%s'", area.text)));
         }
     }
 
     private static final int FUNCTION_LENGTH = 2;
 
-    private static void functions(ArrayList<Token> tokens) {
+    /**
+     * Builds function tokens from identifier and content tokens
+     * @param tokens List to iterate
+     */
+    private static void functions(List<Token> tokens) {
         if (tokens.size() < FUNCTION_LENGTH) {
             return;
         }
@@ -325,21 +423,37 @@ public class Lexer {
         }
     }
 
-    public static ArrayList<Token> getTokens (String section) throws Exception {
-        //section = section.trim();
+    /**
+     * Tokenizes given raw text
+     * @param raw Raw code in text form
+     * @return Tokenized code
+     * @throws Exception Various reasons
+     */
+    public static List<Token> getTokens(String raw) throws Exception {
+        return getTokens(raw, new Position());
+    }
 
-        ArrayList<Token> tokens = new ArrayList<>();
+    /**
+     * Tokenizes given raw text
+     * @param raw Raw code in text form
+     * @param anchor Position that the given text is relative to
+     * @return Tokenized code
+     * @throws Exception Various reasons
+     */
+    public static List<Token> getTokens(String raw, Position anchor) throws Exception {
+
+        List<Token> tokens = new ArrayList<>();
         Position position = new Position();
 
-        while (position.getAbsolute() < section.length()) {
-            Area area = getNextToken(section, position);
+        while (position.getAbsolute() < raw.length()) {
+            Area area = getNextToken(raw, position);
 
             if (area == null) {
                 break;
             }
 
-            Token token = parseToken(area);
-            token.setPosition(area.start);
+            Token token = parseToken(area, anchor);
+            token.setPosition(anchor.add(area.start));
             tokens.add(token);
 
             position = area.end;

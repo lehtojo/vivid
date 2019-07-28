@@ -8,8 +8,8 @@ import java.util.*;
 
 public class Parser {
 
-    public static final int MAX_PRIORITY = 20;
-    public static final int MEMBERS = 19;
+    public static final int MAX_PRIORITY = 21;
+    public static final int MEMBERS = 20;
     public static final int MIN_PRIORITY = 1;
 
     /**
@@ -49,7 +49,7 @@ public class Parser {
          * Replaces the tokens with a processed token
          * @param token Processed token to insert
          */
-        public void replace(ProcessedToken token) {
+        public void replace(DynamicToken token) {
             int start = pattern.start();
             int end = pattern.end();
 
@@ -140,16 +140,16 @@ public class Parser {
                 Node node = pattern.build(context, instance.getTokens());
 
                 // Replace the pattern with a processed token
-                ProcessedToken token = new ProcessedToken(node);
+                DynamicToken token = new DynamicToken(node);
                 instance.replace(token);
             }
         }
 
         // Combine all processed tokens in order
         for (Token token : tokens) {
-            if (token.getType() == TokenType.PROCESSED) {
-                ProcessedToken processed = (ProcessedToken)token;
-                parent.add(processed.getNode());
+            if (token.getType() == TokenType.DYNAMIC) {
+                DynamicToken dynamic = (DynamicToken)token;
+                parent.add(dynamic.getNode());
             }
         }
     }

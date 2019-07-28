@@ -19,7 +19,7 @@ public abstract class Token {
     }
 
     public Position getPosition() {
-        return position;
+        return position.clone();
     }
 
     public int getType() {

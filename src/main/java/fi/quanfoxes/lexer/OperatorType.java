@@ -2,7 +2,7 @@ package fi.quanfoxes.lexer;
 
 import java.util.HashMap;
 
-public enum OperatorType{
+public enum OperatorType {
     // Priority -1: Dot operator is processed independently
     DOT(".", -1, OperatorCategory.OTHER),
 
@@ -69,7 +69,7 @@ public enum OperatorType{
         return map.get(text);
     }
 
-    public static boolean has(String text) {
+    public static boolean exists(String text) {
         return map.containsKey(text);
     }
 
