@@ -21,12 +21,15 @@ public class IfPattern extends Pattern {
 
     private static final int IF = 0;
     private static final int CONDITION = 1;
-    private static final int BODY = 2;
+    private static final int BODY = 3;
 
     public IfPattern() {
         // Pattern:
-        // if (...) {...}
-        super(TokenType.KEYWORD, TokenType.DYNAMIC, TokenType.CONTENT);
+        // if (...) [\n] {...}
+        super(TokenType.KEYWORD, /* if */
+              TokenType.DYNAMIC, /* (...) */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.CONTENT); /* {...} */
     }
 
     @Override
@@ -87,6 +90,6 @@ public class IfPattern extends Pattern {
         Node body = getBody(context, tokens);
         
         // Build the components into a node
-        return new IfNode(condition, body);
+        return new IfNode(context, condition, body);
 	}
 }

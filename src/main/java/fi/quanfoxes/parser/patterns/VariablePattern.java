@@ -1,6 +1,7 @@
 package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.AccessModifier;
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.Keyword;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.Types;
@@ -79,6 +80,10 @@ public class VariablePattern extends Pattern {
     public Node build(Context context, List<Token> tokens) throws Exception {
         Type type = getType(context, tokens);
         String name = getName(tokens);
+
+        if (context.isLocalVariableDeclared(name)) {
+            throw Errors.get(tokens.get(0).getPosition(), String.format("Variable '%s' already exists in this context", name));
+        }
 
         Variable variable = new Variable(context, type, name, AccessModifier.PUBLIC);
        

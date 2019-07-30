@@ -16,7 +16,8 @@ public class Lexer {
         TEXT,
         NUMBER,
         CONTENT,
-        OPERATOR
+        OPERATOR,
+        END
     }
 
     public static class Area {
@@ -192,6 +193,9 @@ public class Lexer {
         else if (isOperator(c)) {
             return Type.OPERATOR;
         }
+        else if (c == '\n') {
+            return Type.END;
+        }
 
         return Type.UNSPECIFIED;
     }
@@ -229,10 +233,10 @@ public class Lexer {
         while (position.getAbsolute() < text.length()) {
             char c = text.charAt(position.absolute);
             
-            if (c == '\n') {
+            /*if (c == '\n') {
                 position.nextLine();
-            }
-            else if (!Character.isSpaceChar(c)) {
+            }*/
+            if (!Character.isSpaceChar(c)) {
                 break;
             }
             else {
@@ -311,6 +315,11 @@ public class Lexer {
             area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
             return area;
         }
+        else if (area.type == Type.END) {
+            area.end = position.clone().nextLine();
+            area.text = "\n";
+            return area;
+        }
 
         // Possible types are now: TEXT, NUMBER, OPERATOR
         while (position.getAbsolute() < text.length()) {
@@ -333,12 +342,14 @@ public class Lexer {
                 break;
             }
 
-            if (c == '\n') {
+            position.nextCharacter();
+
+            /*if (c == '\n') {
                 position.nextLine();
             }
             else {
                 position.nextCharacter();
-            }
+            }*/
         }
 
         area.end = position;
@@ -381,6 +392,8 @@ public class Lexer {
                 return new OperatorToken(area.text);
             case CONTENT:
                 return new ContentToken(area.text, anchor.add(area.start));
+            case END:
+                return new Token(TokenType.END);
             default:
                 throw Errors.get(anchor.add(area.start), new Exception(String.format("Unrecognized token '%s'", area.text)));
         }

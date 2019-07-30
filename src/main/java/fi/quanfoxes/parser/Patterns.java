@@ -8,7 +8,25 @@ import java.util.*;
 
 public class Patterns {
     private Map<Integer, Patterns> branches = new HashMap<>();
-    private List<Pattern> leaves = new ArrayList<>();
+    private List<Option> options = new ArrayList<>();
+
+    public static class Option {
+        private Pattern pattern;
+        private List<Integer> optionals;
+
+        public Option(Pattern pattern, List<Integer> optionals) {
+            this.pattern = pattern;
+            this.optionals = optionals;
+        }
+
+        public Pattern getPattern() {
+            return pattern;
+        }
+
+        public List<Integer> getMissing() {
+            return new ArrayList<>(optionals);
+        }
+    }
 
     /**
      * Returns existing branch by identifier or creates it
@@ -30,17 +48,22 @@ public class Patterns {
      * Creates a path for the given pattern in this tree
      * @param pattern Pattern to add
      * @param path Path to find the pattern
+     * @param missing Optionals that aren't included in the built path
+     * @param position Current index in the path
      */
-    private void grow(Pattern pattern, List<Integer> path) {
-        if (path.isEmpty()) {
-            leaves.add(pattern);
+    private void grow(Pattern pattern, List<Integer> path, List<Integer> missing, int position) {
+        if (position >= path.size()) {
+            options.add(new Option(pattern, missing));
             return;
         }
 
-        int mask = path.remove(0);
+        int mask = path.get(position);
 
         if (Flag.has(mask, TokenType.OPTIONAL)) {
-            grow(pattern, new ArrayList<>(path));
+            List<Integer> variation = new ArrayList<>(missing);
+            variation.add(position);
+
+            grow(pattern, path, variation, position + 1);
         }
 
         for (int i = 0; i < TokenType.COUNT; i++) {
@@ -48,7 +71,7 @@ public class Patterns {
 
             if (Flag.has(mask, type)) {
                 Patterns branch = getOrGrowBranch(type);
-                branch.grow(pattern, new ArrayList<>(path));
+                branch.grow(pattern, path, missing, position + 1);
             }
         }
     }
@@ -70,8 +93,8 @@ public class Patterns {
      * Returns all patterns in the current branch
      * @return All patterns in the current branch
      */
-    public List<Pattern> getLeaves() {
-        return leaves;
+    public List<Option> getOptions() {
+        return options;
     }
 
     /**
@@ -86,8 +109,8 @@ public class Patterns {
      * Returns whether this branch has patterns
      * @return True if this branch has patterns, otherwise false
      */
-    public boolean hasLeaves() {
-        return !leaves.isEmpty();
+    public boolean hasOptions() {
+        return !options.isEmpty();
     }
 
     /*
@@ -101,13 +124,17 @@ public class Patterns {
     }
 
     private static void add(Pattern pattern) {
-        root.grow(pattern, pattern.getPath());
+        root.grow(pattern, pattern.getPath(), new ArrayList<>(), 0);
     }
 
     static {
+        add(new ArrayPattern());
+        add(new CastPattern());
         add(new ConstructionPattern());
         add(new ConstructorPattern());
         add(new ContentPattern());
+        add(new ElsePattern());
+        add(new ExtendedTypePattern());
         add(new IfPattern());
         add(new LinkPattern());
         add(new MemberFunctionPattern());

@@ -6,6 +6,7 @@ public class Variable {
     private String name;
     private Type type;
     private int modifiers;
+    private int length;
 
     private Context context;
 
@@ -14,10 +15,15 @@ public class Variable {
     private ArrayList<Node> usages = new ArrayList<>();
 
     public Variable(Context context, Type type, String name, int modifiers) throws Exception {
+        this(context, type, name, modifiers, 1);
+    }
+
+    public Variable(Context context, Type type, String name, int modifiers, int length) throws Exception {
         this.name = name;
         this.type = type;
         this.modifiers = modifiers;
         this.context = context;
+        this.length = length;
         
         context.declare(this);
     }
@@ -40,6 +46,14 @@ public class Variable {
 
     public int getModifiers() {
         return modifiers;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public boolean isArray() {
+        return length > 0;
     }
 
     public void setContext(Context context) {

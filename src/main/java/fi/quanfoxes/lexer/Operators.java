@@ -5,6 +5,8 @@ import java.util.Map;
 
 public class Operators {
     
+    public static final Operator EXTENDER = new ClassicOperator(":", 19, false);
+
     public static final Operator POWER = new ClassicOperator("^", 15);
 
     public static final Operator MULTIPLY = new ClassicOperator("*", 12);
@@ -44,6 +46,10 @@ public class Operators {
     public static final Operator INCREMENT = new IndependentOperator("++");
     public static final Operator DECREMENT = new IndependentOperator("--");
 
+    public static final Operator CAST = new IndependentOperator("->");
+
+    public static final Operator END = new IndependentOperator("\n");
+
     private static Map<String, Operator> map = new HashMap<>();
 
     private static void add(Operator operator) {
@@ -80,6 +86,9 @@ public class Operators {
         add(DOT);
         add(INCREMENT);
         add(DECREMENT);
+        add(CAST);
+        add(EXTENDER);
+        add(END);
     }
 
     public static Operator get(String text) {

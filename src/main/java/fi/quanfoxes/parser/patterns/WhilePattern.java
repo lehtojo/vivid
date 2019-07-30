@@ -20,15 +20,15 @@ public class WhilePattern extends Pattern {
 
     private static final int WHILE = 0;
     private static final int CONDITION = 1;
-    private static final int BODY = 2;
+    private static final int BODY = 3;
 
     public WhilePattern() {
         // Pattern:
-        // while (...) {...}
-        // Examples:
-        // while (a && b) {...}
-        // while (true) {...}
-        super(TokenType.KEYWORD, TokenType.DYNAMIC, TokenType.CONTENT);
+        // while (...) [\n] {...}
+        super(TokenType.KEYWORD, /* while */
+              TokenType.DYNAMIC, /* (...) */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.CONTENT); /* {...} */
     }
 
     @Override

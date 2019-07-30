@@ -191,7 +191,7 @@ public class Context {
      * @return Type corresponding to the given name
      * @throws Exception Throws if the type wasn't found
      */
-    public Type getType(String name) throws Exception {
+    public Type getType(String name) {
         if (types.containsKey(name)) {
             return types.get(name);
         }
@@ -199,7 +199,8 @@ public class Context {
             return context.getType(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find type '%s'", name));
+            return null;
+            //throw new Exception(String.format("Couldn't find type '%s'", name));
         }
     }
 
@@ -209,7 +210,7 @@ public class Context {
      * @return Function corresponding to the given name
      * @throws Exception Throws if the function wasn't found
      */
-    public Functions getFunction(String name) throws Exception {
+    public Functions getFunction(String name) {
         if (functions.containsKey(name)) {
             return functions.get(name);
         }
@@ -217,7 +218,8 @@ public class Context {
             return context.getFunction(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find function '%s'", name));
+            return null;
+            //throw new Exception(String.format("Couldn't find function '%s'", name));
         }
     }
 
@@ -227,7 +229,7 @@ public class Context {
      * @return Variable corresponding to the given name
      * @throws Exception Throws if the variable wasn't found
      */
-    public Variable getVariable(String name) throws Exception {
+    public Variable getVariable(String name) {
         if (variables.containsKey(name)) {
             return variables.get(name);
         }
@@ -235,7 +237,8 @@ public class Context {
             return context.getVariable(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find variable '%s'", name));
+            return null;
+            //throw new Exception(String.format("Couldn't find variable '%s'", name));
         }
     }
 

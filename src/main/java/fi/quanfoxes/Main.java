@@ -208,6 +208,8 @@ public class Main {
         // Try to resolve any problems in the node tree
         Resolver.resolve(context, root, errors);
 
+        complain();
+
         long d = System.nanoTime();
 
         System.out.println(              "=====================");

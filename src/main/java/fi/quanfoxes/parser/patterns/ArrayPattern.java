@@ -1,11 +1,15 @@
 package fi.quanfoxes.parser.patterns;
 
+import java.util.List;
+
 import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.AccessModifierKeyword;
 import fi.quanfoxes.Errors;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.lexer.IdentifierToken;
 import fi.quanfoxes.lexer.KeywordToken;
+import fi.quanfoxes.lexer.OperatorToken;
+import fi.quanfoxes.lexer.NumberToken;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
@@ -19,23 +23,27 @@ import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
+import fi.quanfoxes.lexer.Operators;
 
-import java.util.List;
+public class ArrayPattern extends Pattern {
 
-public class MemberVariablePattern extends Pattern {
     public static final int PRIORITY = 20;
 
     private static final int MODIFIER = 0;
     private static final int TYPE = 2;
     private static final int NAME = 3;
+    private static final int ARRAY = 4;
+    private static final int LENGTH = 5;
 
-    public MemberVariablePattern() {
+    public ArrayPattern() {
         // Pattern:
-        // [private / protected / public] [static] Type / Type.Subtype ...
+        // [private / protected / public] [static] Type / Type.Subtype ... : Number
         super(TokenType.KEYWORD | TokenType.OPTIONAL, /* [private / protected / public] */
               TokenType.KEYWORD | TokenType.OPTIONAL, /* [static] */
               TokenType.IDENTIFIER | TokenType.DYNAMIC, /* Type / Type.Subtype */
-              TokenType.IDENTIFIER); /* ... */
+              TokenType.IDENTIFIER,  /* ... */
+              TokenType.OPERATOR, /* : */
+              TokenType.NUMBER); /* Number */
     }
 
     @Override
@@ -60,7 +68,8 @@ public class MemberVariablePattern extends Pattern {
             return (node instanceof LinkNode) || (node instanceof TypeNode);
         }
 
-        return true;
+        OperatorToken array = (OperatorToken)tokens.get(ARRAY);
+        return array.getOperator() == Operators.EXTENDER;
     }
 
     private int getModifiers(List<Token> tokens) {
@@ -113,6 +122,10 @@ public class MemberVariablePattern extends Pattern {
         return ((IdentifierToken)tokens.get(NAME)).getValue();
     }
 
+    private int getLength(List<Token> tokens) {
+        return ((NumberToken)tokens.get(LENGTH)).getNumber().intValue();
+    }
+
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
         int modifiers = getModifiers(tokens);
@@ -123,8 +136,11 @@ public class MemberVariablePattern extends Pattern {
             throw Errors.get(tokens.get(NAME).getPosition(), String.format("Variable '%s' already exists in this context", name));
         }
 
-        Variable variable = new Variable(context, type, name, modifiers);
+        int length = getLength(tokens);
+
+        Variable variable = new Variable(context, type, name, modifiers, length);
 
         return new VariableNode(variable);
     }
+
 }

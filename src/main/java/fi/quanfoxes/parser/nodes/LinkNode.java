@@ -30,8 +30,10 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
             Resolvable resolvable = (Resolvable)left;
             Node resolved = resolvable.resolve(base);
 
-            left.replace(resolved);
-            left = resolved;
+            if (resolved != null) {
+                left.replace(resolved);
+                left = resolved;
+            }
         }
 
         if (right instanceof Resolvable) {
@@ -40,8 +42,10 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
             Resolvable resolvable = (Resolvable)right;
             Node resolved = resolvable.resolve(context);
 
-            right.replace(resolved);
-            right = resolved;
+            if (resolved != null) {
+                right.replace(resolved);
+                right = resolved;
+            }
         }
 
         return null;

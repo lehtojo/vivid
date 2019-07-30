@@ -45,7 +45,7 @@ public class Function extends Context {
     }
 
     @Override
-    public Variable getVariable(String name) throws Exception {
+    public Variable getVariable(String name)  {
         if (parameters.containsKey(name)) {
             return parameters.get(name);
         }

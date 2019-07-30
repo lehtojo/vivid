@@ -1,10 +1,10 @@
-public type Enemy
+type Enemy 
 {
     private tiny health
     private tiny defense
     private tiny attack_damage
 
-    public init ()
+    public init () 
     {
         health = 26
         defense = 2
@@ -21,7 +21,7 @@ public type Enemy
         player.apply_damage(attack_damage)
     }
 
-    public bool is_alive ()
+    public bool is_alive () 
     {
         return health > 0
     }

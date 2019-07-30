@@ -31,8 +31,10 @@ public class ReturnNode extends Node implements Resolvable {
             Resolvable resolvable = (Resolvable)node;
             Node resolved = resolvable.resolve(context);
 
-            node.replace(resolved);
-            node = resolved;
+            if (resolved != null) {
+                node.replace(resolved);
+                node = resolved;
+            }
         }
         
         // Find the parent function where the return value can be assigned

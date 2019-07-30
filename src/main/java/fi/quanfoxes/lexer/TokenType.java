@@ -11,6 +11,7 @@ public class TokenType
     public static final int OPERATOR = 64;
     public static final int OPTIONAL = 128;
     public static final int DYNAMIC = 256;
+    public static final int END = 512;
 
-    public static final int COUNT = 9;
+    public static final int COUNT = 10;
 }

@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public abstract class Pattern {
-    private ArrayList<Integer> path;
+    private List<Integer> path;
 
     public Pattern(Integer... path) {
         this.path = new ArrayList<>(Arrays.asList(path));
@@ -25,7 +25,7 @@ public abstract class Pattern {
         return -1;
     }
 
-    public ArrayList<Integer> getPath() {
-        return path;
+    public List<Integer> getPath() {
+        return new ArrayList<>(path);
     }
 }

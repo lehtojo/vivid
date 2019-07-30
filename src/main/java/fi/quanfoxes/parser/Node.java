@@ -112,8 +112,9 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         Node iterator = node.first;
 
         while (iterator != null) {
+            Node next = iterator.next;
             add(iterator);
-            iterator = iterator.next;
+            iterator = next;
         }
 
         node.destroy();

@@ -40,9 +40,8 @@ public class Singleton {
      * @param context Context to look for the function
      * @param name    Name of the function
      * @return Success: Function / Constructor, Failure: null
-     * @throws Exception
      */
-    public static Function getFunctionByName(Context context, String name, List<Type> parameters) throws Exception {
+    public static Function getFunctionByName(Context context, String name, List<Type> parameters) {
         Functions functions;
 
         if (context.isTypeDeclared(name)) {

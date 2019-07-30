@@ -21,8 +21,8 @@ public class ReturnPattern extends Pattern {
     public ReturnPattern() {
         // Pattern:
         // return ...
-        super(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.IDENTIFIER | 
-                    TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC);
+        super(TokenType.KEYWORD, /* return */
+              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC); /* ... */
     }
 
     @Override

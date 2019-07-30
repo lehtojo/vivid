@@ -14,15 +14,17 @@ import java.util.List;
 
 public class OperatorPattern extends Pattern {
     private static final int LEFT = 0;
-    private static final int OPERATOR = 1;
-    private static final int RIGHT = 2;
+    private static final int OPERATOR = 2;
+    private static final int RIGHT = 4;
 
     public OperatorPattern() {
         // Pattern:
-        // Function / Variable / Number / (...) Operator Function / Variable / Number / (...)
-        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC, 
-              TokenType.OPERATOR,
-              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC);
+        // Function / Variable / Number / (...) [\n] Operator [\n] Function / Variable / Number / (...)
+        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC, /* Function / Variable / Number / (...) */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.OPERATOR, /* Operator */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC); /* Function / Variable / Number / (...) */
     }
 
     @Override
