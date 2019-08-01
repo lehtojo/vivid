@@ -24,19 +24,16 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         }
 
         Node left = position.previous;
-        Node right = position.next;
 
         if (left != null) {
             left.next = child;
         }
 
-        if (right != null) {
-            right.previous = child;
-        }
+        position.previous = child;
 
         child.parent = position.parent;
         child.previous = left;
-        child.next = right;
+        child.next = position;
     }
 
     /**

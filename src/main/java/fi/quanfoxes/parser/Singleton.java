@@ -94,7 +94,7 @@ public class Singleton {
      * @return Content built into a node
      */
     public static Node getContent(Context context, ContentToken content) throws Exception {
-        ContentNode node = new ContentNode(); 
+        Node node = new ContentNode(); 
 
         for (int i = 0; i < content.getSectionCount(); i++) {
             List<Token> tokens = content.getTokens(i);

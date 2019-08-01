@@ -6,9 +6,8 @@ import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
-import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
-import fi.quanfoxes.parser.nodes.ContentNode;
+import fi.quanfoxes.parser.Singleton;
 
 import java.util.List;
 
@@ -36,14 +35,14 @@ public class ContentPattern extends Pattern {
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
-        ContentToken token = (ContentToken)tokens.get(CONTENT);
+        /*ContentToken token = (ContentToken)tokens.get(CONTENT);
         ContentNode content = new ContentNode(); 
 
         for (int i = 0; i < token.getSectionCount(); i++) {
             List<Token> section = token.getTokens(i);
             content.add(Parser.parse(context, section));
-        }
+        }*/
 
-        return content;
+        return Singleton.getContent(context, (ContentToken)tokens.get(CONTENT));
     }
 }

@@ -46,12 +46,6 @@ public class IfPattern extends Pattern {
             return false;
         }
 
-        DynamicToken condition = (DynamicToken)tokens.get(CONDITION);
-
-        if (!(condition.getNode() instanceof ContentNode)) {
-            return false;
-        }
-
         ContentToken body = (ContentToken)tokens.get(BODY);
 
         return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;

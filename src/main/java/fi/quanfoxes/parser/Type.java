@@ -118,7 +118,7 @@ public class Type extends Context {
      * Returns all types that this type extends
      * @return All types that this type extends
      */
-    public List<Type> getSupertypes() {
+    public List<Type> getSuperTypes() {
         return supertypes;
     }
 

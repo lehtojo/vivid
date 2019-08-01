@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import fi.quanfoxes.Keywords;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Function;
@@ -8,8 +9,9 @@ import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.Type;
 
-public class ReturnNode extends Node implements Resolvable {
+public class ReturnNode extends InstructionNode implements Resolvable {
     public ReturnNode(Node object) {
+        super(Keywords.RETURN);
         super.add(object);
     }
 

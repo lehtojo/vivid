@@ -204,9 +204,29 @@ public class Main {
             context.merge(parse.getContext());
             root.merge(parse.getNode());
         }
-
+  
         // Try to resolve any problems in the node tree
         Resolver.resolve(context, root, errors);
+        
+        if (errors.size() > 0) {
+            int previous = errors.size();
+            int count = 0;
+
+            while (true) {
+                errors.clear();
+
+                // Try to resolve any problems in the node tree
+                Resolver.resolve(context, root, errors);
+
+                count = errors.size();
+
+                if (count >= previous) {
+                    break;
+                }
+
+                previous = count;
+            }
+        }
 
         complain();
 

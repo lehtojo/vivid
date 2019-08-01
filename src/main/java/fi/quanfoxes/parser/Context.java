@@ -11,6 +11,7 @@ public class Context {
     private HashMap<String, Variable> variables = new HashMap<>();
     private HashMap<String, Functions> functions = new HashMap<>();
     private HashMap<String, Type> types = new HashMap<>();
+    private HashMap<String, Label> labels = new HashMap<>();
 
     /**
      * Updates types, function and variables when new context is linked
@@ -132,6 +133,18 @@ public class Context {
     }
 
     /**
+     * Declares new label in this context
+     * @param label Label to declare
+     */
+    public void declare(Label label) throws Exception {
+        if (isLocalLabelDeclared(label.getName())) {
+            throw new Exception(String.format("Label '%s' already exists in this context", label.getName()));
+        }
+
+        labels.put(label.getName(), label);
+    }
+
+    /**
      * Returns whether a variable with the given name is declared locally
      * @param name Variable name to look for
      * @return True, if a variable with the given name is declared locally, otherwise false
@@ -159,6 +172,15 @@ public class Context {
     }
 
     /**
+     * Returns whether a label with the given name is declared locally
+     * @param name Label name to look for
+     * @return True, if a label with the given name is declared locally, otherwise false
+     */
+    public boolean isLocalLabelDeclared(String name) {
+        return labels.containsKey(name);
+    }
+
+    /**
      * Returns whether a variable with the given name is declared locally or globally
      * @param name Variable name to look for
      * @return True, if a variable with the given name is declared locally or globally, otherwise false
@@ -183,6 +205,15 @@ public class Context {
      */
     public boolean isFunctionDeclared(String name) {
         return functions.containsKey(name) || (context != null && context.isFunctionDeclared(name));
+    }
+
+    /**
+     * Returns whether a label with the given name is declared locally or globally
+     * @param name Label name to look for
+     * @return True, if a label with the given name is declared locally or globally, otherwise false
+     */
+    public boolean isLabelDeclared(String name) {
+        return labels.containsKey(name) || (context != null && context.isLabelDeclared(name));
     }
 
     /**
@@ -243,6 +274,24 @@ public class Context {
     }
 
     /**
+     * Tries to return label by name locally or globally
+     * @param name Label name to look for
+     * @return Label corresponding to the given name
+     * @throws Exception Throws if the label wasn't found
+     */
+    public Label getLabel(String name) {
+        if (labels.containsKey(name)) {
+            return labels.get(name);
+        }
+        else if (context != null) {
+            return context.getLabel(name);
+        }
+        else {
+            return null;
+        }
+    }
+
+    /**
      * Returns all variables this context owns
      * @return All variables this context owns
      */
@@ -264,6 +313,14 @@ public class Context {
      */
     public Collection<Type> getTypes() {
         return types.values();
+    }
+
+    /**
+     * Returns all labels this context owns
+     * @return All labels this context owns
+     */
+    public Collection<Label> getLabels() {
+        return labels.values();
     }
 
     /**

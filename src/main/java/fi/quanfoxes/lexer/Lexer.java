@@ -233,9 +233,6 @@ public class Lexer {
         while (position.getAbsolute() < text.length()) {
             char c = text.charAt(position.absolute);
             
-            /*if (c == '\n') {
-                position.nextLine();
-            }*/
             if (!Character.isSpaceChar(c)) {
                 break;
             }
@@ -343,13 +340,6 @@ public class Lexer {
             }
 
             position.nextCharacter();
-
-            /*if (c == '\n') {
-                position.nextLine();
-            }
-            else {
-                position.nextCharacter();
-            }*/
         }
 
         area.end = position;

@@ -136,6 +136,9 @@ public class Patterns {
         add(new ElsePattern());
         add(new ExtendedTypePattern());
         add(new IfPattern());
+        add(new InstructionPattern());
+        add(new JumpPattern());
+        add(new LabelPattern());
         add(new LinkPattern());
         add(new MemberFunctionPattern());
         add(new MemberVariablePattern());

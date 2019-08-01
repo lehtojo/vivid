@@ -4,15 +4,17 @@ func print(num n) {
 
 func start(num args) 
 {
-    Player player
-    Enemy enemy
+    var player
+    var enemy
+
+    a:
 
     num countdown = 10
 
-    player = new Player
+    player = new Player()
     tiny h = player.health
     tiny a = h->Player.level
-    enemy = new Enemy
+    enemy = new Enemy()
 
     Player players : 10
     num i = 0
@@ -21,6 +23,22 @@ func start(num args)
     {
         players:i.health += 100
         i += 1
+
+        if (i < -1) {
+            goto a
+        }
+    }
+
+    while (10, i++) {
+
+    }
+
+    while (i < 10, i++) {
+
+    }
+
+    while (num j = 0, j < 10, j++) {
+
     }
 
     while (player.is_alive() & enemy.is_alive()) 

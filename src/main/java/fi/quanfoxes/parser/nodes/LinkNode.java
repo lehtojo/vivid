@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.Operators;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
@@ -38,6 +39,10 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
         if (right instanceof Resolvable) {
             Context context = getContext(left);
+
+            if (context == Types.UNKNOWN) {
+                throw new Exception("Couldn't resolve the type of the left hand side");
+            }
 
             Resolvable resolvable = (Resolvable)right;
             Node resolved = resolvable.resolve(context);
