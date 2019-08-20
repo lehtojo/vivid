@@ -12,8 +12,8 @@ import fi.quanfoxes.lexer.KeywordToken;
 import fi.quanfoxes.lexer.ParenthesisType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
+import fi.quanfoxes.parser.Constructor;
 import fi.quanfoxes.parser.Context;
-import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.Singleton;
@@ -78,7 +78,7 @@ public class ConstructorPattern extends Pattern {
 
         ContentToken body = getBody(tokens);
 
-        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.BRACKETS;
     }
 
     private int getModifiers(List<Token> tokens) {
@@ -106,7 +106,7 @@ public class ConstructorPattern extends Pattern {
         
         Type type = (Type)context;
 
-        Function constructor = new Function(context, modifiers);
+        Constructor constructor = new Constructor(context, modifiers);
 
         if (parameters != null) {
             constructor.setParameters(Singleton.getContent(context, parameters));

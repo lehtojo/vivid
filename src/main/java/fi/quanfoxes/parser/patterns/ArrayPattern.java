@@ -20,6 +20,7 @@ import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.VariableType;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
@@ -131,6 +132,7 @@ public class ArrayPattern extends Pattern {
         int modifiers = getModifiers(tokens);
         Type type = getType(context, tokens);
         String name = getName(tokens);
+        VariableType category = context.isGlobalContext() ? VariableType.GLOBAL : VariableType.LOCAL;
 
         if (context.isLocalVariableDeclared(name)) {
             throw Errors.get(tokens.get(NAME).getPosition(), String.format("Variable '%s' already exists in this context", name));
@@ -138,7 +140,7 @@ public class ArrayPattern extends Pattern {
 
         int length = getLength(tokens);
 
-        Variable variable = new Variable(context, type, name, modifiers, length);
+        Variable variable = new Variable(context, type, category, name, modifiers, length);
 
         return new VariableNode(variable);
     }

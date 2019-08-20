@@ -1,10 +1,12 @@
 package fi.quanfoxes.parser;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Variable {
     private String name;
     private Type type;
+    private VariableType category;
     private int modifiers;
     private int length;
 
@@ -12,15 +14,16 @@ public class Variable {
 
     private int alignment;
 
-    private ArrayList<Node> usages = new ArrayList<>();
+    private List<Node> usages = new ArrayList<>();
 
-    public Variable(Context context, Type type, String name, int modifiers) throws Exception {
-        this(context, type, name, modifiers, 1);
+    public Variable(Context context, Type type, VariableType category, String name, int modifiers) throws Exception {
+        this(context, type, category, name, modifiers, 1);
     }
 
-    public Variable(Context context, Type type, String name, int modifiers, int length) throws Exception {
+    public Variable(Context context, Type type, VariableType category, String name, int modifiers, int length) throws Exception {
         this.name = name;
         this.type = type;
+        this.category = category;
         this.modifiers = modifiers;
         this.context = context;
         this.length = length;
@@ -38,6 +41,14 @@ public class Variable {
 
     public Type getType() {
         return type;
+    }
+
+    public void setVariableType(VariableType category) {
+        this.category = category;
+    }
+
+    public VariableType getVariableType() {
+        return category;
     }
 
     public boolean isTypeUnresolved() {
@@ -72,11 +83,15 @@ public class Variable {
         return alignment;
     }
 
+    public String getFullname() {
+        return name;
+    }
+
     public void addUsage(Node node) {
         usages.add(node);
     }
 
-    public ArrayList<Node> getUsages() {
+    public List<Node> getUsages() {
         return usages;
     }
 }

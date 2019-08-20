@@ -1,0 +1,29 @@
+private string digits = "0123456789"
+
+export func to_string (num n)
+[   
+    num a = n
+    num b = 0
+
+    loop
+    [
+        num c = 1 << b * 5
+
+        if (a / b < 10)
+        [
+            stop
+        ]
+    ]
+
+    string text
+
+    loop (num i = b, i >= 0, i--)
+    [
+        num j = 1 << i * 5
+        num k = a / j
+
+        text += digits[k]
+
+        a -= j
+    ]
+]

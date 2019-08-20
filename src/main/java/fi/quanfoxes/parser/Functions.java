@@ -13,6 +13,11 @@ public class Functions {
      */
     public void add(Function function) {
         functions.add(function);
+
+        if (functions.size() > 1) {
+            functions.get(0).setIndex(0);
+            function.setIndex(functions.size() - 1);
+        }
     }
 
     /**
@@ -39,7 +44,7 @@ public class Functions {
         List<Candidate> candidates = new ArrayList<>();
 
         for (Function function : functions) {
-            List<Type> types = function.getParameters();
+            List<Type> types = function.getParameterTypes();
 
             // Verify that the current function has equal amount of parameters with the given parameter list
             if (parameters.size() != types.size()) {

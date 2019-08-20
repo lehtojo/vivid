@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Type extends Context {
-    private String name;
+
+    public static final int REFERENCE_SIZE = 4;
+    public static final String IDENTIFIER_PREFIX = "type_";
+
     private int modifiers;
 
     private Functions constructors = new Functions();
@@ -105,6 +108,11 @@ public class Type extends Context {
     public String getName() {
         return name;
     }
+    
+    @Override
+    public String getIdentifier() {
+        return IDENTIFIER_PREFIX + name + "_";
+    }
 
     /**
      * Returns the access modfiers of the type
@@ -126,7 +134,7 @@ public class Type extends Context {
      * Declares constructor for this type
      * @param constructor Constructor to declare
      */
-    public void addConstructor(Function constructor) {
+    public void addConstructor(Constructor constructor) {
         constructors.add(constructor);
     }
 
@@ -152,5 +160,21 @@ public class Type extends Context {
      */
     public Functions getDestructor() {
         return destructors;
+    }
+
+    /**
+     * Returns the memory required for the variables in this type
+     * @return Memory required for the variables in this type
+     */
+    public int getContentSize() {
+        return getVariables().stream().map(Variable::getType).mapToInt(Type::getSize).sum();
+    }
+
+    /**
+     * Returns the size of this type
+     * @return Size of this type
+     */
+    public int getSize() {
+        return REFERENCE_SIZE;
     }
 }

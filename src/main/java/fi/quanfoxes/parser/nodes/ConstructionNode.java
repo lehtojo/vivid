@@ -29,6 +29,14 @@ public class ConstructionNode extends Node implements Resolvable, Contextable {
     }
 
     /**
+     * Returns the parameters of this construction node
+     * @return Parameters of this construction node
+     */
+    public Node getParameters() {
+        return last();
+    }
+
+    /**
      * Returns the type to create
      * @return Type to create by the constructor
      */
@@ -57,7 +65,7 @@ public class ConstructionNode extends Node implements Resolvable, Contextable {
     }
 
     @Override
-    public Context getContext() throws Exception {
+    public Context getContext() {
         return getType();
 	}
 }

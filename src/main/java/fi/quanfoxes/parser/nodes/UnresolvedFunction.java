@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import fi.quanfoxes.parser.Context;
@@ -29,7 +30,13 @@ public class UnresolvedFunction extends Node implements Resolvable {
         return this;
     }
 
-    public Node getResolvedNode(Context context) throws Exception {
+    public Node solve(Context environment, Context context) throws Exception {
+        Node node = getParameters();
+
+        if (node != null) {
+            Resolver.resolve(environment, node, new ArrayList<>());
+        }
+
         List<Type> parameters = Resolver.getTypes(this); 
         Function function = Singleton.getFunctionByName(context, value, parameters);
 
@@ -40,8 +47,12 @@ public class UnresolvedFunction extends Node implements Resolvable {
         return new FunctionNode(function).setParameters(this);
     }
 
+    private Node getParameters() {
+        return first();
+    }
+
     @Override
     public Node resolve(Context context) throws Exception {
-        return getResolvedNode(context);
+        return solve(context, context);
     }
 }

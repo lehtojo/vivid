@@ -44,7 +44,7 @@ public class ElsePattern extends Pattern {
         }
 
         ContentToken body = (ContentToken)tokens.get(BODY);
-        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.BRACKETS;
     }
 
     private List<Token> getBody(List<Token> tokens) {

@@ -40,7 +40,7 @@ public class WhilePattern extends Pattern {
     public boolean passes(List<Token> tokens) {
         KeywordToken keyword = (KeywordToken)tokens.get(WHILE);
 
-        if (keyword.getKeyword() != Keywords.WHILE) {
+        if (keyword.getKeyword() != Keywords.LOOP) {
             return false;
         }
 

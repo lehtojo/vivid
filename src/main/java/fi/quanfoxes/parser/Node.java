@@ -56,9 +56,9 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         last = child;
     }
 
-    public void remove(Node child) throws Exception {
+    public boolean remove(Node child) {
         if (child.parent != this) {
-            throw new Exception("Given node isn't a child node of this node");
+            return false;
         }
 
         Node left = child.previous;
@@ -71,6 +71,8 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         if (right != null) {
             right.previous = left;
         }
+
+        return true;
     }
 
     public void replace(Node node) {
@@ -177,4 +179,9 @@ public class Node implements Iterator<Node>, Iterable<Node> {
     public Node last() {
         return last;
     }
+
+	public Node disconnect() {
+        parent.remove(this);
+        return this;
+	}
 }

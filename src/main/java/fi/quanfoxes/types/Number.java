@@ -24,6 +24,10 @@ public abstract class Number extends Type {
         return bits;
     }
 
+    public int getBytes() {
+        return bits / 8;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

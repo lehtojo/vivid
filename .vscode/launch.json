@@ -17,7 +17,11 @@
             "mainClass": "fi.quanfoxes.Main",
             "projectName": "gz",
             "preLaunchTask": "Build",
+<<<<<<< Updated upstream
             "args": "examples/Enemy.g examples/Game.g examples/Player.g examples/Example.g"
+=======
+            "args": "examples/Sandbox.z"
+>>>>>>> Stashed changes
         },
         {
             "type": "java",

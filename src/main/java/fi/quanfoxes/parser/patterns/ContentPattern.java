@@ -30,7 +30,7 @@ public class ContentPattern extends Pattern {
         // Only content with parenthesis type of '()' or '[]' can be automatically parsed
         ContentToken content = (ContentToken)tokens.get(CONTENT);
         return content.getParenthesisType() == ParenthesisType.PARENTHESIS || 
-                    content.getParenthesisType() == ParenthesisType.BRACKETS;
+                    content.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     @Override

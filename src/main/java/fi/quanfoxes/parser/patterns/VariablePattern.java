@@ -55,7 +55,7 @@ public class VariablePattern extends Pattern {
                 return new UnresolvedType(context, (Resolvable)node);
             }
 
-            throw new Exception("Node must be resolvable");
+            throw new Exception("Type must be resolvable");
         }
         else if (token.getType() == TokenType.KEYWORD) {
             return Types.UNKNOWN;
@@ -80,12 +80,13 @@ public class VariablePattern extends Pattern {
     public Node build(Context context, List<Token> tokens) throws Exception {
         Type type = getType(context, tokens);
         String name = getName(tokens);
+        VariableType category = context.isGlobalContext() ? VariableType.GLOBAL : VariableType.LOCAL;
 
         if (context.isLocalVariableDeclared(name)) {
             throw Errors.get(tokens.get(0).getPosition(), String.format("Variable '%s' already exists in this context", name));
         }
 
-        Variable variable = new Variable(context, type, name, AccessModifier.PUBLIC);
+        Variable variable = new Variable(context, type, category, name, AccessModifier.PUBLIC);
        
         return new VariableNode(variable);
     }

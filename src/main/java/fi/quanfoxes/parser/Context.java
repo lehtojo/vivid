@@ -6,7 +6,8 @@ import java.util.HashMap;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
 public class Context {
-    private Context context;
+    protected String name = "";
+    protected Context context;
 
     private HashMap<String, Variable> variables = new HashMap<>();
     private HashMap<String, Functions> functions = new HashMap<>();
@@ -71,6 +72,34 @@ public class Context {
         }
 
         update();
+    }
+
+    /**
+     * Returns the name of this context
+     * @return Name of this context
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the identifier of this context
+     * @return Identifier of this context
+     */
+    public String getIdentifier() {
+        return name;
+    }
+
+    /**
+     * Returns the full identifier of this context
+     * @return Full identifier of this context
+     */
+    public String getFullname() {
+        if (context != null) {
+            return context.getFullname() + getIdentifier();
+        }
+        
+        return getIdentifier();
     }
 
     /**
@@ -351,6 +380,14 @@ public class Context {
         }
 
         return (context instanceof Function) ? (Function)context : context.getFunctionParent();
+    }
+
+    /**
+     * Returns whether this context represents the global context
+     * @return True if this context represents the global context, otherwise false
+     */
+    public boolean isGlobalContext() {
+        return context == null;
     }
 
     /**

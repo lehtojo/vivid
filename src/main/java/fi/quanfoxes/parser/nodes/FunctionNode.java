@@ -25,7 +25,9 @@ public class FunctionNode extends Node implements Contextable {
     }
 
     public void parse() throws Exception {
-        Parser.parse(this, function, body);
+        Node node = Parser.parse(function, body, Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
+        add(node);
+        
         body.clear();
     }
 
@@ -33,8 +35,9 @@ public class FunctionNode extends Node implements Contextable {
         Node parameter = parameters.first();
 
         while (parameter != null) {
-            super.add(parameter);
-            parameter = parameter.next();
+            Node next = parameter.next();
+            add(parameter);
+            parameter = next;
         }
 
         return this;
@@ -42,6 +45,14 @@ public class FunctionNode extends Node implements Contextable {
 
     public Function getFunction() {
         return function;
+    }
+
+    public Node getParameters() {
+        return first();
+    }
+
+    public Node getBody() {
+        return last();
     }
 
     @Override

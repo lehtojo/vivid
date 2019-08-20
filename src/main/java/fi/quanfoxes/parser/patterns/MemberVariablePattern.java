@@ -16,6 +16,7 @@ import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.VariableType;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
@@ -123,7 +124,8 @@ public class MemberVariablePattern extends Pattern {
             throw Errors.get(tokens.get(NAME).getPosition(), String.format("Variable '%s' already exists in this context", name));
         }
 
-        Variable variable = new Variable(context, type, name, modifiers);
+        VariableType category = context.isGlobalContext() ? VariableType.GLOBAL : VariableType.MEMBER;
+        Variable variable = new Variable(context, type, category, name, modifiers);
 
         return new VariableNode(variable);
     }

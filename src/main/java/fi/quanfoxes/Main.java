@@ -1,14 +1,20 @@
 package fi.quanfoxes;
 
+import fi.quanfoxes.assembler.Assembler;
 import fi.quanfoxes.lexer.Lexer;
 import fi.quanfoxes.lexer.Token;
+import fi.quanfoxes.parser.Aligner;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
+import fi.quanfoxes.parser.Processor;
 import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -83,6 +89,44 @@ public class Main {
             }
 
             node = node.next();
+        }
+    }
+
+    private static void output(String assembly) {
+
+        try {
+            File file = new File("zigzag.asm");
+
+            FileWriter writer = new FileWriter(file);
+            writer.append(assembly);
+            writer.close();
+
+            ProcessBuilder builder = new ProcessBuilder("yasm", "-g", "dwarf2", "-f", "elf32", "-o", "zigzag.o", file.getAbsolutePath());
+            builder.inheritIO();
+            builder.redirectInput(Redirect.INHERIT);
+            builder.redirectOutput(Redirect.INHERIT);
+            builder.redirectError(Redirect.INHERIT);
+
+            Process process = builder.start();
+            
+            if (process.waitFor() != 0) {
+                throw new Exception();
+            }
+
+            builder = new ProcessBuilder("ld", "-m", "elf_i386", "-o", "zigzag", "zigzag.o", "z.o");
+            builder.inheritIO();
+            builder.redirectInput(Redirect.INHERIT);
+            builder.redirectOutput(Redirect.INHERIT);
+            builder.redirectError(Redirect.INHERIT);
+
+            process = builder.start();
+            
+            if (process.waitFor() != 0) {
+                throw new Exception();
+            }
+        }
+        catch (Exception e) {
+            System.err.println("ERROR: Internal assembler failed");
         }
     }
 
@@ -228,15 +272,29 @@ public class Main {
             }
         }
 
+        Processor.process(root);
+
         complain();
 
+        // Align all variables in memory properly
+        Aligner.align(context);
+
         long d = System.nanoTime();
+
+        String assembly = Assembler.build(root, context);
+
+        output(assembly);
+
+        long e = System.nanoTime();
+
+        System.out.println(assembly);
 
         System.out.println(              "=====================");
         System.out.println(String.format("Disk: %.1f ms", (b - a) / 1000000.0f));
         System.out.println(String.format("Lexer: %.1f ms", (c - b) / 1000000.0f));
         System.out.println(String.format("Parser: %.1f ms", (d - c) / 1000000.0f));
-        System.out.println(String.format("Total: %.1f ms", (d - a) / 1000000.0f));
+        System.out.println(String.format("Assembler: %.1f ms", (e - d) / 1000000.0f));
+        System.out.println(String.format("Total: %.1f ms", (e - a) / 1000000.0f));
         System.out.println(              "=====================");
 
         System.exit(0);

@@ -8,11 +8,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import fi.quanfoxes.AccessModifier;
+import fi.quanfoxes.lexer.Flag;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
 public class Function extends Context {
-    private String name;
+    public static final String IDENTIFIER = "function_%s";
+    public static final String INDEXED_IDENTIFIER = "function_%s_%d";
+
     private int modifiers;
+    private int index = -1;
 
     private Map<String, Variable> parameters = new HashMap<>();
 
@@ -32,6 +37,18 @@ public class Function extends Context {
     public Function(Context context, int modifiers) {
         this.modifiers = modifiers;
         super.link(context);
+    }
+
+    @Override
+    public String getIdentifier() {
+        int index = getIndex();
+
+        if (index != -1) {
+            return String.format(INDEXED_IDENTIFIER, name, index);
+        }
+        else {
+            return String.format(IDENTIFIER, name);
+        }
     }
 
     @Override
@@ -58,10 +75,25 @@ public class Function extends Context {
         return Stream.concat(super.getVariables().stream(), parameters.values().stream()).collect(Collectors.toList());
     }
 
-    public String getName() {
-        return name;
+    /**
+     * Returns whether this functions is a static function
+     * @return True if this function is a static functions, otherwise false
+     */
+    public boolean isStatic() {
+        return Flag.has(modifiers, AccessModifier.STATIC);
+    }
+    /**
+     * Returns whether this functions is a global function
+     * @return True if this function is a global functions, otherwise false
+     */
+    public boolean isGlobal() {
+        return getTypeParent() == null;
     }
 
+    /**
+     * Returns the modifiers associated with this function
+     * @return Modifiers associated with this function
+     */
     public int getModifiers() {
         return modifiers;
     }
@@ -71,13 +103,23 @@ public class Function extends Context {
         
         while (parameter != null) {
             Variable variable = parameter.getVariable();
+            variable.setVariableType(VariableType.PARAMETER);
+
             parameters.put(variable.getName(), variable);
 
             parameter = (VariableNode)parameter.next();
         }
     }
 
-    public List<Type> getParameters() {
+    public Collection<Variable> getLocals() {
+        return super.getVariables();
+    }
+
+    public Collection<Variable> getParameters() {
+        return parameters.values();
+    }
+
+    public List<Type> getParameterTypes() {
         return parameters.values().stream().map(Variable::getType).collect(Collectors.toList());
     }
 
@@ -85,12 +127,32 @@ public class Function extends Context {
         return parameters.size();
     }
 
-    public Type getReturnType() {
-        return result;
+    /**
+     * Returns the memory required for the local variables
+     * @return Memory required for the local variables
+     */
+    public int getLocalMemorySize() {
+        return getVariables().stream().filter(v -> v.getVariableType() == VariableType.LOCAL).map(Variable::getType).mapToInt(Type::getSize).sum();
     }
 
     public void setReturnType(Type type) {
         this.result = type;
+    }
+
+    public Type getReturnType() {
+        return result;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public boolean hasIndex() {
+        return index != -1;
     }
 
     public void addUsage(Node node) {

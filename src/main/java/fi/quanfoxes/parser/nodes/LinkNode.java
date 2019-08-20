@@ -19,7 +19,7 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
             return contextable.getContext();
         }
 
-        throw new Exception("Couldn't resolve the context");
+        return null;
     }
 
     @Override
@@ -44,8 +44,16 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
                 throw new Exception("Couldn't resolve the type of the left hand side");
             }
 
-            Resolvable resolvable = (Resolvable)right;
-            Node resolved = resolvable.resolve(context);
+            Node resolved;
+
+            if (right instanceof UnresolvedFunction) {
+                UnresolvedFunction function = (UnresolvedFunction)right;
+                resolved = function.solve(base, context);
+            }
+            else {
+                Resolvable resolvable = (Resolvable)right;
+                resolved = resolvable.resolve(context);
+            }
 
             if (resolved != null) {
                 right.replace(resolved);

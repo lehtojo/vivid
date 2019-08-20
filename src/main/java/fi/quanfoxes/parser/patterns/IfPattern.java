@@ -14,19 +14,22 @@ import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.nodes.ContentNode;
+import fi.quanfoxes.parser.nodes.ElseIfNode;
 import fi.quanfoxes.parser.nodes.IfNode;
 
 public class IfPattern extends Pattern {
     public static final int PRIORITY = 15;
 
-    private static final int IF = 0;
-    private static final int CONDITION = 1;
-    private static final int BODY = 3;
+    private static final int ELSE = 0;
+    private static final int IF = 1;
+    private static final int CONDITION = 2;
+    private static final int BODY = 4;
 
     public IfPattern() {
         // Pattern:
         // if (...) [\n] {...}
-        super(TokenType.KEYWORD, /* if */
+        super(TokenType.KEYWORD | TokenType.OPTIONAL, /* else */
+              TokenType.KEYWORD, /* if */
               TokenType.DYNAMIC, /* (...) */
               TokenType.END | TokenType.OPTIONAL, /* [\n] */
               TokenType.CONTENT); /* {...} */
@@ -39,7 +42,13 @@ public class IfPattern extends Pattern {
 
     @Override
     public boolean passes(List<Token> tokens) {
-        KeywordToken keyword = (KeywordToken)tokens.get(IF);
+        KeywordToken keyword = (KeywordToken)tokens.get(ELSE);
+
+        if (keyword != null && keyword.getKeyword() != Keywords.ELSE) {
+            return false;
+        }
+
+        keyword = (KeywordToken)tokens.get(IF);
 
         // Keyword at the start must be 'if' since this pattern represents if statement
         if (keyword.getKeyword() != Keywords.IF) {
@@ -48,7 +57,7 @@ public class IfPattern extends Pattern {
 
         ContentToken body = (ContentToken)tokens.get(BODY);
 
-        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.BRACKETS;
     }
 
     /**
@@ -73,6 +82,14 @@ public class IfPattern extends Pattern {
         return Parser.parse(context, content.getTokens()); 
     }
 
+    /**
+     * Returns whether this is a successor to a if statament
+     * @return True if this is a successor to a if statement
+     */
+    private boolean isSuccessor(List<Token> tokens) {
+        return tokens.get(ELSE) != null;
+    }
+
 	@Override
 	public Node build(Context environment, List<Token> tokens) throws Exception {
         // Create new context for if statement's body, which is linked to its environment
@@ -84,6 +101,11 @@ public class IfPattern extends Pattern {
         Node body = getBody(context, tokens);
         
         // Build the components into a node
-        return new IfNode(context, condition, body);
+        if (isSuccessor(tokens)) {
+            return new ElseIfNode(context, condition, body);
+        }
+        else {
+            return new IfNode(context, condition, body);
+        }
 	}
 }

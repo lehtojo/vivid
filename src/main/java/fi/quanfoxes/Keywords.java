@@ -12,8 +12,10 @@ public class Keywords {
     public static Keyword FUNC = new Keyword("func");
     public static Keyword GOTO = new FlowKeyword("goto");
     public static Keyword IF = new FlowKeyword("if");
+    public static Keyword IMPORT = new Keyword("import");
     public static Keyword INIT = new Keyword("init");
     public static Keyword LOCK = new FlowKeyword("lock");
+    public static Keyword LOOP = new Keyword("loop");
     public static Keyword NEW = new Keyword("new");
     public static Keyword PRIVATE = new AccessModifierKeyword("private", AccessModifier.PRIVATE);
     public static Keyword PROTECTED = new AccessModifierKeyword("protected", AccessModifier.PROTECTED);
@@ -39,8 +41,10 @@ public class Keywords {
         keywords.put(FUNC.getIdentifier(), FUNC);
         keywords.put(GOTO.getIdentifier(), GOTO);
         keywords.put(IF.getIdentifier(), IF);
+        keywords.put(IMPORT.getIdentifier(), IMPORT);
         keywords.put(INIT.getIdentifier(), INIT);
         keywords.put(LOCK.getIdentifier(), LOCK);
+        keywords.put(LOOP.getIdentifier(), LOOP);
         keywords.put(NEW.getIdentifier(), NEW);
         keywords.put(PRIVATE.getIdentifier(), PRIVATE);
         keywords.put(PROTECTED.getIdentifier(), PROTECTED);
