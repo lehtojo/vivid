@@ -27,6 +27,7 @@ public class Main {
     private static final int FILE_LOAD_ERROR = -1;
     private static final int LEXER_ERROR = -2;
     private static final int PARSE_ERROR = -3;
+    private static final int CODE_ERROR = -4;
 
     public static ExecutorService executors;
     public static ArrayList<Exception> errors = new ArrayList<>();
@@ -272,9 +273,13 @@ public class Main {
             }
         }
 
-        Processor.process(root);
+        if (errors.size() > 0) {
+            complain();
+            System.exit(CODE_ERROR);
+        }
 
-        complain();
+        Processor.process(root);
+        
 
         // Align all variables in memory properly
         Aligner.align(context);

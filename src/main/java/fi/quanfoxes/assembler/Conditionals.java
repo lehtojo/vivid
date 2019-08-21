@@ -14,7 +14,7 @@ public class Conditionals {
      */
     private static Instructions build(Unit unit, IfNode root, String end) {
         Instructions instructions = new Instructions();
-        String next = unit.getLabel();     
+        String next = root.getSuccessor() != null ? unit.getLabel() : end;     
 
         Node condition = root.getCondition();
 
@@ -49,11 +49,8 @@ public class Conditionals {
         // Merge all assembled sections together
         if (successor != null) {
             instructions.append("jmp %s", end);
-            instructions.append("%s:", next);
+            instructions.label(next);
             instructions.append(successor); 
-        }
-        else {
-            instructions.append("%s:", next);
         }
 
         return instructions;

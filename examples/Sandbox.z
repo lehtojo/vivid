@@ -1,67 +1,33 @@
-import num allocate(num bytes)
-import num ipow(num a, num b)
-
-num banana
-
-type Player 
+type fruit
 [
-    Player player
-    num health
-
-    init () 
+    init()
     [
-        
-    ]
 
-    func add (num amount, num boost)
-    [
-        num extra = 5
-        health = health + amount * (boost + extra)
-
-        if (health <= 0)
-        [
-            health = health - 1
-            health = health + boost
-        ]
-        else if (extra > (3 * health + boost) * 4)
-        [
-            extra = extra - player.health + add(1, 3)
-        ]
-        else
-        [
-            extra = extra + 1 * boost
-        ]
     ]
+    num a
+    num macro 
+
 ]
 
-func yeet(num a) 
+func ass(fruit a)
 [
-    num b = 3 + banana
-    a = a + b / (a + b) + (b + b * 2)
-    return a
+    a.a = a.macro * a.a - a.macro
 ]
+
+    func my(fruit a)
+    [
+        if (a.a < a.macro)
+        [
+            a.a = a.macro
+        ]
+    ]
 
 func run()
 [
-    var player = new Player()
-
-    num a = 3
-    num b = 5
-    a = a ^ b
-    num c = (a + a) * (a + b)
-    a = a * a
-    a = b / a
-    a = (c * b * a * 7) + yeet(a) * 2
-    a = b + c
-    a = a - c
-
-    player.health = a * c * 7
-    player.add(player.health, 5)
-
-    loop (player.health > 0)
+    fruit abc = new fruit()
+    abc.a = abc.a
+    loop (abc.a < abc.a)
     [
-        player.add(-1, 5)
+        ass(abc)
     ]
-
-    player.player.player.health = player.player.health * 2 + a
 ]
