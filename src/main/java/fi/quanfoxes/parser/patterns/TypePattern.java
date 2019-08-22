@@ -25,7 +25,7 @@ public class TypePattern extends Pattern {
               TokenType.KEYWORD, /* type */
               TokenType.IDENTIFIER, /* ... */
               TokenType.END | TokenType.OPTIONAL, /* [\n] */
-              TokenType.CONTENT); /* {..} */
+              TokenType.CONTENT); /* {...} */
     }
 
     @Override

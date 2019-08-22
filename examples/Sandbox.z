@@ -1,12 +1,50 @@
+import num allocate(num bytes)
+
 type fruit
 [
-    init()
-    [
-
-    ]
     num a
     num macro 
 
+    init ()
+    [
+        
+    ]
+
+    func do(num a)
+    [
+        num b = a / 3
+        num c = macro * a + b
+
+        macro = c * c
+        
+        if (a != c * macro)
+        [
+            do(b + c * (9 + 9) + do(c))
+
+            if (a != c * macro)
+            [
+                do(b + c * (9 + 9) + do(c))
+
+                if (a != c * macro)
+                [
+                    do(b + c * (9 + 9) + do(c))
+                ]
+                else if (c > 0 + 9)
+                [
+                    do(0)
+                ]
+            ]
+            else
+            [
+                b = a / 3
+                c = macro * a + b
+
+                macro = c * c
+            ]
+        ]
+
+        return a / b / c
+    ]
 ]
 
 func ass(fruit a)
@@ -24,6 +62,9 @@ func ass(fruit a)
 
 func run()
 [
+    var a = 5
+    var b = 7
+    var c = a + b
     fruit abc = new fruit()
     abc.a = abc.a
     loop (abc.a < abc.a)

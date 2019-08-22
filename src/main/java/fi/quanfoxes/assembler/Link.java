@@ -9,26 +9,39 @@ import fi.quanfoxes.parser.nodes.VariableNode;
 public class Link {
     public static Instructions build(Unit unit, LinkNode node, ReferenceType type) {
         Instructions instructions = new Instructions();
-
-        Instructions left = References.read(unit, node.getLeft());
-        instructions.append(left);
-
+        
         if (node.getRight() instanceof FunctionNode) {
+            Instructions left = References.read(unit, node.getLeft());
+            instructions.append(left);
+
             Instructions call = Call.build(unit, left.getReference(), (FunctionNode)node.getRight());
             instructions.append(call).setReference(call.getReference());
         }
         else if (node.getRight() instanceof VariableNode) {
-            Reference reference = left.getReference();
+            Variable variable = ((VariableNode)node.getRight()).getVariable(); 
+            
+            if (type == ReferenceType.VALUE || type == ReferenceType.READ) {
+                Register register = unit.contains(variable);
 
-            if (!left.getReference().isRegister()) {
-                Instructions move = Memory.move(unit, reference, Reference.from(type == ReferenceType.WRITE ? unit.edi : unit.esi));
-                instructions.append(move);
-
-                reference = move.getReference();
+                if (register != null) {
+                    return instructions.setReference(register.getValue());
+                }
             }
 
-            Variable variable = ((VariableNode)node.getRight()).getVariable();
-            instructions.setReference(new MemoryReference(reference.getRegister(), variable.getAlignment(), variable.getType().getSize()));
+            Instructions left = References.value(unit, node.getLeft());
+            instructions.append(left);
+            
+            Reference reference = new MemoryReference(left.getReference().getRegister(), variable.getAlignment(), variable.getType().getSize());
+
+            if (type == ReferenceType.VALUE) {
+                Instructions move = Memory.toRegister(unit, reference);
+                instructions.append(move);
+
+                return instructions.setReference(Value.getVariable(move.getReference(), variable));
+            }
+            else {
+                return instructions.setReference(reference);
+            }
         }
   
         return instructions;

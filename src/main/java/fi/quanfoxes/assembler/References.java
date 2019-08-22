@@ -20,23 +20,14 @@ public class References {
     private static Instructions getFunctionReference(Unit unit, FunctionNode node, ReferenceType type) {
 
         if (type == ReferenceType.WRITE) {
-            System.out.println("Error: Writable function return values aren't supported yet");
+            System.err.println("ERROR: Writable function return values aren't supported yet");
         }
-
+        
         return Call.build(unit, node);
     }
 
     private static Instructions getLinkReference(Unit unit, LinkNode node, ReferenceType type) {
-        Instructions instructions = Link.build(unit, node, type);
-
-        if (type == ReferenceType.VALUE) {
-            Instructions move = Memory.toRegister(unit, instructions.getReference());
-            instructions.append(move);
-
-            return instructions.setReference(Value.getOperation(move.getReference()));
-        }
-
-        return instructions;
+        return Link.build(unit, node, type);
     }
 
     private static Instructions getVariableReference(Unit unit, VariableNode node, ReferenceType type) {
@@ -45,8 +36,7 @@ public class References {
         if (type == ReferenceType.WRITE) {
             unit.reset(variable);
         }
-
-        if (type == ReferenceType.VALUE || type == ReferenceType.READ) {
+        else if (type == ReferenceType.VALUE || type == ReferenceType.READ) {
             Register register = unit.contains(variable);
 
             if (register != null) {
@@ -78,8 +68,17 @@ public class References {
                 Register register = type == ReferenceType.WRITE ? unit.edi : unit.esi;
 
                 if (!unit.isObjectPointerLoaded(register)) {
-                    instructions.append(Memory.move(unit, OBJECT_POINTER, Reference.from(register)));
-                    instructions.setReference(Value.getObjectPointer(register));
+                    Register opposite = type != ReferenceType.WRITE ? unit.edi : unit.esi;
+
+                    if (!unit.isObjectPointerLoaded(opposite)) {
+                        instructions.append(Memory.move(unit, OBJECT_POINTER, Reference.from(register)));
+                        instructions.setReference(Value.getObjectPointer(register));
+                    }
+                    else
+                    {
+                        instructions.append(Memory.move(unit, Reference.from(opposite), Reference.from(register)));
+                        instructions.setReference(Value.getObjectPointer(register));
+                    }
                 }
 
                 reference = new MemberReference(variable.getAlignment(), variable.getType().getSize(), type == ReferenceType.WRITE);
@@ -106,7 +105,7 @@ public class References {
             case WRITE:
                 return new Instructions().setReference(new AddressReference(node.getValue()));
             case READ:
-                return new Instructions().setReference(new NumberReference(node.getValue()));
+                //return new Instructions().setReference(new NumberReference(node.getValue()));
             case VALUE:
                 Instructions instructions = Memory.toRegister(unit, new NumberReference(node.getValue()));
                 instructions.setReference(Value.getNumber(instructions.getReference().getRegister()));

@@ -18,8 +18,6 @@ public class Call {
             evacuation.start(instructions);
         }
 
-        instructions.comment("Push function parameters to stack");
-
         int memory = 0;
 
         for (Reference parameter : parameters) {
@@ -38,7 +36,6 @@ public class Call {
         instructions.setReference(Value.getOperation(Reference.from(unit.eax)));
 
         if (memory > 0) {
-            instructions.comment("Remove parameters from stack after the call");
             instructions.append("add esp, %d", memory);
         }
 
@@ -61,8 +58,6 @@ public class Call {
             evacuation.start(instructions);
         }
 
-        instructions.comment("Push function parameters to stack");
-
         int memory = 0;
 
         Node iterator = parameters.first();
@@ -77,10 +72,16 @@ public class Call {
             iterator = iterator.next();
         }
 
-        if (object != null) {
-            instructions.append(new Instruction("push", object));
+        if (function.isMember()) {
+            if (object != null) {
+                instructions.append(new Instruction("push", object));
+            }
+            else {
+                instructions.append(new Instruction("push", References.OBJECT_POINTER));
+            }
+
             memory += 4;
-        }
+        }    
 
         unit.reset();
 
@@ -88,7 +89,6 @@ public class Call {
         instructions.setReference(Value.getOperation(Reference.from(unit.eax)));
 
         if (memory > 0) {
-            instructions.comment("Remove parameters from stack after the call");
             instructions.append("add esp, %d", memory);
         }
 

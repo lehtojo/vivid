@@ -98,6 +98,18 @@ public class Unit {
         return register.isReserved() && register.getValue().getType() == ValueType.OBJECT_POINTER;
     }
 
+    public Register isObjectPointerLoaded() {
+        if (esi.isReserved() && esi.getValue().getType() == ValueType.OBJECT_POINTER) {
+            return esi;
+        }
+
+        if (edi.isReserved() && edi.getValue().getType() == ValueType.OBJECT_POINTER) {
+            return edi;
+        }
+        
+        return null;
+    }
+
     public List<Register> getRegisters() {
         return registers;
     }

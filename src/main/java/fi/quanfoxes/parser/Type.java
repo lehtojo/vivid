@@ -24,6 +24,8 @@ public class Type extends Context {
         this.modifiers = modifiers;
         this.supertypes = supertypes;
 
+        constructors.add(Constructor.empty(this));
+
         super.link(context);
         context.declare(this);
     }
@@ -31,10 +33,14 @@ public class Type extends Context {
     public Type(String name, int modifiers) {
         this.name = name;
         this.modifiers = modifiers;
+
+        constructors.add(Constructor.empty(this));
     }
 
     public Type(Context context) {
         super.link(context);
+
+        constructors.add(Constructor.empty(this));
     }
 
     public boolean isSuperFunctionDeclared(String name) {

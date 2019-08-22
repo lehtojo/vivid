@@ -144,19 +144,25 @@ public class Resolver {
     /**
      * Returns all child node types
      * @return Types of children nodes
-     * @throws Exception Throws if any child isn't contextable
      */
-    public static List<Type> getTypes(Node node) throws Exception {
+    public static List<Type> getTypes(Node node) {
         List<Type> types = new ArrayList<>();
         Node iterator = node.first();
         
         while (iterator != null) {
             if (iterator instanceof Contextable) {
                 Contextable contextable = (Contextable)iterator;
-                Context context = contextable.getContext();
+                Context context = null;
+
+                try {
+                    context = contextable.getContext();
+                }
+                catch (Exception e) {
+                    return null;
+                }
 
                 if (context == null || !context.isType()) {
-                    throw new Exception("Couldn't resolve type");
+                    return null;
                 }
                 else {
                     types.add((Type)context);

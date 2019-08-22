@@ -66,7 +66,12 @@ public class Singleton {
      */
     public static Node getFunction(Context environment, Context primary, FunctionToken info) throws Exception {
         Node parameters = info.getParameters(environment);
+
         List<Type> types = Resolver.getTypes(parameters);
+
+        if (types == null) {
+            return new UnresolvedFunction(info.getName()).setParameters(parameters);
+        }
 
         Function function = getFunctionByName(primary, info.getName(), types);
 

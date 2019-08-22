@@ -292,8 +292,6 @@ public class Main {
 
         long e = System.nanoTime();
 
-        System.out.println(assembly);
-
         System.out.println(              "=====================");
         System.out.println(String.format("Disk: %.1f ms", (b - a) / 1000000.0f));
         System.out.println(String.format("Lexer: %.1f ms", (c - b) / 1000000.0f));

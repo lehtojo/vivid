@@ -38,6 +38,11 @@ public class UnresolvedFunction extends Node implements Resolvable {
         }
 
         List<Type> parameters = Resolver.getTypes(this); 
+
+        if (parameters == null) {
+            throw new Exception(String.format("Couldn't resolve function parameters '%s'", value));
+        }
+
         Function function = Singleton.getFunctionByName(context, value, parameters);
 
         if (function == null) {

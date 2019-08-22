@@ -45,11 +45,17 @@ public class Comparison {
         }
         else {
 
+            if (!isPrimitive(node.getLeft())) {
+                left = References.value(unit, node.getLeft());
+                instructions.append(left);
+            }
+
             if (!isPrimitive(node.getRight())) {
                 right = References.read(unit, node.getRight());
                 instructions.append(right);
             }
-            if (!isPrimitive(node.getLeft())) {
+
+            if (left == null) {
                 left = References.value(unit, node.getLeft());
                 instructions.append(left);
             }
@@ -57,11 +63,7 @@ public class Comparison {
             if (right == null) {
                 right = References.read(unit, node.getRight());
                 instructions.append(right);
-            }
-            if (left == null) {
-                left = References.value(unit, node.getLeft());
-                instructions.append(left);
-            }
+            }     
         }
 
         instructions.append(new Instruction("cmp", left.getReference(), right.getReference()));

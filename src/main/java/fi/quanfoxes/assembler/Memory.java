@@ -72,16 +72,12 @@ public class Memory {
         }
 
         public void start(Instructions instructions) {
-            instructions.comment("Save all critical values");
-
             for (Value value : values) {
                 instructions.append(new Instruction(String.format("push %s", value.getRegister())));
             }
         }
 
         public void restore(Unit unit, Instructions instructions) {
-            instructions.comment("Restore all critical values");
-
             for (int i = values.size() - 1; i >= 0; i--) {
                 Value value = values.get(i);
                 Register register = value.getRegister();

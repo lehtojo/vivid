@@ -82,12 +82,21 @@ public class Function extends Context {
     public boolean isStatic() {
         return Flag.has(modifiers, AccessModifier.STATIC);
     }
+
     /**
      * Returns whether this functions is a global function
      * @return True if this function is a global functions, otherwise false
      */
     public boolean isGlobal() {
         return getTypeParent() == null;
+    }
+
+    /**
+     * Returns whether this functions is a member function
+     * @return True if this function is a member functions, otherwise false
+     */
+    public boolean isMember() {
+        return getTypeParent() != null;
     }
 
     /**
@@ -98,7 +107,7 @@ public class Function extends Context {
         return modifiers;
     }
 
-    public void setParameters(Node node) {
+    public Function setParameters(Node node) {
         VariableNode parameter = (VariableNode)node.first();
         
         while (parameter != null) {
@@ -109,6 +118,8 @@ public class Function extends Context {
 
             parameter = (VariableNode)parameter.next();
         }
+
+        return this;
     }
 
     public Collection<Variable> getLocals() {
