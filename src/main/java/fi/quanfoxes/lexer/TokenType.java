@@ -12,6 +12,7 @@ public class TokenType
     public static final int OPTIONAL = 128;
     public static final int DYNAMIC = 256;
     public static final int END = 512;
+    public static final int STRING = 1024;
 
-    public static final int COUNT = 10;
+    public static final int COUNT = 11;
 }

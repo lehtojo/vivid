@@ -4,6 +4,7 @@ import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.lexer.NumberType;
 import fi.quanfoxes.parser.Type;
 
+import java.lang.String;
 import java.util.Objects;
 
 public abstract class Number extends Type {

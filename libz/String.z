@@ -1,0 +1,14 @@
+type string
+[
+    private link text
+
+    operator assign(link text)
+    [
+        this.text = text
+    ]
+
+    operator add(string text)
+    [
+        return new string()
+    ]
+]

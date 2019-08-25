@@ -20,7 +20,8 @@ public class Call {
 
         int memory = 0;
 
-        for (Reference parameter : parameters) {
+        for (int i = parameters.length - 1; i >= 0; i--) {
+            Reference parameter = parameters[i];
             instructions.append(new Instruction("push", parameter));
             memory += parameter.getSize().getBytes();
         }
@@ -60,7 +61,7 @@ public class Call {
 
         int memory = 0;
 
-        Node iterator = parameters.first();
+        Node iterator = parameters.last();
         
         while (iterator != null) {
             Instructions parameter = References.read(unit, iterator);
@@ -69,7 +70,7 @@ public class Call {
 
             memory += parameter.getReference().getSize().getBytes();
 
-            iterator = iterator.next();
+            iterator = iterator.previous();
         }
 
         if (function.isMember()) {

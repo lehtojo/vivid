@@ -1,4 +1,4 @@
-section .text
+[section .text]
 
 global function_allocate:function
 function_allocate:

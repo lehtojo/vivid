@@ -42,7 +42,7 @@ public class Unit {
         this.ebp = new Register("ebp", 4);
         this.esp = new Register("esp", 4);
 
-        registers.addAll(Arrays.asList(eax, ebx, ecx, edx, esi, edi, ebp, esp));
+        registers.addAll(Arrays.asList(eax, ebx, ecx, edx, esi, edi));
     }
 
     /**
@@ -61,7 +61,7 @@ public class Unit {
         this.ebp = unit.ebp.clone();
         this.esp = unit.esp.clone();
 
-        registers.addAll(Arrays.asList(eax, ebx, ecx, edx, esi, edi, ebp, esp));
+        registers.addAll(Arrays.asList(eax, ebx, ecx, edx, esi, edi));
     }
 
     /**

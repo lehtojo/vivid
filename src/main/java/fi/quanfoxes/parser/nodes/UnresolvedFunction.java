@@ -34,7 +34,11 @@ public class UnresolvedFunction extends Node implements Resolvable {
         Node node = getParameters();
 
         if (node != null) {
-            Resolver.resolve(environment, node, new ArrayList<>());
+            Node resolved = Resolver.resolve(environment, node, new ArrayList<>());
+
+            if (node != resolved) {
+                node.replace(resolved);
+            }
         }
 
         List<Type> parameters = Resolver.getTypes(this); 

@@ -7,16 +7,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Lexer {
-
-    private static final String OPENING_PARENTHESIS = "{[(";
-    private static final String CLOSING_PARENTHESIS  = "}])";
+    private static final char COMMENT = '#';
+    private static final char STRING = '\'';
 
     public static enum Type {
         UNSPECIFIED,
         TEXT,
+        COMMENT,
         NUMBER,
         CONTENT,
         OPERATOR,
+        STRING,
         END
     }
 
@@ -144,7 +145,7 @@ public class Lexer {
      * @return True if given character is an operator, otherwise false
      */
     private static boolean isOperator (char c) {
-        return c >= 33 && c <= 47 || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
+        return c >= 33 && c <= 47 && c != COMMENT && c != STRING || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
     }
 
     /**
@@ -171,7 +172,25 @@ public class Lexer {
      * @return True if given character is content, otherwise false
      */
     private static boolean isContent(char c) {
-        return OPENING_PARENTHESIS.indexOf(c) >= 0;
+        return ParenthesisType.get(c) != null;
+    }
+
+    /**
+     * Returns whether the given character is comment
+     * @param c Character to test
+     * @return True if given character is comment, otherwise false
+     */
+    private static boolean isComment(char c) {
+        return c == COMMENT;
+    }
+
+    /**
+     * Returns whether the given character is string
+     * @param c Character to test
+     * @return True if given character is string, otherwise false
+     */
+    private static boolean isString(char c) {
+        return c == STRING;
     }
 
     /**
@@ -192,6 +211,12 @@ public class Lexer {
         }
         else if (isOperator(c)) {
             return Type.OPERATOR;
+        }
+        else if (isComment(c)) {
+            return Type.COMMENT;
+        }
+        else if (isString(c)) {
+            return Type.STRING;
         }
         else if (c == '\n') {
             return Type.END;
@@ -256,7 +281,7 @@ public class Lexer {
         Position position = start.clone();
 
         char opening = text.charAt(position.getAbsolute());
-        char closing = CLOSING_PARENTHESIS.charAt(OPENING_PARENTHESIS.indexOf(opening));
+        char closing = ParenthesisType.get(opening).getClosing();
         
         int count = 0;
 
@@ -286,6 +311,44 @@ public class Lexer {
     }
 
     /**
+     * Skips over single-line comment
+     * @param text Text to iterate
+     * @param start Start of the comment in the text
+     * @return Position after the comment
+     */
+    private static Position skipComment(String text, Position start) {
+        int i = text.indexOf('\n', start.getAbsolute());
+
+        if (i != -1) {
+            int length = i - start.getAbsolute();
+            return new Position(start.line, start.character + length, i).nextLine();
+        }
+        else {
+            int length = text.length() - start.getAbsolute();
+            return new Position(start.line, start.character + length, text.length());
+        }
+    }
+
+    /**
+     * Skips over single-line string
+     * @param text Text to iterate
+     * @param start Start of the string in the text
+     * @return Position after the string
+     */
+    private static Position skipString(String text, Position start) throws Exception {
+        int i = text.indexOf(STRING, start.getAbsolute() + 1);
+        int j = text.indexOf('\n', start.getAbsolute() + 1);
+
+        if (i == -1 || j != -1 && j < i) {
+            throw Errors.get(start, "Couldn't find the end of the string");
+        }
+
+        int length = i - start.getAbsolute();
+
+        return new Position(start.line, start.character + length, i + 1);
+    }
+
+    /**
      * Returns the next token text area, starting from the given position
      * @param text Text to iterate
      * @param start Starting point in the text
@@ -306,16 +369,33 @@ public class Lexer {
         area.start = position.clone();
         area.type = getType(text.charAt(position.getAbsolute()));
 
-        // Content area can be determined
-        if (area.type == Type.CONTENT) {
-            area.end = skipContent(text, area.start);
-            area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
-            return area;
-        }
-        else if (area.type == Type.END) {
-            area.end = position.clone().nextLine();
-            area.text = "\n";
-            return area;
+        switch (area.type) {
+
+            case COMMENT: {
+                area.end = skipComment(text, area.start);
+                area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
+                return area;
+            }
+
+            case CONTENT: {
+                area.end = skipContent(text, area.start);
+                area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
+                return area;
+            }
+
+            case END: {
+                area.end = position.clone().nextLine();
+                area.text = "\n";
+                return area;
+            }
+
+            case STRING: {
+                area.end = skipString(text, area.start);
+                area.text = text.substring(area.start.getAbsolute(), area.end.getAbsolute());
+                return area;
+            }
+
+            default: break;
         }
 
         // Possible types are now: TEXT, NUMBER, OPERATOR
@@ -384,6 +464,8 @@ public class Lexer {
                 return new ContentToken(area.text, anchor.add(area.start));
             case END:
                 return new Token(TokenType.END);
+            case STRING:
+                return new StringToken(area.text);
             default:
                 throw Errors.get(anchor.add(area.start), new Exception(String.format("Unrecognized token '%s'", area.text)));
         }
@@ -455,9 +537,11 @@ public class Lexer {
                 break;
             }
 
-            Token token = parseToken(area, anchor);
-            token.setPosition(anchor.add(area.start));
-            tokens.add(token);
+            if (area.type != Type.COMMENT) {
+                Token token = parseToken(area, anchor);
+                token.setPosition(anchor.add(area.start));
+                tokens.add(token);
+            }
 
             position = area.end;
         }

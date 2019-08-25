@@ -141,6 +141,12 @@ public class Type extends Context {
      * @param constructor Constructor to declare
      */
     public void addConstructor(Constructor constructor) {
+        Constructor first = (Constructor)constructors.getFunctions().get(0);
+        
+        if (first.isDefault()) {
+            constructors.getFunctions().remove(first);
+        }
+
         constructors.add(constructor);
     }
 

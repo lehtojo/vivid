@@ -15,7 +15,7 @@ public class SingletonPattern extends Pattern {
     public SingletonPattern() {
         // Pattern:
         // Identifier / Function
-        super(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER);
+        super(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER | TokenType.STRING);
     }
 
     @Override

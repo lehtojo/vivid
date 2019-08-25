@@ -1,5 +1,6 @@
 package fi.quanfoxes.assembler;
 
+import fi.quanfoxes.parser.Constructor;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.ConstructionNode;
 
@@ -13,9 +14,13 @@ public class Construction {
         instructions.append(allocation);
         instructions.setReference(allocation.getReference());
 
-        Instructions constructor = Call.build(unit, allocation.getReference(), node.getConstructor(), node.getParameters());
-        instructions.append(constructor);
+        Constructor constructor = node.getConstructor();
 
+        if (!constructor.isDefault()) {
+            Instructions call = Call.build(unit, allocation.getReference(), constructor, node.getParameters());
+            instructions.append(call);
+        }
+        
         return instructions;
     }
 }

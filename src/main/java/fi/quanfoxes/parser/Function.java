@@ -2,9 +2,7 @@ package fi.quanfoxes.parser;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,7 +17,7 @@ public class Function extends Context {
     private int modifiers;
     private int index = -1;
 
-    private Map<String, Variable> parameters = new HashMap<>();
+    private List<Variable> parameters = new ArrayList<>();
 
     private Type result;
 
@@ -53,18 +51,18 @@ public class Function extends Context {
 
     @Override
     public boolean isLocalVariableDeclared(String name) {
-        return parameters.containsKey(name) || super.isLocalVariableDeclared(name);
+        return parameters.stream().anyMatch(p -> p.getName() == name) || super.isLocalVariableDeclared(name);
     }
 
     @Override
     public boolean isVariableDeclared(String name) {
-        return parameters.containsKey(name) || super.isVariableDeclared(name);
+        return parameters.stream().anyMatch(p -> p.getName() == name) || super.isVariableDeclared(name);
     }
 
     @Override
     public Variable getVariable(String name)  {
-        if (parameters.containsKey(name)) {
-            return parameters.get(name);
+        if (parameters.stream().anyMatch(p -> p.getName() == name)) {
+            return parameters.stream().filter(p -> p.getName() == name).findFirst().get();
         }
         
         return super.getVariable(name);
@@ -72,7 +70,7 @@ public class Function extends Context {
 
     @Override
     public Collection<Variable> getVariables() {
-        return Stream.concat(super.getVariables().stream(), parameters.values().stream()).collect(Collectors.toList());
+        return Stream.concat(super.getVariables().stream(), parameters.stream()).collect(Collectors.toList());
     }
 
     /**
@@ -114,7 +112,7 @@ public class Function extends Context {
             Variable variable = parameter.getVariable();
             variable.setVariableType(VariableType.PARAMETER);
 
-            parameters.put(variable.getName(), variable);
+            parameters.add(variable);
 
             parameter = (VariableNode)parameter.next();
         }
@@ -127,11 +125,11 @@ public class Function extends Context {
     }
 
     public Collection<Variable> getParameters() {
-        return parameters.values();
+        return parameters;
     }
 
     public List<Type> getParameterTypes() {
-        return parameters.values().stream().map(Variable::getType).collect(Collectors.toList());
+        return parameters.stream().map(Variable::getType).collect(Collectors.toList());
     }
 
     public int getParameterCount() {

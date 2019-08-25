@@ -1,46 +1,34 @@
 import num allocate(num bytes)
+import func print(link text, num length)
 
 type fruit
 [
     num a
     num macro 
 
-    init ()
-    [
-        
-    ]
-
     func do(num a)
     [
-        num b = a / 3
-        num c = macro * a + b
+        # Tämä on kommentti
+
+        var text = 'Tämä on tekstiä'
+
+        print(text, 15)
+
+        var b = a / 3
+        var c = macro * a + b
 
         macro = c * c
         
         if (a != c * macro)
         [
-            do(b + c * (9 + 9) + do(c))
+            print('Jaaha', 5)
+        ]
+        else
+        [
+            b = a / 3
+            c = macro * a + b
 
-            if (a != c * macro)
-            [
-                do(b + c * (9 + 9) + do(c))
-
-                if (a != c * macro)
-                [
-                    do(b + c * (9 + 9) + do(c))
-                ]
-                else if (c > 0 + 9)
-                [
-                    do(0)
-                ]
-            ]
-            else
-            [
-                b = a / 3
-                c = macro * a + b
-
-                macro = c * c
-            ]
+            macro = c * c
         ]
 
         return a / b / c
@@ -52,23 +40,50 @@ func ass(fruit a)
     a.a = a.macro * a.a - a.macro
 ]
 
-    func my(fruit a)
+func my(fruit a)
+[
+    if (a.a < a.macro)
     [
-        if (a.a < a.macro)
-        [
-            a.a = a.macro
-        ]
+        a.a = a.macro
     ]
+]
+
+func sum(num a, num b)
+[
+    return a + b
+]
+
+func neg(num a)
+[
+    return a - a - a
+]
 
 func run()
 [
-    var a = 5
-    var b = 7
-    var c = a + b
+    num a = 5
+    num b = 7
+    num c = a + b
     fruit abc = new fruit()
     abc.a = abc.a
-    loop (abc.a < abc.a)
+    abc.do(a)
+
+    var banana = 'banana'
+    var apple = 'apple'
+
+    if (sum(a, b) > neg(c))
     [
-        ass(abc)
+        # sum(sum(sum(neg(c), a), a), neg(neg(neg(sum(b, c)))))
+        sum(sum(a, b), neg(c))
+    ]
+
+    loop (abc.a == abc.a)
+    [
+        fruit abc = new fruit()
+
+    ]
+
+    loop (abc.a == abc.a)
+    [
+        print('Hello World!', 12)
     ]
 ]

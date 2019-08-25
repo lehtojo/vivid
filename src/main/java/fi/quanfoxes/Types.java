@@ -12,6 +12,7 @@ public class Types {
 
     public static final Bool BOOL = new Bool();
     public static final Byte BYTE = new Byte();
+    public static final Link LINK = new Link();
     public static final Long LONG = new Long();
     public static final Normal NORMAL = new Normal();
     public static final Short SHORT = new Short();
@@ -23,6 +24,7 @@ public class Types {
     public static void inject(Context context) throws Exception {
         context.declare(BOOL);
         context.declare(BYTE);
+        context.declare(LINK);
         context.declare(LONG);
         context.declare(NORMAL);
         context.declare(SHORT);

@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import fi.quanfoxes.parser.Constructor;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Function;
@@ -17,12 +18,12 @@ public class ConstructionNode extends Node implements Resolvable, Contextable {
      * Returns potential custom constructor of the type
      * @return Potential constructor of the type to create, otherwise null
      */
-    public Function getConstructor() {
+    public Constructor getConstructor() {
         Node node = first();
 
         if (node instanceof FunctionNode) {
             FunctionNode constructor = (FunctionNode)node;
-            return constructor.getFunction();
+            return (Constructor)constructor.getFunction();
         }
 
         return null;

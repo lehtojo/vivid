@@ -20,11 +20,11 @@ public class OperatorPattern extends Pattern {
     public OperatorPattern() {
         // Pattern:
         // Function / Variable / Number / (...) [\n] Operator [\n] Function / Variable / Number / (...)
-        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC, /* Function / Variable / Number / (...) */
+        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC, /* Function / Variable / Number / (...) */
               TokenType.END | TokenType.OPTIONAL, /* [\n] */
               TokenType.OPERATOR, /* Operator */
               TokenType.END | TokenType.OPTIONAL, /* [\n] */
-              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC); /* Function / Variable / Number / (...) */
+              TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC); /* Function / Variable / Number / (...) */
     }
 
     @Override

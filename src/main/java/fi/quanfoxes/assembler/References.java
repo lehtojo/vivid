@@ -6,6 +6,7 @@ import fi.quanfoxes.parser.nodes.ContentNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.NumberNode;
+import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
 public class References {
@@ -115,6 +116,30 @@ public class References {
         return null;
     }
 
+    private static Instructions getStringReference(Unit unit, StringNode node, ReferenceType type) {
+        if (type == ReferenceType.WRITE) {
+            return new Instructions().setReference(new DataSectionReference(node.getIdentifier(), 4));
+        }
+
+        switch (type) {
+            
+            case WRITE: {
+                return new Instructions().setReference(new LabelReference(node.getIdentifier(), true));
+            }
+
+            case READ: {
+                return new Instructions().setReference(new LabelReference(node.getIdentifier(), false));
+            }
+
+            case VALUE: {
+                Reference reference = new LabelReference(node.getIdentifier(), false);
+                return Memory.toRegister(unit, reference);
+            }
+
+            default: return null;
+        }
+    }
+
     private static Instructions get(Unit unit, Node node, ReferenceType type) {
         if (node instanceof FunctionNode) {
             return getFunctionReference(unit, (FunctionNode)node, type);
@@ -130,6 +155,9 @@ public class References {
         }
         else if (node instanceof ContentNode) {
             return get(unit, node.first(), type);
+        }
+        else if (node instanceof StringNode) {
+            return getStringReference(unit, (StringNode)node, type);
         }
         else {
 

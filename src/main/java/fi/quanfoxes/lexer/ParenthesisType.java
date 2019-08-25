@@ -1,13 +1,14 @@
 package fi.quanfoxes.lexer;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public enum ParenthesisType {
-    PARENTHESIS('('),
-    BRACKETS('['),
-    CURLY_BRACKETS('{');
+    PARENTHESIS('(', ')'),
+    BRACKETS('[', ']'),
+    CURLY_BRACKETS('{', '}');
 
-    private static HashMap<Character, ParenthesisType> map = new HashMap<>();
+    private static Map<Character, ParenthesisType> map = new HashMap<>();
 
     static {
         for (ParenthesisType operator : ParenthesisType.values()) {
@@ -16,9 +17,11 @@ public enum ParenthesisType {
     }
 
     private char opening;
+    private char closing;
 
-    private ParenthesisType(char opening) {
+    private ParenthesisType(char opening, char closing) {
         this.opening = opening;
+        this.closing = closing;
     }
 
     public static ParenthesisType get(Character opening) {
@@ -31,5 +34,9 @@ public enum ParenthesisType {
 
     public Character getOpening() {
         return opening;
+    }
+
+    public Character getClosing() {
+        return closing;
     }
 }
