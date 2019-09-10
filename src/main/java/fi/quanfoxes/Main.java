@@ -229,7 +229,7 @@ public class Main {
         }
 
         // Wait for all threads to finish
-        wait(tokenized_files);
+        wait(parses);
 
         // Verify all files are parsed successfully
         for (Future<Parse> parse : parses) {

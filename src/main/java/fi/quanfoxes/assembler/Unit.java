@@ -5,16 +5,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import fi.quanfoxes.assembler.References.ReferenceType;
+import fi.quanfoxes.assembler.builders.*;
+import fi.quanfoxes.assembler.builders.References.ReferenceType;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.nodes.ConstructionNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.IfNode;
+import fi.quanfoxes.parser.nodes.JumpNode;
+import fi.quanfoxes.parser.nodes.LabelNode;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.OperatorNode;
 import fi.quanfoxes.parser.nodes.ReturnNode;
-import fi.quanfoxes.parser.nodes.WhileNode;
+import fi.quanfoxes.parser.nodes.LoopNode;
 
 public class Unit {
     public Register eax;
@@ -95,11 +98,19 @@ public class Unit {
     }
 
     public boolean isObjectPointerLoaded(Register register) {
-        return register.isReserved() && register.getValue().getType() == ValueType.OBJECT_POINTER;
+        return register.isReserved() && register.getValue().getValueType() == ValueType.OBJECT_POINTER;
     }
 
-    public Register isObjectPointerLoaded() {
-        if (esi.isReserved() && esi.getValue().getType() == ValueType.OBJECT_POINTER) {
+    public Register getObjectPointer() {
+        for (Register register : registers) {
+            if (register.isReserved() && register.getValue().getValueType() == ValueType.OBJECT_POINTER) {
+                return register;
+            }
+        }
+
+        return null;
+
+        /*if (esi.isReserved() && esi.getValue().getType() == ValueType.OBJECT_POINTER) {
             return esi;
         }
 
@@ -107,7 +118,7 @@ public class Unit {
             return edi;
         }
         
-        return null;
+        return null;*/
     }
 
     public List<Register> getRegisters() {
@@ -127,6 +138,21 @@ public class Unit {
         for (Register register : registers) {
             register.reset();
         }
+    }
+
+    /**
+     * Returns a possible cache reference to variable
+     * @param variable Variable to look for
+     * @return Success: Cache reference to the variable, Failure: null
+     */
+    public Reference cached(Variable variable) {
+        for (Register register : registers) {
+            if (register.contains(variable)) {
+                return register.getValue();
+            }
+        }
+
+        return null;
     }
 
     public Register contains(Variable variable) {
@@ -163,11 +189,17 @@ public class Unit {
         else if (node instanceof IfNode) {
             return Conditionals.start(this, (IfNode)node);
         }
-        else if (node instanceof WhileNode) {
-            return Loop.build(this, (WhileNode)node);
+        else if (node instanceof LoopNode) {
+            return Loop.build(this, (LoopNode)node);
         }
         else if (node instanceof ReturnNode) {
             return Return.build(this, (ReturnNode)node);
+        }
+        else if (node instanceof JumpNode) {
+            return Labels.build(this, (JumpNode)node);
+        }
+        else if (node instanceof LabelNode) {
+            return Labels.build(this, (LabelNode)node);
         }
         else {
             Instructions bundle = new Instructions();
@@ -196,7 +228,11 @@ public class Unit {
                 value.setCritical(false);
             }
         }
-	}
+    }
+    
+    public String getPrefix() {
+        return prefix;
+    }
 
 	public String getLabel() {
 		return String.format("%s_L%d", prefix, counter++);

@@ -157,6 +157,12 @@ call get_mul_sum
 mov esp, ebp
 pop ebp
 
+; a[3]
+
+lea eax, [ebp-20+eax*4]
+lea eax, [754545+ebx*4]
+
+
 ; Exit
 mov eax, 1
 mov ebx, 0

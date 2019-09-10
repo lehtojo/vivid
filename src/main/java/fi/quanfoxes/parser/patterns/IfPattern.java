@@ -2,6 +2,7 @@ package fi.quanfoxes.parser.patterns;
 
 import java.util.List;
 
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.lexer.ContentToken;
 import fi.quanfoxes.lexer.KeywordToken;
@@ -65,10 +66,17 @@ public class IfPattern extends Pattern {
      * @param tokens If statement pattern represented in tokens
      * @return If statement's condition in node tree form
      */
-    private Node getCondition(List<Token> tokens) {
+    private Node getCondition(List<Token> tokens) throws Exception {
         DynamicToken token = (DynamicToken)tokens.get(CONDITION);
-        ContentNode condition = (ContentNode)token.getNode();
-        return condition.first();
+        ContentNode node = (ContentNode)token.getNode();
+        
+        Node condition = node.first();
+
+        if (condition == null) {
+            throw Errors.get(tokens.get(IF).getPosition(), "Condition cannot be empty");
+        }
+
+        return condition;
     }
 
     /**

@@ -34,7 +34,7 @@ public class Register {
     }
 
     public boolean contains(Variable variable) {
-        if (value != null && value.getType() == ValueType.VARIABLE) {
+        if (value != null && value.getValueType() == ValueType.VARIABLE) {
             return ((VariableValue)value).getVariable() == variable;
         }
 

@@ -1,5 +1,7 @@
 package fi.quanfoxes.assembler;
 
+import fi.quanfoxes.assembler.references.*;
+
 public abstract class Reference {
     protected Size size;
 
@@ -8,6 +10,7 @@ public abstract class Reference {
     }
 
     public abstract String use();
+    public abstract LocationType getType();
 
     public String peek() {
         return use();

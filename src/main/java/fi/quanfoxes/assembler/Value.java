@@ -1,5 +1,6 @@
 package fi.quanfoxes.assembler;
 
+import fi.quanfoxes.assembler.references.*;
 import fi.quanfoxes.parser.Variable;
 
 public class Value extends Reference {
@@ -34,8 +35,12 @@ public class Value extends Reference {
         return clone;
     }
 
-    public ValueType getType() {
+    public ValueType getValueType() {
         return type;
+    }
+
+    public Reference getReference() {
+        return reference;
     }
 
     public void setReference(Register register) {
@@ -84,20 +89,25 @@ public class Value extends Reference {
         return reference.use();
     }
 
+    @Override
+    public LocationType getType() {
+        return LocationType.VALUE;
+    }
+
     public static Value getObjectPointer(Register register) {
         return new Value(register, Size.DWORD, ValueType.OBJECT_POINTER, false, false, false);
     }
 
-    public static Value getOperation(Reference reference) {
-        if (reference.isRegister()) {
-            return new Value(reference.getRegister(), reference.getSize(), ValueType.OPERATION, true, true, false);
-        }
-
-        return null;
+    public static Value getOperation(Register register, Size size) {
+        return new Value(register, size, ValueType.OPERATION, true, true, false);
     }
 
-    public static Reference getNumber(Register register) {
-        return new Value(register, Size.DWORD, ValueType.OBJECT_POINTER, true, false, true);
+    public static Value getNumber(Register register) {
+        return new Value(register, Size.DWORD, ValueType.NUMBER, true, false, true);
+    }
+
+    public static Value getString(Register register) {
+        return new Value(register, Size.DWORD, ValueType.STRING, true, false, true);
     }
 
     public static Value getVariable(Reference reference, Variable variable) {

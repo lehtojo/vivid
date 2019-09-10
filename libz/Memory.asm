@@ -32,3 +32,39 @@ int 0x80
 ; Cleanup
 add esp, 24
 ret
+
+global function_copy_0:function
+function_copy_0:
+
+; Parameters
+; esp+12: destination
+; esp+8: count
+; esp+4: source
+; esp+0: return address
+
+mov edi, [esp+12]
+mov ecx, [esp+8]
+mov esi, [esp+4]
+
+rep movsb
+
+ret
+
+global function_copy_1:function
+function_copy_1:
+
+; Parameters
+; esp+16: offset
+; esp+12: destination
+; esp+8: count
+; esp+4: source
+; esp+0: return address
+
+mov edi, [esp+12]
+add edi, [esp+16]
+mov ecx, [esp+8]
+mov esi, [esp+4]
+
+rep movsb
+
+ret

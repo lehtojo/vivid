@@ -10,7 +10,7 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.DynamicToken;
-import fi.quanfoxes.parser.nodes.WhileNode;
+import fi.quanfoxes.parser.nodes.LoopNode;
 import fi.quanfoxes.Errors;
 
 import java.util.List;
@@ -25,8 +25,8 @@ public class WhilePattern extends Pattern {
     public WhilePattern() {
         // Pattern:
         // while (...) [\n] {...}
-        super(TokenType.KEYWORD, /* while */
-              TokenType.DYNAMIC, /* (...) */
+        super(TokenType.KEYWORD, /* loop */
+              TokenType.DYNAMIC | TokenType.OPTIONAL, /* [(...)] */
               TokenType.END | TokenType.OPTIONAL, /* [\n] */
               TokenType.CONTENT); /* {...} */
     }
@@ -77,8 +77,13 @@ public class WhilePattern extends Pattern {
 
     private Node getSteps(List<Token> tokens) throws Exception {
         DynamicToken dynamic = (DynamicToken)tokens.get(STEPS);
-        Node steps = mold(tokens, dynamic.getNode());
-        return steps; 
+
+        if (dynamic != null) {
+            Node steps = mold(tokens, dynamic.getNode());
+            return steps; 
+        }
+        
+        return null;
     }
 
     @Override
@@ -89,6 +94,6 @@ public class WhilePattern extends Pattern {
         Node body = Parser.parse(context, getBody(tokens));
         Node steps = getSteps(tokens);
 
-        return new WhileNode(context, steps, body);
+        return new LoopNode(context, steps, body);
     }
 }

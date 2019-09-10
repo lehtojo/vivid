@@ -1,31 +1,35 @@
 section .text
 
-global _start
-_start:
-call function_run
 
-mov eax, 1
-mov ebx, 0
-int 80h
+; a:
+; mov ecx, 0xFFFFFFFF
+; mov al, 0
+; mov edi, [esp+4]
+; repne scasb
+; mov eax, 0xFFFFFFFE
+; sub eax, ecx
+; ret
 
-function_run:
-push ebp
-mov ebp, esp
-sub esp, 12
-mov eax, 3
-mov ecx, 3
-xchg eax, ecx
-idiv ecx
-mov eax, dword 3
-mov [ebp-4], dword 3
-mov [ebp-8], dword 5
-mov eax, dword [ebp-4]
-add eax, dword [ebp-4]
-sub eax, dword [ebp-4]
-add eax, dword [ebp-8]
-mov byte [ebp-12], 1
-imul dword [ebp-8]
-mov esp, ebp
-pop ebp
+global a:function
+a:
+  mov edx, [esp + 4]
+  xor eax, eax
+  middle:
+    inc edx 
+    cmp byte [edx], 0
+    inc eax
+    jnz middle
 ret
-section .data
+
+global b:function
+b:
+mov edx, [esp + 4]
+xor eax, eax
+jmp check
+top:
+inc edx
+inc eax
+check:
+cmp byte [edx], 0
+jnz top
+ret

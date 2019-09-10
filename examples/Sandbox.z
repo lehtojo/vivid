@@ -1,89 +1,17 @@
-import num allocate(num bytes)
+import link allocate(num bytes)
 import func print(link text, num length)
 
-type fruit
+func println(string text)
 [
-    num a
-    num macro 
-
-    func do(num a)
-    [
-        # Tämä on kommentti
-
-        var text = 'Tämä on tekstiä'
-
-        print(text, 15)
-
-        var b = a / 3
-        var c = macro * a + b
-
-        macro = c * c
-        
-        if (a != c * macro)
-        [
-            print('Jaaha', 5)
-        ]
-        else
-        [
-            b = a / 3
-            c = macro * a + b
-
-            macro = c * c
-        ]
-
-        return a / b / c
-    ]
+    print(text.data(), text.length())
 ]
 
-func ass(fruit a)
+func run ()
 [
-    a.a = a.macro * a.a - a.macro
-]
+    string a = new string('Hello ')
+    string b = new string('World!')
 
-func my(fruit a)
-[
-    if (a.a < a.macro)
-    [
-        a.a = a.macro
-    ]
-]
+    string c = a.combine(b)
 
-func sum(num a, num b)
-[
-    return a + b
-]
-
-func neg(num a)
-[
-    return a - a - a
-]
-
-func run()
-[
-    num a = 5
-    num b = 7
-    num c = a + b
-    fruit abc = new fruit()
-    abc.a = abc.a
-    abc.do(a)
-
-    var banana = 'banana'
-    var apple = 'apple'
-
-    if (sum(a, b) > neg(c))
-    [
-        # sum(sum(sum(neg(c), a), a), neg(neg(neg(sum(b, c)))))
-        sum(sum(a, b), neg(c))
-    ]
-
-    loop (abc.a == abc.a)
-    [
-        fruit abc = new fruit()
-
-    ]
-
-    loop (abc.a == abc.a)
-    [
-        print('Hello World!', 12)
-    ]
+    println(c)
 ]

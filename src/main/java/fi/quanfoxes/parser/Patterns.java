@@ -143,6 +143,7 @@ public class Patterns {
         add(new LinkPattern());
         add(new MemberFunctionPattern());
         add(new MemberVariablePattern());
+        add(new OffsetPattern());
         add(new OperatorPattern());
         add(new ReturnPattern());
         add(new SingletonPattern());

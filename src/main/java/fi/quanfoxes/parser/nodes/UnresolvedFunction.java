@@ -34,10 +34,18 @@ public class UnresolvedFunction extends Node implements Resolvable {
         Node node = getParameters();
 
         if (node != null) {
-            Node resolved = Resolver.resolve(environment, node, new ArrayList<>());
+            Node parameter = first();
 
-            if (node != resolved) {
-                node.replace(resolved);
+            while (parameter != null) {
+                Node resolved = Resolver.resolve(environment, parameter, new ArrayList<>());
+
+                if (resolved != null) {
+                    parameter.replace(resolved);
+                    parameter = resolved.next();
+                }
+                else {
+                    parameter = parameter.next();
+                }
             }
         }
 

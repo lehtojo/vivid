@@ -1,14 +1,46 @@
+import link allocate(num bytes)
+import func copy(link source, num bytes, link destination)
+import func copy(link source, num bytes, link destination, num offset)
+
 type string
 [
     private link text
 
-    operator assign(link text)
+    init(link source)
     [
-        this.text = text
+        text = source
     ]
 
-    operator add(string text)
+    func combine(string other)
     [
-        return new string()
+        num a = length()
+        num b = other.length()
+
+        link memory = allocate(a + b)
+
+        copy(text, a, memory)
+        copy(other.text, b, memory, a)
+
+        return new string(memory)
+    ]
+
+    func data()
+    [
+        return text
+    ]
+
+    func length()
+    [
+        num i = 0
+
+        loop
+        [
+            if (text[i] == 0)
+            [
+                return i
+            ]
+
+            i = i + 1
+        ]
     ]
 ]

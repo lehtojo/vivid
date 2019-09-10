@@ -4,6 +4,10 @@ public class Instructions {
     private StringBuilder builder = new StringBuilder();
     private Reference reference;
 
+    public static Instructions reference(Reference reference) {
+        return new Instructions().setReference(reference);
+    }
+
     public Instructions comment(String comment) {
         builder = builder.append("; ").append(comment).append("\n");
         return this;

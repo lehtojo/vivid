@@ -10,7 +10,8 @@ public class NumberToken extends Token {
     public NumberToken(String text) {
         super(TokenType.NUMBER);
         number = Long.parseLong(text);
-        calculateBitCount();
+        numberType = NumberType.INT32;
+        bits = 32;
     }
 
     private void calculateBitCount() {

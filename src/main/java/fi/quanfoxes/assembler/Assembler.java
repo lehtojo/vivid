@@ -8,6 +8,8 @@ import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
+import fi.quanfoxes.assembler.builders.*;
+
 public class Assembler {
     private static final String SECTION_TEXT = "section .text" + "\n" +
                                                "" + "\n" +
@@ -20,12 +22,10 @@ public class Assembler {
                                                "int 80h" + "\n\n";
 
     private static final String SECTION_DATA = "section .data";
-    private static final String SECTION_BSS = "section .bss";
 
     public static String build(Node root, Context context) {
         Builder text = new Builder(SECTION_TEXT);
-        Builder data = new Builder(SECTION_DATA);
-        Builder bss = Assembler.bss(root);
+        Builder data = Assembler.data(root);
 
         Node iterator = root.first();
 
@@ -43,16 +43,16 @@ public class Assembler {
             iterator = iterator.next();
         }
 
-        return text +  "\n" + data + "\n" + bss;
+        return text +  "\n" + data + "\n";
     }
 
-    private static Builder bss(Node root) {
-        Builder bss = new Builder(SECTION_BSS);
-        Assembler.bss(root, bss, 1);
+    private static Builder data(Node root) {
+        Builder bss = new Builder(SECTION_DATA);
+        Assembler.data(root, bss, 1);
         return bss;
     }
 
-    private static int bss(Node root, Builder builder, int i) {
+    private static int data(Node root, Builder builder, int i) {
         Node iterator = root.first();
         
         while (iterator != null) {
@@ -61,7 +61,7 @@ public class Assembler {
                 builder.append(Strings.build((StringNode)iterator, label));
             }
             else {
-                i = Assembler.bss(iterator, builder, i);
+                i = Assembler.data(iterator, builder, i);
             }
 
             iterator = iterator.next();

@@ -165,8 +165,18 @@ public class Resolver {
                     return null;
                 }
                 else {
-                    types.add((Type)context);
+                    Type type = (Type)context;
+
+                    if (type instanceof UnresolvedType) {
+                        return null;
+                    }
+
+                    types.add(type);
                 }
+            }
+            else
+            {
+                return null;
             }
 
             iterator = iterator.next();
