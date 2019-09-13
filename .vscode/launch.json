@@ -17,7 +17,7 @@
             "mainClass": "fi.quanfoxes.Main",
             "projectName": "gz",
             "preLaunchTask": "Build",
-            "args": "examples/Sandbox.z libz/String.z"
+            "args": "examples/Sandbox.z libz/String.z libz/Console.z"
         },
         {
             "type": "java",

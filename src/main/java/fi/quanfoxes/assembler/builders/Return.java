@@ -1,6 +1,7 @@
 package fi.quanfoxes.assembler.builders;
 
 import fi.quanfoxes.assembler.*;
+import fi.quanfoxes.assembler.references.RegisterReference;
 import fi.quanfoxes.parser.nodes.ReturnNode;
 
 public class Return {
@@ -13,7 +14,7 @@ public class Return {
         Reference reference = object.getReference();
 
         if (reference.getRegister() != unit.eax) {
-            instructions.append(Memory.move(unit, reference, Reference.from(unit.eax)));
+            instructions.append(Memory.move(unit, reference, new RegisterReference(unit.eax)));
         }
 
         instructions.append(FunctionBuilder.FOOTER);

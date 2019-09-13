@@ -114,7 +114,7 @@ public class Main {
                 throw new Exception();
             }
 
-            builder = new ProcessBuilder("ld", "-m", "elf_i386", "-o", "zigzag", "zigzag.o", "z.o");
+            builder = new ProcessBuilder("ld", "-m", "elf_i386", "-o", "zigzag", "zigzag.o", "libz.o");
             builder.inheritIO();
             builder.redirectInput(Redirect.INHERIT);
             builder.redirectOutput(Redirect.INHERIT);

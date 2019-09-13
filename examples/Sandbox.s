@@ -1,73 +1,67 @@
 	.file	"Sandbox.cpp"
 	.intel_syntax noprefix
 	.text
-	.section	.rodata
-	.type	_ZStL19piecewise_construct, @object
-	.size	_ZStL19piecewise_construct, 1
-_ZStL19piecewise_construct:
-	.zero	1
-	.text
+	.globl	_Z3sumcc
+	.type	_Z3sumcc, @function
+_Z3sumcc:
+.LFB0:
+	.cfi_startproc
+	push	ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset 5, -8
+	mov	ebp, esp
+	.cfi_def_cfa_register 5
+	sub	esp, 8
+	call	__x86.get_pc_thunk.ax
+	add	eax, OFFSET FLAT:_GLOBAL_OFFSET_TABLE_
+	mov	edx, DWORD PTR 8[ebp]
+	mov	eax, DWORD PTR 12[ebp]
+	mov	BYTE PTR -4[ebp], dl
+	mov	BYTE PTR -8[ebp], al
+	movzx	edx, BYTE PTR -4[ebp]
+	movzx	eax, BYTE PTR -8[ebp]
+	add	eax, edx
+	leave
+	.cfi_restore 5
+	.cfi_def_cfa 4, 4
+	ret
+	.cfi_endproc
+.LFE0:
+	.size	_Z3sumcc, .-_Z3sumcc
 	.globl	main
 	.type	main, @function
 main:
-.LFB2406:
+.LFB1:
 	.cfi_startproc
-	push	rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	mov	rbp, rsp
-	.cfi_def_cfa_register 6
-	call	rand@PLT
-	mov	ecx, eax
-	mov	edx, 1717986919
-	mov	eax, ecx
-	imul	edx
-	sar	edx, 2
-	mov	eax, ecx
-	sar	eax, 31
-	sub	edx, eax
-	mov	eax, edx
-	sal	eax, 2
-	add	eax, edx
-	add	eax, eax
-	sub	ecx, eax
-	mov	edx, ecx
-	cmp	edx, 7
-	jne	.L2
-	call	rand@PLT
-	mov	ecx, eax
-	mov	edx, 1717986919
-	mov	eax, ecx
-	imul	edx
-	sar	edx, 2
-	mov	eax, ecx
-	sar	eax, 31
-	sub	edx, eax
-	mov	eax, edx
-	sal	eax, 2
-	add	eax, edx
-	add	eax, eax
-	sub	ecx, eax
-	mov	edx, ecx
-	cmp	edx, 7
-	jne	.L2
-	mov	eax, 1
-	jmp	.L3
-.L2:
-	mov	eax, 0
-.L3:
-	test	al, al
-	je	.L4
-	mov	eax, 0
-	jmp	.L5
-.L4:
-	mov	eax, 1
-.L5:
-	pop	rbp
-	.cfi_def_cfa 7, 8
+	push	ebp
+	.cfi_def_cfa_offset 8
+	.cfi_offset 5, -8
+	mov	ebp, esp
+	.cfi_def_cfa_register 5
+	call	__x86.get_pc_thunk.ax
+	add	eax, OFFSET FLAT:_GLOBAL_OFFSET_TABLE_
+	push	5
+	push	3
+	call	_Z3sumcc
+	add	esp, 8
+	movsx	eax, al
+	leave
+	.cfi_restore 5
+	.cfi_def_cfa 4, 4
 	ret
 	.cfi_endproc
-.LFE2406:
+.LFE1:
 	.size	main, .-main
+	.section	.text.__x86.get_pc_thunk.ax,"axG",@progbits,__x86.get_pc_thunk.ax,comdat
+	.globl	__x86.get_pc_thunk.ax
+	.hidden	__x86.get_pc_thunk.ax
+	.type	__x86.get_pc_thunk.ax, @function
+__x86.get_pc_thunk.ax:
+.LFB2:
+	.cfi_startproc
+	mov	eax, DWORD PTR [esp]
+	ret
+	.cfi_endproc
+.LFE2:
 	.ident	"GCC: (Ubuntu 8.3.0-6ubuntu1) 8.3.0"
 	.section	.note.GNU-stack,"",@progbits

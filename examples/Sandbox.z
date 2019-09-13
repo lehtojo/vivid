@@ -1,10 +1,5 @@
 import link allocate(num bytes)
-import func print(link text, num length)
-
-func println(string text)
-[
-    print(text.data(), text.length())
-]
+import num integer_power(num a, num b)
 
 func run ()
 [
@@ -14,4 +9,31 @@ func run ()
     string c = a.combine(b)
 
     println(c)
+    println(new string('Power: ').combine(to_string(2^16)))
+
+    string input = readln()
+
+    print(input)
+
+    num x = 0
+    num y = 1
+    num z = 0
+
+    num i = 0
+
+    num g = 0 - 6
+    println(to_string(g))
+    println(to_string(g % 4))
+    println('esfijsfjosfsf')
+
+    loop (i < 100)
+    [
+        z = x + y
+        x = y
+        y = z
+
+        println(to_string(z))
+
+        i = i + 1
+    ]
 ]

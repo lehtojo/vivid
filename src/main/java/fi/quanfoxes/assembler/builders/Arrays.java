@@ -31,7 +31,7 @@ public class Arrays {
 
             case REGISTER: {
                 RegisterReference register = (RegisterReference)reference;
-                return register.peek();
+                return register.peek(reference.getSize());
             }
 
             case VALUE: {
@@ -58,8 +58,8 @@ public class Arrays {
         return String.format("[%s+%s*%d]", toString(object), toString(index), stride);
     }
 
-    private static int getStride(Type type) {
-        return type == Types.LINK ? 1 : type.getSize();
+    private static Size getStride(Type type) {
+        return type == Types.LINK ? Size.BYTE : Size.get(type.getSize());
     }
 
     public static Instructions build(Unit unit, OperatorNode node) {
@@ -82,14 +82,14 @@ public class Arrays {
             return null;
         }
 
-        int stride = getStride(type);
+        Size stride = getStride(type);
 
         instructions.append(Memory.clear(unit, register, false));
-        instructions.append("lea %s, %s", register, Arrays.combine(left, right, stride));
+        instructions.append("lea %s, %s", register, Arrays.combine(left, right, stride.getBytes()));
 
-        register.attach(Value.getOperation(register, Size.DWORD));
+        register.attach(Value.getOperation(register, stride));
 
-        instructions.setReference(new MemoryReference(register, 0, type.getSize()));
+        instructions.setReference(new MemoryReference(register, 0, stride));
 
         return instructions;
     }

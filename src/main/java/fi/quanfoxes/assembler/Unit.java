@@ -3,6 +3,7 @@ package fi.quanfoxes.assembler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import fi.quanfoxes.assembler.builders.*;
@@ -36,14 +37,14 @@ public class Unit {
 
     public Unit(String prefix) {
         this.prefix = prefix;
-        this.eax = new Register("eax", 4);
-        this.ebx = new Register("ebx", 4);
-        this.ecx = new Register("ecx", 4);
-        this.edx = new Register("edx", 4);
-        this.esi = new Register("esi", 4);
-        this.edi = new Register("edi", 4);
-        this.ebp = new Register("ebp", 4);
-        this.esp = new Register("esp", 4);
+        this.eax = new Register(Map.of(Size.DWORD, "eax", Size.WORD, "ax", Size.BYTE, "al"));
+        this.ebx = new Register(Map.of(Size.DWORD, "ebx", Size.WORD, "bx", Size.BYTE, "bl"));
+        this.ecx = new Register(Map.of(Size.DWORD, "ecx", Size.WORD, "cx", Size.BYTE, "cl"));
+        this.edx = new Register(Map.of(Size.DWORD, "edx", Size.WORD, "dx", Size.BYTE, "dl"));
+        this.esi = new Register(Map.of(Size.DWORD, "esi"));
+        this.edi = new Register(Map.of(Size.DWORD, "edi"));
+        this.ebp = new Register(Map.of(Size.DWORD, "ebp"));
+        this.esp = new Register(Map.of(Size.DWORD, "esp"));
 
         registers.addAll(Arrays.asList(eax, ebx, ecx, edx, esi, edi));
     }
@@ -109,16 +110,6 @@ public class Unit {
         }
 
         return null;
-
-        /*if (esi.isReserved() && esi.getValue().getType() == ValueType.OBJECT_POINTER) {
-            return esi;
-        }
-
-        if (edi.isReserved() && edi.getValue().getType() == ValueType.OBJECT_POINTER) {
-            return edi;
-        }
-        
-        return null;*/
     }
 
     public List<Register> getRegisters() {

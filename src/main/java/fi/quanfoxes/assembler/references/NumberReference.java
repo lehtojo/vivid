@@ -15,8 +15,8 @@ public class NumberReference extends Reference {
     }
 
     @Override
-    public String use() {
-        return String.format("%s %s", size.getIdentifier(), number.toString());
+    public String use(Size size) {
+        return String.format("%s %s", size, number.toString());
     }
 
     public LocationType getType() {

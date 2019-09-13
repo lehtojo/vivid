@@ -1,7 +1,8 @@
-global function_ipow:function
+global function_integer_power:function
+
 ; ebp+8: exponent
 ; ebp+4: base
-function_ipow:
+function_integer_power:
 fild dword [esp+4] ; st1: base
 fild dword [esp+8] ; st0: exponent
 ; st0 = st1 * log2(st0)

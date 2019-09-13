@@ -16,7 +16,7 @@ push dword 0
 push dword -1
 push dword 0x22 ; HARDWARE_MEMORY | VISIBILITY_PRIVATE
 push dword 0x03 ; PERMISSION_READ | PERMISSION_WRITE
-push dword [esp+16] ; Parameter: Region size
+push dword [esp+20] ; Parameter: Region size
 push dword 0
 
 ; push qword 0xFFFFFFFF ; 0 | -1

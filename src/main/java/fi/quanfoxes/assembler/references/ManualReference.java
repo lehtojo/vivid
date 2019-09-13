@@ -14,8 +14,8 @@ public class ManualReference extends Reference {
     }
 
     @Override
-    public String use() {
-        return point ? String.format("[%s]", identifier) : identifier;
+    public String use(Size size) {
+        return point ? String.format("%s [%s]", size, identifier) : identifier;
     }
 
     @Override

@@ -1,21 +1,19 @@
 package fi.quanfoxes.assembler;
 
+import java.util.Map;
+
 import fi.quanfoxes.parser.Variable;
 
 public class Register {
-    private String identifier;
+    private Map<Size, String> partitions;
     private Value value;
 
-    private int size;
-
-    public Register(String identifier, int size) {
-        this.identifier = identifier;
-        this.size = size;
+    public Register(Map<Size, String> partitions) {
+        this.partitions = partitions;
     }
 
     private Register(Register register) {
-        this.identifier = register.identifier;
-        this.size = register.size;
+        this.partitions = register.partitions;
 
         if (register.isReserved()) {
             this.value = register.value.clone(this);
@@ -61,13 +59,17 @@ public class Register {
         return value;
     }
 
-    public int getSize() {
-        return size;
+    public String getPartition(Size size) {
+        return partitions.get(size);
+    }
+
+    public String getIdentifier() {
+        return partitions.get(Size.DWORD);
     }
 
     @Override
     public String toString() {
-        return identifier;
+        return partitions.get(Size.DWORD);
     }
 
     public Register clone() {

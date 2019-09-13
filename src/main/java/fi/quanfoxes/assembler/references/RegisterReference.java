@@ -10,6 +10,11 @@ public class RegisterReference extends Reference {
         this.register = register;
     }
 
+    public RegisterReference(Register register) {
+        super(Size.DWORD);
+        this.register = register;
+    }
+
     @Override
     public boolean isRegister() {
         return true;
@@ -21,8 +26,8 @@ public class RegisterReference extends Reference {
     }
 
     @Override
-    public String use() {
-        return register.toString();
+    public String use(Size size) {
+        return register.getPartition(size);
     }
 
     public LocationType getType() {

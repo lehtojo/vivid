@@ -13,7 +13,7 @@ public class Type extends Context {
     private Functions constructors = new Functions();
     private Functions destructors = new Functions();
 
-    private List<Type> supertypes;
+    private List<Type> supertypes = new ArrayList<>();
 
     public Type(Context context, String name, int modifiers) throws Exception {
         this(context, name, modifiers, new ArrayList<>());

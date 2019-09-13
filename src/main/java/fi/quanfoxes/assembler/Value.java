@@ -71,12 +71,12 @@ public class Value extends Reference {
     }
 
     @Override
-    public String peek() {
-        return reference.use();
+    public String peek(Size size) {
+        return reference.use(size);
     }
 
     @Override
-    public String use() {
+    public String use(Size size) {
         if (disposable && reference.isRegister()) {
             Register register = ((RegisterReference)reference).getRegister();
             register.reset();
@@ -86,7 +86,7 @@ public class Value extends Reference {
             critical = false;
         }
 
-        return reference.use();
+        return reference.use(size);
     }
 
     @Override
@@ -102,8 +102,8 @@ public class Value extends Reference {
         return new Value(register, size, ValueType.OPERATION, true, true, false);
     }
 
-    public static Value getNumber(Register register) {
-        return new Value(register, Size.DWORD, ValueType.NUMBER, true, false, true);
+    public static Value getNumber(Register register, Size size) {
+        return new Value(register, size, ValueType.NUMBER, true, false, true);
     }
 
     public static Value getString(Register register) {

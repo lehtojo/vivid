@@ -9,11 +9,11 @@ public abstract class Reference {
         this.size = size;
     }
 
-    public abstract String use();
+    public abstract String use(Size size);
     public abstract LocationType getType();
 
-    public String peek() {
-        return use();
+    public String peek(Size size) {
+        return use(size);
     }
 
     public boolean isComplex() {
@@ -30,9 +30,5 @@ public abstract class Reference {
 
     public Size getSize() {
         return size;
-    }
-
-    public static RegisterReference from(Register register) {
-        return new RegisterReference(register, Size.get(register.getSize()));
     }
 }

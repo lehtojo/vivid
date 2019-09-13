@@ -6,13 +6,13 @@ public class AddressReference extends Reference {
     private Number number;
 
     public AddressReference(Number number) {
-        super(Size.get(4));
+        super(Size.DWORD);
         this.number = number;
     }
 
     @Override
-    public String use() {
-        return String.format("[%d]", number.longValue());
+    public String use(Size size) {
+        return String.format("%s [%d]", size, number.longValue());
     }
 
     @Override

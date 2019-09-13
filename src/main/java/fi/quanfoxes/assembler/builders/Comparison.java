@@ -34,7 +34,7 @@ public class Comparison {
         Reference left = operands[0];
         Reference right = operands[1];
 
-        instructions.append(new Instruction("cmp", left, right));
+        instructions.append(new Instruction("cmp", left, right, left.getSize()));
         
         ComparisonOperator operator = (ComparisonOperator)node.getOperator();
         

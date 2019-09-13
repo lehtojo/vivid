@@ -7,7 +7,11 @@ public class MemoryReference extends Reference {
     private int alignment;
 
     public MemoryReference(Register register, int alignment, int size) {
-        super(Size.get(size));
+        this(register, alignment, Size.get(size));
+    }
+
+    public MemoryReference(Register register, int alignment, Size size) {
+        super(size);
 
         this.register = register;
         this.alignment = alignment;
@@ -26,8 +30,8 @@ public class MemoryReference extends Reference {
     }
 
     @Override
-    public String use() {
-        return String.format("[%s]", getContent());
+    public String use(Size size) {
+        return String.format("%s [%s]", size, getContent());
     }
 
     @Override

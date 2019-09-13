@@ -94,23 +94,6 @@ public class References {
                 }
 
                 reference = MemoryReference.member(register, variable.getAlignment(), variable.getType().getSize());
-                /*Register register = type == ReferenceType.DIRECT ? unit.edi : unit.esi;
-
-                if (!unit.isObjectPointerLoaded(register)) {
-                    Register opposite = type != ReferenceType.DIRECT ? unit.edi : unit.esi;
-
-                    if (!unit.isObjectPointerLoaded(opposite)) {
-                        instructions.append(Memory.move(unit, OBJECT_POINTER, Reference.from(register)));
-                        instructions.setReference(Value.getObjectPointer(register));
-                    }
-                    else
-                    {
-                        instructions.append(Memory.move(unit, Reference.from(opposite), Reference.from(register)));
-                        instructions.setReference(Value.getObjectPointer(register));
-                    }
-                }
-
-                reference = new MemberReference(variable.getAlignment(), variable.getType().getSize(), type == ReferenceType.DIRECT);*/
                 break;
             }
 
@@ -140,7 +123,7 @@ public class References {
                 return Instructions.reference(new NumberReference(node.getValue(), size));
             case REGISTER:
                 Instructions instructions = Memory.toRegister(unit, new NumberReference(node.getValue(), size));
-                instructions.setReference(Value.getNumber(instructions.getReference().getRegister()));
+                instructions.setReference(Value.getNumber(instructions.getReference().getRegister(), size));
                 return instructions;
         }
 
@@ -192,7 +175,7 @@ public class References {
         else {
 
             if (type == ReferenceType.DIRECT) {
-                System.out.println("Warning: Too complex write requested");
+                System.out.println("Warning: Complex writable reference requested");
             }
 
             return unit.assemble(node);

@@ -14,12 +14,44 @@ type string
     func combine(string other)
     [
         num a = length()
-        num b = other.length()
+        num b = other.length() + 1
 
         link memory = allocate(a + b)
 
         copy(text, a, memory)
         copy(other.text, b, memory, a)
+
+        return new string(memory)
+    ]
+
+    func combine(num character)
+    [
+        num length = length()
+
+        # Allocate memory for new string
+        link memory = allocate(length + 2)
+
+        # Copy this string to the new string
+        copy(text, length, memory)
+
+        # Add the given character to the end of the new string
+        memory[length] = character
+        memory[length + 1] = 0
+
+        return new string(memory)
+    ]
+
+    func insert(num index, num character)
+    [
+        num length = length()
+
+        link memory = allocate(length + 2)
+
+        copy(text, index, memory)
+        copy(text, length - index, memory, index + 1)
+
+        memory[index] = character
+        memory[length + 1] = 0
 
         return new string(memory)
     ]
@@ -41,6 +73,47 @@ type string
             ]
 
             i = i + 1
+        ]
+    ]
+]
+
+num length_of(link text)
+[
+    num i = 0
+
+    loop
+    [
+        if (text[i] == 0)
+        [
+            return i
+        ]
+
+        i = i + 1
+    ]
+]
+
+string to_string(num n)
+[
+    string result = new string('')
+
+    if (n < 0)
+    [
+        result = new string('-')
+        n = 0 - n
+    ]
+
+    num remainder
+
+    loop
+    [
+        remainder = n % 10
+        n = n / 10
+
+        result = result.insert(0, 48 + remainder)
+
+        if (n == 0)
+        [
+            return result
         ]
     ]
 ]

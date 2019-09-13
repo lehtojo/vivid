@@ -23,7 +23,7 @@ public class Assign {
         Instructions left = References.direct(unit, node.getLeft());
         
         instructions.append(right, left);
-        instructions.append(new Instruction("mov", left.getReference(), right.getReference()));
+        instructions.append(new Instruction("mov", left.getReference(), right.getReference(), left.getReference().getSize()));
 
         if (isVariable(node.getLeft())) {
             

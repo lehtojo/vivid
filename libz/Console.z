@@ -1,0 +1,30 @@
+import func sys_print(link address, num count)
+import func sys_read(link buffer, num count)
+
+func print(string text)
+[
+    sys_print(text.data(), text.length())
+]
+
+func print(link text)
+[
+    sys_print(text, length_of(text))
+]
+
+func println(string text)
+[
+    sys_print(text.combine(10).data(), text.length() + 1)
+]
+
+func println(link text)
+[
+    println(new string(text).combine(10))
+]
+
+func readln()
+[
+    link buffer = allocate(256)
+    sys_read(buffer, 256)
+
+    return new string(buffer)
+]

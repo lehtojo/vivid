@@ -1,6 +1,7 @@
 package fi.quanfoxes.assembler.builders;
 
 import fi.quanfoxes.assembler.*;
+import fi.quanfoxes.assembler.references.RegisterReference;
 import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Type;
@@ -93,7 +94,7 @@ public class Call {
                 Register register = unit.getObjectPointer();
 
                 if (register != null) {
-                    instructions.append(new Instruction("push", Reference.from(register)));
+                    instructions.append(new Instruction("push", new RegisterReference(register, Size.DWORD)));
                 }
                 else {
                     instructions.append(new Instruction("push", References.getObjectPointer(unit)));

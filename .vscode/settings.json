@@ -9,5 +9,6 @@
     "files.associations": {
         "iostream": "cpp",
         "ostream": "cpp"
-    }
+    },
+    "deepcode.review.results.hideInformationIssues": false
 }

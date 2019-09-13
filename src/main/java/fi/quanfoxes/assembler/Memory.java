@@ -2,6 +2,7 @@ package fi.quanfoxes.assembler;
 
 import fi.quanfoxes.assembler.builders.References.ReferenceType;
 import fi.quanfoxes.assembler.references.MemoryReference;
+import fi.quanfoxes.assembler.references.RegisterReference;
 
 public class Memory {
     /**
@@ -18,10 +19,10 @@ public class Memory {
         if (unit.isAnyRegisterUncritical()) {
             Register register = unit.getNextRegister();
 
-            Reference destination = Reference.from(register);
+            Reference destination = new RegisterReference(register, value.getSize());
 
             Instructions instructions = new Instructions();
-            instructions.append(Instruction.unsafe("mov", destination, value));
+            instructions.append(Instruction.unsafe("mov", destination, value, value.getSize()));
             instructions.setReference(destination);
 
             register.attach(value);
@@ -51,7 +52,7 @@ public class Memory {
             }
         }
 
-        instructions.append(Instruction.unsafe("mov", destination, source));
+        instructions.append(Instruction.unsafe("mov", destination, source, source.getSize()));
         instructions.setReference(destination);
 
         return instructions;
@@ -70,8 +71,8 @@ public class Memory {
             instructions.append(Memory.relocate(unit, value));
         }
 
-        Reference destination = Reference.from(register);
-        instructions.append(Instruction.unsafe("mov", destination, reference));
+        Reference destination = new RegisterReference(register, reference.getSize());
+        instructions.append(Instruction.unsafe("mov", destination, reference, destination.getSize()));
         instructions.setReference(destination);
 
         return instructions;
@@ -115,10 +116,10 @@ public class Memory {
             instructions.append(Memory.relocate(unit, register.getValue()));
         }
 
-        Reference reference = Reference.from(register);
+        Reference reference = new RegisterReference(register);
 
         if (zero) {
-            instructions.append(new Instruction("xor", reference, reference));
+            instructions.append(new Instruction("xor", reference, reference, reference.getSize()));
         }
 
         register.reset();
@@ -156,7 +157,7 @@ public class Memory {
         }
 
         // Move a copy of the object pointer to the chosen register
-        instructions.append(new Instruction("mov", Reference.from(register), MemoryReference.parameter(unit, 0, 4)));
+        instructions.append(new Instruction("mov", new RegisterReference(register), MemoryReference.parameter(unit, 0, 4), Size.DWORD));
         instructions.setReference(Value.getObjectPointer(register));
 
         return instructions;

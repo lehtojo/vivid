@@ -105,6 +105,9 @@ public class Node implements Iterator<Node>, Iterable<Node> {
             // Update the next node
             next.previous = node;
         }
+
+        node.previous = previous;
+        node.next = next;
     }
 
     public void merge(Node node) {
