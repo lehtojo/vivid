@@ -66,7 +66,8 @@ public class MemberFunctionPattern extends Pattern {
                 return (node instanceof LinkNode) || (node instanceof TypeNode);
         }
 
-        return false;
+        ContentToken body = (ContentToken)tokens.get(BODY);
+        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     private int getModifiers(List<Token> tokens) {

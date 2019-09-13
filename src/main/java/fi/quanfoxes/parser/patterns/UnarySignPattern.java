@@ -6,6 +6,7 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.NegateNode;
+import fi.quanfoxes.parser.nodes.NumberNode;
 
 import java.util.List;
 
@@ -35,8 +36,19 @@ public class UnarySignPattern extends Pattern {
                 (sign.getOperator() == Operators.ADD || sign.getOperator() == Operators.SUBTRACT);
     }
 
-    private boolean isPositive(OperatorToken sign) {
-        return sign.getOperator() == Operators.ADD;
+    private boolean isNegative(OperatorToken sign) {
+        return sign.getOperator() == Operators.SUBTRACT;
+    }
+
+    private Node getNegativeNode(Node node) {
+        if (node instanceof NumberNode) {
+            NumberNode number = (NumberNode)node;
+            number.setValue(-number.getValue().longValue());
+
+            return number;
+        }
+
+        return new NegateNode(node);
     }
 
     @Override
@@ -44,7 +56,11 @@ public class UnarySignPattern extends Pattern {
         OperatorToken sign = (OperatorToken)tokens.get(SIGN);
         Node node = Singleton.parse(context, tokens.get(OBJECT));
 
-        return isPositive(sign) ? node : new NegateNode(node);
+        if (isNegative(sign)) {
+            return getNegativeNode(node);
+        }
+
+        return node;
     }
 
     @Override

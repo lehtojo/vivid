@@ -3,6 +3,7 @@ package fi.quanfoxes.parser.patterns;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.lexer.ContentToken;
 import fi.quanfoxes.lexer.KeywordToken;
+import fi.quanfoxes.lexer.ParenthesisType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.Context;
@@ -15,14 +16,14 @@ import fi.quanfoxes.Errors;
 
 import java.util.List;
 
-public class WhilePattern extends Pattern {
+public class LoopPattern extends Pattern {
     public static final int PRIORITY = 15;
 
     private static final int WHILE = 0;
     private static final int STEPS = 1;
     private static final int BODY = 3;
 
-    public WhilePattern() {
+    public LoopPattern() {
         // Pattern:
         // while (...) [\n] {...}
         super(TokenType.KEYWORD, /* loop */
@@ -44,7 +45,8 @@ public class WhilePattern extends Pattern {
             return false;
         }
 
-        return true;
+        ContentToken body = (ContentToken)tokens.get(BODY);
+        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     private List<Token> getBody(List<Token> tokens) {

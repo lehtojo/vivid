@@ -3,16 +3,16 @@ import func copy(link source, num bytes, link destination)
 import func copy(link source, num bytes, link destination, num offset)
 
 type string
-[
+{
     private link text
 
     init(link source)
-    [
+    {
         text = source
-    ]
+    }
 
     func combine(string other)
-    [
+    {
         num a = length()
         num b = other.length() + 1
 
@@ -22,10 +22,10 @@ type string
         copy(other.text, b, memory, a)
 
         return new string(memory)
-    ]
+    }
 
     func combine(num character)
-    [
+    {
         num length = length()
 
         # Allocate memory for new string
@@ -39,10 +39,10 @@ type string
         memory[length + 1] = 0
 
         return new string(memory)
-    ]
+    }
 
     func insert(num index, num character)
-    [
+    {
         num length = length()
 
         link memory = allocate(length + 2)
@@ -54,66 +54,67 @@ type string
         memory[length + 1] = 0
 
         return new string(memory)
-    ]
+    }
 
     func data()
-    [
+    {
         return text
-    ]
+    }
 
     func length()
-    [
+    {
         num i = 0
 
         loop
-        [
+        {
             if (text[i] == 0)
-            [
+            {
                 return i
-            ]
+            }
 
             i = i + 1
-        ]
-    ]
-]
+        }
+    }
+}
 
 num length_of(link text)
-[
+{
     num i = 0
 
     loop
-    [
+    {
         if (text[i] == 0)
-        [
+        {
             return i
-        ]
+        }
 
         i = i + 1
-    ]
-]
+    }
+}
 
 string to_string(num n)
-[
-    string result = new string('')
+{
+    string number = new string('')
+    string sign = new string('')
 
     if (n < 0)
-    [
-        result = new string('-')
+    {
+        sign = new string('-')
         n = 0 - n
-    ]
+    }
 
     num remainder
 
     loop
-    [
+    {
         remainder = n % 10
         n = n / 10
 
-        result = result.insert(0, 48 + remainder)
+        number = number.insert(0, 48 + remainder)
 
         if (n == 0)
-        [
-            return result
-        ]
-    ]
-]
+        {
+            return sign.combine(number)
+        }
+    }
+}

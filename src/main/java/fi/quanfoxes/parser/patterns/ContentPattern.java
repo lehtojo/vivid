@@ -29,20 +29,11 @@ public class ContentPattern extends Pattern {
     public boolean passes(List<Token> tokens) {
         // Only content with parenthesis type of '()' or '[]' can be automatically parsed
         ContentToken content = (ContentToken)tokens.get(CONTENT);
-        return content.getParenthesisType() == ParenthesisType.PARENTHESIS || 
-                    content.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
+        return content.getParenthesisType() == ParenthesisType.PARENTHESIS;
     }
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
-        /*ContentToken token = (ContentToken)tokens.get(CONTENT);
-        ContentNode content = new ContentNode(); 
-
-        for (int i = 0; i < token.getSectionCount(); i++) {
-            List<Token> section = token.getTokens(i);
-            content.add(Parser.parse(context, section));
-        }*/
-
         return Singleton.getContent(context, (ContentToken)tokens.get(CONTENT));
     }
 }

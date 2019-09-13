@@ -97,11 +97,9 @@ mov dword [ebp-36], dword 0
 
 mov dword [ebp-32], dword 0
 
-mov eax, dword 0
-sub eax, dword 6
-mov dword [ebp-20], eax
+mov dword [ebp-20], dword -6
 
-push eax
+push dword [ebp-20]
 call function_to_string
 add esp, 4
 push eax
@@ -412,7 +410,7 @@ ret
 function_to_string:
 push ebp
 mov ebp, esp
-sub esp, 8
+sub esp, 12
 push dword 8
 call function_allocate
 add esp, 4
@@ -424,9 +422,6 @@ add esp, 8
 pop eax
 mov dword [ebp-4], eax
 
-mov ebx, dword [ebp+8]
-cmp ebx, dword 0
-jge function_to_string_L1
 push dword 8
 call function_allocate
 add esp, 4
@@ -436,7 +431,21 @@ push eax
 call type_string_constructor
 add esp, 8
 pop eax
-mov dword [ebp-4], eax
+mov dword [ebp-8], eax
+
+mov ebx, dword [ebp+8]
+cmp ebx, dword 0
+jge function_to_string_L1
+push dword 8
+call function_allocate
+add esp, 4
+push eax
+push S7
+push eax
+call type_string_constructor
+add esp, 8
+pop eax
+mov dword [ebp-8], eax
 mov ebx, dword 0
 sub ebx, dword [ebp+8]
 mov dword [ebp+8], ebx
@@ -448,14 +457,14 @@ mov eax, dword [ebp+8]
 mov ebx, dword 10
 xor edx, edx
 idiv ebx
-mov dword [ebp-8], edx
+mov dword [ebp-12], edx
 mov eax, dword [ebp+8]
 mov ecx, dword 10
 xor edx, edx
 idiv ecx
 mov dword [ebp+8], eax
 mov edx, dword 48
-add edx, dword [ebp-8]
+add edx, dword [ebp-12]
 push edx
 push dword 0
 push dword [ebp-4]
@@ -465,6 +474,10 @@ mov dword [ebp-4], eax
 mov ebx, dword [ebp+8]
 cmp ebx, dword 0
 jne function_to_string_L3
+push eax
+push dword [ebp-8]
+call type_string_function_combine_0
+add esp, 8
 mov esp, ebp
 pop ebp
 ret
@@ -615,6 +628,7 @@ S2 db 'World!', 0
 S3 db 'Power: ', 0
 S4 db 'esfijsfjosfsf', 0
 S5 db '', 0
-S6 db '-', 0
+S6 db '', 0
+S7 db '-', 0
 
 

@@ -78,7 +78,7 @@ public class ConstructorPattern extends Pattern {
 
         ContentToken body = getBody(tokens);
 
-        return body.getParenthesisType() == ParenthesisType.BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     private int getModifiers(List<Token> tokens) {

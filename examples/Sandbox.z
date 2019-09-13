@@ -2,7 +2,7 @@ import link allocate(num bytes)
 import num integer_power(num a, num b)
 
 func run ()
-[
+{
     string a = new string('Hello ')
     string b = new string('World!')
 
@@ -21,13 +21,13 @@ func run ()
 
     num i = 0
 
-    num g = 0 - 6
+    num g = -6
     println(to_string(g))
     println(to_string(g % 4))
     println('esfijsfjosfsf')
 
     loop (i < 100)
-    [
+    {
         z = x + y
         x = y
         y = z
@@ -35,5 +35,5 @@ func run ()
         println(to_string(z))
 
         i = i + 1
-    ]
-]
+    }
+}

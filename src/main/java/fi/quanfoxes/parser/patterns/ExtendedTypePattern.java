@@ -74,7 +74,7 @@ public class ExtendedTypePattern extends Pattern {
         }
 
         ContentToken body = (ContentToken)tokens.get(BODY);
-        return body.getParenthesisType() == ParenthesisType.BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     private String getName(List<Token> tokens) {

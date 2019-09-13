@@ -3,8 +3,8 @@ global function_integer_power:function
 ; ebp+8: exponent
 ; ebp+4: base
 function_integer_power:
-fild dword [esp+4] ; st1: base
-fild dword [esp+8] ; st0: exponent
+fild dword [esp+8] ; st1: base
+fild dword [esp+4] ; st0: exponent
 ; st0 = st1 * log2(st0)
 fyl2x
 ; duplicate

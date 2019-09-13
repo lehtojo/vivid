@@ -150,6 +150,6 @@ public class Patterns {
         add(new TypePattern());
         add(new UnarySignPattern());
         add(new VariablePattern());
-        add(new WhilePattern());
+        add(new LoopPattern());
     }
 }

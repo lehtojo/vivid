@@ -163,6 +163,11 @@ public class Main {
         Runtime runtime = Runtime.getRuntime();
         executors = Executors.newFixedThreadPool(runtime.availableProcessors());
 
+        /*Chain chain = Chain.create(FilePhase, LexerPhase, ParsePhase, ResolverPhase, AssemblerPhase);
+        chain.execute(executors);
+
+        */
+
         List<Future<String>> files = new ArrayList<>();
 
         // Load source files

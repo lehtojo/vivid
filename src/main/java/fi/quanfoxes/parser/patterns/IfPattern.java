@@ -58,7 +58,7 @@ public class IfPattern extends Pattern {
 
         ContentToken body = (ContentToken)tokens.get(BODY);
 
-        return body.getParenthesisType() == ParenthesisType.BRACKETS;
+        return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
     /**
