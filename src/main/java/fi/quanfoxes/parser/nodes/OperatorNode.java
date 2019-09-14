@@ -38,6 +38,10 @@ public class OperatorNode extends Node implements Contextable {
         if (getLeft() instanceof Contextable) {
             Contextable contextable = (Contextable)getLeft();
             left = contextable.getContext();
+
+            if (!((ClassicOperator)operator).isSharedContext()) {
+                return left;
+            }
         }
         else {
             return null;
@@ -81,5 +85,10 @@ public class OperatorNode extends Node implements Contextable {
             default:
                 throw new Exception("Independent operator doesn't belong here");
         }
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.OPERATOR_NODE;
     }
 }

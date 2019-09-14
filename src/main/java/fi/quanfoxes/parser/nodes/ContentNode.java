@@ -11,4 +11,9 @@ public class ContentNode extends Node implements Contextable {
         Contextable contextable = (Contextable)first();
         return contextable.getContext();
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.CONTENT_NODE;
+    }
 }

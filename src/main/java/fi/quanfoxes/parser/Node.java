@@ -1,10 +1,10 @@
 package fi.quanfoxes.parser;
 
-import java.util.Iterator;
 import java.util.Objects;
-import java.lang.Iterable;
 
-public class Node implements Iterator<Node>, Iterable<Node> {
+import fi.quanfoxes.parser.nodes.NodeType;
+
+public class Node {
     private Node parent;
 
     private Node previous;
@@ -24,19 +24,20 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         }
 
         Node left = position.previous;
-        Node right = position.next;
 
         if (left != null) {
             left.next = child;
         }
 
-        if (right != null) {
-            right.previous = child;
-        }
+        position.previous = child;
 
+        if (child.parent != null) {
+            child.parent.remove(child);
+        }
+        
         child.parent = position.parent;
         child.previous = left;
-        child.next = right;
+        child.next = position;
     }
 
     /**
@@ -59,9 +60,14 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         last = child;
     }
 
-    public void remove(Node child) throws Exception {
+    /**
+     * Removes a child node
+     * @param child Child node to remove
+     * @return True if removal succeeded, otherwise false
+     */
+    public boolean remove(Node child) {
         if (child.parent != this) {
-            throw new Exception("Given node isn't a child node of this node");
+            return false;
         }
 
         Node left = child.previous;
@@ -74,8 +80,14 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         if (right != null) {
             right.previous = left;
         }
+
+        return true;
     }
 
+    /**
+     * Replaces this node with another node
+     * @param node Node that will replace this node
+     */
     public void replace(Node node) {
         Node iterator = first;
 
@@ -106,19 +118,30 @@ public class Node implements Iterator<Node>, Iterable<Node> {
             // Update the next node
             next.previous = node;
         }
+
+        node.previous = previous;
+        node.next = next;
     }
 
+    /**
+     * Moves all child nodes from the given node to this node. Lastly, destroyes the given node
+     * @param node Node to merge
+     */
     public void merge(Node node) {
         Node iterator = node.first;
 
         while (iterator != null) {
+            Node next = iterator.next;
             add(iterator);
-            iterator = iterator.next;
+            iterator = next;
         }
 
         node.destroy();
     }
 
+    /**
+     * Unsafely disconnect this node from others
+     */
     public void destroy() {
         parent = null;
         previous = null;
@@ -126,6 +149,15 @@ public class Node implements Iterator<Node>, Iterable<Node> {
         first = null;
         last = null;
     }
+
+    /**
+     * Disconnects this node from the parent
+     * @return Reference to this node
+     */
+    public Node disconnect() {
+        parent.remove(this);
+        return this;
+	}
 
     @Override
     public boolean equals(Object o) {
@@ -149,34 +181,51 @@ public class Node implements Iterator<Node>, Iterable<Node> {
                 next.toString();
     }
 
-    @Override
-    public Iterator<Node> iterator() {
-        return this;
-	}
-
-    @Override
-    public boolean hasNext() {
-        return next != null;
-    }
-
-    @Override
+    /**
+     * Returns the next node
+     */
     public Node next() {
         return next;
     }
 
+    /**
+     * Returns the previous node
+     * @return Previous node
+     */
     public Node previous() {
         return previous;
     }
 
+    /**
+     * Returns the parent node
+     * @return Parent node
+     */
     public Node parent() {
         return parent;
     }
 
+    /**
+     * Returns the first child node
+     * @return First child node
+     */
     public Node first() {
         return first;
     }
 
+    /**
+     * Returns the last child node
+     * @return Last child node
+     */
     public Node last() {
         return last;
+    }
+
+    /**
+     * Returns the type of this node
+     * @return Type of this node
+     */
+    public NodeType getNodeType()
+    {
+        return NodeType.NORMAL;
     }
 }

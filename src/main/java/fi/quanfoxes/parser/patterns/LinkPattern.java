@@ -19,15 +19,17 @@ public class LinkPattern extends Pattern {
     public static final int PRIORITY = 19;
 
     private static final int LEFT = 0;
-    private static final int OPERATOR = 1;
-    private static final int RIGHT = 2;
+    private static final int OPERATOR = 2;
+    private static final int RIGHT = 4;
 
     public LinkPattern() {
         // Pattern:
-        // (Variable / Type / Processed) (.) (Variable / Type)
-        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC, 
-              TokenType.OPERATOR, 
-              TokenType.FUNCTION | TokenType.IDENTIFIER);
+        // ... [\n] . [\n] ...
+        super(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC,  /* ... */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.OPERATOR, /* . */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.FUNCTION | TokenType.IDENTIFIER); /* ... */
     }
 
     @Override
@@ -74,6 +76,6 @@ public class LinkPattern extends Pattern {
             right = Singleton.getUnresolved(environment, tokens.get(RIGHT));
         }
 
-        return new LinkNode().setOperands(left, right);
+        return new LinkNode(left, right);
     }
 }

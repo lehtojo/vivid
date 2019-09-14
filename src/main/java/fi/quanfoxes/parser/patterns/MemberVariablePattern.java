@@ -2,6 +2,7 @@ package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.AccessModifierKeyword;
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.lexer.IdentifierToken;
 import fi.quanfoxes.lexer.KeywordToken;
@@ -15,7 +16,8 @@ import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
-import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.VariableType;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
@@ -24,15 +26,17 @@ import java.util.List;
 public class MemberVariablePattern extends Pattern {
     public static final int PRIORITY = 20;
 
-    private static final int TYPE = 0;
-    private static final int NAME = 1;
-
-    private static final int UNMODIFIED_LENGTH = 2;
+    private static final int MODIFIER = 0;
+    private static final int TYPE = 2;
+    private static final int NAME = 3;
 
     public MemberVariablePattern() {
         // Pattern:
         // [private / protected / public] [static] Type / Type.Subtype ...
-        super(TokenType.KEYWORD | TokenType.OPTIONAL, TokenType.IDENTIFIER | TokenType.DYNAMIC, TokenType.IDENTIFIER);
+        super(TokenType.KEYWORD | TokenType.OPTIONAL, /* [private / protected / public] */
+              TokenType.KEYWORD | TokenType.OPTIONAL, /* [static] */
+              TokenType.IDENTIFIER | TokenType.DYNAMIC, /* Type / Type.Subtype */
+              TokenType.IDENTIFIER); /* ... */
     }
 
     @Override
@@ -42,50 +46,50 @@ public class MemberVariablePattern extends Pattern {
 
     @Override
     public boolean passes(List<Token> tokens) {
-        int count = tokens.size() - UNMODIFIED_LENGTH;
+        KeywordToken first = (KeywordToken)tokens.get(MODIFIER);
+        KeywordToken second = (KeywordToken)tokens.get(MODIFIER + 1);
 
-        for (int i = 0; i < count; i++) {
-            KeywordToken modifier = (KeywordToken)tokens.get(i);
-
-            if (modifier.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) {
-                return false;
-            }
+        if ((first != null && first.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) ||
+            (second != null && second.getKeyword().getType() != KeywordType.ACCESS_MODIFIER)) {
+            return false;
         }
 
-        Token token = tokens.get(count + TYPE);
+        Token token = tokens.get(TYPE);
 
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
-            return (node instanceof LinkNode) || (node instanceof TypeNode);
+            return node.getNodeType() == NodeType.TYPE_NODE || node.getNodeType() == NodeType.LINK_NODE;
         }
 
         return true;
     }
 
-    private int getModifiers(List<Token> tokens, int count) {
-        if (count == 0) {
-            return AccessModifier.PUBLIC;
-        }
+    private int getModifiers(List<Token> tokens) {
+        KeywordToken first = (KeywordToken)tokens.get(MODIFIER);
+        KeywordToken second = (KeywordToken)tokens.get(MODIFIER + 1);
 
-        int modifiers = 0;
+        int modifiers = AccessModifier.PUBLIC;
 
-        for (int i = 0; i < count; i++) {
-            KeywordToken token = (KeywordToken)tokens.get(i);
-            AccessModifierKeyword modifier = (AccessModifierKeyword)token.getKeyword();
-
+        if (first != null) {
+            AccessModifierKeyword modifier = (AccessModifierKeyword)first.getKeyword();
             modifiers |= modifier.getModifier();
+
+            if (second != null) {
+                modifier = (AccessModifierKeyword)second.getKeyword();
+                modifiers |= modifier.getModifier();
+            }
         }
 
         return modifiers;
     }
 
-    private Type getType(Context context, List<Token> tokens, int start) throws Exception {
-        Token token = tokens.get(start + TYPE);
+    private Type getType(Context context, List<Token> tokens) throws Exception {
+        Token token = tokens.get(TYPE);
 
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
             
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 return type.getType();
             }
@@ -106,19 +110,22 @@ public class MemberVariablePattern extends Pattern {
         }
     }
 
-    private String getName(List<Token> tokens, int start) {
-        return ((IdentifierToken)tokens.get(start + NAME)).getValue();
+    private String getName(List<Token> tokens) {
+        return ((IdentifierToken)tokens.get(NAME)).getValue();
     }
 
     @Override
     public Node build(Context context, List<Token> tokens) throws Exception {
-        int count = tokens.size() - UNMODIFIED_LENGTH;
+        int modifiers = getModifiers(tokens);
+        Type type = getType(context, tokens);
+        String name = getName(tokens);
 
-        int modifiers = getModifiers(tokens, count);
-        Type type = getType(context, tokens, count);
-        String name = getName(tokens, count);
+        if (context.isLocalVariableDeclared(name)) {
+            throw Errors.get(tokens.get(NAME).getPosition(), String.format("Variable '%s' already exists in this context", name));
+        }
 
-        Variable variable = new Variable(context, type, name, modifiers);
+        VariableType category = context.isGlobalContext() ? VariableType.GLOBAL : VariableType.MEMBER;
+        Variable variable = new Variable(context, type, category, name, modifiers);
 
         return new VariableNode(variable);
     }

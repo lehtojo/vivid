@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import fi.quanfoxes.lexer.Lexer.Position;
 
-public abstract class Token {
+public class Token {
     private int type;
     private Position position;
 
@@ -12,7 +12,9 @@ public abstract class Token {
         this.type = type;
     }
 
-    public abstract String getText();
+    public String getText() {
+        return "";
+    }
 
     public void setPosition(Position position) {
         this.position = position;

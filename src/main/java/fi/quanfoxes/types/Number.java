@@ -4,6 +4,7 @@ import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.lexer.NumberType;
 import fi.quanfoxes.parser.Type;
 
+import java.lang.String;
 import java.util.Objects;
 
 public abstract class Number extends Type {
@@ -22,6 +23,10 @@ public abstract class Number extends Type {
 
     public int getBitCount() {
         return bits;
+    }
+
+    public int getBytes() {
+        return bits / 8;
     }
 
     @Override

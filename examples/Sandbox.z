@@ -1,0 +1,57 @@
+func run ()
+{
+    string a = new string('Hello ')
+    string b = new string('World!')
+
+    string c = a.combine(b)
+
+    println(c)
+    println(new string('Power: ').combine(to_string(2^16)))
+
+    string input = readln()
+
+    if (input.length() > 10)
+    {
+        println('> 10')
+    }
+    else
+    {
+        println('<= 10')
+    }
+
+    print(input)
+
+    num x = 0
+    num y = 1
+    num z = 0
+
+    num i = 0
+
+    num g = -6
+    println(to_string(g))
+    println(to_string(g % 4))
+
+    loop (i < 100)
+    {
+        z = x + y
+        x = y
+        y = z
+
+        println(to_string(z))
+
+        i = i + 1
+    }
+
+    loop
+    {
+        num j = 0
+
+        loop (j < 10)
+        {
+            println(to_string(j))
+            j = j + 1
+        }
+
+        readln()
+    }
+}

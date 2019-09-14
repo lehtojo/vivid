@@ -17,7 +17,7 @@
             "mainClass": "fi.quanfoxes.Main",
             "projectName": "gz",
             "preLaunchTask": "Build",
-            "args": "examples/Player.g examples/Game.g examples/Enemy.g"
+            "args": "examples/Sandbox.z libz/String.z libz/Console.z"
         },
         {
             "type": "java",

@@ -36,4 +36,9 @@ public class TypeNode extends Node implements Contextable {
     public Context getContext() {
         return type;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.TYPE_NODE;
+    }
 }

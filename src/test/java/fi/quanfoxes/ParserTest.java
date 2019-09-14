@@ -19,7 +19,7 @@ public class ParserTest {
         Node node = root.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode) node;
 
                 try {
@@ -40,11 +40,11 @@ public class ParserTest {
         Node node = parent.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 functions(type, errors);
 
-            } else if (node instanceof FunctionNode) {
+            } else if (node.getNodeType() == NodeType.FUNCTION_NODE) {
                 FunctionNode function = (FunctionNode)node;
                 
                 try {

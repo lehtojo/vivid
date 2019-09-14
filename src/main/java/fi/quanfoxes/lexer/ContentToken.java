@@ -124,6 +124,14 @@ public class ContentToken extends Token {
     }
 
     /**
+     * Return whether this content is empty
+     * @return True if this content is empty, otherwise false
+     */
+    public boolean isEmpty() {
+        return tokens.isEmpty() && sections.isEmpty();
+    }
+
+    /**
      * Returns the tokens of the first section
      * @return Tokens of the first section
      */

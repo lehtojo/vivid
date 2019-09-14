@@ -6,11 +6,13 @@ import fi.quanfoxes.lexer.ContentToken;
 import fi.quanfoxes.lexer.FunctionToken;
 import fi.quanfoxes.lexer.IdentifierToken;
 import fi.quanfoxes.lexer.NumberToken;
+import fi.quanfoxes.lexer.StringToken;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
 import fi.quanfoxes.parser.nodes.ContentNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.NumberNode;
+import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.UnresolvedFunction;
 import fi.quanfoxes.parser.nodes.UnresolvedIdentifier;
@@ -40,9 +42,8 @@ public class Singleton {
      * @param context Context to look for the function
      * @param name    Name of the function
      * @return Success: Function / Constructor, Failure: null
-     * @throws Exception
      */
-    public static Function getFunctionByName(Context context, String name, List<Type> parameters) throws Exception {
+    public static Function getFunctionByName(Context context, String name, List<Type> parameters) {
         Functions functions;
 
         if (context.isTypeDeclared(name)) {
@@ -67,7 +68,12 @@ public class Singleton {
      */
     public static Node getFunction(Context environment, Context primary, FunctionToken info) throws Exception {
         Node parameters = info.getParameters(environment);
+
         List<Type> types = Resolver.getTypes(parameters);
+
+        if (types == null) {
+            return new UnresolvedFunction(info.getName()).setParameters(parameters);
+        }
 
         Function function = getFunctionByName(primary, info.getName(), types);
 
@@ -95,7 +101,7 @@ public class Singleton {
      * @return Content built into a node
      */
     public static Node getContent(Context context, ContentToken content) throws Exception {
-        ContentNode node = new ContentNode(); 
+        Node node = new ContentNode(); 
 
         for (int i = 0; i < content.getSectionCount(); i++) {
             List<Token> tokens = content.getTokens(i);
@@ -103,6 +109,15 @@ public class Singleton {
         }
 
         return node;
+    }
+
+    /**
+     * Tries to build string into a node
+     * @param string String in token form
+     * @return String built into a node
+     */
+    public static Node getString(StringToken string) {
+        return new StringNode(string.getText());
     }
 
     public static Node parse(Context context, Token token) throws Exception {
@@ -119,6 +134,8 @@ public class Singleton {
                 return getNumber((NumberToken)token);
             case TokenType.CONTENT:
                 return getContent(primary, (ContentToken)token);
+            case TokenType.STRING:
+                return getString((StringToken)token);
             case TokenType.DYNAMIC:
                 return ((DynamicToken)token).getNode();
         }

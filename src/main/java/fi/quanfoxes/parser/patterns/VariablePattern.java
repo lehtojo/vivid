@@ -1,6 +1,7 @@
 package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.AccessModifier;
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.Keyword;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.Types;
@@ -33,7 +34,7 @@ public class VariablePattern extends Pattern {
 
         if (token.getType() == TokenType.DYNAMIC) {
             DynamicToken dynamic = (DynamicToken)token;
-            return dynamic.getNode() instanceof LinkNode;
+            return dynamic.getNode().getNodeType() == NodeType.LINK_NODE;
         }
         else if (token.getType() == TokenType.KEYWORD) {
             Keyword keyword = ((KeywordToken)token).getKeyword();
@@ -50,11 +51,11 @@ public class VariablePattern extends Pattern {
             DynamicToken dynamic = (DynamicToken)token;
             Node node = dynamic.getNode();
 
-            if (node instanceof LinkNode) {
+            if (node.getNodeType() == NodeType.LINK_NODE) {
                 return new UnresolvedType(context, (Resolvable)node);
             }
 
-            throw new Exception("Node must be resolvable");
+            throw Errors.get(tokens.get(NAME).getPosition(), "Couldn't resolve type of the variable '%s'", getName(tokens));
         }
         else if (token.getType() == TokenType.KEYWORD) {
             return Types.UNKNOWN;
@@ -79,8 +80,13 @@ public class VariablePattern extends Pattern {
     public Node build(Context context, List<Token> tokens) throws Exception {
         Type type = getType(context, tokens);
         String name = getName(tokens);
+        VariableType category = context.isGlobalContext() ? VariableType.GLOBAL : VariableType.LOCAL;
 
-        Variable variable = new Variable(context, type, name, AccessModifier.PUBLIC);
+        if (context.isLocalVariableDeclared(name)) {
+            throw Errors.get(tokens.get(0).getPosition(), String.format("Variable '%s' already exists in this context", name));
+        }
+
+        Variable variable = new Variable(context, type, category, name, AccessModifier.PUBLIC);
        
         return new VariableNode(variable);
     }

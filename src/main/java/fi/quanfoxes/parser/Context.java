@@ -6,11 +6,13 @@ import java.util.HashMap;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
 public class Context {
-    private Context context;
+    protected String name = "";
+    protected Context context;
 
     private HashMap<String, Variable> variables = new HashMap<>();
     private HashMap<String, Functions> functions = new HashMap<>();
     private HashMap<String, Type> types = new HashMap<>();
+    private HashMap<String, Label> labels = new HashMap<>();
 
     /**
      * Updates types, function and variables when new context is linked
@@ -73,6 +75,34 @@ public class Context {
     }
 
     /**
+     * Returns the name of this context
+     * @return Name of this context
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Returns the identifier of this context
+     * @return Identifier of this context
+     */
+    public String getIdentifier() {
+        return name;
+    }
+
+    /**
+     * Returns the full identifier of this context
+     * @return Full identifier of this context
+     */
+    public String getFullname() {
+        if (context != null) {
+            return context.getFullname() + getIdentifier();
+        }
+        
+        return getIdentifier();
+    }
+
+    /**
      * Sets the parent of this context
      * @param context New parent context
      */
@@ -132,6 +162,18 @@ public class Context {
     }
 
     /**
+     * Declares new label in this context
+     * @param label Label to declare
+     */
+    public void declare(Label label) throws Exception {
+        if (isLocalLabelDeclared(label.getName())) {
+            throw new Exception(String.format("Label '%s' already exists in this context", label.getName()));
+        }
+
+        labels.put(label.getName(), label);
+    }
+
+    /**
      * Returns whether a variable with the given name is declared locally
      * @param name Variable name to look for
      * @return True, if a variable with the given name is declared locally, otherwise false
@@ -156,6 +198,15 @@ public class Context {
      */
     public boolean isLocalVariableDeclared(String name) {
         return variables.containsKey(name);
+    }
+
+    /**
+     * Returns whether a label with the given name is declared locally
+     * @param name Label name to look for
+     * @return True, if a label with the given name is declared locally, otherwise false
+     */
+    public boolean isLocalLabelDeclared(String name) {
+        return labels.containsKey(name);
     }
 
     /**
@@ -186,12 +237,21 @@ public class Context {
     }
 
     /**
+     * Returns whether a label with the given name is declared locally or globally
+     * @param name Label name to look for
+     * @return True, if a label with the given name is declared locally or globally, otherwise false
+     */
+    public boolean isLabelDeclared(String name) {
+        return labels.containsKey(name) || (context != null && context.isLabelDeclared(name));
+    }
+
+    /**
      * Tries to return type by name locally or globally
      * @param name Type name to look for
      * @return Type corresponding to the given name
      * @throws Exception Throws if the type wasn't found
      */
-    public Type getType(String name) throws Exception {
+    public Type getType(String name) {
         if (types.containsKey(name)) {
             return types.get(name);
         }
@@ -199,7 +259,7 @@ public class Context {
             return context.getType(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find type '%s'", name));
+            return null;
         }
     }
 
@@ -209,7 +269,7 @@ public class Context {
      * @return Function corresponding to the given name
      * @throws Exception Throws if the function wasn't found
      */
-    public Functions getFunction(String name) throws Exception {
+    public Functions getFunction(String name) {
         if (functions.containsKey(name)) {
             return functions.get(name);
         }
@@ -217,7 +277,7 @@ public class Context {
             return context.getFunction(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find function '%s'", name));
+            return null;
         }
     }
 
@@ -227,7 +287,7 @@ public class Context {
      * @return Variable corresponding to the given name
      * @throws Exception Throws if the variable wasn't found
      */
-    public Variable getVariable(String name) throws Exception {
+    public Variable getVariable(String name) {
         if (variables.containsKey(name)) {
             return variables.get(name);
         }
@@ -235,7 +295,25 @@ public class Context {
             return context.getVariable(name);
         }
         else {
-            throw new Exception(String.format("Couldn't find variable '%s'", name));
+            return null;
+        }
+    }
+
+    /**
+     * Tries to return label by name locally or globally
+     * @param name Label name to look for
+     * @return Label corresponding to the given name
+     * @throws Exception Throws if the label wasn't found
+     */
+    public Label getLabel(String name) {
+        if (labels.containsKey(name)) {
+            return labels.get(name);
+        }
+        else if (context != null) {
+            return context.getLabel(name);
+        }
+        else {
+            return null;
         }
     }
 
@@ -261,6 +339,14 @@ public class Context {
      */
     public Collection<Type> getTypes() {
         return types.values();
+    }
+
+    /**
+     * Returns all labels this context owns
+     * @return All labels this context owns
+     */
+    public Collection<Label> getLabels() {
+        return labels.values();
     }
 
     /**
@@ -291,6 +377,14 @@ public class Context {
         }
 
         return (context instanceof Function) ? (Function)context : context.getFunctionParent();
+    }
+
+    /**
+     * Returns whether this context represents the global context
+     * @return True if this context represents the global context, otherwise false
+     */
+    public boolean isGlobalContext() {
+        return context == null;
     }
 
     /**

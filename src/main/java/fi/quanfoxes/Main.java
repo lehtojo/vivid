@@ -1,14 +1,21 @@
 package fi.quanfoxes;
 
+import fi.quanfoxes.assembler.Assembler;
 import fi.quanfoxes.lexer.Lexer;
 import fi.quanfoxes.lexer.Token;
+import fi.quanfoxes.parser.Aligner;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
+import fi.quanfoxes.parser.Processor;
 import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -21,6 +28,7 @@ public class Main {
     private static final int FILE_LOAD_ERROR = -1;
     private static final int LEXER_ERROR = -2;
     private static final int PARSE_ERROR = -3;
+    private static final int CODE_ERROR = -4;
 
     public static ExecutorService executors;
     public static ArrayList<Exception> errors = new ArrayList<>();
@@ -47,7 +55,7 @@ public class Main {
         Node node = root.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode) node;
 
                 try {
@@ -68,11 +76,11 @@ public class Main {
         Node node = parent.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 functions(type);
 
-            } else if (node instanceof FunctionNode) {
+            } else if (node.getNodeType() == NodeType.FUNCTION_NODE) {
                 FunctionNode function = (FunctionNode)node;
 
                 try {
@@ -83,6 +91,44 @@ public class Main {
             }
 
             node = node.next();
+        }
+    }
+
+    private static void output(String assembly) {
+
+        try {
+            File file = new File("zigzag.asm");
+
+            FileWriter writer = new FileWriter(file);
+            writer.append(assembly);
+            writer.close();
+
+            ProcessBuilder builder = new ProcessBuilder("yasm", "-g", "dwarf2", "-f", "elf32", "-o", "zigzag.o", file.getAbsolutePath());
+            builder.inheritIO();
+            builder.redirectInput(Redirect.INHERIT);
+            builder.redirectOutput(Redirect.INHERIT);
+            builder.redirectError(Redirect.INHERIT);
+
+            Process process = builder.start();
+            
+            if (process.waitFor() != 0) {
+                throw new Exception();
+            }
+
+            builder = new ProcessBuilder("ld", "-m", "elf_i386", "-o", "zigzag", "zigzag.o", "libz.o");
+            builder.inheritIO();
+            builder.redirectInput(Redirect.INHERIT);
+            builder.redirectOutput(Redirect.INHERIT);
+            builder.redirectError(Redirect.INHERIT);
+
+            process = builder.start();
+            
+            if (process.waitFor() != 0) {
+                throw new Exception();
+            }
+        }
+        catch (Exception e) {
+            System.err.println("ERROR: Internal assembler failed");
         }
     }
 
@@ -117,6 +163,11 @@ public class Main {
         // Create thread pool for multi-threading
         Runtime runtime = Runtime.getRuntime();
         executors = Executors.newFixedThreadPool(runtime.availableProcessors());
+
+        /*Chain chain = Chain.create(FilePhase, LexerPhase, ParsePhase, ResolverPhase, AssemblerPhase);
+        chain.execute(executors);
+
+        */
 
         List<Future<String>> files = new ArrayList<>();
 
@@ -184,7 +235,7 @@ public class Main {
         }
 
         // Wait for all threads to finish
-        wait(tokenized_files);
+        wait(parses);
 
         // Verify all files are parsed successfully
         for (Future<Parse> parse : parses) {
@@ -204,17 +255,55 @@ public class Main {
             context.merge(parse.getContext());
             root.merge(parse.getNode());
         }
-
+  
         // Try to resolve any problems in the node tree
         Resolver.resolve(context, root, errors);
+        
+        if (errors.size() > 0) {
+            int previous = errors.size();
+            int count = 0;
+
+            while (true) {
+                errors.clear();
+
+                // Try to resolve any problems in the node tree
+                Resolver.resolve(context, root, errors);
+
+                count = errors.size();
+
+                if (count >= previous) {
+                    break;
+                }
+
+                previous = count;
+            }
+        }
+
+        if (errors.size() > 0) {
+            complain();
+            System.exit(CODE_ERROR);
+        }
+
+        Processor.process(root);
+        
+
+        // Align all variables in memory properly
+        Aligner.align(context);
 
         long d = System.nanoTime();
+
+        String assembly = Assembler.build(root, context);
+
+        output(assembly);
+
+        long e = System.nanoTime();
 
         System.out.println(              "=====================");
         System.out.println(String.format("Disk: %.1f ms", (b - a) / 1000000.0f));
         System.out.println(String.format("Lexer: %.1f ms", (c - b) / 1000000.0f));
         System.out.println(String.format("Parser: %.1f ms", (d - c) / 1000000.0f));
-        System.out.println(String.format("Total: %.1f ms", (d - a) / 1000000.0f));
+        System.out.println(String.format("Assembler: %.1f ms", (e - d) / 1000000.0f));
+        System.out.println(String.format("Total: %.1f ms", (e - a) / 1000000.0f));
         System.out.println(              "=====================");
 
         System.exit(0);

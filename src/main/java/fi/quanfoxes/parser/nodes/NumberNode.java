@@ -24,8 +24,17 @@ public class NumberNode extends Node implements Contextable {
         return value;
     }
 
+    public void setValue(java.lang.Number value) {
+        this.value = value;
+    }
+
     @Override
     public Context getContext() throws Exception {
         return type;
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.NUMBER_NODE;
     }
 }

@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser.nodes;
 
+import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.Operators;
 import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
@@ -8,8 +9,9 @@ import fi.quanfoxes.parser.Resolvable;
 
 public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
-    public LinkNode() {
+    public LinkNode(Node left, Node right) {
         super(Operators.DOT);
+        this.setOperands(left, right);
     }
 
     private Context getContext(Node node) throws Exception {
@@ -18,7 +20,7 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
             return contextable.getContext();
         }
 
-        throw new Exception("Couldn't resolve the context");
+        return null;
     }
 
     @Override
@@ -30,18 +32,34 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
             Resolvable resolvable = (Resolvable)left;
             Node resolved = resolvable.resolve(base);
 
-            left.replace(resolved);
-            left = resolved;
+            if (resolved != null) {
+                left.replace(resolved);
+                left = resolved;
+            }
         }
 
         if (right instanceof Resolvable) {
             Context context = getContext(left);
 
-            Resolvable resolvable = (Resolvable)right;
-            Node resolved = resolvable.resolve(context);
+            if (context == Types.UNKNOWN) {
+                throw new Exception("Couldn't resolve the type of the left hand side");
+            }
 
-            right.replace(resolved);
-            right = resolved;
+            Node resolved;
+
+            if (right.getNodeType() == NodeType.UNRESOLVED_FUNCTION) {
+                UnresolvedFunction function = (UnresolvedFunction)right;
+                resolved = function.solve(base, context);
+            }
+            else {
+                Resolvable resolvable = (Resolvable)right;
+                resolved = resolvable.resolve(context);
+            }
+
+            if (resolved != null) {
+                right.replace(resolved);
+                right = resolved;
+            }
         }
 
         return null;
@@ -51,5 +69,10 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
     public Context getContext() throws Exception {
         Node right = last();
         return getContext(right);
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.LINK_NODE;
     }
 }

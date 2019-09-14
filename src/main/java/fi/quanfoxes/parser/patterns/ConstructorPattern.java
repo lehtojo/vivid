@@ -12,8 +12,8 @@ import fi.quanfoxes.lexer.KeywordToken;
 import fi.quanfoxes.lexer.ParenthesisType;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
+import fi.quanfoxes.parser.Constructor;
 import fi.quanfoxes.parser.Context;
-import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.Singleton;
@@ -23,18 +23,20 @@ import fi.quanfoxes.parser.nodes.FunctionNode;
 public class ConstructorPattern extends Pattern {
     public static final int PRIORITY = 20;
 
-    private static final int MODIFIED_CONSTRUCTOR_LENGTH = 4;
-
     private static final int MODIFIER = 0;
+    private static final int INIT = 1;
+    private static final int PARAMETERS = 2;
 
-    private static final int INIT = 0;
-    private static final int PARAMETERS = 1;
-    private static final int BODY = 2;
+    private static final int BODY = 4;
 
     public ConstructorPattern() {
         // Pattern:
-        // [private / protected / public] init (...) {...}
-        super(TokenType.KEYWORD | TokenType.OPTIONAL, TokenType.KEYWORD, TokenType.CONTENT, TokenType.CONTENT);
+        // [private / protected / public] init (...) [\n] {...}
+        super(TokenType.KEYWORD | TokenType.OPTIONAL, /* [private / protected / public] */
+              TokenType.KEYWORD, /* init */
+              TokenType.CONTENT | TokenType.OPTIONAL, /* (...) */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.CONTENT); /*  {...} */
     }
 
     @Override
@@ -42,65 +44,61 @@ public class ConstructorPattern extends Pattern {
         return PRIORITY;
     }
 
-    private AccessModifierKeyword getAccessModifier(List<Token> tokens) {
-        return (AccessModifierKeyword)((KeywordToken)tokens.get(MODIFIER)).getKeyword();
+    private KeywordToken getInitializeKeyword(List<Token> tokens) {
+        return (KeywordToken)tokens.get(INIT);
     }
 
-    private KeywordToken getInitializeKeyword(List<Token> tokens, int start) {
-        return (KeywordToken)tokens.get(start + INIT);
+    private ContentToken getParameters(List<Token> tokens) {
+        return (ContentToken)tokens.get(PARAMETERS);
     }
 
-    private ContentToken getParameters(List<Token> tokens, int start) {
-        return (ContentToken)tokens.get(start + PARAMETERS);
-    }
-
-    private ContentToken getBody(List<Token> tokens, int start) {
-        return (ContentToken)tokens.get(start + BODY);
+    private ContentToken getBody(List<Token> tokens) {
+        return (ContentToken)tokens.get(BODY);
     }
 
     @Override
     public boolean passes(List<Token> tokens) {
-        int start = 0;
+        KeywordToken modifier = (KeywordToken)tokens.get(MODIFIER);
 
-        if (tokens.size() == MODIFIED_CONSTRUCTOR_LENGTH) {
-            KeywordToken modifier = (KeywordToken)tokens.get(MODIFIER);
-
-            if (modifier.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) {
-                return false;
-            }
-
-            start = 1;
+        if (modifier != null && modifier.getKeyword().getType() != KeywordType.ACCESS_MODIFIER) {
+            return false;
         }
 
-        KeywordToken init = getInitializeKeyword(tokens, start);
+        KeywordToken init = getInitializeKeyword(tokens);
 
         if (init.getKeyword() != Keywords.INIT) {
             return false;
         }
 
-        ContentToken parameters = getParameters(tokens, start);
+        ContentToken parameters = getParameters(tokens);
 
-        if (parameters.getParenthesisType() != ParenthesisType.PARENTHESIS) {
+        if (parameters != null && parameters.getParenthesisType() != ParenthesisType.PARENTHESIS) {
             return false;
         }
 
-        ContentToken body = getBody(tokens, start);
+        ContentToken body = getBody(tokens);
 
         return body.getParenthesisType() == ParenthesisType.CURLY_BRACKETS;
     }
 
-	@Override
-	public Node build(Context context, List<Token> tokens) throws Exception {
+    private int getModifiers(List<Token> tokens) {
         int modifiers = AccessModifier.PUBLIC;
-        int start = 0;
 
-        if (tokens.size() == MODIFIED_CONSTRUCTOR_LENGTH) {
-            modifiers = getAccessModifier(tokens).getModifier();
-            start = 1;
+        KeywordToken token = (KeywordToken)tokens.get(MODIFIER);
+
+        if (token != null) {
+            AccessModifierKeyword modifier = (AccessModifierKeyword)token.getKeyword();
+            modifiers = modifier.getModifier();
         }
 
-        ContentToken parameters = getParameters(tokens, start);
-        List<Token> body = getBody(tokens, start).getTokens();
+        return modifiers;
+    }
+
+	@Override
+	public Node build(Context context, List<Token> tokens) throws Exception {
+        int modifiers = getModifiers(tokens);
+        ContentToken parameters = getParameters(tokens);
+        List<Token> body = getBody(tokens).getTokens();
 
         if (!context.isType()) {
             throw Errors.get(tokens.get(0).getPosition(), "Constructor must be inside of a type");
@@ -108,8 +106,11 @@ public class ConstructorPattern extends Pattern {
         
         Type type = (Type)context;
 
-        Function constructor = new Function(context, modifiers);
-        constructor.setParameters(Singleton.getContent(context, parameters));
+        Constructor constructor = new Constructor(context, modifiers);
+
+        if (parameters != null) {
+            constructor.setParameters(Singleton.getContent(context, parameters));
+        }
 
         type.addConstructor(constructor);
 

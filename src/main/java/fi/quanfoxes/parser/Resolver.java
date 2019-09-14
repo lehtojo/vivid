@@ -3,7 +3,10 @@ package fi.quanfoxes.parser;
 import java.util.ArrayList;
 import java.util.List;
 
+import fi.quanfoxes.Types;
+import fi.quanfoxes.lexer.Operators;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.OperatorNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.types.Number;
 
@@ -39,10 +42,12 @@ public class Resolver {
                 if (iterator instanceof TypeNode) {
                     TypeNode type = (TypeNode)iterator;
                     resolved = Resolver.resolve(type.getType(), iterator, errors);
+                    Resolver.resolveVariables(type.getType(), errors);
                 }
                 else if (iterator instanceof FunctionNode) {
                     FunctionNode function = (FunctionNode)iterator;
                     resolved = Resolver.resolve(function.getFunction(), iterator, errors);
+                    Resolver.resolveVariables(function.getFunction(), errors);
                 }
                 else {
                     resolved = Resolver.resolve(context, iterator, errors);
@@ -89,71 +94,148 @@ public class Resolver {
     }
 
     /**
-     * Returns the shared type between the two given types
-     * @return Success: Shared type between the two given types, Failure: null
+     * Returns the shared type between the given types
+     * @return Success: Shared type between the given types, Failure: null
      */
     public static Type getSharedType(Type a, Type b) {
+        if (a == b) {
+            return a;
+        }
+
         if (a instanceof Number && b instanceof Number) {
-            return getSharedNumber((Number)a, (Number)b);
+            return Resolver.getSharedNumber((Number)a, (Number)b);
         }
 
-        Type type = a;
-        
-        while (type != null) {
-            Type iterator = b;
-
-            while (iterator != null) {
-                
-                if (iterator == type) {
-                    return type;
-                }
-                
-                Context parent = iterator.getParent();
-
-                if (!parent.isType()) {
-                    return null;
-                }
-
-                iterator = (Type)parent;
+        for (Type type : a.getSuperTypes()) {
+            if (b.getSuperTypes().contains(type)) {
+                return type;
             }
-
-            Context parent = type.getParent();
-
-            if (!parent.isType()) {
-                return null;
-            }
-
-            type = (Type)parent;
         }
 
-        return null;
+        return Types.UNKNOWN;
+    }
+
+    /**
+     * Returns the shared type between the given types
+     * @param types List of types to solve
+     * @return Success: Shared type between the given types, Failure: null
+     */
+    public static Type getSharedType(List<Type> types) {
+        if (types.isEmpty()) {
+            return Types.UNKNOWN;
+        }
+        else if (types.size() == 1) {
+            return types.get(0);
+        }
+
+        Type current = types.get(0);
+
+        for (int i = 1; i < types.size(); i++) {
+            if (current == null) {
+                break;
+            }
+
+            current = Resolver.getSharedType(current, types.get(i));
+        }
+
+        return current;
     }
 
     /**
      * Returns all child node types
      * @return Types of children nodes
-     * @throws Exception Throws if any child isn't contextable
      */
-    public static List<Type> getTypes(Node node) throws Exception {
+    public static List<Type> getTypes(Node node) {
         List<Type> types = new ArrayList<>();
         Node iterator = node.first();
         
         while (iterator != null) {
             if (iterator instanceof Contextable) {
                 Contextable contextable = (Contextable)iterator;
-                Context context = contextable.getContext();
+                Context context = null;
+
+                try {
+                    context = contextable.getContext();
+                }
+                catch (Exception e) {
+                    return null;
+                }
 
                 if (context == null || !context.isType()) {
-                    throw new Exception("Couldn't resolve type");
+                    return null;
                 }
                 else {
-                    types.add((Type)context);
+                    Type type = (Type)context;
+
+                    if (type instanceof UnresolvedType) {
+                        return null;
+                    }
+
+                    types.add(type);
                 }
+            }
+            else
+            {
+                return null;
             }
 
             iterator = iterator.next();
         }
 
         return types;
+    }
+
+    public static void resolveVariable(Variable variable) throws Exception {
+        List<Type> types = new ArrayList<>();
+
+        for (Node reference : variable.getUsages()) {
+            Node parent = reference.parent();
+
+            if (parent != null) {
+                if (parent instanceof OperatorNode) {
+                    OperatorNode operator = (OperatorNode)parent;
+
+                    // Try to resolve type via contextable right side of the assign operator
+                    if (operator.getOperator() == Operators.ASSIGN && 
+                            operator.getRight() instanceof Contextable) {
+                        
+                        try {
+                            Contextable contextable = (Contextable)operator.getRight();
+                            Context context = contextable.getContext();
+                            
+                            // Verify the type is resolved
+                            if (context != Types.UNKNOWN && context.isType()) {
+                                types.add((Type)context);
+                            }
+                        }
+                        catch(Exception e) {
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
+        Type shared = Resolver.getSharedType(types);
+
+        if (shared != Types.UNKNOWN) {
+            variable.setType(shared);
+            return;
+        }
+
+        throw new Exception(String.format("Couldn't resolve type of variable '%s'", variable.getName()));
+    }
+
+    public static void resolveVariables(Context context, List<Exception> errors) {
+        for (Variable variable : context.getVariables()) {
+            if (variable.getType() == Types.UNKNOWN) {
+                try {
+                    resolveVariable(variable);
+                }
+                catch(Exception e) {
+                    errors.add(e);
+                }
+            }
+        }
     }
 }
