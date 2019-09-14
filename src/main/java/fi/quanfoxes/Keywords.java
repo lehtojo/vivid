@@ -1,6 +1,7 @@
 package fi.quanfoxes;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class Keywords {
     public static Keyword BASE = new Keyword("base");
@@ -29,7 +30,7 @@ public class Keywords {
     public static Keyword VAR = new Keyword("var");
     public static Keyword WHILE = new Keyword("while");
 
-    private static HashMap<String, Keyword> keywords = new HashMap<>();
+    private static Map<String, Keyword> keywords = new HashMap<>();
 
     static  {
         keywords.put(BASE.getIdentifier(), BASE);
@@ -59,7 +60,7 @@ public class Keywords {
         keywords.put(WHILE.getIdentifier(), WHILE);
     }
 
-    public static boolean exists (String name) {
+    public static boolean exists(String name) {
         return keywords.containsKey(name);
     }
 

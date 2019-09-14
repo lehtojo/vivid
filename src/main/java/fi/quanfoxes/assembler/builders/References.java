@@ -4,9 +4,9 @@ import fi.quanfoxes.assembler.*;
 import fi.quanfoxes.assembler.references.*;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Variable;
-import fi.quanfoxes.parser.nodes.ContentNode;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.NumberNode;
 import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
@@ -154,31 +154,38 @@ public class References {
     }
 
     public static Instructions get(Unit unit, Node node, ReferenceType type) {
-        if (node instanceof FunctionNode) {
-            return getFunctionReference(unit, (FunctionNode)node, type);
-        }
-        else if (node instanceof LinkNode) {
-            return getLinkReference(unit, (LinkNode)node, type);
-        }
-        else if (node instanceof VariableNode) {
-            return getVariableReference(unit, (VariableNode)node, type);
-        }
-        else if (node instanceof NumberNode) {
-            return getNumberReference(unit, (NumberNode)node, type);
-        }
-        else if (node instanceof ContentNode) {
-            return get(unit, node.first(), type);
-        }
-        else if (node instanceof StringNode) {
-            return getStringReference(unit, (StringNode)node, type);
-        }
-        else {
-
-            if (type == ReferenceType.DIRECT) {
-                System.out.println("Warning: Complex writable reference requested");
+        switch (node.getNodeType()) {
+            case FUNCTION_NODE: {
+                return getFunctionReference(unit, (FunctionNode)node, type);
             }
 
-            return unit.assemble(node);
+            case LINK_NODE: {
+                return getLinkReference(unit, (LinkNode)node, type);
+            }
+
+            case VARIABLE_NODE: {
+                return getVariableReference(unit, (VariableNode)node, type);
+            }
+
+            case NUMBER_NODE: {
+                return getNumberReference(unit, (NumberNode)node, type);
+            }
+
+            case CONTENT_NODE: {
+                return References.get(unit, node.first(), type);
+            }
+
+            case STRING_NODE: {
+                return getStringReference(unit, (StringNode)node, type);
+            }
+
+            default: {
+                if (type == ReferenceType.DIRECT) {
+                    System.out.println("Warning: Complex writable reference requested");
+                }
+    
+                return unit.assemble(node);
+            }
         }
     }
 
@@ -202,7 +209,7 @@ public class References {
      * Returns whether node is primitive (Requires only building references)
      */
     private static boolean isPrimitive(Node node) {
-        return node instanceof VariableNode || node instanceof StringNode || node instanceof NumberNode;
+        return node.getNodeType() == NodeType.VARIABLE_NODE || node.getNodeType() == NodeType.STRING_NODE || node.getNodeType() == NodeType.NUMBER_NODE;
     }
 
     /**

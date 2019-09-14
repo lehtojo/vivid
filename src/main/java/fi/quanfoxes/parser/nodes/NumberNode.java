@@ -32,4 +32,9 @@ public class NumberNode extends Node implements Contextable {
     public Context getContext() throws Exception {
         return type;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.NUMBER_NODE;
+    }
 }

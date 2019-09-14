@@ -3,6 +3,7 @@ package fi.quanfoxes.assembler.builders;
 import fi.quanfoxes.assembler.*;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.nodes.IfNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.OperatorNode;
 
 public class Conditionals {
@@ -20,7 +21,7 @@ public class Conditionals {
         Node condition = root.getCondition();
 
         // Assemble the condition
-        if (condition instanceof OperatorNode) {
+        if (condition.getNodeType() == NodeType.OPERATOR_NODE) {
             OperatorNode operator = (OperatorNode)condition;
 
             Instructions jump = Comparison.jump(unit, operator, true, next);
@@ -35,7 +36,7 @@ public class Conditionals {
         if (root.getSuccessor() != null) {
             Node node = root.getSuccessor();
 
-            if (node instanceof IfNode) {
+            if (node.getNodeType() == NodeType.IF_NODE) {
                 successor = Conditionals.build(unit, (IfNode)node, end);
             }
             else {

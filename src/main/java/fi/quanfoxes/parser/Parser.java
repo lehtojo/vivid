@@ -1,5 +1,6 @@
 package fi.quanfoxes.parser;
 
+import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.Types;
 import fi.quanfoxes.lexer.Token;
 import fi.quanfoxes.lexer.TokenType;
@@ -180,6 +181,16 @@ public class Parser {
     public static Context initialize() throws Exception {
         Context context = new Context();
         Types.inject(context);
+
+        Function allocate = new Function(context, "allocate", AccessModifier.PUBLIC | AccessModifier.EXTERNAL, Types.LINK);
+        Variable bytes = new Variable(allocate, Types.NORMAL, VariableType.PARAMETER, "bytes", AccessModifier.PUBLIC);
+        allocate.setParameters(bytes);
+
+        Function power = new Function(context, "integer_power", AccessModifier.PUBLIC | AccessModifier.EXTERNAL, Types.NORMAL);
+        Variable base = new Variable(power, Types.NORMAL, VariableType.PARAMETER, "a", AccessModifier.PUBLIC);
+        Variable exponent = new Variable(power, Types.NORMAL, VariableType.PARAMETER, "b", AccessModifier.PUBLIC);
+        power.setParameters(base, exponent);
+
         return context;
     }
 }

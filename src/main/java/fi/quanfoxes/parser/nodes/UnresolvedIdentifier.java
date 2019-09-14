@@ -27,4 +27,9 @@ public class UnresolvedIdentifier extends Node implements Resolvable {
     public Node resolve(Context context) throws Exception {
         return getResolvedNode(context);
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.UNRESOLVED_IDENTIFIER;
+    }
 }

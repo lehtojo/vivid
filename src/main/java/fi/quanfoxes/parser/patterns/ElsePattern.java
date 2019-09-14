@@ -23,11 +23,9 @@ public class ElsePattern extends Pattern {
     public ElsePattern() {
         // Pattern:
         // else [\n] {...}
-        super(
-                TokenType.KEYWORD, /* else */
-                TokenType.END | TokenType.OPTIONAL, /* [\n] */
-                TokenType.CONTENT /* {...} */
-        );
+        super(TokenType.KEYWORD, /* else */
+              TokenType.END | TokenType.OPTIONAL, /* [\n] */
+              TokenType.CONTENT);  /* {...} */
     }
 
     @Override
@@ -58,7 +56,7 @@ public class ElsePattern extends Pattern {
         context.link(environment);
 
         List<Token> body = getBody(tokens);
-        Node node = Parser.parse(context, body);
+        Node node = Parser.parse(context, body, Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
 
         return new ElseNode(context, node);
 	}

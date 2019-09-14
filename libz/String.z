@@ -1,4 +1,3 @@
-import link allocate(num bytes)
 import func copy(link source, num bytes, link destination)
 import func copy(link source, num bytes, link destination, num offset)
 

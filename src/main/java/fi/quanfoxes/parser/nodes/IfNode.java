@@ -22,7 +22,8 @@ public class IfNode extends Node {
     }
 
     public void setSuccessor(Node successor) {
-        this.successor = successor.disconnect();
+        this.successor = successor;
+        this.insert(last(), successor);
     }
 
     public Node getSuccessor() {
@@ -31,5 +32,10 @@ public class IfNode extends Node {
 
     public Context getContext() {
         return context;
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.IF_NODE;
     }
 }

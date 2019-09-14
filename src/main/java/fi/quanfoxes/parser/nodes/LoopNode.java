@@ -63,4 +63,9 @@ public class LoopNode extends Node {
     public Node getBody() {
         return last();
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.LOOP_NODE;
+    }
 }

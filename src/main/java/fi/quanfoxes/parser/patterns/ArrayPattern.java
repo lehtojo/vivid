@@ -21,7 +21,7 @@ import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.VariableType;
-import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 import fi.quanfoxes.lexer.Operators;
@@ -43,8 +43,7 @@ public class ArrayPattern extends Pattern {
               TokenType.KEYWORD | TokenType.OPTIONAL, /* [static] */
               TokenType.IDENTIFIER | TokenType.DYNAMIC, /* Type / Type.Subtype */
               TokenType.IDENTIFIER,  /* ... */
-              TokenType.OPERATOR, /* : */
-              TokenType.NUMBER); /* Number */
+              TokenType.OPERATOR); /* [...] */
     }
 
     @Override
@@ -66,7 +65,7 @@ public class ArrayPattern extends Pattern {
 
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
-            return (node instanceof LinkNode) || (node instanceof TypeNode);
+            return node.getNodeType() == NodeType.TYPE_NODE || node.getNodeType() == NodeType.LINK_NODE;
         }
 
         OperatorToken array = (OperatorToken)tokens.get(ARRAY);
@@ -98,7 +97,7 @@ public class ArrayPattern extends Pattern {
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
             
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 return type.getType();
             }

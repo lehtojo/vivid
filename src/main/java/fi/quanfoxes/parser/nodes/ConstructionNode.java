@@ -21,7 +21,7 @@ public class ConstructionNode extends Node implements Resolvable, Contextable {
     public Constructor getConstructor() {
         Node node = first();
 
-        if (node instanceof FunctionNode) {
+        if (node.getNodeType() == NodeType.FUNCTION_NODE) {
             FunctionNode constructor = (FunctionNode)node;
             return (Constructor)constructor.getFunction();
         }
@@ -68,5 +68,10 @@ public class ConstructionNode extends Node implements Resolvable, Contextable {
     @Override
     public Context getContext() {
         return getType();
-	}
+    }
+    
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.CONSTRUCTION_NODE;
+    }
 }

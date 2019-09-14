@@ -1,6 +1,3 @@
-import link allocate(num bytes)
-import num integer_power(num a, num b)
-
 func run ()
 {
     string a = new string('Hello ')
@@ -13,6 +10,15 @@ func run ()
 
     string input = readln()
 
+    if (input.length() > 10)
+    {
+        println('> 10')
+    }
+    else
+    {
+        println('<= 10')
+    }
+
     print(input)
 
     num x = 0
@@ -24,7 +30,6 @@ func run ()
     num g = -6
     println(to_string(g))
     println(to_string(g % 4))
-    println('esfijsfjosfsf')
 
     loop (i < 100)
     {
@@ -35,5 +40,18 @@ func run ()
         println(to_string(z))
 
         i = i + 1
+    }
+
+    loop
+    {
+        num j = 0
+
+        loop (j < 10)
+        {
+            println(to_string(j))
+            j = j + 1
+        }
+
+        readln()
     }
 }

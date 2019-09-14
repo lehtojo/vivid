@@ -10,6 +10,7 @@ import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Processor;
 import fi.quanfoxes.parser.Resolver;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
 import java.io.File;
@@ -54,7 +55,7 @@ public class Main {
         Node node = root.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode) node;
 
                 try {
@@ -75,11 +76,11 @@ public class Main {
         Node node = parent.first();
 
         while (node != null) {
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 functions(type);
 
-            } else if (node instanceof FunctionNode) {
+            } else if (node.getNodeType() == NodeType.FUNCTION_NODE) {
                 FunctionNode function = (FunctionNode)node;
 
                 try {

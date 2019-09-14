@@ -1,0 +1,19 @@
+func move(link source, num count, link destination)
+{
+    num offset = source - destination
+
+    copy(source, count, destination)
+
+    if (|offset| > count)
+    {
+        zero(source, count)
+    }
+    else if (offset > 0)
+    {
+        zero(source + count, offset)
+    }
+    else
+    {
+        zero(source, -offset)
+    }
+}

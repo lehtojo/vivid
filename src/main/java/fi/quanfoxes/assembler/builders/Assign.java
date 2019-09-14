@@ -3,12 +3,13 @@ package fi.quanfoxes.assembler.builders;
 import fi.quanfoxes.assembler.*;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.OperatorNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
 public class Assign {
     private static boolean isVariable(Node node) {
-        return node instanceof VariableNode;
+        return node.getNodeType() == NodeType.VARIABLE_NODE;
     }
 
     /**

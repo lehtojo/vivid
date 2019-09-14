@@ -13,4 +13,9 @@ public class LabelNode extends Node {
     public Label getLabel() {
         return label;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.LABEL_NODE;
+    }
 }

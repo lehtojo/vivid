@@ -156,59 +156,75 @@ public class Unit {
         return null;
     }
 
+    /**
+     * Turns node tree structure into assembly
+     * @param node Program represented in node tree form
+     * @return Assembly representation of the node tree
+     */
     public Instructions assemble(Node node) {
-        if (node instanceof OperatorNode) {
-            OperatorNode operator = (OperatorNode)node;
+        switch (node.getNodeType()) {
+            
+            case OPERATOR_NODE: {
+                OperatorNode operator = (OperatorNode)node;
 
-            switch (operator.getOperator().getType()) {
-                case CLASSIC:
-                    return Classic.build(this, (OperatorNode)node);
-                case ACTION:
-                    return Assign.build(this, (OperatorNode)node);
-                case INDEPENDENT:
-                    return Link.build(this, (LinkNode)node, ReferenceType.READ);
-                default:
-                    return null;
-            }
-        }
-        else if (node instanceof FunctionNode) {
-            return Call.build(this, (FunctionNode)node);
-        }
-        else if (node instanceof ConstructionNode) {
-            return Construction.build(this, (ConstructionNode)node);
-        }
-        else if (node instanceof IfNode) {
-            return Conditionals.start(this, (IfNode)node);
-        }
-        else if (node instanceof LoopNode) {
-            return Loop.build(this, (LoopNode)node);
-        }
-        else if (node instanceof ReturnNode) {
-            return Return.build(this, (ReturnNode)node);
-        }
-        else if (node instanceof JumpNode) {
-            return Labels.build(this, (JumpNode)node);
-        }
-        else if (node instanceof LabelNode) {
-            return Labels.build(this, (LabelNode)node);
-        }
-        else {
-            Instructions bundle = new Instructions();
-            Node iterator = node.first();
-
-            while (iterator != null) {
-                Instructions instructions = assemble(iterator);
-
-                if (instructions != null) {
-                    bundle.append(instructions);
+                switch (operator.getOperator().getType()) {
+                    case CLASSIC:
+                        return Classic.build(this, (OperatorNode)node);
+                    case ACTION:
+                        return Assign.build(this, (OperatorNode)node);
+                    case INDEPENDENT:
+                        return Link.build(this, (LinkNode)node, ReferenceType.READ);
+                    default:
+                        return null;
                 }
-
-                step();
-
-                iterator = iterator.next();
             }
 
-            return bundle;
+            case FUNCTION_NODE: {
+                return Call.build(this, (FunctionNode)node);
+            }
+
+            case CONSTRUCTION_NODE: {
+                return Construction.build(this, (ConstructionNode)node);
+            }
+
+            case IF_NODE: {
+                return Conditionals.start(this, (IfNode)node);
+            }
+
+            case LOOP_NODE: {
+                return Loop.build(this, (LoopNode)node);
+            }
+
+            case RETURN_NODE: {
+                return Return.build(this, (ReturnNode)node);
+            }
+
+            case JUMP_NODE: {
+                return Labels.build(this, (JumpNode)node);
+            }
+
+            case LABEL_NODE: {
+                return Labels.build(this, (LabelNode)node);
+            }
+
+            default: {
+                Instructions bundle = new Instructions();
+                Node iterator = node.first();
+    
+                while (iterator != null) {
+                    Instructions instructions = assemble(iterator);
+    
+                    if (instructions != null) {
+                        bundle.append(instructions);
+                    }
+    
+                    step();
+    
+                    iterator = iterator.next();
+                }
+    
+                return bundle;
+            }
         }
     }
 

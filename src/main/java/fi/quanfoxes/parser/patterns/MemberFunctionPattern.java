@@ -2,6 +2,7 @@ package fi.quanfoxes.parser.patterns;
 
 import fi.quanfoxes.AccessModifier;
 import fi.quanfoxes.AccessModifierKeyword;
+import fi.quanfoxes.Errors;
 import fi.quanfoxes.KeywordType;
 import fi.quanfoxes.Keywords;
 import fi.quanfoxes.Types;
@@ -14,7 +15,7 @@ import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
-import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
@@ -57,13 +58,19 @@ public class MemberFunctionPattern extends Pattern {
         Token token = tokens.get(RETURN_TYPE);
 
         switch (token.getType()) {
-            case TokenType.KEYWORD:
+
+            case TokenType.KEYWORD: {
                 return ((KeywordToken)token).getKeyword() == Keywords.FUNC;
-            case TokenType.IDENTIFIER:
-                return true;             
-            case TokenType.DYNAMIC:
+            }
+                
+            case TokenType.IDENTIFIER: {
+                return true;
+            }
+                             
+            case TokenType.DYNAMIC: {
                 Node node = ((DynamicToken)token).getNode();
-                return (node instanceof LinkNode) || (node instanceof TypeNode);
+                return node.getNodeType() == NodeType.TYPE_NODE || node.getNodeType() == NodeType.LINK_NODE;
+            }            
         }
 
         ContentToken body = (ContentToken)tokens.get(BODY);
@@ -100,10 +107,11 @@ public class MemberFunctionPattern extends Pattern {
 
         switch (token.getType()) {
 
-            case TokenType.KEYWORD:
+            case TokenType.KEYWORD: {
                 return Types.UNKNOWN;
-
-            case TokenType.IDENTIFIER:
+            }
+                
+            case TokenType.IDENTIFIER: {
                 IdentifierToken id = (IdentifierToken)token;
                 
                 if (context.isTypeDeclared(id.getValue())) {
@@ -112,21 +120,23 @@ public class MemberFunctionPattern extends Pattern {
                 else {
                     return new UnresolvedType(context, id.getValue());
                 }
-
-             case TokenType.DYNAMIC:
+            }
+                
+            case TokenType.DYNAMIC: {
                 DynamicToken dynamic = (DynamicToken)token;
                 Node node = dynamic.getNode();
 
-                if (node instanceof TypeNode) {
+                if (node.getNodeType() == NodeType.TYPE_NODE) {
                     TypeNode type = (TypeNode)node;
                     return type.getType();
                 }
                 else if (node instanceof Resolvable) {
                     return new UnresolvedType(context, (Resolvable)node);
                 }
+            }            
         }
 
-        throw new Exception("INTERNAL_ERROR");
+        throw Errors.get(tokens.get(HEAD).getPosition(), "Couldn't resolve return type");
     }
 
     @Override
@@ -139,7 +149,7 @@ public class MemberFunctionPattern extends Pattern {
       
         Token token = tokens.get(HEAD);
 
-        if (token instanceof FunctionToken) {
+        if (token.getType() == TokenType.FUNCTION) {
             FunctionToken head = (FunctionToken)token;
             function = new Function(context, head.getName(), modifiers, result);
             function.setParameters(head.getParameters(function));

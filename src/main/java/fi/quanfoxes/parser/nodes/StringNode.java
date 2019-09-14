@@ -28,5 +28,10 @@ public class StringNode extends Node implements Contextable {
     @Override
     public Context getContext() {
         return Types.LINK;
-	}
+    }
+    
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.STRING_NODE;
+    }
 }

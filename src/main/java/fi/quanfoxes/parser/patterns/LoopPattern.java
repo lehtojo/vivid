@@ -93,7 +93,7 @@ public class LoopPattern extends Pattern {
         Context context = new Context();
         context.link(base);
 
-        Node body = Parser.parse(context, getBody(tokens));
+        Node body = Parser.parse(context, getBody(tokens), Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
         Node steps = getSteps(tokens);
 
         return new LoopNode(context, steps, body);

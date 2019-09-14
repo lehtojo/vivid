@@ -4,6 +4,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.nodes.FunctionNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
@@ -19,7 +20,10 @@ public class Assembler {
                                                "" + "\n" +
                                                "mov eax, 1" + "\n" +
                                                "mov ebx, 0" + "\n" +
-                                               "int 80h" + "\n\n";
+                                               "int 80h" + "\n" +
+                                               "" + "\n" +
+                                               "extern function_allocate" + "\n" +
+                                               "extern function_integer_power" + "\n\n";
 
     private static final String SECTION_DATA = "section .data";
 
@@ -30,13 +34,13 @@ public class Assembler {
         Node iterator = root.first();
 
         while (iterator != null) {
-            if (iterator instanceof TypeNode) {
+            if (iterator.getNodeType() == NodeType.TYPE_NODE) {
                 text.append(Assembler.build((TypeNode)iterator));
             }
-            else if (iterator instanceof FunctionNode) {
-                text.append(FunctionBuilder.build((FunctionNode)iterator));
+            else if (iterator.getNodeType() == NodeType.FUNCTION_NODE) {
+                text.append(Functions.build((FunctionNode)iterator));
             }
-            else if (iterator instanceof VariableNode) {
+            else if (iterator.getNodeType() == NodeType.VARIABLE_NODE) {
                 data.append(Assembler.build((VariableNode)iterator));
             }
 
@@ -56,7 +60,7 @@ public class Assembler {
         Node iterator = root.first();
         
         while (iterator != null) {
-            if (iterator instanceof StringNode) {
+            if (iterator.getNodeType() == NodeType.STRING_NODE) {
                 String label = "S" + String.valueOf(i++);
                 builder.append(Strings.build((StringNode)iterator, label));
             }
@@ -75,11 +79,11 @@ public class Assembler {
         Node iterator = node.first();
 
         while (iterator != null) {
-            if (iterator instanceof TypeNode) {
+            if (iterator.getNodeType() == NodeType.TYPE_NODE) {
                 text = text.append(Assembler.build((TypeNode)iterator));
             }
-            else if (iterator instanceof FunctionNode) {
-                text = text.append(FunctionBuilder.build((FunctionNode)iterator));
+            else if (iterator.getNodeType() == NodeType.FUNCTION_NODE) {
+                text = text.append(Functions.build((FunctionNode)iterator));
             }
 
             iterator = iterator.next();

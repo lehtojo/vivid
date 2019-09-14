@@ -59,4 +59,9 @@ public class FunctionNode extends Node implements Contextable {
     public Context getContext() {
         return function.getReturnType();
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.FUNCTION_NODE;
+    }
 }

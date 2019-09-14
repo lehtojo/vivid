@@ -34,7 +34,7 @@ public class VariablePattern extends Pattern {
 
         if (token.getType() == TokenType.DYNAMIC) {
             DynamicToken dynamic = (DynamicToken)token;
-            return dynamic.getNode() instanceof LinkNode;
+            return dynamic.getNode().getNodeType() == NodeType.LINK_NODE;
         }
         else if (token.getType() == TokenType.KEYWORD) {
             Keyword keyword = ((KeywordToken)token).getKeyword();
@@ -51,11 +51,11 @@ public class VariablePattern extends Pattern {
             DynamicToken dynamic = (DynamicToken)token;
             Node node = dynamic.getNode();
 
-            if (node instanceof LinkNode) {
+            if (node.getNodeType() == NodeType.LINK_NODE) {
                 return new UnresolvedType(context, (Resolvable)node);
             }
 
-            throw new Exception("Type must be resolvable");
+            throw Errors.get(tokens.get(NAME).getPosition(), "Couldn't resolve type of the variable '%s'", getName(tokens));
         }
         else if (token.getType() == TokenType.KEYWORD) {
             return Types.UNKNOWN;

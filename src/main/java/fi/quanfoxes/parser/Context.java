@@ -260,7 +260,6 @@ public class Context {
         }
         else {
             return null;
-            //throw new Exception(String.format("Couldn't find type '%s'", name));
         }
     }
 
@@ -279,7 +278,6 @@ public class Context {
         }
         else {
             return null;
-            //throw new Exception(String.format("Couldn't find function '%s'", name));
         }
     }
 
@@ -298,7 +296,6 @@ public class Context {
         }
         else {
             return null;
-            //throw new Exception(String.format("Couldn't find variable '%s'", name));
         }
     }
 

@@ -12,7 +12,7 @@ import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.DynamicToken;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.ConstructionNode;
-import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 
 public class ConstructionPattern extends Pattern {
     public static final int PRIORITY = 19;
@@ -44,7 +44,7 @@ public class ConstructionPattern extends Pattern {
 
         if (token.getType() == TokenType.DYNAMIC) {
             DynamicToken dynamic = (DynamicToken)token;
-            return dynamic.getNode() instanceof LinkNode;
+            return dynamic.getNode().getNodeType() == NodeType.LINK_NODE;
         }
 
         return true;

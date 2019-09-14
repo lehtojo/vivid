@@ -17,7 +17,7 @@ public class Return {
             instructions.append(Memory.move(unit, reference, new RegisterReference(unit.eax)));
         }
 
-        instructions.append(FunctionBuilder.FOOTER);
+        instructions.append(Functions.FOOTER);
 
         return instructions.setReference(Value.getOperation(unit.eax, reference.getSize()));
     }

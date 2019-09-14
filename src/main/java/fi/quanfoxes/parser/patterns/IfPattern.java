@@ -87,7 +87,7 @@ public class IfPattern extends Pattern {
      */
     private Node getBody(Context context, List<Token> tokens) throws Exception {
         ContentToken content = (ContentToken)tokens.get(BODY);
-        return Parser.parse(context, content.getTokens()); 
+        return Parser.parse(context, content.getTokens(), Parser.MIN_PRIORITY, Parser.MEMBERS - 1); 
     }
 
     /**

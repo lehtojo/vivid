@@ -86,4 +86,9 @@ public class OperatorNode extends Node implements Contextable {
                 throw new Exception("Independent operator doesn't belong here");
         }
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.OPERATOR_NODE;
+    }
 }

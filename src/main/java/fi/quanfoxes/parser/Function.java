@@ -23,6 +23,14 @@ public class Function extends Context {
 
     private List<Node> usages = new ArrayList<>();
 
+    /**
+     * Declares a function to the given context with the given name, modifiers and return type
+     * @param context Context to declare this function
+     * @param name Name of this function
+     * @param modifiers Access modifiers of this function
+     * @param result Return type of this function
+     * @throws Exception Declaration may fail, for example when a function with same name and parameters is already declared
+     */
     public Function(Context context, String name, int modifiers, Type result) throws Exception {
         this.name = name;
         this.modifiers = modifiers;
@@ -32,6 +40,11 @@ public class Function extends Context {
         context.declare(this);
     }
 
+    /**
+     * Declares a function to the given context with given access modifiers
+     * @param context Context to declare this function
+     * @param modifiers Access modifiers of this function
+     */
     public Function(Context context, int modifiers) {
         this.modifiers = modifiers;
         super.link(context);
@@ -115,6 +128,15 @@ public class Function extends Context {
             parameters.add(variable);
 
             parameter = (VariableNode)parameter.next();
+        }
+
+        return this;
+    }
+
+    public Function setParameters(Variable... variables) {
+        for (Variable parameter : variables) {
+            parameter.setVariableType(VariableType.PARAMETER);
+            parameters.add(parameter);
         }
 
         return this;

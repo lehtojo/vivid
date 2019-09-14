@@ -13,4 +13,9 @@ public class JumpNode extends Node {
     public Label getLabel() {
         return label;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.JUMP_NODE;
+    }
 }

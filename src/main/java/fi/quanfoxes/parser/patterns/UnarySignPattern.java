@@ -6,6 +6,7 @@ import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Pattern;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.nodes.NegateNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.NumberNode;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class UnarySignPattern extends Pattern {
     }
 
     private Node getNegativeNode(Node node) {
-        if (node instanceof NumberNode) {
+        if (node.getNodeType() == NodeType.NUMBER_NODE) {
             NumberNode number = (NumberNode)node;
             number.setValue(-number.getValue().longValue());
 

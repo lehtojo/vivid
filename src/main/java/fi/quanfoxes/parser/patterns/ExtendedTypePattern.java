@@ -11,7 +11,7 @@ import fi.quanfoxes.parser.Resolvable;
 import fi.quanfoxes.parser.Singleton;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
-import fi.quanfoxes.parser.nodes.ContentNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 
 import java.util.ArrayList;
@@ -65,7 +65,7 @@ public class ExtendedTypePattern extends Pattern {
 
         Token token = tokens.get(SUPERTYPES);
 
-        if (token instanceof ContentToken) {
+        if (token.getType() == TokenType.CONTENT) {
             ContentToken supertypes = (ContentToken)token;
 
             if (supertypes.getParenthesisType() != ParenthesisType.BRACKETS) {
@@ -117,7 +117,7 @@ public class ExtendedTypePattern extends Pattern {
         List<Type> types = new ArrayList<>();
         Node node = Singleton.parse(environment, tokens.get(SUPERTYPES));
 
-        if (node instanceof ContentNode) {
+        if (node.getNodeType() == NodeType.CONTENT_NODE) {
             Node iterator = node.first();
 
             while (iterator != null) {

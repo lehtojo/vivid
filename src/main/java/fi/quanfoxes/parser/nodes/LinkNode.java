@@ -9,8 +9,9 @@ import fi.quanfoxes.parser.Resolvable;
 
 public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
-    public LinkNode() {
+    public LinkNode(Node left, Node right) {
         super(Operators.DOT);
+        this.setOperands(left, right);
     }
 
     private Context getContext(Node node) throws Exception {
@@ -46,7 +47,7 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
 
             Node resolved;
 
-            if (right instanceof UnresolvedFunction) {
+            if (right.getNodeType() == NodeType.UNRESOLVED_FUNCTION) {
                 UnresolvedFunction function = (UnresolvedFunction)right;
                 resolved = function.solve(base, context);
             }
@@ -68,5 +69,10 @@ public class LinkNode extends OperatorNode implements Resolvable, Contextable {
     public Context getContext() throws Exception {
         Node right = last();
         return getContext(right);
+    }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.LINK_NODE;
     }
 }

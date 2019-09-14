@@ -1,7 +1,7 @@
 package fi.quanfoxes.parser;
 
-import fi.quanfoxes.parser.nodes.ElseNode;
 import fi.quanfoxes.parser.nodes.IfNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 
 public class Processor {
     /**
@@ -12,11 +12,11 @@ public class Processor {
         Node next = node.next();
 
         if (next != null) {
-            if (next instanceof IfNode) {
+            if (next.getNodeType() == NodeType.ELSE_IF_NODE) {
                 Processor.connect((IfNode)next);
                 node.setSuccessor(next);
             }
-            else if (next instanceof ElseNode) {
+            else if (next.getNodeType() == NodeType.ELSE_NODE) {
                 node.setSuccessor(next);
             }
         }
@@ -32,7 +32,7 @@ public class Processor {
         while (iterator != null) {
             Node next = iterator.next();
 
-            if (iterator instanceof IfNode) {
+            if (iterator.getNodeType() == NodeType.IF_NODE) {
                 Processor.connect((IfNode)iterator);
             }
 

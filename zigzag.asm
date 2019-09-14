@@ -8,10 +8,7 @@ mov eax, 1
 mov ebx, 0
 int 80h
 
-
 extern function_allocate
-
-
 extern function_integer_power
 
 
@@ -86,6 +83,21 @@ call function_readln
 mov dword [ebp-8], eax
 
 push eax
+call type_string_function_length
+add esp, 4
+cmp eax, dword 10
+jle function_run_L2
+push S5
+call function_println_1
+add esp, 4
+jmp function_run_L1
+function_run_L2:
+push S4
+call function_println_1
+add esp, 4
+function_run_L1: 
+
+push dword [ebp-8]
 call function_print_0
 add esp, 4
 
@@ -117,14 +129,10 @@ push eax
 call function_println_0
 add esp, 4
 
-push S4
-call function_println_1
-add esp, 4
-
-function_run_L1:
+function_run_L3:
 mov eax, dword [ebp-32]
 cmp eax, dword 100
-jge function_run_L2
+jge function_run_L4
 mov ebx, dword [ebp-24]
 add ebx, dword [ebp-28]
 mov dword [ebp-36], ebx
@@ -140,15 +148,32 @@ add esp, 4
 mov eax, dword [ebp-32]
 add eax, dword 1
 mov dword [ebp-32], eax
-jmp function_run_L1
-function_run_L2:
+jmp function_run_L3
+function_run_L4:
+
+function_run_L5:
+mov dword [ebp-4], dword 0
+function_run_L6:
+mov eax, dword [ebp-4]
+cmp eax, dword 10
+jge function_run_L7
+push eax
+call function_to_string
+add esp, 4
+push eax
+call function_println_0
+add esp, 4
+mov eax, dword [ebp-4]
+add eax, dword 1
+mov dword [ebp-4], eax
+jmp function_run_L6
+function_run_L7:
+call function_readln
+jmp function_run_L5
 
 mov esp, ebp
 pop ebp
 ret
-
-
-extern function_allocate
 
 
 extern function_copy_0
@@ -415,7 +440,7 @@ push dword 8
 call function_allocate
 add esp, 4
 push eax
-push S5
+push S6
 push eax
 call type_string_constructor
 add esp, 8
@@ -426,7 +451,7 @@ push dword 8
 call function_allocate
 add esp, 4
 push eax
-push S6
+push S7
 push eax
 call type_string_constructor
 add esp, 8
@@ -440,7 +465,7 @@ push dword 8
 call function_allocate
 add esp, 4
 push eax
-push S7
+push S8
 push eax
 call type_string_constructor
 add esp, 8
@@ -626,9 +651,10 @@ section .data
 S1 db 'Hello ', 0
 S2 db 'World!', 0
 S3 db 'Power: ', 0
-S4 db 'esfijsfjosfsf', 0
-S5 db '', 0
+S4 db '<= 10', 0
+S5 db '> 10', 0
 S6 db '', 0
-S7 db '-', 0
+S7 db '', 0
+S8 db '-', 0
 
 

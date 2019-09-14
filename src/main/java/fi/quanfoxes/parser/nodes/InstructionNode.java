@@ -13,4 +13,9 @@ public class InstructionNode extends Node {
     public Keyword getInstruction() {
         return instruction;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.INSTRUCTION_NODE;
+    }
 }

@@ -17,7 +17,7 @@ import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.UnresolvedType;
 import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.VariableType;
-import fi.quanfoxes.parser.nodes.LinkNode;
+import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.TypeNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
@@ -58,7 +58,7 @@ public class MemberVariablePattern extends Pattern {
 
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
-            return (node instanceof LinkNode) || (node instanceof TypeNode);
+            return node.getNodeType() == NodeType.TYPE_NODE || node.getNodeType() == NodeType.LINK_NODE;
         }
 
         return true;
@@ -89,7 +89,7 @@ public class MemberVariablePattern extends Pattern {
         if (token.getType() == TokenType.DYNAMIC) {
             Node node = ((DynamicToken)token).getNode();
             
-            if (node instanceof TypeNode) {
+            if (node.getNodeType() == NodeType.TYPE_NODE) {
                 TypeNode type = (TypeNode)node;
                 return type.getType();
             }

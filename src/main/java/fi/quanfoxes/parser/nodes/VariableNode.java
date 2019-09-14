@@ -20,5 +20,10 @@ public class VariableNode extends Node implements Contextable {
     @Override
     public Context getContext() throws Exception {
         return variable.getType();
-	}
+    }
+    
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.VARIABLE_NODE;
+    }
 }

@@ -18,4 +18,9 @@ public class ElseNode extends Node {
     public Context getContext() {
         return context;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.ELSE_NODE;
+    }
 }

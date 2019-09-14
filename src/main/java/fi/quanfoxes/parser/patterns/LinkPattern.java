@@ -76,6 +76,6 @@ public class LinkPattern extends Pattern {
             right = Singleton.getUnresolved(environment, tokens.get(RIGHT));
         }
 
-        return new LinkNode().setOperands(left, right);
+        return new LinkNode(left, right);
     }
 }

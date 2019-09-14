@@ -40,4 +40,9 @@ public class CastNode extends Node implements Contextable, Resolvable {
 
         return null;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.CAST_NODE;
+    }
 }

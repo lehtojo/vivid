@@ -42,13 +42,16 @@ function_copy_0:
 ; esp+4: source
 ; esp+0: return address
 
-mov edi, [esp+12]
-mov ecx, [esp+8]
-mov esi, [esp+4]
+pop ebx
+pop esi
+pop ecx
+pop edi
 
 rep movsb
 
-ret
+sub esp, 12
+
+jmp ebx
 
 global function_copy_1:function
 function_copy_1:
@@ -60,11 +63,55 @@ function_copy_1:
 ; esp+4: source
 ; esp+0: return address
 
-mov edi, [esp+12]
-add edi, [esp+16]
-mov ecx, [esp+8]
-mov esi, [esp+4]
+pop ebx
+pop esi
+pop ecx
+pop edi
+pop edx
+add edi, edx
 
 rep movsb
 
-ret
+sub esp, 16
+
+jmp ebx
+
+global function_zero:function
+function_zero:
+
+; Parameters
+; esp+8: count
+; esp+4: destination
+; esp+0: return address
+
+pop ebx
+pop edi
+pop ecx
+
+xor al, al
+
+rep stos
+
+sub esp, 8
+
+jmp ebx
+
+global function_fill:function
+function_fill:
+
+; Parameters
+; esp+12: value
+; esp+8: count
+; esp+4: destination
+; esp+0: return address
+
+pop ebx
+pop edi
+pop ecx
+pop eax
+
+rep stos
+
+sub esp, 12
+
+jmp ebx

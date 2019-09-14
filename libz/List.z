@@ -1,0 +1,67 @@
+type List<T>
+{
+    private link elements
+
+    private ulong capacity
+    private ulong batch
+
+    private ulong position 
+
+    init(num capacity)
+    {
+        this.elements = new T[capacity]
+        this.capacity = capacity
+        this.batch = capacity
+        this.position = 0
+    }
+
+    init()
+    {
+        this.elements = 0
+        this.capacity = 0
+        this.batch = -1
+        this.position = 0
+    }
+
+    private func grow()
+    {
+        if (batch < 0)
+        {
+            link memory = allocate(capacity * 2)
+            copy(elements, capacity, memory)
+            free(elements)
+
+            elements = memory
+            capacity = capacity * 2
+        }
+        else
+        {
+            link memory = allocate(capacity + batch)
+            copy(elements, capacity, memory)
+            free(elements)
+
+            elements = memory
+            capacity = capacity + batch
+        }
+    }
+
+    func add(T element)
+    {
+        if (position == capacity)
+        {
+            grow()
+        }
+
+        elements[position++] = element
+    }
+
+    func take()
+    {
+        return elements[--position] -> T
+    }
+
+    func size()
+    {
+        return position
+    }
+}

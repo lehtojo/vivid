@@ -7,7 +7,7 @@ import fi.quanfoxes.parser.Function;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 
-public class FunctionBuilder {
+public class Functions {
     
     public static final String HEADER = "%s:" + "\n" +
                                          "push ebp" + "\n" +

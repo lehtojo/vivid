@@ -65,4 +65,9 @@ public class ReturnNode extends InstructionNode implements Resolvable {
         
         return null;
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.RETURN_NODE;
+    }
 }

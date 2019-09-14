@@ -72,4 +72,9 @@ public class UnresolvedFunction extends Node implements Resolvable {
     public Node resolve(Context context) throws Exception {
         return solve(context, context);
     }
+
+    @Override
+    public NodeType getNodeType() {
+        return NodeType.UNRESOLVED_FUNCTION;
+    }
 }
