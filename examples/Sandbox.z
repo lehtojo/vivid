@@ -1,3 +1,24 @@
+type Player
+{
+    num a
+    num b
+    num c
+
+    init(num d, num e)
+    {
+        a = d
+        b = e
+    }
+
+    func sum()
+    {
+        num sum = a + b
+        c = sum
+
+        return c
+    }
+}
+
 func run ()
 {
     string a = new string('Hello ')
@@ -41,6 +62,16 @@ func run ()
 
         i = i + 1
     }
+
+    var player
+
+    player = new Player(1, 4)
+    player.sum()
+
+    println(to_string(player.c))
+
+    # link mem = allocate(512)
+    # mem[1] = mem[0] + 1
 
     loop
     {

@@ -27,6 +27,10 @@ public class Aligner {
             }
         }
 
+        for (Function constructor : type.getConstructor().getFunctions()) {
+            Aligner.align(constructor, 4);
+        }
+
         for (Type subtype : type.getTypes()) {
             Aligner.align(subtype);
         }

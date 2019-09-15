@@ -1,12 +1,13 @@
 #include <sys/mman.h>
 #include <system_error>
 
-char sum(char a, char b)
+int sum(int a, char c, short b)
 {
-    return a + b;
+    return a + b + c;
 }
 
 int main() 
 {
-    return sum(3, 5);
+    char c = 7;
+    return sum(3, 5, c);
 }

@@ -12,12 +12,48 @@ extern function_allocate
 extern function_integer_power
 
 
+; Member function '' of type 'Player'
+type_Player_constructor:
+push ebp
+mov ebp, esp
+mov eax, dword [ebp+12]
+mov edi, dword [ebp+8]
+mov dword [edi], eax
+
+mov ebx, dword [ebp+16]
+mov dword [edi+4], ebx
+
+mov esp, ebp
+pop ebp
+ret
+
+; Member function 'sum' of type 'Player'
+type_Player_function_sum:
+push ebp
+mov ebp, esp
+sub esp, 4
+mov esi, dword [ebp+8]
+mov eax, dword [esi]
+add eax, dword [esi+4]
+mov dword [ebp-4], eax
+
+mov dword [esi+8], eax
+
+mov esp, ebp
+pop ebp
+ret
+
+mov esp, ebp
+pop ebp
+ret
+
+
 ; Represents global function 'run'
 function_run:
 push ebp
 mov ebp, esp
-sub esp, 36
-push dword 8
+sub esp, 40
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -28,7 +64,7 @@ add esp, 8
 pop eax
 mov dword [ebp-4], eax
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -49,7 +85,7 @@ push eax
 call function_println_0
 add esp, 4
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -151,6 +187,31 @@ mov dword [ebp-32], eax
 jmp function_run_L3
 function_run_L4:
 
+
+push dword 12
+call function_allocate
+add esp, 4
+push eax
+push dword 4
+push dword 1
+push eax
+call type_Player_constructor
+add esp, 12
+pop eax
+mov dword [ebp-40], eax
+
+push eax
+call type_Player_function_sum
+add esp, 4
+
+mov ebx, dword [ebp-40]
+push dword [ebx+8]
+call function_to_string
+add esp, 4
+push eax
+call function_println_0
+add esp, 4
+
 function_run_L5:
 mov dword [ebp-4], dword 0
 function_run_L6:
@@ -232,7 +293,7 @@ push dword [eax]
 call function_copy_1
 add esp, 16
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -282,7 +343,7 @@ add ebx, dword 1
 lea esi, [ecx+ebx*1]
 mov byte [esi], byte 0
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -345,7 +406,7 @@ add esi, dword 1
 lea edi, [ecx+esi*1]
 mov byte [edi], byte 0
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -436,7 +497,7 @@ function_to_string:
 push ebp
 mov ebp, esp
 sub esp, 12
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -447,7 +508,7 @@ add esp, 8
 pop eax
 mov dword [ebp-4], eax
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -461,7 +522,7 @@ mov dword [ebp-8], eax
 mov ebx, dword [ebp+8]
 cmp ebx, dword 0
 jge function_to_string_L1
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -588,7 +649,7 @@ ret
 function_println_1:
 push ebp
 mov ebp, esp
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax
@@ -627,7 +688,7 @@ push eax
 call function_sys_read
 add esp, 8
 
-push dword 8
+push dword 4
 call function_allocate
 add esp, 4
 push eax

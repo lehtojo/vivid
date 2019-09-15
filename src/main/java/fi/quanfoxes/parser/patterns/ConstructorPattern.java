@@ -97,6 +97,7 @@ public class ConstructorPattern extends Pattern {
 	@Override
 	public Node build(Context context, List<Token> tokens) throws Exception {
         int modifiers = getModifiers(tokens);
+        
         ContentToken parameters = getParameters(tokens);
         List<Token> body = getBody(tokens).getTokens();
 
@@ -109,7 +110,7 @@ public class ConstructorPattern extends Pattern {
         Constructor constructor = new Constructor(context, modifiers);
 
         if (parameters != null) {
-            constructor.setParameters(Singleton.getContent(context, parameters));
+            constructor.setParameters(Singleton.getContent(constructor, parameters));
         }
 
         type.addConstructor(constructor);

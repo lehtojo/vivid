@@ -30,7 +30,7 @@ public class Memory {
             return instructions;
         }
 
-        System.out.println("Error: Too complex relocation");
+        System.err.println("ERROR: Too complex relocation");
         return null;
     }
 
@@ -107,6 +107,7 @@ public class Memory {
     /**
      * Clears the register using xor instruction. If the register contains a value, it's relocated only if it's critical
      * @param register Register to clear
+     * @param zero Should the register be zeroed out with xor instruction
      * @return Instructions for clearing the register properly
      */
 	public static Instructions clear(Unit unit, Register register, boolean zero) {

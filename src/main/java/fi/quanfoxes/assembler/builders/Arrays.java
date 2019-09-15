@@ -16,6 +16,11 @@ import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.OperatorNode;
 
 public class Arrays {
+    /**
+     * Converts reference to string format that is compatible with lea instruction
+     * @param reference Reference to convert to string
+     * @return Reference represented in string format
+     */
     private static String toString(Reference reference) {
         switch (reference.getType()) {
 
@@ -58,6 +63,11 @@ public class Arrays {
         return String.format("[%s+%s*%d]", toString(object), toString(index), stride);
     }
 
+    /**
+     * Returns the stride between elements of the given type
+     * @param type Type of the elements
+     * @return Stride between the elements in an array
+     */
     private static Size getStride(Type type) {
         return type == Types.LINK ? Size.BYTE : Size.get(type.getSize());
     }

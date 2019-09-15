@@ -207,6 +207,10 @@ public class Unit {
                 return Labels.build(this, (LabelNode)node);
             }
 
+            case LINK_NODE: {
+                return Link.build(this, (LinkNode)node, ReferenceType.READ);
+            }
+
             default: {
                 Instructions bundle = new Instructions();
                 Node iterator = node.first();
