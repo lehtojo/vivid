@@ -34,14 +34,14 @@ public class Patterns {
      * @return Existing or created branch
      */
     private Patterns getOrGrowBranch(int branch) {
-        if (branches.containsKey(branch)) {
-            return branches.get(branch);
+        Patterns patterns = branches.get(branch);
+
+        if (patterns == null) {
+            patterns = new Patterns();
+            branches.put(branch, patterns);         
         }
-        else {
-            Patterns patterns = new Patterns();
-            branches.put(branch, patterns);
-            return patterns;
-        }
+
+        return patterns;
     }
 
     /**
@@ -82,11 +82,7 @@ public class Patterns {
      * @return Success: Reference to the navigated branch, Failure: null
      */
     public Patterns navigate(int type) {
-        if (branches.containsKey(type)) {
-            return branches.get(type);
-        }
-
-        return null;
+        return branches.get(type);
     }
 
     /**

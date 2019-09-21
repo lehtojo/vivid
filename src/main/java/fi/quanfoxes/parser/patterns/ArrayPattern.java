@@ -105,7 +105,7 @@ public class ArrayPattern extends Pattern {
                 return new UnresolvedType(context, (Resolvable)node);
             }
     
-            throw new Exception("Node must be resolvable");
+            throw Errors.get(tokens.get(NAME).getPosition(), "Couldn't resolve the type of the variable");
         }
         else {
             IdentifierToken id = (IdentifierToken)token;

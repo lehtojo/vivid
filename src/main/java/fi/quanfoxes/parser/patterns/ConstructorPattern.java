@@ -102,7 +102,7 @@ public class ConstructorPattern extends Pattern {
         List<Token> body = getBody(tokens).getTokens();
 
         if (!context.isType()) {
-            throw Errors.get(tokens.get(0).getPosition(), "Constructor must be inside of a type");
+            throw Errors.get(tokens.get(INIT).getPosition(), "Constructor must be inside of a type");
         }
         
         Type type = (Type)context;

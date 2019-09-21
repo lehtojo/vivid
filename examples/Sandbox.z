@@ -19,6 +19,17 @@ type Player
     }
 }
 
+func yeet()
+{
+    num a = 0
+    num b = 0
+
+    loop
+    {
+        b = a + a
+    }
+}
+
 func run ()
 {
     string a = new string('Hello ')
@@ -72,6 +83,8 @@ func run ()
 
     # link mem = allocate(512)
     # mem[1] = mem[0] + 1
+
+    
 
     loop
     {

@@ -178,6 +178,10 @@ public class Parser {
         }
     }
 
+    public static void hull(Node parent, Context context, List<Token> tokens) throws Exception {
+        Parser.parse(parent, context, tokens, Parser.MEMBERS, Parser.MAX_PRIORITY);
+    }
+
     public static Context initialize() throws Exception {
         Context context = new Context();
         Types.inject(context);

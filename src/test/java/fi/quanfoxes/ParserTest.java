@@ -5,6 +5,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Parser;
 import fi.quanfoxes.parser.Variable;
+import fi.quanfoxes.parser.VariableType;
 import fi.quanfoxes.parser.nodes.*;
 import org.junit.Test;
 
@@ -97,7 +98,7 @@ public class ParserTest {
         Node root = new Node();
 
         // short mass
-        Variable variable = new Variable(context, context.getType("short"), "mass", AccessModifier.PUBLIC);
+        Variable variable = new Variable(context, Types.SHORT, VariableType.LOCAL, "mass", AccessModifier.PUBLIC);
         VariableNode mass = new VariableNode(variable);
 
         // -777 * 2

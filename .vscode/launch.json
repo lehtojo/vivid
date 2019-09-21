@@ -4,20 +4,12 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Debug",
-            "request": "launch",
-            "mainClass": "fi.quanfoxes.Main",
-            "projectName": "gz",
-            "preLaunchTask": "Build"
-        },
-        {
-            "type": "java",
             "name": "Debug (Arguments)",
             "request": "launch",
             "mainClass": "fi.quanfoxes.Main",
             "projectName": "gz",
             "preLaunchTask": "Build",
-            "args": "examples/Sandbox.z libz/String.z libz/Console.z"
+            "args": "examples libz/String.z libz/Console.z --asm --debug"
         },
         {
             "type": "java",
