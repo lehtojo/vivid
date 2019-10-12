@@ -9,14 +9,18 @@ import fi.quanfoxes.phases.ResolverPhase;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 public class Main {
 
-    public static void main(String[] arguments) {
+    public static void main(String[] arguments) throws InterruptedException {
+        
+        long a = System.nanoTime();
 
         // Create thread pool for multi-threading
         Runtime runtime = Runtime.getRuntime();
-        ExecutorService executors = Executors.newFixedThreadPool(runtime.availableProcessors());
+        ThreadFactory factory = Executors.privilegedThreadFactory();
+        ExecutorService executors = Executors.newFixedThreadPool(runtime.availableProcessors(), factory);
         
         // Configure the flow of the compiler
         Chain chain = new Chain
@@ -38,6 +42,9 @@ public class Main {
         // Execute the chain
         chain.execute(bundle);
         executors.shutdown();
+
+        long b = System.nanoTime();
+        System.out.println((b - a) / 1000000000.0f);
 
         System.exit(0);
     }

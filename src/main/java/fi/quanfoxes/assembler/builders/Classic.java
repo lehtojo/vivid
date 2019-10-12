@@ -4,6 +4,7 @@ import fi.quanfoxes.assembler.*;
 import fi.quanfoxes.assembler.builders.References.ReferenceType;
 import fi.quanfoxes.assembler.references.RegisterReference;
 import fi.quanfoxes.lexer.Operators;
+import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Type;
 import fi.quanfoxes.parser.nodes.OperatorNode;
 
@@ -11,10 +12,15 @@ public class Classic {
 
     private static Type getOperationType(OperatorNode node) {
         try {
-            return (Type)node.getContext();
+            Context context = node.getContext();
+
+            if (context == null) {
+                throw new Exception("Couldn't resolve operation result type");
+            }
+            return (Type)context;
         }
         catch (Exception e) {
-            System.err.println("Error: " + e.toString());
+            System.err.println("Error: " + e.getMessage());
             System.exit(-1);
             return null;
         }
@@ -98,7 +104,7 @@ public class Classic {
             return Classic.build(unit, "and", node);
         }
         else if (node.getOperator() == Operators.EXTENDER) {
-            return Arrays.build(unit, node);
+            return Arrays.build(unit, node, ReferenceType.READ);
         }
         else if (node.getOperator() == Operators.MODULUS) {
             return Classic.divide(unit, "idiv", node, true);

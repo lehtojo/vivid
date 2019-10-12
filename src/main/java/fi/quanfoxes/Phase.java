@@ -135,4 +135,11 @@ public abstract class Phase {
             }
         }).findFirst().isPresent();
     }
+
+    /**
+     * Aborts the execution
+     */
+    public void abort() {
+        System.exit(1);
+    }
 }

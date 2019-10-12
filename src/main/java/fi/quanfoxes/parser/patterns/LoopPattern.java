@@ -63,17 +63,21 @@ public class LoopPattern extends Pattern {
             iterator = iterator.next();
         }
 
-        switch(count) {
-            case 0:
-                throw Errors.get(tokens.get(WHILE).getPosition(), "While parenthesis cannot be empty");
-            case 1:
+        switch (count) {
+            case 0: {
+                throw Errors.get(tokens.get(WHILE).getPosition(), "Loop parenthesis cannot be empty");
+            }
+            case 1: {
                 steps.insert(steps.first(), new Node());
                 steps.add(new Node());
                 return steps;
-            case 2:
+            }           
+            case 2: {
                 steps.insert(steps.first(), new Node());
-            default:
+            }       
+            default: {
                 return steps;
+            }             
         }
     }
 

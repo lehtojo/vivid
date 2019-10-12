@@ -27,6 +27,7 @@ public class AssemblerPhase extends Phase {
 
     private static final String LINKER_PLATFORM = "-m elf_i386";
     private static final String LINKER_STANDARD_LIBRARY = "libz.o";
+    private static final String LINKER_LIBRARY_PATH = "-L.";
 
     private static final String ERROR = "Internal assembler failed";
 
@@ -81,6 +82,13 @@ public class AssemblerPhase extends Phase {
         arguments.add(String.format("-o %s", output));
         arguments.add(input);
         arguments.add(LINKER_STANDARD_LIBRARY);
+        arguments.add(LINKER_LIBRARY_PATH);
+
+        String[] libraries = bundle.get("libraries", new String[] {});
+
+        for (String library : libraries) {
+            arguments.add("-l" + library);
+        }
 
         return run(arguments);
     }

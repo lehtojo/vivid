@@ -34,6 +34,42 @@ public class ConfigurationPhase extends Phase {
 
     private Status configure(Bundle bundle, String option, Queue<String> parameters) {
         switch (option) {
+            case "-help":
+            case "--help": {
+                String[][] options = 
+                {
+                    { "-help / --help",                         "Displays this information" },
+                    { "-r <folder> / --recursive <folder>",     "Includes source files (.z) from the given folder and its subfolders"},
+                    { "-d / --debug",                           "Generates the output binary with debug info" },
+                    { "-o <filename> / --output <filename>",    "Sets the output filename (Default: z.asm, z.o, z, ...)" },
+                    { "-l <library> / --library <library>",     "Includes a library to the compilation process" },
+                    { "--asm",                                  "Exports the generated assembly to a file" },
+                    { "--shared",                               "Sets the output type to shared library (.so)" },
+                    { "--static",                               "Sets the output type to static library (.a)"}, 
+                    { "-st / --single-thread",                  "Compiles on a single thread instead of multiple threads" },
+                    { "-q / --quiet",                           "Suppresses the console output" }
+                };
+
+                StringBuilder builder = new StringBuilder();
+
+                for (String[] row : options) {
+                    String name = row[0];
+                    String description = row[1];
+
+                    builder.append(String.format("\t%-40s%s\n", name, description));
+                }
+
+                System.out.println
+                (
+                    "Usage: zz [options] <folders / files>" + "\n" +
+                    "Options:" + "\n" +
+                    builder.toString()
+                );
+
+                abort();
+                return Status.OK;
+            }
+
             case "-r":
             case "--recursive": {
                 String folder = parameters.poll();
@@ -110,24 +146,6 @@ public class ConfigurationPhase extends Phase {
         }
     }
 
-    private String getAvailableOutputFilename() {
-        if (!new File(DEFAULT_OUTPUT).exists()) {
-            return DEFAULT_OUTPUT;
-        }
-
-        int i = 1;
-
-        while (true) {
-            String filename = String.format("%s-%d", DEFAULT_OUTPUT, i++);
-
-            if (!new File(filename).exists() && 
-                !new File(filename + ".o").exists() &&
-                !new File(filename + ".asm").exists()) {
-                return filename;
-            }
-        }
-    }
-
     private boolean isOption(String element) {
         return element.charAt(0) == '-';
     }
@@ -175,7 +193,7 @@ public class ConfigurationPhase extends Phase {
         bundle.put("libraries", libraries.toArray(new String[libraries.size()]));
 
         if (!bundle.has("output")) {
-            bundle.put("output", getAvailableOutputFilename());
+            bundle.put("output", DEFAULT_OUTPUT);
         }
 
         return Status.OK;

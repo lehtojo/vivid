@@ -6,6 +6,7 @@ import fi.quanfoxes.parser.Context;
 import fi.quanfoxes.parser.Contextable;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Resolver;
+import fi.quanfoxes.parser.Type;
 
 public class OperatorNode extends Node implements Contextable {
     private Operator operator;
@@ -33,31 +34,43 @@ public class OperatorNode extends Node implements Contextable {
     }
 
     private Context getClassicContext() throws Exception {
-        Context left;
+        Type left;
 
         if (getLeft() instanceof Contextable) {
             Contextable contextable = (Contextable)getLeft();
-            left = contextable.getContext();
+            Context context = contextable.getContext();
+
+            if (!context.isType()) {
+                return null;
+            }
 
             if (!((ClassicOperator)operator).isSharedContext()) {
-                return left;
+                return (Type)context;
             }
+
+            left = (Type)context;
         }
         else {
             return null;
         }
 
-        Context right;
+        Type right;
 
         if (getRight() instanceof Contextable) {
             Contextable contextable = (Contextable)getRight();
-            right = contextable.getContext();
+            Context context = contextable.getContext();
+
+            if (!context.isType()) {
+                return null;
+            }
+
+            right = (Type)context;
         }
         else {
             return null;
         }
 
-        return Resolver.getSharedContext(left, right);
+        return Resolver.getSharedType(left, right);
     }
 
     private Context getComparisonContext() {

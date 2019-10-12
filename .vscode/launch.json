@@ -9,7 +9,7 @@
             "mainClass": "fi.quanfoxes.Main",
             "projectName": "gz",
             "preLaunchTask": "Build",
-            "args": "examples libz/String.z libz/Console.z --asm --debug"
+            "args": "examples libz/String.z libz/Console.z --asm -l Hello --debug"
         },
         {
             "type": "java",

@@ -1,14 +1,9 @@
-#include <sys/mman.h>
-#include <system_error>
-#include <map>
+#include <iostream>
 
-int sum(int a, char c, short b)
+extern "C"
 {
-    return a + b + c;
-}
-
-int main() 
-{
-    char c = 7;
-    return sum(3, 5, c);
+    void function_hello()
+    {
+        system("notify-send Hellooo...");
+    }
 }

@@ -72,7 +72,7 @@ public class Arrays {
         return type == Types.LINK ? Size.BYTE : Size.get(type.getSize());
     }
 
-    public static Instructions build(Unit unit, OperatorNode node) {
+    public static Instructions build(Unit unit, OperatorNode node, ReferenceType reference) {
         Instructions instructions = new Instructions();
 
         Reference[] operands = References.get(unit, instructions, node.getLeft(), node.getRight(), ReferenceType.VALUE, ReferenceType.VALUE);
@@ -96,6 +96,15 @@ public class Arrays {
 
         instructions.append(Memory.clear(unit, register, false));
         instructions.append("lea %s, %s", register, Arrays.combine(left, right, stride.getBytes()));
+
+        if (reference == ReferenceType.REGISTER || reference == ReferenceType.VALUE) {
+            Instructions move = Memory.toRegister(unit, new MemoryReference(register, 0, stride));
+            instructions.append(move);
+
+            Value value = Value.getOperation(move.getReference().getRegister(), stride);
+            
+            return instructions.setReference(value);
+        }
 
         register.attach(Value.getOperation(register, stride));
 

@@ -2,12 +2,15 @@ package fi.quanfoxes.assembler.builders;
 
 import fi.quanfoxes.assembler.*;
 import fi.quanfoxes.assembler.references.*;
+import fi.quanfoxes.lexer.Operator;
+import fi.quanfoxes.lexer.Operators;
 import fi.quanfoxes.parser.Node;
 import fi.quanfoxes.parser.Variable;
 import fi.quanfoxes.parser.nodes.FunctionNode;
 import fi.quanfoxes.parser.nodes.LinkNode;
 import fi.quanfoxes.parser.nodes.NodeType;
 import fi.quanfoxes.parser.nodes.NumberNode;
+import fi.quanfoxes.parser.nodes.OperatorNode;
 import fi.quanfoxes.parser.nodes.StringNode;
 import fi.quanfoxes.parser.nodes.VariableNode;
 
@@ -177,6 +180,18 @@ public class References {
 
             case STRING_NODE: {
                 return getStringReference(unit, (StringNode)node, type);
+            }
+
+            case CAST_NODE: {
+                return References.get(unit, node.first(), type);
+            }
+
+            case OPERATOR_NODE: {
+                OperatorNode operator = (OperatorNode)node;
+
+                if (operator.getOperator() == Operators.EXTENDER) {
+                    return Arrays.build(unit, operator, type);
+                }
             }
 
             default: {

@@ -5,12 +5,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>quanfoxes</groupId>
-  <artifactId>gz</artifactId>
+  <artifactId>zz</artifactId>
   <version>1.0</version>
 
-  <name>gz</name>
-  <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
+  <name>zz</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
