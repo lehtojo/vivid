@@ -1,14 +1,14 @@
-public class JumpNode : Node 
+public class JumpNode : Node
 {
-    public Label Label { get; private set; }
+	public Label Label { get; private set; }
 
-    public JumpNode(Label label) 
+	public JumpNode(Label label)
 	{
-        Label = label;
-    }
-  
-    public override NodeType GetNodeType() 
+		Label = label;
+	}
+
+	public override NodeType GetNodeType()
 	{
-        return NodeType.JUMP_NODE;
-    }
+		return NodeType.JUMP_NODE;
+	}
 }

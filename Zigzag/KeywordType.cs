@@ -1,6 +1,6 @@
 public enum KeywordType
 {
-    ACCESS_MODIFIER,
-    FLOW,
-    NORMAL
+	ACCESS_MODIFIER,
+	FLOW,
+	NORMAL
 }

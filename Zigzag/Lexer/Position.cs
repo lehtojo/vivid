@@ -19,7 +19,7 @@
 	{
 		return new Position(a.Line + b.Line, a.Character + b.Character, a.Absolute + b.Absolute);
 	}
-	
+
 	public Position NextLine()
 	{
 		Line++;
@@ -34,7 +34,7 @@
 		Absolute++;
 		return this;
 	}
-	
+
 	public Position Clone()
 	{
 		return new Position(Line, Character, Absolute);

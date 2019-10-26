@@ -6,7 +6,7 @@ public class JumpPattern : Pattern
 	private const int GOTO = 0;
 	private const int LABEL = 1;
 
-	public JumpPattern() : base(TokenType.KEYWORD, TokenType.IDENTIFIER) {}
+	public JumpPattern() : base(TokenType.KEYWORD, TokenType.IDENTIFIER) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

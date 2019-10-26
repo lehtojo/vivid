@@ -6,7 +6,7 @@ public class ContentPattern : Pattern
 
 	private const int CONTENT = 0;
 
-	public ContentPattern() : base(TokenType.CONTENT) {}
+	public ContentPattern() : base(TokenType.CONTENT) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

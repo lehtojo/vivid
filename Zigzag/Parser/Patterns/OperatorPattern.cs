@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class OperatorPattern : Pattern
 {
@@ -14,7 +14,7 @@ public class OperatorPattern : Pattern
 			  TokenType.OPERATOR, /* Operator */
 			  TokenType.END | TokenType.OPTIONAL, /* [\n] */
 			  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC) /* Function / Variable / Number / (...) */
-	{}
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{

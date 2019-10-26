@@ -56,7 +56,7 @@ public class UnarySignPattern : Pattern
 
 		return node;
 	}
-	
+
 	public override int GetStart()
 	{
 		return SIGN;

@@ -34,7 +34,7 @@ public class Patterns
 
 		return patterns;
 	}
-	
+
 	private void Grow(Pattern pattern, List<int> path, List<int> missing, int position)
 	{
 		if (position >= path.Count)
@@ -66,7 +66,7 @@ public class Patterns
 			}
 		}
 	}
-	
+
 	public Patterns Navigate(int type)
 	{
 		return Branches.GetValueOrDefault(type, null);
@@ -81,28 +81,28 @@ public class Patterns
 
 	static Patterns()
 	{
-        Add(new ArrayPattern());
-        Add(new CastPattern());
-        Add(new ConstructionPattern());
-        Add(new ConstructorPattern());
-        Add(new ContentPattern());
-        Add(new ElsePattern());
-        Add(new ExtendedTypePattern());
-        Add(new ExternalFunctionPattern());
-        Add(new IfPattern());
-        Add(new InstructionPattern());
-        Add(new JumpPattern());
-        Add(new LabelPattern());
-        Add(new LinkPattern());
-        Add(new MemberFunctionPattern());
-        Add(new MemberVariablePattern());
-        Add(new OffsetPattern());
-        Add(new OperatorPattern());
-        Add(new ReturnPattern());
-        Add(new SingletonPattern());
-        Add(new TypePattern());
-        Add(new UnarySignPattern());
-        Add(new VariablePattern());
-        Add(new LoopPattern());
-    }
+		Add(new ArrayPattern());
+		Add(new CastPattern());
+		Add(new ConstructionPattern());
+		Add(new ConstructorPattern());
+		Add(new ContentPattern());
+		Add(new ElsePattern());
+		Add(new ExtendedTypePattern());
+		Add(new ExternalFunctionPattern());
+		Add(new IfPattern());
+		Add(new InstructionPattern());
+		Add(new JumpPattern());
+		Add(new LabelPattern());
+		Add(new LinkPattern());
+		Add(new MemberFunctionPattern());
+		Add(new MemberVariablePattern());
+		Add(new OffsetPattern());
+		Add(new OperatorPattern());
+		Add(new ReturnPattern());
+		Add(new SingletonPattern());
+		Add(new TypePattern());
+		Add(new UnarySignPattern());
+		Add(new VariablePattern());
+		Add(new LoopPattern());
+	}
 }

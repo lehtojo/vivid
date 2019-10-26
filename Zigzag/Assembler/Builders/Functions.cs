@@ -3,7 +3,7 @@ public class Functions
 
 	public const string HEADER = "{0}:" + "\n" +
 								 "push ebp" + "\n" +
-								 "mov ebp, esp";
+								 "mov ebp, esp" + "\n";
 
 	public const string RESERVE = "sub esp, {0}";
 
@@ -18,21 +18,25 @@ public class Functions
 
 		if (Flag.Has(function.Modifiers, AccessModifier.EXTERNAL))
 		{
-			builder.Append("extern {0}", function.Fullname);
+			builder.Append("extern {0}", function.GetFullname());
 			return builder.ToString();
 		}
 
 		if (function.IsGlobal)
 		{
-			builder.comment("Represents global function '{0}'", function.Name);
+			builder.Comment($"Represents global function '{function.Name}'");
+		}
+		else if (function is Constructor constructor)
+		{
+			builder.Comment($"Constructor of type {constructor.GetTypeParent().Name}");
 		}
 		else
 		{
-			builder.comment("Member function '{0}' of type '{1}'", function.Name, function.GetTypeParent().Name);
+			builder.Comment($"Member function '{function.Name}' of type '{function.GetTypeParent().Name}'");
 		}
 
 		// Append the function stack frame
-		builder.Append(HEADER, function.Fullname);
+		builder.Append(HEADER, function.GetFullname());
 
 		// Add instructions for local variables
 		int memory = function.LocalMemorySize;
@@ -42,7 +46,7 @@ public class Functions
 			builder.Append(RESERVE, memory);
 		}
 
-		Unit unit = new Unit(function.Fullname);
+		Unit unit = new Unit(function.GetFullname());
 
 		// Assemble the body of this function
 		Node iterator = node.Body.First;

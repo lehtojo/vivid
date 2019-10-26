@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System;
 
 public class ConfigurationPhase : Phase
 {
@@ -36,7 +36,7 @@ public class ConfigurationPhase : Phase
 
 		public override string ToString()
 		{
-			return $"\t{Command, -40}{Description}\n";
+			return $"\t{Command,-40}{Description}\n";
 		}
 	};
 
@@ -59,7 +59,7 @@ public class ConfigurationPhase : Phase
 					new Option() { Command = "--static",                               Description = "Sets the output type to static library (.a)"},
 					new Option() { Command = "-st / --single-thread",                  Description = "Compiles on a single thread instead of multiple threads" },
 					new Option() { Command = "-q / --quiet",                           Description = "Suppresses the console output" }
-				};		
+				};
 
 				Console.WriteLine
 				(
@@ -154,6 +154,12 @@ public class ConfigurationPhase : Phase
 				return Status.OK;
 			}
 
+			case "--time":
+			{
+				bundle.PutBool("time", true);
+				return Status.OK;
+			}
+
 			default:
 			{
 				return Status.Error("Unknown option");
@@ -165,7 +171,7 @@ public class ConfigurationPhase : Phase
 	{
 		return element[0] == '-';
 	}
-	
+
 	public override Status Execute(Bundle bundle)
 	{
 		string[] arguments = bundle.Get<string[]>("arguments", null);

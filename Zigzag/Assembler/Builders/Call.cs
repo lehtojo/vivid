@@ -119,7 +119,7 @@ public class Call
 		Type result = function.ReturnType;
 
 		// Call the function
-		instructions.Append(new Instruction(string.Format("call {0}", function.Fullname)));
+		instructions.Append(new Instruction(string.Format("call {0}", function.GetFullname())));
 
 		if (result != null)
 		{

@@ -1,4 +1,32 @@
 using System.Text;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
+using System;
+
+public static class Lists
+{
+	public static IEnumerable<T> Each<T>(this IEnumerable<T> items, Action<T> action)
+	{
+		foreach (T item in items)
+		{
+			action(item);
+		}
+
+		return items;
+	}
+
+	public static IEnumerable<Task<T>> Wait<T>(this IEnumerable<Task<T>> items)
+	{
+		foreach (var item in items)
+		{
+			item.Wait();
+		}
+
+		return items;
+	}
+}
+
 public class Assembler
 {
 	private const string SECTION_TEXT = "section .text" + "\n" +
@@ -18,30 +46,45 @@ public class Assembler
 
 	private const string SECTION_DATA = "section .data";
 
+	private struct Fragement
+	{
+		public string Content { get; set; }
+		public bool Data { get; set; }
+	}
+
 	public static string Build(Node root, Context context)
 	{
-		Builder text = new Builder(SECTION_TEXT);
-		Builder data = Assembler.Data(root);
+		var text = new Builder(SECTION_TEXT);
+		var data = Assembler.Data(root);
 
-		Node iterator = root.First;
+		var iterator = root.First;
+
+		var fragments = new List<Task<Fragement>>();
 
 		while (iterator != null)
 		{
 			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
 			{
-				text.Append(Assembler.Build((TypeNode)iterator));
+				var type = iterator as TypeNode;
+				fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(type), Data = false }));
 			}
 			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
 			{
-				text.Append(Functions.Build((FunctionNode)iterator));
+				var function = iterator as FunctionNode;
+				fragments.Add(Task.Run(() => new Fragement { Content = Functions.Build(function), Data = false }));
 			}
 			else if (iterator.GetNodeType() == NodeType.VARIABLE_NODE)
 			{
-				data.Append(Assembler.Build((VariableNode)iterator));
+				var variable = iterator as VariableNode;
+				fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(variable), Data = true }));
 			}
 
 			iterator = iterator.Next;
 		}
+
+		fragments.Wait();
+		fragments.Where(t => !t.Result.Data).Each(t => text.Append(t.Result.Content));
+		fragments.Where(t => t.Result.Data).Each(t => data.Append(t.Result.Content));
 
 		return text + "\n" + data + "\n";
 	}
@@ -77,22 +120,28 @@ public class Assembler
 
 	private static string Build(TypeNode node)
 	{
-		StringBuilder text = new StringBuilder();
-		Node iterator = node.First;
+		var text = new StringBuilder();
+		var iterator = node.First;
+
+		var fragments = new List<Task<string>>();
 
 		while (iterator != null)
 		{
 			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
 			{
-				text = text.Append(Assembler.Build((TypeNode)iterator));
+				var type = iterator as TypeNode;
+				fragments.Add(Task.Run(() => Assembler.Build(type)));
 			}
 			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
 			{
-				text = text.Append(Functions.Build((FunctionNode)iterator));
+				var function = iterator as FunctionNode;
+				fragments.Add(Task.Run(() => Functions.Build(function)));
 			}
 
 			iterator = iterator.Next;
 		}
+
+		fragments.Wait().Each(t => text.Append(t.Result));
 
 		return text.ToString();
 	}

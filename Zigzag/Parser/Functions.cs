@@ -12,11 +12,11 @@ public class FunctionList
 
 		if (Instances.Count > 1)
 		{
-			Instances.First().Index = 0;
-			function.Index = Instances.Count - 1;
+			Instances.First().SetIndex(0);
+			function.SetIndex(Instances.Count - 1);
 		}
 	}
-	
+
 	public void Update()
 	{
 		foreach (Function function in Instances)
@@ -83,7 +83,7 @@ public class FunctionList
 
 			candidates.Add(candidate);
 
-			End:;
+		End:;
 		}
 
 		if (candidates.Count == 0)

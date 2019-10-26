@@ -13,11 +13,12 @@ public class Chain
 	{
 		foreach (var template in Phases)
 		{
-			bool multithreaded = bundle.Get("multithreaded", false);
+			bool multithreaded = bundle.Get("multithreaded", true);
 
 			try
 			{
 				Phase phase = Activator.CreateInstance(template) as Phase;
+				phase.Multithread = multithreaded;
 				phase.Execute(bundle);
 				phase.Sync();
 

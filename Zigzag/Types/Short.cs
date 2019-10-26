@@ -1,11 +1,11 @@
-public class Short : Number 
+public class Short : Number
 {
-    private const int BYTES = 2;
+	private const int BYTES = 2;
 
-    public Short() : base(NumberType.INT16, 16, "short") {}
+	public Short() : base(NumberType.INT16, 16, "short") { }
 
-    public override int GetSize() 
+	public override int GetSize()
 	{
-        return BYTES;
-    }
+		return BYTES;
+	}
 }

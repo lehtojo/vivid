@@ -10,7 +10,7 @@ public class ConstructionPattern : Pattern
 	// Pattern:
 	// new Type(...)
 	// new Type.Subtype(...)
-	public ConstructionPattern() : base(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.DYNAMIC) {}
+	public ConstructionPattern() : base(TokenType.KEYWORD, TokenType.FUNCTION | TokenType.DYNAMIC) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

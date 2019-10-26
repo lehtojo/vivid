@@ -17,7 +17,7 @@ public class FilePhase : Phase
 		{
 			int index = i;
 
-			Async(() =>
+			Run(() =>
 			{
 				string file = files[index];
 

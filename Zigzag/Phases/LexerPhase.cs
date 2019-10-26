@@ -1,5 +1,6 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class LexerPhase : Phase
 {
@@ -18,7 +19,7 @@ public class LexerPhase : Phase
 		{
 			int index = i;
 
-			Async(() =>
+			Run(() =>
 			{
 				string content = contents[index];
 

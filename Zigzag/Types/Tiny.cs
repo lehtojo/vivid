@@ -1,11 +1,11 @@
-public class Tiny : Number 
+public class Tiny : Number
 {
-    private const int BYTES = 1;
-    
-    public Tiny() : base(NumberType.INT8, 8, "tiny") {}
+	private const int BYTES = 1;
 
-    public override int GetSize() 
+	public Tiny() : base(NumberType.INT8, 8, "tiny") { }
+
+	public override int GetSize()
 	{
-        return BYTES;
-    }
+		return BYTES;
+	}
 }

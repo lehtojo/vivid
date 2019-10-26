@@ -4,28 +4,31 @@ public class Zigzag
 {
 	public static void Main(string[] arguments)
 	{
-		DateTime start = DateTime.Now;
+		var start = DateTime.Now;
 
 		// Configure the flow of the compiler
-		Chain chain = new Chain
+		var chain = new Chain
 		(
 			typeof(ConfigurationPhase),
-			typeof(FilePhase),                                
-            typeof(LexerPhase),
+			typeof(FilePhase),
+			typeof(LexerPhase),
 			typeof(ParserPhase),
 			typeof(ResolverPhase),
 			typeof(AssemblerPhase)
 		);
-        
-        // Pack the program arguments in the chain
-        Bundle bundle = new Bundle();
+
+		// Pack the program arguments in the chain
+		var bundle = new Bundle();
 		bundle.Put("arguments", arguments);
 
-        // Execute the chain
-        chain.Execute(bundle);
+		// Execute the chain
+		chain.Execute(bundle);
 
-		DateTime end = DateTime.Now;
+		var end = DateTime.Now;
 
-		Console.WriteLine((end - start).TotalMilliseconds);
+		if (bundle.Contains("time"))
+		{
+			Console.WriteLine($"Time: {(int)(end - start).TotalMilliseconds} ms");
+		}
 	}
 }

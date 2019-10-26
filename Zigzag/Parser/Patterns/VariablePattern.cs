@@ -9,7 +9,7 @@ public class VariablePattern : Pattern
 
 	// Pattern:
 	// Type / Type.Subtype ...
-	public VariablePattern() : base(TokenType.IDENTIFIER | TokenType.KEYWORD | TokenType.DYNAMIC, TokenType.IDENTIFIER) {}
+	public VariablePattern() : base(TokenType.IDENTIFIER | TokenType.KEYWORD | TokenType.DYNAMIC, TokenType.IDENTIFIER) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

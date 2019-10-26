@@ -1,8 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.IO;
-using System;
 
 public class AssemblerPhase : Phase
 {
@@ -23,10 +22,10 @@ public class AssemblerPhase : Phase
 
 	private const string ERROR = "Internal assembler failed";
 
-	private Status Run (string executable, List<string> arguments)
+	private Status Run(string executable, List<string> arguments)
 	{
 		ProcessStartInfo configuration = new ProcessStartInfo()
-		{	
+		{
 			FileName = executable,
 			Arguments = string.Join(' ', arguments),
 			WorkingDirectory = Environment.CurrentDirectory,
@@ -68,11 +67,7 @@ public class AssemblerPhase : Phase
 			input
 		});
 
-		Console.WriteLine("Starting...");
-
 		Status status = Run(COMPILER, arguments);
-
-		Console.WriteLine("Finished...");
 
 		if (delete)
 		{

@@ -15,9 +15,9 @@ public class Type : Context
 	public int Size => GetSize();
 
 	public List<Type> Supertypes { get; private set; } = new List<Type>();
-	private FunctionList Constructors { get; set; }  = new FunctionList();
-	private FunctionList Destructors { get; set; }  = new FunctionList();
-	
+	private FunctionList Constructors { get; set; } = new FunctionList();
+	private FunctionList Destructors { get; set; } = new FunctionList();
+
 	public void AddConstructor(Constructor constructor)
 	{
 		Constructor first = (Constructor)Constructors.Instances.First();
@@ -29,12 +29,12 @@ public class Type : Context
 
 		Constructors.Add(constructor);
 	}
-	
+
 	public void AddDestructor(Function destructor)
 	{
 		Destructors.Add(destructor);
 	}
-	
+
 	public FunctionList GetConstructors()
 	{
 		return Constructors;
@@ -45,11 +45,12 @@ public class Type : Context
 		return Destructors;
 	}
 
-	public Type(Context context, string name, int modifiers) : this(context, name, modifiers, new List<Type>()) {}
+	public Type(Context context, string name, int modifiers) : this(context, name, modifiers, new List<Type>()) { }
 
 	public Type(Context context, string name, int modifiers, List<Type> supertypes)
 	{
 		Name = name;
+		Prefix = "Type";
 		Modifiers = modifiers;
 		Supertypes = supertypes;
 
@@ -62,6 +63,7 @@ public class Type : Context
 	public Type(string name, int modifiers)
 	{
 		Name = name;
+		Prefix = "Type";
 		Modifiers = modifiers;
 
 		Constructors.Add(Constructor.Empty(this));
@@ -69,6 +71,8 @@ public class Type : Context
 
 	public Type(Context context)
 	{
+		Prefix = "Type";
+
 		Link(context);
 		Constructors.Add(Constructor.Empty(this));
 	}

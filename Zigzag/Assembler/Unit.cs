@@ -33,12 +33,12 @@ public class Unit
 {
 	public Register EAX { get; private set; }
 	public Register EBX { get; private set; }
-	public Register ECX	{ get; private set; }
-	public Register EDX	{ get; private set; }
-	public Register ESI	{ get; private set; }
-	public Register EDI	{ get; private set; }
-	public Register EBP	{ get; private set; }
-	public Register ESP	{ get; private set; }
+	public Register ECX { get; private set; }
+	public Register EDX { get; private set; }
+	public Register ESI { get; private set; }
+	public Register EDI { get; private set; }
+	public Register EBP { get; private set; }
+	public Register ESP { get; private set; }
 
 	public List<Register> Registers { get; private set; } = new List<Register>();
 
@@ -288,7 +288,7 @@ public class Unit
 			}
 		}
 	}
-	
+
 	public Unit Clone()
 	{
 		return new Unit(this);

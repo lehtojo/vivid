@@ -1,4 +1,4 @@
-public class Link : Type 
+public class Link : Type
 {
-    public Link() : base("link", AccessModifier.PUBLIC) {}
+	public Link() : base("link", AccessModifier.PUBLIC) { }
 }

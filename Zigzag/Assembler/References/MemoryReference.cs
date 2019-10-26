@@ -3,7 +3,7 @@ public class MemoryReference : Reference
 	private Register Register { get; set; }
 	private int Alignment { get; set; }
 
-	public MemoryReference(Register register, int alignment, int size) : this(register, alignment, Size.Get(size)) {}
+	public MemoryReference(Register register, int alignment, int size) : this(register, alignment, Size.Get(size)) { }
 
 	public MemoryReference(Register register, int alignment, Size size) : base(size)
 	{

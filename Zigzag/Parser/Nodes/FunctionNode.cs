@@ -8,7 +8,7 @@ public class FunctionNode : Node, Contextable
 	public Node Parameters => First;
 	public Node Body => Last;
 
-	public FunctionNode(Function function) : this(function, new List<Token>()) {}
+	public FunctionNode(Function function) : this(function, new List<Token>()) { }
 
 	public FunctionNode(Function function, List<Token> body)
 	{
@@ -38,7 +38,7 @@ public class FunctionNode : Node, Contextable
 
 		return this;
 	}
-	
+
 	public Type GetContext()
 	{
 		return Function.ReturnType;

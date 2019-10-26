@@ -6,7 +6,7 @@ public class Function : Context
 	public string Identifier => Index != -1 ? $"function_{Name}_{Index}" : $"function_{Name}";
 
 	public int Modifiers { get; set; }
-	public int Index { get; set; } = -1;
+	public int Index { get; private set; } = -1;
 
 	public new List<Variable> Variables => base.Variables.Values.Concat(Parameters).ToList();
 	public List<Variable> Parameters { get; private set; } = new List<Variable>();
@@ -19,23 +19,29 @@ public class Function : Context
 	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
 	public new bool IsGlobal => GetTypeParent() == null;
 	public bool IsMember => !IsGlobal;
-	
+
 	public Function(Context context, string name, int modifiers, Type result)
 	{
 		Name = name;
+		Prefix = "Function";
 		Modifiers = modifiers;
 		ReturnType = result;
 
 		Link(context);
 		context.Declare(this);
 	}
-	
+
 	public Function(Context context, int modifiers)
 	{
 		Modifiers = modifiers;
 		Link(context);
 	}
-	
+
+	public void SetIndex(int index)
+	{
+		Postfix = (Index = index) == -1 ? string.Empty : Index.ToString();
+	}
+
 	public override bool IsLocalVariableDeclared(string name)
 	{
 		return Parameters.Any(p => p.Name == name) || base.IsLocalVariableDeclared(name);
@@ -45,7 +51,7 @@ public class Function : Context
 	{
 		return Parameters.Any(p => p.Name == name) || base.IsVariableDeclared(name);
 	}
-	
+
 	public override Variable GetVariable(string name)
 	{
 		if (Parameters.Any(p => p.Name == name))
@@ -55,7 +61,7 @@ public class Function : Context
 
 		return base.GetVariable(name);
 	}
-	
+
 	public Function SetParameters(Node node)
 	{
 		VariableNode parameter = (VariableNode)node.First;

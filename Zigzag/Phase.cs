@@ -1,8 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Represents one phase in compilation
@@ -10,10 +9,10 @@ using System.Linq;
 public abstract class Phase
 {
 	private List<Task<Status>> Tasks = new List<Task<Status>>();
-	private bool Enabled = false;
+	public bool Multithread { get; set; }
 
 	public bool Failed => Tasks.Any(t => !t.IsCompleted || t.Result.IsProblematic);
-	
+
 	/// <summary>
 	/// Executes the phase with the given data 
 	/// </summary>
@@ -25,15 +24,15 @@ public abstract class Phase
 	/// Executes runnable on another thread if multithreading is enabled, otherwise executes locally
 	/// </summary>
 	/// <param name="task">Task to run</param>
-	public void Async(Func<Status> task)
+	public void Run(Func<Status> task)
 	{
-		if (Enabled)
+		if (Multithread)
 		{
 			Tasks.Add(Task.Run(task));
 		}
 		else
 		{
-			Status status = null;
+			Status status;
 
 			try
 			{

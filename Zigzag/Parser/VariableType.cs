@@ -1,7 +1,7 @@
-public enum VariableCategory 
+public enum VariableCategory
 {
-    GLOBAL,
-    LOCAL,
-    MEMBER,
-    PARAMETER
+	GLOBAL,
+	LOCAL,
+	MEMBER,
+	PARAMETER
 }

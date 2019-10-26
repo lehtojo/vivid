@@ -15,7 +15,7 @@ public class Builder
 		return this;
 	}
 
-	public Builder comment(string format, params object[] args)
+	public Builder Comment(string format, params object[] args)
 	{
 		Buffer = Buffer.Append("; ").Append(string.Format(format, args)).Append("\n");
 		return this;

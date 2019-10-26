@@ -9,7 +9,8 @@ public class ReturnPattern : Pattern
 	// Pattern:
 	// return ...
 	public ReturnPattern() : base(TokenType.KEYWORD, /* return */
-								  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC) /* ... */ {}
+								  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC) /* ... */
+	{ }
 
 
 	public override int GetPriority(List<Token> tokens)

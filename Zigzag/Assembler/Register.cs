@@ -70,7 +70,7 @@ public class Register
 	public void Reset()
 	{
 		Value = null;
-	}	
+	}
 
 	public override string ToString()
 	{

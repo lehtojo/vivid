@@ -1,11 +1,11 @@
-public class Ushort : Number 
+public class Ushort : Number
 {
-    private const int BYTES = 2;
+	private const int BYTES = 2;
 
-    public Ushort() : base(NumberType.UINT16, 16, "ushort") {}
+	public Ushort() : base(NumberType.UINT16, 16, "ushort") { }
 
-    public override int GetSize() 
+	public override int GetSize()
 	{
-        return BYTES;
-    }
+		return BYTES;
+	}
 }

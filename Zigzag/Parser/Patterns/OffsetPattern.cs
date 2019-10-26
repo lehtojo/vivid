@@ -8,7 +8,7 @@ public class OffsetPattern : Pattern
 	private const int INDEX = 1;
 
 	// Function / Variable / (...) [Function / Variable / Number / (...)]
-	public OffsetPattern() : base(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC, TokenType.CONTENT) {}
+	public OffsetPattern() : base(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC, TokenType.CONTENT) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

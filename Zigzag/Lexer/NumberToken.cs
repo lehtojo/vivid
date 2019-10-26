@@ -1,5 +1,3 @@
-using System;
-
 public class NumberToken : Token
 {
 	public object Value { get; private set; }

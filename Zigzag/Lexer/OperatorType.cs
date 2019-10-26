@@ -1,8 +1,8 @@
-public enum OperatorType 
+public enum OperatorType
 {
-    CLASSIC,
-    COMPARISON,
-    LOGIC,
-    ACTION,
-    INDEPENDENT
+	CLASSIC,
+	COMPARISON,
+	LOGIC,
+	ACTION,
+	INDEPENDENT
 }

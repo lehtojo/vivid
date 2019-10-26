@@ -1,10 +1,19 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+
+public static class Text
+{
+	public static string Concat(this string @string, object other)
+	{
+		return string.Concat(@string, other);
+	}
+}
 
 public class Context
 {
-	public string Name { get; protected set; }
-	public string Fullname => (Parent?.Fullname ?? string.Empty) + Name;
+	public string Name { get; protected set; } = string.Empty;
+	public string Prefix { get; protected set; } = string.Empty;
+	public string Postfix { get; protected set; } = string.Empty;
 
 	public Context Parent { get; set; }
 
@@ -16,6 +25,27 @@ public class Context
 	public Dictionary<string, FunctionList> Functions { get; protected set; } = new Dictionary<string, FunctionList>();
 	public Dictionary<string, Type> Types { get; protected set; } = new Dictionary<string, Type>();
 	public Dictionary<string, Label> Labels { get; protected set; } = new Dictionary<string, Label>();
+
+	/// <summary>
+	/// Returns the global name of the context
+	/// </summary>
+	/// <returns>Global name of the context</returns>
+	public virtual string GetFullname()
+	{
+		var parent = Parent?.GetFullname() ?? string.Empty;
+		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
+
+		var prefix = Prefix.ToLower();
+		prefix = string.IsNullOrEmpty(prefix) ? prefix : prefix;
+
+		var name = Name.ToLower();
+		name = string.IsNullOrEmpty(name) ? name : '_' + name;
+
+		var postfix = Postfix.ToLower();
+		postfix = string.IsNullOrEmpty(postfix) ? postfix : '_' + postfix;
+
+		return parent + prefix + name + postfix;
+	}
 
 	/// <summary>
 	/// Updates types, function and variables when new context is linked
@@ -271,7 +301,7 @@ public class Context
 
 		return Parent?.GetTypeParent();
 	}
-	
+
 	public Function GetFunctionParent()
 	{
 		if (IsFunction)

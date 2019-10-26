@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class Parse
 {
@@ -27,7 +27,7 @@ public class ParserPhase : Phase
 			{
 				TypeNode type = (TypeNode)node;
 
-				Async(() =>
+				Run(() =>
 				{
 					try
 					{
@@ -63,7 +63,7 @@ public class ParserPhase : Phase
 			{
 				FunctionNode function = (FunctionNode)node;
 
-				Async(() =>
+				Run(() =>
 				{
 					try
 					{
@@ -98,7 +98,7 @@ public class ParserPhase : Phase
 		{
 			int index = i;
 
-			Async(() =>
+			Run(() =>
 			{
 				List<Token> tokens = files[index];
 
@@ -127,7 +127,7 @@ public class ParserPhase : Phase
 		{
 			int index = i;
 
-			Async(() =>
+			Run(() =>
 			{
 				ParseMembers(parses[index].Node);
 				return Status.OK;
@@ -141,7 +141,7 @@ public class ParserPhase : Phase
 		{
 			int index = i;
 
-			Async(() =>
+			Run(() =>
 			{
 				ParseFunctions(parses[index].Node);
 				return Status.OK;

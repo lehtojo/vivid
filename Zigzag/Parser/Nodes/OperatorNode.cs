@@ -79,17 +79,17 @@ public class OperatorNode : Node, Contextable
 			{
 				return GetClassicType();
 			}
-				
+
 			case OperatorType.COMPARISON:
 			{
 				return GetComparisonType();
 			}
-				
+
 			case OperatorType.ACTION:
 			{
 				return GetActionType();
 			}
-				
+
 			default: throw new Exception("Independent operator shouldn't be processed here!");
 		}
 	}

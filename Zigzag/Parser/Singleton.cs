@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class Singleton
 {
@@ -130,17 +130,17 @@ public class Singleton
 		switch (token.Type)
 		{
 			case TokenType.IDENTIFIER:
-				return GetIdentifier(primary, (IdentifierToken)token);
+			return GetIdentifier(primary, (IdentifierToken)token);
 			case TokenType.FUNCTION:
-				return GetFunction(environment, primary, (FunctionToken)token);
+			return GetFunction(environment, primary, (FunctionToken)token);
 			case TokenType.NUMBER:
-				return GetNumber((NumberToken)token);
+			return GetNumber((NumberToken)token);
 			case TokenType.CONTENT:
-				return GetContent(primary, (ContentToken)token);
+			return GetContent(primary, (ContentToken)token);
 			case TokenType.STRING:
-                return GetString((StringToken)token);
+			return GetString((StringToken)token);
 			case TokenType.DYNAMIC:
-				return ((DynamicToken)token).Node;
+			return ((DynamicToken)token).Node;
 		}
 
 		return null;
@@ -151,12 +151,12 @@ public class Singleton
 		switch (token.Type)
 		{
 			case TokenType.IDENTIFIER:
-				IdentifierToken id = (IdentifierToken)token;
-				return new UnresolvedIdentifier(id.Value);
+			IdentifierToken id = (IdentifierToken)token;
+			return new UnresolvedIdentifier(id.Value);
 			case TokenType.FUNCTION:
-				FunctionToken function = (FunctionToken)token;
-				return new UnresolvedFunction(function.Name)
-								.SetParameters(function.GetParsedParameters(environment));
+			FunctionToken function = (FunctionToken)token;
+			return new UnresolvedFunction(function.Name)
+							.SetParameters(function.GetParsedParameters(environment));
 		}
 
 		throw new Exception($"Couldn't create unresolved token ({token.Type})");

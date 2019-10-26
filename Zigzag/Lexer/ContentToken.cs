@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class ContentToken : Token
 {
@@ -14,7 +14,7 @@ public class ContentToken : Token
 	private bool IsTable => Sections.Count > 0;
 	public bool IsEmpty => Tokens.Count == 0 && Sections.Count == 0;
 	public int SectionCount => Math.Max(1, Sections.Count);
-	
+
 	private bool IsComma(Token token)
 	{
 		return token.Type == TokenType.OPERATOR && ((OperatorToken)token).Operator == Operators.COMMA;
@@ -37,7 +37,7 @@ public class ContentToken : Token
 
 		return indices;
 	}
-	
+
 	public ContentToken(string raw, Position position) : base(TokenType.CONTENT)
 	{
 		Type = ParenthesisType.Get(raw[OPENING]);
@@ -88,7 +88,7 @@ public class ContentToken : Token
 		Type = ParenthesisType.PARENTHESIS;
 		Tokens = new List<Token>(tokens);
 	}
-	
+
 	public ContentToken(params ContentToken[] sections) : base(TokenType.CONTENT)
 	{
 		Type = ParenthesisType.PARENTHESIS;

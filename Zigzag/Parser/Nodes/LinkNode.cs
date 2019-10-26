@@ -30,7 +30,8 @@ public class LinkNode : OperatorNode, Resolvable, Contextable
 			}
 		}
 
-		if (Right is Resolvable b) {
+		if (Right is Resolvable b)
+		{
 			Context context = GetNodeContext(Left);
 
 			if (context == Types.UNKNOWN)
@@ -64,7 +65,7 @@ public class LinkNode : OperatorNode, Resolvable, Contextable
 	{
 		return GetNodeContext(Right);
 	}
-	
+
 	public override NodeType GetNodeType()
 	{
 		return NodeType.LINK_NODE;

@@ -1,11 +1,11 @@
-public class Uint : Number 
+public class Uint : Number
 {
-    private const int BYTES = 4;
+	private const int BYTES = 4;
 
-    public Uint() : base(NumberType.UINT32, 32, "uint") {}
+	public Uint() : base(NumberType.UINT32, 32, "uint") { }
 
-    public override int GetSize() 
+	public override int GetSize()
 	{
-        return BYTES;
-    }
+		return BYTES;
+	}
 }

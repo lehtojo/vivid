@@ -20,7 +20,7 @@ public class ExtendedTypePattern : Pattern
 										TokenType.IDENTIFIER | TokenType.CONTENT, /* ... / (...) */
 										TokenType.END | TokenType.OPTIONAL, /* [\n] */
 										TokenType.CONTENT) /* {..} */
-	{}
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{
