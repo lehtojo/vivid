@@ -1,6 +1,6 @@
 using System;
 
-public class Zigzag
+public static class Program
 {
 	public static void Main(string[] arguments)
 	{

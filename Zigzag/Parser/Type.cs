@@ -9,7 +9,7 @@ public class Type : Context
 	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
 	public int Modifiers { get; private set; }
 
-	public bool IsUnresolved => this is Resolvable;
+	public bool IsUnresolved => this is IResolvable;
 
 	public int ContentSize => Variables.Values.Select(v => v.Type.Size).Sum();
 	public int Size => GetSize();

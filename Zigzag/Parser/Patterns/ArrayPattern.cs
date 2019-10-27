@@ -82,7 +82,7 @@ public class ArrayPattern : Pattern
 				TypeNode type = (TypeNode)node;
 				return type.Type;
 			}
-			else if (node is Resolvable resolvable)
+			else if (node is IResolvable resolvable)
 			{
 				return new UnresolvedType(context, resolvable);
 			}

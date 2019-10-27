@@ -15,7 +15,7 @@ public class Variable
 
 	public List<Node> References = new List<Node>();
 
-	public bool IsUnresolved => Type is Resolvable;
+	public bool IsUnresolved => Type is IResolvable;
 
 	public Variable(Context context, Type type, VariableCategory category, string name, int modifiers, int length = 0)
 	{

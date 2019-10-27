@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public static class Map
 {
@@ -88,6 +89,8 @@ public class Unit
      */
 	public bool IsAnyRegisterAvailable => Registers.Exists(r => r.IsAvailable);
 	public bool IsAnyRegisterUncritical => Registers.Exists(r => !r.IsCritical);
+
+	public int UncriticalRegisterCount => Registers.Where(r => !r.IsCritical).Count();
 
 	public Register GetNextRegister()
 	{

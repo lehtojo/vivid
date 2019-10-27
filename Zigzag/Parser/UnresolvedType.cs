@@ -1,15 +1,15 @@
 using System;
 
-public class UnresolvedType : Type, Resolvable
+public class UnresolvedType : Type, IResolvable
 {
-	private Resolvable Resolvable;
+	private IResolvable Resolvable;
 
 	public UnresolvedType(Context context, string name) : base(context)
 	{
 		Resolvable = new UnresolvedIdentifier(name);
 	}
 
-	public UnresolvedType(Context context, Resolvable resolvable) : base(context)
+	public UnresolvedType(Context context, IResolvable resolvable) : base(context)
 	{
 		Resolvable = resolvable;
 	}

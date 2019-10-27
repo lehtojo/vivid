@@ -45,7 +45,7 @@ public class VariablePattern : Pattern
 
 			if (node.GetNodeType() == NodeType.LINK_NODE)
 			{
-				return new UnresolvedType(context, (Resolvable)node);
+				return new UnresolvedType(context, (IResolvable)node);
 			}
 
 			throw Errors.Get(tokens[NAME].Position, "Couldn't resolve type of the variable '{0}'", GetName(tokens));

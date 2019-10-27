@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 public class ParenthesisType
@@ -32,5 +33,17 @@ public class ParenthesisType
 	public static bool Has(char opening)
 	{
 		return Map.ContainsKey(opening);
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is ParenthesisType type &&
+			   Opening == type.Opening &&
+			   Closing == type.Closing;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Opening, Closing);
 	}
 }

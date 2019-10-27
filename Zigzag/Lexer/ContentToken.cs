@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class ContentToken : Token
 {
@@ -77,6 +78,12 @@ public class ContentToken : Token
 		}
 	}
 
+	public ContentToken() : base(TokenType.CONTENT)
+	{
+		Type = ParenthesisType.PARENTHESIS;
+		Tokens = new List<Token>();
+	}
+
 	public ContentToken(List<Token> tokens) : base(TokenType.CONTENT)
 	{
 		Type = ParenthesisType.PARENTHESIS;
@@ -98,5 +105,22 @@ public class ContentToken : Token
 	public List<Token> GetTokens(int section = 0)
 	{
 		return IsTable ? Sections[section].GetTokens() : Tokens;
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is ContentToken token &&
+			   base.Equals(obj) &&
+			   Sections.SequenceEqual(token.Sections) &&
+			   Tokens.SequenceEqual(token.Tokens) &&
+			   EqualityComparer<ParenthesisType>.Default.Equals(Type, token.Type) &&
+			   IsTable == token.IsTable &&
+			   IsEmpty == token.IsEmpty &&
+			   SectionCount == token.SectionCount;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Sections, Tokens, Type, IsTable, IsEmpty, SectionCount);
 	}
 }

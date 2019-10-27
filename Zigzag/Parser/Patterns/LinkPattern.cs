@@ -51,7 +51,7 @@ public class LinkPattern : Pattern
 			Context primary = contextable.GetContext();
 
 			// Creates an unresolved node from right token if the primary context is unresolved
-			if (primary == null || primary is Resolvable)
+			if (primary == null || primary is IResolvable)
 			{
 				right = Singleton.GetUnresolved(environment, tokens[RIGHT]);
 			}

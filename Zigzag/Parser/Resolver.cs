@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 public class Resolver
 {
+	public static void CreatePattern(NodeType[] left, NodeType node, NodeType[] right)
+	{
+
+	}
 
 	/**
     * Tries to resolve any unresolved nodes in a node tree
@@ -13,7 +17,7 @@ public class Resolver
     */
 	public static Node Resolve(Context context, Node node, List<Exception> errors)
 	{
-		if (node is Resolvable resolvable)
+		if (node is IResolvable resolvable)
 		{
 			try
 			{

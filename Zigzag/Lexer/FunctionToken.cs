@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 public class FunctionToken : Token
@@ -24,5 +25,19 @@ public class FunctionToken : Token
 		}
 
 		return node;
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is FunctionToken token &&
+			   base.Equals(obj) &&
+			   EqualityComparer<IdentifierToken>.Default.Equals(Identifier, token.Identifier) &&
+			   EqualityComparer<ContentToken>.Default.Equals(Parameters, token.Parameters) &&
+			   Name == token.Name;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Identifier, Parameters, Name);
 	}
 }

@@ -79,9 +79,9 @@ public class MemberVariablePattern : Pattern
 				TypeNode type = (TypeNode)node;
 				return type.Type;
 			}
-			else if (node is Resolvable)
+			else if (node is IResolvable)
 			{
-				return new UnresolvedType(context, (Resolvable)node);
+				return new UnresolvedType(context, (IResolvable)node);
 			}
 
 			throw new Exception("Node must be resolvable");

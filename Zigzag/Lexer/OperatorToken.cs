@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 public class OperatorToken : Token
 {
 	public Operator Operator { get; private set; }
@@ -10,5 +13,17 @@ public class OperatorToken : Token
 	public OperatorToken(Operator @operator) : base(TokenType.OPERATOR)
 	{
 		Operator = @operator;
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is OperatorToken token &&
+			   base.Equals(obj) &&
+			   EqualityComparer<Operator>.Default.Equals(Operator, token.Operator);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Operator);
 	}
 }

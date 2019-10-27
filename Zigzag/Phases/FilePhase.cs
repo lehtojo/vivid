@@ -24,7 +24,7 @@ public class FilePhase : Phase
 				try
 				{
 					string content = File.ReadAllText(file);
-					contents[index] = content.Replace("\r\n", "\n");
+					contents[index] = content.Replace("\r\n", "\n").Replace('\t', ' ');
 				}
 				catch
 				{

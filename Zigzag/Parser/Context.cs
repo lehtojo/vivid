@@ -56,7 +56,7 @@ public class Context
 		{
 			if (variable.IsUnresolved)
 			{
-				Resolvable resolvable = (Resolvable)variable.Type;
+				IResolvable resolvable = (IResolvable)variable.Type;
 
 				try
 				{

@@ -1,6 +1,6 @@
 using System;
 
-public class UnresolvedIdentifier : Node, Resolvable
+public class UnresolvedIdentifier : Node, IResolvable
 {
 	private string Value { get; set; }
 

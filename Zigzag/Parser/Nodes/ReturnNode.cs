@@ -1,6 +1,6 @@
 using System;
 
-public class ReturnNode : InstructionNode, Resolvable
+public class ReturnNode : InstructionNode, IResolvable
 {
 	public ReturnNode(Node @object) : base(Keywords.RETURN)
 	{
@@ -22,7 +22,7 @@ public class ReturnNode : InstructionNode, Resolvable
 		// Returned object must be resolved first
 		Node node = First;
 
-		if (node is Resolvable resolvable)
+		if (node is IResolvable resolvable)
 		{
 			Node resolved = resolvable.Resolve(context);
 

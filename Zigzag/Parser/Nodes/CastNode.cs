@@ -1,4 +1,4 @@
-public class CastNode : Node, Contextable, Resolvable
+public class CastNode : Node, Contextable, IResolvable
 {
 	public CastNode(Node target, Node type)
 	{
@@ -18,7 +18,7 @@ public class CastNode : Node, Contextable, Resolvable
 
 	private void Resolve(Context context, Node node)
 	{
-		if (node is Resolvable resolvable)
+		if (node is IResolvable resolvable)
 		{
 			Node resolved = resolvable.Resolve(context);
 			node.Replace(resolved);

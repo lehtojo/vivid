@@ -67,6 +67,11 @@ public class Register
 		return false;
 	}
 
+	public void Relax()
+	{
+		Value.IsCritical = false;
+	}
+
 	public void Reset()
 	{
 		Value = null;

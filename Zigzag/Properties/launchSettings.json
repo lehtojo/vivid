@@ -2,7 +2,7 @@
   "profiles": {
     "Zigzag": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\joona\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\examples\\ C:\\Users\\joona\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\libz\\String.z C:\\Users\\joona\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\libz\\Console.z --asm --debug --time"
+      "commandLineArgs": "C:\\Users\\Joonas\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\examples\\Example.z C:\\Users\\Joonas\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\libz\\String.z C:\\Users\\Joonas\\Desktop\\Zigzag\\Zigzag\\bin\\Debug\\netcoreapp3.0\\libz\\Console.z --asm --debug --time"
     }
   }
 }

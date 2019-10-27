@@ -47,7 +47,7 @@ public class Operators
 
 	public static readonly IndependentOperator END = new IndependentOperator("\n");
 
-	private static Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
+	private static readonly Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
 
 	private static void Add(Operator @operator)
 	{

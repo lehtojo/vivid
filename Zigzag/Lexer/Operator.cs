@@ -1,3 +1,5 @@
+using System;
+
 public class Operator
 {
 	public string Identifier { get; private set; }
@@ -9,5 +11,18 @@ public class Operator
 		Identifier = identifier;
 		Type = type;
 		Priority = priority;
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is Operator @operator &&
+			   Identifier == @operator.Identifier &&
+			   Type == @operator.Type &&
+			   Priority == @operator.Priority;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Identifier, Type, Priority);
 	}
 }

@@ -27,7 +27,7 @@ public static class Lists
 	}
 }
 
-public class Assembler
+public static class Assembler
 {
 	private const string SECTION_TEXT = "section .text" + "\n" +
 										"extern _ExitProcess@4" + "\n" +
@@ -66,25 +66,28 @@ public class Assembler
 			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
 			{
 				var type = iterator as TypeNode;
-				fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(type), Data = false }));
+				text.Append(Assembler.Build(type));
+				//fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(type), Data = false }));
 			}
 			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
 			{
 				var function = iterator as FunctionNode;
-				fragments.Add(Task.Run(() => new Fragement { Content = Functions.Build(function), Data = false }));
+				text.Append(Functions.Build(function));
+				//fragments.Add(Task.Run(() => new Fragement { Content = Functions.Build(function), Data = false }));
 			}
 			else if (iterator.GetNodeType() == NodeType.VARIABLE_NODE)
 			{
 				var variable = iterator as VariableNode;
-				fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(variable), Data = true }));
+				data.Append(Assembler.Build(variable));
+				//fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(variable), Data = true }));
 			}
 
 			iterator = iterator.Next;
 		}
 
-		fragments.Wait();
-		fragments.Where(t => !t.Result.Data).Each(t => text.Append(t.Result.Content));
-		fragments.Where(t => t.Result.Data).Each(t => data.Append(t.Result.Content));
+		//fragments.Wait();
+		//fragments.Where(t => !t.Result.Data).Each(t => text.Append(t.Result.Content));
+		//fragments.Where(t => t.Result.Data).Each(t => data.Append(t.Result.Content));
 
 		return text + "\n" + data + "\n";
 	}
@@ -130,12 +133,14 @@ public class Assembler
 			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
 			{
 				var type = iterator as TypeNode;
-				fragments.Add(Task.Run(() => Assembler.Build(type)));
+				text.Append(Assembler.Build(type));
+				//fragments.Add(Task.Run(() => Assembler.Build(type)));
 			}
 			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
 			{
 				var function = iterator as FunctionNode;
-				fragments.Add(Task.Run(() => Functions.Build(function)));
+				text.Append(Functions.Build(function));
+				//fragments.Add(Task.Run(() => Functions.Build(function)));
 			}
 
 			iterator = iterator.Next;

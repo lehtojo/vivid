@@ -1,4 +1,4 @@
-public class ConstructionNode : Node, Resolvable, Contextable
+public class ConstructionNode : Node, IResolvable, Contextable
 {
 	public Node Parameters => Last;
 	public Type Type => GetConstructor()?.GetTypeParent();
@@ -33,7 +33,7 @@ public class ConstructionNode : Node, Resolvable, Contextable
 
 	public Node Resolve(Context context)
 	{
-		if (First is Resolvable resolvable)
+		if (First is IResolvable resolvable)
 		{
 			Node resolved = resolvable.Resolve(context);
 			First.Replace(resolved);

@@ -99,7 +99,7 @@ public class ExtendedTypePattern : Pattern
 
 			return (Type)context;
 		}
-		else if (node is Resolvable resolvable)
+		else if (node is IResolvable resolvable)
 		{
 			return new UnresolvedType(environment, resolvable);
 		}

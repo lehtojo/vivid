@@ -1,7 +1,40 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public static class Decimals
+{
+	public static bool IsInteger(this double number)
+	{
+		return Math.Abs(number % 1) <= double.Epsilon * 100;
+	}
+
+	public static bool IsInteger(this float number)
+	{
+		return Math.Abs(number % 1) <= float.Epsilon * 100;
+	}
+
+	public static T First<T>(this T[] items)
+	{
+		return items[0];
+	}
+
+	public static T Last<T>(this T[] items)
+	{
+		return items[items.Length - 1];
+	}
+}
 
 public class Classic
 {
+	private const string SIGNED_MULTIPLICATION = "imul";
+
+	private const string SIGNED_MULTIPLICATION_SHIFT = "sal";
+	private const string SIGNED_DIVISON_SHIFT = "sar";
+
+	private const string UNSIGNED_MULTIPLICATION_SHIFT = "shl";
+	private const string UNSIGNED_DIVISON_SHIFT = "shr";
+
 	private static Type GetOperationType(OperatorNode node)
 	{
 		try
@@ -22,8 +55,138 @@ public class Classic
 		}
 	}
 
+	private static List<long> GetMultiplicationConstants(long multiplier)
+	{
+		var result = new List<long>();
+
+		var a = (long)Math.Round(Math.Log2((long)Math.Abs(multiplier)));
+		var b = (long)Math.Pow(2, a) * Math.Sign(multiplier);
+		var c = multiplier - b;
+
+		result.Add(b);
+
+		if (c == -1 || c == 1)
+		{
+			result.Add(c);
+		}
+		else if (c != 0)
+		{
+			var constants = GetMultiplicationConstants(c);
+			result.AddRange(constants);
+		}
+
+		return result;
+	}
+
+	private static Instructions BuildConstantMultiplication(Unit unit, Node operand, NumberNode constant)
+	{
+		var instructions = new Instructions();
+		var reference = References.Register(unit, operand);
+		var source = reference.Reference.GetRegister();
+
+		instructions.Append(reference);
+
+		var constants = GetMultiplicationConstants((long)constant.Value);
+
+		if (constants.Count == 1)
+		{
+			instructions.Append(new Instruction
+			(
+				SIGNED_MULTIPLICATION_SHIFT, 
+				reference.Reference, 
+				new NumberReference(Math.Log2(constants[0]), Size.DWORD), 
+				Size.DWORD
+			));
+		}
+		else
+		{
+			// Calculate how many LEA operations there will be
+			var operations = constants.Where(c => c != -1 && c != 1).Count();
+
+			if (operations <= 3)
+			{
+				// Calculate how many registers are needed for the multiplication (Two is the max)
+				var registers = Math.Min(operations, 2);
+
+				// Make sure there are calculated amount of registers available
+				if (unit.UncriticalRegisterCount < registers)
+				{
+					goto Fallback;
+				}
+
+				// Reserve the primary register
+				var a = unit.GetNextRegister();
+				var result = Value.GetOperation(a, Size.DWORD);
+
+				// Calculate the first constant to the primary register
+				instructions.Append($"lea {a}, [{source}*{constants[0]}]");
+
+				// Check if secondary register is needed
+				if (registers > 1)
+				{
+					// Reserve the secondary register
+					var b = unit.GetNextRegister();
+
+					for (int i = 1; i < registers; i++)
+					{
+						var number = constants[i];
+
+						// Calculate the constant to the secondary register
+						instructions.Append($"lea {b}, [{source}*{Math.Abs(number)}]");
+
+						if (number < 0)
+						{
+							instructions.Append($"sub {a}, {b}");
+						}
+						else
+						{
+							instructions.Append($"add {a}, {b}");
+						}
+					}
+				}
+
+				if (constants.Last() == -1)
+				{
+					instructions.Append($"sub {a}, {source}");
+				}
+				else if (constants.Last() == 1)
+				{
+					instructions.Append($"add {a}, {source}");
+				}
+
+				// Source register has served its purpose by now
+				source.Relax();
+
+				return instructions.SetReference(result);
+			}
+
+			Fallback:
+
+			instructions.Append(new Instruction
+			(
+				SIGNED_MULTIPLICATION,
+				reference.Reference,
+				new NumberReference(constant.Value, Size.DWORD),
+				Size.DWORD
+			));
+		}
+
+		instructions.SetReference(Value.GetOperation(source, Size.DWORD));
+
+		return instructions;
+	}
+
 	private static Instructions Build(Unit unit, string instruction, OperatorNode node)
 	{
+		// if (node.Left is NumberNode a)
+		// {
+		// 	return BuildConstantMultiplication(unit, node.Right, a);
+		// }
+		// else if (node.Right is NumberNode b)
+		// {
+		// 	return BuildConstantMultiplication(unit, node.Left, b);
+		// }
+
 		Instructions instructions = new Instructions();
 
 		Reference[] operands = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.REGISTER, ReferenceType.READ);

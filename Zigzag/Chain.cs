@@ -17,12 +17,19 @@ public class Chain
 
 			try
 			{
-				Phase phase = Activator.CreateInstance(template) as Phase;
+				var phase = Activator.CreateInstance(template) as Phase;
 				phase.Multithread = multithreaded;
-				phase.Execute(bundle);
+
+				var status = phase.Execute(bundle);
+
 				phase.Sync();
 
-				if (phase.Failed)
+				if (status.IsProblematic)
+				{
+					Console.Error.WriteLine($"Terminated: {status.Description}");
+					break;
+				}
+				else if (phase.Failed)
 				{
 					break;
 				}

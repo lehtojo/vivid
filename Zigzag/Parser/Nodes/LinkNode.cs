@@ -1,6 +1,6 @@
 using System;
 
-public class LinkNode : OperatorNode, Resolvable, Contextable
+public class LinkNode : OperatorNode, IResolvable, Contextable
 {
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
 	{
@@ -19,7 +19,7 @@ public class LinkNode : OperatorNode, Resolvable, Contextable
 
 	public Node Resolve(Context @base)
 	{
-		if (Left is Resolvable a)
+		if (Left is IResolvable a)
 		{
 			Node resolved = a.Resolve(@base);
 
@@ -30,7 +30,7 @@ public class LinkNode : OperatorNode, Resolvable, Contextable
 			}
 		}
 
-		if (Right is Resolvable b)
+		if (Right is IResolvable b)
 		{
 			Context context = GetNodeContext(Left);
 

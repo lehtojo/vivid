@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class UnresolvedFunction : Node, Resolvable
+public class UnresolvedFunction : Node, IResolvable
 {
 	public string Value { get; private set; }
 	public Node Parameters => First;
