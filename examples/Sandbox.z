@@ -1,6 +1,0 @@
-import func hello()
-
-func run()
-{
-    hello()
-}

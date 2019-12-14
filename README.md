@@ -1,1 +1,1 @@
-# Zigzag Compiler
+# Legacy Zigzag Compiler
