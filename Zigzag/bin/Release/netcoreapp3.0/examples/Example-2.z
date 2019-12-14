@@ -1,0 +1,108 @@
+A {
+    x
+    y
+
+    A(x1, y1) {
+        x = x1
+        y = y1
+    }
+
+    f(z) {
+        x = y + z
+    }
+}
+
+create(count) {
+    list = List()
+    list.create(10)
+ 
+    
+    => list
+}
+
+f(x, y) {
+    => x * x + y * y
+}
+
+fibonacci(iterations) {
+    i = 0
+    first = 0
+    second = 1
+    next = 0
+
+    (i < iterations) {
+        i <= 1 {
+            next = i
+        } {
+            next = first + second
+            first = second
+            second = next
+        }
+
+        printsln(to_string(next))
+
+        ++i
+    }
+}
+
+memcpy(source, destination, count) {
+    (i = 0, i < count, ++i) {
+        destination[i] = source[i]
+    }
+}
+
+run() {
+
+    source = allocate(256)
+	destination = allocate(256)
+
+    memcpy(source, destination, 256)
+
+    read = readln()
+    printsln(read)
+
+    n = to_number(read)
+
+    printsln(to_string(n))
+    
+    list = create(10)
+
+    fibonacci(10)
+
+    # {1, 2} {2, 3}, {3, 4}
+    (i = 1, i <= 3, ++i) {
+        a = A(i, i + 1)
+        list.add(a)
+    }
+
+    # {1, 2} -> {2, 2}, {2, 3} -> {4, 3}, {3, 4} -> {6, 4}
+    (i = 0, i < list.size(), ++i) {
+        a = list.at(i) -> A
+        a.f(i)
+        print('Yeet')
+    }
+
+    i = 0
+
+    # {6, 4}
+    # {4, 3}
+    # {2, 2}
+
+    println('-------------------')
+
+    u = 3.141
+    v = 1.23
+    w = u * u + v / u
+    oof = w + u * v
+
+    # 64
+    # 43
+    # 22
+    (list.size() >= 0) {
+        a = list.take() -> A
+        x = a.x
+        y = a.y
+        prints(to_string(x))
+        printsln(to_string(y))
+    }
+}

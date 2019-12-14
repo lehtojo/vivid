@@ -1,0 +1,31 @@
+readln() {
+    buffer = allocate(256)
+    length = sys_read(buffer, 256) - 2
+
+    length <= 0 {
+        free(buffer)
+        => string('')   
+    }
+
+    result = allocate(length)
+    copy(buffer, length, result)
+    free(buffer)
+
+    => string(result)
+}
+
+prints(text) {
+    sys_print(text.data(), text.length())
+}
+
+print(text) {
+    sys_print(text, length_of(text))
+}
+
+printsln(text) {
+    sys_print(text.append(10).data(), text.length() + 1)
+}
+
+println(text) {
+    prints(string(text).append(10))
+}
