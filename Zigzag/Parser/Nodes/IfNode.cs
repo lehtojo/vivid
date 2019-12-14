@@ -1,3 +1,5 @@
+using System;
+
 public class IfNode : Node
 {
 	public Context Context { get; set; }
@@ -14,10 +16,21 @@ public class IfNode : Node
 		Add(body);
 	}
 
-	public void SetSuccessor(Node successor)
+	public void AddSuccessor(Node successor)
 	{
-		Successor = successor;
-		Insert(Last, Successor);
+		if (Successor == null)
+		{
+			Successor = successor;
+			Insert(Last, Successor);
+		}
+		else if (Successor is IfNode node)
+		{
+			node.AddSuccessor(successor);
+		}
+		else
+		{
+			throw new Exception("Couldn't add successor to a (else) if node");
+		}
 	}
 
 	public override NodeType GetNodeType()

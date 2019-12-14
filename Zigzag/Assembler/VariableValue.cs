@@ -4,6 +4,7 @@ public class VariableValue : Value
 
 	public VariableValue(Register register, Variable variable) : base(register, Size.Get(variable.Type.Size), ValueType.VARIABLE, true, false, true)
 	{
+		Metadata = variable;
 		Variable = variable;
 	}
 
@@ -14,7 +15,7 @@ public class VariableValue : Value
 
 	public override Value Clone(Register register)
 	{
-		VariableValue clone = new VariableValue(this);
+		var clone = new VariableValue(this);
 		register.Attach(clone);
 		return clone;
 	}

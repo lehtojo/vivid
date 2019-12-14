@@ -1,37 +1,29 @@
 using System.Collections.Generic;
 
-public class FunctionNode : Node, Contextable
+public class FunctionNode : Node, IType
 {
-	public Function Function { get; private set; }
+	public FunctionImplementation Function { get; private set; }
 	public List<Token> Tokens { get; private set; }
+
+	public bool IsDefinition { get; private set; } = false;
 
 	public Node Parameters => First;
 	public Node Body => Last;
 
-	public FunctionNode(Function function) : this(function, new List<Token>()) { }
-
-	public FunctionNode(Function function, List<Token> body)
+	public FunctionNode(FunctionImplementation function)
 	{
 		Function = function;
 		Function.References.Add(this);
-		Tokens = body;
-	}
-
-	public void Parse()
-	{
-		Node node = Parser.Parse(Function, Tokens, Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
-		Add(node);
-
-		Tokens.Clear();
+		Tokens = new List<Token>();
 	}
 
 	public FunctionNode SetParameters(Node parameters)
 	{
-		Node parameter = parameters.First;
+		var parameter = parameters.First;
 
 		while (parameter != null)
 		{
-			Node next = parameter.Next;
+			var next = parameter.Next;
 			Add(parameter);
 			parameter = next;
 		}
@@ -39,7 +31,7 @@ public class FunctionNode : Node, Contextable
 		return this;
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return Function.ReturnType;
 	}

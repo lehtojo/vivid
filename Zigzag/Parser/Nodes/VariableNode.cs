@@ -1,4 +1,4 @@
-public class VariableNode : Node, Contextable
+public class VariableNode : Node, IType
 {
 	public Variable Variable { get; private set; }
 
@@ -8,7 +8,7 @@ public class VariableNode : Node, Contextable
 		Variable.References.Add(this);
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return Variable.Type;
 	}

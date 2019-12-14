@@ -14,17 +14,57 @@ public class FunctionToken : Token
 		Parameters = parameters;
 	}
 
+	/// <summary>
+	/// Returns function parameters as node tree
+	/// </summary>
+	/// <param name="context">Context used to parse</param>
+	/// <returns>Parameters as node tree</returns>
 	public Node GetParsedParameters(Context context)
 	{
-		Node node = new Node();
+		var node = new Node();
 
 		for (int i = 0; i < Parameters.SectionCount; i++)
 		{
-			List<Token> tokens = Parameters.GetTokens(i);
+			var tokens = Parameters.GetTokens(i);
 			Parser.Parse(node, context, tokens);
 		}
 
 		return node;
+	}
+
+	/// <summary>
+	/// Returns the parameter names
+	/// </summary>
+	/// <returns>List of parameter names</returns>
+	public List<string> GetParameterNames()
+	{
+		var names = new List<string>();
+
+		if (Parameters.IsEmpty)
+		{
+			return names;
+		}
+
+		for (int i = 0; i < Parameters.SectionCount; i++)
+		{
+			var tokens = Parameters.GetTokens(i);
+
+			if (tokens.Count > 1)
+			{
+				throw Errors.Get(tokens[0].Position, "Advanced parameters aren't supported yet!");
+			}
+
+			var token = tokens[0];
+
+			if (!(token is IdentifierToken name))
+			{
+				throw Errors.Get(token.Position, "Invalid parameter");
+			}
+
+			names.Add(name.Value);
+		}
+
+		return names;
 	}
 
 	public override bool Equals(object obj)

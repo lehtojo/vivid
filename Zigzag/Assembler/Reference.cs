@@ -1,5 +1,7 @@
 public abstract class Reference
 {
+	public object Metadata { get; set; }
+
 	protected Size Size { get; set; }
 
 	public Reference(Size size)
@@ -8,17 +10,23 @@ public abstract class Reference
 	}
 
 	public abstract string Use(Size size);
+	public abstract string Use();
+
 	public abstract new LocationType GetType();
+
+	public virtual void Lock() { }
 
 	public virtual string Peek(Size size)
 	{
 		return Use(size);
 	}
 
-	public virtual bool IsComplex()
+	public virtual string Peek()
 	{
-		return false;
+		return Use();
 	}
+
+	public abstract bool IsComplex();
 
 	public virtual bool IsRegister()
 	{

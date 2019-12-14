@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public static class Text
 {
@@ -16,10 +17,12 @@ public class Context
 	public string Postfix { get; protected set; } = string.Empty;
 
 	public Context Parent { get; set; }
+	public List<Context> Subcontexts { get; private set; } = new List<Context>();
 
-	public bool IsGlobal => Parent == null;
+	public bool IsGlobal => GetTypeParent() == null;
+	public bool IsMember => !IsGlobal;
 	public bool IsType => this is Type;
-	public bool IsFunction => this is Function;
+	public bool IsFunction => this is FunctionImplementation;
 
 	public Dictionary<string, Variable> Variables { get; protected set; } = new Dictionary<string, Variable>();
 	public Dictionary<string, FunctionList> Functions { get; protected set; } = new Dictionary<string, FunctionList>();
@@ -52,39 +55,40 @@ public class Context
 	/// </summary>
 	public void Update()
 	{
-		foreach (Variable variable in Variables.Values)
+		foreach (var variable in Variables.Values)
 		{
 			if (variable.IsUnresolved)
 			{
-				IResolvable resolvable = (IResolvable)variable.Type;
+				var resolvable = (IResolvable)variable.Type;
 
 				try
 				{
-					TypeNode type = (TypeNode)resolvable.Resolve(this);
+					var type = resolvable.Resolve(this) as TypeNode;
 					variable.Type = type.Type;
 				}
 				catch { }
 			}
 		}
 
-		foreach (Type type in Types.Values)
+		foreach (var type in Types.Values)
 		{
 			type.Update();
 		}
 
-		foreach (FunctionList entry in Functions.Values)
+		foreach (var subcontext in Subcontexts)
 		{
-			entry.Update();
+			subcontext.Update();
 		}
 	}
-
-	/**
-     * Links this context with the given context, allowing access to the information of the given context
-     * @param context Context to link with
-     */
+	
+	/// <summary>
+	/// Links this context with the given context, allowing access to the information of the given context
+	/// </summary>
+	/// <param name="context">Context to link with</param>
 	public void Link(Context context)
 	{
 		Parent = context;
+		Parent.Subcontexts.Add(this);
 		Update();
 	}
 
@@ -109,20 +113,25 @@ public class Context
 			Variables.TryAdd(pair.Key, pair.Value);
 		}
 
-		foreach (Type type in context.Types.Values)
+		foreach (var type in context.Types.Values)
 		{
 			type.Parent = this;
 		}
 
-		foreach (FunctionList entry in context.Functions.Values)
+		foreach (var function in context.Functions.Values)
 		{
-			foreach (Function function in entry.Instances)
+			foreach (var overload in function.Overloads)
 			{
-				function.Parent = this;
+				overload.Parent = this;
+
+				foreach (var implementation in overload.Implementations)
+				{
+					implementation.Parent = this;
+				}
 			}
 		}
 
-		foreach (Variable variable in context.Variables.Values)
+		foreach (var variable in context.Variables.Values)
 		{
 			variable.Context = this;
 		}
@@ -130,6 +139,10 @@ public class Context
 		Update();
 	}
 
+	/// <summary>
+	/// Declares a type into the context
+	/// </summary>
+	/// <param name="type">Type to declare</param>
 	public void Declare(Type type)
 	{
 		if (IsLocalTypeDeclared(type.Name))
@@ -171,6 +184,10 @@ public class Context
 			throw new Exception($"Variable '{variable.Name}' already exists in this context");
 		}
 
+		// Update variable context
+		variable.Context = this;
+
+		// Add variable to the list
 		Variables.Add(variable.Name, variable);
 	}
 
@@ -302,13 +319,20 @@ public class Context
 		return Parent?.GetTypeParent();
 	}
 
-	public Function GetFunctionParent()
+	public FunctionImplementation GetFunctionParent()
 	{
 		if (IsFunction)
 		{
-			return (Function)this;
+			return (FunctionImplementation)this;
 		}
 
 		return Parent?.GetFunctionParent();
+	}
+
+	public IEnumerable<FunctionImplementation> GetImplementedFunctions()
+	{
+		return Functions.Values.SelectMany(f => f.Overloads)
+								.SelectMany(f => f.Implementations)
+									.Where(i => i.Node != null);
 	}
 }

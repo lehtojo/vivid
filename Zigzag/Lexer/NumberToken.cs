@@ -8,25 +8,25 @@ public class NumberToken : Token
 	public int Bits { get; private set; }
 	public int Bytes => Bits / 8;
 
+	private bool IsDecimal(string text)
+	{
+		return text.Contains('.');
+	}
+
 	public NumberToken(string text) : base(TokenType.NUMBER)
 	{
-		Value = long.Parse(text);
-		NumberType = NumberType.INT32;
+		if (IsDecimal(text))
+		{
+			Value = double.Parse(text.Replace('.', ','));
+			NumberType = NumberType.DECIMAL32;
+		}
+		else
+		{
+			Value = long.Parse(text);
+			NumberType = NumberType.INT32;
+		}
+		
 		Bits = 32;
-	}
-
-	public NumberToken(byte number) : base(TokenType.NUMBER)
-	{
-		Value = (long)number;
-		NumberType = NumberType.INT8;
-		Bits = 8;
-	}
-
-	public NumberToken(short number) : base(TokenType.NUMBER)
-	{
-		Value = (long)number;
-		NumberType = NumberType.INT16;
-		Bits = 16;
 	}
 
 	public NumberToken(int number) : base(TokenType.NUMBER)
@@ -36,12 +36,13 @@ public class NumberToken : Token
 		Bits = 32;
 	}
 
-	public NumberToken(long number) : base(TokenType.NUMBER)
+	public NumberToken(double number) : base(TokenType.NUMBER)
 	{
-		Value = (long)number;
-		NumberType = NumberType.INT64;
-		Bits = 64;
+		Value = number;
+		NumberType = NumberType.DECIMAL32;
+		Bits = 32;
 	}
+
 	public override bool Equals(object obj)
 	{
 		return obj is NumberToken token &&

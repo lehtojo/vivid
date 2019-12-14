@@ -1,92 +1,134 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
+public struct Parameter
+{
+	public string Name;
+	public Type Type;
+
+	public Parameter(string name, Type type = Types.UNKNOWN)
+	{
+		Name = name;
+		Type = type;
+	}
+}
+
 public class Function : Context
 {
-	public string Identifier => Index != -1 ? $"function_{Name}_{Index}" : $"function_{Name}";
+	public int Modifiers { get; private set; }
 
-	public int Modifiers { get; set; }
-	public int Index { get; private set; } = -1;
-
-	public new List<Variable> Variables => base.Variables.Values.Concat(Parameters).ToList();
-	public List<Variable> Parameters { get; private set; } = new List<Variable>();
-	public List<Type> ParameterTypes => Parameters.Select(p => p.Type).ToList();
-	public List<Variable> Locals => base.Variables.Values.ToList();
-	public int LocalMemorySize => Variables.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type.Size).Sum();
+	public List<string> Parameters { get; private set; }
+	public List<Token> Blueprint { get; private set; }
 	public List<Node> References { get; private set; } = new List<Node>();
-	public Type ReturnType { get; set; }
 
-	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
-	public new bool IsGlobal => GetTypeParent() == null;
-	public bool IsMember => !IsGlobal;
+	public List<FunctionImplementation> Implementations { get; private set; } = new List<FunctionImplementation>();
 
-	public Function(Context context, string name, int modifiers, Type result)
+	public bool IsConstructor => this is Constructor;
+
+	/// <summary>
+	/// Creates a unimplemented function
+	/// </summary>
+	/// <param name="context">Context to link into</param>
+	/// <param name="modifiers">Function access modifiers</param>
+	/// <param name="name">Function name</param>
+	/// <param name="parameters">Function parameter names</param>
+	/// <param name="blueprint">Function blueprint is used to create implementations of this function</param>
+	public Function(Context context, int modifiers, string name, List<string> parameters, List<Token> blueprint)
 	{
+		Parent = context;
 		Name = name;
 		Prefix = "Function";
 		Modifiers = modifiers;
-		ReturnType = result;
-
-		Link(context);
-		context.Declare(this);
+		Parameters = parameters;
+		Blueprint = blueprint;
 	}
 
-	public Function(Context context, int modifiers)
+	/// <summary>
+	/// Creates a function with default implementation using the parameters and the return type
+	/// </summary>
+	/// <param name="modifiers">Function access modifiers</param>
+	/// <param name="name">Function name</param>
+	/// <param name="result">Function return type</param>
+	/// <param name="parameters">Function parameters</param>
+	public Function(int modifiers, string name, Type result, params Parameter[] parameters)
 	{
 		Modifiers = modifiers;
-		Link(context);
+		Name = name;
+		Prefix = "Function";
+		Parameters = parameters.Select(p => p.Name).ToList();
+		Blueprint = new List<Token>();
+
+		var implementation = new FunctionImplementation();
+		implementation.SetParameters(parameters.ToList());
+		implementation.ReturnType = result;
+		implementation.Metadata = this;
+
+		Implementations.Add(implementation);
+
+		implementation.Implement(Blueprint);
 	}
 
-	public void SetIndex(int index)
+	/// <summary>
+	/// Implements the function with parameter types
+	/// </summary>
+	/// <param name="types">Parameter types</param>
+	/// <returns>Function implementation</returns>
+	public FunctionImplementation Implement(List<Type> types)
 	{
-		Postfix = (Index = index) == -1 ? string.Empty : Index.ToString();
-	}
+		// Pack parameters with names and types
+		var parameters = Parameters.Zip(types, (name, type) => new Parameter(name, type)).ToList();
 
-	public override bool IsLocalVariableDeclared(string name)
-	{
-		return Parameters.Any(p => p.Name == name) || base.IsLocalVariableDeclared(name);
-	}
+		// Create a function implementation
+		var implementation = new FunctionImplementation(Parent);
+		implementation.SetParameters(parameters);
+		implementation.Metadata = this;
 
-	public override bool IsVariableDeclared(string name)
-	{
-		return Parameters.Any(p => p.Name == name) || base.IsVariableDeclared(name);
-	}
-
-	public override Variable GetVariable(string name)
-	{
-		if (Parameters.Any(p => p.Name == name))
+		// Constructors must be set to return a link to the created object manually
+		if (IsConstructor)
 		{
-			return Parameters.Find(p => p.Name == name);
+			implementation.ReturnType = global::Types.LINK;
 		}
 
-		return base.GetVariable(name);
+		// Add the created implementation to the list
+		Implementations.Add(implementation);
+
+		implementation.Implement(Blueprint);
+
+		return implementation;
 	}
 
-	public Function SetParameters(Node node)
+	/// <summary>
+	/// Tries to find function implementation with the given parameter
+	/// </summary>
+	/// <param name="parameter">Parameter type used in filtering</param>
+	public FunctionImplementation Get(Type parameter)
 	{
-		VariableNode parameter = (VariableNode)node.First;
-
-		while (parameter != null)
-		{
-			Variable variable = parameter.Variable;
-			variable.Category = VariableCategory.PARAMETER;
-
-			Parameters.Add(variable);
-
-			parameter = (VariableNode)parameter.Next;
-		}
-
-		return this;
+		return Get(new List<Type>() { parameter });
 	}
 
-	public Function SetParameters(params Variable[] variables)
+	/// <summary>
+	/// Tries to find function implementation with the given parameters
+	/// </summary>
+	/// <param name="parameter">Parameter types used in filtering</param>
+	public FunctionImplementation Get(List<Type> parameters)
 	{
-		foreach (Variable parameter in variables)
+		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(parameters));
+
+		if (implementation != null)
 		{
-			parameter.Category = VariableCategory.PARAMETER;
-			Parameters.Add(parameter);
+			return implementation;
+		}
+		else if (Parameters.Count != parameters.Count)
+		{
+			return null;
 		}
 
-		return this;
+		return Implement(parameters);
+	}
+
+	public FunctionImplementation this[List<Type> parameters]
+	{
+		get => Get(parameters);
 	}
 }

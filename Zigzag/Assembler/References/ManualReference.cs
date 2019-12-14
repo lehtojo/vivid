@@ -14,6 +14,11 @@ public class ManualReference : Reference
 		return Point ? $"{size} [{Identifier}]" : Identifier;
 	}
 
+	public override string Use()
+	{
+		return Point ? $"[{Identifier}]" : Identifier;
+	}
+
 	public override bool IsComplex()
 	{
 		return Point;
@@ -42,5 +47,12 @@ public class ManualReference : Reference
 	public static ManualReference Number(Number value, Size size)
 	{
 		return new ManualReference(value.ToString(), size, false);
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is ManualReference reference &&
+			   Identifier == reference.Identifier &&
+			   Point == reference.Point;
 	}
 }

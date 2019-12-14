@@ -2,20 +2,26 @@ public class Construction
 {
 	public static Instructions Build(Unit unit, ConstructionNode node)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
-		Type type = node.Type;
-		Instructions allocation = Call.Build(unit, null, "function_allocate", Size.DWORD, new NumberReference(type.ContentSize, Size.DWORD));
+		var type = node.Type;
+		var allocation = Call.Build(unit, null, "function_allocate", Size.DWORD, new NumberReference(type.ContentSize, Size.DWORD));
 
 		instructions.Append(allocation);
-		instructions.SetReference(allocation.Reference);
 
-		Constructor constructor = node.GetConstructor();
+		var implementation = node.GetConstructor();
+		var constructor = implementation.Metadata as Constructor;
 
 		if (!constructor.IsDefault)
 		{
-			Instructions call = Call.Build(unit, allocation.Reference, constructor, node.Parameters);
+			var call = Call.Build(unit, allocation.Reference, implementation, node.Parameters);
+
 			instructions.Append(call);
+			instructions.SetReference(call.Reference);
+		}
+		else
+		{
+			instructions.SetReference(allocation.Reference);
 		}
 
 		return instructions;

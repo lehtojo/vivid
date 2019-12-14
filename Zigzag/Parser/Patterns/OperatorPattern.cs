@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 public class OperatorPattern : Pattern
@@ -8,13 +8,15 @@ public class OperatorPattern : Pattern
 	private const int RIGHT = 4;
 
 	// Pattern:
-	// Function / Variable / Number / (...) [\n] Operator [\n] Function / Variable / Number / (...)
-	public OperatorPattern() : base(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC, /* Function / Variable / Number / (...) */
-			  TokenType.END | TokenType.OPTIONAL, /* [\n] */
-			  TokenType.OPERATOR, /* Operator */
-			  TokenType.END | TokenType.OPTIONAL, /* [\n] */
-			  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC) /* Function / Variable / Number / (...) */
-	{ }
+	// ... [\n] Operator [\n] ...
+	public OperatorPattern() : base
+	(		  
+		  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC,
+		  TokenType.END | TokenType.OPTIONAL,
+		  TokenType.OPERATOR,
+		  TokenType.END | TokenType.OPTIONAL,
+		  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -22,23 +24,21 @@ public class OperatorPattern : Pattern
 		return @operator.Operator.Priority;
 	}
 
-
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
 		return true;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		OperatorToken type = (OperatorToken)tokens[OPERATOR];
-		OperatorNode @operator = new OperatorNode(type.Operator);
+		var type = (OperatorToken)tokens[OPERATOR];
+		var @operator = new OperatorNode(type.Operator);
 
-		Token left = tokens[LEFT];
+		var left = tokens[LEFT];
 
 		try
 		{
-
-			Node node = Singleton.Parse(context, left);
+			var node = Singleton.Parse(context, left);
 			@operator.Add(node);
 		}
 		catch (Exception exception)
@@ -46,11 +46,11 @@ public class OperatorPattern : Pattern
 			throw Errors.Get(left.Position, exception);
 		}
 
-		Token right = tokens[RIGHT];
+		var right = tokens[RIGHT];
 
 		try
 		{
-			Node node = Singleton.Parse(context, right);
+			var node = Singleton.Parse(context, right);
 			@operator.Add(node);
 		}
 		catch (Exception exception)

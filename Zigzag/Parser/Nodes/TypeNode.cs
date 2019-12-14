@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-public class TypeNode : Node, Contextable
+public class TypeNode : Node, IType
 {
 	public Type Type { get; private set; }
 	private List<Token> Body { get; set; }
@@ -15,11 +15,11 @@ public class TypeNode : Node, Contextable
 
 	public void Parse()
 	{
-		Parser.Parse(this, Type, Body, Parser.MEMBERS);
+		Parser.Parse(this, Type, Body);
 		Body.Clear();
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return Type;
 	}

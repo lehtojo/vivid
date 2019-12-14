@@ -1,11 +1,13 @@
 using System;
+using System.Linq;
 
 public enum ReferenceType
 {
 	DIRECT,
 	READ,
 	VALUE,
-	REGISTER
+	REGISTER,
+	DEFAULT
 }
 
 public class References
@@ -30,38 +32,36 @@ public class References
 		return Links.Build(unit, node, type);
 	}
 
-	/**
-     * Returns a reference to a variable
-     * @param node Variable as node
-     * @param type Type of reference to get
-     * @return Reference to a variable
-     */
 	private static Instructions GetVariableReference(Unit unit, VariableNode node, ReferenceType type)
 	{
-		Variable variable = node.Variable;
+		return GetVariableReference(unit, node.Variable, type);
+	}
 
+	public static Instructions GetVariableReference(Unit unit, Variable variable, ReferenceType type)
+	{
 		if (type == ReferenceType.DIRECT)
 		{
 			unit.Reset(variable);
 		}
 		else
 		{
-			Reference cache = unit.IsCached(variable);
+			var cache = unit.IsCached(variable);
 
 			if (cache != null)
 			{
 				// Variable may be cached in stack
 				if (!cache.IsRegister())
 				{
-					Instructions move = Memory.ToRegister(unit, cache);
+					var move = Memory.ToRegister(unit, cache);
 					return move.SetReference(global::Value.GetVariable(move.Reference, variable));
 				}
 
-				return Instructions.reference(cache);
+				return Instructions.GetReference(cache);
 			}
 		}
 
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
+
 		Reference reference;
 
 		switch (variable.Category)
@@ -86,11 +86,11 @@ public class References
 
 			case VariableCategory.MEMBER:
 			{
-				Register register = unit.GetObjectPointer();
+				var register = unit.GetObjectPointer();
 
 				if (register == null)
 				{
-					Instructions move = Memory.GetObjectPointer(unit, type);
+					var move = Memory.GetObjectPointer(unit, type);
 					instructions.Append(move);
 
 					register = move.Reference.GetRegister();
@@ -106,9 +106,11 @@ public class References
 			}
 		}
 
+		reference.Metadata = variable;
+
 		if ((type == ReferenceType.VALUE || type == ReferenceType.REGISTER) && reference.IsComplex())
 		{
-			Instructions move = Memory.ToRegister(unit, reference);
+			var move = Memory.ToRegister(unit, reference);
 			instructions.Append(move);
 
 			return instructions.SetReference(global::Value.GetVariable(move.Reference, variable));
@@ -119,14 +121,14 @@ public class References
 
 	private static Instructions GetNumberReference(Unit unit, NumberNode node, ReferenceType type)
 	{
-		Size size = Size.Get(node.Type.Size);
+		var size = Size.Get(node.Type.Size);
 
 		switch (type)
 		{
-			case ReferenceType.DIRECT: return Instructions.reference(new AddressReference(node.Value));
+			case ReferenceType.DIRECT: return Instructions.GetReference(new AddressReference(node.Value));
 
 			case ReferenceType.VALUE:
-			case ReferenceType.READ: return Instructions.reference(new NumberReference(node.Value, size));
+			case ReferenceType.READ: return Instructions.GetReference(new NumberReference(node.Value, size));
 
 			case ReferenceType.REGISTER:
 			{
@@ -144,22 +146,21 @@ public class References
 	{
 		switch (type)
 		{
-
 			case ReferenceType.DIRECT:
 			{
-				return Instructions.reference(ManualReference.String(node.Identifier, true));
+				return Instructions.GetReference(ManualReference.String(node.Identifier, true));
 			}
 
 			case ReferenceType.READ:
 			{
-				return Instructions.reference(ManualReference.String(node.Identifier, false));
+				return Instructions.GetReference(ManualReference.String(node.Identifier, false));
 			}
 
 			case ReferenceType.VALUE:
 			case ReferenceType.REGISTER:
 			{
-				Reference reference = ManualReference.String(node.Identifier, false);
-				Instructions instructions = Memory.ToRegister(unit, reference);
+				var reference = ManualReference.String(node.Identifier, false);
+				var instructions = Memory.ToRegister(unit, reference);
 
 				return instructions.SetReference(global::Value.GetString(instructions.Reference.GetRegister()));
 			}
@@ -209,11 +210,11 @@ public class References
 
 			case NodeType.OPERATOR_NODE:
 			{
-				OperatorNode @operator = (OperatorNode)node;
+				var operation = node as OperatorNode;
 
-				if (@operator.Operator == Operators.EXTENDER)
+				if (operation.Operator == Operators.EXTENDER)
 				{
-					return Arrays.Build(unit, @operator, type);
+					return Arrays.Build(unit, operation, type);
 				}
 
 				if (type == ReferenceType.DIRECT)
@@ -221,7 +222,7 @@ public class References
 					Console.WriteLine("Warning: Complex writable reference requested");
 				}
 
-				return unit.Assemble(node);
+				return unit.Assemble(node, type);
 			}
 
 			default:
@@ -264,6 +265,69 @@ public class References
 		return node.GetNodeType() == NodeType.VARIABLE_NODE || node.GetNodeType() == NodeType.STRING_NODE || node.GetNodeType() == NodeType.NUMBER_NODE;
 	}
 
+	private const int FUNCTION_WEIGHT = 2;
+	private const int DEFAULT_WEIGHT = 1;
+
+	private static int GetWeight(Node node)
+	{
+		return node.Select(n =>
+		{
+			switch (n.GetNodeType())
+			{
+				case NodeType.CONSTRUCTION_NODE: return FUNCTION_WEIGHT;
+				case NodeType.FUNCTION_NODE: return FUNCTION_WEIGHT;
+				case NodeType.INLINE_NODE: return FUNCTION_WEIGHT;
+
+				default: return DEFAULT_WEIGHT;
+			}
+		}).Sum();
+	}
+
+	/// <summary>
+	/// Returns references to the nodes
+	/// </summary>
+	/// <param name="unit">Unit used to operate</param>
+	/// <param name="program">Instructions where the operations are appended</param>
+	/// <param name="n1">First node</param>
+	/// <param name="n2">Second node</param>
+	/// <param name="r1t">Type of reference to get for the first node</param>
+	/// <param name="r2t">Type of reference to get for the second node</param>
+	/// <param name="r1">Result: Reference for the first node</param>
+	/// <param name="r2">Result: Reference for the second node</param>
+	public static void Get(Unit unit, Instructions program, Node n1, Node n2, ReferenceType r1t, ReferenceType r2t, out Reference r1, out Reference r2)
+	{
+		r1 = null;
+		r2 = null;
+
+		var w1 = GetWeight(n1);
+		var w2 = GetWeight(n2);
+
+		if (w1 >= w2)
+		{
+			var instructions = References.Get(unit, n1, r1t);
+			r1 = instructions.Reference;
+
+			program.Append(instructions);
+
+			instructions = References.Get(unit, n2, r2t);
+			r2 = instructions.Reference;
+
+			program.Append(instructions);
+		}
+		else
+		{
+			var instructions = References.Get(unit, n2, r2t);
+			r2 = instructions.Reference;
+
+			program.Append(instructions);
+
+			instructions = References.Get(unit, n1, r1t);
+			r1 = instructions.Reference;
+
+			program.Append(instructions);
+		}
+	}
+
 	/**
      * Returns references to both given nodes
      * @param program Program to append the instructions for referencing the nodes
@@ -275,11 +339,11 @@ public class References
      */
 	public static Reference[] Get(Unit unit, Instructions program, Node a, Node b, ReferenceType at, ReferenceType bt)
 	{
-		Reference[] references = new Reference[2];
+		var references = new Reference[2];
 
 		if (!IsPrimitive(a))
 		{
-			Instructions instructions = References.Get(unit, a, at);
+			var instructions = References.Get(unit, a, at);
 			references[0] = instructions.Reference;
 
 			program.Append(instructions);
@@ -287,7 +351,7 @@ public class References
 
 		if (!IsPrimitive(b))
 		{
-			Instructions instructions = References.Get(unit, b, bt);
+			var instructions = References.Get(unit, b, bt);
 			references[1] = instructions.Reference;
 
 			program.Append(instructions);
@@ -295,7 +359,7 @@ public class References
 
 		if (references[0] == null)
 		{
-			Instructions instructions = References.Get(unit, a, at);
+			var instructions = References.Get(unit, a, at);
 			references[0] = instructions.Reference;
 
 			program.Append(instructions);
@@ -303,7 +367,7 @@ public class References
 
 		if (references[1] == null)
 		{
-			Instructions instructions = References.Get(unit, b, bt);
+			var instructions = References.Get(unit, b, bt);
 			references[1] = instructions.Reference;
 
 			program.Append(instructions);

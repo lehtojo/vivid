@@ -32,6 +32,8 @@ public static class Map
 
 public class Unit
 {
+	public int Bytes { get; private set; }
+
 	public Register EAX { get; private set; }
 	public Register EBX { get; private set; }
 	public Register ECX { get; private set; }
@@ -40,6 +42,9 @@ public class Unit
 	public Register EDI { get; private set; }
 	public Register EBP { get; private set; }
 	public Register ESP { get; private set; }
+
+	public Stack Stack { get; private set; } = new Stack();
+	public Fpu Fpu { get; private set; } = new Fpu();
 
 	public List<Register> Registers { get; private set; } = new List<Register>();
 
@@ -61,7 +66,7 @@ public class Unit
 		EBP = new Register(Map.Of(Size.DWORD, "ebp"));
 		ESP = new Register(Map.Of(Size.DWORD, "esp"));
 
-		Registers.AddRange(new Register[] { EAX, EBX, ECX, EDX, ESI, EDI });
+		Registers.AddRange(new Register[] { EAX, EBX, ECX, EDX }); // ESI, EDI
 	}
 
 	/**
@@ -84,9 +89,6 @@ public class Unit
 		Registers.AddRange(new Register[] { EAX, EBX, ECX, EDX, ESI, EDI });
 	}
 
-	/**
-     * @return True if any register doesn't hold a value, otherwise false
-     */
 	public bool IsAnyRegisterAvailable => Registers.Exists(r => r.IsAvailable);
 	public bool IsAnyRegisterUncritical => Registers.Exists(r => !r.IsCritical);
 
@@ -94,7 +96,7 @@ public class Unit
 
 	public Register GetNextRegister()
 	{
-		Register register = Registers.Find(r => r.IsAvailable);
+		var register = Registers.Find(r => r.IsAvailable);
 
 		if (register != null)
 		{
@@ -118,7 +120,7 @@ public class Unit
 
 	public Register GetObjectPointer()
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			if (register.IsReserved && register.Value.Type == ValueType.OBJECT_POINTER)
 			{
@@ -131,7 +133,7 @@ public class Unit
 
 	public void Reset(Variable variable)
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			if (register.Contains(variable))
 			{
@@ -143,7 +145,7 @@ public class Unit
 
 	public void Reset()
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			register.Reset();
 		}
@@ -156,7 +158,7 @@ public class Unit
      */
 	public Reference IsCached(Variable variable)
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			if (register.Contains(variable))
 			{
@@ -164,7 +166,7 @@ public class Unit
 			}
 		}
 
-		return null;
+		return Stack.Find(variable);
 	}
 
 	/**
@@ -174,7 +176,7 @@ public class Unit
      */
 	public Register IsRegisterCached(Variable variable)
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			if (register.Contains(variable))
 			{
@@ -190,30 +192,27 @@ public class Unit
      * @param node Program represented in node tree form
      * @return Assembly representation of the node tree
      */
-	public Instructions Assemble(Node node)
+	public Instructions Assemble(Node node, ReferenceType type = ReferenceType.DEFAULT)
 	{
 		switch (node.GetNodeType())
 		{
-
 			case NodeType.OPERATOR_NODE:
 			{
-				OperatorNode @operator = (OperatorNode)node;
+				var operation = (OperatorNode)node;
 
-				switch (@operator.Operator.Type)
+				switch (operation.Operator.Type)
 				{
+					case OperatorType.CLASSIC: return Classic.Build(this, (OperatorNode)node, type);
+					case OperatorType.ACTION: return Assign.Build(this, (OperatorNode)node);
+					case OperatorType.INDEPENDENT: return Links.Build(this, (LinkNode)node, ReferenceType.READ);
 
-					case OperatorType.CLASSIC:
-					return Classic.Build(this, (OperatorNode)node);
-
-					case OperatorType.ACTION:
-					return Assign.build(this, (OperatorNode)node);
-
-					case OperatorType.INDEPENDENT:
-					return Links.Build(this, (LinkNode)node, ReferenceType.READ);
-
-					default:
-					return null;
+					default: return null;
 				}
+			}
+
+			case NodeType.INLINE_NODE:
+			{
+				return Inline.Build(this, (InlineNode)node);
 			}
 
 			case NodeType.FUNCTION_NODE:
@@ -229,6 +228,11 @@ public class Unit
 			case NodeType.IF_NODE:
 			{
 				return Conditionals.start(this, (IfNode)node);
+			}
+
+			case NodeType.INCREMENT_NODE:
+			{
+				return Increments.Build(this, (IncrementNode)node, type);
 			}
 
 			case NodeType.LOOP_NODE:
@@ -258,19 +262,19 @@ public class Unit
 
 			default:
 			{
-				Instructions bundle = new Instructions();
-				Node iterator = node.First;
+				var bundle = new Instructions();
+				var iterator = node.First;
 
 				while (iterator != null)
 				{
-					Instructions instructions = Assemble(iterator);
+					var instructions = Assemble(iterator);
+					Step(instructions);
 
 					if (instructions != null)
 					{
+						bundle.Break();
 						bundle.Append(instructions);
 					}
-
-					Step();
 
 					iterator = iterator.Next;
 				}
@@ -280,13 +284,13 @@ public class Unit
 		}
 	}
 
-	public void Step()
+	public void Step(Instructions instructions)
 	{
-		foreach (Register register in Registers)
+		foreach (var register in Registers)
 		{
 			if (register.IsReserved)
 			{
-				Value value = register.Value;
+				var value = register.Value;
 				value.IsCritical = false;
 			}
 		}

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 public class Value : Reference
 {
 	public Reference Reference { get; private set; }
@@ -57,11 +59,21 @@ public class Value : Reference
 		return Reference.Use(size);
 	}
 
+	public override string Peek()
+	{
+		return Reference.Use();
+	}
+
+	public override void Lock()
+	{
+		Reference.Lock();
+	}
+
 	public override string Use(Size size)
 	{
 		if (IsDisposable && Reference.IsRegister())
 		{
-			Register register = ((RegisterReference)Reference).GetRegister();
+			var register = ((RegisterReference)Reference).GetRegister();
 			register.Reset();
 		}
 
@@ -71,6 +83,27 @@ public class Value : Reference
 		}
 
 		return Reference.Use(size);
+	}
+
+	public override string Use()
+	{
+		if (IsDisposable && Reference.IsRegister())
+		{
+			var register = ((RegisterReference)Reference).GetRegister();
+			register.Reset();
+		}
+
+		if (IsFloating)
+		{
+			IsCritical = false;
+		}
+
+		return Reference.Use();
+	}
+
+	public override bool IsComplex()
+	{
+		return Reference.IsComplex();
 	}
 
 	public override LocationType GetType()
@@ -106,5 +139,16 @@ public class Value : Reference
 		}
 
 		return null;
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return (obj is Reference reference &&
+				Reference.Equals(reference)) ||
+			   (obj is Value value &&
+			   EqualityComparer<Reference>.Default.Equals(Reference, value.Reference) &&
+			   IsCritical == value.IsCritical &&
+			   IsDisposable == value.IsDisposable &&
+			   IsFloating == value.IsFloating);
 	}
 }

@@ -2,23 +2,23 @@ public class Links
 {
 	public static Instructions Build(Unit unit, LinkNode node, ReferenceType type)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
 		if (node.Right.GetNodeType() == NodeType.FUNCTION_NODE)
 		{
-			Instructions left = References.Read(unit, node.Left);
+			var left = References.Read(unit, node.Left);
 			instructions.Append(left);
 
-			Instructions call = Call.Build(unit, left.Reference, (FunctionNode)node.Right);
+			var call = Call.Build(unit, left.Reference, (FunctionNode)node.Right);
 			instructions.Append(call).SetReference(call.Reference);
 		}
 		else if (node.Right.GetNodeType() == NodeType.VARIABLE_NODE)
 		{
-			Variable variable = ((VariableNode)node.Right).Variable;
+			var variable = ((VariableNode)node.Right).Variable;
 
 			if (type != ReferenceType.DIRECT)
 			{
-				Register register = unit.IsRegisterCached(variable);
+				var register = unit.IsRegisterCached(variable);
 
 				if (register != null)
 				{
@@ -26,17 +26,17 @@ public class Links
 				}
 			}
 
-			Instructions left = References.Register(unit, node.Left);
+			var left = References.Register(unit, node.Left);
 			instructions.Append(left);
 
-			Reference reference = new MemoryReference(left.Reference.GetRegister(), variable.Alignment, variable.Type.Size);
+			var reference = new MemoryReference(left.Reference.GetRegister(), variable.Alignment, variable.Type.Size);
 
 			if (type == ReferenceType.VALUE || type == ReferenceType.REGISTER)
 			{
-				Instructions move = Memory.ToRegister(unit, reference);
+				var move = Memory.ToRegister(unit, reference);
 				instructions.Append(move);
 
-				Size size = Size.Get(variable.Type.Size);
+				var size = Size.Get(variable.Type.Size);
 
 				return instructions.SetReference(Value.GetOperation(move.Reference.GetRegister(), size));
 			}

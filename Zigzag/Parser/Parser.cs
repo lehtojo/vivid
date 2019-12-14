@@ -96,7 +96,7 @@ public static class Extensions
 public class Parser
 {
 	public const int MAX_PRIORITY = 21;
-	public const int MEMBERS = 20;
+	public const int MEMBERS = 19;
 	public const int MIN_PRIORITY = 1;
 
 	private class Instance
@@ -112,6 +112,18 @@ public class Parser
 			Molded = molded;
 		}
 
+		public void Remove()
+		{
+			int start = Pattern.GetStart();
+			int end = Pattern.GetEnd();
+			int count = (end == -1 ? Tokens.Count : end) - start;
+
+			for (int i = 0; i < count; i++)
+			{
+				Tokens.RemoveAt(start);
+			}
+		}
+
 		public void Replace(DynamicToken token)
 		{
 			int start = Pattern.GetStart();
@@ -123,15 +135,15 @@ public class Parser
 				Tokens.RemoveAt(start);
 			}
 
-			Tokens.Add(token);
+			Tokens.Insert(start, token);
 		}
 	}
 
 	private static List<Token> Mold(List<int> indices, IList<Token> candidate)
 	{
-		List<Token> molded = new List<Token>(candidate);
+		var molded = new List<Token>(candidate);
 
-		foreach (int index in indices)
+		foreach (var index in indices)
 		{
 			molded.Insert(index, null);
 		}
@@ -139,13 +151,21 @@ public class Parser
 		return molded;
 	}
 
-	private static Instance Next(List<Token> tokens, int priority)
+	/// <summary>
+	/// Tries to find the next pattern from the tokens by comparing the priority
+	/// </summary>
+	/// <param name="context">Current context</param>
+	/// <param name="tokens">Tokens to scan through</param>
+	/// <param name="priority">Pattern priority used for filtering</param>
+	/// <returns>Success: Next important patterin in tokens, Failure null</returns>
+	private static Instance Next(Context context, List<Token> tokens, int priority)
 	{
 		for (int start = 0; start < tokens.Count; start++)
 		{
 			// Start from the root
-			Patterns patterns = Patterns.Root;
-			Instance instance = null;
+			var patterns = Patterns.Root;
+
+			Instance? instance = null;
 
 			// Try finding the next pattern
 			for (int end = start; end < tokens.Count; end++)
@@ -161,14 +181,14 @@ public class Parser
 
 				if (patterns.HasOptions)
 				{
-					IList<Token> candidate = tokens.Sublist(start, end + 1);
+					var candidate = tokens.Sublist(start, end + 1);
 
 					foreach (Patterns.Option option in patterns.Options)
 					{
-						Pattern pattern = option.Pattern;
-						List<Token> molded = Mold(option.Missing, candidate);
+						var pattern = option.Pattern;
+						var molded = Mold(option.Missing, candidate);
 
-						if (pattern.GetPriority(molded) == priority && pattern.Passes(molded))
+						if (pattern.GetPriority(molded) == priority && pattern.Passes(context, molded))
 						{
 							instance = new Instance(pattern, candidate, molded);
 							break;
@@ -186,82 +206,168 @@ public class Parser
 		return null;
 	}
 
-	public static Node Parse(Context context, List<Token> section)
+	/// <summary>
+	/// Parses tokens with the default minimum and maximum priority range
+	/// </summary>
+	/// <param name="context">Current context</param>
+	/// <param name="tokens">Tokens to iterate</param>
+	/// <returns>Parsed node tree</returns>
+	public static Node Parse(Context context, List<Token> tokens)
 	{
-		return Parser.Parse(context, section, MIN_PRIORITY, MAX_PRIORITY);
+		return Parser.Parse(context, tokens, MIN_PRIORITY, MAX_PRIORITY);
 	}
 
-	public static Node Parse(Context context, List<Token> tokens, int priority)
+	/// /// <summary>
+	/// Parses tokens with minimum and maximum priority range
+	/// </summary>
+	/// <param name="context">Current context</param>
+	/// <param name="tokens">Tokens to iterate</param>
+	/// <returns>Parsed node tree</returns>
+	public static Node Parse(Context context, List<Token> tokens, int min, int max)
 	{
-		return Parser.Parse(context, tokens, priority, priority);
-	}
-
-	public static Node Parse(Context context, List<Token> tokens, int minPriority, int maxPriority)
-	{
-		Node node = new Node();
-		Parser.Parse(node, context, tokens, minPriority, maxPriority);
+		var node = new Node();
+		Parser.Parse(node, context, tokens, min, max);
 
 		return node;
 	}
 
+	/// <summary>
+	/// Parses tokens and adds the resulting nodes to the given node
+	/// </summary>
+	/// <param name="parent">Node which receives the parsed nodes</param>
+	/// <param name="context">Current context</param>
+	/// <param name="tokens">Tokens to iterate</param>
 	public static void Parse(Node parent, Context context, List<Token> tokens)
 	{
 		Parser.Parse(parent, context, tokens, MIN_PRIORITY, MAX_PRIORITY);
 	}
 
-	public static void Parse(Node parent, Context context, List<Token> tokens, int priority)
+	/// <summary>
+	/// Parses tokens into a node tree and attaches it to the parent node. 
+	/// Parsing is done by looking for prioritized patterns which are filtered using the min and max priority parameters.
+	/// </summary>
+	/// <param name="parent">Node which will receive the node tree</param>
+	/// <param name="context">Context to append metadata of the parsed content</param>
+	/// <param name="tokens">Tokens to iterate</param>
+	/// <param name="min">Minimum priority for pattern filtering</param>
+	/// <param name="max">Maximum priority for pattern filtering</param>
+	public static void Parse(Node parent, Context context, List<Token> tokens, int min, int max)
 	{
-		Parser.Parse(parent, context, tokens, priority, priority);
-	}
-
-	public static void Parse(Node parent, Context context, List<Token> tokens, int minPriority, int maxPriority)
-	{
-		for (int priority = maxPriority; priority >= minPriority; priority--)
+		for (int priority = max; priority >= min; priority--)
 		{
 			Instance instance;
 
 			// Find all patterns with the current priority
-			while ((instance = Next(tokens, priority)) != null)
+			while ((instance = Next(context, tokens, priority)) != null)
 			{
 				// Build the pattern into a node
-				Pattern pattern = instance.Pattern;
-				Node node = pattern.Build(context, instance.Molded);
+				var pattern = instance.Pattern;
+				var node = pattern.Build(context, instance.Molded);
 
-				// Replace the pattern with a processed token
-				DynamicToken token = new DynamicToken(node);
-				instance.Replace(token);
+				if (node != null)
+				{
+					// Replace the pattern with a dynamic token
+					var token = new DynamicToken(node);
+					instance.Replace(token);
+				}
+				else
+				{
+					instance.Remove();
+				}
 			}
 		}
 
 		// Combine all processed tokens in order
-		foreach (Token token in tokens)
+		foreach (var token in tokens)
 		{
 			if (token.Type == TokenType.DYNAMIC)
 			{
-				DynamicToken dynamic = (DynamicToken)token;
+				var dynamic = (DynamicToken)token;
 				parent.Add(dynamic.Node);
 			}
 		}
 	}
 
-	public static void Hull(Node parent, Context context, List<Token> tokens)
-	{
-		Parser.Parse(parent, context, tokens, Parser.MEMBERS, Parser.MAX_PRIORITY);
-	}
-
+	/// <summary>
+	/// Creates a base context
+	/// </summary>
+	/// <returns>Base context</returns>
 	public static Context Initialize()
 	{
-		Context context = new Context();
+		var context = new Context();
 		Types.Inject(context);
 
-		Function allocate = new Function(context, "allocate", AccessModifier.PUBLIC | AccessModifier.EXTERNAL, Types.LINK);
-		Variable bytes = new Variable(allocate, Types.NORMAL, VariableCategory.PARAMETER, "bytes", AccessModifier.PUBLIC);
-		allocate.SetParameters(bytes);
+		var allocate = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL, 
+			"allocate", 
+			Types.LINK, 
+			new Parameter() { Name = "bytes", Type = Types.NORMAL }
+		);
+		
+		var power = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"integer_power",
+			Types.NORMAL,
+			new Parameter() { Name = "a", Type = Types.NORMAL },
+			new Parameter() { Name = "b", Type = Types.NORMAL }
+		);
 
-		Function power = new Function(context, "integer_power", AccessModifier.PUBLIC | AccessModifier.EXTERNAL, Types.NORMAL);
-		Variable @base = new Variable(power, Types.NORMAL, VariableCategory.PARAMETER, "a", AccessModifier.PUBLIC);
-		Variable exponent = new Variable(power, Types.NORMAL, VariableCategory.PARAMETER, "b", AccessModifier.PUBLIC);
-		power.SetParameters(@base, exponent);
+		var system_print = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"sys_print",
+			Types.UNKNOWN,
+			new Parameter() { Name = "address", Type = Types.LINK },
+			new Parameter() { Name = "count", Type = Types.NORMAL }
+		);
+
+		var system_read = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"sys_read",
+			Types.NORMAL,
+			new Parameter() { Name = "buffer", Type = Types.LINK },
+			new Parameter() { Name = "count", Type = Types.NORMAL }
+		);
+
+		var copy = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"copy",
+			Types.UNKNOWN,
+			new Parameter() { Name = "source", Type = Types.LINK },
+			new Parameter() { Name = "bytes", Type = Types.NORMAL },
+			new Parameter() { Name = "destination", Type = Types.LINK }
+		);
+
+		var offset_copy = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"offset_copy",
+			Types.UNKNOWN,
+			new Parameter() { Name = "source", Type = Types.LINK },
+			new Parameter() { Name = "bytes", Type = Types.NORMAL },
+			new Parameter() { Name = "destination", Type = Types.LINK },
+			new Parameter() { Name = "offset", Type = Types.NORMAL }
+		);
+
+		var free = new Function
+		(
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			"free",
+			Types.UNKNOWN,
+			new Parameter() { Name = "address", Type = Types.LINK }
+		);
+
+		context.Declare(allocate);
+		context.Declare(power);
+		context.Declare(system_print);
+		context.Declare(system_read);
+		context.Declare(copy);
+		context.Declare(offset_copy);
+		context.Declare(free);
 
 		return context;
 	}

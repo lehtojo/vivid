@@ -19,6 +19,13 @@ public class Singleton
 		{
 			return new TypeNode(context.GetType(id.Value));
 		}
+		else if (context.IsType)
+		{
+			var variable = new Variable(Types.UNKNOWN, VariableCategory.MEMBER, id.Value, AccessModifier.PUBLIC);
+			context.Declare(variable);
+
+			return new VariableNode(variable);
+		}
 		else
 		{
 			return new UnresolvedIdentifier(id.Value);
@@ -31,15 +38,15 @@ public class Singleton
      * @param name    Name of the function
      * @return Success: Function / Constructor, Failure: null
      */
-	public static Function GetFunctionByName(Context context, string name, List<Type> parameters)
+	public static FunctionImplementation GetFunctionByName(Context context, string name, List<Type> parameters)
 	{
 		FunctionList functions;
 
-		if (context.IsTypeDeclared(name))
+		if (context.IsTypeDeclared(name)) // Type constructors
 		{
 			functions = context.GetType(name).GetConstructors();
 		}
-		else if (context.IsFunctionDeclared(name))
+		else if (context.IsFunctionDeclared(name)) // Functions
 		{
 			functions = context.GetFunction(name);
 		}
@@ -48,7 +55,7 @@ public class Singleton
 			return null;
 		}
 
-		return functions.Get(parameters);
+		return functions[parameters];
 	}
 
 	/**
@@ -60,20 +67,27 @@ public class Singleton
      */
 	public static Node GetFunction(Context environment, Context primary, FunctionToken info)
 	{
-		Node parameters = info.GetParsedParameters(environment);
+		var parameters = info.GetParsedParameters(environment);
 
-		List<Type> types = Resolver.GetTypes(parameters);
+		var types = Resolver.GetTypes(parameters);
 
 		if (types == null)
 		{
 			return new UnresolvedFunction(info.Name).SetParameters(parameters);
 		}
 
-		Function function = GetFunctionByName(primary, info.Name, types);
+		var function = GetFunctionByName(primary, info.Name, types);
 
 		if (function != null)
 		{
-			return new FunctionNode(function).SetParameters(parameters);
+			var node = new FunctionNode(function).SetParameters(parameters);
+
+			if (function.Metadata is Constructor)
+			{
+				return new ConstructionNode(node);
+			}
+
+			return node;
 		}
 		else
 		{
@@ -99,11 +113,11 @@ public class Singleton
      */
 	public static Node GetContent(Context context, ContentToken content)
 	{
-		Node node = new ContentNode();
+		var node = new ContentNode();
 
 		for (int i = 0; i < content.SectionCount; i++)
 		{
-			List<Token> tokens = content.GetTokens(i);
+			var tokens = content.GetTokens(i);
 			Parser.Parse(node, context, tokens);
 		}
 
@@ -130,17 +144,34 @@ public class Singleton
 		switch (token.Type)
 		{
 			case TokenType.IDENTIFIER:
-			return GetIdentifier(primary, (IdentifierToken)token);
+			{
+				return GetIdentifier(primary, (IdentifierToken)token);
+			}
+
 			case TokenType.FUNCTION:
-			return GetFunction(environment, primary, (FunctionToken)token);
+			{
+				return GetFunction(environment, primary, (FunctionToken)token);
+			}
+
 			case TokenType.NUMBER:
-			return GetNumber((NumberToken)token);
+			{
+				return GetNumber((NumberToken)token);
+			}
+
 			case TokenType.CONTENT:
-			return GetContent(primary, (ContentToken)token);
+			{
+				return GetContent(primary, (ContentToken)token);
+			}
+
 			case TokenType.STRING:
-			return GetString((StringToken)token);
+			{
+				return GetString((StringToken)token);
+			}
+
 			case TokenType.DYNAMIC:
-			return ((DynamicToken)token).Node;
+			{
+				return ((DynamicToken)token).Node;
+			}
 		}
 
 		return null;

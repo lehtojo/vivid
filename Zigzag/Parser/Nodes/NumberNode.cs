@@ -1,4 +1,4 @@
-public class NumberNode : Node, Contextable
+public class NumberNode : Node, IType
 {
 	public Number Type { get; private set; }
 	public object Value { get; set; }
@@ -9,7 +9,7 @@ public class NumberNode : Node, Contextable
 		Value = value;
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return Type;
 	}

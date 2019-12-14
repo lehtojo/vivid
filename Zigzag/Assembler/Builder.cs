@@ -6,7 +6,10 @@ public class Builder
 
 	public Builder(string text = "")
 	{
-		Append(text);
+		if (text.Length > 0)
+		{
+			Append(text);
+		}
 	}
 
 	public Builder Comment(string comment)
@@ -21,6 +24,12 @@ public class Builder
 		return this;
 	}
 
+	public Builder Append(Builder builder)
+	{
+		Buffer = Buffer.Append(builder.ToString()).Append("\n");
+		return this;
+	}
+
 	public Builder Append(string text)
 	{
 		Buffer = Buffer.Append(text).Append("\n");
@@ -31,6 +40,11 @@ public class Builder
 	{
 		Buffer = Buffer.Append(string.Format(format, args)).Append("\n");
 		return this;
+	}
+
+	public void Break()
+	{
+		Buffer = Buffer.Append("\n\n");
 	}
 
 	public override string ToString()

@@ -1,4 +1,4 @@
-public interface Contextable
+public interface IType
 {
-	public Type GetContext();
+	public Type? GetType();
 }

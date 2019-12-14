@@ -1,6 +1,6 @@
 using System;
 
-public class OperatorNode : Node, Contextable
+public class OperatorNode : Node, IType
 {
 	public Operator Operator { get; private set; }
 
@@ -20,15 +20,18 @@ public class OperatorNode : Node, Contextable
 		return this;
 	}
 
-	private Type GetClassicType()
+	private Type? GetClassicType()
 	{
-		Type left;
+		Type? left;
 
-		if (Left is Contextable a)
+		if (Left is IType a)
 		{
-			Type type = a.GetContext();
+			var type = a.GetType();
 
-			ClassicOperator @operator = Operator as ClassicOperator;
+			if (!(Operator is ClassicOperator @operator))
+			{
+				throw new Exception("Invalid operator given");
+			}
 
 			if (!@operator.IsShared)
 			{
@@ -39,39 +42,39 @@ public class OperatorNode : Node, Contextable
 		}
 		else
 		{
-			return null;
+			return Types.UNKNOWN;
 		}
 
-		Type right;
+		Type? right;
 
-		if (Right is Contextable b)
+		if (Right is IType b)
 		{
-			right = b.GetContext();
+			right = b.GetType();
 		}
 		else
 		{
-			return null;
+			return Types.UNKNOWN;
 		}
 
 		return Resolver.GetSharedType(left, right);
 	}
 
-	private Type GetComparisonType()
+	private Type? GetComparisonType()
 	{
 		return Types.BOOL;
 	}
 
-	private Type GetActionType()
+	private Type? GetActionType()
 	{
-		if (Left is Contextable contextable)
+		if (Left is IType type)
 		{
-			return contextable.GetContext();
+			return type.GetType();
 		}
 
-		return null;
+		return Types.UNKNOWN;
 	}
 
-	public virtual Type GetContext()
+	public virtual Type? GetType()
 	{
 		switch (Operator.Type)
 		{

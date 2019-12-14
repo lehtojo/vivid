@@ -15,16 +15,17 @@ public class Type : Context
 	public int Size => GetSize();
 
 	public List<Type> Supertypes { get; private set; } = new List<Type>();
-	private FunctionList Constructors { get; set; } = new FunctionList();
-	private FunctionList Destructors { get; set; } = new FunctionList();
+	public FunctionList Constructors { get; private set; } = new FunctionList();
+	public FunctionList Destructors { get; private set; } = new FunctionList();
+	public FunctionList Operators { get; set; } = new FunctionList();
 
 	public void AddConstructor(Constructor constructor)
 	{
-		Constructor first = (Constructor)Constructors.Instances.First();
+		Constructor first = (Constructor)Constructors.Overloads.First();
 
 		if (first.IsDefault)
 		{
-			Constructors.Instances.Remove(first);
+			Constructors.Overloads.Remove(first);
 		}
 
 		Constructors.Add(constructor);

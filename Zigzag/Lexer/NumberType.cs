@@ -5,6 +5,7 @@ public enum NumberType
 	INT16,
 	UINT16,
 	INT32,
+	DECIMAL32,
 	UINT32,
 	INT64,
 	UINT64

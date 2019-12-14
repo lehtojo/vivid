@@ -19,6 +19,7 @@ public class Numbers
 		Add(Types.BYTE);
 		Add(Types.LONG);
 		Add(Types.NORMAL);
+		Add(Types.DECIMAL);
 		Add(Types.SHORT);
 		Add(Types.TINY);
 		Add(Types.UINT);

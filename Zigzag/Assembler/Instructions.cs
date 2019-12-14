@@ -5,7 +5,7 @@ public class Instructions
 	private StringBuilder Builder = new StringBuilder();
 	public Reference Reference { get; set; }
 
-	public static Instructions reference(Reference reference)
+	public static Instructions GetReference(Reference reference)
 	{
 		return new Instructions().SetReference(reference);
 	}
@@ -48,6 +48,11 @@ public class Instructions
 		}
 
 		return this;
+	}
+
+	public void Break()
+	{
+		Builder = Builder.Append('\n');
 	}
 
 	public Instructions SetReference(Reference reference)

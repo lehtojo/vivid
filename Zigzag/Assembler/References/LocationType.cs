@@ -1,9 +1,12 @@
 public enum LocationType
 {
 	ADDRESS,
+	OFFSET,
+	FPU,
 	MANUAL,
 	MEMORY,
 	NUMBER,
 	REGISTER,
-	VALUE
+	VALUE,
+	STACK
 }

@@ -3,9 +3,28 @@ using System.Collections.Generic;
 
 public class Resolver
 {
-	public static void CreatePattern(NodeType[] left, NodeType node, NodeType[] right)
+	public static void Resolve(Context context, List<string> errors)
 	{
+		foreach (var type in context.Types.Values)
+		{
+			Variables(type, errors);
+			Resolve(type, errors);
+		}
 
+		foreach (var function in context.Functions.Values)
+		{
+			foreach (var overload in function.Overloads)
+			{
+				foreach (var implementation in overload.Implementations)
+				{
+					if (implementation.Node != null)
+					{
+						Variables(implementation, errors);
+						Resolve(implementation, implementation.Node, errors);
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -15,18 +34,17 @@ public class Resolver
     * @param errors Output list for errors
     * @return Returns a resolved node tree on success, otherwise null
     */
-	public static Node Resolve(Context context, Node node, List<Exception> errors)
+	public static Node Resolve(Context context, Node node, List<string> errors)
 	{
 		if (node is IResolvable resolvable)
 		{
 			try
 			{
-				Node resolved = resolvable.Resolve(context);
-				return resolved ?? node;
+				return resolvable.Resolve(context) ?? node;
 			}
 			catch (Exception e)
 			{
-				errors.Add(e);
+				errors.Add(e.Message);
 			}
 
 			return null;
@@ -37,9 +55,9 @@ public class Resolver
 
 			while (iterator != null)
 			{
-				Node resolved;
+				Node resolved = Resolver.Resolve(context, iterator, errors);
 
-				if (iterator.GetNodeType() == NodeType.TYPE_NODE)
+				/*if (iterator.GetNodeType() == NodeType.TYPE_NODE)
 				{
 					TypeNode type = (TypeNode)iterator;
 					resolved = Resolver.Resolve(type.Type, iterator, errors);
@@ -54,7 +72,7 @@ public class Resolver
 				else
 				{
 					resolved = Resolver.Resolve(context, iterator, errors);
-				}
+				}*/
 
 				if (resolved != null)
 				{
@@ -77,7 +95,7 @@ public class Resolver
      * Returns the shared type between the given types
      * @return Success: Shared type between the given types, Failure: null
      */
-	public static Type GetSharedType(Type a, Type b)
+	public static Type? GetSharedType(Type? a, Type? b)
 	{
 		if (a == b)
 		{
@@ -90,6 +108,11 @@ public class Resolver
 
 		if (a is Number && b is Number)
 		{
+			if (a is Decimal || b is Decimal)
+			{
+				return Types.DECIMAL;
+			}
+
 			return GetSharedNumber((Number)a, (Number)b);
 		}
 
@@ -135,43 +158,27 @@ public class Resolver
 		return current;
 	}
 
-	/**
-     * Returns all child node types
-     * @return Types of children nodes
-     */
+	/// <summary>
+	/// Returns the types of the child nodes of the given node
+	/// </summary>
+	/// <returns>Success: Types of the child nodes, Failure: null</returns>
 	public static List<Type> GetTypes(Node node)
 	{
-		List<Type> types = new List<Type>();
-		Node iterator = node.First;
+		var types = new List<Type>();
+		var iterator = node.First;
 
 		while (iterator != null)
 		{
-			if (iterator is Contextable contextable)
+			if (iterator is IType x)
 			{
-				Context context;
+				var type = x.GetType();
 
-				try
-				{
-					context = contextable.GetContext();
-				}
-				catch
-				{
-					return null;
-				}
-
-				if (context == null || !context.IsType)
+				if (type == Types.UNKNOWN || type.IsUnresolved)
 				{
 					return null;
 				}
 				else
 				{
-					Type type = (Type)context;
-
-					if (type is UnresolvedType)
-					{
-						return null;
-					}
-
 					types.Add(type);
 				}
 			}
@@ -186,46 +193,37 @@ public class Resolver
 		return types;
 	}
 
-	public static void ResolveVariables(Variable variable)
+	public static void Resolve(Variable variable)
 	{
-		List<Type> types = new List<Type>();
+		var types = new List<Type>();
 
-		foreach (Node reference in variable.References)
+		foreach (var reference in variable.References)
 		{
-			Node parent = reference.Parent;
+			var parent = reference.Parent;
 
 			if (parent != null)
 			{
 				if (parent.GetNodeType() == NodeType.OPERATOR_NODE)
 				{
-					OperatorNode @operator = (OperatorNode)parent;
+					var operation = parent as OperatorNode;
 
 					// Try to resolve type via contextable right side of the assign operator
-					if (@operator.Operator == Operators.ASSIGN &&
-						@operator.Right is Contextable)
+					if (operation.Operator == Operators.ASSIGN &&
+						operation.Right is IType x)
 					{
+						var type = x.GetType();
 
-						try
+						// Verify the type is resolved
+						if (type != Types.UNKNOWN)
 						{
-							Contextable contextable = (Contextable)@operator.Right;
-							Context context = contextable.GetContext();
-
-							// Verify the type is resolved
-							if (context != Types.UNKNOWN && context.IsType)
-							{
-								types.Add((Type)context);
-							}
-						}
-						catch
-						{
-							continue;
+							types.Add(type);
 						}
 					}
 				}
 			}
 		}
 
-		Type shared = Resolver.GetSharedType(types);
+		var shared = Resolver.GetSharedType(types);
 
 		if (shared != Types.UNKNOWN)
 		{
@@ -233,24 +231,46 @@ public class Resolver
 			return;
 		}
 
-		throw new Exception($"Couldn't resolve type of variable '{variable.Name}'");
+		if (variable.Context.IsFunction)
+		{
+			var function = variable.Context as FunctionImplementation;
+
+			if (function.IsMember)
+			{
+				var type = function.GetTypeParent();
+				throw new Exception($"Couldn't resolve type of variable '{variable.Name}' in member function '{function.Metadata.Name} of type '{type.Name}'");
+			}
+			else
+			{
+				throw new Exception($"Couldn't resolve type of variable '{variable.Name}' in function '{function.Metadata.Name}'");
+			}
+		}
+		else
+		{
+			throw new Exception($"Couldn't resolve type of variable '{variable.Name}'");
+		}
 	}
 
-	public static void ResolveVariables(Context context, List<Exception> errors)
+	public static void Variables(Context context, List<string> errors)
 	{
-		foreach (Variable variable in context.Variables.Values)
+		foreach (var variable in context.Variables.Values)
 		{
 			if (variable.Type == Types.UNKNOWN)
 			{
 				try
 				{
-					ResolveVariables(variable);
+					Resolve(variable);
 				}
 				catch (Exception e)
 				{
-					errors.Add(e);
+					errors.Add(e.Message);
 				}
 			}
+		}
+
+		foreach (var subcontext in context.Subcontexts)
+		{
+			Variables(subcontext, errors);
 		}
 	}
 }

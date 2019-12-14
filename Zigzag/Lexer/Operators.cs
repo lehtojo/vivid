@@ -44,6 +44,7 @@ public class Operators
 	public static readonly IndependentOperator DECREMENT = new IndependentOperator("--");
 
 	public static readonly IndependentOperator CAST = new IndependentOperator("->");
+	public static readonly IndependentOperator RETURN = new IndependentOperator("=>");
 
 	public static readonly IndependentOperator END = new IndependentOperator("\n");
 
@@ -86,13 +87,19 @@ public class Operators
 		Add(INCREMENT);
 		Add(DECREMENT);
 		Add(CAST);
+		Add(RETURN);
 		Add(EXTENDER);
 		Add(END);
 	}
 
 	public static Operator Get(string text)
 	{
-		return Map[text];
+		if (Map.TryGetValue(text, out Operator @operator))
+		{
+			return @operator;
+		}
+
+		throw new System.Exception($"Unknown operator '{text}'");
 	}
 
 	public static bool Exists(string identifier)

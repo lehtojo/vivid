@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 public class MemoryReference : Reference
 {
 	private Register Register { get; set; }
@@ -27,15 +29,26 @@ public class MemoryReference : Reference
 		}
 	}
 
+	public override Register GetRegister()
+	{
+		return Register;
+	}
+
 	public override string Use(Size size)
 	{
 		return $"{size} [{GetContent()}]";
+	}
+
+	public override string Use()
+	{
+		return $"[{GetContent()}]";
 	}
 
 	public override bool IsComplex()
 	{
 		return true;
 	}
+
 	public override LocationType GetType()
 	{
 		return LocationType.MEMORY;
@@ -54,5 +67,12 @@ public class MemoryReference : Reference
 	public static MemoryReference Member(Register register, int alignment, int size)
 	{
 		return new MemoryReference(register, alignment, size);
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is MemoryReference reference &&
+			   EqualityComparer<Register>.Default.Equals(Register, reference.Register) &&
+			   Alignment == reference.Alignment;
 	}
 }

@@ -12,5 +12,7 @@ public class TokenType
 	public const int END = 512;
 	public const int STRING = 1024;
 
+	public const int OBJECT = CAST | CONTENT | FUNCTION | IDENTIFIER | NUMBER | DYNAMIC | STRING;
+
 	public const int COUNT = 11;
 }

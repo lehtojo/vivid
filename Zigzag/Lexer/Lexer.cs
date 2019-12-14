@@ -28,36 +28,71 @@ public class Lexer
 		public Position End { get; set; }
 	}
 
+	/// <summary>
+	/// Returns whether the character is a operator
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is a operator, otherwise false</returns>
 	private static bool IsOperator(char c)
 	{
 		return c >= 33 && c <= 47 && c != COMMENT && c != STRING || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
 	}
 
+	/// <summary>
+	/// Returns whether the character is a digit
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is a digit, otherwise false</returns>
 	private static bool IsDigit(char c)
 	{
 		return c >= 48 && c <= 57;
 	}
 
+	/// <summary>
+	/// Returns whether the character is a text
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is a text, otherwise false</returns>
 	private static bool IsText(char c)
 	{
 		return c >= 65 && c <= 90 || c >= 97 && c <= 122 || c == 95;
 	}
 
+	/// <summary>
+	/// Returns whether the character is start of a parenthesis
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is start of a parenthesis, otherwise false</returns>
 	private static bool IsContent(char c)
 	{
 		return ParenthesisType.Has(c);
 	}
 
+	/// <summary>
+	/// Returns whether the character is start of a comment
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is start of a comment, otherwise false</returns>
 	private static bool ÍsComment(char c)
 	{
 		return c == COMMENT;
 	}
 
+	/// <summary>
+	/// Returns whether the character start of a string
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>True if the character is start of a string, otherwise false</returns>
 	private static bool IsString(char c)
 	{
 		return c == STRING;
 	}
 
+	/// <summary>
+	/// Returns the type of the character
+	/// </summary>
+	/// <param name="c">Character to scan</param>
+	/// <returns>Type of the character</returns>
 	private static Type GetType(char c)
 	{
 		if (IsText(c))
@@ -92,14 +127,21 @@ public class Lexer
 		return Type.UNSPECIFIED;
 	}
 
-	private static bool IsPartOf(Type @base, Type current, char c)
+	/// <summary>
+	/// Returns whether the character is part of the progressing token
+	/// </summary>
+	/// <param name="previous">Type of the progressing token</param>
+	/// <param name="current">Type of the current character</param>
+	/// <param name="c">Current character</param>
+	/// <returns>True if the character is part of the progressing token</returns>
+	private static bool IsPartOf(Type previous, Type current, char c)
 	{
-		if (current == @base || @base == Type.UNSPECIFIED)
+		if (current == previous || previous == Type.UNSPECIFIED)
 		{
 			return true;
 		}
 
-		switch (@base)
+		switch (previous)
 		{
 			case Type.TEXT:
 			{
@@ -115,11 +157,17 @@ public class Lexer
 		}
 	}
 
+	/// <summary>
+	/// Skips all the spaces starting from the given position
+	/// </summary>
+	/// <param name="text">Current text</param>
+	/// <param name="position">Start of the spaces</param>
+	/// <returns>Returns the position after the spaces</returns>
 	private static Position SkipSpaces(string text, Position position)
 	{
 		while (position.Absolute < text.Length)
 		{
-			char c = text[position.Absolute];
+			var c = text[position.Absolute];
 
 			if (c != ' ')
 			{
@@ -134,18 +182,24 @@ public class Lexer
 		return position;
 	}
 
+	/// <summary>
+	/// Finds the corresponding end parenthesis and returns its position
+	/// </summary>
+	/// <param name="text">Current text</param>
+	/// <param name="start">Start of the opening parenthesis</param>
+	/// <returns>Position of the closing parenthesis</returns>
 	private static Position SkipContent(string text, Position start)
 	{
-		Position position = start.Clone();
+		var position = start.Clone();
 
-		char opening = text[position.Absolute];
-		char closing = ParenthesisType.Get(opening).Closing;
+		var opening = text[position.Absolute];
+		var closing = ParenthesisType.Get(opening).Closing;
 
-		int count = 0;
+		var count = 0;
 
 		while (position.Absolute < text.Length)
 		{
-			char c = text[position.Absolute];
+			var c = text[position.Absolute];
 
 			if (c == '\n')
 			{
@@ -174,41 +228,59 @@ public class Lexer
 		throw Errors.Get(start, "Couldn't find closing parenthesis");
 	}
 
+	/// <summary>
+	/// Skips the current comment and returns the position
+	/// </summary>
+	/// <param name="text">Current text</param>
+	/// <param name="start">Start of the comment</param>
+	/// <returns>Position after the comment</returns>
 	private static Position SkipComment(string text, Position start)
 	{
-		int i = text.IndexOf('\n', start.Absolute);
+		var i = text.IndexOf('\n', start.Absolute);
 
 		if (i != -1)
 		{
-			int length = i - start.Absolute;
+			var length = i - start.Absolute;
 			return new Position(start.Line, start.Character + length, i).NextLine();
 		}
 		else
 		{
-			int length = text.Length - start.Absolute;
+			var length = text.Length - start.Absolute;
 			return new Position(start.Line, start.Character + length, text.Length);
 		}
 	}
 
+	/// <summary>
+	/// Skips the current string and returns the position
+	/// </summary>
+	/// <param name="text">Current text</param>
+	/// <param name="start">Start of the comment</param>
+	/// <returns>Position after the string</returns>
 	private static Position SkipString(string text, Position start)
 	{
-		int i = text.IndexOf(STRING, start.Absolute + 1);
-		int j = text.IndexOf('\n', start.Absolute + 1);
+		var i = text.IndexOf(STRING, start.Absolute + 1);
+		var j = text.IndexOf('\n', start.Absolute + 1);
 
 		if (i == -1 || j != -1 && j < i)
 		{
 			throw Errors.Get(start, "Couldn't find the end of the string");
 		}
 
-		int length = i - start.Absolute;
+		var length = i - start.Absolute;
 
 		return new Position(start.Line, start.Character + length, i + 1);
 	}
 
+	/// <summary>
+	/// Returns the next token area in the text
+	/// </summary>
+	/// <param name="text">Current text</param>
+	/// <param name="start">Position from which to start looking for the next token</param>
+	/// <returns>The next token in the text</returns>
 	public static Area GetNextToken(string text, Position start)
 	{
 		// Firsly the spaces must be skipped to find the next token
-		Position position = SkipSpaces(text, start);
+		var position = SkipSpaces(text, start);
 
 		// Verify there's text to iterate
 		if (position.Absolute == text.Length)
@@ -216,7 +288,7 @@ public class Lexer
 			return null;
 		}
 
-		Area area = new Area
+		var area = new Area
 		{
 			Start = position.Clone(),
 			Type = GetType(text[position.Absolute])
@@ -259,7 +331,7 @@ public class Lexer
 		// Possible types are now: TEXT, NUMBER, OPERATOR
 		while (position.Absolute < text.Length)
 		{
-			char c = text[position.Absolute];
+			var c = text[position.Absolute];
 
 			if (IsContent(c))
 			{
@@ -273,7 +345,7 @@ public class Lexer
 				break;
 			}
 
-			Type type = GetType(c);
+			var type = GetType(c);
 
 			if (!IsPartOf(area.Type, type, c))
 			{
@@ -289,6 +361,11 @@ public class Lexer
 		return area;
 	}
 
+	/// <summary>
+	/// Parses a token from text
+	/// </summary>
+	/// <param name="text">Text to parse into a token</param>
+	/// <returns>Text as a token</returns>
 	private static Token ParseTextToken(string text)
 	{
 		if (Operators.Exists(text))
@@ -305,6 +382,12 @@ public class Lexer
 		}
 	}
 
+	/// <summary>
+	/// Parses a token from a text area
+	/// </summary>
+	/// <param name="area">Current text area</param>
+	/// <param name="anchor">Current position in text</param>
+	/// <returns>Area as a token</returns>
 	private static Token ParseToken(Area area, Position anchor)
 	{
 		switch (area.Type)
@@ -322,6 +405,10 @@ public class Lexer
 
 	private const int FUNCTION_LENGTH = 2;
 
+	/// <summary>
+	/// Forms function tokens from the given tokens
+	/// </summary>
+	/// <param name="tokens">Tokens to iterate</param>
 	private static void Functions(List<Token> tokens)
 	{
 		if (tokens.Count < FUNCTION_LENGTH)
@@ -331,20 +418,21 @@ public class Lexer
 
 		for (int i = tokens.Count - 2; i >= 0;)
 		{
-			Token current = tokens[i];
+			var current = tokens[i];
 
 			if (current.Type == TokenType.IDENTIFIER)
 			{
-				Token next = tokens[i + 1];
+				var next = tokens[i + 1];
 
 				if (next.Type == TokenType.CONTENT)
 				{
-					ContentToken parameters = (ContentToken)next;
+					var parameters = (ContentToken)next;
 
 					if (parameters.Type == ParenthesisType.PARENTHESIS)
 					{
-						IdentifierToken name = (IdentifierToken)current;
-						FunctionToken function = new FunctionToken(name, parameters);
+						var name = (IdentifierToken)current;
+						var function = new FunctionToken(name, parameters);
+						function.Position = name.Position;
 
 						tokens[i] = function;
 						tokens.RemoveAt(i + 1);
@@ -359,19 +447,30 @@ public class Lexer
 		}
 	}
 
-	public static List<Token> GetTokens(string raw)
+	/// <summary>
+	/// Returns the text as a token list
+	/// </summary>
+	/// <param name="text">Text to scan</param>
+	/// <returns>Text as a token list</returns>
+	public static List<Token> GetTokens(string text)
 	{
-		return GetTokens(raw, new Position());
+		return GetTokens(text, new Position());
 	}
 
-	public static List<Token> GetTokens(string raw, Position anchor)
+	/// <summary>
+	/// Returns the text as a token list
+	/// </summary>
+	/// <param name="text">Text to scan</param>
+	/// <param name="anchor">Current position</param>
+	/// <returns>Text as a token list</returns>
+	public static List<Token> GetTokens(string text, Position anchor)
 	{
-		List<Token> tokens = new List<Token>();
-		Position position = new Position();
+		var tokens = new List<Token>();
+		var position = new Position();
 
-		while (position.Absolute < raw.Length)
+		while (position.Absolute < text.Length)
 		{
-			Area area = GetNextToken(raw, position);
+			var area = GetNextToken(text, position);
 
 			if (area == null)
 			{
@@ -380,7 +479,7 @@ public class Lexer
 
 			if (area.Type != Type.COMMENT)
 			{
-				Token token = ParseToken(area, anchor);
+				var token = ParseToken(area, anchor);
 				token.Position = (anchor += area.Start);
 				tokens.Add(token);
 			}

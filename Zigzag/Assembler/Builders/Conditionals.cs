@@ -7,46 +7,49 @@ public class Conditionals
      * @param end Label that is used as an exit from the if statement's body
      * @return If statement built into instructions
      */
-	private static Instructions build(Unit unit, IfNode root, string end)
+	private static Instructions Build(Unit unit, IfNode root, string end)
 	{
-		Instructions instructions = new Instructions();
-		string next = root.Successor != null ? unit.NextLabel : end;
+		var instructions = new Instructions();
+		var next = root.Successor != null ? unit.NextLabel : end;
 
-		Node condition = root.Condition;
+		var condition = root.Condition;
 
 		// Assemble the condition
 		if (condition.GetNodeType() == NodeType.OPERATOR_NODE)
 		{
-			OperatorNode @operator = (OperatorNode)condition;
+			var operation = (OperatorNode)condition;
 
-			Instructions jump = Comparison.Jump(unit, @operator, true, next);
+			var jump = Comparison.Jump(unit, operation, true, next);
 			instructions.Append(jump);
 
-			unit.Step();
+			//unit.Step(instructions);
 		}
 
-		Instructions successor = null;
+		Instructions? successor = null;
+		var clone = unit.Clone();
 
 		// Assemble potential successor
 		if (root.Successor != null)
 		{
-			Node node = root.Successor;
+			var node = root.Successor;
 
-			if (node.GetNodeType() == NodeType.IF_NODE)
+			if (node.GetNodeType() == NodeType.ELSE_IF_NODE)
 			{
-				successor = Conditionals.build(unit, (IfNode)node, end);
+				successor = Conditionals.Build(clone, (IfNode)node, end);
 			}
 			else
 			{
-				successor = unit.Assemble(node);
+				successor = clone.Assemble(node);
 			}
 		}
 
 		// Clone the unit since if statements may have multiple sections that don't affect each other
-		Unit clone = unit.Clone();
+		clone = unit.Clone();
 
-		Instructions body = clone.Assemble(root.Body);
+		var body = clone.Assemble(root.Body);
 		instructions.Append(body);
+
+		clone.Stack.Restore(instructions);
 
 		// Merge all assembled sections together
 		if (successor != null)
@@ -67,9 +70,9 @@ public class Conditionals
      */
 	public static Instructions start(Unit unit, IfNode node)
 	{
-		string end = unit.NextLabel;
+		var end = unit.NextLabel;
 
-		Instructions instructions = Conditionals.build(unit, node, end);
+		var instructions = Conditionals.Build(unit, node, end);
 		instructions.Append("{0}: ", end);
 
 		unit.Reset();

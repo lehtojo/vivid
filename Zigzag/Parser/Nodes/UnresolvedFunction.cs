@@ -3,21 +3,26 @@ using System.Collections.Generic;
 
 public class UnresolvedFunction : Node, IResolvable
 {
-	public string Value { get; private set; }
+	public string Name { get; private set; }
 	public Node Parameters => First;
 
-	public UnresolvedFunction(string value)
+
+	/// <summary>
+	/// Creates an unresolved function with a function name to look for
+	/// </summary>
+	/// <param name="name">Function name</param>
+	public UnresolvedFunction(string name)
 	{
-		Value = value;
+		Name = name;
 	}
 
 	public UnresolvedFunction SetParameters(Node parameters)
 	{
-		Node parameter = parameters.First;
+		var parameter = parameters.First;
 
 		while (parameter != null)
 		{
-			Node next = parameter.Next;
+			var next = parameter.Next;
 			Add(parameter);
 			parameter = next;
 		}
@@ -27,15 +32,13 @@ public class UnresolvedFunction : Node, IResolvable
 
 	public Node Solve(Context environment, Context context)
 	{
-		Node node = Parameters;
-
-		if (node != null)
+		if (Parameters != null)
 		{
-			Node parameter = First;
+			var parameter = First;
 
 			while (parameter != null)
 			{
-				Node resolved = Resolver.Resolve(environment, parameter, new List<Exception>());
+				var resolved = Resolver.Resolve(environment, parameter, new List<string>());
 
 				if (resolved != null)
 				{
@@ -49,21 +52,31 @@ public class UnresolvedFunction : Node, IResolvable
 			}
 		}
 
-		List<Type> parameters = Resolver.GetTypes(this);
+		// Get parameter types
+		var types = Resolver.GetTypes(this);
 
-		if (parameters == null)
+		// Parameter types must be known
+		if (types == null)
 		{
-			throw new Exception($"Couldn't resolve function parameters '{Value}'");
+			throw new Exception($"Couldn't resolve function parameters '{Name}'");
 		}
 
-		Function function = Singleton.GetFunctionByName(context, Value, parameters);
+		// Try to find a suitable function by name and parameter types
+		var function = Singleton.GetFunctionByName(context, Name, types);
 
 		if (function == null)
 		{
-			throw new Exception($"Couldn't resolve function '{Value}'");
+			throw new Exception($"Couldn't resolve function or constructor '{Name}'");
 		}
 
-		return new FunctionNode(function).SetParameters(this);
+		var node = new FunctionNode(function).SetParameters(this);
+
+		if (function.Metadata is Constructor)
+		{
+			return new ConstructionNode(node);
+		}
+
+		return node;
 	}
 
 	public Node Resolve(Context context)
@@ -74,5 +87,10 @@ public class UnresolvedFunction : Node, IResolvable
 	public override NodeType GetNodeType()
 	{
 		return NodeType.UNRESOLVED_FUNCTION;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.Error($"Couldn't resolve function or constructor '{Name}'");
 	}
 }

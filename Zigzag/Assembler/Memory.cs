@@ -17,11 +17,11 @@ public class Memory
 
 		if (unit.IsAnyRegisterUncritical)
 		{
-			Register register = unit.GetNextRegister();
+			var register = unit.GetNextRegister();
 
-			Reference destination = new RegisterReference(register, value.GetSize());
+			var destination = new RegisterReference(register, value.GetSize());
 
-			Instructions instructions = new Instructions();
+			var instructions = new Instructions();
 			instructions.Append(Instruction.Unsafe("mov", destination, value, value.GetSize()));
 			instructions.SetReference(destination);
 
@@ -38,46 +38,98 @@ public class Memory
      * Moves value from source to destination. If destination contains a value, it's relocated only if it's critical
      * @return Instructions for moving data from source to destination
      */
-	public static Instructions Move(Unit unit, Reference source, Reference destination)
+	public static Reference Move(Unit unit, Instructions instructions, Reference source, Reference destination)
 	{
-		Instructions instructions = new Instructions();
+		// Sometimes unnecessary moves happen
+		if (source.Equals(destination))
+		{
+			return destination;
+		}
 
+		// Relocate potential critical value from the destination register
 		if (destination.IsRegister())
 		{
-			Register register = destination.GetRegister();
+			var register = destination.GetRegister();
 
 			if (register.IsCritical)
 			{
-				Value value = register.Value;
+				var value = register.Value;
 				instructions.Append(Memory.Relocate(unit, value));
 
 				register.Reset();
 			}
 		}
 
-		instructions.Append(Instruction.Unsafe("mov", destination, source, source.GetSize()));
-		instructions.SetReference(destination);
+		// FPU elements need special move instructions
+		if (source.GetType() == LocationType.FPU)
+		{
+			unit.Fpu.Export(unit, instructions, source as FpuStackReference, destination);
+		}
+		else if (source is StackReference reference && reference.Element.Alignment == 0)
+		{
+			var stack = unit.Stack;
+			stack.Pop(instructions, destination);
+		}
+		else
+		{
+			var size = source.GetSize();
 
-		return instructions;
+			if (destination.IsRegister() && size != Size.DWORD)
+			{
+				instructions.Append($"movzx {destination.Peek()}, {source.Peek(size)}");
+			}
+			else
+			{
+				instructions.Append(Instruction.Unsafe("mov", destination, source, source.GetSize()));
+			}
+		}
+
+		// Relocate potential source register value
+		if (source.IsRegister() && destination.IsRegister())
+		{
+			var previous = source.GetRegister();
+			var current = destination.GetRegister();
+
+			current.Attach(previous.Value);
+
+			previous.Reset();
+		}
+
+		return destination;
 	}
 
 	/**
      * Moves data from reference to some register. If no register is available, some register will be cleared and used
      * @return Instructions for moving data from reference to some register
      */
-	public static Instructions ToRegister(Unit unit, Reference reference)
+	public static Instructions ToRegister(Unit unit, Reference source)
 	{
-		Instructions instructions = new Instructions();
-		Register register = unit.GetNextRegister();
+		var instructions = new Instructions();
+		var register = unit.GetNextRegister();
 
 		if (register.IsCritical)
 		{
-			Value value = register.Value;
+			var value = register.Value;
 			instructions.Append(Memory.Relocate(unit, value));
 		}
 
-		Reference destination = new RegisterReference(register, reference.GetSize());
-		instructions.Append(Instruction.Unsafe("mov", destination, reference, destination.GetSize()));
+		var destination = new RegisterReference(register, Size.DWORD);
+		var size = source.GetSize();
+
+		if (size != Size.DWORD)
+		{
+			instructions.Append($"movzx {destination.Peek()}, {source.Peek(size)}");
+		}
+		else if (source is StackReference reference && reference.Element.Alignment == 0)
+		{
+			var stack = unit.Stack;
+			stack.Pop(instructions, destination);
+		}
+		else
+		{
+			instructions.Append(Instruction.Unsafe("mov", destination, source, destination.GetSize()));
+		}
+		
 		instructions.SetReference(destination);
 
 		return instructions;
@@ -100,9 +152,9 @@ public class Memory
      */
 	public static Evacuation Evacuate(Unit unit)
 	{
-		Evacuation evacuation = new Evacuation();
+		var evacuation = new Evacuation();
 
-		foreach (Register register in unit.Registers)
+		foreach (var register in unit.Registers)
 		{
 			if (register.IsCritical)
 			{
@@ -148,7 +200,7 @@ public class Memory
 	public static Instructions GetObjectPointer(Unit unit, ReferenceType type)
 	{
 		Instructions instructions = new Instructions();
-		Register register = null;
+		Register? register = null;
 
 		// Try to get the appropriate register for the object pointer
 		if (type == ReferenceType.DIRECT)

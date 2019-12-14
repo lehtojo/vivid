@@ -1,16 +1,16 @@
+using System.Collections.Generic;
+
 public class Constructor : Function
 {
 	public bool IsDefault { get; private set; }
 
 	public static Constructor Empty(Context context)
 	{
-		Constructor constructor = new Constructor(context, AccessModifier.PUBLIC, true);
-		constructor.SetParameters(new Node());
-
-		return constructor;
+		return new Constructor(context, AccessModifier.PUBLIC, new List<string>(), new List<Token>(), true);
 	}
 
-	public Constructor(Context context, int modifiers, bool @default = false) : base(context, modifiers)
+	public Constructor(Context context, int modifiers, List<string> parameters, List<Token> blueprint, bool @default = false) 
+		: base(context, modifiers, string.Empty, parameters, blueprint)
 	{
 		IsDefault = @default;
 		Prefix = "Constructor";

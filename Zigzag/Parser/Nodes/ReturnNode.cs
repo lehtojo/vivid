@@ -2,16 +2,16 @@ using System;
 
 public class ReturnNode : InstructionNode, IResolvable
 {
-	public ReturnNode(Node @object) : base(Keywords.RETURN)
+	public ReturnNode(Node node) : base(Keywords.RETURN)
 	{
-		Add(@object);
+		Add(node);
 	}
 
 	private Type GetReturnType(Node node)
 	{
-		if (node is Contextable contextable)
+		if (node is IType type)
 		{
-			return contextable.GetContext();
+			return type.GetType();
 		}
 
 		throw new Exception("Couldn't resolve return type");
@@ -20,11 +20,11 @@ public class ReturnNode : InstructionNode, IResolvable
 	public Node Resolve(Context context)
 	{
 		// Returned object must be resolved first
-		Node node = First;
+		var node = First;
 
 		if (node is IResolvable resolvable)
 		{
-			Node resolved = resolvable.Resolve(context);
+			var resolved = resolvable.Resolve(context);
 
 			if (resolved != null)
 			{
@@ -34,21 +34,21 @@ public class ReturnNode : InstructionNode, IResolvable
 		}
 
 		// Find the parent function where the return value can be assigned
-		Function function = context.GetFunctionParent();
+		var function = context.GetFunctionParent();
 
-		Type current = function.ReturnType;
-		Type type = GetReturnType(node);
+		var current = function.ReturnType;
+		var type = GetReturnType(node);
 
-		if (type == null)
+		if (type == Types.UNKNOWN)
 		{
 			throw new Exception("Couldn't resolve return type");
 		}
 
 		if (current != type)
 		{
-			Type shared = type;
+			var shared = type;
 
-			if (current != null)
+			if (current != Types.UNKNOWN)
 			{
 				shared = Resolver.GetSharedType(current, type);
 			}
@@ -67,5 +67,10 @@ public class ReturnNode : InstructionNode, IResolvable
 	public override NodeType GetNodeType()
 	{
 		return NodeType.RETURN_NODE;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 }

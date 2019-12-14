@@ -1,99 +1,94 @@
+﻿using System;
 using System.Collections.Generic;
+using System.Text;
+
 public class LoopPattern : Pattern
 {
-	public const int PRIORITY = 15;
+	public const int PRIORITY = 1;
 
-	private const int WHILE = 0;
-	private const int STEPS = 1;
-	private const int BODY = 3;
+	public const int STEPS = 0;
+	public const int BODY = 2;
 
-	// Pattern:
-	// while (...) [\n] {...}
-	public LoopPattern() : base(TokenType.KEYWORD, /* loop */
-								TokenType.DYNAMIC | TokenType.OPTIONAL, /* [(...)] */
-								TokenType.END | TokenType.OPTIONAL, /* [\n] */
-								TokenType.CONTENT) /* {...} */
-	{ }
+	// (i < 10)
+	public const int WHILE_LOOP = 1;
+
+	// (i < 10, i++)
+	public const int SHORT_FOR_LOOP = 2;
+
+	// (i = 0, i < 10, i++)
+	public const int FOR_LOOP = 3;
+
+	// (...) [\n] (...)
+	public LoopPattern() : base
+	(
+		TokenType.CONTENT, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
 		return PRIORITY;
 	}
 
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
-		KeywordToken keyword = (KeywordToken)tokens[WHILE];
-
-		if (keyword.Keyword != Keywords.LOOP)
-		{
-			return false;
-		}
-
-		ContentToken body = (ContentToken)tokens[BODY];
-		return body.Type == ParenthesisType.CURLY_BRACKETS;
+		return true;
 	}
 
-	private List<Token> GetBody(List<Token> tokens)
+	private Node GetSteps(Context environment, ContentToken content)
 	{
-		ContentToken content = (ContentToken)tokens[BODY];
-		return content.GetTokens();
-	}
+		var steps = new Node();
 
-	private Node Mold(List<Token> tokens, Node steps)
-	{
-		var iterator = steps.First;
-		var count = 0;
-
-		while (iterator != null)
+		for (var i = 0; i < content.SectionCount; i++)
 		{
-			count++;
-			iterator = iterator.Next;
+			Parser.Parse(steps, environment, content.GetTokens(i));
 		}
 
-		switch (count)
+		if (content.IsEmpty)
 		{
-			case 0:
+			return null;
+		}
+
+		switch (content.SectionCount)
+		{
+			case WHILE_LOOP:
 			{
-				throw Errors.Get(tokens[WHILE].Position, "Loop parenthesis cannot be empty");
-			}
-			case 1:
-			{
+				// Padding: ([Added], Condition, [Added])
 				steps.Insert(steps.First, new Node());
 				steps.Add(new Node());
-				return steps;
+				break;
 			}
-			case 2:
+
+			case SHORT_FOR_LOOP:
 			{
+				// Padding: ([Added], Initialization, Action)
 				steps.Insert(steps.First, new Node());
-				return steps;
+				break;
 			}
+
+			case FOR_LOOP:
+			{
+				// Padding: (Initialization, Condition, Action)
+				break;
+			}
+
 			default:
 			{
-				return steps;
+				throw Errors.Get(content.Position, "Invalid loop");
 			}
 		}
+
+		return steps;
 	}
 
-	private Node GetSteps(List<Token> tokens)
+	public override Node Build(Context environment, List<Token> tokens)
 	{
-		DynamicToken dynamic = (DynamicToken)tokens[STEPS];
+		var steps = GetSteps(environment, tokens[STEPS] as ContentToken);
 
-		if (dynamic != null)
-		{
-			Node steps = Mold(tokens, dynamic.Node);
-			return steps;
-		}
+		var context = new Context();
+		context.Link(environment);
 
-		return null;
-	}
-
-	public override Node Build(Context @base, List<Token> tokens)
-	{
-		Context context = new Context();
-		context.Link(@base);
-
-		Node body = Parser.Parse(context, GetBody(tokens), Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
-		Node steps = GetSteps(tokens);
+		var token = tokens[BODY] as ContentToken;
+		var body = Parser.Parse(context, token.GetTokens(), 0, 20);
 
 		return new LoopNode(context, steps, body);
 	}

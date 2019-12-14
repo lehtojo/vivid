@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
 
 /// <summary>
 /// Represents one phase in compilation
@@ -52,12 +53,30 @@ public abstract class Phase
 	/// </summary>
 	public void Sync()
 	{
-		int i = 0;
+		var i = 0;
 
 		while (i < Tasks.Count)
 		{
 			Tasks[i++].Wait();
 		}
+	}
+
+	/// <summary>
+	/// Returns all tasks errors that occured during execution
+	/// </summary>
+	public string GetTaskErrors()
+	{
+		var builder = new StringBuilder("\n");
+
+		foreach (var task in Tasks)
+		{
+			if (task.Result.IsProblematic)
+			{
+				builder.Append(task.Result.Description).Append('\n');
+			}
+		}
+
+		return builder.ToString();
 	}
 
 

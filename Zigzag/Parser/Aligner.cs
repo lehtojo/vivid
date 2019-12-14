@@ -2,76 +2,96 @@ public class Aligner
 {
 	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 4;
 	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 0;
-
-	/**
-     * Aligns all variables and parameters recursively in the given context
-     * @param context Context to process
-     */
+	
+	/// <summary>
+	/// Aligns all variable and parameters recursively in the context
+	/// </summary>
+	/// <param name="context">Context to scan through</param>
 	public static void Align(Context context)
 	{
-		// Align types and their subtypes
-		foreach (Type type in context.Types.Values)
+		// Align types and subtypes
+		foreach (var type in context.Types.Values)
 		{
 			Aligner.Align(type);
 		}
 
-		// Align function variables and parameters
-		foreach (FunctionList functions in context.Functions.Values)
+		// Align function variables in memory
+		foreach (var function in context.Functions.Values)
 		{
-			foreach (Function function in functions.Instances)
+			foreach (var overload in function.Overloads)
 			{
-				Aligner.Align(function, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+				foreach (var implementation in overload.Implementations)
+				{
+					// Align function parameters using global function offset
+					Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+				}
 			}
 		}
 	}
 
-	/**
-     * Aligns member variables, functions and subtypes of the given type
-     * @param type Type to align
-     */
+	/// <summary>
+	/// Aligns member variables, function and subtypes
+	/// </summary>
+	/// <param name="type">Type to scan through</param>
 	private static void Align(Type type)
 	{
-		int position = 0;
+		var position = 0;
 
-		// Align member variables
-		foreach (Variable variable in type.Variables.Values)
+		// Member variables:
+		foreach (var variable in type.Variables.Values)
 		{
 			variable.Alignment = position;
 			position += variable.Type.Size;
 		}
 
-		foreach (FunctionList functions in type.Functions.Values)
+		// Member functions:
+		foreach (var function in type.Functions.Values)
 		{
-			foreach (Function function in functions.Instances)
+			foreach (var overload in function.Overloads)
 			{
-				Aligner.Align(function, MEMBER_FUNCTION_PARAMETER_OFFSET);
+				foreach (var implementation in overload.Implementations)
+				{
+					Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+				}
 			}
 		}
 
-		// Align constructors
-		foreach (Function constructor in type.GetConstructors().Instances)
+		// Constructors:
+		foreach (var constructor in type.GetConstructors().Overloads)
 		{
-			Aligner.Align(constructor, MEMBER_FUNCTION_PARAMETER_OFFSET);
+			foreach (var implementation in constructor.Implementations)
+			{
+				Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+			}
+		}
+
+		// Destructors:
+		foreach (var destructor in type.GetDestructors().Overloads)
+		{
+			foreach (var implementation in destructor.Implementations)
+			{
+				Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+			}
 		}
 
 		// Align subtypes
-		foreach (Type subtype in type.Types.Values)
+		foreach (var subtype in type.Types.Values)
 		{
 			Aligner.Align(subtype);
 		}
 	}
 
-	/**
-     * Aligns function variables
-     * @param function Function to align
-     * @param offset Parameter offset in stack
-     */
-	private static void Align(Function function, int offset)
+	/// <summary>
+	/// Aligns function variables
+	/// </summary>
+	/// <param name="function">Function to scan through</param>
+	/// <param name="offset">Base offset to apply to all variables</param>
+	private static void Align(FunctionImplementation function, int offset)
 	{
-		int position = offset;
+		var position = offset;
 
-		// Align parameters
-		foreach (Variable variable in function.Parameters)
+		// Parameters:
+		foreach (var variable in function.Parameters)
 		{
 			if (variable.Category == VariableCategory.PARAMETER)
 			{
@@ -82,8 +102,8 @@ public class Aligner
 
 		position = 0;
 
-		// Align local variables
-		foreach (Variable variable in function.Locals)
+		// Local variables:
+		foreach (var variable in function.Locals)
 		{
 			if (variable.Category == VariableCategory.LOCAL)
 			{

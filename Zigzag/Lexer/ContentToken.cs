@@ -23,12 +23,12 @@ public class ContentToken : Token
 
 	private Stack<int> FindSections(List<Token> tokens)
 	{
-		Stack<int> indices = new Stack<int>();
+		var indices = new Stack<int>();
 		indices.Push(tokens.Count);
 
 		for (int i = tokens.Count - 1; i >= 0; i--)
 		{
-			Token token = tokens[i];
+			var token = tokens[i];
 
 			if (IsComma(token))
 			{
@@ -45,10 +45,10 @@ public class ContentToken : Token
 
 		if (raw.Length != EMPTY)
 		{
-			string content = raw.Substring(1, raw.Length - 2);
+			var content = raw.Substring(1, raw.Length - 2);
 
-			List<Token> tokens = Lexer.GetTokens(content, position.Clone().NextCharacter());
-			Stack<int> sections = FindSections(tokens);
+			var tokens = Lexer.GetTokens(content, position.Clone().NextCharacter());
+			var sections = FindSections(tokens);
 
 			if (sections.Count == 1)
 			{
@@ -63,11 +63,11 @@ public class ContentToken : Token
 			{
 				end = sections.Pop();
 
-				List<Token> section = tokens.GetRange(start, end - start);
+				var section = tokens.GetRange(start, end - start);
 
 				if (section.Count == 0)
 				{
-					Position comma = tokens[start].Position;
+					var comma = tokens[start].Position;
 					throw Errors.Get(comma.NextCharacter(), "Parameter cannot be empty");
 				}
 

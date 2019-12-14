@@ -1,6 +1,6 @@
 using System;
 
-public class LinkNode : OperatorNode, IResolvable, Contextable
+public class LinkNode : OperatorNode, IResolvable, IType
 {
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
 	{
@@ -9,19 +9,19 @@ public class LinkNode : OperatorNode, IResolvable, Contextable
 
 	private Type GetNodeContext(Node node)
 	{
-		if (node is Contextable contextable)
+		if (node is IType type)
 		{
-			return contextable.GetContext();
+			return type.GetType();
 		}
 
 		return null;
 	}
 
-	public Node Resolve(Context @base)
+	public Node Resolve(Context environment)
 	{
 		if (Left is IResolvable a)
 		{
-			Node resolved = a.Resolve(@base);
+			var resolved = a.Resolve(environment);
 
 			if (resolved != null)
 			{
@@ -32,7 +32,7 @@ public class LinkNode : OperatorNode, IResolvable, Contextable
 
 		if (Right is IResolvable b)
 		{
-			Context context = GetNodeContext(Left);
+			var context = GetNodeContext(Left);
 
 			if (context == Types.UNKNOWN)
 			{
@@ -43,8 +43,8 @@ public class LinkNode : OperatorNode, IResolvable, Contextable
 
 			if (Right.GetNodeType() == NodeType.UNRESOLVED_FUNCTION)
 			{
-				UnresolvedFunction function = (UnresolvedFunction)Right;
-				resolved = function.Solve(@base, context);
+				var function = Right as UnresolvedFunction;
+				resolved = function.Solve(environment, context);
 			}
 			else
 			{
@@ -61,7 +61,7 @@ public class LinkNode : OperatorNode, IResolvable, Contextable
 		return null;
 	}
 
-	public override Type GetContext()
+	public override Type GetType()
 	{
 		return GetNodeContext(Right);
 	}
@@ -69,5 +69,10 @@ public class LinkNode : OperatorNode, IResolvable, Contextable
 	public override NodeType GetNodeType()
 	{
 		return NodeType.LINK_NODE;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 }

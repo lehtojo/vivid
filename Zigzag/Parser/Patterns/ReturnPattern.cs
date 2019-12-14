@@ -1,33 +1,52 @@
+﻿using System;
 using System.Collections.Generic;
-public class ReturnPattern : Pattern
+using System.Text;
+
+class ReturnPattern : Pattern
 {
 	public const int PRIORITY = 1;
 
-	private const int RETURN = 0;
-	private const int OBJECT = 1;
+	public const int RETURN = 0;
+	public const int SOURCE = 1;
 
-	// Pattern:
-	// return ...
-	public ReturnPattern() : base(TokenType.KEYWORD, /* return */
-								  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.CONTENT | TokenType.DYNAMIC) /* ... */
-	{ }
-
+	// => ...
+	public ReturnPattern() : base
+	(
+		TokenType.OPERATOR, TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC
+	) {}
 
 	public override int GetPriority(List<Token> tokens)
 	{
 		return PRIORITY;
 	}
 
-
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
-		KeywordToken keyword = (KeywordToken)tokens[RETURN];
-		return keyword.Keyword == Keywords.RETURN;
+		var @operator = tokens[RETURN] as OperatorToken;
+		return @operator.Operator == Operators.RETURN;
 	}
-
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		return new ReturnNode(Singleton.Parse(context, tokens[OBJECT]));
+		var token = tokens[SOURCE];
+		var source = Singleton.Parse(context, token);
+
+		var function = context.GetFunctionParent();
+
+		if (function == null)
+		{
+			throw Errors.Get(tokens[RETURN].Position, "Return statement cannot be outside a function!");
+		}
+
+		if (token is NumberToken)
+		{
+			function.ReturnType = Types.NORMAL;
+		}
+		else if (token is StringToken)
+		{
+			function.ReturnType = Types.LINK;
+		}
+
+		return new ReturnNode(source);
 	}
 }

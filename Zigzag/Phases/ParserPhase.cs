@@ -48,7 +48,7 @@ public class ParserPhase : Phase
 		}
 	}
 
-	public void ParseFunctions(Node parent)
+	/*public void ParseFunctions(Node parent)
 	{
 		Node node = parent.First;
 
@@ -80,7 +80,7 @@ public class ParserPhase : Phase
 
 			node = node.Next;
 		}
-	}
+	}*/
 
 	public override Status Execute(Bundle bundle)
 	{
@@ -136,7 +136,9 @@ public class ParserPhase : Phase
 
 		Sync();
 
-		// Parse types, subtypes and their members
+
+
+		/* Parse types, subtypes and their members
 		for (int i = 0; i < files.Length; i++)
 		{
 			int index = i;
@@ -146,19 +148,28 @@ public class ParserPhase : Phase
 				ParseFunctions(parses[index].Node);
 				return Status.OK;
 			});
-		}
+		}*/
 
 		Sync();
 
 		// Merge all parsed files
-		Context context = new Context();
-		Node root = new Node();
+		var context = new Context();
+		var root = new Node();
 
 		foreach (Parse parse in parses)
 		{
 			context.Merge(parse.Context);
 			root.Merge(parse.Node);
 		}
+
+		var function = context.GetFunction("run");
+
+		if (function == null)
+		{
+			return Status.Error("Couldn't find function 'run'");
+		}
+
+		function.Overloads[0].Implement(new List<Type>());
 
 		bundle.Put("parse", new Parse(context, root));
 

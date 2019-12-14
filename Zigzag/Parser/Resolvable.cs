@@ -1,4 +1,5 @@
 public interface IResolvable
 {
 	public Node Resolve(Context context);
+	public Status GetStatus();
 }

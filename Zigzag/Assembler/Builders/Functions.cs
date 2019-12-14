@@ -11,63 +11,109 @@ public class Functions
 								 "pop ebp" + "\n" +
 								 "ret";
 
-	public static string Build(FunctionNode node)
+	private static string GetConstructorFooter(Unit unit)
 	{
-		Function function = node.Function;
-		Builder builder = new Builder();
+		Reference source;
 
-		if (Flag.Has(function.Modifiers, AccessModifier.EXTERNAL))
-		{
-			builder.Append("extern {0}", function.GetFullname());
-			return builder.ToString();
-		}
+		var register = unit.GetObjectPointer();
 
-		if (function.IsGlobal)
+		if (register != null)
 		{
-			builder.Comment($"Represents global function '{function.Name}'");
-		}
-		else if (function is Constructor constructor)
-		{
-			builder.Comment($"Constructor of type {constructor.GetTypeParent().Name}");
+			source = new RegisterReference(register);
 		}
 		else
 		{
-			builder.Comment($"Member function '{function.Name}' of type '{function.GetTypeParent().Name}'");
+			source = References.GetObjectPointer(unit);
 		}
 
-		// Append the function stack frame
-		builder.Append(HEADER, function.GetFullname());
+		var instructions = new Instructions();
+		var reference = Memory.Move(unit, instructions, source, new RegisterReference(unit.EAX));
+		instructions.SetReference(reference);
 
-		// Add instructions for local variables
-		int memory = function.LocalMemorySize;
+		return instructions.ToString();
+	}
 
-		if (memory > 0)
+	public static string Build(Function function)
+	{
+		if (Flag.Has(function.Modifiers, AccessModifier.EXTERNAL))
 		{
-			builder.Append(RESERVE, memory);
+			return $"extern {function.GetFullname()}";
 		}
 
-		Unit unit = new Unit(function.GetFullname());
+		var result = new Builder();
 
-		// Assemble the body of this function
-		Node iterator = node.Body.First;
-
-		while (iterator != null)
+		foreach (var implementation in function.Implementations)
 		{
-			Instructions instructions = unit.Assemble(iterator);
-
-			if (instructions != null)
+			if (implementation.Node == null || implementation.IsInline)
 			{
+				continue;
+			}
+
+			var builder = new Builder();
+
+			if (function.IsGlobal)
+			{
+				builder.Comment($"Represents global function '{function.Name}'");
+			}
+			else if (function.IsConstructor)
+			{
+				builder.Comment($"Constructor of type {function.GetTypeParent().Name}");
+			}
+			else
+			{
+				builder.Comment($"Member function '{function.Name}' of type '{function.GetTypeParent().Name}'");
+			}
+
+			// Append the function stack frame
+			builder.Append(HEADER, function.GetFullname());
+
+			// Add instructions for local variables
+			var memory = implementation.LocalMemorySize;
+
+			if (memory > 0)
+			{
+				builder.Append(RESERVE, memory);
+			}
+
+			var unit = new Unit(function.GetFullname());
+
+			// Assemble the body of this function
+			var iterator = implementation.Node;
+
+			while (iterator != null)
+			{
+				var instructions = unit.Assemble(iterator);
+				unit.Step(instructions);
+
+				if (instructions != null)
+				{
+					builder.Append(instructions.ToString());
+				}
+
+				iterator = iterator.Next;
+			}
+
+			if (function.IsConstructor)
+			{
+				var footer = GetConstructorFooter(unit);
+				builder.Comment("Return the object pointer to the caller");
+				builder.Append(footer);
+			}
+
+			var stack = unit.Stack;
+			{
+				var instructions = new Instructions();
+				stack.Restore(instructions);
+
 				builder.Append(instructions.ToString());
 			}
 
-			unit.Step();
+			// Append the stack frame cleanup
+			builder = builder.Append(FOOTER);
 
-			iterator = iterator.Next;
+			result.Append(builder);
 		}
 
-		// Append the stack frame cleanup
-		builder = builder.Append(FOOTER);
-
-		return builder.ToString();
+		return result.ToString();
 	}
 }

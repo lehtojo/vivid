@@ -9,11 +9,21 @@ public class Evacuation
      * Appends instructions to evacuate values
      * @param instructions Where instructions should be appended
      */
-	public void Start(Instructions instructions)
+	public void Start(Unit unit, Instructions instructions)
 	{
-		foreach (Value value in Values)
+		var stack = unit.Stack;
+
+		foreach (var value in Values)
 		{
-			instructions.Append(new Instruction($"push {value.GetRegister()}"));
+			stack.Push(instructions, value);
+			//instructions.Append(new Instruction($"push {value.GetRegister()}"));
+		}
+
+		var fpu = unit.Fpu;
+
+		if (fpu.Elements.Count > 0)
+		{
+			instructions.Append(fpu.Save(unit));
 		}
 	}
 
@@ -23,10 +33,19 @@ public class Evacuation
      */
 	public void Restore(Unit unit, Instructions instructions)
 	{
+		var fpu = unit.Fpu;
+
+		if (fpu.Elements.Count > 0)
+		{
+			instructions.Append(fpu.Restore(unit));
+		}
+
+		var stack = unit.Stack;
+
 		for (int i = Values.Count - 1; i >= 0; i--)
 		{
-			Value value = Values[i];
-			Register register = value.GetRegister();
+			var value = Values[i];
+			var register = value.GetRegister();
 
 			if (!register.IsCritical)
 			{
@@ -38,7 +57,9 @@ public class Evacuation
 				register.Attach(value);
 			}
 
-			instructions.Append(new Instruction($"pop {register}"));
+			stack.Pop(instructions, new RegisterReference(register));
+
+			//instructions.Append(new Instruction($"pop {register}"));
 		}
 	}
 }

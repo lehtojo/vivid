@@ -1,6 +1,6 @@
 using System;
 
-public class Arrays
+public static class Arrays
 {
 	/**
      * Converts reference to string format that is compatible with lea instruction
@@ -52,9 +52,16 @@ public class Arrays
      * @param stride Element size in bytes
      * @return Memory calculation for lea instruction
      */
-	private static string Combine(Reference @object, Reference index, int stride)
+	public static string GetOffsetCalculation(Reference start, Reference index, int stride)
 	{
-		return string.Format("[{0}+{1}*{2}]", ToString(@object), ToString(index), stride);
+		if (stride == 1)
+		{
+			return string.Format("[{0}+{1}]", ToString(start), ToString(index));
+		}
+		else
+		{
+			return string.Format("[{0}+{1}*{2}]", ToString(start), ToString(index), stride);
+		}
 	}
 
 	/**
@@ -69,45 +76,62 @@ public class Arrays
 
 	public static Instructions Build(Unit unit, OperatorNode node, ReferenceType reference)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
-		Reference[] operands = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.VALUE, ReferenceType.VALUE);
+		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.VALUE, ReferenceType.VALUE, out Reference left, out Reference right);
 
-		Reference left = operands[0];
-		Reference right = operands[1];
+		/*var operands = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.VALUE, ReferenceType.VALUE);
 
-		Register register = unit.GetNextRegister();
+		var left = operands[0];
+		var right = operands[1];*/
 
-		Type type = Types.UNKNOWN;
+		var type = node.GetType();
+		var stride = GetStride(type);
 
-		try
+		Register register;
+		Reference source;
+
+		if (right.GetType() != LocationType.NUMBER)
 		{
-			type = node.GetContext();
+			var count = unit.UncriticalRegisterCount;
+			
+			if (count >= 2)
+			{
+				source = new ComplexOffsetReference(left, right, stride.Bytes);
+			}
+			else
+			{
+				register = unit.GetNextRegister();
+				instructions.Append(Memory.Clear(unit, register, false));
+
+				var calculation = Arrays.GetOffsetCalculation(left, right, stride.Bytes);
+				instructions.Append($"lea {register}, {calculation}");
+
+				source = new MemoryReference(register, 0, stride);
+			}
 		}
-		catch
+		else
 		{
-			Console.Error.WriteLine("ERROR: Couldn't resolve array operation return type");
-			return null;
+			var index = right as NumberReference;
+			var alignment = (int)(stride.Bytes * (long)index.Value);
+
+			source = new MemoryReference(left.GetRegister(), alignment, stride);
+
+			if (reference == ReferenceType.DIRECT)
+			{
+				return instructions.SetReference(source);
+			}
 		}
-
-		Size stride = GetStride(type);
-
-		instructions.Append(Memory.Clear(unit, register, false));
-		instructions.Append("lea {0}, {1}", register, Arrays.Combine(left, right, stride.Bytes));
 
 		if (reference == ReferenceType.REGISTER || reference == ReferenceType.VALUE)
 		{
-			Instructions move = Memory.ToRegister(unit, new MemoryReference(register, 0, stride));
+			var move = Memory.ToRegister(unit, source);
 			instructions.Append(move);
 
-			Value value = Value.GetOperation(move.Reference.GetRegister(), stride);
-
-			return instructions.SetReference(value);
+			return instructions.SetReference(Value.GetOperation(move.Reference.GetRegister(), stride));
 		}
 
-		register.Attach(Value.GetOperation(register, stride));
-
-		instructions.SetReference(new MemoryReference(register, 0, stride));
+		instructions.SetReference(source);
 
 		return instructions;
 	}

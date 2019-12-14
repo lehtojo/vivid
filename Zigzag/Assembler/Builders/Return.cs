@@ -2,19 +2,28 @@ public class Return
 {
 	public static Instructions Build(Unit unit, ReturnNode node)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
-		Instructions @object = References.Read(unit, node.First);
+		var @object = References.Read(unit, node.First);
 		instructions.Append(@object);
 
-		Reference reference = @object.Reference;
+		var reference = @object.Reference;
 
 		if (reference.GetRegister() != unit.EAX)
 		{
-			instructions.Append(Memory.Move(unit, reference, new RegisterReference(unit.EAX)));
+			Memory.Move(unit, instructions, reference, new RegisterReference(unit.EAX));
 		}
 
-		instructions.Append(Functions.FOOTER);
+		var inline = node.FindParent(n => n.GetNodeType() == NodeType.INLINE_NODE) as InlineNode;
+
+		if (inline == null)
+		{
+			instructions.Append(Functions.FOOTER);
+		}
+		else
+		{
+			instructions.Append($"jmp {inline.GetEndLabel()}");
+		}
 
 		return instructions.SetReference(Value.GetOperation(unit.EAX, reference.GetSize()));
 	}

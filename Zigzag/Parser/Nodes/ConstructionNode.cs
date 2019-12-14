@@ -1,4 +1,4 @@
-public class ConstructionNode : Node, IResolvable, Contextable
+public class ConstructionNode : Node, IResolvable, IType
 {
 	public Node Parameters => Last;
 	public Type Type => GetConstructor()?.GetTypeParent();
@@ -8,12 +8,12 @@ public class ConstructionNode : Node, IResolvable, Contextable
 		Add(constructor);
 	}
 
-	public Constructor GetConstructor()
+	public FunctionImplementation GetConstructor()
 	{
 		if (First.GetNodeType() == NodeType.FUNCTION_NODE)
 		{
-			FunctionNode constructor = (FunctionNode)First;
-			return (Constructor)constructor.Function;
+			var constructor = (FunctionNode)First;
+			return constructor.Function;
 		}
 
 		return null;
@@ -21,7 +21,7 @@ public class ConstructionNode : Node, IResolvable, Contextable
 
 	public Type GetConstructionType()
 	{
-		Function constructor = GetConstructor();
+		var constructor = GetConstructor();
 
 		if (constructor != null)
 		{
@@ -35,14 +35,14 @@ public class ConstructionNode : Node, IResolvable, Contextable
 	{
 		if (First is IResolvable resolvable)
 		{
-			Node resolved = resolvable.Resolve(context);
+			var resolved = resolvable.Resolve(context);
 			First.Replace(resolved);
 		}
 
 		return null;
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return GetConstructionType();
 	}
@@ -50,5 +50,10 @@ public class ConstructionNode : Node, IResolvable, Contextable
 	public override NodeType GetNodeType()
 	{
 		return NodeType.CONSTRUCTION_NODE;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 }

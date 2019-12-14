@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 public class LinkPattern : Pattern
 {
 	public const int PRIORITY = 19;
@@ -7,7 +7,6 @@ public class LinkPattern : Pattern
 	private const int OPERATOR = 2;
 	private const int RIGHT = 4;
 
-	// Pattern:
 	// ... [\n] . [\n] ...
 	public LinkPattern() : base(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC,  /* ... */
 								TokenType.END | TokenType.OPTIONAL, /* [\n] */
@@ -21,12 +20,12 @@ public class LinkPattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
-		OperatorToken @operator = (OperatorToken)tokens[OPERATOR];
+		var operation = tokens[OPERATOR] as OperatorToken;
 
 		// The operator between left and right token must be dot
-		if (@operator.Operator != Operators.DOT)
+		if (operation.Operator != Operators.DOT)
 		{
 			return false;
 		}
@@ -34,8 +33,8 @@ public class LinkPattern : Pattern
 		// When left token is a processed, it must be contextable
 		if (tokens[LEFT].Type == TokenType.DYNAMIC)
 		{
-			DynamicToken token = (DynamicToken)tokens[LEFT];
-			return (token.Node is Contextable);
+			var token = tokens[LEFT] as DynamicToken;
+			return (token.Node is IType);
 		}
 
 		return true;
@@ -46,12 +45,12 @@ public class LinkPattern : Pattern
 		Node left = Singleton.Parse(environment, tokens[LEFT]);
 		Node right;
 
-		if (left is Contextable contextable)
+		if (left is IType type)
 		{
-			Context primary = contextable.GetContext();
+			var primary = type.GetType();
 
 			// Creates an unresolved node from right token if the primary context is unresolved
-			if (primary == null || primary is IResolvable)
+			if (primary == Types.UNKNOWN || primary is IResolvable)
 			{
 				right = Singleton.GetUnresolved(environment, tokens[RIGHT]);
 			}
@@ -60,7 +59,6 @@ public class LinkPattern : Pattern
 				right = Singleton.Parse(environment, primary, tokens[RIGHT]);
 			}
 		}
-
 		else
 		{
 			right = Singleton.GetUnresolved(environment, tokens[RIGHT]);

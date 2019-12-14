@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 public class Node
 {
 	public Node Parent { get; private set; }
@@ -7,6 +10,84 @@ public class Node
 
 	public Node First { get; protected set; }
 	public Node Last { get; protected set; }
+
+	public bool Is(NodeType type)
+	{
+		return GetNodeType() == type;
+	}
+
+	public List<T> Select<T>(Func<Node, T> selector)
+	{
+		var result = new List<T>();
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			result.Add(selector(iterator));
+
+			var subresult = iterator.Select(selector);
+			result.AddRange(subresult);
+
+			iterator = iterator.Next;
+		}
+
+		return result;
+	}
+
+	public Node FindParent(Predicate<Node> filter)
+	{
+		if (Parent == null)
+		{
+			return null;
+		}
+
+		return filter(Parent) ? Parent : Parent.FindParent(filter);
+	}
+
+	public Node Find(Predicate<Node> filter)
+	{
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (filter(iterator))
+			{
+				return iterator;
+			}
+
+			var node = iterator.Find(filter);
+
+			if (node != null)
+			{
+				return node;
+			}
+
+			iterator = iterator.Next;
+		}
+
+		return null;
+	}
+
+	public List<Node> FindAll(Predicate<Node> filter)
+	{
+		var nodes = new List<Node>();
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (filter(iterator))
+			{
+				nodes.Add(iterator);
+			}
+
+			var result = iterator.FindAll(filter);
+			nodes.AddRange(result);
+
+			iterator = iterator.Next;
+		}
+
+		return nodes;
+	}
 
 	public void Insert(Node position, Node child)
 	{
@@ -78,7 +159,7 @@ public class Node
 
 	public void Replace(Node node)
 	{
-		Node iterator = First;
+		var iterator = First;
 
 		while (iterator != null)
 		{
@@ -110,6 +191,7 @@ public class Node
 			Next.Previous = node;
 		}
 
+		node.Parent = Parent;
 		node.Previous = Previous;
 		node.Next = Next;
 	}

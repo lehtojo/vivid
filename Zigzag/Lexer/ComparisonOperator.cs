@@ -12,6 +12,7 @@ public class ComparisonOperator : Operator
 		Counterpart = counterpart;
 		return this;
 	}
+
 	public override bool Equals(object obj)
 	{
 		return obj is ComparisonOperator @operator &&

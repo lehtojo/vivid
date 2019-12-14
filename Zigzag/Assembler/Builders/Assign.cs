@@ -1,30 +1,24 @@
-public class Assign
+public static class Assign
 {
-	private static bool isVariable(Node node)
+	/// <summary>
+	/// Builds assign operation
+	/// </summary>
+	/// <param name="unit">Unit used to operate</param>
+	/// <param name="node">Assign node</param>
+	/// <returns>Instructions for assign operation</returns>
+	public static Instructions Build(Unit unit, OperatorNode node)
 	{
-		return node.GetNodeType() == NodeType.VARIABLE_NODE;
-	}
+		var instructions = new Instructions();
 
-	/**
-     * Builds an assign operation into instructions
-     * @param node Assign node
-     * @return Assign instructions
-     */
-	public static Instructions build(Unit unit, OperatorNode node)
-	{
-		Instructions instructions = new Instructions();
+		//var references = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.DIRECT, ReferenceType.VALUE);
+		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.DIRECT, ReferenceType.VALUE, out Reference destination, out Reference source);
+		
+		Memory.Move(unit, instructions, source, destination);
 
-		Instructions right = References.Value(unit, node.Right);
-		Instructions left = References.Direct(unit, node.Left);
-
-		instructions.Append(right, left);
-		instructions.Append(new Instruction("mov", left.Reference, right.Reference, left.Reference.GetSize()));
-
-		if (isVariable(node.Left))
+		if (node.Left.GetNodeType() == NodeType.VARIABLE_NODE)
 		{
-
-			Variable variable = ((VariableNode)node.Left).Variable;
-			instructions.SetReference(Value.GetVariable(right.Reference, variable));
+			var variable = (node.Left as VariableNode).Variable;
+			instructions.SetReference(Value.GetVariable(source, variable));
 		}
 
 		return instructions;

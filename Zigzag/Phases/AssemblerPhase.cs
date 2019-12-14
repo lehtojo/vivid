@@ -39,8 +39,7 @@ public class AssemblerPhase : Phase
 			Process process = Process.Start(configuration);
 			process.WaitForExit();
 
-			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR);
-
+			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR + "\n" + process.StandardError.ReadToEnd());
 		}
 		catch
 		{
@@ -50,10 +49,10 @@ public class AssemblerPhase : Phase
 
 	private Status Compile(Bundle bundle, string input, string output)
 	{
-		bool debug = bundle.Get("debug", false);
-		bool delete = !bundle.Get("assembly", false);
+		var debug = bundle.Get("debug", false);
+		var delete = !bundle.Get("assembly", false);
 
-		List<string> arguments = new List<string>();
+		var arguments = new List<string>();
 
 		if (debug)
 		{
@@ -67,7 +66,7 @@ public class AssemblerPhase : Phase
 			input
 		});
 
-		Status status = Run(COMPILER, arguments);
+		var status = Run(COMPILER, arguments);
 
 		if (delete)
 		{
@@ -126,7 +125,7 @@ public class AssemblerPhase : Phase
 		Node node = parse.Node;
 		Context context = parse.Context;
 
-		string assembly = Assembler.Build(node, context);
+		string assembly = Assembler.Build(context);
 
 		try
 		{
@@ -137,14 +136,16 @@ public class AssemblerPhase : Phase
 			return Status.Error("Couldn't move generated assembly into a file");
 		}
 
-		if (Compile(bundle, source, @object).IsProblematic)
+		Status status;
+
+		if ((status = Compile(bundle, source, @object)).IsProblematic)
 		{
-			return Status.Error(ERROR);
+			return status;
 		}
 
-		if (Link(bundle, @object, output).IsProblematic)
+		if ((status = Link(bundle, @object, output)).IsProblematic)
 		{
-			return Status.Error(ERROR);
+			return status;
 		}
 
 		return Status.OK;

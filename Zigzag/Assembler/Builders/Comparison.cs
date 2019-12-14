@@ -14,30 +14,30 @@ public class Comparison
 		Jumps.Add(Operators.NOT_EQUALS, "jne");
 	}
 
-	private static string GetComparisonJump(ComparisonOperator @operator)
+	private static string GetComparisonJump(ComparisonOperator operation)
 	{
-		return Jumps[@operator];
+		return Jumps[operation];
 	}
 
 	public static Instructions Jump(Unit unit, OperatorNode node, bool invert, string label)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
-		Reference[] operands = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.VALUE, ReferenceType.READ);
-
-		Reference left = operands[0];
-		Reference right = operands[1];
+		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.VALUE, ReferenceType.READ, out Reference left, out Reference right);
 
 		instructions.Append(new Instruction("cmp", left, right, left.GetSize()));
 
-		ComparisonOperator @operator = (ComparisonOperator)node.Operator;
+		unit.Step(instructions);
+
+		var operation = node.Operator as ComparisonOperator;
 
 		if (invert)
 		{
-			@operator = @operator.Counterpart;
+			operation = operation.Counterpart;
 		}
 
-		instructions.Append("{0} {1}", GetComparisonJump(@operator), label);
+		var instruction = GetComparisonJump(operation);
+		instructions.Append($"{instruction} {label}");
 
 		return instructions;
 	}

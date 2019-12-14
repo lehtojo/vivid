@@ -1,9 +1,9 @@
-public class ContentNode : Node, Contextable
+public class ContentNode : Node, IType
 {
-	public Type GetContext()
+	public Type GetType()
 	{
-		Contextable contextable = (Contextable)First;
-		return contextable.GetContext();
+		var type = First as IType;
+		return type.GetType();
 	}
 
 	public override NodeType GetNodeType()

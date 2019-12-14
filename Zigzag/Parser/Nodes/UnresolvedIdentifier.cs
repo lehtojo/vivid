@@ -34,4 +34,9 @@ public class UnresolvedIdentifier : Node, IResolvable
 	{
 		return NodeType.UNRESOLVED_IDENTIFIER;
 	}
+
+	public Status GetStatus()
+	{
+		return Status.Error($"Couldn't resolve identifier '{Value}'");
+	}
 }

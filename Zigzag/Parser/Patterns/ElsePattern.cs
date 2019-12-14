@@ -1,51 +1,49 @@
+﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 public class ElsePattern : Pattern
 {
-	public const int PRIORITY = 15;
+	public const int PRIORITY = 1;
 
-	private const int ELSE = 0;
-	private const int BODY = 2;
+	public const int FORMER = 0;
+	public const int BODY = 2;
 
-	// Pattern:
-	// else [\n] {...}
-	public ElsePattern() : base(TokenType.KEYWORD, /* else */
-								TokenType.END | TokenType.OPTIONAL, /* [\n] */
-								TokenType.CONTENT)  /* {...} */
-	{ }
+	// $([else] if) [\n] (...)
+	public ElsePattern() : base
+	(
+		TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
 		return PRIORITY;
 	}
 
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
-		KeywordToken keyword = (KeywordToken)tokens[ELSE];
+		var former = tokens[FORMER] as DynamicToken;
 
-		if (keyword.Keyword != Keywords.ELSE)
-		{
-			return false;
-		}
-
-		ContentToken body = (ContentToken)tokens[BODY];
-		return body.Type == ParenthesisType.CURLY_BRACKETS;
-	}
-
-	private List<Token> GetBody(List<Token> tokens)
-	{
-		ContentToken body = (ContentToken)tokens[BODY];
-		return body.GetTokens();
+		return former.Node.GetNodeType() == NodeType.IF_NODE ||
+				former.Node.GetNodeType() == NodeType.ELSE_IF_NODE;
 	}
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		Context context = new Context();
+		var former = (tokens[FORMER] as DynamicToken).Node as IfNode;
+		var body = tokens[BODY] as ContentToken;
+
+		var context = new Context();
 		context.Link(environment);
 
-		List<Token> body = GetBody(tokens);
-		Node node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MEMBERS - 1);
+		var node = new ElseNode(context, Parser.Parse(context, body.GetTokens()));
+		former.AddSuccessor(node);
 
-		return new ElseNode(context, node);
+		return null;
+	}
+
+	public override int GetStart()
+	{
+		return 1;
 	}
 }

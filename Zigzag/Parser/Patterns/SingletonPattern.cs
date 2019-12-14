@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 public class SingletonPattern : Pattern
 {
 	public const int PRIORITY = 1;
@@ -12,7 +13,7 @@ public class SingletonPattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(List<Token> tokens)
+	public override bool Passes(Context context, List<Token> tokens)
 	{
 		return true;
 	}

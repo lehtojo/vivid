@@ -46,57 +46,64 @@ public static class Assembler
 
 	private const string SECTION_DATA = "section .data";
 
-	private struct Fragement
+	private struct Fragment
 	{
 		public string Content { get; set; }
 		public bool Data { get; set; }
 	}
 
-	public static string Build(Node root, Context context)
+	public static string Build(Context context)
 	{
 		var text = new Builder(SECTION_TEXT);
-		var data = Assembler.Data(root);
+		var data = Assembler.Data(context);
 
-		var iterator = root.First;
+		var fragments = new List<Task<Fragment>>();
 
-		var fragments = new List<Task<Fragement>>();
-
-		while (iterator != null)
+		foreach (var type in context.Types.Values)
 		{
-			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
-			{
-				var type = iterator as TypeNode;
-				text.Append(Assembler.Build(type));
-				//fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(type), Data = false }));
-			}
-			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
-			{
-				var function = iterator as FunctionNode;
-				text.Append(Functions.Build(function));
-				//fragments.Add(Task.Run(() => new Fragement { Content = Functions.Build(function), Data = false }));
-			}
-			else if (iterator.GetNodeType() == NodeType.VARIABLE_NODE)
-			{
-				var variable = iterator as VariableNode;
-				data.Append(Assembler.Build(variable));
-				//fragments.Add(Task.Run(() => new Fragement { Content = Assembler.Build(variable), Data = true }));
-			}
+			text.Append(Build(type));
+		}
 
-			iterator = iterator.Next;
+		foreach (var function in context.Functions.Values)
+		{
+			foreach (var overload in function.Overloads)
+			{
+				text.Append(Functions.Build(overload));
+			}
 		}
 
 		//fragments.Wait();
 		//fragments.Where(t => !t.Result.Data).Each(t => text.Append(t.Result.Content));
-		//fragments.Where(t => t.Result.Data).Each(t => data.Append(t.Result.Content));
+		//fragments.Where(t => t.Result.Data).Each(t => data.Append(t.Result.Content));*/
 
 		return text + "\n" + data + "\n";
 	}
 
-	private static Builder Data(Node root)
+	private static Builder Data(Context context)
 	{
-		Builder bss = new Builder(SECTION_DATA);
-		Assembler.Data(root, bss, 1);
-		return bss;
+		var builder = new Builder(SECTION_DATA);
+		var i = 0;
+
+		foreach (var variable in context.Variables.Values)
+		{
+			builder.Append(Build(variable));
+		}
+
+		foreach (var function in context.Functions.Values)
+		{
+			foreach (var overload in function.Overloads)
+			{
+				foreach (var implementation in overload.Implementations)
+				{
+					if (implementation != null && implementation.Node != null)
+					{
+						i = Assembler.Data(implementation.Node, builder, i);
+					}
+				}
+			}
+		}
+
+		return builder;
 	}
 
 	private static int Data(Node root, Builder builder, int i)
@@ -121,29 +128,37 @@ public static class Assembler
 		return i;
 	}
 
-	private static string Build(TypeNode node)
+	private static string Build(Type type)
 	{
 		var text = new StringBuilder();
-		var iterator = node.First;
-
 		var fragments = new List<Task<string>>();
 
-		while (iterator != null)
+		foreach (var subtype in type.Types.Values)
 		{
-			if (iterator.GetNodeType() == NodeType.TYPE_NODE)
-			{
-				var type = iterator as TypeNode;
-				text.Append(Assembler.Build(type));
-				//fragments.Add(Task.Run(() => Assembler.Build(type)));
-			}
-			else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
-			{
-				var function = iterator as FunctionNode;
-				text.Append(Functions.Build(function));
-				//fragments.Add(Task.Run(() => Functions.Build(function)));
-			}
+			text.Append(Build(subtype));
+		}
 
-			iterator = iterator.Next;
+		foreach (var overload in type.Constructors.Overloads)
+		{
+			var constructor = overload as Constructor;
+
+			if (!constructor.IsDefault)
+			{
+				text.Append(Functions.Build(constructor));
+			}
+		}
+
+		foreach (var destructor in type.Destructors.Overloads)
+		{
+			text.Append(Functions.Build(destructor));
+		}
+
+		foreach (var function in type.Functions.Values)
+		{
+			foreach (var overload in function.Overloads)
+			{
+				text.Append(Functions.Build(overload));
+			}
 		}
 
 		fragments.Wait().Each(t => text.Append(t.Result));
@@ -153,11 +168,11 @@ public static class Assembler
 
 	private const string DATA = "{0} {1} 0";
 
-	private static string Build(VariableNode node)
+	private static string Build(Variable variable)
 	{
-		Variable variable = node.Variable;
-		string operand = Size.Get(variable.Type.Size).Data;
-
+		variable.Category = VariableCategory.GLOBAL;
+		variable.Type = Types.NORMAL;
+		var operand = Size.Get(variable.Type.Size).Data;
 		return string.Format(DATA, variable.Name, operand);
 	}
 }

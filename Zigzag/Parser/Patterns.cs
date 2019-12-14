@@ -24,7 +24,7 @@ public class Patterns
 
 	private Patterns ForceGetBranch(int branch)
 	{
-		if (Branches.TryGetValue(branch, out Patterns patterns))
+		if (Branches.TryGetValue(branch, out Patterns? patterns))
 		{
 			return patterns;
 		}
@@ -81,28 +81,21 @@ public class Patterns
 
 	static Patterns()
 	{
-		Add(new ArrayPattern());
+		Add(new AssignPattern());
 		Add(new CastPattern());
-		Add(new ConstructionPattern());
 		Add(new ConstructorPattern());
-		Add(new ContentPattern());
+		Add(new ElseIfPattern());
 		Add(new ElsePattern());
-		Add(new ExtendedTypePattern());
-		Add(new ExternalFunctionPattern());
+		Add(new FunctionPattern());
 		Add(new IfPattern());
-		Add(new InstructionPattern());
-		Add(new JumpPattern());
-		Add(new LabelPattern());
+		Add(new IncrementPattern());
 		Add(new LinkPattern());
-		Add(new MemberFunctionPattern());
-		Add(new MemberVariablePattern());
+		Add(new LoopPattern());
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());
 		Add(new ReturnPattern());
+		Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
 		Add(new TypePattern());
-		Add(new UnarySignPattern());
-		Add(new VariablePattern());
-		Add(new LoopPattern());
 	}
 }

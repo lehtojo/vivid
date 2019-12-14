@@ -16,13 +16,18 @@ public class UnresolvedType : Type, IResolvable
 
 	public Node Resolve(Context context)
 	{
-		Node resolved = Resolvable.Resolve(context);
+		var resolved = Resolvable.Resolve(context);
 
-		if (resolved is Contextable contextable)
+		if (resolved is IType type)
 		{
-			return new TypeNode(contextable.GetContext());
+			return new TypeNode(type.GetType());
 		}
 
 		throw new Exception("Couldn't resolve type");
+	}
+
+	public Status GetStatus()
+	{
+		return Resolvable.GetStatus();
 	}
 }

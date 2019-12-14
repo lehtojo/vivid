@@ -2,7 +2,7 @@ public class Status
 {
 	public static readonly Status OK = new Status("OK", false);
 
-	public string Description { get; private set; }
+	public string Description { get; set; }
 
 	public bool IsProblematic { get; private set; }
 

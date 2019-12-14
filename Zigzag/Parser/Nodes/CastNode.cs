@@ -1,4 +1,4 @@
-public class CastNode : Node, Contextable, IResolvable
+public class CastNode : Node, IType, IResolvable
 {
 	public CastNode(Node target, Node type)
 	{
@@ -6,11 +6,11 @@ public class CastNode : Node, Contextable, IResolvable
 		Add(type);
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
-		if (Last is Contextable contextable)
+		if (Last is IType type)
 		{
-			return contextable.GetContext();
+			return type.GetType();
 		}
 
 		return Types.UNKNOWN;
@@ -20,8 +20,12 @@ public class CastNode : Node, Contextable, IResolvable
 	{
 		if (node is IResolvable resolvable)
 		{
-			Node resolved = resolvable.Resolve(context);
-			node.Replace(resolved);
+			var resolved = resolvable.Resolve(context);
+
+			if (resolved != null)
+			{
+				node.Replace(resolved);
+			}
 		}
 	}
 
@@ -36,5 +40,10 @@ public class CastNode : Node, Contextable, IResolvable
 	public override NodeType GetNodeType()
 	{
 		return NodeType.CAST_NODE;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 }

@@ -1,4 +1,4 @@
-public class StringNode : Node, Contextable
+public class StringNode : Node, IType
 {
 	public string Text { get; private set; }
 	public string Identifier { get; set; }
@@ -8,7 +8,7 @@ public class StringNode : Node, Contextable
 		Text = text;
 	}
 
-	public Type GetContext()
+	public Type GetType()
 	{
 		return Types.LINK;
 	}

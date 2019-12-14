@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public class Variable
 {
-	public string Name { get; private set; }
+	public string Name { get; set; }
 	public Type Type { get; set; }
 	public VariableCategory Category { get; set; }
 	public int Modifiers { get; private set; }
@@ -27,5 +27,14 @@ public class Variable
 		Length = length;
 
 		context.Declare(this);
+	}
+
+	public Variable(Type type, VariableCategory category, string name, int modifiers, int length = 0)
+	{
+		Name = name;
+		Type = type;
+		Category = category;
+		Modifiers = modifiers;
+		Length = length;
 	}
 }
