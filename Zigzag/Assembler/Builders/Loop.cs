@@ -138,10 +138,15 @@ public class Loop
 
 		// Create loops end label
 		var end = unit.NextLabel;
+		var success = new RequestableLabel(unit);
 
 		// Assemble the loop condidition
-		var condition = Comparison.Jump(unit, (OperatorNode)node.Condition, true, end);
-		instructions.Append(condition);
+		Comparison.Jump(unit, instructions, node.Condition as OperatorNode, true, success, new Label(end));
+
+		if (success.Used)
+		{
+			instructions.Label(success.GetName());
+		}
 
 		unit.Step(instructions);
 

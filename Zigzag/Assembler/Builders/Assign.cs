@@ -13,12 +13,25 @@ public static class Assign
 		//var references = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.DIRECT, ReferenceType.VALUE);
 		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.DIRECT, ReferenceType.VALUE, out Reference destination, out Reference source);
 		
-		Memory.Move(unit, instructions, source, destination);
+		//Memory.Move(unit, instructions, source, destination);
 
 		if (node.Left.GetNodeType() == NodeType.VARIABLE_NODE)
 		{
 			var variable = (node.Left as VariableNode).Variable;
-			instructions.SetReference(Value.GetVariable(source, variable));
+
+			if (source.IsRegister())
+			{
+				var register = source.GetRegister();
+				register.Attach(Value.GetVariable(variable));
+			}
+			else
+			{
+				Memory.Move(unit, instructions, source, destination);
+			}
+		}
+		else
+		{
+			Memory.Move(unit, instructions, source, destination);
 		}
 
 		return instructions;

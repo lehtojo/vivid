@@ -197,12 +197,12 @@ public class Context
 	/// <param name="label">Label to declare</param>
 	public void Declare(Label label)
 	{
-		if (IsLocalLabelDeclared(label.Name))
+		if (IsLocalLabelDeclared(label.GetName()))
 		{
-			throw new Exception($"Label '{label.Name}' already exists in this context");
+			throw new Exception($"Label '{label.GetName()}' already exists in this context");
 		}
 
-		Labels.Add(label.Name, label);
+		Labels.Add(label.GetName(), label);
 	}
 
 	public virtual bool IsLocalTypeDeclared(string name)

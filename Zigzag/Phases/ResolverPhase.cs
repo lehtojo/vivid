@@ -35,15 +35,23 @@ public class ResolverPhase : Phase
 		if (implementation.IsMember)
 		{
 			var type = implementation.GetTypeParent();
-			builder.Append($"Member function '{implementation.Metadata.Name}' of type '{type.Name}':\n");
+			builder.Append($"Member function '{implementation.GetHeader()}' of type '{type.Name}':\n");
 		}
 		else
 		{
-			builder.Append($"Global function '{implementation.Metadata.Name}':\n");
+			builder.Append($"Global function '{implementation.GetHeader()}':\n");
 		}
 
 		var errors = implementation.Node.FindAll(n => n is IResolvable).Cast<IResolvable>()
-											.Select(r => r.GetStatus()).Where(s => s.IsProblematic);
+											.Select(r => r.GetStatus()).Where(s => s.IsProblematic).ToList();
+
+		foreach (var variable in implementation.Variables)
+		{
+			if (variable.IsUnresolved)
+			{
+				errors.Add(Status.Error($"Couldn't resolve type of local variable '{variable.Name}' in function '{implementation.Metadata.Name}'"));
+			}
+		}
 		
 		if (errors.Count() == 0)
 		{
@@ -61,6 +69,27 @@ public class ResolverPhase : Phase
 	private static string GetReport(Context context)
 	{
 		var builder = new StringBuilder();
+
+		foreach (var variable in context.Variables.Values)
+		{
+			if (variable.IsUnresolved)
+			{
+				if (variable.Context.IsType)
+				{
+					var type = variable.Context as Type;
+					builder.Append($"ERROR: Couldn't resolve type of member variable '{variable.Name}' of type '{type.Name}'");
+				}
+				else if (variable.Context.IsGlobal)
+				{
+					builder.Append($"ERROR: Couldn't resolve type of global variable '{variable.Name}'");
+				}
+				else
+				{
+					var function = variable.Context.GetFunctionParent();
+					builder.Append($"ERROR: Couldn't resolve type of local variable '{variable.Name}' of function '{function.GetHeader()}'");
+				}
+			}
+		}
 
 		foreach (var type in context.Types.Values)
 		{

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public class Value : Reference
 {
@@ -9,14 +10,14 @@ public class Value : Reference
 	public bool IsDisposable { get; private set; }
 	public bool IsFloating { get; private set; }
 
-	public Value(Register register, Size size, ValueType type, bool critical, bool disposable, bool floating) : base(size)
+	public Value(Register? register, Size size, ValueType type, bool critical, bool disposable, bool floating) : base(size)
 	{
 		Type = type;
 		IsCritical = critical;
 		IsDisposable = disposable;
 		IsFloating = floating;
 
-		register.Attach(this);
+		register?.Attach(this);
 	}
 
 	protected Value(Value value) : base(value.Size)
@@ -25,6 +26,8 @@ public class Value : Reference
 		IsCritical = value.IsCritical;
 		IsDisposable = value.IsDisposable;
 		IsFloating = value.IsFloating;
+
+
 	}
 
 	public virtual Value Clone(Register register)
@@ -131,14 +134,32 @@ public class Value : Reference
 		return new Value(register, Size.DWORD, ValueType.STRING, true, false, true);
 	}
 
-	public static Value GetVariable(Reference reference, Variable variable)
+	public static Value GetVariable(Register register, Variable variable)
 	{
-		if (reference.IsRegister())
+		var value = new Value(register, Size.DWORD, ValueType.VARIABLE, true, false, true);
+		value.Metadata = variable;
+
+		return value;
+		/*if (reference.IsRegister())
 		{
 			return new VariableValue(reference.GetRegister(), variable);
 		}
 
-		return null;
+		return null;*/
+	}
+
+	public static Value GetVariable(Variable variable)
+	{
+		var value = new Value(null, Size.DWORD, ValueType.VARIABLE, true, false, true);
+		value.Metadata = variable;
+
+		return value;
+		/*if (reference.IsRegister())
+		{
+			return new VariableValue(reference.GetRegister(), variable);
+		}
+
+		return null;*/
 	}
 
 	public override bool Equals(object? obj)

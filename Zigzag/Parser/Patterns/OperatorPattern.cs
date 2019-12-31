@@ -10,12 +10,12 @@ public class OperatorPattern : Pattern
 	// Pattern:
 	// ... [\n] Operator [\n] ...
 	public OperatorPattern() : base
-	(		  
-		  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC,
+	(
+		  TokenType.OBJECT,
 		  TokenType.END | TokenType.OPTIONAL,
 		  TokenType.OPERATOR,
 		  TokenType.END | TokenType.OPTIONAL,
-		  TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC
+		  TokenType.OBJECT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)

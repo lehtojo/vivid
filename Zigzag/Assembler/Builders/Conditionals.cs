@@ -17,12 +17,17 @@ public class Conditionals
 		// Assemble the condition
 		if (condition.GetNodeType() == NodeType.OPERATOR_NODE)
 		{
-			var operation = (OperatorNode)condition;
+			var operation = condition as OperatorNode;
+			var success = new RequestableLabel(unit);
 
-			var jump = Comparison.Jump(unit, operation, true, next);
-			instructions.Append(jump);
+			Comparison.Jump(unit, instructions, operation, true, success, new Label(next));
 
-			//unit.Step(instructions);
+			if (success.Used)
+			{
+				instructions.Label(success.GetName());
+			}
+
+			unit.Step(instructions);
 		}
 
 		Instructions? successor = null;
@@ -68,7 +73,7 @@ public class Conditionals
      * @param node If statement represented in node form
      * @return If statement built into instructions
      */
-	public static Instructions start(Unit unit, IfNode node)
+	public static Instructions Start(Unit unit, IfNode node)
 	{
 		var end = unit.NextLabel;
 
@@ -80,3 +85,79 @@ public class Conditionals
 		return instructions;
 	}
 }
+/*
+			 *	a < b | a == b
+			 *  
+			 *  cmp eax, ebx
+			 *	jl success
+			 *	cmp eax, ebx
+			 *	jne failure
+			 *	
+			 *	a < b & a == b
+			 *	cmp eax, ebx
+			 *	jqe failure
+			 *	cmp eax, ebx
+			 *	jne failure
+			 *	
+			 *	
+			 *	(a < b & a > c) | (a == b & a == c)
+			 *	
+			 *	cmp eax, ebx
+			 *	jge failure_1
+			 *	cmp eax, ecx
+			 *	jg success
+			 *	failure_1:
+			 *	cmp eax, ebx
+			 *	jne failure
+			 *	cmp eax, ecx
+			 *	jne failure
+			 *	
+			 *	(a < b & a > c) & (a == b & a == c)
+			 *	
+			 *	cmp eax, ebx
+			 *	jge failure
+			 *	cmp eax, ecx
+			 *	jle failure
+			 *	
+			 *	cmp eax, ebx
+			 *	jne failure
+			 *	cmp eax, ecx
+			 *	jne failure
+			 *	
+			 *	(a < b & a > c) & (a == b | a == c)
+			 *	
+			 *	cmp eax, ebx
+			 *	jge failure
+			 *	cmp eax, ecx
+			 *	jle failure
+			 *	
+			 *	cmp eax, ebx
+			 *	je success
+			 *	cmp eax, ecx
+			 *	jne failure
+			 *	
+			 *	(a < b | a > c) & (a == b & a == c)
+			 *	cmp eax, ebx
+			 *	jl success_1
+			 *	cmp eax, ecx
+			 *	jle failure
+			 *	success_1:
+			 *	cmp eax, ebx
+			 *	jne failure
+			 *	cmp eax, ecx
+			 *	jne failure
+			 */
+/*
+* Intermediate: Complex? & (Left is OR?)
+* 
+* OR:
+* 1. Success 
+* 2. Failure
+* 
+* AND:
+* 1. Failure
+* 2. Failure (Invert?)
+* 
+* 
+* 
+*/

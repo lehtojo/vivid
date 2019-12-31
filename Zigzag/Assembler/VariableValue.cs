@@ -1,6 +1,7 @@
 public class VariableValue : Value
 {
 	public Variable Variable { get; private set; }
+	public bool IsSaved { get; private set; } = true;
 
 	public VariableValue(Register register, Variable variable) : base(register, Size.Get(variable.Type.Size), ValueType.VARIABLE, true, false, true)
 	{

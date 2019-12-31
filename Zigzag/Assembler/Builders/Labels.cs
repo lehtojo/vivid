@@ -7,7 +7,7 @@ public class Labels
 		Instructions instructions = new Instructions();
 
 		Label label = node.Label;
-		string fullname = unit.Prefix + PREFIX + label.Name;
+		string fullname = unit.Prefix + PREFIX + label.GetName();
 
 		return instructions.Label(fullname);
 	}
@@ -17,7 +17,7 @@ public class Labels
 		Instructions instructions = new Instructions();
 
 		Label label = node.Label;
-		string fullname = unit.Prefix + PREFIX + label.Name;
+		string fullname = unit.Prefix + PREFIX + label.GetName();
 
 		return instructions.Append("jmp {0}", fullname);
 	}

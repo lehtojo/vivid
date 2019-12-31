@@ -6,13 +6,14 @@ public class IfPattern : Pattern
 {
 	public const int PRIORITY = 1;
 
-	public const int CONDITION = 0;
-	public const int BODY = 2;
+	public const int KEYWORD = 0;
+	public const int CONDITION = 1;
+	public const int BODY = 3;
 
-	// $bool [\n] ()
+	// if $bool [\n] {}
 	public IfPattern() : base
 	(
-		TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.KEYWORD, TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -22,6 +23,13 @@ public class IfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
+		var keyword = tokens[KEYWORD] as KeywordToken;
+
+		if (keyword.Keyword != Keywords.IF)
+		{
+			return false;
+		}
+
 		var body = tokens[BODY] as ContentToken;
 		return body.Type == ParenthesisType.CURLY_BRACKETS;
 	}

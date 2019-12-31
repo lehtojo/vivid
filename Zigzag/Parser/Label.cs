@@ -1,13 +1,44 @@
+using System;
+
 public class Label
 {
-	public Context Context { get; private set; }
-	public string Name { get; private set; }
+	protected string Name { get; set; }
 
-	public Label(Context context, string name)
+	public Label(string name = "")
 	{
-		Context = context;
 		Name = name;
+	}
 
-		context.Declare(this);
+	public virtual string GetName()
+	{
+		return Name;
+	}
+
+	public override string ToString()
+	{
+		throw new InvalidOperationException("Use method 'GetName' instead of 'ToString' when interacting with labels");
+	}
+}
+
+public class RequestableLabel : Label
+{
+	public bool Used { get; private set; } = false;
+
+	private Unit Unit { get; set; }
+
+	public RequestableLabel(Unit unit)
+	{
+		Unit = unit;
+	}
+
+	public override string GetName()
+	{
+		if (!Used)
+		{
+			Used = true;
+			Name = Unit.NextLabel;
+		}
+		
+		return base.GetName();
 	}
 }

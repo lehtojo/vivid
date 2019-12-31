@@ -6,8 +6,9 @@ public class LoopPattern : Pattern
 {
 	public const int PRIORITY = 1;
 
-	public const int STEPS = 0;
-	public const int BODY = 2;
+	public const int KEYWORD = 0;
+	public const int STEPS = 1;
+	public const int BODY = 3;
 
 	// (i < 10)
 	public const int WHILE_LOOP = 1;
@@ -21,7 +22,7 @@ public class LoopPattern : Pattern
 	// (...) [\n] (...)
 	public LoopPattern() : base
 	(
-		TokenType.CONTENT, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.KEYWORD, TokenType.CONTENT, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -31,7 +32,8 @@ public class LoopPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		return true;
+		var keyword = tokens[KEYWORD] as KeywordToken;
+		return keyword.Keyword == Keywords.LOOP;
 	}
 
 	private Node GetSteps(Context environment, ContentToken content)

@@ -61,6 +61,42 @@ public class FunctionImplementation : Context
 		Parser.Parse(Node, this, blueprint, 0, 20);
 	}
 
+	/// <summary>
+	/// Returns the header of the function.
+	/// Examples:
+	/// Name(Type, Type, ...) [-> Result]
+	/// f(number, number) -> number
+	/// g(A, B) -> C
+	/// h() -> A
+	/// i()
+	/// </summary>
+	/// <returns>Header of the function</returns>
+	public string GetHeader()
+	{
+		var header = Metadata.Name + '(';
+
+		foreach (var type in ParameterTypes)
+		{
+			header += $"{type.Name}, ";
+		}
+
+		if (ParameterTypes.Count > 0)
+		{
+			header = header.Substring(0, header.Length - 2);
+		}
+
+		if (ReturnType != null)
+		{
+			header += $") -> {ReturnType.Name}";
+		}
+		else
+		{
+			header += ')';
+		}
+
+		return header;
+	}
+
 	public override bool IsLocalVariableDeclared(string name)
 	{
 		return Parameters.Any(p => p.Name == name) || base.IsLocalVariableDeclared(name);

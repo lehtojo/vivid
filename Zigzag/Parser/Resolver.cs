@@ -193,36 +193,67 @@ public class Resolver
 		return types;
 	}
 
+	private static Type TryGetTypeFromAssignOperation(Node assign)
+	{
+		var operation = assign as OperatorNode;
+
+		// Try to resolve type via contextable right side of the assign operator
+		if (operation.Operator == Operators.ASSIGN &&
+			operation.Right is IType x)
+		{
+			return x.GetType();
+		}
+
+		return Types.UNKNOWN;
+	}
+
 	public static void Resolve(Variable variable)
 	{
 		var types = new List<Type>();
 
+		// Try resolving the type of the variable from its references
 		foreach (var reference in variable.References)
 		{
 			var parent = reference.Parent;
 
 			if (parent != null)
 			{
-				if (parent.GetNodeType() == NodeType.OPERATOR_NODE)
+				if (parent.GetNodeType() == NodeType.OPERATOR_NODE) // Locals
 				{
-					var operation = parent as OperatorNode;
-
-					// Try to resolve type via contextable right side of the assign operator
-					if (operation.Operator == Operators.ASSIGN &&
-						operation.Right is IType x)
+					// Reference must be the destination in assign operation in order to resolve the type
+					if (parent.First != reference)
 					{
-						var type = x.GetType();
+						continue;
+					}
 
-						// Verify the type is resolved
-						if (type != Types.UNKNOWN)
-						{
-							types.Add(type);
-						}
+					var type = TryGetTypeFromAssignOperation(parent);
+
+					if (type != Types.UNKNOWN)
+					{
+						types.Add(type);
+					}
+				}
+				else if (parent.GetNodeType() == NodeType.LINK_NODE) // Members
+				{
+					// Reference must be the destination in assign operation in order to resolve the type
+					if (parent.Last != reference)
+					{
+						continue;
+					}
+
+					parent = parent.Parent;
+
+					var type = TryGetTypeFromAssignOperation(parent);
+
+					if (type != Types.UNKNOWN)
+					{
+						types.Add(type);
 					}
 				}
 			}
 		}
 
+		// Get the shared type between the references
 		var shared = Resolver.GetSharedType(types);
 
 		if (shared != Types.UNKNOWN)

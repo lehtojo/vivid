@@ -188,16 +188,16 @@ public class Classic
 
 	private static Instructions Divide(Unit unit, string instruction, OperatorNode node, bool remainder)
 	{
-		Instructions instructions = new Instructions();
+		var instructions = new Instructions();
 
 		//Reference[] operands = References.Get(unit, instructions, node.Left, node.Right, ReferenceType.REGISTER, ReferenceType.REGISTER);
 
 		//Reference left = operands[0];
 		//Reference right = operands[1];
 
-		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.REGISTER, ReferenceType.REGISTER, out Reference left, out Reference right);
-
-		if (left.GetRegister() != unit.EAX && right.GetRegister() == unit.EAX)
+		References.Get(unit, instructions, node.Left, node.Right, ReferenceType.READ, ReferenceType.REGISTER, out Reference left, out Reference right);
+		
+		if (left.IsRegister() && (left.GetRegister() != unit.EAX && right.GetRegister() == unit.EAX))
 		{
 			instructions.Append(Memory.Exchange(unit, left.GetRegister(), right.GetRegister()));
 		}
@@ -208,8 +208,8 @@ public class Classic
 
 		instructions.Append(Memory.Clear(unit, unit.EDX, true));
 
-		Type type = GetOperationType(node);
-		Size size = Size.Get(type.Size);
+		var type = GetOperationType(node);
+		var size = Size.Get(type.Size);
 
 		instructions.Append(new Instruction(instruction, right));
 		instructions.SetReference(Value.GetOperation(remainder ? unit.EDX : unit.EAX, size));
