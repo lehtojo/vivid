@@ -73,7 +73,7 @@ public class Lexer
 	/// </summary>
 	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is start of a comment, otherwise false</returns>
-	private static bool ÍsComment(char c)
+	private static bool IsComment(char c)
 	{
 		return c == COMMENT;
 	}
@@ -111,7 +111,7 @@ public class Lexer
 		{
 			return Type.OPERATOR;
 		}
-		else if (ÍsComment(c))
+		else if (IsComment(c))
 		{
 			return Type.COMMENT;
 		}

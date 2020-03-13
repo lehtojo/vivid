@@ -22,7 +22,7 @@ public class FunctionImplementation : Context
 
 	public Type ReturnType { get; set; }
 
-	public bool IsInline => References.Count == 1;
+	public bool IsInline => References.Count == 1 && false;
 	
 	/// <summary>
 	/// Optionally links this function to some context

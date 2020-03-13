@@ -20,13 +20,14 @@ public class Label
 	}
 }
 
+/*
 public class RequestableLabel : Label
 {
 	public bool Used { get; private set; } = false;
 
-	private Unit Unit { get; set; }
+	private Editor Unit { get; set; }
 
-	public RequestableLabel(Unit unit)
+	public RequestableLabel(Editor unit)
 	{
 		Unit = unit;
 	}
@@ -41,4 +42,4 @@ public class RequestableLabel : Label
 		
 		return base.GetName();
 	}
-}
+}*/

@@ -4,4 +4,16 @@ public static class Flag
 	{
 		return (mask & flag) == flag;
 	}
+
+	public static int Combine(int[] flags)
+	{
+		var result = 0;
+
+		foreach (var flag in flags)
+		{
+			result |= flag;
+		}
+
+		return result;
+	}
 }

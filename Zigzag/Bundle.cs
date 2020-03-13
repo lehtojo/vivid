@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 /// <summary>
 /// Efficient way of storing values with names
@@ -7,6 +8,11 @@ public class Bundle : Dictionary<string, object>
 {
 	public void Put(string name, object element)
 	{
+		if (element == null)
+		{
+			throw new ArgumentNullException("Element may not null");
+		}
+
 		Add(name, element);
 	}
 
@@ -32,7 +38,7 @@ public class Bundle : Dictionary<string, object>
 
 	public T Get<T>(string name, T fallback)
 	{
-		if (TryGetValue(name, out object value))
+		if (TryGetValue(name, out object? value) && value != null)
 		{
 			return (T)value;
 		}

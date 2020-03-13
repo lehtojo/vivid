@@ -1,89 +1,34 @@
-using System.Collections.Generic;
+using System;
+
+public static class RegisterFlag
+{
+    public const int VOLATILE = 1;
+    public const int SPECIALIZED = 2;
+    public const int RETURN = 4;
+}
 
 public class Register
 {
-	public Dictionary<Size, string> Partitions { get; private set; }
-	public Value Value { get; private set; }
+    public String Name { get; private set; }
+    public Quantum<Handle>? Value { get; set; } = null;
 
-	public bool IsCritical => Value != null && Value.IsCritical;
-	public bool IsAvailable => Value == null;
-	public bool IsReserved => Value != null;
+    public int Flags { get; private set; }
+    public bool Volatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
+    public bool Specialized => Flag.Has(Flags, RegisterFlag.SPECIALIZED);
 
-	/**
-     * Creates a register with partitions
-     * @param partitions Partitions of the register (for example: rax, eax, ax, al)
-     */
-	public Register(Dictionary<Size, string> partitions)
-	{
-		Partitions = partitions;
-	}
+    public Register(string name, params int[] flags) 
+    {
+        Name = name;
+        Flags = Flag.Combine(flags);
+    }
 
-	/**
-     * Copies the state of the given register
-     * @param register Register to copy
-     */
-	private Register(Register register)
-	{
-		Partitions = register.Partitions;
+    public bool IsAvailable(Unit unit)
+    {
+        return Value == null || !Value.Value.IsAlive(unit.Position);
+    }
 
-		if (register.IsReserved)
-		{
-			Value = register.Value.Clone(this);
-		}
-	}
-
-	/**
-     * Exchanges values between the given register
-     */
-	public void Exchange(Register register)
-	{
-		Value other = register.Value;
-		register.Attach(Value);
-		Attach(other);
-	}
-
-	/**
-     * Attaches value to this register
-     * @param value Value to attach
-     */
-	public void Attach(Value value)
-	{
-		Value = value;
-		Value.SetReference(this);
-	}
-
-	/**
-     * Returns whether this register contains the given variable
-     * @param variable Variable to test
-     * @return True if this register holds the variable, otherwise false
-     */
-	public bool Contains(Variable variable)
-	{
-		if (Value != null && Value.Type == ValueType.VARIABLE)
-		{
-			return ((VariableValue)Value).Variable == variable;
-		}
-
-		return false;
-	}
-
-	public void Relax()
-	{
-		Value.IsCritical = false;
-	}
-
-	public void Reset()
-	{
-		Value = null;
-	}
-
-	public override string ToString()
-	{
-		return Partitions[Size.DWORD];
-	}
-
-	public Register Clone()
-	{
-		return new Register(this);
-	}
+    public override string ToString()
+    {
+        return Name;
+    }
 }
