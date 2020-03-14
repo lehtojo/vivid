@@ -7,12 +7,17 @@ public class ElsePattern : Pattern
 	public const int PRIORITY = 1;
 
 	public const int FORMER = 0;
-	public const int BODY = 2;
+	public const int ELSE = 2;
+	public const int BODY = 4;
 
-	// $([else] if) [\n] (...)
+	// $([else] if) [\n] else [\n] (...)
 	public ElsePattern() : base
 	(
-		TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.DYNAMIC, 
+		TokenType.END | TokenType.OPTIONAL, 
+		TokenType.KEYWORD,
+		TokenType.END | TokenType.OPTIONAL, 
+		TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -22,7 +27,12 @@ public class ElsePattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var former = tokens[FORMER] as DynamicToken;
+		if (((KeywordToken)tokens[ELSE]).Keyword != Keywords.ELSE)
+		{
+			return false;
+		}
+		
+		var former = (DynamicToken)tokens[FORMER];
 
 		return former.Node.GetNodeType() == NodeType.IF_NODE ||
 				former.Node.GetNodeType() == NodeType.ELSE_IF_NODE;
@@ -30,8 +40,8 @@ public class ElsePattern : Pattern
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var former = (tokens[FORMER] as DynamicToken).Node as IfNode;
-		var body = tokens[BODY] as ContentToken;
+		var former = (IfNode)((DynamicToken)tokens[FORMER]).Node;
+		var body = (ContentToken)tokens[BODY];
 
 		var context = new Context();
 		context.Link(environment);

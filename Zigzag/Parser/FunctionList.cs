@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 public class FunctionList
 {
@@ -18,12 +17,12 @@ public class FunctionList
 		Overloads.Add(function);
 	}
 
-	public Function this[int parameters]
+	public Function? this[int parameters]
 	{
 		get => Overloads.Find(o => o.Parameters.Count == parameters);
 	}
 
-	public FunctionImplementation this[List<Type> parameters]
+	public FunctionImplementation? this[List<Type> parameters]
 	{
 		get => Overloads.Find(o => o.Parameters.Count == parameters.Count)?.Get(parameters);
 	}

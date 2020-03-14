@@ -19,7 +19,7 @@ public class ParserPhase : Phase
 
 	private void ParseMembers(Node root)
 	{
-		Node node = root.First;
+		var node = root.First;
 
 		while (node != null)
 		{
@@ -47,63 +47,27 @@ public class ParserPhase : Phase
 			node = node.Next;
 		}
 	}
-
-	/*public void ParseFunctions(Node parent)
-	{
-		Node node = parent.First;
-
-		while (node != null)
-		{
-			if (node.GetNodeType() == NodeType.TYPE_NODE)
-			{
-				TypeNode type = (TypeNode)node;
-				ParseFunctions(type);
-			}
-			else if (node.GetNodeType() == NodeType.FUNCTION_NODE)
-			{
-				FunctionNode function = (FunctionNode)node;
-
-				Run(() =>
-				{
-					try
-					{
-						function.Parse();
-					}
-					catch (Exception e)
-					{
-						Errors.Add(e);
-					}
-
-					return Status.OK;
-				});
-			}
-
-			node = node.Next;
-		}
-	}*/
-
 	public override Status Execute(Bundle bundle)
 	{
-		List<Token>[] files = bundle.Get<List<Token>[]>("input_file_tokens", null);
-
-		if (files == null)
+		if (!bundle.Contains("input_file_tokens"))
 		{
 			return Status.Error("Nothing to parse");
 		}
 
-		Parse[] parses = new Parse[files.Length];
+		var files = bundle.Get<List<Token>[]>("input_file_tokens");
+		var parses = new Parse[files.Length];
 
 		// Form the 'hull' of the code
-		for (int i = 0; i < files.Length; i++)
+		for (var i = 0; i < files.Length; i++)
 		{
-			int index = i;
+			var index = i;
 
 			Run(() =>
 			{
-				List<Token> tokens = files[index];
+				var tokens = files[index];
 
-				Node node = new Node();
-				Context context = Parser.Initialize();
+				var node = new Node();
+				var context = Parser.Initialize();
 
 				try
 				{
@@ -136,27 +100,11 @@ public class ParserPhase : Phase
 
 		Sync();
 
-
-
-		/* Parse types, subtypes and their members
-		for (int i = 0; i < files.Length; i++)
-		{
-			int index = i;
-
-			Run(() =>
-			{
-				ParseFunctions(parses[index].Node);
-				return Status.OK;
-			});
-		}*/
-
-		Sync();
-
 		// Merge all parsed files
 		var context = new Context();
 		var root = new Node();
 
-		foreach (Parse parse in parses)
+		foreach (var parse in parses)
 		{
 			context.Merge(parse.Context);
 			root.Merge(parse.Node);

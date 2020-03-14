@@ -3,27 +3,24 @@ using System.Collections.Generic;
 
 public class Singleton
 {
-	/**
-     * Tries to build identifier into a node
-     * @param context Context to use for linking indentifier
-     * @param id Identifier to link
-     * @return Identifier built into a node
-     */
+	 /// <summary>
+	 /// Tries to build identifier into a node
+	 /// </summary>
+	 /// <param name="context">Context to use for linking indentifier</param>
+	 /// <param name="id">Identifier to link</param>
 	public static Node GetIdentifier(Context context, IdentifierToken id)
 	{
 		if (context.IsVariableDeclared(id.Value))
 		{
-			return new VariableNode(context.GetVariable(id.Value));
+			return new VariableNode(context.GetVariable(id.Value)!);
 		}
 		else if (context.IsTypeDeclared(id.Value))
 		{
-			return new TypeNode(context.GetType(id.Value));
+			return new TypeNode(context.GetType(id.Value)!);
 		}
 		else if (context.IsType)
 		{
-			var variable = new Variable(Types.UNKNOWN, VariableCategory.MEMBER, id.Value, AccessModifier.PUBLIC);
-			context.Declare(variable);
-
+			var variable = new Variable(context, Types.UNKNOWN, VariableCategory.MEMBER, id.Value, AccessModifier.PUBLIC);
 			return new VariableNode(variable);
 		}
 		else
@@ -38,17 +35,17 @@ public class Singleton
      * @param name    Name of the function
      * @return Success: Function / Constructor, Failure: null
      */
-	public static FunctionImplementation GetFunctionByName(Context context, string name, List<Type> parameters)
+	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters)
 	{
 		FunctionList functions;
 
 		if (context.IsTypeDeclared(name)) // Type constructors
 		{
-			functions = context.GetType(name).GetConstructors();
+			functions = context.GetType(name)!.GetConstructors();
 		}
 		else if (context.IsFunctionDeclared(name)) // Functions
 		{
-			functions = context.GetFunction(name);
+			functions = context.GetFunction(name)!;
 		}
 		else
 		{
@@ -174,7 +171,7 @@ public class Singleton
 			}
 		}
 
-		return null;
+		throw new NotImplementedException("Couldn't parse the node");
 	}
 
 	public static Node GetUnresolved(Context environment, Token token)

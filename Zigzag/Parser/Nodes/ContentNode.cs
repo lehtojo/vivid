@@ -1,9 +1,9 @@
 public class ContentNode : Node, IType
 {
-	public Type GetType()
+	public new Type? GetType()
 	{
 		var type = First as IType;
-		return type.GetType();
+		return type?.GetType();
 	}
 
 	public override NodeType GetNodeType()

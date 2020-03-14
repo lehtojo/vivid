@@ -5,9 +5,9 @@ using System.Linq;
 public struct Parameter
 {
 	public string Name;
-	public Type Type;
+	public Type? Type;
 
-	public Parameter(string name, Type type = Types.UNKNOWN)
+	public Parameter(string name, Type? type = Types.UNKNOWN)
 	{
 		Name = name;
 		Type = type;
@@ -102,7 +102,7 @@ public class Function : Context
 	/// Tries to find function implementation with the given parameter
 	/// </summary>
 	/// <param name="parameter">Parameter type used in filtering</param>
-	public FunctionImplementation Get(Type parameter)
+	public FunctionImplementation? Get(Type parameter)
 	{
 		return Get(new List<Type>() { parameter });
 	}
@@ -111,7 +111,7 @@ public class Function : Context
 	/// Tries to find function implementation with the given parameters
 	/// </summary>
 	/// <param name="parameter">Parameter types used in filtering</param>
-	public FunctionImplementation Get(List<Type> parameters)
+	public FunctionImplementation? Get(List<Type> parameters)
 	{
 		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(parameters));
 
@@ -127,7 +127,7 @@ public class Function : Context
 		return Implement(parameters);
 	}
 
-	public FunctionImplementation this[List<Type> parameters]
+	public FunctionImplementation? this[List<Type> parameters]
 	{
 		get => Get(parameters);
 	}

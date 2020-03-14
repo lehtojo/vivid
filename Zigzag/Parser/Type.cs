@@ -11,7 +11,6 @@ public class Type : Context
 
 	public bool IsUnresolved => this is IResolvable;
 
-	public int ContentSize => Variables.Values.Select(v => v.Type.Size).Sum();
 	public int Size => GetSize();
 
 	public List<Type> Supertypes { get; private set; } = new List<Type>();
@@ -93,12 +92,12 @@ public class Type : Context
 		return Supertypes.Any(t => t.IsLocalVariableDeclared(name));
 	}
 
-	public FunctionList GetSuperFunction(string name)
+	public FunctionList? GetSuperFunction(string name)
 	{
 		return Supertypes.First(t => t.IsLocalFunctionDeclared(name)).GetFunction(name);
 	}
 
-	public Variable GetSuperVariable(string name)
+	public Variable? GetSuperVariable(string name)
 	{
 		return Supertypes.First(t => t.IsLocalVariableDeclared(name)).GetVariable(name);
 	}
@@ -123,7 +122,7 @@ public class Type : Context
 		return base.IsVariableDeclared(name) || IsSuperVariableDeclared(name);
 	}
 
-	public override FunctionList GetFunction(string name)
+	public override FunctionList? GetFunction(string name)
 	{
 		if (base.IsLocalFunctionDeclared(name))
 		{
@@ -139,7 +138,7 @@ public class Type : Context
 		}
 	}
 
-	public override Variable GetVariable(string name)
+	public override Variable? GetVariable(string name)
 	{
 		if (base.IsLocalVariableDeclared(name))
 		{

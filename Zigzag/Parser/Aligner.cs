@@ -41,7 +41,7 @@ public class Aligner
 		foreach (var variable in type.Variables.Values)
 		{
 			variable.Alignment = position;
-			position += variable.Type.Size;
+			position += variable.Type!.Size;
 		}
 
 		// Member functions:

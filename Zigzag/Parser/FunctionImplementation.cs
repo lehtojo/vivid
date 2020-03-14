@@ -1,26 +1,26 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
+using System;
 
 public class FunctionImplementation : Context
 {
-	public Function Metadata { get; set; }
+	public Function? Metadata { get; set; }
 
 	public new List<Variable> Variables => base.Variables.Values.Concat(Parameters).ToList();
 	
 	public List<Variable> Parameters { get; private set; } = new List<Variable>();
-	public List<Type> ParameterTypes => Parameters.Select(p => p.Type).ToList();
+	public List<Type> ParameterTypes => Parameters.Select(p => p.Type!).ToList();
 	
 	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
 										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
-	public int LocalMemorySize => Variables.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type.Size).Sum() +
-									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type.Size).Sum());
+	public int LocalMemorySize => Variables.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum() +
+									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum());
 	
 	public Node? Node { get; set; }
 
 	public List<Node> References { get; private set; } = new List<Node>();
 
-	public Type ReturnType { get; set; }
+	public Type? ReturnType { get; set; }
 
 	public bool IsInline => References.Count == 1 && false;
 	
@@ -28,7 +28,7 @@ public class FunctionImplementation : Context
 	/// Optionally links this function to some context
 	/// </summary>
 	/// <param name="context">Context to link into</param>
-	public FunctionImplementation(Context context = null)
+	public FunctionImplementation(Context? context = null)
 	{
 		if (context != null)
 		{
@@ -44,9 +44,7 @@ public class FunctionImplementation : Context
 	{
 		foreach (var properties in parameters)
 		{
-			var parameter = new Variable(properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC);
-			parameter.Context = this;
-
+			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC);
 			Parameters.Add(parameter);
 		}
 	}
@@ -73,6 +71,11 @@ public class FunctionImplementation : Context
 	/// <returns>Header of the function</returns>
 	public string GetHeader()
 	{
+		if (Metadata == null)
+		{
+			throw new ApplicationException("Couldn't get the function header since the metadata was missing");
+		}
+
 		var header = Metadata.Name + '(';
 
 		foreach (var type in ParameterTypes)
@@ -107,7 +110,7 @@ public class FunctionImplementation : Context
 		return Parameters.Any(p => p.Name == name) || base.IsVariableDeclared(name);
 	}
 
-	public override Variable GetVariable(string name)
+	public override Variable? GetVariable(string name)
 	{
 		if (Parameters.Any(p => p.Name == name))
 		{

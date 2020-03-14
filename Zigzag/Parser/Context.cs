@@ -16,7 +16,7 @@ public class Context
 	public string Prefix { get; protected set; } = string.Empty;
 	public string Postfix { get; protected set; } = string.Empty;
 
-	public Context Parent { get; set; }
+	public Context? Parent { get; set; }
 	public List<Context> Subcontexts { get; private set; } = new List<Context>();
 
 	public bool IsGlobal => GetTypeParent() == null;
@@ -59,14 +59,13 @@ public class Context
 		{
 			if (variable.IsUnresolved)
 			{
-				var resolvable = (IResolvable)variable.Type;
+				var resolvable = (IResolvable?)variable.Type;
 
-				try
+				if (resolvable != null)
 				{
-					var type = resolvable.Resolve(this) as TypeNode;
+					var type = (TypeNode)resolvable.Resolve(this);
 					variable.Type = type.Type;
 				}
-				catch { }
 			}
 		}
 
@@ -245,7 +244,7 @@ public class Context
 		return Labels.ContainsKey(name) || (Parent != null && Parent.IsLabelDeclared(name));
 	}
 
-	public Type GetType(string name)
+	public Type? GetType(string name)
 	{
 		if (Types.ContainsKey(name))
 		{
@@ -261,7 +260,7 @@ public class Context
 		}
 	}
 
-	public virtual FunctionList GetFunction(string name)
+	public virtual FunctionList? GetFunction(string name)
 	{
 		if (Functions.ContainsKey(name))
 		{
@@ -277,7 +276,7 @@ public class Context
 		}
 	}
 
-	public virtual Variable GetVariable(string name)
+	public virtual Variable? GetVariable(string name)
 	{
 		if (Variables.ContainsKey(name))
 		{
@@ -293,7 +292,7 @@ public class Context
 		}
 	}
 
-	public virtual Label GetLabel(string name)
+	public virtual Label? GetLabel(string name)
 	{
 		if (Labels.ContainsKey(name))
 		{
@@ -309,7 +308,7 @@ public class Context
 		}
 	}
 
-	public Type GetTypeParent()
+	public Type? GetTypeParent()
 	{
 		if (IsType)
 		{
@@ -319,7 +318,7 @@ public class Context
 		return Parent?.GetTypeParent();
 	}
 
-	public FunctionImplementation GetFunctionParent()
+	public FunctionImplementation? GetFunctionParent()
 	{
 		if (IsFunction)
 		{

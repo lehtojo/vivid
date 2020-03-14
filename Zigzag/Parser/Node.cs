@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 public class Node
 {
-	public Node Parent { get; private set; }
+	public Node? Parent { get; private set; }
 
-	public Node Previous { get; private set; }
-	public Node Next { get; private set; }
+	public Node? Previous { get; private set; }
+	public Node? Next { get; private set; }
 
-	public Node First { get; protected set; }
-	public Node Last { get; protected set; }
+	public Node? First { get; protected set; }
+	public Node? Last { get; protected set; }
 
 	public bool Is(NodeType type)
 	{
@@ -34,7 +34,7 @@ public class Node
 		return result;
 	}
 
-	public Node FindParent(Predicate<Node> filter)
+	public Node? FindParent(Predicate<Node> filter)
 	{
 		if (Parent == null)
 		{
@@ -44,7 +44,7 @@ public class Node
 		return filter(Parent) ? Parent : Parent.FindParent(filter);
 	}
 
-	public Node Find(Predicate<Node> filter)
+	public Node? Find(Predicate<Node> filter)
 	{
 		var iterator = First;
 
@@ -96,7 +96,7 @@ public class Node
 			First = child;
 		}
 
-		Node left = position.Previous;
+		var left = position.Previous;
 
 		if (left != null)
 		{
@@ -141,8 +141,8 @@ public class Node
 			return false;
 		}
 
-		Node left = child.Previous;
-		Node right = child.Next;
+		var left = child.Previous;
+		var right = child.Next;
 
 		if (left != null)
 		{
@@ -159,6 +159,12 @@ public class Node
 
 	public void Replace(Node node)
 	{
+		// No need to replace if the replacement is this node
+		if (node == this)
+		{
+			return;
+		}
+
 		var iterator = First;
 
 		while (iterator != null)
@@ -198,11 +204,11 @@ public class Node
 
 	public void Merge(Node node)
 	{
-		Node iterator = node.First;
+		var iterator = node.First;
 
 		while (iterator != null)
 		{
-			Node Next = iterator.Next;
+			var Next = iterator.Next;
 			Add(iterator);
 			iterator = Next;
 		}
@@ -221,7 +227,7 @@ public class Node
 
 	public Node Disconnect()
 	{
-		Parent.Remove(this);
+		Parent?.Remove(this);
 		return this;
 	}
 

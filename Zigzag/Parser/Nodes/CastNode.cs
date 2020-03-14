@@ -6,7 +6,7 @@ public class CastNode : Node, IType, IResolvable
 		Add(type);
 	}
 
-	public Type GetType()
+	public new Type? GetType()
 	{
 		if (Last is IType type)
 		{
@@ -16,7 +16,7 @@ public class CastNode : Node, IType, IResolvable
 		return Types.UNKNOWN;
 	}
 
-	private void Resolve(Context context, Node node)
+	private void Resolve(Context context, Node? node)
 	{
 		if (node is IResolvable resolvable)
 		{
@@ -29,7 +29,7 @@ public class CastNode : Node, IType, IResolvable
 		}
 	}
 
-	public Node Resolve(Context context)
+	public Node? Resolve(Context context)
 	{
 		Resolve(context, First);
 		Resolve(context, Last);

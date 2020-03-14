@@ -31,33 +31,31 @@ public class OperatorPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var type = (OperatorToken)tokens[OPERATOR];
-		var @operator = new OperatorNode(type.Operator);
+		var operation = (OperatorToken)tokens[OPERATOR];
 
 		var left = tokens[LEFT];
+		var right = tokens[RIGHT];
+
+		var node = new OperatorNode(operation.Operator);
 
 		try
 		{
-			var node = Singleton.Parse(context, left);
-			@operator.Add(node);
+			node.Add(Singleton.Parse(context, left));
 		}
 		catch (Exception exception)
 		{
 			throw Errors.Get(left.Position, exception);
 		}
 
-		var right = tokens[RIGHT];
-
 		try
 		{
-			var node = Singleton.Parse(context, right);
-			@operator.Add(node);
+			node.Add(Singleton.Parse(context, right));
 		}
 		catch (Exception exception)
 		{
 			throw Errors.Get(right.Position, exception);
 		}
 
-		return @operator;
+		return node;
 	}
 }

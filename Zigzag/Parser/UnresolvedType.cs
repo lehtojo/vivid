@@ -20,7 +20,7 @@ public class UnresolvedType : Type, IResolvable
 
 		if (resolved is IType type)
 		{
-			return new TypeNode(type.GetType());
+			return new TypeNode(type.GetType() ?? throw new ApplicationException("Resolved type didn't contain type"));
 		}
 
 		throw new Exception("Couldn't resolve type");

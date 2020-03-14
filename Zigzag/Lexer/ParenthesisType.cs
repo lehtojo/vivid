@@ -38,8 +38,9 @@ public class ParenthesisType
 	public override bool Equals(object obj)
 	{
 		return obj is ParenthesisType type &&
-			   Opening == type.Opening &&
-			   Closing == type.Closing;
+				base.Equals(obj) &&
+			   	Opening == type.Opening &&
+			   	Closing == type.Closing;
 	}
 
 	public override int GetHashCode()

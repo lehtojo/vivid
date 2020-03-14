@@ -10,7 +10,7 @@ public class Bundle : Dictionary<string, object>
 	{
 		if (element == null)
 		{
-			throw new ArgumentNullException("Element may not null");
+			throw new ArgumentNullException("Element may not be null");
 		}
 
 		Add(name, element);
@@ -44,6 +44,16 @@ public class Bundle : Dictionary<string, object>
 		}
 
 		return fallback;
+	}
+
+	public T Get<T>(string name)
+	{
+		if (TryGetValue(name, out object? value) && value != null)
+		{
+			return (T)value;
+		}
+
+		throw new ArgumentException($"Bundle didn't contain key '{name}'");
 	}
 
 	public bool Contains(string name)

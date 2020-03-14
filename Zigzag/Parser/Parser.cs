@@ -145,7 +145,7 @@ public class Parser
 
 		foreach (var index in indices)
 		{
-			molded.Insert(index, null);
+			molded.Insert(index, new Token(TokenType.NONE));
 		}
 
 		return molded;
@@ -158,17 +158,22 @@ public class Parser
 	/// <param name="tokens">Tokens to scan through</param>
 	/// <param name="priority">Pattern priority used for filtering</param>
 	/// <returns>Success: Next important patterin in tokens, Failure null</returns>
-	private static Instance Next(Context context, List<Token> tokens, int priority)
+	private static Instance? Next(Context context, List<Token> tokens, int priority)
 	{
-		for (int start = 0; start < tokens.Count; start++)
+		for (var start = 0; start < tokens.Count; start++)
 		{
 			// Start from the root
-			var patterns = Patterns.Root;
+			var patterns = (Patterns?)Patterns.Root;
+
+			if (patterns == null)
+			{
+				throw new ApplicationException("The root of the patterns wasn't initialized");
+			}
 
 			Instance? instance = null;
 
 			// Try finding the next pattern
-			for (int end = start; end < tokens.Count; end++)
+			for (var end = start; end < tokens.Count; end++)
 			{
 				// Navigate forward on the tree
 				patterns = patterns.Navigate(tokens[end].Type);
@@ -255,7 +260,7 @@ public class Parser
 	{
 		for (int priority = max; priority >= min; priority--)
 		{
-			Instance instance;
+			Instance? instance;
 
 			// Find all patterns with the current priority
 			while ((instance = Next(context, tokens, priority)) != null)

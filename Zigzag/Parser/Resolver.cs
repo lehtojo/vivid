@@ -7,7 +7,7 @@ public class Resolver
 	{
 		foreach (var type in context.Types.Values)
 		{
-			Variables(type, errors);
+			ResolveVariables(type, errors);
 			Resolve(type, errors);
 		}
 
@@ -19,8 +19,8 @@ public class Resolver
 				{
 					if (implementation.Node != null)
 					{
-						Variables(implementation, errors);
-						Resolve(implementation, implementation.Node, errors);
+						ResolveVariables(implementation, errors);
+						ResolveAll(implementation, implementation.Node, errors);
 					}
 				}
 			}
@@ -34,7 +34,11 @@ public class Resolver
     * @param errors Output list for errors
     * @return Returns a resolved node tree on success, otherwise null
     */
-	public static Node Resolve(Context context, Node node, List<string> errors)
+	/// <summary>
+	/// Tries to resolve any unresolved nodes in a node tree
+	/// </summary>
+	/// <returns>Success: Shared type between the types, Failure: null</returns>
+	public static Node? ResolveAll(Context context, Node node, List<string> errors)
 	{
 		if (node is IResolvable resolvable)
 		{
@@ -51,28 +55,11 @@ public class Resolver
 		}
 		else
 		{
-			Node iterator = node.First;
+			var iterator = node.First;
 
 			while (iterator != null)
 			{
-				Node resolved = Resolver.Resolve(context, iterator, errors);
-
-				/*if (iterator.GetNodeType() == NodeType.TYPE_NODE)
-				{
-					TypeNode type = (TypeNode)iterator;
-					resolved = Resolver.Resolve(type.Type, iterator, errors);
-					Resolver.ResolveVariables(type.Type, errors);
-				}
-				else if (iterator.GetNodeType() == NodeType.FUNCTION_NODE)
-				{
-					FunctionNode function = (FunctionNode)iterator;
-					resolved = Resolver.Resolve(function.Function, iterator, errors);
-					Resolver.ResolveVariables(function.Function, errors);
-				}
-				else
-				{
-					resolved = Resolver.Resolve(context, iterator, errors);
-				}*/
+				var resolved = Resolver.ResolveAll(context, iterator, errors);
 
 				if (resolved != null)
 				{
@@ -91,10 +78,10 @@ public class Resolver
 		return a.Bits > b.Bits ? a : b;
 	}
 
-	/**
-     * Returns the shared type between the given types
-     * @return Success: Shared type between the given types, Failure: null
-     */
+	/// <summary>
+	/// Returns the shared type between the types
+	/// </summary>
+	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	public static Type? GetSharedType(Type? a, Type? b)
 	{
 		if (a == b)
@@ -127,25 +114,25 @@ public class Resolver
 		return Types.UNKNOWN;
 	}
 
-	/**
-     * Returns the shared type between the given types
-     * @param types List of types to solve
-     * @return Success: Shared type between the given types, Failure: null
-     */
-	public static Type GetSharedType(List<Type> types)
+	 /// <summary>
+	 /// Returns the shared type between the types
+	 /// </summary>
+	 /// <param name="types">Type list to go through</param>
+	 /// <returns>Success: Shared type between the types, Failure: null</returns>
+	public static Type? GetSharedType(List<Type> types)
 	{
 		if (types.Count == 0)
 		{
-			return Types.UNKNOWN;
+			throw new ArgumentException("Tried to get shared type between no elements?");
 		}
 		else if (types.Count == 1)
 		{
 			return types[0];
 		}
 
-		Type current = types[0];
+		var current = (Type?)types[0];
 
-		for (int i = 1; i < types.Count; i++)
+		for (var i = 1; i < types.Count; i++)
 		{
 			if (current == null)
 			{
@@ -162,7 +149,7 @@ public class Resolver
 	/// Returns the types of the child nodes of the given node
 	/// </summary>
 	/// <returns>Success: Types of the child nodes, Failure: null</returns>
-	public static List<Type> GetTypes(Node node)
+	public static List<Type>? GetTypes(Node node)
 	{
 		var types = new List<Type>();
 		var iterator = node.First;
@@ -175,6 +162,7 @@ public class Resolver
 
 				if (type == Types.UNKNOWN || type.IsUnresolved)
 				{
+					// This operation must be aborted since type list cannot contain unresolved types
 					return null;
 				}
 				else
@@ -184,6 +172,7 @@ public class Resolver
 			}
 			else
 			{
+				// This operation must be aborted since type list cannot contain unresolved types
 				return null;
 			}
 
@@ -193,9 +182,9 @@ public class Resolver
 		return types;
 	}
 
-	private static Type TryGetTypeFromAssignOperation(Node assign)
+	private static Type? TryGetTypeFromAssignOperation(Node assign)
 	{
-		var operation = assign as OperatorNode;
+		var operation = (OperatorNode)assign;
 
 		// Try to resolve type via contextable right side of the assign operator
 		if (operation.Operator == Operators.ASSIGN &&
@@ -243,7 +232,7 @@ public class Resolver
 
 					parent = parent.Parent;
 
-					var type = TryGetTypeFromAssignOperation(parent);
+					var type = TryGetTypeFromAssignOperation(parent!);
 
 					if (type != Types.UNKNOWN)
 					{
@@ -258,50 +247,24 @@ public class Resolver
 
 		if (shared != Types.UNKNOWN)
 		{
+			// Now the type is resolved
 			variable.Type = shared;
-			return;
-		}
-
-		if (variable.Context.IsFunction)
-		{
-			var function = variable.Context as FunctionImplementation;
-
-			if (function.IsMember)
-			{
-				var type = function.GetTypeParent();
-				throw new Exception($"Couldn't resolve type of variable '{variable.Name}' in member function '{function.Metadata.Name} of type '{type.Name}'");
-			}
-			else
-			{
-				throw new Exception($"Couldn't resolve type of variable '{variable.Name}' in function '{function.Metadata.Name}'");
-			}
-		}
-		else
-		{
-			throw new Exception($"Couldn't resolve type of variable '{variable.Name}'");
 		}
 	}
 
-	public static void Variables(Context context, List<string> errors)
+	public static void ResolveVariables(Context context, List<string> errors)
 	{
 		foreach (var variable in context.Variables.Values)
 		{
 			if (variable.Type == Types.UNKNOWN)
 			{
-				try
-				{
-					Resolve(variable);
-				}
-				catch (Exception e)
-				{
-					errors.Add(e.Message);
-				}
+				Resolve(variable);
 			}
 		}
 
 		foreach (var subcontext in context.Subcontexts)
 		{
-			Variables(subcontext, errors);
+			ResolveVariables(subcontext, errors);
 		}
 	}
 }

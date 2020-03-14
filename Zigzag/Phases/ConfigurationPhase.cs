@@ -12,7 +12,7 @@ public class ConfigurationPhase : Phase
 
 	private void Collect(Bundle bundle, DirectoryInfo folder, bool recursive = true)
 	{
-		foreach (FileInfo item in folder.GetFiles())
+		foreach (var item in folder.GetFiles())
 		{
 			if (item.Extension == EXTENSION)
 			{
@@ -22,7 +22,7 @@ public class ConfigurationPhase : Phase
 
 		if (recursive)
 		{
-			foreach (DirectoryInfo item in folder.GetDirectories())
+			foreach (var item in folder.GetDirectories())
 			{
 				Collect(bundle, item);
 			}
@@ -47,7 +47,7 @@ public class ConfigurationPhase : Phase
 			case "-help":
 			case "--help":
 			{
-				Option[] options = new Option[]
+				var options = new Option[]
 				{
 					new Option() { Command = "-help / --help",                         Description = "Displays this information" },
 					new Option() { Command = "-r <folder> / --recursive <folder>",     Description = "Includes source files (.z) from the given folder and its subfolders"},
@@ -76,7 +76,7 @@ public class ConfigurationPhase : Phase
 			case "-r":
 			case "--recursive":
 			{
-				string folder = parameters.Dequeue();
+				var folder = parameters.Dequeue();
 
 				if (folder == null || IsOption(folder))
 				{
@@ -103,7 +103,7 @@ public class ConfigurationPhase : Phase
 			case "-o":
 			case "--output":
 			{
-				string output = parameters.Dequeue();
+				var output = parameters.Dequeue();
 
 				if (output == null || IsOption(output))
 				{
@@ -118,7 +118,7 @@ public class ConfigurationPhase : Phase
 			case "--lib":
 			case "--library":
 			{
-				string library = parameters.Dequeue();
+				var library = parameters.Dequeue();
 
 				if (library == null || IsOption(library))
 				{
@@ -174,22 +174,21 @@ public class ConfigurationPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		string[] arguments = bundle.Get<string[]>("arguments", null);
-
-		if (arguments == null)
+		if (!bundle.Contains("arguments"))
 		{
 			return Status.Error("Couldn't configure settings");
 		}
 
-		Queue<string> parameters = new Queue<string>(arguments);
+		var arguments = bundle.Get<string[]>("arguments");
+		var parameters = new Queue<string>(arguments);
 
 		while (parameters.Count > 0)
 		{
-			string element = parameters.Dequeue();
+			var element = parameters.Dequeue();
 
 			if (IsOption(element))
 			{
-				Status status = Configure(bundle, element, parameters);
+				var status = Configure(bundle, element, parameters);
 
 				if (status.IsProblematic)
 				{
@@ -198,7 +197,7 @@ public class ConfigurationPhase : Phase
 			}
 			else
 			{
-				FileInfo file = new FileInfo(element);
+				var file = new FileInfo(element);
 
 				if (file.Exists)
 				{
@@ -213,7 +212,7 @@ public class ConfigurationPhase : Phase
 					}
 				}
 
-				DirectoryInfo directory = new DirectoryInfo(element);
+				var directory = new DirectoryInfo(element);
 
 				if (directory.Exists)
 				{

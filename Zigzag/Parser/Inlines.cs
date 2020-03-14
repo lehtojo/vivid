@@ -1,14 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-public class Inlines
+public static class Inlines
 {
 	private static void Transfer(FunctionImplementation implementation)
 	{
-		var reference = implementation.References[0] as FunctionNode;
-		
-		var node = reference.FindParent(n => n.GetNodeType() == NodeType.IMPLEMENTATION_NODE) as ImplementationNode;
+		var reference = (FunctionNode)implementation.References[0];
+		var node = (ImplementationNode?)reference.FindParent(n => n.GetNodeType() == NodeType.IMPLEMENTATION_NODE);
+
+		if (node == null)
+		{
+			throw new ApplicationException("Couldn't find the implementation node of a function");
+		}
+
 		var context = node.Implementation;
 
 		// Change inline function parameter into local variables
@@ -19,13 +22,13 @@ public class Inlines
 
 		foreach (var parameter in implementation.Parameters)
 		{
-			var name = $"inline.{implementation.Metadata.GetFullname().Replace('_', '.')}.{parameter.Name}";
+			var name = $"inline.{implementation.Metadata!.GetFullname().Replace('_', '.')}.{parameter.Name}";
 			parameter.Name = name;
 
 			context.Declare(parameter);
 		}
 		
-		var inline = new InlineNode(implementation, reference, implementation.Node);
+		var inline = new InlineNode(implementation, reference, implementation.Node!);
 		reference.Replace(inline);
 	}
 

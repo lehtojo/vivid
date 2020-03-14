@@ -1,5 +1,6 @@
 public class TokenType
 {
+	public const int NONE = 0;
 	public const int CAST = 1;
 	public const int CONTENT = 2;
 	public const int FUNCTION = 4;

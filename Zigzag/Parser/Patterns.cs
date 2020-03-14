@@ -43,11 +43,11 @@ public class Patterns
 			return;
 		}
 
-		int mask = path[position];
+		var mask = path[position];
 
 		if (Flag.Has(mask, TokenType.OPTIONAL))
 		{
-			List<int> variation = new List<int>(missing)
+			var variation = new List<int>(missing)
 			{
 				position
 			};
@@ -57,17 +57,17 @@ public class Patterns
 
 		for (int i = 0; i < TokenType.COUNT; i++)
 		{
-			int type = 1 << i;
+			var type = 1 << i;
 
 			if (Flag.Has(mask, type))
 			{
-				Patterns branch = ForceGetBranch(type);
+				var branch = ForceGetBranch(type);
 				branch.Grow(pattern, path, missing, position + 1);
 			}
 		}
 	}
 
-	public Patterns Navigate(int type)
+	public Patterns? Navigate(int type)
 	{
 		return Branches.GetValueOrDefault(type, null);
 	}

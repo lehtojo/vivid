@@ -1,7 +1,7 @@
 public class ElseNode : Node
 {
 	public Context Context { get; set; }
-	public Node Body => First;
+	public Node? Body => First;
 
 	public ElseNode(Context context, Node body)
 	{

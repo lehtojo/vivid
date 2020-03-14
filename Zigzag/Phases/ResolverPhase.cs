@@ -34,7 +34,7 @@ public class ResolverPhase : Phase
 
 		if (implementation.IsMember)
 		{
-			var type = implementation.GetTypeParent();
+			var type = implementation.GetTypeParent()!;
 			builder.Append($"Member function '{implementation.GetHeader()}' of type '{type.Name}':\n");
 		}
 		else
@@ -42,14 +42,14 @@ public class ResolverPhase : Phase
 			builder.Append($"Global function '{implementation.GetHeader()}':\n");
 		}
 
-		var errors = implementation.Node.FindAll(n => n is IResolvable).Cast<IResolvable>()
-											.Select(r => r.GetStatus()).Where(s => s.IsProblematic).ToList();
+		var errors = implementation.Node?.FindAll(n => n is IResolvable).Cast<IResolvable>()
+			.Select(r => r.GetStatus()).Where(s => s.IsProblematic).ToList() ?? throw new ArgumentException("Tried to take function report from function that wasn't implemented");
 
 		foreach (var variable in implementation.Variables)
 		{
 			if (variable.IsUnresolved)
 			{
-				errors.Add(Status.Error($"Couldn't resolve type of local variable '{variable.Name}' in function '{implementation.Metadata.Name}'"));
+				errors.Add(Status.Error($"Couldn't resolve type of local variable '{variable.Name}' in function '{implementation.Metadata!.Name}'"));
 			}
 		}
 		
@@ -76,7 +76,7 @@ public class ResolverPhase : Phase
 			{
 				if (variable.Context.IsType)
 				{
-					var type = variable.Context as Type;
+					var type = (Type)variable.Context;
 					builder.Append($"ERROR: Couldn't resolve type of member variable '{variable.Name}' of type '{type.Name}'");
 				}
 				else if (variable.Context.IsGlobal)
@@ -85,7 +85,7 @@ public class ResolverPhase : Phase
 				}
 				else
 				{
-					var function = variable.Context.GetFunctionParent();
+					var function = variable.Context.GetFunctionParent() ?? throw new ApplicationException("Coudln't get the function");
 					builder.Append($"ERROR: Couldn't resolve type of local variable '{variable.Name}' of function '{function.GetHeader()}'");
 				}
 			}
@@ -116,14 +116,12 @@ public class ResolverPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		var parse = bundle.Get<Parse>("parse", null);
-
-		if (parse == null)
+		if (!bundle.Contains("parse"))
 		{
 			return Status.Error("Nothing to resolve");
 		}
 
-		//var previous = new List<string>();
+		var parse = bundle.Get<Parse>("parse");
 		var legacy = new List<string>();
 
 		var context = parse.Context;

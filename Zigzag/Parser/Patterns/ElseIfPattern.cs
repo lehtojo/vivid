@@ -1,19 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class ElseIfPattern : Pattern
 {
 	public const int PRIORITY = 1;
 
-	public const int IF = 0;
-	public const int CONDITION = 2;
-	public const int BODY = 4;
+	public const int FORMER = 0;
+	public const int ELSE = 2;
+	public const int IF = 3;
+	public const int CONDITION = 4;
+	public const int BODY = 6;
 
-	// $if [\n] $bool [\n] (...) 
+	// $if [\n] else if $bool [\n] (...) 
 	public ElseIfPattern() : base
 	(
-		TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.DYNAMIC, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.DYNAMIC, 
+		TokenType.END | TokenType.OPTIONAL, 
+		TokenType.KEYWORD,
+		TokenType.KEYWORD,
+		TokenType.DYNAMIC, 
+		TokenType.END | TokenType.OPTIONAL, 
+		TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -23,22 +29,24 @@ public class ElseIfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var previous = tokens[IF] as DynamicToken;
+		var previous = (DynamicToken)tokens[FORMER];
 		
-		if (previous.Node.GetNodeType() != NodeType.IF_NODE)
+		if (previous.Node.GetNodeType() != NodeType.IF_NODE ||
+			((KeywordToken)tokens[ELSE]).Keyword != Keywords.ELSE ||
+			((KeywordToken)tokens[IF]).Keyword != Keywords.IF)
 		{
 			return false;
 		}
 
-		var condition = tokens[CONDITION] as DynamicToken;
+		var condition = (DynamicToken)tokens[CONDITION];
 		return condition.Node is IType type && type.GetType() == Types.BOOL;
 	}
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var former = (tokens[IF] as DynamicToken).Node as IfNode;
-		var condition = tokens[CONDITION] as DynamicToken;
-		var body = tokens[BODY] as ContentToken;
+		var former = (IfNode)((DynamicToken)tokens[FORMER]).Node;
+		var condition = (DynamicToken)tokens[CONDITION];
+		var body = (ContentToken)tokens[BODY];
 
 		var context = new Context();
 		context.Link(environment);
@@ -54,5 +62,3 @@ public class ElseIfPattern : Pattern
 		return 1;
 	}
 }
-
-// #error Tarkista, ettei tokenit korruptoidu ensimmäisen käytön jälkeen

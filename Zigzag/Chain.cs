@@ -26,6 +26,12 @@ public class Chain
 			try
 			{
 				var phase = Activator.CreateInstance(template) as Phase;
+
+				if (phase == null)
+				{
+					throw new ApplicationException("Couldn't create the next phase");
+				}
+
 				phase.Multithread = multithreaded;
 
 				var status = phase.Execute(bundle);

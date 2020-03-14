@@ -36,7 +36,7 @@ public class AssemblerPhase : Phase
 
 		try
 		{
-			Process process = Process.Start(configuration);
+			var process = Process.Start(configuration);
 			process.WaitForExit();
 
 			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR + "\n" + process.StandardError.ReadToEnd());
@@ -99,7 +99,7 @@ public class AssemblerPhase : Phase
 			LINKER_STANDARD_LIBRARY
 		};
 
-		string[] libraries = bundle.Get("libraries", new string[] { });
+		var libraries = bundle.Get("libraries", new string[] { });
 
 		foreach (string library in libraries)
 		{
@@ -111,39 +111,43 @@ public class AssemblerPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		Parse parse = bundle.Get<Parse>("parse", null);
-
-		if (parse == null)
+		if (!bundle.Contains("parse"))
 		{
 			return Status.Error("Nothing to assemble");
 		}
 
-		string output = bundle.Get("output", ConfigurationPhase.DEFAULT_OUTPUT);
-		string source = output + ".asm";
-		string @object = output + ".obj";
+		var parse = bundle.Get<Parse>("parse");
+		var output_assembly = bundle.Get("assembly", false);
 
-		Node node = parse.Node;
-		Context context = parse.Context;
+		var output_file = bundle.Get("output", ConfigurationPhase.DEFAULT_OUTPUT);
+		var source_file = output_file + ".asm";
+		var object_file = output_file + ".obj";
 
-		string assembly = Assembler.Build(context);
+		var context = parse.Context;
+		var assembly = Assembler.Build(context);
 
 		try
 		{
-			File.WriteAllText(source, assembly);
+			File.WriteAllText(source_file, assembly);
 		}
 		catch
 		{
 			return Status.Error("Couldn't move generated assembly into a file");
 		}
 
+		if (output_assembly)
+		{
+			return Status.OK;
+		}
+
 		Status status;
 
-		if ((status = Compile(bundle, source, @object)).IsProblematic)
+		if ((status = Compile(bundle, source_file, object_file)).IsProblematic)
 		{
 			return status;
 		}
 
-		if ((status = Link(bundle, @object, output)).IsProblematic)
+		if ((status = Link(bundle, object_file, output_file)).IsProblematic)
 		{
 			return status;
 		}

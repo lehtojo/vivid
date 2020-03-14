@@ -22,10 +22,10 @@ public class Lexer
 	{
 		public Type Type { get; set; }
 
-		public string Text { get; set; }
+		public string Text { get; set; } = string.Empty;
 
-		public Position Start { get; set; }
-		public Position End { get; set; }
+		public Position Start { get; set; } = new Position();
+		public Position End { get; set; } = new Position();
 	}
 
 	/// <summary>
@@ -277,7 +277,7 @@ public class Lexer
 	/// <param name="text">Current text</param>
 	/// <param name="start">Position from which to start looking for the next token</param>
 	/// <returns>The next token in the text</returns>
-	public static Area GetNextToken(string text, Position start)
+	public static Area? GetNextToken(string text, Position start)
 	{
 		// Firsly the spaces must be skipped to find the next token
 		var position = SkipSpaces(text, start);
