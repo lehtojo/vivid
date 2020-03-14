@@ -22,18 +22,17 @@ public class ConstructorPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var head = tokens[HEAD] as FunctionToken;
+		var head = (FunctionToken)tokens[HEAD];
 		var type = context.GetTypeParent();
 
 		return type != null && head.Name == type.Name;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, List<Token> tokens)
 	{
-		var head = tokens[HEAD] as FunctionToken;
-		var body = tokens[BODY] as ContentToken;
-
-		var type = context as Type;
+		var head = (FunctionToken)tokens[HEAD];
+		var body = (ContentToken)tokens[BODY];
+		var type = (Type)context;
 
 		var constructor = new Constructor(context, AccessModifier.PUBLIC, head.GetParameterNames(), body.GetTokens());
 		type.AddConstructor(constructor);

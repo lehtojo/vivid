@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-public class InlineNode : Node, IType
+﻿public class InlineNode : Node, IType
 {
 	public FunctionImplementation Implementation { get; private set; }
 
@@ -40,7 +36,7 @@ public class InlineNode : Node, IType
 	public string GetEndLabel()
 	{
 		End = true;
-		return $"inline_{Implementation.Metadata.GetFullname()}_end";
+		return $"inline_{Implementation.Metadata!.GetFullname()}_end";
 	}
 
 	public override NodeType GetNodeType()
@@ -48,7 +44,7 @@ public class InlineNode : Node, IType
 		return NodeType.INLINE_NODE;
 	}
 
-	public Type? GetType()
+	public new Type? GetType()
 	{
 		return Implementation.ReturnType;
 	}

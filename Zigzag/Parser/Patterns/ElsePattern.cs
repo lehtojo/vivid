@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class ElsePattern : Pattern
 {
@@ -38,7 +36,7 @@ public class ElsePattern : Pattern
 				former.Node.GetNodeType() == NodeType.ELSE_IF_NODE;
 	}
 
-	public override Node Build(Context environment, List<Token> tokens)
+	public override Node? Build(Context environment, List<Token> tokens)
 	{
 		var former = (IfNode)((DynamicToken)tokens[FORMER]).Node;
 		var body = (ContentToken)tokens[BODY];

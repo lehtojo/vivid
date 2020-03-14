@@ -15,7 +15,7 @@ public class OperatorToken : Token
 		Operator = @operator;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is OperatorToken token &&
 			   base.Equals(obj) &&

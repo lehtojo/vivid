@@ -96,7 +96,7 @@ public class Aligner
 			if (variable.Category == VariableCategory.PARAMETER)
 			{
 				variable.Alignment = position;
-				position += variable.Type.Size;
+				position += variable.Type!.Size;
 			}
 		}
 
@@ -108,7 +108,7 @@ public class Aligner
 			if (variable.Category == VariableCategory.LOCAL)
 			{
 				variable.Alignment = position;
-				position += variable.Type.Size;
+				position += variable.Type!.Size;
 			}
 		}
 	}

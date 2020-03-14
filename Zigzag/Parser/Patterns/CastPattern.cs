@@ -23,7 +23,7 @@ public class CastPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var cast = tokens[CAST] as OperatorToken;
+		var cast = (OperatorToken)tokens[CAST];
 		return cast.Operator == Operators.CAST;
 	}
 

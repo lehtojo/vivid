@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class LoopPattern : Pattern
 {
@@ -32,11 +30,11 @@ public class LoopPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var keyword = tokens[KEYWORD] as KeywordToken;
+		var keyword = (KeywordToken)tokens[KEYWORD];
 		return keyword.Keyword == Keywords.LOOP;
 	}
 
-	private Node GetSteps(Context environment, ContentToken content)
+	private Node? GetSteps(Context environment, ContentToken content)
 	{
 		var steps = new Node();
 
@@ -55,7 +53,7 @@ public class LoopPattern : Pattern
 			case WHILE_LOOP:
 			{
 				// Padding: ([Added], Condition, [Added])
-				steps.Insert(steps.First, new Node());
+				steps.Insert(steps.First!, new Node());
 				steps.Add(new Node());
 				break;
 			}
@@ -63,7 +61,7 @@ public class LoopPattern : Pattern
 			case SHORT_FOR_LOOP:
 			{
 				// Padding: ([Added], Initialization, Action)
-				steps.Insert(steps.First, new Node());
+				steps.Insert(steps.First!, new Node());
 				break;
 			}
 
@@ -84,12 +82,12 @@ public class LoopPattern : Pattern
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var steps = GetSteps(environment, tokens[STEPS] as ContentToken);
+		var steps = GetSteps(environment, (ContentToken)tokens[STEPS]);
 
 		var context = new Context();
 		context.Link(environment);
 
-		var token = tokens[BODY] as ContentToken;
+		var token = (ContentToken)tokens[BODY];
 		var body = Parser.Parse(context, token.GetTokens(), 0, 20);
 
 		return new LoopNode(context, steps, body);

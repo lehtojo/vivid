@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 class AssignPattern : Pattern
 {
@@ -23,13 +21,13 @@ class AssignPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var operation = tokens[OPERATOR] as OperatorToken;
+		var operation = (OperatorToken)tokens[OPERATOR];
 		return operation.Operator == Operators.ASSIGN;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var destination = tokens[DESTINATION] as IdentifierToken;
+		var destination = (IdentifierToken)tokens[DESTINATION];
 
 		if (!context.IsVariableDeclared(destination.Value))
 		{
@@ -47,7 +45,7 @@ class AssignPattern : Pattern
 			return new VariableNode(variable);
 		}
 
-		return new VariableNode(context.GetVariable(destination.Value));
+		return new VariableNode(context.GetVariable(destination.Value)!);
 	}
 
 	public override int GetEnd()

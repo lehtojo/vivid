@@ -1,5 +1,3 @@
-using System;
-
 public class UnresolvedIdentifier : Node, IResolvable
 {
 	private string Value { get; set; }
@@ -9,23 +7,23 @@ public class UnresolvedIdentifier : Node, IResolvable
 		Value = value;
 	}
 
-	public Node GetResolvedNode(Context context)
+	public Node? GetResolvedNode(Context context)
 	{
 		if (context.IsTypeDeclared(Value))
 		{
-			return new TypeNode(context.GetType(Value));
+			return new TypeNode(context.GetType(Value)!);
 		}
 		else if (context.IsVariableDeclared(Value))
 		{
-			return new VariableNode(context.GetVariable(Value));
+			return new VariableNode(context.GetVariable(Value)!);
 		}
 		else
 		{
-			throw new Exception($"Couldn't resolve identifier '{Value}'");
+			return null;
 		}
 	}
 
-	public Node Resolve(Context context)
+	public Node? Resolve(Context context)
 	{
 		return GetResolvedNode(context);
 	}

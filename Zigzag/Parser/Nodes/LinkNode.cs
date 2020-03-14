@@ -1,5 +1,3 @@
-using System;
-
 public class LinkNode : OperatorNode, IResolvable, IType
 {
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
@@ -7,7 +5,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		SetOperands(left, right);
 	}
 
-	private Type GetNodeContext(Node node)
+	private Type? GetNodeContext(Node node)
 	{
 		if (node is IType type)
 		{
@@ -17,7 +15,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		return null;
 	}
 
-	public Node Resolve(Context environment)
+	public Node? Resolve(Context environment)
 	{
 		if (Left is IResolvable a)
 		{
@@ -36,14 +34,14 @@ public class LinkNode : OperatorNode, IResolvable, IType
 
 			if (context == Types.UNKNOWN)
 			{
-				throw new Exception("Couldn't resolve the type of the left hand side");
+				return null;
 			}
 
-			Node resolved;
+			Node? resolved;
 
 			if (Right.GetNodeType() == NodeType.UNRESOLVED_FUNCTION)
 			{
-				var function = Right as UnresolvedFunction;
+				var function = (UnresolvedFunction)Right;
 				resolved = function.Solve(environment, context);
 			}
 			else
@@ -61,7 +59,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		return null;
 	}
 
-	public override Type GetType()
+	public override Type? GetType()
 	{
 		return GetNodeContext(Right);
 	}

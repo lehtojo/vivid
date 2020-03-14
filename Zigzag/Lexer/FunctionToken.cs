@@ -67,7 +67,7 @@ public class FunctionToken : Token
 		return names;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is FunctionToken token &&
 			   base.Equals(obj) &&

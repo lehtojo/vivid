@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-public class IncrementNode : Node
+﻿public class IncrementNode : Node
 {
 	public bool Post { get; private set; }
-	public Node Object => First;
+	public Node Object => First!;
 
 	public IncrementNode(Node destination, bool post = false)
 	{

@@ -22,7 +22,7 @@ public class LinkPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var operation = tokens[OPERATOR] as OperatorToken;
+		var operation = (OperatorToken)tokens[OPERATOR];
 
 		// The operator between left and right token must be dot
 		if (operation.Operator != Operators.DOT)
@@ -30,10 +30,10 @@ public class LinkPattern : Pattern
 			return false;
 		}
 
-		// When left token is a processed, it must be contextable
+		// When left token is dynamic, it must be contextable
 		if (tokens[LEFT].Type == TokenType.DYNAMIC)
 		{
-			var token = tokens[LEFT] as DynamicToken;
+			var token = (DynamicToken)tokens[LEFT];
 			return (token.Node is IType);
 		}
 

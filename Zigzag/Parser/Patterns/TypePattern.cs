@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class TypePattern : Pattern
 {
@@ -22,14 +20,14 @@ public class TypePattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var body = tokens[BODY] as ContentToken;
+		var body = (ContentToken)tokens[BODY];
 		return body.Type != ParenthesisType.BRACKETS;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var name = tokens[NAME] as IdentifierToken;
-		var body = tokens[BODY] as ContentToken;
+		var name = (IdentifierToken)tokens[NAME];
+		var body = (ContentToken)tokens[BODY];
 
 		var type = new Type(context, name.Value, AccessModifier.PUBLIC);
 

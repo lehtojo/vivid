@@ -20,7 +20,7 @@ public class OffsetPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var index = tokens[INDEX] as ContentToken;
+		var index = (ContentToken)tokens[INDEX];
 
 		if (index.Type != ParenthesisType.BRACKETS)
 		{

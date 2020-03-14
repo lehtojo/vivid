@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 class IncrementPattern : Pattern
 {
@@ -29,7 +27,7 @@ class IncrementPattern : Pattern
 			return false;
 		}
 
-		var @operator = tokens[OPERATOR] as OperatorToken;
+		var @operator = (OperatorToken)tokens[OPERATOR];
 		return @operator.Operator == Operators.INCREMENT;
 	}
 

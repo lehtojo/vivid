@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 class ReturnPattern : Pattern
 {
@@ -22,7 +20,7 @@ class ReturnPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var @operator = tokens[RETURN] as OperatorToken;
+		var @operator = (OperatorToken)tokens[RETURN];
 		return @operator.Operator == Operators.RETURN;
 	}
 

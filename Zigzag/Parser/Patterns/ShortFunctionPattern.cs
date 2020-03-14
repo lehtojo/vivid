@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class ShortFunctionPattern : Pattern
 {
@@ -23,13 +21,13 @@ public class ShortFunctionPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var @operator = tokens[OPERATOR] as OperatorToken;
+		var @operator = (OperatorToken)tokens[OPERATOR];
 		return @operator.Operator == Operators.RETURN;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var header = tokens[HEADER] as FunctionToken;
+		var header = (FunctionToken)tokens[HEADER];
 		var value = tokens[VALUE];
 
 		var function = new Function(context, AccessModifier.PUBLIC, header.Name, header.GetParameterNames(), new List<Token>() { tokens[OPERATOR], value });

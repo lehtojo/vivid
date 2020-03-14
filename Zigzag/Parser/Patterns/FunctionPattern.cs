@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 class FunctionPattern : Pattern
 {
@@ -27,8 +25,8 @@ class FunctionPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var header = tokens[HEADER] as FunctionToken;
-		var body = tokens[BODY] as ContentToken;
+		var header = (FunctionToken)tokens[HEADER];
+		var body = (ContentToken)tokens[BODY];
 
 		var function = new Function(context, AccessModifier.PUBLIC, header.Name, header.GetParameterNames(), body.GetTokens());
 		context.Declare(function);

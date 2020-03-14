@@ -43,7 +43,7 @@ public class NumberToken : Token
 		Bits = 32;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is NumberToken token &&
 			   base.Equals(obj) &&

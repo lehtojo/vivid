@@ -107,7 +107,7 @@ public class ContentToken : Token
 		return IsTable ? Sections[section].GetTokens() : Tokens;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is ContentToken token &&
 			   base.Equals(obj) &&

@@ -9,7 +9,7 @@ public class NumberNode : Node, IType
 		Value = value;
 	}
 
-	public Type GetType()
+	public new Type GetType()
 	{
 		return Type;
 	}

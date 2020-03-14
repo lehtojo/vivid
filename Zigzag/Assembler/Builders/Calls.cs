@@ -2,7 +2,7 @@ public static class Calls
 {
     public static Result Build(Unit unit, FunctionNode node)
     {
-        var parameter = node.Parameters;
+        var parameter = (Node?)node.Parameters;
 
         while (parameter != null)
         {
@@ -12,6 +12,6 @@ public static class Calls
             parameter = parameter.Next;
         }
 
-        return new CallInstruction(unit, node.Function.Metadata.GetFullname()).Execute();
+        return new CallInstruction(unit, node.Function.Metadata!.GetFullname()).Execute();
     }
 }

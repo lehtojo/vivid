@@ -9,7 +9,7 @@ public class StringToken : Token
 		Text = text.Substring(1, text.Length - 2);
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is StringToken token &&
 			   base.Equals(obj) &&

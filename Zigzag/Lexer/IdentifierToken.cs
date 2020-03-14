@@ -9,7 +9,7 @@ public class IdentifierToken : Token
 		Value = value;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is IdentifierToken token &&
 			   base.Equals(obj) &&

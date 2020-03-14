@@ -9,7 +9,7 @@ public class ClassicOperator : Operator
 		IsShared = shared;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is ClassicOperator @operator &&
 			   base.Equals(obj) &&

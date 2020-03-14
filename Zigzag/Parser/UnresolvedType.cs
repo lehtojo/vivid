@@ -14,7 +14,7 @@ public class UnresolvedType : Type, IResolvable
 		Resolvable = resolvable;
 	}
 
-	public Node Resolve(Context context)
+	public Node? Resolve(Context context)
 	{
 		var resolved = Resolvable.Resolve(context);
 
@@ -23,7 +23,7 @@ public class UnresolvedType : Type, IResolvable
 			return new TypeNode(type.GetType() ?? throw new ApplicationException("Resolved type didn't contain type"));
 		}
 
-		throw new Exception("Couldn't resolve type");
+		return null;
 	}
 
 	public Status GetStatus()

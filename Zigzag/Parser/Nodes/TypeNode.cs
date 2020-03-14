@@ -19,7 +19,7 @@ public class TypeNode : Node, IType
 		Body.Clear();
 	}
 
-	public Type GetType()
+	public new Type? GetType()
 	{
 		return Type;
 	}

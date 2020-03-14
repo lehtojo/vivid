@@ -10,7 +10,7 @@ public class Token
 		Type = type;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is Token token &&
 			   Type == token.Type;

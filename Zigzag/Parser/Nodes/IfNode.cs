@@ -3,10 +3,10 @@ using System;
 public class IfNode : Node
 {
 	public Context Context { get; set; }
-	public Node Successor { get; private set; }
+	public Node? Successor { get; private set; }
 
-	public Node Condition => First;
-	public Node Body => Last;
+	public Node Condition => First!;
+	public Node Body => Last!;
 
 	public IfNode(Context context, Node condition, Node body)
 	{
@@ -21,7 +21,7 @@ public class IfNode : Node
 		if (Successor == null)
 		{
 			Successor = successor;
-			Insert(Last, Successor);
+			Insert(Last!, Successor);
 		}
 		else if (Successor is IfNode node)
 		{

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class UnresolvedFunction : Node, IResolvable
 {
 	public string Name { get; private set; }
-	public Node Parameters => First;
+	public Node? Parameters => First;
 
 
 	/// <summary>
@@ -30,7 +30,7 @@ public class UnresolvedFunction : Node, IResolvable
 		return this;
 	}
 
-	public Node Solve(Context environment, Context context)
+	public Node? Solve(Context environment, Context context)
 	{
 		if (Parameters != null)
 		{
@@ -38,7 +38,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 			while (parameter != null)
 			{
-				var resolved = Resolver.Resolve(environment, parameter, new List<string>());
+				var resolved = Resolver.ResolveAll(environment, parameter!, new List<string>());
 
 				if (resolved != null)
 				{
@@ -58,7 +58,7 @@ public class UnresolvedFunction : Node, IResolvable
 		// Parameter types must be known
 		if (types == null)
 		{
-			throw new Exception($"Couldn't resolve function parameters '{Name}'");
+			return null;
 		}
 
 		// Try to find a suitable function by name and parameter types
@@ -66,7 +66,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 		if (function == null)
 		{
-			throw new Exception($"Couldn't resolve function or constructor '{Name}'");
+			return null;
 		}
 
 		var node = new FunctionNode(function).SetParameters(this);
@@ -79,7 +79,7 @@ public class UnresolvedFunction : Node, IResolvable
 		return node;
 	}
 
-	public Node Resolve(Context context)
+	public Node? Resolve(Context context)
 	{
 		return Solve(context, context);
 	}

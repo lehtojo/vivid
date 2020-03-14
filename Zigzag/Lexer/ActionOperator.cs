@@ -10,7 +10,7 @@ public class ActionOperator : Operator
 		Operator = @operator;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is ActionOperator @operator &&
 			   base.Equals(obj) &&

@@ -4,8 +4,8 @@ public class OperatorNode : Node, IType
 {
 	public Operator Operator { get; private set; }
 
-	public Node Left => First;
-	public Node Right => Last;
+	public Node Left => First!;
+	public Node Right => Last!;
 
 	public OperatorNode(Operator @operator)
 	{
@@ -74,7 +74,7 @@ public class OperatorNode : Node, IType
 		return Types.UNKNOWN;
 	}
 
-	public virtual Type? GetType()
+	public virtual new Type? GetType()
 	{
 		switch (Operator.Type)
 		{

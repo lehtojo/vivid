@@ -8,7 +8,7 @@ public class VariableNode : Node, IType
 		Variable.References.Add(this);
 	}
 
-	public Type GetType()
+	public new Type? GetType()
 	{
 		return Variable.Type;
 	}

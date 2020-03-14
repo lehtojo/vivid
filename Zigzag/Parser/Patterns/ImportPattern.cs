@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 public class ImportPattern : Pattern
 {
@@ -23,7 +22,7 @@ public class ImportPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var keyword = tokens[IMPORT] as KeywordToken;
+		var keyword = (KeywordToken)tokens[IMPORT];
 
 		if (keyword.Keyword != Keywords.IMPORT)
 		{
@@ -33,7 +32,7 @@ public class ImportPattern : Pattern
 		return false;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, List<Token> tokens)
 	{
 		return null;
 	}

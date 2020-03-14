@@ -7,8 +7,8 @@ public class FunctionNode : Node, IType
 
 	public bool IsDefinition { get; private set; } = false;
 
-	public Node Parameters => First;
-	public Node Body => Last;
+	public Node Parameters => First!;
+	public Node Body => Last!;
 
 	public FunctionNode(FunctionImplementation function)
 	{
@@ -31,7 +31,7 @@ public class FunctionNode : Node, IType
 		return this;
 	}
 
-	public Type GetType()
+	public new Type? GetType()
 	{
 		return Function.ReturnType;
 	}

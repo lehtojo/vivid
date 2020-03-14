@@ -15,7 +15,7 @@ public class KeywordToken : Token
 		Keyword = keyword;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is KeywordToken token &&
 			   base.Equals(obj) &&

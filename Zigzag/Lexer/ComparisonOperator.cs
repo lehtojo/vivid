@@ -13,7 +13,7 @@ public class ComparisonOperator : Operator
 		return this;
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		if (obj is ComparisonOperator @operator)
 		{

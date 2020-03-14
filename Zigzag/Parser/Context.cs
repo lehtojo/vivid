@@ -63,8 +63,9 @@ public class Context
 
 				if (resolvable != null)
 				{
-					var type = (TypeNode)resolvable.Resolve(this);
-					variable.Type = type.Type;
+					// Try to solve the type
+					var type = (TypeNode?)resolvable.Resolve(this);
+					variable.Type = type?.Type;
 				}
 			}
 		}

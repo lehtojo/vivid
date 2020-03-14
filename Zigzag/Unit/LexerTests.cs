@@ -208,7 +208,7 @@ namespace Zigzag.Unit
 			{
 				Lexer.GetTokens("a ; b");
 			}
-			catch (Exception e)
+			catch
 			{
 				Assert.Pass();
 			}

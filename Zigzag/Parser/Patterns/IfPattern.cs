@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class IfPattern : Pattern
 {
@@ -23,21 +21,21 @@ public class IfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var keyword = tokens[KEYWORD] as KeywordToken;
+		var keyword = (KeywordToken)tokens[KEYWORD];
 
 		if (keyword.Keyword != Keywords.IF)
 		{
 			return false;
 		}
 
-		var body = tokens[BODY] as ContentToken;
+		var body = (ContentToken)tokens[BODY];
 		return body.Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var condition = tokens[CONDITION] as DynamicToken;
-		var body = tokens[BODY] as ContentToken;
+		var condition = (DynamicToken)tokens[CONDITION];
+		var body = (ContentToken)tokens[BODY];
 
 		var context = new Context();
 		context.Link(environment);
