@@ -13,7 +13,7 @@ public static class Assembler
         {
             if (implementation.Node != null)
             {
-                var unit = new Unit();
+                var unit = new Unit(function);
                 
                 Builders.Build(unit, implementation.Node);
                 Oracle.Channel(unit);

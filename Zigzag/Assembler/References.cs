@@ -17,7 +17,7 @@ public static class References
             case VariableCategory.PARAMETER:
             {
                 var handle = new StackMemoryHandle(variable.Alignment);
-                unit.AddHandle(handle);
+                //unit.AddHandle(handle);
 
                 return handle;
             }
@@ -25,7 +25,7 @@ public static class References
             case VariableCategory.LOCAL:
             {
                 var handle = new StackMemoryHandle(-variable.Alignment);
-                unit.AddHandle(handle);
+                //unit.AddHandle(handle);
 
                 return handle;
             }
@@ -37,23 +37,23 @@ public static class References
         }
     }
 
-    public static Quantum<Handle> GetVariable(Unit unit, VariableNode node)
+    public static Result GetVariable(Unit unit, VariableNode node)
     {
-        var handle = new GetVariableInstruction(node.Variable).Execute(unit);
-        handle.Value.Metadata = node.Variable;
+        var handle = new GetVariableInstruction(unit, node.Variable).Execute();
+        handle.Metadata = node.Variable;
 
         return handle;
     }
 
-    public static Quantum<Handle> GetConstant(Unit unit, NumberNode node)
+    public static Result GetConstant(Unit unit, NumberNode node)
     {
-        var handle = new GetConstantInstruction(node.Value).Execute(unit);
-        handle.Value.Metadata = node.Value;
+        var handle = new GetConstantInstruction(unit, node.Value).Execute();
+        handle.Metadata = node.Value;
 
         return handle;
     }
 
-    public static Quantum<Handle> Get(Unit unit, Node node)
+    public static Result Get(Unit unit, Node node)
     {
         switch (node.GetNodeType())
         {

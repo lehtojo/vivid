@@ -1,18 +1,18 @@
 public class PassParameterInstruction : Instruction
 {
-    public Quantum<Handle> Value { get; private set; }
+    public Result Value { get; private set; }
     
-    public PassParameterInstruction(Quantum<Handle> value)
+    public PassParameterInstruction(Unit unit, Result value) : base(unit)
     {
         Value = value;
     }
 
-    public override void Weld(Unit unit) {}
+    public override void Weld() {}
 
-    public override void Build(Unit unit)
+    public override void Build()
     {
         Build(
-            unit, "push",
+            "push",
             new InstructionParameter(
                 Value,
                 false,
@@ -23,13 +23,18 @@ public class PassParameterInstruction : Instruction
         );
     }
 
+    public override void RedirectTo(Handle handle)
+    {
+        Result.Set(handle, true);
+    }
+
     public override InstructionType GetInstructionType()
     {
         return InstructionType.PASS_PARAMETER;
     }
 
-    public override Handle[] GetHandles()
+    public override Result[] GetHandles()
     {
-        return new Handle[] { Result.Value, Value.Value };
+        return new Result[] { Result, Value };
     }
 }

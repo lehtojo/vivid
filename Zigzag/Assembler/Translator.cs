@@ -4,7 +4,7 @@ public static class Translator
     {
         unit.Simulate(instruction => 
         {
-            instruction.Build(unit);
+            instruction.Build();
         });
 
         return unit.Export();

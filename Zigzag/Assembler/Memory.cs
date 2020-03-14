@@ -1,35 +1,33 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 public static class Memory
 {
-    private static Quantum<Handle> ToRegister(Unit unit, Quantum<Handle> handle)
+    private static Result ToRegister(Unit unit, Result handle)
     {
         var register = unit.GetNextRegister();
-        var destination = new Quantum<Handle>(new RegisterHandle(register));
+        var destination = new Result(new RegisterHandle(register));
         
-        unit.Build(new MoveInstruction(destination, handle));
+        unit.Build(new MoveInstruction(unit, destination, handle));
 
         return destination;
     }
 
-    private static Quantum<Handle> Duplicate(Unit unit, RegisterHandle handle)
+    private static Result Duplicate(Unit unit, Result source)
     {
         var register = unit.GetNextRegister();
-        var destination = new Quantum<Handle>(new RegisterHandle(register));
+        var destination = new Result(new RegisterHandle(register));
 
-        unit.Build(new MoveInstruction(destination, new Quantum<Handle>(handle)));
+        unit.Build(new MoveInstruction(unit, destination, new Result(source.Value)));
 
         return destination;
     }
 
-    public static void GetRegisterFor(Unit unit, Quantum<Handle> value)
+    public static void GetRegisterFor(Unit unit, Result value)
     {
         var register = unit.GetNextRegister();
         var handle = new RegisterHandle(register);
 
-        if (register.Value != null)
+        if (!register.IsAvailable(unit))
         {
             throw new NotImplementedException("Register values cannot be yet saved");
         }
@@ -38,24 +36,24 @@ public static class Memory
         value.Set(handle);
     }
 
-    public static Quantum<Handle> Convert(Unit unit, Quantum<Handle> handle, HandleType type, bool writable)
+    public static Result Convert(Unit unit, Result handle, HandleType type, bool writable)
     {
         switch (type)
         {
             case HandleType.REGISTER:
             {
                 var register = unit.TryGetCached(handle);
-                var dying = handle.Value.IsDying(unit);
+                var dying = handle.IsDying(unit);
 
                 if (register != null)
                 {
                     if (writable && !dying)
                     {
-                        return Duplicate(unit, register);
+                        return Duplicate(unit, new Result(register));
                     }
                     else
                     {
-                        return new Quantum<Handle>(register);
+                        return new Result(register);
                     }
                 }
 
@@ -63,7 +61,7 @@ public static class Memory
 
                 if (writable && !dying)
                 {
-                    return Duplicate(unit, (RegisterHandle)destination.Value);
+                    return Duplicate(unit, destination);
                 }
 
                 return destination;

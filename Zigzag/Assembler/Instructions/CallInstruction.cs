@@ -2,19 +2,24 @@ public class CallInstruction : Instruction
 {
     public string Function { get; private set; }
 
-    public CallInstruction(string function)
+    public CallInstruction(Unit unit, string function) : base(unit)
     {
         Function = function;
     }
 
-    public override void Weld(Unit unit)
+    public override void Weld()
     {
-        Result.Set(new RegisterHandle(unit.GetStandardReturnRegister()));
+        Result.Set(new RegisterHandle(Unit.GetStandardReturnRegister()));
     }
 
-    public override void Build(Unit unit)
+    public override void Build()
     {
-        unit.Append($"call {Function}");
+        Unit.Append($"call {Function}");
+    }
+
+    public override void RedirectTo(Handle handle)
+    {
+        Result.Set(handle, true);
     }
 
     public override InstructionType GetInstructionType()
@@ -22,8 +27,8 @@ public class CallInstruction : Instruction
         return InstructionType.CALL;
     }
 
-    public override Handle[] GetHandles()
+    public override Result[] GetHandles()
     {
-        return new Handle[] { Result.Value };
+        return new Result[] { Result };
     }
 }

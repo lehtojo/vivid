@@ -11,8 +11,8 @@ public enum HandleType
 public class Handle
 {
     public HandleType Type { get; private set; }
-    public object Metadata { get; set; } = new object();
-    public Lifetime Lifetime { get; private set; } = new Lifetime();
+    //public object Metadata { get; set; } = new object();
+    //public Lifetime Lifetime { get; private set; } = new Lifetime();
 
     public Handle()
     {
@@ -24,7 +24,7 @@ public class Handle
         Type = type;
     }
 
-    public bool IsDying(Unit unit)
+    /*public bool IsDying(Unit unit)
     {
         return !Lifetime.IsActive(unit.Position + 1);
     }
@@ -45,7 +45,7 @@ public class Handle
         {
             Lifetime.Start = position;
         }
-    }
+    }*/
 
     public override string ToString()
     {

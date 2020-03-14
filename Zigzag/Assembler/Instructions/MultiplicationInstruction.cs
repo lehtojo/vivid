@@ -1,16 +1,16 @@
 public class MultiplicationInstruction : DualParameterInstruction
 {
-    public MultiplicationInstruction(Quantum<Handle> first, Quantum<Handle> second) : base(first, second) 
+    public MultiplicationInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+
+    public override void Weld() 
     {
-        Result = first;
+        //Result.SetParent(First);
     }
 
-    public override void Weld(Unit unit) {}
-
-    public override void Build(Unit unit)
+    public override void Build()
     {
         Build(
-            unit, "imul",
+            "imul",
             new InstructionParameter(
                 First,
                 true,
@@ -24,6 +24,11 @@ public class MultiplicationInstruction : DualParameterInstruction
                 HandleType.STACK_MEMORY_HANDLE
             )
         );
+    }
+
+    public override void RedirectTo(Handle handle)
+    {
+        First.Set(handle, true);
     }
 
     public override InstructionType GetInstructionType()

@@ -7,9 +7,10 @@ public static class Oracle
         unit.Simulate(i => 
         {
             if (i is AssignInstruction assign && 
-                assign.First.Value.Metadata is Variable variable)
+                assign.First.Metadata is Variable variable)
             {
                 unit.Cache(variable, assign.Result, true);
+                assign.Second.Metadata = variable;
             }
         });
     }
@@ -24,7 +25,9 @@ public static class Oracle
 
                 if (handles.Count > 0)
                 {
-                    handles[0].Entangle(load.Result);
+                    load.Connect(handles[0]);
+                    //load.Result.EntangleTo(handles[0]);
+                    //handles[0].Entangle(load.Result);
                 }
                 else
                 {
@@ -45,7 +48,8 @@ public static class Oracle
 
                 if (handles.Count > 0)
                 {
-                    handles[0].Entangle(load.Result);
+                    load.Connect(handles[0]);
+                    //handles[0].Entangle(load.Result);
                 }
                 else
                 {
@@ -71,15 +75,16 @@ public static class Oracle
     {
         unit.Simulate(instruction =>
         {
-            instruction.Weld(unit);
+            instruction.Weld();
         });
 
         unit.Simulate(i =>
         {
             if (i is ReturnInstruction instruction)
             {
-                instruction.Object.Set(new RegisterHandle(unit.GetStandardReturnRegister()));
-                unit.GetStandardReturnRegister().Value = instruction.Object;
+                //instruction.Object.Set(new RegisterHandle(unit.GetStandardReturnRegister()));
+                //unit.GetStandardReturnRegister().Value = instruction.Object;
+                instruction.RedirectTo(new RegisterHandle(unit.GetStandardReturnRegister()));
             }
         });
     }

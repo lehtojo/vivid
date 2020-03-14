@@ -10,11 +10,12 @@ public static class RegisterFlag
 public class Register
 {
     public String Name { get; private set; }
-    public Quantum<Handle>? Value { get; set; } = null;
+    public Result? Value { get; set; } = null;
 
     public int Flags { get; private set; }
     public bool Volatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
     public bool Specialized => Flag.Has(Flags, RegisterFlag.SPECIALIZED);
+    public bool Releasable => Value == null || Value.Relesable;
 
     public Register(string name, params int[] flags) 
     {
@@ -24,7 +25,7 @@ public class Register
 
     public bool IsAvailable(Unit unit)
     {
-        return Value == null || !Value.Value.IsAlive(unit.Position);
+        return Value == null || Value.IsDying(unit);
     }
 
     public override string ToString()

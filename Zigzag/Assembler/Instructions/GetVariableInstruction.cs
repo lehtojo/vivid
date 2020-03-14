@@ -3,15 +3,15 @@ public class GetVariableInstruction : LoadInstruction
 {
     public Variable Variable { get; private set; }
 
+    public GetVariableInstruction(Unit unit, Variable variable) : base(unit)
+    {
+        Variable = variable;
+    }
+    
     public override InstructionType GetInstructionType()
     {
         return InstructionType.GET_VARIABLE;
     }
 
-    public GetVariableInstruction(Variable variable)
-    {
-        Variable = variable;
-    }
-    
-    public override void Weld(Unit unit) {}
+    public override void Weld() {}
 }

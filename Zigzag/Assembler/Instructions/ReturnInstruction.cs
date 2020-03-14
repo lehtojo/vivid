@@ -1,22 +1,28 @@
 public class ReturnInstruction : Instruction
 {
-    public Quantum<Handle> Object { get; private set; }
+    public Result Object { get; private set; }
 
-    public ReturnInstruction(Quantum<Handle> value)
+    public ReturnInstruction(Unit unit, Result value) : base(unit)
     {
         Object = value;
     }
 
-    public override void Weld(Unit unit) 
+    public override void Weld() 
     {
-        Result.Set(new RegisterHandle(unit.GetStandardReturnRegister()));
+        Result.Set(new RegisterHandle(Unit.GetStandardReturnRegister()), true);
     }
 
-    public override void Build(Unit unit)
+    public override void RedirectTo(Handle handle)
+    {
+        Object.Set(handle, true);
+        //Result.Set(handle, true);
+    }
+
+    public override void Build()
     {
         if (!(Object.Value is RegisterHandle handle && Flag.Has(handle.Register.Flags, RegisterFlag.RETURN)))
         {
-            unit.Build(new MoveInstruction(Result, Object));
+            Unit.Build(new MoveInstruction(Unit, Result, Object));
         }
     }
 
@@ -25,8 +31,8 @@ public class ReturnInstruction : Instruction
         return InstructionType.RETURN;
     }
 
-    public override Handle[] GetHandles()
+    public override Result[] GetHandles()
     {
-        return new Handle[] { Result.Value, Object.Value };
+        return new Result[] { Result, Object };
     }
 }

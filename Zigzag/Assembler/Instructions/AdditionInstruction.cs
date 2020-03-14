@@ -2,27 +2,27 @@ using System.Text;
 
 public class AdditionInstruction : DualParameterInstruction
 {
-    public AdditionInstruction(Quantum<Handle> first, Quantum<Handle> second) : base(first, second) {}
+    public AdditionInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
     public override InstructionType GetInstructionType()
     {
         return InstructionType.ADDITION;
     }
 
-    public override void Weld(Unit unit)
+    public override void Weld()
     {
-        if (First.Value.IsDying(unit))
+        if (First.IsDying(Unit))
         {
-            Result.SetParent(First);
+            //Result.SetParent(First);
         }
     }
 
-    public override void Build(Unit unit)
+    public override void Build()
     {
-        if (First.Value.IsDying(unit))
+        if (First.IsDying(Unit))
         {
             Build(
-                unit, "add",
+                "add",
                 new InstructionParameter(
                     First,
                     true,
@@ -42,8 +42,8 @@ public class AdditionInstruction : DualParameterInstruction
             var result = new StringBuilder();
 
             // Form the calculation parameter
-            var calculation = Mold(
-                unit, result, "[{0}+{1}]",
+            var calculation = Format(
+                result, "[{0}+{1}]",
                 new InstructionParameter(
                     First,
                     false,
@@ -61,10 +61,22 @@ public class AdditionInstruction : DualParameterInstruction
             if (Result.Value.Type != HandleType.REGISTER)
             {
                 // Get a new register for the result
-                Memory.GetRegisterFor(unit, Result);
+                Memory.GetRegisterFor(Unit, Result);
             }
 
-            unit.Append($"lea {Result}, {calculation}");
+            Unit.Append($"lea {Result}, {calculation}");
+        }
+    }
+
+    public override void RedirectTo(Handle handle)
+    {
+        if (First.IsDying(Unit))
+        {
+            First.Set(handle, true);
+        }
+        else
+        {
+            Result.Set(handle, true);
         }
     }
 }

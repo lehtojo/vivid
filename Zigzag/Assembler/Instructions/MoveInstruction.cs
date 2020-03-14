@@ -1,18 +1,18 @@
 public class MoveInstruction : DualParameterInstruction
 {
-    public MoveInstruction(Quantum<Handle> first, Quantum<Handle> second) : base(first, second) 
+    public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+
+    public override void Weld() 
     {
-        Result = first;
+        //Result.SetParent(First);
     }
 
-    public override void Weld(Unit unit) {}
-
-    public override void Build(Unit unit)
+    public override void Build()
     {
         if (First.Value.Type == HandleType.STACK_MEMORY_HANDLE)
         {
             Build(
-                unit, "mov",
+                "mov",
                 new InstructionParameter(
                     First,
                     true,
@@ -30,7 +30,7 @@ public class MoveInstruction : DualParameterInstruction
         else
         {
             Build(
-                unit, "mov",
+                "mov",
                 new InstructionParameter(
                     First,
                     true,
@@ -51,6 +51,11 @@ public class MoveInstruction : DualParameterInstruction
         {
             handle.Register.Value = Second;
         }
+    }
+
+    public override void RedirectTo(Handle handle)
+    {
+        First.Set(handle, true);
     }
 
     public override InstructionType GetInstructionType()

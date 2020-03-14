@@ -1,13 +1,20 @@
 public class AssignInstruction : DualParameterInstruction
 {
-    public AssignInstruction(Quantum<Handle> first, Quantum<Handle> second) : base(first, second) 
+    public AssignInstruction(Unit unit, Result first, Result second) : base(unit, first, second) 
     {
-        Result = second;
+        Result.EntangleTo(Second);
     }
 
-    public override void Weld(Unit unit) {}
+    public override void Weld() 
+    {
+    }
 
-    public override void Build(Unit unit) {}
+    public override void Build() {}
+
+    public override void RedirectTo(Handle handle)
+    {
+        Result.Set(handle, true);
+    }
 
     public override InstructionType GetInstructionType()
     {

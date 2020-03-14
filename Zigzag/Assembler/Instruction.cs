@@ -5,14 +5,14 @@ using System;
 
 public struct InstructionParameter
 {
-    public Quantum<Handle> Handle { get; private set; }
+    public Result Handle { get; private set; }
     public HandleType[] Types { get; private set; }
 
     public HandleType PrefferedType => Types[0];
     public bool IsDestination { get; private set; }
     public bool IsValid => Types.Contains(Handle.Value.Type);
 
-    public InstructionParameter(Quantum<Handle> handle, bool destination, params HandleType[] types)
+    public InstructionParameter(Result handle, bool destination, params HandleType[] types)
     {
         if (types == null || types.Length == 0)
         {
@@ -46,20 +46,27 @@ public struct InstructionParameter
 
 public abstract class Instruction
 {
-    public Quantum<Handle> Result { get; set; } = new Quantum<Handle>();
+    public Unit Unit { get; private set; }
+    public Result Result { get; private set; }
     public InstructionType Type => GetInstructionType();
 
-    public Quantum<Handle> Execute(Unit unit)
+    public Instruction(Unit unit)
     {
-        unit.Append(this);
+        Unit = unit;
+        Result = new Result(this);
+    }
+
+    public Result Execute()
+    {
+        Unit.Append(this);
         return Result;
     }
 
-    private Quantum<Handle> Convert(Unit unit, InstructionParameter parameter)
+    private Result Convert(InstructionParameter parameter)
     {
         if (!parameter.IsValid)
         {
-            return Memory.Convert(unit, parameter.Handle, parameter.PrefferedType, parameter.IsDestination);
+            return Memory.Convert(Unit, parameter.Handle, parameter.PrefferedType, parameter.IsDestination);
         }
         else
         {
@@ -67,11 +74,11 @@ public abstract class Instruction
 
             if (prefferable.Contains(HandleType.REGISTER))
             {
-                var cached = unit.TryGetCached(parameter.Handle);
+                var cached = Unit.TryGetCached(parameter.Handle);
 
                 if (cached != null)
                 {
-                    return new Quantum<Handle>(cached);
+                    return new Result(this, cached);
                 }
             }
 
@@ -79,17 +86,23 @@ public abstract class Instruction
         }
     }
 
-    public string Mold(Unit unit, StringBuilder builder, string format, params InstructionParameter[] parameters)
+    public string Format(StringBuilder builder, string format, params InstructionParameter[] parameters)
     {
         var handles = new List<Handle>();
 
         foreach (var parameter in parameters)
         {
-            var handle = Convert(unit, parameter);
+            var handle = Convert(parameter);
 
             if (parameter.IsDestination)
             {
                 Result.Set(handle.Value);
+
+                // Attach result of this operation must be attached to the destination register
+                if (handle.Value is RegisterHandle destination)
+                {
+                    destination.Register.Value = Result;
+                }
             }
 
             handles.Add(handle.Value);
@@ -98,17 +111,23 @@ public abstract class Instruction
         return string.Format(format, handles.ToArray());
     }
 
-    public void Build(Unit unit, string operation, params InstructionParameter[] parameters)
+    public void Build(string operation, params InstructionParameter[] parameters)
     {
-        var handles = new List<Quantum<Handle>>();
+        var handles = new List<Result>();
 
         foreach (var parameter in parameters)
         {
-            var handle = Convert(unit, parameter);
+            var handle = Convert(parameter);
 
             if (parameter.IsDestination)
             {
                 Result.Set(handle.Value);
+
+                // Attach result of this operation must be attached to the destination register
+                if (handle.Value is RegisterHandle destination)
+                {
+                    destination.Register.Value = Result;
+                }
             }
 
             handles.Add(handle);
@@ -121,12 +140,13 @@ public abstract class Instruction
             result.Append($" {handle.Value},");
         }
 
-        unit.Append(result.Remove(result.Length - 1, 1).ToString());
+        Unit.Append(result.Remove(result.Length - 1, 1).ToString());
     }
 
-    public abstract void Weld(Unit unit);
-    public abstract void Build(Unit unit);
+    public abstract void Weld();
+    public abstract void RedirectTo(Handle handle);
+    public abstract void Build();
 
     public abstract InstructionType GetInstructionType();
-    public abstract Handle[] GetHandles();
+    public abstract Result[] GetHandles();
 }

@@ -1,16 +1,16 @@
 public class SubtractionInstruction : DualParameterInstruction
 {
-    public SubtractionInstruction(Quantum<Handle> first, Quantum<Handle> second) : base(first, second) 
-    {
-        Result = first;
-    }
+    public SubtractionInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Weld(Unit unit) {}
+    public override void Weld() 
+    {
+        //Result.SetParent(First);
+    }
     
-    public override void Build(Unit unit)
+    public override void Build()
     {
         Build(
-            unit, "sub", 
+            "sub", 
             new InstructionParameter(
                 First,
                 true,
@@ -24,6 +24,11 @@ public class SubtractionInstruction : DualParameterInstruction
                 HandleType.STACK_MEMORY_HANDLE
             )
         );
+    }
+
+    public override void RedirectTo(Handle handle)
+    {
+        First.Set(handle, true);
     }
 
     public override InstructionType GetInstructionType()

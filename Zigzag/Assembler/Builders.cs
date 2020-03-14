@@ -2,7 +2,7 @@ using System;
 
 public static class Builders
 {
-    public static Quantum<Handle> Build(Unit unit, Node node)
+    public static Result Build(Unit unit, Node node)
     {
         switch (node.GetNodeType())
         {
@@ -16,6 +16,11 @@ public static class Builders
                 return ArithmeticOperators.Build(unit, (OperatorNode)node);
             }
 
+            case NodeType.IF_NODE:
+            {
+                return Conditionals.Start(unit, (IfNode)node);
+            }
+
             case NodeType.RETURN_NODE:
             {
                 return Returns.Build(unit, (ReturnNode)node);
@@ -25,7 +30,7 @@ public static class Builders
             {
                 var iterator = node.First;
 
-                Quantum<Handle>? reference = null;
+                Result? reference = null;
 
                 while (iterator != null)
                 {

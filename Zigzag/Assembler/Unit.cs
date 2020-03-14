@@ -17,8 +17,9 @@ public class Lifetime
 
 public class Unit
 {
-    private Dictionary<Variable, List<Quantum<Handle>>> Variables = new Dictionary<Variable, List<Quantum<Handle>>>();
-    private Dictionary<object, List<Quantum<Handle>>> Constants = new Dictionary<object, List<Quantum<Handle>>>();
+    private Function Function { get; set; }
+    private Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
+    private Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
     private List<Register> Registers { get; set; } = new List<Register>();
     private List<Register> NonVolatileRegisters { get; set; } = new List<Register>();
     private List<Register> VolatileRegisters { get; set; } = new List<Register>();
@@ -26,10 +27,13 @@ public class Unit
     private StringBuilder Builder { get; set; } = new StringBuilder();
     private List<Handle> Handles { get; set; }  = new List<Handle>();
 
+    private int LabelIndex { get; set; } = 0;
+
     public int Position { get; private set; } = 0;
 
-    public Unit()
+    public Unit(Function function)
     {
+        Function = function;
         Registers = new List<Register>()
         {
             new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
@@ -67,7 +71,7 @@ public class Unit
 
     public void Build(Instruction instruction)
     {
-        instruction.Build(this);
+        instruction.Build();
     }
     
     public void AddHandle(Handle handle)
@@ -75,7 +79,7 @@ public class Unit
         Handles.Add(handle);
     }
 
-    public RegisterHandle? TryGetCached(Quantum<Handle> handle)
+    public RegisterHandle? TryGetCached(Result handle)
     {
         var register = Registers.Find(r => (r.Value != null) ? r.Value.Value == handle.Value : false);
         
@@ -85,6 +89,30 @@ public class Unit
         }
 
         return null;
+    }
+
+    public Label GetNextLabel()
+    {
+        return new Label(Function.GetFullname() + $"_L{LabelIndex++}");
+    }
+
+    private void Release(Register register)
+    {
+        var value = register.Value;
+
+        if (value == null)
+        {
+            throw new ArgumentException("Release called with an empty register");
+        }
+
+        if (value.Metadata is Variable variable)
+        {
+            var destination = new Result(References.CreateVariableHandle(this, variable));
+            Build(new MoveInstruction(this, destination, value));
+
+            value.Set(destination.Value);
+            register.Value = null;
+        }
     }
 
     public Register GetNextRegister()
@@ -103,6 +131,13 @@ public class Unit
             return register;
         }
 
+        register = Registers.Find(r => r.Releasable && !Flag.Has(r.Flags, RegisterFlag.RETURN));
+
+        if (register != null)
+        {
+            Release(register);
+            return register;
+        }
         throw new NotImplementedException("Couldn't find available register");
     }
 
@@ -124,13 +159,14 @@ public class Unit
         Registers.ForEach(r => r.Value = null);
     }
 
-    public void Cache(Variable variable, Quantum<Handle> handle, bool invalidate)
+    public void Cache(Variable variable, Result result, bool invalidate)
     {
         var handles = GetVariableHandles(variable);
-        var position = handles.FindIndex(0, handles.Count, h => h.Value.Lifetime.Start >= Position);
+        var position = handles.FindIndex(0, handles.Count, h => h.Lifetime.Start >= Position);
 
-        var value = handle.Value;
-        value.Lifetime.Start = Position;
+        //var value = result.Value;
+        //value.Lifetime.Start = Position;
+        result.Lifetime.Start = Position;
 
         if (position == -1)
         {
@@ -139,10 +175,10 @@ public class Unit
 
             if (index != -1)
             {
-                handles[index].Value.Lifetime.End = Position;
+                handles[index].Lifetime.End = Position;
             }
 
-            handles.Add(handle);
+            handles.Add(result);
         }
         else
         {
@@ -151,25 +187,25 @@ public class Unit
 
             if (index != -1)
             {
-                handles[index].Value.Lifetime.End = Position;
+                handles[index].Lifetime.End = Position;
             }
 
-            value.Lifetime.End = handles[position].Value.Lifetime.Start;
-            handles.Insert(position, handle);
+            result.Lifetime.End = handles[position].Lifetime.Start;
+            handles.Insert(position, result);
         }
     }
 
-    public void Cache(object constant, Quantum<Handle> value)
+    public void Cache(object constant, Result value)
     {
         var handles = GetConstantHandles(constant);
-        value.Value.Lifetime.Start = Position;
+        value.Lifetime.Start = Position;
 
         handles.Add(value);
     }
 
-    public List<Quantum<Handle>> GetVariableHandles(Variable variable)
+    public List<Result> GetVariableHandles(Variable variable)
     {
-        if (Variables.TryGetValue(variable, out List<Quantum<Handle>>? elements))
+        if (Variables.TryGetValue(variable, out List<Result>? elements))
         {
             if (elements == null)
             {
@@ -180,16 +216,16 @@ public class Unit
         }
         else
         {
-            var handles = new List<Quantum<Handle>>();
+            var handles = new List<Result>();
             Variables.Add(variable, handles);
 
             return handles;
         }
     }
 
-    public List<Quantum<Handle>> GetConstantHandles(object constant)
+    public List<Result> GetConstantHandles(object constant)
     {
-        if (Constants.TryGetValue(constant, out List<Quantum<Handle>>? elements))
+        if (Constants.TryGetValue(constant, out List<Result>? elements))
         {
             if (elements == null)
             {
@@ -200,24 +236,24 @@ public class Unit
         }
         else
         {
-            var handles = new List<Quantum<Handle>>();
+            var handles = new List<Result>();
             Constants.Add(constant, handles);
 
             return handles;
         }
     }
 
-    public List<Quantum<Handle>> GetValidVariableHandles(Variable variable)
+    public List<Result> GetValidVariableHandles(Variable variable)
     {
-        var handles = GetVariableHandles(variable).FindAll(h => h.Value.IsAlive(Position));
+        var handles = GetVariableHandles(variable).FindAll(h => h.IsAlive(Position));
         handles.Reverse();
         
         return handles;
     }
 
-    public List<Quantum<Handle>> GetValidConstantHandles(object constant)
+    public List<Result> GetValidConstantHandles(object constant)
     {
-        var handles = GetConstantHandles(constant).FindAll(h => h.Value.IsAlive(Position));
+        var handles = GetConstantHandles(constant).FindAll(h => h.IsAlive(Position));
         handles.Reverse();
         
         return handles;
