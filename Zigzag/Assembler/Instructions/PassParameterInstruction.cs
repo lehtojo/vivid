@@ -7,8 +7,6 @@ public class PassParameterInstruction : Instruction
         Value = value;
     }
 
-    public override void Weld() {}
-
     public override void Build()
     {
         Build(
@@ -23,9 +21,9 @@ public class PassParameterInstruction : Instruction
         );
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle, true);
+        return null;
     }
 
     public override InstructionType GetInstructionType()

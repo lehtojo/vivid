@@ -26,10 +26,8 @@ public class CompareInstruction : DualParameterInstruction
         return InstructionType.COMPARE;
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        First.Set(handle, true);
+        return null;   
     }
-
-    public override void Weld() {}
 }

@@ -23,7 +23,7 @@ public class Unit
     private List<Register> Registers { get; set; } = new List<Register>();
     private List<Register> NonVolatileRegisters { get; set; } = new List<Register>();
     private List<Register> VolatileRegisters { get; set; } = new List<Register>();
-    private List<Instruction> Instructions { get; set; } = new List<Instruction>();
+    public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
     private StringBuilder Builder { get; set; } = new StringBuilder();
     private int LabelIndex { get; set; } = 0;
     public Result? Self { get; set; }
@@ -59,6 +59,7 @@ public class Unit
     public void Append(Instruction instruction)
     {
         Instructions.Add(instruction);
+        instruction.Position = Instructions.Count - 1;
     }
 
     public void Append(string instruction)

@@ -20,5 +20,8 @@ public class GetSelfPointerInstruction : LoadInstruction
         return InstructionType.GET_SELF_POINTER;
     }
 
-    public override void Weld() {}
+    public override Result? GetDestination()
+    {
+        return null;   
+    }
 }

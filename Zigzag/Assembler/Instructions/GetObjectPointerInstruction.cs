@@ -26,10 +26,8 @@ public class GetObjectPointerInstruction : Instruction
         return InstructionType.GET_OBJECT_POINTER;
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle, true);
+        return null;   
     }
-
-    public override void Weld() {}
 }

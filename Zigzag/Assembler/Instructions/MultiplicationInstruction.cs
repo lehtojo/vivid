@@ -2,8 +2,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 {
     public MultiplicationInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Weld() {}
-
     public override void Build()
     {
         Build(
@@ -23,9 +21,9 @@ public class MultiplicationInstruction : DualParameterInstruction
         );
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result GetDestination()
     {
-        First.Set(handle, true);
+        return First;
     }
 
     public override InstructionType GetInstructionType()

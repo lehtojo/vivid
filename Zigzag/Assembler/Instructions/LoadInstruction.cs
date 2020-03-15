@@ -1,24 +1,35 @@
+using System;
+
 public abstract class LoadInstruction : Instruction
 {
+    private Result Source { get; set; } = new Result(new Handle());
+
     public LoadInstruction(Unit unit) : base(unit) {}
 
     public void Connect(Result result)
     {
         Result.EntangleTo(result);
         Result.Instruction = result.Instruction;
+        Source.EntangleTo(result);
+    }
+
+    public void SetSource(Handle handle)
+    {
+        Source.Set(handle);
+        Result.Set(handle);
     }
 
     public override void Build()
     {
-        if (Result.Value is RegisterHandle handle)
+        if (Result.Value != Source.Value)
         {
-            //handle.Register.Value = Result;
+            Unit.Build(new MoveInstruction(Unit, Result, Source));
         }
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle, true);
+        return Result;
     }
 
     public override Result[] GetHandles()

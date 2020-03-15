@@ -58,7 +58,7 @@ public class FunctionToken : Token
 
 			if (!(token is IdentifierToken name))
 			{
-				throw Errors.Get(token.Position, "Invalid parameter");
+				throw Errors.Get(token.Position, "Invalid parameter name");
 			}
 
 			names.Add(name.Value);

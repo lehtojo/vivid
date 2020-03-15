@@ -4,11 +4,6 @@ public class GetVariableInstruction : LoadInstruction
     public Result? Self { get; private set; }
     public Variable Variable { get; private set; }
 
-    public GetVariableInstruction(Unit unit, Variable variable) : base(unit)
-    {
-        Variable = variable;
-    }
-
     public GetVariableInstruction(Unit unit, Result? self, Variable variable) : base(unit)
     {
         Self = self;
@@ -31,6 +26,4 @@ public class GetVariableInstruction : LoadInstruction
             return new Result[] { Result  };
         }
     }
-
-    public override void Weld() {}
 }

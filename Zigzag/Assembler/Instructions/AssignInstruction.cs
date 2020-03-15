@@ -5,8 +5,6 @@ public class AssignInstruction : DualParameterInstruction
         Result.EntangleTo(Second);
     }
 
-    public override void Weld() {}
-
     public override void Build() 
     {
         if (First.Metadata is Variable variable && variable.Category == VariableCategory.MEMBER)
@@ -15,9 +13,9 @@ public class AssignInstruction : DualParameterInstruction
         }
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle, true);
+        return null;   
     }
 
     public override InstructionType GetInstructionType()

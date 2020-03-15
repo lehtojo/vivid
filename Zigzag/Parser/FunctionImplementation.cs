@@ -23,6 +23,7 @@ public class FunctionImplementation : Context
 	public Type? ReturnType { get; set; }
 
 	public bool IsInline => References.Count == 1 && false;
+	public bool IsEmpty => Node == null || Node.First == null;
 	
 	/// <summary>
 	/// Optionally links this function to some context
@@ -56,7 +57,7 @@ public class FunctionImplementation : Context
 	public void Implement(List<Token> blueprint)
 	{
 		Node = new ImplementationNode(this);
-		Parser.Parse(Node, this, blueprint, 0, 20);
+		Parser.Parse(Node, this, blueprint, 0, 19);
 	}
 
 	/// <summary>

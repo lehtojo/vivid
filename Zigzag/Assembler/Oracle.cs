@@ -27,7 +27,7 @@ public static class Oracle
                 }
                 else
                 {
-                    v.Result.Set(References.CreateVariableHandle(unit, v.Self, v.Variable));
+                    v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable));
                     unit.Cache(v.Variable, v.Result, false);
                 }
             }
@@ -37,12 +37,12 @@ public static class Oracle
 
                 if (handles.Count > 0)
                 {
-                    c.Connect(handles[0]);
+                    //c.Connect(handles[0]);
                 }
                 else
                 {
-                    c.Result.Set(References.CreateConstantNumber(unit, c.Value));
-                    unit.Cache(c.Value, c.Result);
+                    c.SetSource(References.CreateConstantNumber(unit, c.Value));
+                    //unit.Cache(c.Value, c.Result);
                 }
             }
             else if (i is GetSelfPointerInstruction s)
@@ -65,16 +65,11 @@ public static class Oracle
 
     private static void ConnectReturnStatements(Unit unit)
     {
-        unit.Simulate(instruction =>
-        {
-            instruction.Weld();
-        });
-
         unit.Simulate(i =>
         {
             if (i is ReturnInstruction instruction)
             {
-                instruction.RedirectTo(new RegisterHandle(unit.GetStandardReturnRegister()));
+                instruction.Redirect(new RegisterHandle(unit.GetStandardReturnRegister()));
             }
         });
     }
@@ -89,64 +84,3 @@ public static class Oracle
         return unit;
     }
 }
-
-/*
-
-x = a + a
-y = b - a
-
-return x * y
-
-
-r1 = GetVariable a
-r2 = GetVariable a
-o1 = Add { r1, r2 }
-
-r3 = GetVariable b
-r4 = GetVariable a
-o2 = Sub { r3, r4 }
-
-r5 = GetVariable x
-r6 = GetVariable y
-o3 = Mul { r5, r6 }
-
-Return o3
---------------------------
-r1 = [rbp+8] => mov rax, [rbp+8]
-o1 = Add { r1, r1 } => lea rcx, [rax+rax]
-
-r3 = [rbp+12] => mov rdx, [rbp+12]
-r4 = r1 => rax
-o2 = Sub { r3, r4 } => sub rdx, rax 
-
-r5 = o1 => rcx
-r6 = 21 => rdx
-o3 = Mul { r5, r6 } => imul rcx, rdx
-
-Return o3 => mov rax, rcx
-
-mov rax, [rbp+8]
-lea rcx, [rax+rax]
-mov rdx, [rbp+12]
-sub rdx, rax
-imul rcx, rdx
-mov rax, rcx
--------------------------------------------
-r1 = GetVariable a => rcx
-o1 = Add { r1, r1 } => lea rax, [rcx+rcx]
-
-r3 = GetVariable b => rdx
-r4 = GetVariable a => rcx
-o2 = Sub { r3, r4 } => sub rdx, rcx
-
-r5 = GetVariable x => rax
-r6 = GetVariable y => rdx
-o3 = Mul { r5, r6 } => imul rax, rdx
-
-mov rcx, [rbp+8]
-lea rax, [rcx+rcx]
-mov rdx, [rbp+12]
-sub rdx, rcx
-imul rax, rdx
-
-*/

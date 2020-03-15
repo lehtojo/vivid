@@ -8,18 +8,10 @@ public class AdditionInstruction : DualParameterInstruction
     {
         return InstructionType.ADDITION;
     }
-
-    public override void Weld()
-    {
-        if (First.IsDying(Unit))
-        {
-            //Result.SetParent(First);
-        }
-    }
-
+    
     public override void Build()
     {
-        if (First.IsDying(Unit))
+        if (First.IsDying(Position))
         {
             Build(
                 "add",
@@ -68,15 +60,15 @@ public class AdditionInstruction : DualParameterInstruction
         }
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        if (First.IsDying(Unit))
+        if (First.IsDying(Position))
         {
-            First.Set(handle, true);
+            return First;
         }
         else
         {
-            Result.Set(handle, true);
+            return Result;
         }
     }
 }

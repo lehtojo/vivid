@@ -5,10 +5,6 @@ public class CallInstruction : Instruction
     public CallInstruction(Unit unit, string function) : base(unit)
     {
         Function = function;
-    }
-
-    public override void Weld()
-    {
         Result.Set(new RegisterHandle(Unit.GetStandardReturnRegister()));
     }
 
@@ -17,9 +13,9 @@ public class CallInstruction : Instruction
         Unit.Append($"call {Function}");
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle, true);
+        return null;   
     }
 
     public override InstructionType GetInstructionType()

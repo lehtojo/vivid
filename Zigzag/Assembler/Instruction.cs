@@ -48,6 +48,7 @@ public abstract class Instruction
 {
     public Unit Unit { get; private set; }
     public Result Result { get; private set; }
+    public int Position { get; set; } = -1;
     public InstructionType Type => GetInstructionType();
 
     public Instruction(Unit unit)
@@ -59,6 +60,7 @@ public abstract class Instruction
     public Result Execute()
     {
         Unit.Append(this);
+        Position = Unit.Instructions.Count;
         return Result;
     }
 
@@ -148,9 +150,22 @@ public abstract class Instruction
         Unit.Append(result.Remove(result.Length - 1, 1).ToString());
     }
 
-    public abstract void Weld();
-    public abstract void RedirectTo(Handle handle);
+    public abstract Result? GetDestination();
     public abstract void Build();
+
+    public void Redirect(Handle handle)
+    {
+        var destination = GetDestination();
+        var previous = (Result?)null;
+
+        while (destination != null && destination != previous)
+        {
+            destination.Set(handle);
+
+            previous = destination;
+            destination = destination.Instruction?.GetDestination();
+        }
+    }
 
     public abstract InstructionType GetInstructionType();
     public abstract Result[] GetHandles();

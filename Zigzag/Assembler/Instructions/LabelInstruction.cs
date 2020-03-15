@@ -24,10 +24,8 @@ public class LabelInstruction : Instruction
         return InstructionType.LABEL;
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        throw new InvalidOperationException("Tried to redirect result of a label?");
+        return null;
     }
-
-    public override void Weld() {}
 }

@@ -12,5 +12,8 @@ public class GetConstantInstruction : LoadInstruction
         return InstructionType.GET_CONSTANT;
     }
 
-    public override void Weld() {}
+    public override Result? GetDestination()
+    {
+        return null;   
+    }
 }

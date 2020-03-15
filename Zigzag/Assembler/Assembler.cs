@@ -12,7 +12,7 @@ public static class Assembler
 
         foreach (var implementation in function.Implementations)
         {
-            if (implementation.Node != null)
+            if (implementation.Node != null && !implementation.IsEmpty)
             {
                 var unit = new Unit(function);
 

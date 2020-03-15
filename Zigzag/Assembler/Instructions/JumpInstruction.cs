@@ -47,10 +47,8 @@ public class JumpInstruction : Instruction
         return InstructionType.JUMP;
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result? GetDestination()
     {
-        Result.Set(handle , true);
+        return null;
     }
-
-    public override void Weld() {}
 }

@@ -55,7 +55,7 @@ public static class Memory
             case HandleType.REGISTER:
             {
                 var register = unit.TryGetCached(handle);
-                var dying = handle.IsDying(unit);
+                var dying = handle.IsDying(unit.Position);
 
                 if (register != null)
                 {

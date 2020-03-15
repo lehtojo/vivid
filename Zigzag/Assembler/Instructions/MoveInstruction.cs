@@ -2,11 +2,6 @@ public class MoveInstruction : DualParameterInstruction
 {
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Weld() 
-    {
-        //Result.SetParent(First);
-    }
-
     public override void Build()
     {
         if (First.Value.Type == HandleType.MEMORY_HANDLE)
@@ -53,9 +48,9 @@ public class MoveInstruction : DualParameterInstruction
         }
     }
 
-    public override void RedirectTo(Handle handle)
+    public override Result GetDestination()
     {
-        First.Set(handle, true);
+        return First;
     }
 
     public override InstructionType GetInstructionType()

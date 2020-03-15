@@ -40,15 +40,10 @@ public class Result
         Value = value;
     }
 
-    public void Set(Handle value, bool redirect = false)
+    public void Set(Handle value)
     {
         Value = value;
         References.ForEach(p => p.Value = value);
-
-        if (redirect && Instruction != null && Instruction.Result != this)
-        {
-            Instruction.RedirectTo(value);
-        }
     }
     
     public void EntangleTo(Result parent)
@@ -81,9 +76,9 @@ public class Result
         parent.References.AddRange(system);
     }
 
-    public bool IsDying(Unit unit)
+    public bool IsDying(int position)
     {
-        return !Lifetime.IsActive(unit.Position + 1);
+        return !Lifetime.IsActive(position + 1);
     }
 
     public bool IsAlive(int position)

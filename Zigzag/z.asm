@@ -10,62 +10,77 @@ imul rdx, rax
 imul rdx, [rbp+4]
 sub rcx, rdx
 imul rax, rcx
+ret
 
 
 function_run:
-lea rcx, [1+3]
+mov rcx, 1
+add rcx, 3
 push rcx
 mov rcx, 2
-mov rdx, rcx
-imul rdx, 3
+imul rcx, 3
 push 3
-mov r12, 3
-mov r13, r12
-sub r13, 1
-lea r14, [r12+1]
-imul r13, r14
-push r13
+mov rdx, 3
+mov r12, rdx
+sub r12, 1
+lea r13, [rdx+1]
+imul r12, r13
+push r12
 call function_f
-add rdx, rax
-push rdx
+add rcx, rax
+push rcx
 call function_f
 push 3
 push rax
 call type_foo_constructor
 push rax
 call type_foo_function_sum
-lea rdx, [r12+r12]
-mov [rax], rdx
-lea rdx, [r12+r12]
-cmp r12, rdx
+lea rcx, [rdx+rdx]
+mov [rax], rcx
+lea rcx, [rdx+rdx]
+cmp rdx, rcx
 jle function_run_L1
 push 3
 push 3
 call function_f
 jmp function_run_L0
 function_run_L1:
-cmp r12, r12
+cmp rdx, 3
 jle function_run_L2
-lea rdx, [r12+r12]
-push rdx
-lea rdx, [r12+r12]
-push rdx
+lea rcx, [rdx+rdx]
+push rcx
+lea rcx, [rdx+rdx]
+push rcx
 call function_f
 jmp function_run_L0
 function_run_L2:
-lea rdx, [r12+r12]
-push rdx
-lea rdx, [r12+r12]
-push rdx
+push 1
+push 2
+call function_f
+push 2
+push 3
+call function_f
+cmp rax, rax
+jge function_run_L3
+mov rax, 13434
+ret
+jmp function_run_L0
+function_run_L3:
+lea rcx, [rdx+rdx]
+push rcx
+lea rcx, [rdx+rdx]
+push rcx
 call function_f
 function_run_L0:
-lea rdx, [1+rcx]
-lea r12, [1+rcx]
-lea r13, [rdx+r12]
-add rdx, r12
-add rdx, 1
-add rdx, 2
-mov rax, rdx
+mov rax, 1
+add rax, 2
+mov rcx, 1
+add rcx, 2
+lea rdx, [rax+rcx]
+add rax, rcx
+add rax, 1
+add rax, 2
+ret
 
 
 type_bool_constructor:
@@ -103,8 +118,8 @@ mov [rax+4], rcx
 
 type_foo_function_sum:
 mov rcx, [rbp+8]
-mov rdx, [rcx]
-add rdx, [rcx+4]
-mov rax, rdx
+mov rax, [rcx]
+add rax, [rcx+4]
+ret
 
 
