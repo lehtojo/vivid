@@ -14,7 +14,6 @@
 *.userprefs
 
 # Build results
-[Dd]ebug/
 [Dd]ebugPublic/
 [Rr]eleases/
 x64/
@@ -85,6 +84,8 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+*.dll
+*.json
 
 # Chutzpah Test files
 _Chutzpah*
