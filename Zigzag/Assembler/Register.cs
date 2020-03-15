@@ -5,6 +5,8 @@ public static class RegisterFlag
     public const int VOLATILE = 1;
     public const int SPECIALIZED = 2;
     public const int RETURN = 4;
+    public const int BASE_POINTER = 8;
+    public const int STACK_POINTER = 16;
 }
 
 public class Register
@@ -25,7 +27,7 @@ public class Register
 
     public bool IsAvailable(Unit unit)
     {
-        return Value == null || Value.IsDying(unit);
+        return Value == null || !Value.IsAlive(unit.Position);
     }
 
     public override string ToString()

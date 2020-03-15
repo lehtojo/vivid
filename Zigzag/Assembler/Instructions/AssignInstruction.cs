@@ -5,11 +5,15 @@ public class AssignInstruction : DualParameterInstruction
         Result.EntangleTo(Second);
     }
 
-    public override void Weld() 
-    {
-    }
+    public override void Weld() {}
 
-    public override void Build() {}
+    public override void Build() 
+    {
+        if (First.Metadata is Variable variable && variable.Category == VariableCategory.MEMBER)
+        {
+            Unit.Build(new MoveInstruction(Unit, First, Second));
+        }
+    }
 
     public override void RedirectTo(Handle handle)
     {

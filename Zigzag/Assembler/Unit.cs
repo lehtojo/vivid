@@ -25,10 +25,8 @@ public class Unit
     private List<Register> VolatileRegisters { get; set; } = new List<Register>();
     private List<Instruction> Instructions { get; set; } = new List<Instruction>();
     private StringBuilder Builder { get; set; } = new StringBuilder();
-    private List<Handle> Handles { get; set; }  = new List<Handle>();
-
     private int LabelIndex { get; set; } = 0;
-
+    public Result? Self { get; set; }
     public int Position { get; private set; } = 0;
 
     public Unit(Function function)
@@ -42,8 +40,8 @@ public class Unit
             new Register("rdx", RegisterFlag.VOLATILE),
             new Register("rsi"),
             new Register("rdi"),
-            new Register("rbp", RegisterFlag.SPECIALIZED),
-            new Register("rsp", RegisterFlag.SPECIALIZED),
+            new Register("rbp", RegisterFlag.SPECIALIZED | RegisterFlag.BASE_POINTER),
+            new Register("rsp", RegisterFlag.SPECIALIZED | RegisterFlag.STACK_POINTER),
             new Register("r8"),
             new Register("r9"),
             new Register("r10"),
@@ -72,11 +70,6 @@ public class Unit
     public void Build(Instruction instruction)
     {
         instruction.Build();
-    }
-    
-    public void AddHandle(Handle handle)
-    {
-        Handles.Add(handle);
     }
 
     public RegisterHandle? TryGetCached(Result handle)
@@ -107,7 +100,7 @@ public class Unit
 
         if (value.Metadata is Variable variable)
         {
-            var destination = new Result(References.CreateVariableHandle(this, variable));
+            var destination = new Result(References.CreateVariableHandle(this, null, variable));
             Build(new MoveInstruction(this, destination, value));
 
             value.Set(destination.Value);
@@ -117,34 +110,46 @@ public class Unit
 
     public Register GetNextRegister()
     {
-        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN));
+        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
 
         if (register != null)
         {
             return register;
         }
 
-        register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN));
+        register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
 
         if (register != null)
         {
             return register;
         }
 
-        register = Registers.Find(r => r.Releasable && !Flag.Has(r.Flags, RegisterFlag.RETURN));
+        register = Registers.Find(r => r.Releasable && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
 
         if (register != null)
         {
             Release(register);
             return register;
         }
+        
         throw new NotImplementedException("Couldn't find available register");
+    }
+
+    public Register GetBasePointer()
+    {
+        return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.BASE_POINTER)) ?? throw new Exception("Architecture didn't have base pointer register?");
+    }
+
+    public Register GetStackPointer()
+    {
+        return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture didn't have stack pointer register?");
     }
 
     public Register GetStandardReturnRegister()
     {
         return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have return register?");
     }
+
 
     public void Simulate(Action<Instruction> action)
     {
@@ -164,8 +169,6 @@ public class Unit
         var handles = GetVariableHandles(variable);
         var position = handles.FindIndex(0, handles.Count, h => h.Lifetime.Start >= Position);
 
-        //var value = result.Value;
-        //value.Lifetime.Start = Position;
         result.Lifetime.Start = Position;
 
         if (position == -1)

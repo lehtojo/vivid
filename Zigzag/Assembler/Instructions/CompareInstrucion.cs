@@ -16,7 +16,7 @@ public class CompareInstruction : DualParameterInstruction
                 false,
                 HandleType.REGISTER,
                 HandleType.CONSTANT,
-                HandleType.STACK_MEMORY_HANDLE
+                HandleType.MEMORY_HANDLE
             )
         );
     }

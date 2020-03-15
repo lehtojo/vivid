@@ -19,14 +19,15 @@ List {
     }
 
     grow() {
-        batch < 0 {
+        if batch < 0 {
             memory = allocate(capacity * 2)
             copy(elements, capacity, memory)
             free(elements)
 
             elements = memory
             capacity = capacity * 2
-        } {
+        } 
+        else {
             memory = allocate(capacity + batch)
             copy(elements, capacity, memory)
             free(elements)
@@ -37,7 +38,7 @@ List {
     }
 
     add(element) {
-        position == capacity {
+        if position == capacity {
             grow()
         }
 

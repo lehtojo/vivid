@@ -2,7 +2,7 @@ using System;
 
 public enum HandleType
 {
-    STACK_MEMORY_HANDLE,
+    MEMORY_HANDLE,
     CONSTANT,
     REGISTER,
     NONE
@@ -11,8 +11,6 @@ public enum HandleType
 public class Handle
 {
     public HandleType Type { get; private set; }
-    //public object Metadata { get; set; } = new object();
-    //public Lifetime Lifetime { get; private set; } = new Lifetime();
 
     public Handle()
     {
@@ -24,28 +22,7 @@ public class Handle
         Type = type;
     }
 
-    /*public bool IsDying(Unit unit)
-    {
-        return !Lifetime.IsActive(unit.Position + 1);
-    }
-
-    public bool IsAlive(int position)
-    {
-        return Lifetime.IsActive(position);
-    }
-
-    public void AddUsage(int position)
-    {
-        if (position > Lifetime.End)
-        {
-            Lifetime.End = position;
-        }
-
-        if (position < Lifetime.Start)
-        {
-            Lifetime.Start = position;
-        }
-    }*/
+    public virtual void AddUsage(int position) {}
 
     public override string ToString()
     {
@@ -68,13 +45,25 @@ public class ConstantHandle : Handle
     }
 }
 
-public class StackMemoryHandle : Handle
+public class MemoryHandle : Handle
 {
+    public Result Base { get; private set; }
     public int Offset { get; private set; }
 
-    public StackMemoryHandle(int offset) : base(HandleType.STACK_MEMORY_HANDLE)
+    public static MemoryHandle FromStack(Unit unit, int offset)
     {
+        return new MemoryHandle(new Result(new RegisterHandle(unit.GetBasePointer())), offset);
+    }
+
+    public MemoryHandle(Result @base, int offset) : base(HandleType.MEMORY_HANDLE)
+    {
+        Base = @base;
         Offset = offset;
+    }
+
+    public override void AddUsage(int position)
+    {
+        Base.AddUsage(position);
     }
 
     public override string ToString()
@@ -90,7 +79,12 @@ public class StackMemoryHandle : Handle
             offset = Offset.ToString();
         }
 
-        return $"[{Assembler.BasePointer}{offset}]";
+        if (Base.Value.Type == HandleType.REGISTER)
+        {
+            return $"[{Base.Value}{offset}]";
+        }
+        
+        throw new ApplicationException("Base of the object was no longer in register");
     }
 }
 

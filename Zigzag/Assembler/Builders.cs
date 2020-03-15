@@ -16,6 +16,16 @@ public static class Builders
                 return ArithmeticOperators.Build(unit, (OperatorNode)node);
             }
 
+            case NodeType.LINK_NODE:
+            {
+                return Links.Build(unit, (LinkNode)node);
+            }
+
+            case NodeType.CONSTRUCTION_NODE:
+            {
+                return Construction.Build(unit, (ConstructionNode)node);
+            }
+
             case NodeType.IF_NODE:
             {
                 return Conditionals.Start(unit, (IfNode)node);

@@ -2,10 +2,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 {
     public MultiplicationInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Weld() 
-    {
-        //Result.SetParent(First);
-    }
+    public override void Weld() {}
 
     public override void Build()
     {
@@ -21,7 +18,7 @@ public class MultiplicationInstruction : DualParameterInstruction
                 false,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
-                HandleType.STACK_MEMORY_HANDLE
+                HandleType.MEMORY_HANDLE
             )
         );
     }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
- 
 public static class Oracle
 {
     private static void SimulateMoves(Unit unit)
@@ -15,47 +13,41 @@ public static class Oracle
         });
     }
 
-    private static void SimulateVariableLoads(Unit unit)
+    private static void SimulateLoads(Unit unit)
     {
         unit.Simulate(i => 
         {
-            if (i is GetVariableInstruction load)
+            if (i is GetVariableInstruction v)
             {
-                var handles = unit.GetValidVariableHandles(load.Variable);
+                var handles = unit.GetValidVariableHandles(v.Variable);
 
                 if (handles.Count > 0)
                 {
-                    load.Connect(handles[0]);
-                    //load.Result.EntangleTo(handles[0]);
-                    //handles[0].Entangle(load.Result);
+                    v.Connect(handles[0]);
                 }
                 else
                 {
-                    load.Result.Set(References.CreateVariableHandle(unit, load.Variable));
-                    unit.Cache(load.Variable, load.Result, false);
+                    v.Result.Set(References.CreateVariableHandle(unit, v.Self, v.Variable));
+                    unit.Cache(v.Variable, v.Result, false);
                 }
             }
-        });
-    }
-
-    private static void SimulateConstantLoads(Unit unit)
-    {
-        unit.Simulate(i => 
-        {
-            if (i is GetConstantInstruction load)
+            else if (i is GetConstantInstruction c)
             {
-                var handles = unit.GetValidConstantHandles(load.Value);
+                var handles = unit.GetValidConstantHandles(c.Value);
 
                 if (handles.Count > 0)
                 {
-                    load.Connect(handles[0]);
-                    //handles[0].Entangle(load.Result);
+                    c.Connect(handles[0]);
                 }
                 else
                 {
-                    load.Result.Set(References.CreateConstantNumber(unit, load.Value));
-                    unit.Cache(load.Value, load.Result);
+                    c.Result.Set(References.CreateConstantNumber(unit, c.Value));
+                    unit.Cache(c.Value, c.Result);
                 }
+            }
+            else if (i is GetSelfPointerInstruction s)
+            {
+                unit.Self!.AddUsage(unit.Position);
             }
         });
     }
@@ -82,8 +74,6 @@ public static class Oracle
         {
             if (i is ReturnInstruction instruction)
             {
-                //instruction.Object.Set(new RegisterHandle(unit.GetStandardReturnRegister()));
-                //unit.GetStandardReturnRegister().Value = instruction.Object;
                 instruction.RedirectTo(new RegisterHandle(unit.GetStandardReturnRegister()));
             }
         });
@@ -92,8 +82,7 @@ public static class Oracle
     public static Unit Channel(Unit unit)
     {
         SimulateMoves(unit);
-        SimulateVariableLoads(unit);
-        SimulateConstantLoads(unit);
+        SimulateLoads(unit);
         SimulateLifetimes(unit);
         ConnectReturnStatements(unit);
 

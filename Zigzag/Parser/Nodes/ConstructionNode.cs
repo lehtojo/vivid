@@ -1,7 +1,7 @@
 public class ConstructionNode : Node, IResolvable, IType
 {
-	public Node? Parameters => Last;
-	public Type? Type => GetConstructor()?.GetTypeParent();
+	public Node? Parameters => Last?.First;
+	public Type Type => GetConstructor()!.GetTypeParent()!;
 
 	public ConstructionNode(Node constructor)
 	{

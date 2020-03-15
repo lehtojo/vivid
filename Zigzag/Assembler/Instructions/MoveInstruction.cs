@@ -9,7 +9,7 @@ public class MoveInstruction : DualParameterInstruction
 
     public override void Build()
     {
-        if (First.Value.Type == HandleType.STACK_MEMORY_HANDLE)
+        if (First.Value.Type == HandleType.MEMORY_HANDLE)
         {
             Build(
                 "mov",
@@ -17,7 +17,7 @@ public class MoveInstruction : DualParameterInstruction
                     First,
                     true,
                     HandleType.REGISTER,
-                    HandleType.STACK_MEMORY_HANDLE
+                    HandleType.MEMORY_HANDLE
                 ),
                 new InstructionParameter(
                     Second,
@@ -35,14 +35,14 @@ public class MoveInstruction : DualParameterInstruction
                     First,
                     true,
                     HandleType.REGISTER,
-                    HandleType.STACK_MEMORY_HANDLE
+                    HandleType.MEMORY_HANDLE
                 ),
                 new InstructionParameter(
                     Second,
                     false,
                     HandleType.CONSTANT,
                     HandleType.REGISTER,
-                    HandleType.STACK_MEMORY_HANDLE
+                    HandleType.MEMORY_HANDLE
                 )
             );
         }

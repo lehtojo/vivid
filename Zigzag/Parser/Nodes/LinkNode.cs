@@ -1,5 +1,8 @@
 public class LinkNode : OperatorNode, IResolvable, IType
 {
+	public Node Object => First!;
+	public Node Member => Last!;
+	
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
 	{
 		SetOperands(left, right);

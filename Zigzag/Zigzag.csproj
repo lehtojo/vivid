@@ -4,12 +4,15 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <RootNamespace>Zigzag</RootNamespace>
+    <LangVersion>8.0</LangVersion>
+    <WarningsAsErrors>CS8600;CS8602;CS8603</WarningsAsErrors>
 	<GenerateProgramFile>false</GenerateProgramFile>
 	<StartupObject>Program</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <PlatformTarget>x64</PlatformTarget>
+    <WarningsAsErrors>CS8600;CS8602;CS8603</WarningsAsErrors>
 	<GenerateProgramFile>false</GenerateProgramFile>
 	<Nullable>enable</Nullable>
   </PropertyGroup>
@@ -19,6 +22,7 @@
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <WarningLevel>0</WarningLevel>
+    <WarningsAsErrors>CS8600;CS8602;CS8603</WarningsAsErrors>
 	<GenerateProgramFile>false</GenerateProgramFile>
 	<Nullable>enable</Nullable>
   </PropertyGroup>

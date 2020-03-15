@@ -21,7 +21,7 @@ public class SubtractionInstruction : DualParameterInstruction
                 false,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
-                HandleType.STACK_MEMORY_HANDLE
+                HandleType.MEMORY_HANDLE
             )
         );
     }

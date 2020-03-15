@@ -5,6 +5,8 @@ public enum InstructionType
     CALL,
     COMPARE,
     GET_CONSTANT,
+    GET_OBJECT_POINTER,
+    GET_SELF_POINTER,
     GET_VARIABLE,
     JUMP,
     LABEL,

@@ -2,18 +2,18 @@ to_string(n) {
     number = string('')
     sign = string('')
 
-    n < 0 {
+    if n < 0 {
         sign = string('-')
         n = 0 - n
     }
 
-    () {
+    loop {
         remainder = n % 10
         n = n / 10
 
         number = number.insert(0, 48 + remainder)
 
-        n == 0 {
+        if n == 0 {
             => sign.combine(number)
         }
     }
@@ -22,21 +22,21 @@ to_string(n) {
 to_number(text) {
     length = text.length()
 
-    length == 0 {
+    if length == 0 {
         => 0
     }
 
     buffer = text.data()
     sign = 1
 
-    buffer[0] == 45 {
+    if buffer[0] == 45 {
         sign = 0 - sign
     }
 
     i = 0
     n = 0
 
-    (i < length) {
+    while (i < length) {
         a = buffer[i] -> num - 48
         n = n * 10 + a
         i = i + 1
@@ -48,7 +48,7 @@ to_number(text) {
 length_of(text) {
     i = 0
 
-    () {
+    loop {
         text[i] == 0 {
             => i
         }
@@ -116,8 +116,8 @@ string {
 
     length() {
         i = 0
-        () {
-            text[i] == 0 { => i }
+        loop {
+            if text[i] == 0 { => i }
             ++i
         }
     }

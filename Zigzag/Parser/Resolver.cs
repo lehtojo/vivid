@@ -123,7 +123,7 @@ public class Resolver
 	{
 		if (types.Count == 0)
 		{
-			throw new ArgumentException("Tried to get shared type between no elements?");
+			return Types.UNKNOWN;
 		}
 		else if (types.Count == 1)
 		{

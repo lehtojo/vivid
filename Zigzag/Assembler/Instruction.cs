@@ -122,12 +122,6 @@ public abstract class Instruction
             if (parameter.IsDestination)
             {
                 Result.Set(handle.Value);
-
-                // Attach result of this operation must be attached to the destination register
-                if (handle.Value is RegisterHandle destination)
-                {
-                    destination.Register.Value = Result;
-                }
             }
 
             handles.Add(handle);
@@ -138,6 +132,17 @@ public abstract class Instruction
         foreach (var handle in handles)
         {
             result.Append($" {handle.Value},");
+        }
+
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            var parameter = parameters[i];
+
+            if (parameter.IsDestination && handles[i].Value is RegisterHandle destination)
+            {
+                // Attach result of this operation must be attached to the destination register
+                destination.Register.Value = Result;
+            }
         }
 
         Unit.Append(result.Remove(result.Length - 1, 1).ToString());

@@ -2,7 +2,7 @@ using System;
 
 public static class Memory
 {
-    private static Result ToRegister(Unit unit, Result handle)
+    private static Result CopyToRegister(Unit unit, Result handle)
     {
         var register = unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
@@ -10,6 +10,18 @@ public static class Memory
         unit.Build(new MoveInstruction(unit, destination, handle));
 
         return destination;
+    }
+
+    public static void MoveToRegister(Unit unit, Result source)
+    {
+        if (source.Value.Type != HandleType.REGISTER)
+        {
+            var register = unit.GetNextRegister();
+            var destination = new Result(new RegisterHandle(register));
+        
+            unit.Build(new MoveInstruction(unit, destination, source));
+            source.Set(destination.Value);
+        }
     }
 
     private static Result Duplicate(Unit unit, Result source)
@@ -57,7 +69,7 @@ public static class Memory
                     }
                 }
 
-                var destination = ToRegister(unit, handle);
+                var destination = CopyToRegister(unit, handle);
 
                 if (writable && !dying)
                 {

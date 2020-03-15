@@ -103,6 +103,7 @@ public class Result
             Lifetime.Start = position;
         }
 
+        Value.AddUsage(position);
         References.ForEach(r => r.Lifetime = Lifetime);
     }
 
