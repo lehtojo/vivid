@@ -13,8 +13,8 @@ public class GetMemoryAddressInstruction : Instruction
 
     public override void Build()
     {
-        Memory.MoveToRegister(Unit, Base);
-        Memory.MoveToRegister(Unit, Offset);
+        Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
+        Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);
         Result.Set(new ComplexMemoryHandle(Base, Offset, Stride));
     }
 

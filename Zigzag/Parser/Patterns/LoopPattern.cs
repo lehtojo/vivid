@@ -17,7 +17,7 @@ public class LoopPattern : Pattern
 	// (i = 0, i < 10, i++)
 	public const int FOR_LOOP = 3;
 
-	// (...) [\n] (...)
+	// loop (...) [\n] (...)
 	public LoopPattern() : base
 	(
 		TokenType.KEYWORD, TokenType.CONTENT, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT

@@ -31,9 +31,19 @@ public static class Builders
                 return Conditionals.Start(unit, (IfNode)node);
             }
 
+            case NodeType.LOOP_NODE:
+            {
+                return Loops.Build(unit, (LoopNode)node);
+            }
+
             case NodeType.RETURN_NODE:
             {
                 return Returns.Build(unit, (ReturnNode)node);
+            }
+
+            case NodeType.CAST_NODE:
+            {
+                return Builders.Build(unit, node.First!);
             }
 
             default:

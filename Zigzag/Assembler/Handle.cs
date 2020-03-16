@@ -79,7 +79,8 @@ public class MemoryHandle : Handle
             offset = Offset.ToString();
         }
 
-        if (Base.Value.Type == HandleType.REGISTER)
+        if (Base.Value.Type == HandleType.REGISTER ||
+            Base.Value.Type == HandleType.CONSTANT)
         {
             return $"[{Base.Value}{offset}]";
         }
@@ -117,7 +118,7 @@ public class ComplexMemoryHandle : Handle
         }
         else if (Offset.Value is ConstantHandle constant)
         {
-            var index = (int)constant.Value;
+            var index = (Int64)constant.Value;
             var value = index * Stride;
 
             if (value > 0)
@@ -134,7 +135,8 @@ public class ComplexMemoryHandle : Handle
             throw new ApplicationException("Complex memory address's offset wasn't a constant or in a register");
         }
 
-        if (Base.Value.Type == HandleType.REGISTER)
+        if (Base.Value.Type == HandleType.REGISTER ||
+            Base.Value.Type == HandleType.CONSTANT)
         {
             return $"[{Base.Value}{offset}]";
         }

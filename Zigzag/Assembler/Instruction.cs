@@ -68,7 +68,7 @@ public abstract class Instruction
     {
         if (!parameter.IsValid)
         {
-            return Memory.Convert(Unit, parameter.Handle, parameter.PrefferedType, parameter.IsDestination);
+            return Memory.Convert(Unit, parameter.Handle, parameter.Types, false, parameter.IsDestination);
         }
         else
         {

@@ -11,7 +11,7 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/Zigzag.dll",
-            "args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Example-1.z", "--asm", "--time"],
+            "args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Example-1.z", "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/List.z", "--asm", "--time"],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",

@@ -39,14 +39,14 @@ public class AdditionInstruction : DualParameterInstruction
                 new InstructionParameter(
                     First,
                     false,
-                    HandleType.REGISTER,
-                    HandleType.CONSTANT
+                    HandleType.CONSTANT,
+                    HandleType.REGISTER
                 ),
                 new InstructionParameter(
                     Second,
                     false,
-                    HandleType.REGISTER,
-                    HandleType.CONSTANT
+                    HandleType.CONSTANT,
+                    HandleType.REGISTER
                 )
             );
 

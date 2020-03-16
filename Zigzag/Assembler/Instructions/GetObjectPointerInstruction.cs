@@ -12,7 +12,7 @@ public class GetObjectPointerInstruction : Instruction
 
     public override void Build()
     {
-        Memory.MoveToRegister(Unit, Base);
+        Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
         Result.Set(new MemoryHandle(Base, Offset));
     }
 

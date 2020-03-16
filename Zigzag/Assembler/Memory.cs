@@ -48,14 +48,44 @@ public static class Memory
         value.Set(handle);
     }
 
-    public static Result Convert(Unit unit, Result handle, HandleType type, bool writable)
+    public static Result Convert(Unit unit, Result result, bool move, params HandleType[] types)
+    {
+        return Convert(unit, result, types, move, false);
+    }
+
+    public static Result Convert(Unit unit, Result result, HandleType[] types, bool move, bool writable)
+    {
+        foreach (var type in types)
+        {
+            if (result.Value.Type == type)
+            {
+                return result;
+            }
+
+            var converted = TryConvert(unit, result, type, writable);
+
+            if (converted != null)
+            {
+                if (move)
+                {
+                    result.Set(converted.Value);
+                }
+
+                return converted;
+            }
+        }
+
+        throw new ArgumentException("Couldn't convert reference to the requested format");
+    }
+
+    private static Result? TryConvert(Unit unit, Result result, HandleType type, bool writable)
     {
         switch (type)
         {
             case HandleType.REGISTER:
             {
-                var register = unit.TryGetCached(handle);
-                var dying = handle.IsDying(unit.Position);
+                var register = unit.TryGetCached(result);
+                var dying = result.IsDying(unit.Position);
 
                 if (register != null)
                 {
@@ -69,7 +99,7 @@ public static class Memory
                     }
                 }
 
-                var destination = CopyToRegister(unit, handle);
+                var destination = CopyToRegister(unit, result);
 
                 if (writable && !dying)
                 {
@@ -79,10 +109,7 @@ public static class Memory
                 return destination;
             }
 
-            default:
-            {
-                throw new ArgumentException("Couldn't convert reference to the requested format");
-            }
+            default: return null;
         }
     }
 }
