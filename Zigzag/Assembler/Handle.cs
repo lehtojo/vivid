@@ -84,7 +84,62 @@ public class MemoryHandle : Handle
             return $"[{Base.Value}{offset}]";
         }
         
-        throw new ApplicationException("Base of the object was no longer in register");
+        throw new ApplicationException("Base of the memory handle was no longer in register");
+    }
+}
+
+public class ComplexMemoryHandle : Handle
+{
+    public Result Base { get; private set; }
+    public Result Offset { get; private set; }
+    public int Stride { get; private set; }
+
+    public ComplexMemoryHandle(Result @base, Result offset, int stride) : base(HandleType.MEMORY_HANDLE)
+    {
+        Base = @base;
+        Offset = offset;
+        Stride = stride;
+    }
+
+    public override void AddUsage(int position)
+    {
+        Base.AddUsage(position);
+        Offset.AddUsage(position);
+    }
+
+    public override string ToString()
+    {
+        var offset = string.Empty;
+
+        if (Offset.Value.Type == HandleType.REGISTER)
+        {
+            offset = "+" + Offset.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
+        }
+        else if (Offset.Value is ConstantHandle constant)
+        {
+            var index = (int)constant.Value;
+            var value = index * Stride;
+
+            if (value > 0)
+            {
+                offset = $"+{value}";
+            }
+            else if (value < 0)
+            {
+                offset = value.ToString();
+            }
+        }
+        else
+        {
+            throw new ApplicationException("Complex memory address's offset wasn't a constant or in a register");
+        }
+
+        if (Base.Value.Type == HandleType.REGISTER)
+        {
+            return $"[{Base.Value}{offset}]";
+        }
+        
+        throw new ApplicationException("Base of the memory handle was no longer in register");
     }
 }
 

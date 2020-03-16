@@ -5,15 +5,19 @@ mov rdx, 1
 imul rdx, [rbp+4]
 imul rdx, 7
 sub rax, rdx
+mov [rbp-4], rax
 mov rdx, rcx
 imul rdx, rax
 imul rdx, [rbp+4]
 sub rcx, rdx
+mov [rbp-8], rcx
 imul rax, rcx
+mov [rbp-12], rax
 ret
 
 
 function_run:
+mov [rbp-4], 3
 mov rcx, 1
 add rcx, 3
 push rcx
@@ -30,11 +34,14 @@ call function_f
 add rcx, rax
 push rcx
 call function_f
+mov [rbp-8], rax
 push 3
 push rax
 call type_foo_constructor
+mov [rbp-12], rax
 push rax
 call type_foo_function_sum
+mov [rbp-16], rax
 lea rcx, [rdx+rdx]
 mov [rax], rcx
 lea rcx, [rdx+rdx]
@@ -72,14 +79,20 @@ lea rcx, [rdx+rdx]
 push rcx
 call function_f
 function_run_L0:
+mov rcx, 0
+mov [rax+rcx*4], 7
 mov rax, 1
 add rax, 2
+mov rdx, rax
 mov rcx, 1
 add rcx, 2
-lea rdx, [rax+rcx]
+mov rax, rcx
+lea r12, [rax+rcx]
+mov rax, r12
 add rax, rcx
 add rax, 1
 add rax, 2
+mov [rbp-20], rax
 ret
 
 

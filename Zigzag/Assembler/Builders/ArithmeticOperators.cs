@@ -22,6 +22,10 @@ public static class ArithmeticOperators
         {
             return BuildAssignOperator(unit, node);
         }
+        else if (operation == Operators.EXTENDER)
+        {
+            return Arrays.Build(unit, node);
+        }
 
         throw new ArgumentException("Node not implemented yet");
     } 
