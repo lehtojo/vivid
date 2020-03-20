@@ -2,34 +2,12 @@ using System;
 
 public static class Memory
 {
-    private static Result CopyToRegister(Unit unit, Result handle)
+    public static Result CopyToRegister(Unit unit, Result source)
     {
         var register = unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
         
-        unit.Build(new MoveInstruction(unit, destination, handle));
-
-        return destination;
-    }
-
-    public static void MoveToRegister(Unit unit, Result source)
-    {
-        if (source.Value.Type != HandleType.REGISTER)
-        {
-            var register = unit.GetNextRegister();
-            var destination = new Result(new RegisterHandle(register));
-        
-            unit.Build(new MoveInstruction(unit, destination, source));
-            source.Set(destination.Value);
-        }
-    }
-
-    private static Result Duplicate(Unit unit, Result source)
-    {
-        var register = unit.GetNextRegister();
-        var destination = new Result(new RegisterHandle(register));
-
-        unit.Build(new MoveInstruction(unit, destination, new Result(source.Value)));
+        unit.Build(new MoveInstruction(unit, destination, source));
 
         return destination;
     }
@@ -91,7 +69,7 @@ public static class Memory
                 {
                     if (writable && !dying)
                     {
-                        return Duplicate(unit, new Result(register));
+                        return CopyToRegister(unit, new Result(register));
                     }
                     else
                     {
@@ -103,7 +81,7 @@ public static class Memory
 
                 if (writable && !dying)
                 {
-                    return Duplicate(unit, destination);
+                    return CopyToRegister(unit, destination);
                 }
 
                 return destination;

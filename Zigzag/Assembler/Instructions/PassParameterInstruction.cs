@@ -31,7 +31,7 @@ public class PassParameterInstruction : Instruction
         return InstructionType.PASS_PARAMETER;
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result, Value };
     }

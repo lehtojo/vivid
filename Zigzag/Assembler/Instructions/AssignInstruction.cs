@@ -7,7 +7,7 @@ public class AssignInstruction : DualParameterInstruction
 
     public override void Build() 
     {
-        if (First.Metadata is Variable variable && variable.Category == VariableCategory.MEMBER)
+        if (First.Metadata.Equals("Complex") || First.Metadata is Variable variable && variable.Category == VariableCategory.MEMBER)
         {
             Unit.Build(new MoveInstruction(Unit, First, Second));
         }

@@ -21,6 +21,7 @@ public class FunctionImplementation : Context
 	public List<Node> References { get; private set; } = new List<Node>();
 
 	public Type? ReturnType { get; set; }
+	public bool Returns => ReturnType != null;
 
 	public bool IsInline => References.Count == 1 && false;
 	public bool IsEmpty => Node == null || Node.First == null;

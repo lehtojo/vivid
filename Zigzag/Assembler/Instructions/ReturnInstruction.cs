@@ -11,7 +11,7 @@ public class ReturnInstruction : Instruction
     {
         if (!(Object.Value is RegisterHandle handle && Flag.Has(handle.Register.Flags, RegisterFlag.RETURN)))
         {
-            Unit.Build(new MoveInstruction(Unit, Result, Object));
+            Unit.Build(new MoveInstruction(Unit, new Result(new RegisterHandle(Unit.GetStandardReturnRegister())), Object));
         }
 
         Unit.Append("ret");
@@ -27,7 +27,7 @@ public class ReturnInstruction : Instruction
         return InstructionType.RETURN;
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result, Object };
     }

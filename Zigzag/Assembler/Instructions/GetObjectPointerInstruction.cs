@@ -16,7 +16,7 @@ public class GetObjectPointerInstruction : Instruction
         Result.Set(new MemoryHandle(Base, Offset));
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result, Base };
     }

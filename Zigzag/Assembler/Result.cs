@@ -21,6 +21,7 @@ public class Result
     private List<Result> References = new List<Result>();
     private IEnumerable<Result> System => References.Concat(new List<Result>{ this });
 
+    public bool Empty => Value.Type == HandleType.NONE;
     public bool Relesable => Metadata is Variable;
 
     public Result(Instruction instruction)
@@ -78,7 +79,7 @@ public class Result
 
     public bool IsDying(int position)
     {
-        return !Lifetime.IsActive(position + 1);
+        return position == -1 || !Lifetime.IsActive(position + 1);
     }
 
     public bool IsAlive(int position)

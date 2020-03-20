@@ -33,7 +33,7 @@ public static class References
         }
     }
 
-    public static Result GetVariable(Unit unit, VariableNode node)
+    public static Result GetVariable(Unit unit, VariableNode node, AccessMode mode)
     {
         Result? self = null;
 
@@ -42,7 +42,7 @@ public static class References
             self = new GetSelfPointerInstruction(unit).Execute();
         }
 
-        var handle = new GetVariableInstruction(unit, self, node.Variable).Execute();
+        var handle = new GetVariableInstruction(unit, self, node.Variable, mode).Execute();
         handle.Metadata = node.Variable;
 
         return handle;
@@ -56,13 +56,13 @@ public static class References
         return handle;
     }
 
-    public static Result Get(Unit unit, Node node)
+    public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
     {
         switch (node.GetNodeType())
         {
             case NodeType.VARIABLE_NODE:
             {
-                return GetVariable(unit, (VariableNode)node);
+                return GetVariable(unit, (VariableNode)node, mode);
             }
 
             case NodeType.NUMBER_NODE:

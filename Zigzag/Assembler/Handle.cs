@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public enum HandleType
 {
@@ -43,6 +44,17 @@ public class ConstantHandle : Handle
     {
         return Value?.ToString() ?? throw new NullReferenceException("Constant value was missing");
     }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is ConstantHandle handle &&
+               EqualityComparer<object>.Default.Equals(Value, handle.Value);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Value);
+    }
 }
 
 public class MemoryHandle : Handle
@@ -86,6 +98,18 @@ public class MemoryHandle : Handle
         }
         
         throw new ApplicationException("Base of the memory handle was no longer in register");
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is MemoryHandle handle &&
+               EqualityComparer<Result>.Default.Equals(Base, handle.Base) &&
+               Offset == handle.Offset;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Base, Offset);
     }
 }
 
@@ -143,6 +167,19 @@ public class ComplexMemoryHandle : Handle
         
         throw new ApplicationException("Base of the memory handle was no longer in register");
     }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is ComplexMemoryHandle handle &&
+               EqualityComparer<Result>.Default.Equals(Base, handle.Base) &&
+               EqualityComparer<Result>.Default.Equals(Offset, handle.Offset) &&
+               Stride == handle.Stride;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Base, Offset, Stride);
+    }
 }
 
 public class RegisterHandle : Handle
@@ -157,5 +194,16 @@ public class RegisterHandle : Handle
     public override string ToString()
     {
         return Register.Name;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is RegisterHandle handle &&
+               EqualityComparer<Register>.Default.Equals(Register, handle.Register);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Register);
     }
 }

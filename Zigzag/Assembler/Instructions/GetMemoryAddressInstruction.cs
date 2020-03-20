@@ -16,9 +16,10 @@ public class GetMemoryAddressInstruction : Instruction
         Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
         Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);
         Result.Set(new ComplexMemoryHandle(Base, Offset, Stride));
+        Result.Metadata = "Complex";
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result, Base, Offset };
     }

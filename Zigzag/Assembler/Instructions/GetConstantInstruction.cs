@@ -2,7 +2,7 @@ public class GetConstantInstruction : LoadInstruction
 {
     public object Value { get; private set;}
 
-    public GetConstantInstruction(Unit unit, object value) : base(unit)
+    public GetConstantInstruction(Unit unit, object value) : base(unit, AccessMode.READ)
     {
         Value = value;
     }

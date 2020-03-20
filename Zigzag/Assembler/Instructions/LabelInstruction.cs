@@ -1,5 +1,3 @@
-using System;
-
 public class LabelInstruction : Instruction
 {
     public Label Label { get; private set; }
@@ -14,7 +12,7 @@ public class LabelInstruction : Instruction
         Unit.Append($"{Label.GetName()}:");
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result };
     }

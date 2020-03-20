@@ -1,3 +1,5 @@
+using System.Linq;
+
 public static class Oracle
 {
     private static void SimulateMoves(Unit unit)
@@ -28,7 +30,12 @@ public static class Oracle
                 else
                 {
                     v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable));
-                    unit.Cache(v.Variable, v.Result, false);
+                    
+                    if (v.Variable.Category == VariableCategory.LOCAL ||
+                        v.Variable.Category == VariableCategory.PARAMETER)
+                    {
+                        unit.Cache(v.Variable, v.Result, false);
+                    }
                 }
             }
             else if (i is GetConstantInstruction c)
@@ -56,7 +63,7 @@ public static class Oracle
     {
         unit.Simulate(instruction =>
         {
-            foreach (var handle in instruction.GetHandles())
+            foreach (var handle in instruction.GetResultReferences())
             {
                 handle.AddUsage(unit.Position);
             }
@@ -74,11 +81,34 @@ public static class Oracle
         });
     }
 
+    public static void SimulateRegisterUsage(Unit unit)
+    {
+        var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
+
+        unit.Simulate(instruction => 
+        {
+            var result = instruction.Result;
+
+            if (functions.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
+                !(result.Value is RegisterHandle handle && !handle.Register.Volatile))
+            {
+                var register = unit.GetNextNonVolatileRegister();
+
+                if (register != null)
+                {
+                    instruction.Redirect(new RegisterHandle(register));
+                    register.Value = result;
+                }
+            }
+        });
+    }
+
     public static Unit Channel(Unit unit)
     {
         SimulateMoves(unit);
         SimulateLoads(unit);
         SimulateLifetimes(unit);
+        SimulateRegisterUsage(unit);
         ConnectReturnStatements(unit);
 
         return unit;

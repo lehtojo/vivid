@@ -1,80 +1,17 @@
-Foo {
-    a
-    b
-
-    Foo(x, y) {
-        a = x * x
-        b = y + y
-    }
-
-    sum() {
-        => a + b
-    }
-}
-
-f(a, b) {
-    x = a + a - 1 * b * 7
-    y = a - a * x * b
-    z = x * y
-    => z
+test(a, b) {
+    => a + b
 }
 
 run() {
-    a = 3
-    b = f(1 + a, 2 * a + f(a, (a - 1) * (a + 1)))
-
-    foo = Foo(a, b)
-    c = foo.sum()
-    foo.a = a + a
-
-    if a > a + a {
-        f(a, a)
-    }
-    else if a > 3 {
-        f(a + a, a + a)
-    }
-    else if f(1, 2) < f(2, 3) {
-        => 13434
-    }
-    else {
-        f(a + a, a + a)
-    }
-
-    foo[0] = a[b]
-
-    list = List()
-    list.create(10)
-    list.add(foo)
-
-    loop() {
-        f(a, 2)
-        a = a + 1
-    }
-
-    a = 1 + 2
-    b = 1 + 2
-    c = 1 + 2
-    d = 1 + 2
-    e = 1 + 2
-    f = 1 + 2
-    g = 1 + 2
-    h = 1 + 2
-    i = 1 + 2
-    j = 1 + 2
-    k = 1 + 2
-    l = 1 + 2
-    m = 1 + 2
-    n = 1 + 2
-    o = 1 + 2
-    p = 1 + 2
-    q = 1 + 2
-    r = 1 + 2
-    => a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r
-
-    a = 1 + 2
-	b = 1 + 2
-	c = a + b
-	d = a + b + 1 + 2
-    => d
+    a = 5
+    b = 7
+    c = a * b + 2 * a * 3 * b - a + b + b * 5
+    d = c * b - a * c - 3 * 4 * b * a
+    e = d * c * b * a - a * b + d
+    f = a + 1 + 2 + 3 + 4 + b
+    test(d, e)
+    g = c + d - e * (e - 1) * (e + d) + (a + c)
+    h = 3434 * a + b - e * f + c * 23465
+    i = d - g + 24 * g + f
+    => d * e + g
 }
-

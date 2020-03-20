@@ -9,7 +9,7 @@ public abstract class DualParameterInstruction : Instruction
         Second = second;
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result, First, Second };
     }

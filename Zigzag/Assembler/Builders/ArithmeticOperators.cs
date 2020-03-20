@@ -56,7 +56,7 @@ public static class ArithmeticOperators
 
     public static Result BuildAssignOperator(Unit unit, OperatorNode node) 
     {
-        var left = References.Get(unit, node.Left);
+        var left = References.Get(unit, node.Left, AccessMode.WRITE);
         var right = References.Get(unit, node.Right);
 
         return new AssignInstruction(unit, left, right).Execute();

@@ -1,13 +1,18 @@
 public class MoveInstruction : DualParameterInstruction
 {
+    public const string INSTRUCTION = "mov";
+
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
     public override void Build()
     {
+        // Move shouldn't happen if the source is the same as the destination
+        if (First.Value.Equals(Second.Value)) return;
+
         if (First.Value.Type == HandleType.MEMORY_HANDLE)
         {
             Build(
-                "mov",
+                INSTRUCTION,
                 new InstructionParameter(
                     First,
                     true,
@@ -25,7 +30,7 @@ public class MoveInstruction : DualParameterInstruction
         else
         {
             Build(
-                "mov",
+                INSTRUCTION,
                 new InstructionParameter(
                     First,
                     true,
@@ -42,9 +47,10 @@ public class MoveInstruction : DualParameterInstruction
             );
         }
 
-        if (First.Value is RegisterHandle handle)
+        // Attach the moved to the destination register
+        if (First.Value is RegisterHandle destination)
         {
-            handle.Register.Value = Second;
+            destination.Register.Value = Second;
         }
     }
 

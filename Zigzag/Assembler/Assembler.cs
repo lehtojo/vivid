@@ -14,7 +14,7 @@ public static class Assembler
         {
             if (implementation.Node != null && !implementation.IsEmpty)
             {
-                var unit = new Unit(function);
+                var unit = new Unit(implementation);
 
                 if (function is Constructor constructor)
                 {

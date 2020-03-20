@@ -17,7 +17,7 @@ public class Lifetime
 
 public class Unit
 {
-    private Function Function { get; set; }
+    public FunctionImplementation Function { get; private set; }
     private Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
     private Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
     private List<Register> Registers { get; set; } = new List<Register>();
@@ -29,7 +29,7 @@ public class Unit
     public Result? Self { get; set; }
     public int Position { get; private set; } = 0;
 
-    public Unit(Function function)
+    public Unit(FunctionImplementation function)
     {
         Function = function;
         Registers = new List<Register>()
@@ -40,8 +40,8 @@ public class Unit
             new Register("rdx", RegisterFlag.VOLATILE),
             new Register("rsi"),
             new Register("rdi"),
-            new Register("rbp", RegisterFlag.SPECIALIZED | RegisterFlag.BASE_POINTER),
-            new Register("rsp", RegisterFlag.SPECIALIZED | RegisterFlag.STACK_POINTER),
+            new Register("rbp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
+            new Register("rsp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
             new Register("r8"),
             new Register("r9"),
             new Register("r10"),
@@ -60,6 +60,7 @@ public class Unit
     {
         Instructions.Add(instruction);
         instruction.Position = Instructions.Count - 1;
+        instruction.Result.Lifetime.Start = instruction.Position;
     }
 
     public void Append(string instruction)
@@ -87,7 +88,7 @@ public class Unit
 
     public Label GetNextLabel()
     {
-        return new Label(Function.GetFullname() + $"_L{LabelIndex++}");
+        return new Label(Function.Metadata!.GetFullname() + $"_L{LabelIndex++}");
     }
 
     private void Release(Register register)
@@ -109,23 +110,33 @@ public class Unit
         }
     }
 
+    public Register? GetNextNonVolatileRegister()
+    {
+        var register = NonVolatileRegisters
+            .Find(r => r.IsAvailable(this) && 
+                    (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && 
+                    !Flag.Has(r.Flags, RegisterFlag.RESERVED));
+
+        return register;
+    }
+
     public Register GetNextRegister()
     {
-        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
+        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
 
         if (register != null)
         {
             return register;
         }
 
-        register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
+        //register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
 
-        if (register != null)
+        /*if (register != null)
         {
             return register;
-        }
+        }*/
 
-        register = Registers.Find(r => r.Releasable && !Flag.Has(r.Flags, RegisterFlag.RETURN) && !Flag.Has(r.Flags, RegisterFlag.SPECIALIZED));
+        register = VolatileRegisters.Find(r => r.Releasable && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
 
         if (register != null)
         {

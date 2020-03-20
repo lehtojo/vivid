@@ -37,7 +37,7 @@ public class JumpInstruction : Instruction
         Unit.Append($"{instruction} {Label.GetName()}");
     }
 
-    public override Result[] GetHandles()
+    public override Result[] GetResultReferences()
     {
         return new Result[] { Result };
     }

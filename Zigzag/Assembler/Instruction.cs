@@ -60,7 +60,6 @@ public abstract class Instruction
     public Result Execute()
     {
         Unit.Append(this);
-        Position = Unit.Instructions.Count;
         return Result;
     }
 
@@ -72,6 +71,7 @@ public abstract class Instruction
         }
         else
         {
+            // Get the more preffered options for this parameter
             var prefferable = parameter.GetPrefferableOptions(parameter.Handle.Value.Type);
 
             if (prefferable.Contains(HandleType.REGISTER))
@@ -82,6 +82,12 @@ public abstract class Instruction
                 {
                     return new Result(this, cached);
                 }
+            }
+
+            // If the current parameter is the destination and it is needed later, then it must me copied to another register
+            if (parameter.IsDestination && !parameter.Handle.IsDying(Position))
+            {
+                return Memory.CopyToRegister(Unit, parameter.Handle);
             }
 
             return parameter.Handle;
@@ -98,10 +104,17 @@ public abstract class Instruction
 
             if (parameter.IsDestination)
             {
+                // Set the result to be equal to the destination
                 Result.Set(handle.Value);
 
+                /* If the current parameter is the destination and it is needed later, then it must me copied to another register
+                if (!parameter.Handle.IsDying(Position))
+                {
+                    Memory.GetRegisterFor(Unit, parameter.Handle);
+                }*/
+
                 // Attach result of this operation must be attached to the destination register
-                if (handle.Value is RegisterHandle destination)
+                if (Result.Value is RegisterHandle destination)
                 {
                     destination.Register.Value = Result;
                 }
@@ -123,7 +136,15 @@ public abstract class Instruction
 
             if (parameter.IsDestination)
             {
+                // Set the result to be equal to the destination
                 Result.Set(handle.Value);
+
+                /* If the current parameter is the destination and it is needed later, then it must me copied to another register
+                if (parameter.Handle.Value.Type == HandleType.REGISTER &&
+                    !parameter.Handle.IsDying(Position))
+                {
+                    Memory.GetRegisterFor(Unit, parameter.Handle);
+                }*/
             }
 
             handles.Add(handle);
@@ -168,5 +189,5 @@ public abstract class Instruction
     }
 
     public abstract InstructionType GetInstructionType();
-    public abstract Result[] GetHandles();
+    public abstract Result[] GetResultReferences();
 }
