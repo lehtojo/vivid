@@ -15,6 +15,13 @@ public class Lifetime
     }
 }
 
+public enum UnitMode
+{
+    READ_ONLY_MODE,
+    APPEND_MODE,
+    BUILD_MODE
+}
+
 public class Unit
 {
     public FunctionImplementation Function { get; private set; }
@@ -28,11 +35,12 @@ public class Unit
     private int LabelIndex { get; set; } = 0;
     public Result? Self { get; set; }
     public int Position { get; private set; } = 0;
+    public UnitMode Mode { get; private set; } = UnitMode.READ_ONLY_MODE;
 
     public Unit(FunctionImplementation function)
     {
         Function = function;
-        Registers = new List<Register>()
+        /*Registers = new List<Register>()
         {
             new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
             new Register("rbx"),
@@ -50,14 +58,36 @@ public class Unit
             new Register("r13", RegisterFlag.VOLATILE),
             new Register("r14", RegisterFlag.VOLATILE),
             new Register("r15", RegisterFlag.VOLATILE)
+        };*/
+
+        Registers = new List<Register>()
+        {
+            new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
+            new Register("ebx"),
+            new Register("ecx", RegisterFlag.VOLATILE),
+            new Register("edx", RegisterFlag.VOLATILE),
+            new Register("esi"),
+            new Register("edi"),
+            new Register("ebp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
+            new Register("esp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER)
         };
 
-        NonVolatileRegisters = Registers.FindAll(r => !r.Volatile);
-        VolatileRegisters = Registers.FindAll(r => r.Volatile);
+        NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile);
+        VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
+    }
+
+    private void ExpectMode(UnitMode expected)
+    {
+        if (Mode != expected)
+        {
+            throw new InvalidOperationException("Unit mode didn't match the expected");
+        }
     }
 
     public void Append(Instruction instruction)
     {
+        ExpectMode(UnitMode.APPEND_MODE);
+        
         Instructions.Add(instruction);
         instruction.Position = Instructions.Count - 1;
         instruction.Result.Lifetime.Start = instruction.Position;
@@ -65,12 +95,16 @@ public class Unit
 
     public void Append(string instruction)
     {
+        ExpectMode(UnitMode.BUILD_MODE);
+
         Builder.Append(instruction);
         Builder.AppendLine();
     }
 
     public void Build(Instruction instruction)
     {
+        ExpectMode(UnitMode.BUILD_MODE);
+
         instruction.Build();
     }
 
@@ -84,11 +118,6 @@ public class Unit
         }
 
         return null;
-    }
-
-    public Label GetNextLabel()
-    {
-        return new Label(Function.Metadata!.GetFullname() + $"_L{LabelIndex++}");
     }
 
     private void Release(Register register)
@@ -105,38 +134,49 @@ public class Unit
             var destination = new Result(References.CreateVariableHandle(this, null, variable));
             Build(new MoveInstruction(this, destination, value));
 
-            value.Set(destination.Value);
+            value.Value = destination.Value;
             register.Value = null;
         }
+    }
+
+    public Label GetNextLabel()
+    {
+        return new Label(Function.Metadata!.GetFullname() + $"_L{LabelIndex++}");
     }
 
     public Register? GetNextNonVolatileRegister()
     {
         var register = NonVolatileRegisters
-            .Find(r => r.IsAvailable(this) && 
-                    (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && 
-                    !Flag.Has(r.Flags, RegisterFlag.RESERVED));
+            .Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
         return register;
     }
 
     public Register GetNextRegister()
     {
-        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
+        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
         if (register != null)
         {
             return register;
         }
 
-        //register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
+        register = VolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
-        /*if (register != null)
+        if (register != null)
+        {
+            Release(register);
+            return register;
+        }
+
+        register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+        if (register != null)
         {
             return register;
-        }*/
+        }
 
-        register = VolatileRegisters.Find(r => r.Releasable && (!Function.Returns || !Flag.Has(r.Flags, RegisterFlag.RETURN)) && !Flag.Has(r.Flags, RegisterFlag.RESERVED));
+        register = NonVolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
         if (register != null)
         {
@@ -162,17 +202,43 @@ public class Unit
         return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have return register?");
     }
 
+    public void Execute(UnitMode mode, Action action)
+    {
+        Mode = mode;
 
-    public void Simulate(Action<Instruction> action)
+        try 
+        {
+            action();
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"ERROR: Unit simulation failed: {e}");
+        }
+
+        Mode = UnitMode.READ_ONLY_MODE;
+    }
+
+    public void Simulate(UnitMode mode, Action<Instruction> action)
     {
         Position = 0;
+        Mode = mode;
         
         foreach (var instruction in Instructions)
         {
-            action(instruction);
+            try 
+            {
+                action(instruction);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"ERROR: Unit simulation failed: {e}");
+                break;
+            }
+            
             Position++;
         }
 
+        Mode = UnitMode.READ_ONLY_MODE;
         Registers.ForEach(r => r.Value = null);
     }
 

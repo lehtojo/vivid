@@ -7,7 +7,7 @@ public class FunctionNode : Node, IType
 
 	public bool IsDefinition { get; private set; } = false;
 
-	public Node Parameters => First!;
+	public Node Parameters => this;
 	public Node Body => Last!;
 
 	public FunctionNode(FunctionImplementation function)

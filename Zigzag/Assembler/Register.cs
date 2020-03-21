@@ -15,9 +15,11 @@ public class Register
     public Result? Value { get; set; } = null;
 
     public int Flags { get; private set; }
-    public bool Volatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
-    public bool Specialized => Flag.Has(Flags, RegisterFlag.RESERVED);
-    public bool Releasable => Value == null || Value.Relesable;
+    
+    public bool IsVolatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
+    public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
+    public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
+    public bool IsReleasable => Value == null || Value.Relesable;
 
     public Register(string name, params int[] flags) 
     {

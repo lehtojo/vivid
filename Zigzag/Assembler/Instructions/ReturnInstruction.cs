@@ -1,5 +1,7 @@
 public class ReturnInstruction : Instruction
 {
+    private const string RETURN = "ret";
+
     public Result Object { get; private set; }
 
     public ReturnInstruction(Unit unit, Result value) : base(unit)
@@ -7,17 +9,27 @@ public class ReturnInstruction : Instruction
         Object = value;
     }
 
-    public override void Build()
+    private bool IsObjectInReturnRegister()
     {
-        if (!(Object.Value is RegisterHandle handle && Flag.Has(handle.Register.Flags, RegisterFlag.RETURN)))
-        {
-            Unit.Build(new MoveInstruction(Unit, new Result(new RegisterHandle(Unit.GetStandardReturnRegister())), Object));
-        }
-
-        Unit.Append("ret");
+        return Object.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
     }
 
-    public override Result GetDestination()
+    private Result GetReturnRegister()
+    {
+        return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
+    }
+
+    public override void Build()
+    {
+        if (!IsObjectInReturnRegister())
+        {
+            Unit.Build(new MoveInstruction(Unit, GetReturnRegister(), Object));
+        }
+
+        Unit.Append(RETURN);
+    }
+
+    public override Result GetDestinationDepency()
     {
         return Object;
     }

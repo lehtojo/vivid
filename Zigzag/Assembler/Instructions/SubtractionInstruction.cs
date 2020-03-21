@@ -1,6 +1,11 @@
 public class SubtractionInstruction : DualParameterInstruction
 {
-    public SubtractionInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+    public bool Assigns { get; private set; }
+
+    public SubtractionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
+    {
+        Assigns = assigns;
+    }
 
     public override void Build()
     {
@@ -8,12 +13,12 @@ public class SubtractionInstruction : DualParameterInstruction
             "sub", 
             new InstructionParameter(
                 First,
-                true,
+                ParameterFlag.DESTINATION,
                 HandleType.REGISTER
             ),
             new InstructionParameter(
                 Second,
-                false,
+                ParameterFlag.NONE,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
                 HandleType.MEMORY_HANDLE
@@ -21,7 +26,7 @@ public class SubtractionInstruction : DualParameterInstruction
         );
     }
 
-    public override Result GetDestination()
+    public override Result GetDestinationDepency()
     {
         return First;
     }

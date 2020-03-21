@@ -75,7 +75,7 @@ public class MemoryHandle : Handle
 
     public override void AddUsage(int position)
     {
-        Base.AddUsage(position);
+        Base.Use(position);
     }
 
     public override string ToString()
@@ -128,8 +128,8 @@ public class ComplexMemoryHandle : Handle
 
     public override void AddUsage(int position)
     {
-        Base.AddUsage(position);
-        Offset.AddUsage(position);
+        Base.Use(position);
+        Offset.Use(position);
     }
 
     public override string ToString()

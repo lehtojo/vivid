@@ -23,7 +23,7 @@ public static class Memory
         }
 
         register.Value = value;
-        value.Set(handle);
+        value.Value = handle;
     }
 
     public static Result Convert(Unit unit, Result result, bool move, params HandleType[] types)
@@ -31,7 +31,7 @@ public static class Memory
         return Convert(unit, result, types, move, false);
     }
 
-    public static Result Convert(Unit unit, Result result, HandleType[] types, bool move, bool writable)
+    public static Result Convert(Unit unit, Result result, HandleType[] types, bool move, bool protect)
     {
         foreach (var type in types)
         {
@@ -40,13 +40,13 @@ public static class Memory
                 return result;
             }
 
-            var converted = TryConvert(unit, result, type, writable);
+            var converted = TryConvert(unit, result, type, protect);
 
             if (converted != null)
             {
                 if (move)
                 {
-                    result.Set(converted.Value);
+                    result.Value = converted.Value;
                 }
 
                 return converted;
@@ -56,18 +56,18 @@ public static class Memory
         throw new ArgumentException("Couldn't convert reference to the requested format");
     }
 
-    private static Result? TryConvert(Unit unit, Result result, HandleType type, bool writable)
+    private static Result? TryConvert(Unit unit, Result result, HandleType type, bool protect)
     {
         switch (type)
         {
             case HandleType.REGISTER:
             {
                 var register = unit.TryGetCached(result);
-                var dying = result.IsDying(unit.Position);
+                var dying = result.IsExpiring(unit.Position);
 
                 if (register != null)
                 {
-                    if (writable && !dying)
+                    if (protect && !dying)
                     {
                         return CopyToRegister(unit, new Result(register));
                     }
@@ -79,7 +79,7 @@ public static class Memory
 
                 var destination = CopyToRegister(unit, result);
 
-                if (writable && !dying)
+                if (protect && !dying)
                 {
                     return CopyToRegister(unit, destination);
                 }

@@ -1,19 +1,26 @@
 public class MultiplicationInstruction : DualParameterInstruction
 {
-    public MultiplicationInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+    public bool Assigns { get; private set; }
+
+    public MultiplicationInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
+    {
+        Assigns = assigns;
+    }
 
     public override void Build()
     {
+        var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
+
         Build(
             "imul",
             new InstructionParameter(
                 First,
-                true,
+                flags,
                 HandleType.REGISTER
             ),
             new InstructionParameter(
                 Second,
-                false,
+                ParameterFlag.NONE,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
                 HandleType.MEMORY_HANDLE
@@ -21,7 +28,7 @@ public class MultiplicationInstruction : DualParameterInstruction
         );
     }
 
-    public override Result GetDestination()
+    public override Result GetDestinationDepency()
     {
         return First;
     }

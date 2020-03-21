@@ -22,7 +22,7 @@ public class LabelInstruction : Instruction
         return InstructionType.LABEL;
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;
     }

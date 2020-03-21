@@ -3,12 +3,11 @@ using System;
 
 public static class Assembler 
 {
-    public const string BasePointer = "rbp";
-    public const string StackPointer = "rsp";
+    public const string SEPARATOR = "\n\n\n";
 
     public static string Build(Function function)
     {
-        var builder = new StringBuilder(function.GetFullname() + ":\n");
+        var builder = new StringBuilder();
 
         foreach (var implementation in function.Implementations)
         {
@@ -16,16 +15,20 @@ public static class Assembler
             {
                 var unit = new Unit(implementation);
 
-                if (function is Constructor constructor)
+                unit.Execute(UnitMode.APPEND_MODE, () => 
                 {
-                    Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
-                }
-                else if (function.IsMember)
-                {
-                    unit.Self = new Result(MemoryHandle.FromStack(unit, 8));
-                }
-                
-                Builders.Build(unit, implementation.Node);
+                    if (function is Constructor constructor)
+                    {
+                        Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
+                    }
+                    else if (function.IsMember)
+                    {
+                        unit.Self = new Result(MemoryHandle.FromStack(unit, 8));
+                    }
+
+                    Builders.Build(unit, implementation.Node);
+                });
+
                 Oracle.Channel(unit);
 
                 builder.Append(Translator.Translate(unit));
@@ -34,7 +37,12 @@ public static class Assembler
             builder.AppendLine();
         }
 
-        return builder.ToString();
+        if (builder.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        return function.GetFullname() + ":\n" + builder.ToString();
     }
 
     public static string Build(Context context)
@@ -47,8 +55,8 @@ public static class Assembler
             {
                 if (!Flag.Has(overload.Modifiers, AccessModifier.EXTERNAL))
                 {
-                    builder.Append(Assembler.Build(overload));
-                    builder.AppendLine();
+                    builder.Append(Assembler.Build(overload).TrimEnd());
+                    builder.Append(SEPARATOR);
                 }
             }
         }
@@ -57,13 +65,13 @@ public static class Assembler
         {
             foreach (var overload in type.Constructors.Overloads)
             {
-                builder.Append(Assembler.Build(overload));
-                builder.AppendLine();
+                builder.Append(Assembler.Build(overload).TrimEnd());
+                builder.Append(SEPARATOR);
             }
 
-            builder.Append(Build(type));
+            builder.Append(Build(type).TrimEnd());
         }
 
-        return builder.ToString();
+        return builder.ToString().TrimEnd();
     }
 }

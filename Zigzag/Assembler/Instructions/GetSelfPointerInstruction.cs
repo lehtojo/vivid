@@ -9,7 +9,7 @@ public class GetSelfPointerInstruction : LoadInstruction
 
     public override void Build()
     {
-        if (Result.Value.Type == HandleType.NONE)
+        if (Result.Empty)
         {
             Memory.Convert(Unit, Source, true, HandleType.REGISTER);
             Result.EntangleTo(Source);

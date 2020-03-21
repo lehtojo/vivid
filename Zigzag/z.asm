@@ -1,99 +1,146 @@
-function_test:
-mov rax, [rbp]
-add rax, [rbp+4]
+function_f:
+mov ecx, [ebp]
+lea eax, [ecx+ecx]
+mov edx, 1
+imul edx, [ebp+4]
+imul edx, 7
+sub eax, edx
+mov edx, ecx
+imul edx, eax
+imul edx, [ebp+4]
+sub ecx, edx
+imul eax, ecx
 ret
 
 
 function_run:
-mov rax, 5
-mov r10, 7
-mov rcx, rax
-imul rcx, r10
-mov rdx, 2
-imul rdx, rax
-imul rdx, 3
-imul rdx, r10
-add rcx, rdx
-sub rcx, rax
-add rcx, r10
-mov rdx, r10
-imul rdx, 5
-add rcx, rdx
-mov rdx, rcx
-imul rdx, r10
-mov r12, rax
-imul r12, rcx
-sub rdx, r12
-mov r12, 3
-imul r12, 4
-imul r12, r10
-imul r12, rax
-sub rdx, r12
-mov r12, rdx
-imul r12, rcx
-imul r12, r10
-imul r12, rax
-mov r13, rax
-imul r13, r10
-sub r12, r13
-add r12, rdx
-lea rsi, [rax+1]
-add rsi, 2
-add rsi, 3
-add rsi, 4
-add rsi, r10
-push rdx
-push r12
-call function_test
-lea r13, [rcx+rdx]
-mov r14, r12
-sub r14, 1
-mov r15, r12
-imul r15, r14
-lea r14, [r12+rdx]
-imul r15, r14
-sub r13, r15
-lea r14, [rax+rcx]
-add r13, r14
-mov r14, 3434
-imul r14, rax
-add r14, r10
-mov r15, r12
-imul r15, rsi
-sub r14, r15
-imul rcx, 23465
-add r14, rcx
-mov rcx, rdx
-sub rcx, r13
-mov r14, 24
-imul r14, r13
-add rcx, r14
-add rcx, rsi
-imul rdx, r12
-add rdx, r13
-mov rax, rdx
+mov edi, 3
+mov ecx, 2
+imul ecx, edi
+mov edx, edi
+sub edx, 1
+lea ebx, [edi+1]
+imul edx, ebx
+push edx
+push edi
+call function_f
+add ecx, eax
+push ecx
+mov ecx, 1
+add ecx, edi
+push ecx
+call function_f
+mov ebx, eax
+push ebx
+push edi
+call type_foo_constructor
+mov edi, eax
+push edi
+call type_foo_function_sum
+mov ebx, eax
+lea ecx, [edi+edi]
+mov [edi], ecx
+lea ecx, [edi+edi]
+cmp edi, ecx
+jle function_run_L1
+push edi
+push edi
+call function_f
+jmp function_run_L0
+function_run_L1:
+cmp edi, 3
+jle function_run_L2
+lea ecx, [edi+edi]
+push ecx
+lea ecx, [edi+edi]
+push ecx
+call function_f
+jmp function_run_L0
+function_run_L2:
+push 2
+push 1
+call function_f
+push 3
+push 2
+call function_f
+cmp eax, eax
+jge function_run_L3
+mov eax, 13434
+ret
+jmp function_run_L0
+function_run_L3:
+lea ecx, [edi+edi]
+push ecx
+lea ecx, [edi+edi]
+push ecx
+call function_f
+function_run_L0:
+mov ecx, [edi+ebx*4]
+mov [edi], ecx
+function_run_L4:
+push 2
+push edi
+call function_f
+add edi, eax
+imul edi, 3
+jmp function_run_L4
+mov eax, 1
+add eax, 2
+mov ecx, 1
+add ecx, 2
+lea edx, [eax+ecx]
+add eax, ecx
+add eax, 1
+add eax, 2
 ret
 
 
-type_bool_constructor:
 
-type_byte_constructor:
 
-type_link_constructor:
 
-type_long_constructor:
 
-type_num_constructor:
 
-type_decimal_constructor:
 
-type_short_constructor:
 
-type_tiny_constructor:
 
-type_uint_constructor:
 
-type_ulong_constructor:
 
-type_ushort_constructor:
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+type_foo_constructor:
+push 4
+call allocate
+mov ecx, [ebp+4]
+imul ecx, ecx
+mov [eax], ecx
+mov ecx, [ebp+8]
+add ecx, ecx
+mov [eax+4], ecx
+
+
+type_foo_function_sum:
+mov ecx, [ebp+8]
+mov eax, [ecx]
+add eax, [ecx+4]
+ret

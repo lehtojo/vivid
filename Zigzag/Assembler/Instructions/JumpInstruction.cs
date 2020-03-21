@@ -47,7 +47,7 @@ public class JumpInstruction : Instruction
         return InstructionType.JUMP;
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;
     }

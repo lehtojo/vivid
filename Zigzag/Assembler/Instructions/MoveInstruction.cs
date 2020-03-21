@@ -2,6 +2,8 @@ public class MoveInstruction : DualParameterInstruction
 {
     public const string INSTRUCTION = "mov";
 
+    public bool Loads { get; set; } = false;
+
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
     public override void Build()
@@ -15,13 +17,13 @@ public class MoveInstruction : DualParameterInstruction
                 INSTRUCTION,
                 new InstructionParameter(
                     First,
-                    true,
+                    ParameterFlag.DESTINATION,
                     HandleType.REGISTER,
                     HandleType.MEMORY_HANDLE
                 ),
                 new InstructionParameter(
                     Second,
-                    false,
+                    ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER
                 )
@@ -33,13 +35,13 @@ public class MoveInstruction : DualParameterInstruction
                 INSTRUCTION,
                 new InstructionParameter(
                     First,
-                    true,
+                    ParameterFlag.DESTINATION,
                     HandleType.REGISTER,
                     HandleType.MEMORY_HANDLE
                 ),
                 new InstructionParameter(
                     Second,
-                    false,
+                    ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER,
                     HandleType.MEMORY_HANDLE
@@ -50,11 +52,11 @@ public class MoveInstruction : DualParameterInstruction
         // Attach the moved to the destination register
         if (First.Value is RegisterHandle destination)
         {
-            destination.Register.Value = Second;
+            destination.Register.Value = Loads ? First : Second;
         }
     }
 
-    public override Result GetDestination()
+    public override Result GetDestinationDepency()
     {
         return First;
     }

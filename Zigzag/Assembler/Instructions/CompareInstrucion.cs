@@ -8,12 +8,12 @@ public class CompareInstruction : DualParameterInstruction
             "cmp",
             new InstructionParameter(
                 First,
-                false,
+                ParameterFlag.NONE,
                 HandleType.REGISTER
             ),
             new InstructionParameter(
                 Second,
-                false,
+                ParameterFlag.NONE,
                 HandleType.REGISTER,
                 HandleType.CONSTANT,
                 HandleType.MEMORY_HANDLE
@@ -26,7 +26,7 @@ public class CompareInstruction : DualParameterInstruction
         return InstructionType.COMPARE;
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;   
     }

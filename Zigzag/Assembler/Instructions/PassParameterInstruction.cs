@@ -13,7 +13,7 @@ public class PassParameterInstruction : Instruction
             "push",
             new InstructionParameter(
                 Value,
-                false,
+                ParameterFlag.NONE,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
                 HandleType.MEMORY_HANDLE
@@ -21,7 +21,7 @@ public class PassParameterInstruction : Instruction
         );
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;
     }

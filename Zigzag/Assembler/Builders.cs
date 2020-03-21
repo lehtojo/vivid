@@ -11,6 +11,11 @@ public static class Builders
                 return Calls.Build(unit, (FunctionNode)node);
             }
 
+            case NodeType.INCREMENT_NODE:
+            {
+                return ArithmeticOperators.Build(unit, (IncrementNode)node);
+            }
+
             case NodeType.OPERATOR_NODE:
             {
                 return ArithmeticOperators.Build(unit, (OperatorNode)node);

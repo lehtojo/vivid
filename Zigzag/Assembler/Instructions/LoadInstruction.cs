@@ -23,8 +23,8 @@ public abstract class LoadInstruction : Instruction
 
     public void SetSource(Handle handle)
     {
-        Source.Set(handle);
-        Result.Set(handle);
+        Source.Value = handle;
+        Result.Value = handle;
     }
 
     public override void Build()
@@ -37,7 +37,7 @@ public abstract class LoadInstruction : Instruction
         }
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return Result;
     }

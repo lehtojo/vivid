@@ -1,8 +1,11 @@
-using System.Text;
-
 public class AdditionInstruction : DualParameterInstruction
 {
-    public AdditionInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+    public bool Assigns { get; private set; }
+
+    public AdditionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
+    {
+        Assigns = assigns;
+    }
 
     public override InstructionType GetInstructionType()
     {
@@ -11,18 +14,20 @@ public class AdditionInstruction : DualParameterInstruction
     
     public override void Build()
     {
-        if (First.IsDying(Position))
+        if (First.IsExpiring(Position) || Assigns)
         {
+            var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
+
             Build(
                 "add",
                 new InstructionParameter(
                     First,
-                    true,
+                    flags,
                     HandleType.REGISTER
                 ),
                 new InstructionParameter(
                     Second,
-                    false,
+                    ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER,
                     HandleType.MEMORY_HANDLE
@@ -31,20 +36,18 @@ public class AdditionInstruction : DualParameterInstruction
         }
         else
         {
-            var result = new StringBuilder();
-
             // Form the calculation parameter
             var calculation = Format(
-                result, "[{0}+{1}]",
+                "[{0}+{1}]",
                 new InstructionParameter(
                     First,
-                    false,
+                    ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER
                 ),
                 new InstructionParameter(
                     Second,
-                    false,
+                    ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER
                 )
@@ -60,9 +63,9 @@ public class AdditionInstruction : DualParameterInstruction
         }
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
-        if (First.IsDying(Position))
+        if (First.IsExpiring(Position))
         {
             return First;
         }

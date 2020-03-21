@@ -2,21 +2,38 @@ using System;
 
 public static class ArithmeticOperators
 {
+    public static Result Build(Unit unit, IncrementNode node)
+    {
+        return BuildAdditionOperator(unit, node.Object, new NumberNode(NumberType.INT32, 1), true);
+    }
+
     public static Result Build(Unit unit, OperatorNode node)
     {
         var operation = node.Operator;
-
+        
         if (operation == Operators.ADD)
         {
-            return BuildAdditionOperator(unit, node);
+            return BuildAdditionOperator(unit, node.Left, node.Right);
         }
         else if (operation == Operators.SUBTRACT)
         {
-            return BuildSubtractionOperator(unit, node);
+            return BuildSubtractionOperator(unit, node.Left, node.Right);
         }
         else if (operation == Operators.MULTIPLY)
         {
-            return BuildMultiplicationOperator(unit, node);
+            return BuildMultiplicationOperator(unit, node.Left, node.Right);
+        }
+        else if (operation == Operators.ASSIGN_ADD)
+        {
+            return BuildAdditionOperator(unit, node.Left, node.Right, true);
+        }
+        else if (operation == Operators.ASSIGN_SUBTRACT)
+        {
+            return BuildSubtractionOperator(unit, node.Left, node.Right, true);
+        }
+        else if (operation == Operators.ASSIGN_MULTIPLY)
+        {
+            return BuildMultiplicationOperator(unit, node.Left, node.Right, true);
         }
         else if (operation == Operators.ASSIGN)
         {
@@ -30,28 +47,28 @@ public static class ArithmeticOperators
         throw new ArgumentException("Node not implemented yet");
     } 
 
-    public static Result BuildAdditionOperator(Unit unit, OperatorNode node)
+    public static Result BuildAdditionOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, node.Left);
-        var right = References.Get(unit, node.Right);
+        var left = References.Get(unit, first);
+        var right = References.Get(unit, second);
 
-        return new AdditionInstruction(unit, left, right).Execute();
+        return new AdditionInstruction(unit, left, right, assigns).Execute();
     }
 
-    public static Result BuildSubtractionOperator(Unit unit, OperatorNode node)
+    public static Result BuildSubtractionOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, node.Left);
-        var right = References.Get(unit, node.Right);
+        var left = References.Get(unit, first);
+        var right = References.Get(unit, second);
 
-        return new SubtractionInstruction(unit, left, right).Execute();
+        return new SubtractionInstruction(unit, left, right, assigns).Execute();
     }
 
-    public static Result BuildMultiplicationOperator(Unit unit, OperatorNode node)
+    public static Result BuildMultiplicationOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, node.Left);
-        var right = References.Get(unit, node.Right);
+        var left = References.Get(unit, first);
+        var right = References.Get(unit, second);
 
-        return new MultiplicationInstruction(unit, left, right).Execute();
+        return new MultiplicationInstruction(unit, left, right, assigns).Execute();
     }
 
     public static Result BuildAssignOperator(Unit unit, OperatorNode node) 

@@ -17,20 +17,21 @@ public class CallInstruction : Instruction
         if (Result.Empty)
         {
             // The result is not predefined so the result can just hold the standard return register
-            Result.Set(handle);
+            Result.Value = handle;
         }
         else
         {
-            var source = new Result(handle);
-            source.Lifetime.Start = Result.Lifetime.Start;
-            source.Lifetime.End = Result.Lifetime.End;
+            var move = new MoveInstruction(Unit, Result, new Result(handle));
             
+            // Configure the move so that this instruction's result is attached to the destination
+            move.Loads = true;
+
             // The result is predefined so the value from the source handle must be moved to the predefined result
-            Unit.Build(new MoveInstruction(Unit, Result, source));
+            Unit.Build(move);
         }
     }
 
-    public override Result GetDestination()
+    public override Result GetDestinationDepency()
     {
         return Result;   
     }

@@ -12,7 +12,7 @@ public class GetConstantInstruction : LoadInstruction
         return InstructionType.GET_CONSTANT;
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;   
     }

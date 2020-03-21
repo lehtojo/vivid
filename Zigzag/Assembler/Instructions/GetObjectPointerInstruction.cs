@@ -13,7 +13,7 @@ public class GetObjectPointerInstruction : Instruction
     public override void Build()
     {
         Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
-        Result.Set(new MemoryHandle(Base, Offset));
+        Result.Value = new MemoryHandle(Base, Offset);
     }
 
     public override Result[] GetResultReferences()
@@ -26,7 +26,7 @@ public class GetObjectPointerInstruction : Instruction
         return InstructionType.GET_OBJECT_POINTER;
     }
 
-    public override Result? GetDestination()
+    public override Result? GetDestinationDepency()
     {
         return null;   
     }

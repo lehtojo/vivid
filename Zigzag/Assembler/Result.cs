@@ -15,36 +15,38 @@ public class Result
         }
     }
 
+    private Handle _Value;
+    public Handle Value {
+        get => _Value;
+        set {
+            _Value = value;
+            References.ForEach(r => r._Value = value);
+        }
+    }
+
     public Lifetime Lifetime { get; private set; } = new Lifetime();
-    public Handle Value { get; private set; }
 
     private List<Result> References = new List<Result>();
     private IEnumerable<Result> System => References.Concat(new List<Result>{ this });
 
-    public bool Empty => Value.Type == HandleType.NONE;
+    public bool Empty => _Value.Type == HandleType.NONE;
     public bool Relesable => Metadata is Variable;
 
     public Result(Instruction instruction)
     {
-        Value = new Handle();
+        _Value = new Handle();
         Instruction = instruction;
     }
 
     public Result(Instruction instruction, Handle value)
     {
-        Value = value;
+        _Value = value;
         Instruction = instruction;
     }
 
     public Result(Handle value)
     {
-        Value = value;
-    }
-
-    public void Set(Handle value)
-    {
-        Value = value;
-        References.ForEach(p => p.Value = value);
+        _Value = value;
     }
     
     public void EntangleTo(Result parent)
@@ -77,7 +79,7 @@ public class Result
         parent.References.AddRange(system);
     }
 
-    public bool IsDying(int position)
+    public bool IsExpiring(int position)
     {
         return position == -1 || !Lifetime.IsActive(position + 1);
     }
@@ -87,7 +89,7 @@ public class Result
         return Lifetime.IsActive(position);
     }
 
-    public void AddUsage(int position)
+    public void Use(int position)
     {
         if (position > Lifetime.End)
         {

@@ -2,7 +2,7 @@ public static class Translator
 {
     public static string Translate(Unit unit)
     {
-        unit.Simulate(instruction => 
+        unit.Simulate(UnitMode.BUILD_MODE, instruction => 
         {
             instruction.Build();
         });

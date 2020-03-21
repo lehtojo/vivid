@@ -4,7 +4,7 @@ public static class Oracle
 {
     private static void SimulateMoves(Unit unit)
     {
-        unit.Simulate(i => 
+        unit.Simulate(UnitMode.READ_ONLY_MODE, i => 
         {
             if (i is AssignInstruction assign && 
                 assign.First.Metadata is Variable variable)
@@ -17,7 +17,7 @@ public static class Oracle
 
     private static void SimulateLoads(Unit unit)
     {
-        unit.Simulate(i => 
+        unit.Simulate(UnitMode.READ_ONLY_MODE, i => 
         {
             if (i is GetVariableInstruction v)
             {
@@ -54,25 +54,25 @@ public static class Oracle
             }
             else if (i is GetSelfPointerInstruction s)
             {
-                unit.Self!.AddUsage(unit.Position);
+                unit.Self!.Use(unit.Position);
             }
         });
     }
 
     private static void SimulateLifetimes(Unit unit)
     {
-        unit.Simulate(instruction =>
+        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
         {
             foreach (var handle in instruction.GetResultReferences())
             {
-                handle.AddUsage(unit.Position);
+                handle.Use(unit.Position);
             }
         });
     }
 
     private static void ConnectReturnStatements(Unit unit)
     {
-        unit.Simulate(i =>
+        unit.Simulate(UnitMode.READ_ONLY_MODE, i =>
         {
             if (i is ReturnInstruction instruction)
             {
@@ -85,12 +85,12 @@ public static class Oracle
     {
         var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
 
-        unit.Simulate(instruction => 
+        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction => 
         {
             var result = instruction.Result;
 
             if (functions.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
-                !(result.Value is RegisterHandle handle && !handle.Register.Volatile))
+                !(result.Value is RegisterHandle handle && !handle.Register.IsVolatile))
             {
                 var register = unit.GetNextNonVolatileRegister();
 
@@ -108,8 +108,8 @@ public static class Oracle
         SimulateMoves(unit);
         SimulateLoads(unit);
         SimulateLifetimes(unit);
-        SimulateRegisterUsage(unit);
         ConnectReturnStatements(unit);
+        SimulateRegisterUsage(unit);
 
         return unit;
     }

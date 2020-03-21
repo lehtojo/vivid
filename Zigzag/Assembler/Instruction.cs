@@ -3,24 +3,32 @@ using System.Text;
 using System.Collections.Generic;
 using System;
 
+public static class ParameterFlag
+{
+    public const int NONE = 0;
+    public const int DESTINATION = 1;
+    public const int WRITE_ACCESS = 2;
+}
+
 public struct InstructionParameter
 {
     public Result Handle { get; private set; }
     public HandleType[] Types { get; private set; }
 
     public HandleType PrefferedType => Types[0];
-    public bool IsDestination { get; private set; }
+    public int Flags { get; private set; }
+    public bool IsDestination => Flag.Has(Flags, ParameterFlag.DESTINATION);
+    public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
     public bool IsValid => Types.Contains(Handle.Value.Type);
 
-    public InstructionParameter(Result handle, bool destination, params HandleType[] types)
+    public InstructionParameter(Result handle, int flags, params HandleType[] types)
     {
         if (types == null || types.Length == 0)
         {
             throw new ArgumentException("Instruction parameter types must contain atleast one option");
         }
 
-        IsDestination = destination;
-
+        Flags = flags;
         Handle = handle;
         Types = types;
     }
@@ -65,9 +73,11 @@ public abstract class Instruction
 
     private Result Convert(InstructionParameter parameter)
     {
+        var protect = parameter.IsDestination && parameter.IsProtected;
+
         if (!parameter.IsValid)
         {
-            return Memory.Convert(Unit, parameter.Handle, parameter.Types, false, parameter.IsDestination);
+            return Memory.Convert(Unit, parameter.Handle, parameter.Types, false, protect);
         }
         else
         {
@@ -85,7 +95,7 @@ public abstract class Instruction
             }
 
             // If the current parameter is the destination and it is needed later, then it must me copied to another register
-            if (parameter.IsDestination && !parameter.Handle.IsDying(Position))
+            if (protect && !parameter.Handle.IsExpiring(Position))
             {
                 return Memory.CopyToRegister(Unit, parameter.Handle);
             }
@@ -94,7 +104,7 @@ public abstract class Instruction
         }
     }
 
-    public string Format(StringBuilder builder, string format, params InstructionParameter[] parameters)
+    public string Format(string format, params InstructionParameter[] parameters)
     {
         var handles = new List<Handle>();
 
@@ -105,13 +115,7 @@ public abstract class Instruction
             if (parameter.IsDestination)
             {
                 // Set the result to be equal to the destination
-                Result.Set(handle.Value);
-
-                /* If the current parameter is the destination and it is needed later, then it must me copied to another register
-                if (!parameter.Handle.IsDying(Position))
-                {
-                    Memory.GetRegisterFor(Unit, parameter.Handle);
-                }*/
+                Result.Value = handle.Value;
 
                 // Attach result of this operation must be attached to the destination register
                 if (Result.Value is RegisterHandle destination)
@@ -137,14 +141,7 @@ public abstract class Instruction
             if (parameter.IsDestination)
             {
                 // Set the result to be equal to the destination
-                Result.Set(handle.Value);
-
-                /* If the current parameter is the destination and it is needed later, then it must me copied to another register
-                if (parameter.Handle.Value.Type == HandleType.REGISTER &&
-                    !parameter.Handle.IsDying(Position))
-                {
-                    Memory.GetRegisterFor(Unit, parameter.Handle);
-                }*/
+                Result.Value = handle.Value;
             }
 
             handles.Add(handle);
@@ -171,20 +168,20 @@ public abstract class Instruction
         Unit.Append(result.Remove(result.Length - 1, 1).ToString());
     }
 
-    public abstract Result? GetDestination();
+    public abstract Result? GetDestinationDepency();
     public abstract void Build();
 
-    public void Redirect(Handle handle)
+    public void Redirect(Handle to)
     {
-        var destination = GetDestination();
+        var destination = GetDestinationDepency();
         var previous = (Result?)null;
 
         while (destination != null && destination != previous)
         {
-            destination.Set(handle);
+            destination.Value = to;
 
             previous = destination;
-            destination = destination.Instruction?.GetDestination();
+            destination = destination.Instruction?.GetDestinationDepency();
         }
     }
 

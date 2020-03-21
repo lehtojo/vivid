@@ -30,10 +30,11 @@ fibonacci(iterations) {
     second = 1
     next = 0
 
-    (i < iterations) {
-        i <= 1 {
+    loop (i < iterations) {
+        if i <= 1 {
             next = i
-        } {
+        } 
+        else {
             next = first + second
             first = second
             second = next
@@ -41,12 +42,12 @@ fibonacci(iterations) {
 
         printsln(to_string(next))
 
-        ++i
+        i = i + 1
     }
 }
 
 memcpy(source, destination, count) {
-    (i = 0, i < count, ++i) {
+    loop (i = 0, i < count, ++i) {
         destination[i] = source[i]
     }
 }
