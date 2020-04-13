@@ -4,7 +4,12 @@ public class Bool : Type
 
 	public Bool() : base("bool", AccessModifier.PUBLIC) { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

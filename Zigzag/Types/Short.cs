@@ -4,7 +4,12 @@ public class Short : Number
 
 	public Short() : base(NumberType.INT16, 16, "short") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

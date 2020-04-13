@@ -4,7 +4,12 @@ public class Tiny : Number
 
 	public Tiny() : base(NumberType.INT8, 8, "tiny") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

@@ -4,7 +4,12 @@ public class Byte : Number
 
 	public Byte() : base(NumberType.UINT8, 8, "byte") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

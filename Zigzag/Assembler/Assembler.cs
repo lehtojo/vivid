@@ -4,7 +4,7 @@ using System;
 
 public static class Assembler 
 {
-    public const string SEPARATOR = "\n\n\n";
+    public const string SEPARATOR = "\n\n";
 
     public static string Build(Function function)
     {
@@ -56,9 +56,8 @@ public static class Assembler
                 while (previous != current);
 
                 builder.Append(Translator.Translate(unit));
+                builder.AppendLine();
             }
-            
-            builder.AppendLine();
         }
 
         if (builder.Length == 0)
@@ -79,7 +78,7 @@ public static class Assembler
             {
                 if (!Flag.Has(overload.Modifiers, AccessModifier.EXTERNAL))
                 {
-                    builder.Append(Assembler.Build(overload).TrimEnd());
+                    builder.Append(Assembler.Build(overload));
                     builder.Append(SEPARATOR);
                 }
             }
@@ -89,11 +88,11 @@ public static class Assembler
         {
             foreach (var overload in type.Constructors.Overloads)
             {
-                builder.Append(Assembler.Build(overload).TrimEnd());
+                builder.Append(Assembler.Build(overload));
                 builder.Append(SEPARATOR);
             }
 
-            builder.Append(Build(type).TrimEnd());
+            builder.Append(Build(type));
         }
 
         return Regex.Replace(builder.ToString(), "\n{3,}", "\n\n");

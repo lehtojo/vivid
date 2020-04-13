@@ -4,7 +4,12 @@ public class Ulong : Number
 
 	public Ulong() : base(NumberType.UINT64, 64, "ulong") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public class Type : Context
 {
@@ -11,7 +12,8 @@ public class Type : Context
 
 	public bool IsUnresolved => this is IResolvable;
 
-	public int Size => GetSize();
+	public int ReferenceSize => GetReferenceSize();
+	public int ContentSize => GetContentSize();
 
 	public List<Type> Supertypes { get; private set; } = new List<Type>();
 	public FunctionList Constructors { get; private set; } = new FunctionList();
@@ -77,9 +79,14 @@ public class Type : Context
 		Constructors.Add(Constructor.Empty(this));
 	}
 
-	public virtual int GetSize()
+	public virtual int GetReferenceSize()
 	{
 		return REFERENCE_SIZE;
+	}
+
+	public virtual int GetContentSize()
+	{
+		return Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
 	}
 
 	public bool IsSuperFunctionDeclared(string name)

@@ -5,7 +5,7 @@ public class GetObjectPointerInstruction : Instruction
 
     public GetObjectPointerInstruction(Unit unit, Variable variable, Result @base, int offset) : base(unit)
     {
-        Result.Metadata.Attach(new VariableAttribute(unit, variable));
+        Result.Metadata.Attach(new VariableAttribute(variable, -1));
         Base = @base;
         Offset = offset;
     }

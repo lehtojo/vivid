@@ -1,9 +1,14 @@
+using System;
+
 public static class Constructors
 {
-    public const string FUNCTION_ALLOCATE = "allocate";
-
     public static void CreateHeader(Unit unit, Type type)
     {
-        unit.Self = Calls.Build(unit, FUNCTION_ALLOCATE, new NumberNode(NumberType.INT32, type.Size));
+        if (type.ContentSize == 0)
+        {
+            throw new NotImplementedException("No implementation for empty objects found");
+        }
+
+        unit.Self = Calls.Build(unit, Memory.FUNCTION_ALLOCATE, new NumberNode(NumberType.INT32, type.ContentSize));
     }
 }

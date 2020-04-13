@@ -103,9 +103,7 @@ public static class Oracle
                 var version = unit.GetCurrentVariableVersion(v.Variable);
                 v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable, version));
 
-                if (v.Mode != AccessMode.WRITE &&
-                   (v.Variable.Category == VariableCategory.LOCAL ||
-                    v.Variable.Category == VariableCategory.PARAMETER))
+                if (v.Mode != AccessMode.WRITE && v.Variable.IsPredictable)
                 {
                     unit.Cache(v.Variable, v.Result, false);
                 }

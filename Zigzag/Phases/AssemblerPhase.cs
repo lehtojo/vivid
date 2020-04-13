@@ -117,14 +117,14 @@ public class AssemblerPhase : Phase
 		}
 
 		var parse = bundle.Get<Parse>("parse");
-		var output_assembly = bundle.Get("assembly", false);
+		var only_assembly = bundle.Get("assembly", false);
 
 		var output_file = bundle.Get("output", ConfigurationPhase.DEFAULT_OUTPUT);
 		var source_file = output_file + ".asm";
 		var object_file = output_file + ".obj";
 
 		var context = parse.Context;
-		var assembly = Assembler.Build(context);
+		var assembly = Assembler.Build(context).TrimEnd();
 
 		try
 		{
@@ -135,7 +135,7 @@ public class AssemblerPhase : Phase
 			return Status.Error("Couldn't move generated assembly into a file");
 		}
 
-		if (output_assembly)
+		if (only_assembly)
 		{
 			return Status.OK;
 		}

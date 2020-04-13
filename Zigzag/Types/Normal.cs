@@ -4,7 +4,12 @@ public class Normal : Number
 
 	public Normal() : base(NumberType.INT32, 32, "num") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

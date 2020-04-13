@@ -9,6 +9,6 @@ public static class Arrays
 
         var type = node.GetType() ?? throw new ApplicationException("Couldn't get the memory stride type");
 
-        return new GetMemoryAddressInstruction(unit, @base, offset, type.Size).Execute();
+        return new GetMemoryAddressInstruction(unit, @base, offset, type.ReferenceSize).Execute();
     }
 }

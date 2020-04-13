@@ -2,12 +2,25 @@ using System;
 
 public static class Memory
 {
+    public const string FUNCTION_ALLOCATE = "allocate";
+    
     public static Result CopyToRegister(Unit unit, Result result)
     {
         var register = unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
         
         return new MoveInstruction(unit, destination, result).Execute();
+    }
+
+    public static Result MoveToRegister(Unit unit, Result result)
+    {
+        var register = unit.GetNextRegister();
+        var destination = new Result(new RegisterHandle(register));
+
+        var move = new MoveInstruction(unit, destination, result);
+        move.Mode = MoveMode.RELOCATE;
+        
+        return move.Execute();
     }
 
     public static void GetRegisterFor(Unit unit, Result value)
@@ -75,7 +88,7 @@ public static class Memory
                     }
                 }
 
-                var destination = CopyToRegister(unit, result);
+                var destination = MoveToRegister(unit, result);
 
                 if (protect && !dying)
                 {

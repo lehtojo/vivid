@@ -4,7 +4,12 @@ public class Ushort : Number
 
 	public Ushort() : base(NumberType.UINT16, 16, "ushort") { }
 
-	public override int GetSize()
+	public override int GetReferenceSize()
+	{
+		return BYTES;
+	}
+
+	public override int GetContentSize()
 	{
 		return BYTES;
 	}

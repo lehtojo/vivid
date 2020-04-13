@@ -101,7 +101,7 @@ public class Scope : IDisposable
             {
                 var handle = register.Handle;
 
-                if (handle != null && handle.Metadata.PrimaryAttribute is VariableAttribute attribute)
+                if (handle != null && handle.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsPredictable)
                 {
                     var handles = GetVariableHandles(Unit, attribute.Variable);
 

@@ -11,8 +11,8 @@ public class FunctionImplementation : Context
 	
 	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
 										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
-	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum() +
-									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum());
+	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum() +
+									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum());
 	
 	public Node? Node { get; set; }
 

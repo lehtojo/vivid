@@ -18,7 +18,7 @@ public static class References
 
             case VariableCategory.LOCAL:
             {
-                return MemoryHandle.FromStack(unit, -variable.Alignment - variable.Type!.Size);
+                return MemoryHandle.FromStack(unit, -variable.Alignment - variable.Type!.ReferenceSize);
             }
 
             case VariableCategory.MEMBER:
