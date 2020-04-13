@@ -11,9 +11,9 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/Zigzag.dll",
-            //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
+            "args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
             //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/TheBully.z", "--asm", "--time", "-st" ],
-            "args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SimpleScopeTest.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/States_Conditional.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/States_Loop.z", "--asm", "--time", "-st" ],

@@ -73,7 +73,7 @@ public static class Oracle
             var source = instruction.Second;
 
             // Check if the destination is a variable
-            if (destination.Metadata.PrimaryAttribute is VariableAttribute attribute)
+            if (destination.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsPredictable)
             {
                 unit.Cache(attribute.Variable, instruction.Result, true);
 

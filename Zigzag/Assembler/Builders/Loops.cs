@@ -99,6 +99,9 @@ public static class Loops
             // Build the loop body
             result = Builders.Build(unit, node.Body);
 
+            // Build the loop action
+            Builders.Build(unit, node.Action);
+
             // Restore the state after the body
             merge.Append();
 

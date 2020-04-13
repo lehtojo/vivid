@@ -394,7 +394,7 @@ public class Unit
 
                 if (Scope != instruction.Scope)
                 {
-                    if (instruction.Scope == instruction.Scope.Outer)
+                    if (Scope?.Outer == instruction.Scope)
                     {
                         Scope?.Exit();
                     }

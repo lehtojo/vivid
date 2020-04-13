@@ -63,7 +63,7 @@ public static class Builders
                     iterator = iterator.Next;
                 }
 
-                return reference ?? throw new ArgumentException("Node isn't supported");
+                return reference ?? new Result();
             }
         }
     }

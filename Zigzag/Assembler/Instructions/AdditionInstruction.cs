@@ -21,21 +21,41 @@ public class AdditionInstruction : DualParameterInstruction
         {
             var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
-            Build(
-                "add",
-                new InstructionParameter(
-                    First,
-                    flags,
-                    HandleType.REGISTER
-                ),
-                new InstructionParameter(
-                    Second,
-                    ParameterFlag.NONE,
-                    HandleType.CONSTANT,
-                    HandleType.REGISTER,
-                    HandleType.MEMORY
-                )
-            );
+            if (First.Metadata.IsComplex)
+            {
+                Build(
+                    "add",
+                    new InstructionParameter(
+                        First,
+                        flags,
+                        HandleType.MEMORY
+                    ),
+                    new InstructionParameter(
+                        Second,
+                        ParameterFlag.NONE,
+                        HandleType.CONSTANT,
+                        HandleType.REGISTER
+                    )   
+                );
+            }
+            else
+            {
+                Build(
+                    "add",
+                    new InstructionParameter(
+                        First,
+                        flags,
+                        HandleType.REGISTER
+                    ),
+                    new InstructionParameter(
+                        Second,
+                        ParameterFlag.NONE,
+                        HandleType.CONSTANT,
+                        HandleType.REGISTER,
+                        HandleType.MEMORY
+                    )
+                );
+            } 
         }
         else
         {

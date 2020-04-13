@@ -41,6 +41,7 @@ public class Metadata
     public bool IsVariable => Attributes.Exists(a => a.Type == AttributeType.VARIABLE);
     public bool IsConstant => Attributes.Exists(a => a.Type == AttributeType.CONSTANT);
     public bool IsComplexMemoryAddress => Attributes.Exists(a => a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
+    public bool IsComplex => IsComplexMemoryAddress || (PrimaryAttribute is VariableAttribute attribute && !attribute.Variable.IsPredictable);
     public bool IsDependent => SecondaryAttributes.Any(a => a.Type == AttributeType.VARIABLE || a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
 
     public VariableAttribute this[Variable variable]

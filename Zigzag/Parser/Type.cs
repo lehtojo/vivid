@@ -88,7 +88,7 @@ public class Type : Context
 	{
 		return Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
 	}
-
+	
 	public bool IsSuperFunctionDeclared(string name)
 	{
 		return Supertypes.Any(t => t.IsLocalFunctionDeclared(name));
