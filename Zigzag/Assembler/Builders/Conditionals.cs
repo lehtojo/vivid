@@ -62,7 +62,7 @@ public static class Conditionals
         var result = BuildBody(unit, node.Context, node.Body, end);
 
         // Recover the previous state
-        unit.Append(new RestoreStateInstruction(unit, recovery, false));
+        unit.Append(new RestoreStateInstruction(unit, recovery));
 
         // If the if-statement body is executed it must skip the potential successors
         if (node.Successor != null)
