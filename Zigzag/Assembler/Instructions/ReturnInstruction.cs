@@ -1,35 +1,57 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
 public class ReturnInstruction : Instruction
 {
     private const string RETURN = "ret";
 
-    public Result Object { get; private set; }
+    public Result? Object { get; private set; }
 
-    public ReturnInstruction(Unit unit, Result value) : base(unit)
+    public ReturnInstruction(Unit unit, Result? value) : base(unit)
     {
         Object = value;
     }
 
     private bool IsObjectInReturnRegister()
     {
-        return Object.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
+        return Object!.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
     }
 
     private Result GetReturnRegister()
     {
         return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
     }
-
+    
     public override void Build()
     {
-        if (!IsObjectInReturnRegister())
+        // Ensure that if there's a value to return it's in a return register
+        if (Object != null && !IsObjectInReturnRegister())
         {
-            Unit.Build(new MoveInstruction(Unit, GetReturnRegister(), Object));
+            Unit.Append(new MoveInstruction(Unit, GetReturnRegister(), Object));
         }
-
-        Unit.Append(RETURN);
     }
 
-    public override Result GetDestinationDepency()
+    public void Build(List<Register> recover_registers, int allocated_local_memory)
+    {
+        var builder = new StringBuilder();
+
+        if (allocated_local_memory > 0)
+        {
+            builder.AppendLine($"add {Unit.GetStackPointer()}, {allocated_local_memory}");
+        }
+
+        foreach (var register in recover_registers)
+        {
+            builder.AppendLine($"pop {register}");
+        }
+
+        builder.Append(RETURN);
+
+        Build(builder.ToString());
+    }
+
+    public override Result? GetDestinationDependency()
     {
         return Object;
     }
@@ -41,6 +63,6 @@ public class ReturnInstruction : Instruction
 
     public override Result[] GetResultReferences()
     {
-        return new Result[] { Result, Object };
+        return Object != null ? new Result[] { Result, Object } : new Result[] { Result };
     }
 }

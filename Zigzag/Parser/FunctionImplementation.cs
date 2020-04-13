@@ -6,14 +6,12 @@ public class FunctionImplementation : Context
 {
 	public Function? Metadata { get; set; }
 
-	public new List<Variable> Variables => base.Variables.Values.Concat(Parameters).ToList();
-	
-	public List<Variable> Parameters { get; private set; } = new List<Variable>();
+	public List<Variable> Parameters => Variables.Values.Where(v => v.Category == VariableCategory.PARAMETER).ToList();
 	public List<Type> ParameterTypes => Parameters.Select(p => p.Type!).ToList();
 	
 	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
 										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
-	public int LocalMemorySize => Variables.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum() +
+	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum() +
 									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.Size).Sum());
 	
 	public Node? Node { get; set; }
@@ -47,7 +45,7 @@ public class FunctionImplementation : Context
 		foreach (var properties in parameters)
 		{
 			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC);
-			Parameters.Add(parameter);
+			Variables.Add(parameter.Name, parameter);
 		}
 	}
 

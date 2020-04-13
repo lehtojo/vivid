@@ -1,11 +1,16 @@
 public class StringNode : Node, IType
 {
 	public string Text { get; private set; }
-	public string? Identifier { get; set; }
+	private string? Identifier { get; set; }
 
 	public StringNode(string text)
 	{
 		Text = text;
+	}
+
+	public string GetIdentifier(Unit unit)
+	{
+		return Identifier ?? (Identifier = unit.GetNextString());
 	}
 
 	public new Type? GetType()

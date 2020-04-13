@@ -1,0 +1,23 @@
+square(num) {
+    a = num
+    if num < 0 {
+        a = (0 - num) * (0 - num) * (0 - num)
+    }
+    else if num > 0 {
+        i = 0
+        
+        loop (i < num) {
+            a += num
+            ++i
+        }
+    }
+    else {
+        a = 0
+    }
+
+    => a + num
+}
+
+run() {
+    square(7)
+}

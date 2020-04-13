@@ -4,21 +4,20 @@ public class GetSelfPointerInstruction : LoadInstruction
 {
     public GetSelfPointerInstruction(Unit unit) : base(unit, AccessMode.READ) 
     {
-        Source.EntangleTo(unit.Self ?? throw new ApplicationException("Tried to get self pointer in a non-member function"));
+        Source.Join(unit.Self ?? throw new ApplicationException("Tried to get self pointer in a non-member function"));
     }
 
     public override void Build()
     {
         if (Result.Empty)
         {
-            Memory.Convert(Unit, Source, true, HandleType.REGISTER);
-            Result.EntangleTo(Source);
+            Result.Value = new RegisterHandle(Unit.GetNextRegister());
         }
-        else
-        {
-            Unit.Build(new MoveInstruction(Unit, Result, Source));
-            Source.EntangleTo(Result);
-        }
+
+        var move = new MoveInstruction(Unit, Result, Source);
+        move.Mode = MoveMode.LOAD;
+
+        Unit.Append(move);
     }
 
     public override InstructionType GetInstructionType()

@@ -16,12 +16,12 @@ public class PassParameterInstruction : Instruction
                 ParameterFlag.NONE,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
-                HandleType.MEMORY_HANDLE
+                HandleType.MEMORY
             )
         );
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;
     }

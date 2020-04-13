@@ -5,7 +5,7 @@ public class GetObjectPointerInstruction : Instruction
 
     public GetObjectPointerInstruction(Unit unit, Variable variable, Result @base, int offset) : base(unit)
     {
-        Result.Metadata = variable;
+        Result.Metadata.Attach(new VariableAttribute(unit, variable));
         Base = @base;
         Offset = offset;
     }
@@ -26,7 +26,7 @@ public class GetObjectPointerInstruction : Instruction
         return InstructionType.GET_OBJECT_POINTER;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;   
     }

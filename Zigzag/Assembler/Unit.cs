@@ -1,17 +1,30 @@
 using System.Collections.Generic;
 using System.Text;
 using System;
+using System.Linq;
 
 public class Lifetime
 {
-    public int Start { get; set; } = 0;
+    public int Start { get; set; } = -1;
     public int End { get; set; } = -1;
 
-    public bool Determined => End != -1;
+    public void Reset()
+    {
+        Start = -1;
+        End = -1;
+    }
 
     public bool IsActive(int position)
     {
         return position >= Start && (End == -1 || position <= End);
+    }
+
+    public Lifetime Clone()
+    {
+        return new Lifetime() {
+            Start = Start,
+            End = End
+        };
     }
 }
 
@@ -22,24 +35,67 @@ public enum UnitMode
     BUILD_MODE
 }
 
+public class VariableState
+{
+    public Variable Variable { get; private set; }
+    public Register Register { get; private set; }
+
+    public VariableState(Variable variable, Register register) 
+    {
+        Variable = variable;
+        Register = register;
+    }
+
+    public void Restore(Unit unit)
+    {
+        if (Register.Handle != null) 
+        {
+            throw new ApplicationException("During state restoration one of the registers was conflicted");
+        }
+
+        var current_handle = unit.GetCurrentVariableHandle(Variable);
+
+        if (current_handle != null)
+        {
+            Register.Handle = current_handle;
+            current_handle.Value = new RegisterHandle(Register);
+        }
+    }
+}
+
 public class Unit
 {
+    public bool Optimize = true;
+
     public FunctionImplementation Function { get; private set; }
-    private Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
-    private Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
-    private List<Register> Registers { get; set; } = new List<Register>();
-    private List<Register> NonVolatileRegisters { get; set; } = new List<Register>();
-    private List<Register> VolatileRegisters { get; set; } = new List<Register>();
+    
+    public List<Register> Registers { get; private set; } = new List<Register>();
+    public List<Register> NonVolatileRegisters { get; private set; } = new List<Register>();
+    public List<Register> VolatileRegisters { get; private set; } = new List<Register>();
+    public List<Register> NonReservedRegisters { get; private set; } = new List<Register>();
+    
     public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
+    
     private StringBuilder Builder { get; set; } = new StringBuilder();
+
     private int LabelIndex { get; set; } = 0;
+    private int StringIndex { get; set; } = 0;
+
+    private bool IsReindexingNeeded { get; set; } = false;
+
     public Result? Self { get; set; }
-    public int Position { get; private set; } = 0;
+
+    private Instruction? Anchor { get; set; }
+    public int Position { get; private set; } = -1;
+
+    public Scope? Scope { get; set; }
     public UnitMode Mode { get; private set; } = UnitMode.READ_ONLY_MODE;
 
     public Unit(FunctionImplementation function)
     {
         Function = function;
+
+        // 64-bit:
         /*Registers = new List<Register>()
         {
             new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
@@ -60,6 +116,7 @@ public class Unit
             new Register("r15", RegisterFlag.VOLATILE)
         };*/
 
+        // 32-bit:
         Registers = new List<Register>()
         {
             new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
@@ -74,9 +131,12 @@ public class Unit
 
         NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile);
         VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
+
+        NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
+        NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
     }
 
-    private void ExpectMode(UnitMode expected)
+    public void ExpectMode(UnitMode expected)
     {
         if (Mode != expected)
         {
@@ -84,16 +144,72 @@ public class Unit
         }
     }
 
-    public void Append(Instruction instruction)
+    public int GetCurrentVariableVersion(Variable variable)
     {
-        ExpectMode(UnitMode.APPEND_MODE);
-        
-        Instructions.Add(instruction);
-        instruction.Position = Instructions.Count - 1;
-        instruction.Result.Lifetime.Start = instruction.Position;
+        return Math.Max(GetVariableHandles(variable).FindLastIndex(h => h.IsValid(Position)), 0);
     }
 
-    public void Append(string instruction)
+    /// <summary>
+    /// Returns all variables currently inside registers that are needed at the given instruction position or later
+    /// </summary>
+    public List<VariableState> GetState(int at)
+    {
+        return Registers
+            .FindAll(register => !register.IsAvailable(at) && (register.Handle?.Metadata.IsVariable ?? false))
+            .Select(register => new VariableState(register.Handle!.Metadata.Variables.First().Variable, register)).ToList();
+    }
+
+    public void Set(List<VariableState> state)
+    {
+        // Reset all registers
+        Registers.ForEach(r => r.Reset());
+
+        // Restore all the variables to their own registers
+        state.ForEach(s => s.Restore(this));
+    }
+
+    public void Append(Instruction instruction, bool after = false)
+    {
+        if (Position < 0)
+        {
+            Instructions.Add(instruction);
+            instruction.Position = Instructions.Count - 1;
+        }
+        else
+        {
+            // Find the last instruction with the current position since there can be many
+            var position = Instructions.IndexOf(Anchor!);
+
+            if (position == -1)
+            {
+                position = Position;
+            }
+
+            if (after)
+            {
+                position++;
+            }
+
+            Instructions.Insert(position, instruction);
+            instruction.Position = Position;
+
+            IsReindexingNeeded = true;
+        }
+
+        instruction.Scope = Scope;
+        instruction.Result.Lifetime.Start = instruction.Position;
+
+        if (Mode == UnitMode.BUILD_MODE)
+        {
+            var previous = Anchor;
+            
+            Anchor = instruction;
+            instruction.TryBuild();
+            Anchor = previous;
+        }
+    }
+
+    public void Write(string instruction)
     {
         ExpectMode(UnitMode.BUILD_MODE);
 
@@ -101,16 +217,9 @@ public class Unit
         Builder.AppendLine();
     }
 
-    public void Build(Instruction instruction)
+    public RegisterHandle? TryGetCached(Result handle, bool write)
     {
-        ExpectMode(UnitMode.BUILD_MODE);
-
-        instruction.Build();
-    }
-
-    public RegisterHandle? TryGetCached(Result handle)
-    {
-        var register = Registers.Find(r => (r.Value != null) ? r.Value.Value == handle.Value : false);
+        var register = Registers.Find(r => (r.Handle != null) ? r.Handle.Value == handle.Value : false);
         
         if (register != null)
         {
@@ -120,23 +229,30 @@ public class Unit
         return null;
     }
 
-    private void Release(Register register)
+    public void Release(Register register)
     {
-        var value = register.Value;
+        var value = register.Handle;
 
-        if (value == null)
+        if (value == null || !value.IsReleasable())
         {
-            throw new ArgumentException("Release called with an empty register");
+            return;
         }
 
-        if (value.Metadata is Variable variable)
-        {
-            var destination = new Result(References.CreateVariableHandle(this, null, variable));
-            Build(new MoveInstruction(this, destination, value));
+        // Get all the variables that this value represents
+        var attributes = value.Metadata.Variables;
 
-            value.Value = destination.Value;
-            register.Value = null;
+        foreach (var attribute in attributes)
+        {
+            var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
+            
+            var move = new MoveInstruction(this, destination, value);
+            move.Mode = MoveMode.RELOCATE;
+            
+            Append(move);
         }
+
+        // Now the register is ready for use
+        register.Reset();
     }
 
     public Label GetNextLabel()
@@ -144,17 +260,44 @@ public class Unit
         return new Label(Function.Metadata!.GetFullname() + $"_L{LabelIndex++}");
     }
 
-    public Register? GetNextNonVolatileRegister()
+    public string GetNextString()
+    {
+        return $"S{StringIndex++}";
+    }
+
+#region Registers
+
+    public Register? GetNextNonVolatileRegister(bool release = true)
     {
         var register = NonVolatileRegisters
-            .Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+            .Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
-        return register;
+        if (register != null || !release)
+        {
+            return register;
+        }
+
+        register = NonVolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+        if (register != null)
+        {
+            Release(register);
+            return register;
+        }
+
+        return null;
     }
 
     public Register GetNextRegister()
     {
-        var register = VolatileRegisters.Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+        var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+        if (register != null)
+        {
+            return register;
+        }
+
+        register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
         if (register != null)
         {
@@ -165,14 +308,8 @@ public class Unit
 
         if (register != null)
         {
+            /// TODO: Handle member variables, for example their base handle is not passed
             Release(register);
-            return register;
-        }
-
-        register = NonVolatileRegisters.Find(r => r.IsAvailable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
-
-        if (register != null)
-        {
             return register;
         }
 
@@ -180,6 +317,7 @@ public class Unit
 
         if (register != null)
         {
+            /// TODO: Handle member variables, for example their base handle is not passed
             Release(register);
             return register;
         }
@@ -202,9 +340,19 @@ public class Unit
         return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have return register?");
     }
 
+    public void Reset()
+    {
+        Registers.ForEach(r => r.Reset(true));
+    }
+
+#endregion
+
+#region Interaction
+
     public void Execute(UnitMode mode, Action action)
     {
         Mode = mode;
+        Position = -1;
 
         try 
         {
@@ -215,18 +363,41 @@ public class Unit
             Console.Error.WriteLine($"ERROR: Unit simulation failed: {e}");
         }
 
+        if (IsReindexingNeeded)
+        {
+            Reindex();
+        }
+
         Mode = UnitMode.READ_ONLY_MODE;
     }
 
     public void Simulate(UnitMode mode, Action<Instruction> action)
     {
-        Position = 0;
         Mode = mode;
+        Position = 0;
+        Scope = null;
         
-        foreach (var instruction in Instructions)
+        Reset();
+
+        var instructions = new List<Instruction>(Instructions);
+        
+        foreach (var instruction in instructions)
         {
             try 
             {
+                if (instruction.Scope == null)
+                {
+                    throw new ApplicationException("Instruction was missing its scope");
+                }
+
+                Anchor = instruction;
+
+                if (Scope != instruction.Scope)
+                {
+                    Scope?.Exit();
+                    instruction.Scope.Enter(this);
+                }
+
                 action(instruction);
             }
             catch (Exception e)
@@ -238,12 +409,20 @@ public class Unit
             Position++;
         }
 
+        if (IsReindexingNeeded)
+        {
+            Reindex();
+        }
+
+        // Reset the state after this simulation
         Mode = UnitMode.READ_ONLY_MODE;
-        Registers.ForEach(r => r.Value = null);
     }
+
+#endregion
 
     public void Cache(Variable variable, Result result, bool invalidate)
     {
+        // Get all cached versions of this variable
         var handles = GetVariableHandles(variable);
         var position = handles.FindIndex(0, handles.Count, h => h.Lifetime.Start >= Position);
 
@@ -272,6 +451,7 @@ public class Unit
             }
 
             result.Lifetime.End = handles[position].Lifetime.Start;
+
             handles.Insert(position, result);
         }
     }
@@ -286,62 +466,40 @@ public class Unit
 
     public List<Result> GetVariableHandles(Variable variable)
     {
-        if (Variables.TryGetValue(variable, out List<Result>? elements))
-        {
-            if (elements == null)
-            {
-                throw new Exception("Variable reference list was null");
-            }
-
-            return elements;
-        }
-        else
-        {
-            var handles = new List<Result>();
-            Variables.Add(variable, handles);
-
-            return handles;
-        }
+        return Scope?.GetVariableHandles(this, variable) ?? throw new ApplicationException("Couldn't get variable reference list");
     }
 
     public List<Result> GetConstantHandles(object constant)
     {
-        if (Constants.TryGetValue(constant, out List<Result>? elements))
-        {
-            if (elements == null)
-            {
-                throw new Exception("Constant reference list was null");
-            }
-
-            return elements;
-        }
-        else
-        {
-            var handles = new List<Result>();
-            Constants.Add(constant, handles);
-
-            return handles;
-        }
+        return Scope?.GetConstantHandles(constant) ?? throw new ApplicationException("Couldn't get constant reference list");
     }
 
-    public List<Result> GetValidVariableHandles(Variable variable)
+    public Result? GetCurrentVariableHandle(Variable variable)
     {
-        var handles = GetVariableHandles(variable).FindAll(h => h.IsAlive(Position));
-        handles.Reverse();
-        
-        return handles;
+        var handles = GetVariableHandles(variable).FindAll(h => h.IsValid(Position));
+        return handles.Count == 0 ? null : handles.Last();
     }
 
-    public List<Result> GetValidConstantHandles(object constant)
+    public Result? GetCurrentConstantHandle(object constant)
     {
-        var handles = GetConstantHandles(constant).FindAll(h => h.IsAlive(Position));
-        handles.Reverse();
-        
-        return handles;
+        var handles = GetConstantHandles(constant).FindAll(h => h.IsValid(Position));
+        return handles.Count == 0 ? null : handles.Last();
     }
 
     public string Export()
     {
-        return Builder.ToString().Replace("\n\n", "\n");
+        return Builder.ToString();
+    }
+
+    private void Reindex()
+    {
+        Position = 0;
+
+        foreach (var instruction in Instructions)
+        {
+            instruction.Position = Position++;
+        }
+
+        IsReindexingNeeded = false;
     }
 }

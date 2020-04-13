@@ -13,9 +13,17 @@ public class Variable
 
 	public int Alignment { get; set; }
 
-	public List<Node> References = new List<Node>();
+	public List<Node> References { get; private set; } = new List<Node>();
+	public List<Node> Edits { get; private set; } = new List<Node>();
+	public List<Node> Reads { get; private set; } = new List<Node>();
+	
+	public bool IsEdited => Edits.Count > 0;
+	public bool IsRead => Reads.Count > 0;
+	public bool IsUsed => References.Count > 1;
 
 	public bool IsUnresolved => Type == Types.UNKNOWN || Type is IResolvable;
+	
+	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, int length = 0)
 	{

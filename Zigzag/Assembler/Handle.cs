@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public enum HandleType
 {
-    MEMORY_HANDLE,
+    MEMORY,
     CONSTANT,
     REGISTER,
     NONE
@@ -23,11 +23,48 @@ public class Handle
         Type = type;
     }
 
-    public virtual void AddUsage(int position) {}
+    public T? As<T>() where T : Handle 
+    {
+        return this as T;
+    }
+
+    public T To<T>() where T : Handle 
+    {
+        return (T)this;
+    }
+
+    public virtual void Use(int position) {}
 
     public override string ToString()
     {
         throw new NotImplementedException("Missing text conversion from handle");
+    }
+}
+
+public class DataSectionHandle : Handle
+{
+    public string Identifier { get; private set; }
+
+    public DataSectionHandle(string identifier) : base(HandleType.MEMORY)
+    {
+        Identifier = identifier;
+    }
+
+    public override string ToString()
+    {
+        return $"[{Identifier}]";
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is DataSectionHandle handle &&
+               Type == handle.Type &&
+               Identifier == handle.Identifier;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Type, Identifier);
     }
 }
 
@@ -67,13 +104,13 @@ public class MemoryHandle : Handle
         return new MemoryHandle(new Result(new RegisterHandle(unit.GetBasePointer())), offset);
     }
 
-    public MemoryHandle(Result @base, int offset) : base(HandleType.MEMORY_HANDLE)
+    public MemoryHandle(Result @base, int offset) : base(HandleType.MEMORY)
     {
         Base = @base;
         Offset = offset;
     }
 
-    public override void AddUsage(int position)
+    public override void Use(int position)
     {
         Base.Use(position);
     }
@@ -119,14 +156,14 @@ public class ComplexMemoryHandle : Handle
     public Result Offset { get; private set; }
     public int Stride { get; private set; }
 
-    public ComplexMemoryHandle(Result @base, Result offset, int stride) : base(HandleType.MEMORY_HANDLE)
+    public ComplexMemoryHandle(Result @base, Result offset, int stride) : base(HandleType.MEMORY)
     {
         Base = @base;
         Offset = offset;
         Stride = stride;
     }
 
-    public override void AddUsage(int position)
+    public override void Use(int position)
     {
         Base.Use(position);
         Offset.Use(position);

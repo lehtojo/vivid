@@ -1,0 +1,16 @@
+f(a, b) {
+    o = 0
+
+    if a + f(a - o, b + o) > b {
+        x = a + a
+        z = x * x
+        o = 3 * z + x + f(x, a)
+    }
+
+    c = a + b - o
+    => c
+}
+
+run() {
+    f(1, 2)
+}

@@ -7,7 +7,7 @@ public enum AccessMode
 public abstract class LoadInstruction : Instruction
 {
     public AccessMode Mode { get; private set; }
-    public Result Source { get; private set; } = new Result(new Handle());
+    public Result Source { get; set; } = new Result();
 
     public LoadInstruction(Unit unit, AccessMode mode) : base(unit) 
     {
@@ -16,28 +16,39 @@ public abstract class LoadInstruction : Instruction
 
     public void Connect(Result result)
     {
-        Result.EntangleTo(result);
+        Result.Join(result);
+
+        /// TODO: Probably useless
         Result.Instruction = result.Instruction;
-        Source.EntangleTo(result);
+
+        Source.Join(result);
     }
 
-    public void SetSource(Handle handle)
+    public void SetSource(Handle handle, MetadataAttribute? attribute = null)
     {
         Source.Value = handle;
         Result.Value = handle;
+
+        if (attribute != null)
+        {
+            Source.Metadata.Attach(attribute);
+            Result.Metadata.Attach(attribute);
+        }
     }
 
     public override void Build()
     {
         if (Mode != AccessMode.WRITE && !Result.Value.Equals(Source.Value))
         {
+            var move = new MoveInstruction(Unit, Result, Source);
+            move.Mode = MoveMode.LOAD;
+
             // Since the source is not where it should be, it must be moved to the result 
-            Unit.Build(new MoveInstruction(Unit, Result, Source));
-            Source.EntangleTo(Result);
+            Unit.Append(move);
         }
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return Result;
     }

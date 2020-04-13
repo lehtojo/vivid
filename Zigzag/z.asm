@@ -1,146 +1,137 @@
-function_f:
-mov ecx, [ebp]
-lea eax, [ecx+ecx]
-mov edx, 1
-imul edx, [ebp+4]
-imul edx, 7
-sub eax, edx
-mov edx, ecx
-imul edx, eax
-imul edx, [ebp+4]
-sub ecx, edx
-imul eax, ecx
+function_square:
+push edi
+push [S0]
+call type_string_constructor
+mov edi, eax
+push 21
+push edi
+call type_string_function_append
+push edi
+call function_prints
+push [S1]
+push 1
+push edi
+call type_string_function_insert
+pop edi
 ret
-
 
 function_run:
-mov edi, 3
-mov ecx, 2
-imul ecx, edi
-mov edx, edi
-sub edx, 1
-lea ebx, [edi+1]
-imul edx, ebx
-push edx
-push edi
-call function_f
-add ecx, eax
-push ecx
-mov ecx, 1
-add ecx, edi
-push ecx
-call function_f
-mov ebx, eax
-push ebx
-push edi
-call type_foo_constructor
-mov edi, eax
-push edi
-call type_foo_function_sum
-mov ebx, eax
-lea ecx, [edi+edi]
-mov [edi], ecx
-lea ecx, [edi+edi]
-cmp edi, ecx
-jle function_run_L1
-push edi
-push edi
-call function_f
-jmp function_run_L0
-function_run_L1:
-cmp edi, 3
-jle function_run_L2
-lea ecx, [edi+edi]
-push ecx
-lea ecx, [edi+edi]
-push ecx
-call function_f
-jmp function_run_L0
-function_run_L2:
-push 2
-push 1
-call function_f
-push 3
-push 2
-call function_f
-cmp eax, eax
-jge function_run_L3
-mov eax, 13434
-ret
-jmp function_run_L0
-function_run_L3:
-lea ecx, [edi+edi]
-push ecx
-lea ecx, [edi+edi]
-push ecx
-call function_f
-function_run_L0:
-mov ecx, [edi+ebx*4]
-mov [edi], ecx
-function_run_L4:
-push 2
-push edi
-call function_f
-add edi, eax
-imul edi, 3
-jmp function_run_L4
-mov eax, 1
-add eax, 2
-mov ecx, 1
-add ecx, 2
-lea edx, [eax+ecx]
-add eax, ecx
-add eax, 1
-add eax, 2
+push 7
+call function_square
 ret
 
+function_prints:
+push esi
+mov esi, [ebp]
+push esi
+call type_string_function_length
+push eax
+push esi
+call type_string_function_data
+push eax
+call function_sys_print
+pop esi
+ret
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-type_foo_constructor:
+type_string_constructor:
 push 4
 call allocate
-mov ecx, [ebp+4]
-imul ecx, ecx
-mov [eax], ecx
+mov ecx, eax
+mov edx, [ebp+4]
+mov [ecx], edx
+ret
+
+type_string_function_append:
+push esi
+push edi
 mov ecx, [ebp+8]
-add ecx, ecx
-mov [eax+4], ecx
+push ecx
+call type_string_function_length
+mov edi, eax
+lea ecx, [edi+2]
+push ecx
+call function_allocate
+mov esi, eax
+push esi
+push edi
+mov ecx, [ebp+8]
+push [ecx]
+call function_copy
+mov ecx, [ebp+4]
+mov [esi+edi*4], ecx
+add edi, 1
+mov [esi+edi*4], 0
+push esi
+mov ecx, [ebp+8]
+push ecx
+call type_string_constructor
+pop edi
+pop esi
+ret
 
+type_string_function_insert:
+push ebx
+push esi
+push edi
+mov ecx, [ebp+8]
+push ecx
+call type_string_function_length
+mov edi, eax
+lea ecx, [edi+2]
+push ecx
+call function_allocate
+mov esi, eax
+push esi
+push [ebp+4]
+mov ecx, [ebp+8]
+push [ecx]
+call function_copy
+mov ecx, [ebp+4]
+lea edx, [ecx+1]
+push edx
+push esi
+mov edx, edi
+sub edx, ecx
+push edx
+mov edx, [ebp+8]
+push [edx]
+mov ebx, ecx
+call function_offset_copy
+mov edx, [ebp+8]
+mov [esi+ecx*4], edx
+add edi, 1
+mov [esi+edi*4], 0
+push esi
+mov ecx, [ebp+8]
+push ecx
+call type_string_constructor
+pop edi
+pop esi
+pop ebx
+ret
 
-type_foo_function_sum:
+type_string_function_data:
 mov ecx, [ebp+8]
 mov eax, [ecx]
-add eax, [ecx+4]
+ret
+
+type_string_function_length:
+push ebx
+mov eax, [ebp-4]
+mov ecx, [ebp+8]
+type_string_function_length_L0:
+mov ecx, [ebp+8]
+mov edx, [ecx]
+mov ebx, [edx+eax*4]
+cmp ebx, 0
+jne type_string_function_length_L1
+mov ecx, [ebp+8]
+pop ebx
+ret
+mov [ebp-4], eax
+type_string_function_length_L1:
+add eax, 1
+mov [ebp-4], eax
+jmp type_string_function_length_L0
+pop ebx
 ret

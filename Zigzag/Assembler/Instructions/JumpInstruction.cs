@@ -25,7 +25,7 @@ public class JumpInstruction : Instruction
 
     public JumpInstruction(Unit unit, Result comparison, ComparisonOperator comparator, bool invert, Label label) : base(unit)
     {
-        Result.EntangleTo(comparison);
+        Result.Join(comparison);
 
         Label = label;
         Comparator = invert ? comparator.Counterpart : comparator;    
@@ -34,7 +34,7 @@ public class JumpInstruction : Instruction
     public override void Build()
     {
         var instruction = Comparator == null ? "jmp" : Instructions[Comparator];
-        Unit.Append($"{instruction} {Label.GetName()}");
+        Build($"{instruction} {Label.GetName()}");
     }
 
     public override Result[] GetResultReferences()
@@ -47,7 +47,7 @@ public class JumpInstruction : Instruction
         return InstructionType.JUMP;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;
     }

@@ -5,28 +5,10 @@ using System.Text;
 
 public class ResolverPhase : Phase
 {
-	/*private static void Complain(List<string> errors)
-	{
-		foreach (var error in errors)
-		{
-			Console.Error.WriteLine($"ERROR: {error}");
-		}
-	}*/
-
 	private static void Complain(string report)
 	{
 		Console.Error.WriteLine(report);
 	}
-
-	/*
-	 *	Global function 'run':
-	 *	ERROR: Couldn't resolve type of variable 'thread'
-	 *	ERROR: Couldn't resolve function or constructor 'Thread'
-	 * 
-	 *	Terminated: Compilation failed
-	 *	
-	 *	Time: 199ms
-	 */
 
 	private static string GetFunctionReport(FunctionImplementation implementation)
 	{
@@ -45,7 +27,7 @@ public class ResolverPhase : Phase
 		var errors = implementation.Node?.FindAll(n => n is IResolvable).Cast<IResolvable>()
 			.Select(r => r.GetStatus()).Where(s => s.IsProblematic).ToList() ?? throw new ArgumentException("Tried to take function report from function that wasn't implemented");
 
-		foreach (var variable in implementation.Variables)
+		foreach (var variable in implementation.Variables.Values)
 		{
 			if (variable.IsUnresolved)
 			{
@@ -72,7 +54,7 @@ public class ResolverPhase : Phase
 
 		foreach (var variable in context.Variables.Values)
 		{
-			if (variable.IsUnresolved)
+			if (variable.IsUsed && variable.IsUnresolved)
 			{
 				if (variable.Context.IsType)
 				{
@@ -147,7 +129,7 @@ public class ResolverPhase : Phase
 			}
 		}
 
-		// The program mustn't continue if the resolver phase failed
+		// The compiler must not continue if the resolver phase has failed
 		if (report.Length > 0)
 		{
 			Complain(report);

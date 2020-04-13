@@ -1,23 +1,22 @@
 public class AssignInstruction : DualParameterInstruction
 {
-    public const string COMPLEX_MEMORY_ADDRESS = "Complex Memory Address";
-    
     public AssignInstruction(Unit unit, Result first, Result second) : base(unit, first, second) 
     {
-        Result.EntangleTo(Second);
+        Result.Join(Second);
     }
 
     public override void Build() 
     {
-        if (First.Metadata.Equals(COMPLEX_MEMORY_ADDRESS) || 
-            First.Metadata is Variable variable && 
-            variable.Category == VariableCategory.MEMBER)
+        if (!Unit.Optimize ||
+            First.Metadata.IsComplexMemoryAddress || 
+            First.Metadata.PrimaryAttribute is VariableAttribute attribute && 
+            attribute.Variable.Category == VariableCategory.MEMBER)
         {
-            Unit.Build(new MoveInstruction(Unit, First, Second));
+            Unit.Append(new MoveInstruction(Unit, First, Second));
         }
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;   
     }

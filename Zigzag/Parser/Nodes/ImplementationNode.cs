@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-public class ImplementationNode : Node
+﻿public class ImplementationNode : Node
 {
 	public FunctionImplementation Implementation { get; private set; }
 

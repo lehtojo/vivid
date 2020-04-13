@@ -5,6 +5,7 @@ public class GetConstantInstruction : LoadInstruction
     public GetConstantInstruction(Unit unit, object value) : base(unit, AccessMode.READ)
     {
         Value = value;
+        SetSource(References.CreateConstantNumber(unit, value));
     }
 
     public override InstructionType GetInstructionType()
@@ -12,7 +13,7 @@ public class GetConstantInstruction : LoadInstruction
         return InstructionType.GET_CONSTANT;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;   
     }

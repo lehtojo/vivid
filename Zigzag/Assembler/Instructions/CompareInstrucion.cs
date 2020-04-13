@@ -16,7 +16,7 @@ public class CompareInstruction : DualParameterInstruction
                 ParameterFlag.NONE,
                 HandleType.REGISTER,
                 HandleType.CONSTANT,
-                HandleType.MEMORY_HANDLE
+                HandleType.MEMORY
             )
         );
     }
@@ -26,7 +26,7 @@ public class CompareInstruction : DualParameterInstruction
         return InstructionType.COMPARE;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;   
     }

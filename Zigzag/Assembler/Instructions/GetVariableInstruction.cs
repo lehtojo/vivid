@@ -8,6 +8,8 @@ public class GetVariableInstruction : LoadInstruction
     {
         Self = self;
         Variable = variable;
+        
+        SetSource(References.CreateVariableHandle(unit, Self, variable));
     }
     
     public override InstructionType GetInstructionType()

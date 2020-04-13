@@ -2,14 +2,12 @@ using System;
 
 public static class Memory
 {
-    public static Result CopyToRegister(Unit unit, Result source)
+    public static Result CopyToRegister(Unit unit, Result result)
     {
         var register = unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
         
-        unit.Build(new MoveInstruction(unit, destination, source));
-
-        return destination;
+        return new MoveInstruction(unit, destination, result).Execute();
     }
 
     public static void GetRegisterFor(Unit unit, Result value)
@@ -17,12 +15,12 @@ public static class Memory
         var register = unit.GetNextRegister();
         var handle = new RegisterHandle(register);
 
-        if (!register.IsAvailable(unit))
+        if (!register.IsAvailable(unit.Position))
         {
             throw new NotImplementedException("Register values cannot be yet saved");
         }
 
-        register.Value = value;
+        register.Handle = value;
         value.Value = handle;
     }
 
@@ -62,7 +60,7 @@ public static class Memory
         {
             case HandleType.REGISTER:
             {
-                var register = unit.TryGetCached(result);
+                var register = unit.TryGetCached(result, !protect);
                 var dying = result.IsExpiring(unit.Position);
 
                 if (register != null)
@@ -85,6 +83,11 @@ public static class Memory
                 }
 
                 return destination;
+            }
+
+            case HandleType.NONE:
+            {
+                throw new ApplicationException("Tried to convert none-handle");
             }
 
             default: return null;

@@ -49,7 +49,7 @@ public static class ArithmeticOperators
 
     public static Result BuildAdditionOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, first);
+        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
         var right = References.Get(unit, second);
 
         return new AdditionInstruction(unit, left, right, assigns).Execute();
@@ -57,7 +57,7 @@ public static class ArithmeticOperators
 
     public static Result BuildSubtractionOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, first);
+        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
         var right = References.Get(unit, second);
 
         return new SubtractionInstruction(unit, left, right, assigns).Execute();
@@ -65,7 +65,7 @@ public static class ArithmeticOperators
 
     public static Result BuildMultiplicationOperator(Unit unit, Node first, Node second, bool assigns = false)
     {
-        var left = References.Get(unit, first);
+        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
         var right = References.Get(unit, second);
 
         return new MultiplicationInstruction(unit, left, right, assigns).Execute();

@@ -4,7 +4,10 @@ public class AdditionInstruction : DualParameterInstruction
 
     public AdditionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
     {
-        Assigns = assigns;
+        if (Assigns = assigns)
+        {
+            Result.Metadata = First.Metadata;
+        }
     }
 
     public override InstructionType GetInstructionType()
@@ -30,7 +33,7 @@ public class AdditionInstruction : DualParameterInstruction
                     ParameterFlag.NONE,
                     HandleType.CONSTANT,
                     HandleType.REGISTER,
-                    HandleType.MEMORY_HANDLE
+                    HandleType.MEMORY
                 )
             );
         }
@@ -59,11 +62,11 @@ public class AdditionInstruction : DualParameterInstruction
                 Memory.GetRegisterFor(Unit, Result);
             }
 
-            Unit.Append($"lea {Result}, {calculation}");
+            Build($"lea {Result}, {calculation}");
         }
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         if (First.IsExpiring(Position))
         {

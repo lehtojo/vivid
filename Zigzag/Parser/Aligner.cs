@@ -40,8 +40,11 @@ public class Aligner
 		// Member variables:
 		foreach (var variable in type.Variables.Values)
 		{
-			variable.Alignment = position;
-			position += variable.Type!.Size;
+			if (variable.IsUsed)
+			{
+				variable.Alignment = position;
+				position += variable.Type!.Size;
+			}
 		}
 
 		// Member functions:

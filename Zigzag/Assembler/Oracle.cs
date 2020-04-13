@@ -2,70 +2,156 @@ using System.Linq;
 
 public static class Oracle
 {
-    private static void SimulateMoves(Unit unit)
+    private static void DifferentiateDependencies(Unit unit, Result result)
     {
-        unit.Simulate(UnitMode.READ_ONLY_MODE, i => 
+        // Get all variable dependencies
+        var dependencies = result.Metadata.SecondaryAttributes
+            .Where(a => a.Type == AttributeType.VARIABLE)
+            .Select(a => (VariableAttribute)a);
+
+        // Ensure there is dependencies
+        if (dependencies.Count() == 0)
         {
-            if (i is AssignInstruction assign && 
-                assign.First.Metadata is Variable variable)
+            return;
+        }
+
+        // Duplicate the current result and share it between the dependencies
+        var duplicate = new DuplicateInstruction(unit, result).Execute();
+
+        foreach (var dependency in dependencies)
+        {
+            // Redirect the dependency to the result of the duplication
+            unit.Cache(dependency.Variable, duplicate, true);
+
+            var version = unit.GetCurrentVariableVersion(dependency.Variable);
+            duplicate.Metadata.Attach(new VariableAttribute(dependency.Variable, version));
+        }
+
+        // Attach the primary attribute since it's still valid
+        duplicate.Metadata.Attach(result.Metadata.PrimaryAttribute!);
+    }
+
+    public static void DifferentiateTarget(Unit unit, Result result, Variable target)
+    {
+        // Duplicate the result and give it to the target
+        var duplicate = new DuplicateInstruction(unit, result).Execute();
+
+        // Redirect the dependency to the target
+        unit.Cache(target, duplicate, true);
+
+        var version = unit.GetCurrentVariableVersion(target);
+        duplicate.Metadata.Attach(new VariableAttribute(target, version));
+    }
+
+    /// <summary>
+    /// Resolves all write dependencies in the given result
+    /// </summary>
+    private static void Resolve(Unit unit, Result result, Variable target)
+    {
+        var destination = (VariableAttribute?)result.Metadata.PrimaryAttribute;
+
+        if (destination == null)
+        {
+            return;
+        }
+
+        if (destination.Variable == target)
+        {
+            DifferentiateDependencies(unit, result);
+        }
+    }
+
+    private static void SimulateMoves(Unit unit, Instruction i)
+    {
+        if (i.Type == InstructionType.ASSIGN ||
+           (i is AdditionInstruction a && a.Assigns) ||
+           (i is SubtractionInstruction s && s.Assigns) ||
+           (i is MultiplicationInstruction m && m.Assigns))
+        {
+            var instruction = (DualParameterInstruction)i;
+            var destination = instruction.First;
+            var source = instruction.Second;
+
+            // Check if the destination is a variable
+            if (destination.Metadata.PrimaryAttribute is VariableAttribute attribute)
             {
-                unit.Cache(variable, assign.Result, true);
-                assign.Second.Metadata = variable;
+                unit.Cache(attribute.Variable, instruction.Result, true);
+
+                // The source value now contains the new value of the destination
+                source.Metadata.Attach(new VariableAttribute(attribute.Variable, attribute.Version + 1));
             }
+        }
+    }
+
+    private static bool IsPropertyOf(Variable expected, Result result)
+    {
+        return result.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable == expected;
+    }
+
+    private static void SimulateLoads(Unit unit, Instruction instruction)
+    {
+        if (instruction is GetVariableInstruction v)
+        {
+            var handle = unit.GetCurrentVariableHandle(v.Variable);
+
+            if (handle != null && IsPropertyOf(v.Variable, handle))
+            {
+                v.Connect(handle);
+            }
+            else
+            {
+                var version = unit.GetCurrentVariableVersion(v.Variable);
+                v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable, version));
+
+                if (v.Mode != AccessMode.WRITE &&
+                   (v.Variable.Category == VariableCategory.LOCAL ||
+                    v.Variable.Category == VariableCategory.PARAMETER))
+                {
+                    unit.Cache(v.Variable, v.Result, false);
+                }
+            }
+
+            if (v.Mode == AccessMode.WRITE)
+            {
+                Resolve(unit, v.Result, v.Variable);
+            }
+        }
+        else if (instruction is GetConstantInstruction c)
+        {
+            var handle = unit.GetCurrentConstantHandle(c.Value);
+
+            c.SetSource(References.CreateConstantNumber(unit, c.Value));
+        }
+        else if (instruction is GetSelfPointerInstruction s)
+        {
+            unit.Self!.Use(unit.Position);
+        }
+    }
+
+    private static void SimulateCaching(Unit unit)
+    {
+        unit.Simulate(UnitMode.APPEND_MODE, i =>
+        {
+            SimulateMoves(unit, i);
+            SimulateLoads(unit, i);
         });
     }
 
-    private static void SimulateLoads(Unit unit)
-    {
-        unit.Simulate(UnitMode.READ_ONLY_MODE, i => 
-        {
-            if (i is GetVariableInstruction v)
-            {
-                var handles = unit.GetValidVariableHandles(v.Variable);
-
-                if (handles.Count > 0)
-                {
-                    v.Connect(handles[0]);
-                }
-                else
-                {
-                    v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable));
-                    
-                    if (v.Variable.Category == VariableCategory.LOCAL ||
-                        v.Variable.Category == VariableCategory.PARAMETER)
-                    {
-                        unit.Cache(v.Variable, v.Result, false);
-                    }
-                }
-            }
-            else if (i is GetConstantInstruction c)
-            {
-                var handles = unit.GetValidConstantHandles(c.Value);
-
-                if (handles.Count > 0)
-                {
-                    //c.Connect(handles[0]);
-                }
-                else
-                {
-                    c.SetSource(References.CreateConstantNumber(unit, c.Value));
-                    //unit.Cache(c.Value, c.Result);
-                }
-            }
-            else if (i is GetSelfPointerInstruction s)
-            {
-                unit.Self!.Use(unit.Position);
-            }
-        });
-    }
-
-    private static void SimulateLifetimes(Unit unit)
+    public static void SimulateLifetimes(Unit unit)
     {
         unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
         {
-            foreach (var handle in instruction.GetResultReferences())
+            foreach (var result in instruction.GetAllUsedResults())
             {
-                handle.Use(unit.Position);
+                result.Lifetime.Reset();
+            }
+        });
+
+        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
+        {
+            foreach (var result in instruction.GetAllUsedResults())
+            {
+                result.Use(unit.Position);
             }
         });
     }
@@ -85,19 +171,19 @@ public static class Oracle
     {
         var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction => 
+        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
         {
             var result = instruction.Result;
 
             if (functions.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
                 !(result.Value is RegisterHandle handle && !handle.Register.IsVolatile))
             {
-                var register = unit.GetNextNonVolatileRegister();
+                var register = unit.GetNextNonVolatileRegister(false);
 
                 if (register != null)
                 {
                     instruction.Redirect(new RegisterHandle(register));
-                    register.Value = result;
+                    register.Handle = result;
                 }
             }
         });
@@ -105,11 +191,18 @@ public static class Oracle
 
     public static Unit Channel(Unit unit)
     {
-        SimulateMoves(unit);
-        SimulateLoads(unit);
+        if (unit.Optimize)
+        {
+            SimulateCaching(unit);
+        }
+
         SimulateLifetimes(unit);
-        ConnectReturnStatements(unit);
-        SimulateRegisterUsage(unit);
+
+        if (unit.Optimize)
+        {
+            ConnectReturnStatements(unit);
+            SimulateRegisterUsage(unit);
+        }
 
         return unit;
     }

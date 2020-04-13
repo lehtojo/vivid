@@ -9,7 +9,7 @@ public class LabelInstruction : Instruction
 
     public override void Build()
     {
-        Unit.Append($"{Label.GetName()}:");
+        Build($"{Label.GetName()}:");
     }
 
     public override Result[] GetResultReferences()
@@ -22,7 +22,7 @@ public class LabelInstruction : Instruction
         return InstructionType.LABEL;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;
     }

@@ -11,7 +11,7 @@ class AssignPattern : Pattern
 	// (a-z) = ...
 	public AssignPattern() : base
 	(
-		TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.FUNCTION | TokenType.DYNAMIC
+		TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.OBJECT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)

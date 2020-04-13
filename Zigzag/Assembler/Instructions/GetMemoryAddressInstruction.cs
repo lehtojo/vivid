@@ -1,8 +1,5 @@
 public class GetMemoryAddressInstruction : Instruction
-{
-    public const string METADATA = "Complex Memory Address";
-
-    public Result Base { get; private set; }
+{    public Result Base { get; private set; }
     public Result Offset { get; private set; }
     public int Stride { get; private set; }
 
@@ -11,15 +8,15 @@ public class GetMemoryAddressInstruction : Instruction
         Base = @base;
         Offset = offset;
         Stride = stride;
+
+        Result.Value = new ComplexMemoryHandle(Base, Offset, Stride);
+        Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
     }
 
     public override void Build()
     {
         Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
         Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);
-        
-        Result.Value = new ComplexMemoryHandle(Base, Offset, Stride);
-        Result.Metadata = METADATA;
     }
 
     public override Result[] GetResultReferences()
@@ -32,7 +29,7 @@ public class GetMemoryAddressInstruction : Instruction
         return InstructionType.GET_MEMORY_ADDRESS;
     }
 
-    public override Result? GetDestinationDepency()
+    public override Result? GetDestinationDependency()
     {
         return null;   
     }

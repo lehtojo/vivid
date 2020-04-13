@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Text;
 using System;
 
@@ -17,19 +18,42 @@ public static class Assembler
 
                 unit.Execute(UnitMode.APPEND_MODE, () => 
                 {
-                    if (function is Constructor constructor)
+                    using (var scope = new Scope(unit))
                     {
-                        Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
-                    }
-                    else if (function.IsMember)
-                    {
-                        unit.Self = new Result(MemoryHandle.FromStack(unit, 8));
-                    }
+                        unit.Append(new InitializeInstruction(unit));
 
-                    Builders.Build(unit, implementation.Node);
+                        if (function is Constructor constructor)
+                        {
+                            Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
+                        }
+                        else if (function.IsMember)
+                        {
+                            unit.Self = new Result(MemoryHandle.FromStack(unit, 8));
+                        }
+
+                        Builders.Build(unit, implementation.Node);
+                    }
                 });
 
                 Oracle.Channel(unit);
+
+                var previous = 0;
+                var current = unit.Instructions.Count;
+
+                do
+                {
+                    previous = current;
+
+                    Oracle.SimulateLifetimes(unit);
+
+                    unit.Simulate(UnitMode.BUILD_MODE, instruction => 
+                    {
+                        instruction.TryBuild();
+                    });
+
+                    current = unit.Instructions.Count;
+                }
+                while (previous != current);
 
                 builder.Append(Translator.Translate(unit));
             }
@@ -72,6 +96,6 @@ public static class Assembler
             builder.Append(Build(type).TrimEnd());
         }
 
-        return builder.ToString().TrimEnd();
+        return Regex.Replace(builder.ToString(), "\n{3,}", "\n\n");
     }
 }

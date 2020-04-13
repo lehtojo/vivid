@@ -1,3 +1,5 @@
+using System;
+
 public class CallInstruction : Instruction
 {
     public string Function { get; private set; }
@@ -7,31 +9,61 @@ public class CallInstruction : Instruction
         Function = function;
     }
 
+    public void Evacuate()
+    {
+        Unit.VolatileRegisters.ForEach(source => {
+            if (!source.IsAvailable(Position)) 
+            {
+                var destination = (Handle?)null;
+                var register = Unit.GetNextNonVolatileRegister();
+                
+                if (register != null) 
+                {
+                    destination = new RegisterHandle(register);
+                }
+                else
+                {
+                    throw new NotImplementedException("Stack move required but not implemented");
+                }
+
+                var move = new MoveInstruction(Unit, new Result(destination), source.Handle!);
+                move.Mode = MoveMode.RELOCATE;
+
+                Unit.Append(move);
+            }
+        });
+    }
+
     public override void Build()
     {
-        Unit.Append($"call {Function}");
+        // Move all values that are later needed to safe registers or to stack
+        Evacuate();
+        
+        Build($"call {Function}");
 
         // Returns value is always in the following handle
-        var handle = new RegisterHandle(Unit.GetStandardReturnRegister());
+        var register = Unit.GetStandardReturnRegister();
+        var source = new RegisterHandle(register);
 
         if (Result.Empty)
         {
             // The result is not predefined so the result can just hold the standard return register
-            Result.Value = handle;
+            Result.Value = source;
+            register.Handle = Result;
         }
         else
         {
-            var move = new MoveInstruction(Unit, Result, new Result(handle));
+            var move = new MoveInstruction(Unit, Result, new Result(source));
             
             // Configure the move so that this instruction's result is attached to the destination
-            move.Loads = true;
+            move.Mode = MoveMode.LOAD;
 
             // The result is predefined so the value from the source handle must be moved to the predefined result
-            Unit.Build(move);
+            Unit.Append(move, true);
         }
     }
 
-    public override Result GetDestinationDepency()
+    public override Result GetDestinationDependency()
     {
         return Result;   
     }

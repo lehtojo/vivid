@@ -4,7 +4,10 @@ public class SubtractionInstruction : DualParameterInstruction
 
     public SubtractionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
     {
-        Assigns = assigns;
+        if (Assigns = assigns)
+        {
+            Result.Metadata = First.Metadata;
+        }
     }
 
     public override void Build()
@@ -21,12 +24,12 @@ public class SubtractionInstruction : DualParameterInstruction
                 ParameterFlag.NONE,
                 HandleType.CONSTANT,
                 HandleType.REGISTER,
-                HandleType.MEMORY_HANDLE
+                HandleType.MEMORY
             )
         );
     }
 
-    public override Result GetDestinationDepency()
+    public override Result GetDestinationDependency()
     {
         return First;
     }

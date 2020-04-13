@@ -35,15 +35,22 @@ public static class References
 
     public static Result GetVariable(Unit unit, VariableNode node, AccessMode mode)
     {
+        return GetVariable(unit, node.Variable, mode);
+    }
+
+    public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
+    {
         Result? self = null;
 
-        if (node.Variable.Category == VariableCategory.MEMBER)
+        if (variable.Category == VariableCategory.MEMBER)
         {
             self = new GetSelfPointerInstruction(unit).Execute();
         }
 
-        var handle = new GetVariableInstruction(unit, self, node.Variable, mode).Execute();
-        handle.Metadata = node.Variable;
+        var handle = new GetVariableInstruction(unit, self, variable, mode).Execute();
+        var version = unit.GetCurrentVariableVersion(variable);
+        
+        handle.Metadata.Attach(new VariableAttribute(variable, version));
 
         return handle;
     }
@@ -51,9 +58,14 @@ public static class References
     public static Result GetConstant(Unit unit, NumberNode node)
     {
         var handle = new GetConstantInstruction(unit, node.Value).Execute();
-        handle.Metadata = node.Value;
+        handle.Metadata.Attach(new ConstantAttribute(node.Value));
 
         return handle;
+    }
+
+    public static Result GetString(Unit unit, StringNode node)
+    {
+        return new Result(new DataSectionHandle(node.GetIdentifier(unit)));
     }
 
     public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
@@ -68,6 +80,11 @@ public static class References
             case NodeType.NUMBER_NODE:
             {
                 return GetConstant(unit, (NumberNode)node);
+            }
+
+            case NodeType.STRING_NODE:
+            {
+                return GetString(unit, (StringNode)node);
             }
 
             default:
