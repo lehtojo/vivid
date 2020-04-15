@@ -1,6 +1,7 @@
 public class LoopNode : Node
 {
-	public Context Context { get; private set; }
+	public Context StepsContext { get; private set; }
+	public Context BodyContext { get; private set; }
 	public Node Initialization => First!.First!;
 	public Node Condition => Initialization!.Next!;
 	public Node Action => First!.Last!;
@@ -8,9 +9,10 @@ public class LoopNode : Node
 
 	public bool IsForeverLoop => First == Last;
 
-	public LoopNode(Context context, Node? steps, Node body)
+	public LoopNode(Context steps_context, Context body_context, Node? steps, Node body)
 	{
-		Context = context;
+		StepsContext = steps_context;
+		BodyContext = body_context;
 
 		if (steps != null)
 		{

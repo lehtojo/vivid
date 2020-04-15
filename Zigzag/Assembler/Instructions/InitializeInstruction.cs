@@ -41,6 +41,6 @@ public class InitializeInstruction : Instruction
 
     public override Result[] GetResultReferences()
     {
-        return new Result[] {};
+        return new Result[] { Result };
     }
 }

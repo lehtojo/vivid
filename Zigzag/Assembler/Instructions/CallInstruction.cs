@@ -11,7 +11,8 @@ public class CallInstruction : Instruction
 
     public void Evacuate()
     {
-        Unit.VolatileRegisters.ForEach(source => {
+        Unit.VolatileRegisters.ForEach(source => 
+        {
             if (!source.IsAvailable(Position)) 
             {
                 var destination = (Handle?)null;
@@ -30,6 +31,8 @@ public class CallInstruction : Instruction
                 move.Mode = MoveMode.RELOCATE;
 
                 Unit.Append(move);
+
+                source.Reset();
             }
         });
     }

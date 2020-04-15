@@ -19,6 +19,17 @@ public class Lifetime
         return position >= Start && (End == -1 || position <= End);
     }
 
+    public bool IsIntersecting(int start, int end)
+    {
+        var s1 = Start == -1 ? int.MinValue : Start;
+        var e1 = End == -1 ? int.MaxValue : End;
+
+        var s2 = start == -1 ? int.MinValue : start;
+        var e2 = end == -1 ? int.MaxValue : end;
+
+        return s1 < e2 && e1 > s2;
+    }
+
     public Lifetime Clone()
     {
         return new Lifetime() {
@@ -96,7 +107,7 @@ public class Unit
         Function = function;
 
         // 64-bit:
-        /*Registers = new List<Register>()
+        Registers = new List<Register>()
         {
             new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
             new Register("rbx"),
@@ -114,10 +125,10 @@ public class Unit
             new Register("r13", RegisterFlag.VOLATILE),
             new Register("r14", RegisterFlag.VOLATILE),
             new Register("r15", RegisterFlag.VOLATILE)
-        };*/
+        };
 
         // 32-bit:
-        Registers = new List<Register>()
+        /*Registers = new List<Register>()
         {
             new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
             new Register("ebx"),
@@ -127,7 +138,7 @@ public class Unit
             new Register("edi"),
             new Register("ebp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
             new Register("esp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER)
-        };
+        };*/
 
         NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile);
         VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
@@ -266,6 +277,14 @@ public class Unit
     }
 
 #region Registers
+
+    public Register? GetNextNonVolatileRegister(int start, int end)
+    {
+        var register = NonVolatileRegisters
+            .Find(r => (r.Handle == null || !r.Handle.Lifetime.IsIntersecting(start, end)) && !r.IsReserved);
+
+        return register;
+    }
 
     public Register? GetNextNonVolatileRegister(bool release = true)
     {

@@ -34,13 +34,13 @@ public class LoopPattern : Pattern
 		return keyword.Keyword == Keywords.LOOP;
 	}
 
-	private Node? GetSteps(Context environment, ContentToken content)
+	private Node? GetSteps(Context context, ContentToken content)
 	{
 		var steps = new Node();
 
 		for (var i = 0; i < content.SectionCount; i++)
 		{
-			Parser.Parse(steps, environment, content.GetTokens(i));
+			Parser.Parse(steps, context, content.GetTokens(i));
 		}
 
 		if (content.IsEmpty)
@@ -82,14 +82,17 @@ public class LoopPattern : Pattern
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var steps = GetSteps(environment, (ContentToken)tokens[STEPS]);
+		var body_context = new Context();
+		var steps_context = new Context();
 
-		var context = new Context();
-		context.Link(environment);
+		body_context.Link(environment);
+		steps_context.Link(environment);
+
+		var steps = GetSteps(steps_context, (ContentToken)tokens[STEPS]);
 
 		var token = (ContentToken)tokens[BODY];
-		var body = Parser.Parse(context, token.GetTokens(), 0, 20);
+		var body = Parser.Parse(body_context, token.GetTokens(), 0, 20);
 
-		return new LoopNode(context, steps, body);
+		return new LoopNode(steps_context, body_context, steps, body);
 	}
 }

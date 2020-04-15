@@ -54,7 +54,7 @@ length_of(text) {
 }
 
 string {
-    text
+    text: link
 
     string(source) {
         text = source

@@ -405,7 +405,28 @@ public abstract class Instruction
         }
     }
 
-    public void Redirect(Handle to)
+    public int GetRedirectionRoot()
+    {
+        var instruction = this;
+
+        var previous = (Result?)null;
+        var dependency = GetDestinationDependency();
+
+        while (true)
+        {
+            if (dependency == null || dependency.Instruction == null || dependency == previous)
+            {
+                return instruction.Position;
+            }
+
+            instruction = dependency.Instruction;
+
+            previous = dependency;
+            dependency = instruction.GetDestinationDependency();
+        }
+    }
+
+    public int Redirect(Handle to)
     {
         Result.Value = to;
 
@@ -419,6 +440,8 @@ public abstract class Instruction
             previous = destination;
             destination = destination.Instruction?.GetDestinationDependency();
         }
+
+        return previous?.Instruction?.Position ?? -1;
     }
 
     public abstract InstructionType GetInstructionType();

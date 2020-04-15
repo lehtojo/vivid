@@ -84,12 +84,12 @@ public static class Loops
 
     private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
     {
-        var non_local_variables = GetAllNonLocalVariables(loop.Context, loop);
+        var non_local_variables = GetAllNonLocalVariables(loop.BodyContext, loop);
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
 
-        using (var scope = new Scope(unit))
+        using (var scope = new Scope(unit, non_local_variables))
         {
             // Append the label where the loop will start
             unit.Append(start);

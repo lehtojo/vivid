@@ -9,14 +9,15 @@ public class Scope : IDisposable
     public Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
     public Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
 
-    public IEnumerable<Variable>? NonLocalVariables { get; set; }
+    private List<Variable> NonLocalVariables { get; set; } = new List<Variable>();
+    private List<Result> NonLocalVariableLoads { get; set; } = new List<Result>();
 
     public Unit? Unit { get; private set; }
     public Scope? Outer { get; private set; } = null;
 
     public Scope(Unit unit, IEnumerable<Variable>? non_local_variables = null) 
     {
-        NonLocalVariables = non_local_variables;
+        NonLocalVariables = non_local_variables?.ToList() ?? new List<Variable>();
 
         Enter(unit);
     }
@@ -47,14 +48,12 @@ public class Scope : IDisposable
             Outer = unit.Scope;
         }
 
-        if (NonLocalVariables != null)
+        if (NonLocalVariableLoads.Count == 0)
         {
             foreach (var variable in NonLocalVariables)
             {
-                References.GetVariable(Unit, variable, AccessMode.READ);
+                NonLocalVariableLoads.Add(References.GetVariable(Unit, variable, AccessMode.READ));
             }
-
-            NonLocalVariables = null;
         }
 
         // Switch the current unit scope to be this scope
@@ -63,18 +62,19 @@ public class Scope : IDisposable
         // Connect to the outer scope if it exists
         if (Outer != null)
         {
-            foreach (var variable in Outer.Variables)
+            for (var i = 0; i < NonLocalVariables.Count; i++)
             {
-                var current_outer = Outer.GetCurrentVariableHandle(unit, variable.Key);
+                var variable = NonLocalVariables[i];
+                var current_outer = NonLocalVariableLoads[i]; // Outer.GetCurrentVariableHandle(unit, variable);
 
                 if (current_outer != null)
                 {
-                    var variable_handles = GetVariableHandles(unit, variable.Key);
+                    var variable_handles = GetVariableHandles(unit, variable);
 
                     if (variable_handles.Count == 0)
                     {
                         var first_local = new Result(current_outer.Value);
-                        var variable_attribute = current_outer.Metadata[variable.Key];
+                        var variable_attribute = current_outer.Metadata[variable];
 
                         first_local.Metadata.Attach(variable_attribute);
 
@@ -87,12 +87,12 @@ public class Scope : IDisposable
                     }
                 }
 
-                if (!Loads.Contains(variable.Key))
+                if (!Loads.Contains(variable))
                 {
                     // Reference the variable at the start of the scope in order to make it active so that the local variables don't steal its register for example
-                    References.GetVariable(unit, variable.Key, AccessMode.READ);
+                    References.GetVariable(unit, variable, AccessMode.READ);
 
-                    Loads.Add(variable.Key);
+                    Loads.Add(variable);
                 }
             }
 

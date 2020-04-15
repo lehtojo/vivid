@@ -17,6 +17,11 @@ public class MergeScopeInstruction : Instruction
         return Unit.Scope!.Outer?.GetCurrentVariableHandle(Unit, variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
     }
 
+    private bool IsUsedLater(Variable variable)
+    {
+        return Unit.Scope!.Outer?.IsUsedLater(variable) ?? false;
+    }
+
     public void Append()
     {
         foreach (var variable in Variables)
@@ -34,6 +39,12 @@ public class MergeScopeInstruction : Instruction
         {
             var source = Loads[i];
             var destination = GetDestinationHandle(Variables[i]);
+            
+            // When the destination is a memory handle, it most likely means it won't be used later
+            if (destination.Value.Type == HandleType.MEMORY && !IsUsedLater(Variables[i]))
+            {
+                continue;
+            }
 
             moves.Add(new MoveInstruction(Unit, destination, source));
         }

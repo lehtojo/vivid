@@ -49,10 +49,18 @@ public class Metadata
         get => Variables.Where(i => i.Variable == variable).Aggregate((i, j) => i.Version > j.Version ? i : j);
     }
 
+    private int GetPriorityValue(MetadataAttribute attribute)
+    {
+        return attribute.Type == AttributeType.VARIABLE ? 1 : 0;
+    }
+
     public void Attach(MetadataAttribute attribute)
     {
         Attributes.RemoveAll(a => a.Contradicts(attribute));
         Attributes.Add(attribute);
+
+        // Variable metadata attributes must overtake other types of attributes
+        Attributes.Sort((a, b) => GetPriorityValue(b) - GetPriorityValue(a));
     }
 
     public void Attach(IEnumerable<MetadataAttribute> attributes)

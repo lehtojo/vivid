@@ -176,7 +176,11 @@ public static class Oracle
             if (functions.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
                 !(result.Value is RegisterHandle handle && !handle.Register.IsVolatile))
             {
-                var register = unit.GetNextNonVolatileRegister(false);
+                var start = instruction.GetRedirectionRoot();
+                var end = unit.Position;
+
+                // Make sure redirection root is not in range
+                var register = unit.GetNextNonVolatileRegister(start, end);
 
                 if (register != null)
                 {
