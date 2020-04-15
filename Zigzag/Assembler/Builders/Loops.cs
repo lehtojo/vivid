@@ -82,9 +82,9 @@ public static class Loops
                     .Distinct();
     }
 
-    private static Result BuildLoopBody(Unit unit, LoopNode node, LabelInstruction start)
+    private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
     {
-        var non_local_variables = GetAllNonLocalVariables(node.Context, node);
+        var non_local_variables = GetAllNonLocalVariables(loop.Context, loop);
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
@@ -97,10 +97,13 @@ public static class Loops
             var merge = new MergeScopeInstruction(unit, non_local_variables);
 
             // Build the loop body
-            result = Builders.Build(unit, node.Body);
+            result = Builders.Build(unit, loop.Body);
 
-            // Build the loop action
-            Builders.Build(unit, node.Action);
+            if (!loop.IsForeverLoop)
+            {
+                // Build the loop action
+                Builders.Build(unit, loop.Action);
+            }
 
             // Restore the state after the body
             merge.Append();

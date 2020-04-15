@@ -17,7 +17,7 @@ public static class Calls
 
     private static bool IsSelfCall(FunctionImplementation current, FunctionImplementation other)
     {
-        return current.IsMember && other.IsMember && current.GetTypeParent() == other.GetTypeParent();
+        return !other.IsConstructor && current.IsMember && other.IsMember && current.GetTypeParent() == other.GetTypeParent();
     }
 
     public static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)

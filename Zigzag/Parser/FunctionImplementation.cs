@@ -23,6 +23,8 @@ public class FunctionImplementation : Context
 
 	public bool IsInline => References.Count == 1 && false;
 	public bool IsEmpty => Node == null || Node.First == null;
+
+	public bool IsConstructor => Metadata is Constructor;
 	
 	/// <summary>
 	/// Optionally links this function to some context
