@@ -91,6 +91,7 @@ public class Patterns
 		Add(new IncrementPattern());
 		Add(new LinkPattern());
 		Add(new LoopPattern());
+		Add(new ModifierPattern());
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());
 		Add(new ReturnPattern());

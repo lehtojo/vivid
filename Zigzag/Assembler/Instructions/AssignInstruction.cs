@@ -10,7 +10,7 @@ public class AssignInstruction : DualParameterInstruction
         if (!Unit.Optimize ||
             First.Metadata.IsComplexMemoryAddress || 
             First.Metadata.PrimaryAttribute is VariableAttribute attribute && 
-            attribute.Variable.Category == VariableCategory.MEMBER)
+            !attribute.Variable.IsPredictable)
         {
             Unit.Append(new MoveInstruction(Unit, First, Second));
         }

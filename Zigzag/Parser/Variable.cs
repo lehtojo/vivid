@@ -5,7 +5,7 @@ public class Variable
 	public string Name { get; set; }
 	public Type? Type { get; set; }
 	public VariableCategory Category { get; set; }
-	public int Modifiers { get; private set; }
+	public int Modifiers { get; set; }
 	public int Length { get; private set; }
 	public bool IsArray => Length > 0;
 

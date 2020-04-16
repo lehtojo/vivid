@@ -8,6 +8,11 @@ public static class Links
 
         if (node.Member is VariableNode member)
         {
+            if (member.Variable.Category == VariableCategory.GLOBAL)
+            {
+                return References.GetVariable(unit, member.Variable, AccessMode.READ);
+            }
+
             return new GetObjectPointerInstruction(unit, member.Variable, @base, member.Variable.Alignment).Execute();
         }
         else if (node.Member is FunctionNode function)

@@ -26,6 +26,11 @@ public static class References
                 return new MemoryHandle(self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
             }
 
+            case VariableCategory.GLOBAL:
+            {
+                return new DataSectionHandle(variable.Context.GetFullname() + '_' + variable.Name.ToLower());
+            }
+
             default:
             {
                 throw new NotImplementedException("Variable category not implemented");
@@ -65,7 +70,7 @@ public static class References
 
     public static Result GetString(Unit unit, StringNode node)
     {
-        return new Result(new DataSectionHandle(node.GetIdentifier(unit)));
+        return new Result(new ConstantHandle(node.GetIdentifier(unit)));
     }
 
     public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
@@ -85,6 +90,18 @@ public static class References
             case NodeType.STRING_NODE:
             {
                 return GetString(unit, (StringNode)node);
+            }
+
+            case NodeType.OPERATOR_NODE:
+            {
+                var operation = (OperatorNode)node;
+
+                if (operation.Operator == Operators.EXTENDER)
+                {
+                    return Arrays.Build(unit, operation, mode);
+                }
+
+                return Builders.Build(unit, node);
             }
 
             default:

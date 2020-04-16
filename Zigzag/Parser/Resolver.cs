@@ -3,6 +3,16 @@ using System.Collections.Generic;
 
 public class Resolver
 {
+	public static void Resolve(Context context, Node node)
+	{
+		var resolved = ResolveAll(context, node, new List<string>());
+
+		if (resolved != null)
+		{
+			node.Replace(resolved);
+		}
+	}
+
 	public static void Resolve(Context context, List<string> errors)
 	{
 		foreach (var type in context.Types.Values)
@@ -35,9 +45,8 @@ public class Resolver
     * @return Returns a resolved node tree on success, otherwise null
     */
 	/// <summary>
-	/// Tries to resolve any unresolved nodes in a node tree
+	/// Tries to resolve the problems in the node tree
 	/// </summary>
-	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	public static Node? ResolveAll(Context context, Node node, List<string> errors)
 	{
 		if (node is IResolvable resolvable)

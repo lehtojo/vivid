@@ -16,23 +16,15 @@ public class CastNode : Node, IType, IResolvable
 		return Types.UNKNOWN;
 	}
 
-	private void Resolve(Context context, Node? node)
+	private void Resolve(Context context, Node node)
 	{
-		if (node is IResolvable resolvable)
-		{
-			var resolved = resolvable.Resolve(context);
-
-			if (resolved != null)
-			{
-				node.Replace(resolved);
-			}
-		}
+		Resolver.Resolve(context, node);
 	}
 
 	public Node? Resolve(Context context)
 	{
-		Resolve(context, First);
-		Resolve(context, Last);
+		Resolve(context, First!);
+		Resolve(context, Last!);
 
 		return null;
 	}

@@ -4,7 +4,7 @@ mov rbx, 0
 cmp rbx, 10
 jge function_run_L1
 function_run_L0:
-push [S0]
+push S0
 call function_print
 add rbx, 1
 cmp rbx, 10

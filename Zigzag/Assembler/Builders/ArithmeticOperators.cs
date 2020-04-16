@@ -41,7 +41,7 @@ public static class ArithmeticOperators
         }
         else if (operation == Operators.EXTENDER)
         {
-            return Arrays.Build(unit, node);
+            return Arrays.Build(unit, node, AccessMode.READ);
         }
 
         throw new ArgumentException("Node not implemented yet");

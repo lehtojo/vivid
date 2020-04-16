@@ -143,6 +143,9 @@ public class ResolverPhase : Phase
 		// Align variables in memory
 		Aligner.Align(context);
 
+		// Analyze the output
+		Analyzer.Analyze(context);
+
 		return Status.OK;
 	}
 }

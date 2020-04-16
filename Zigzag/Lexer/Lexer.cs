@@ -409,7 +409,7 @@ public class Lexer
 	/// Forms function tokens from the given tokens
 	/// </summary>
 	/// <param name="tokens">Tokens to iterate</param>
-	private static void Functions(List<Token> tokens)
+	private static void CreateFunctionCalls(List<Token> tokens)
 	{
 		if (tokens.Count < FUNCTION_LENGTH)
 		{
@@ -444,6 +444,31 @@ public class Lexer
 			}
 
 			i--;
+		}
+	}
+
+	/// <summary>
+	/// Join all sequential modifier keywords into one token
+	/// </summary>
+	public static void JoinModifiers(List<Token> tokens)
+	{
+		if (tokens.Count == 1) return;
+
+		for (var i = tokens.Count - 2; i >= 0; i--)
+		{
+			var current = tokens[i];
+			var next = tokens[i + 1];
+
+			if (current is KeywordToken current_keyword && next is KeywordToken next_keyword &&
+				current_keyword.Keyword is AccessModifierKeyword current_modifier && 
+				next_keyword.Keyword is AccessModifierKeyword next_modifier)
+			{
+				var identifier = current_modifier.Identifier + ' ' + next_modifier.Identifier;
+				var combined = new AccessModifierKeyword(identifier, current_modifier.Modifier | next_modifier.Modifier);
+
+				tokens.RemoveAt(i); tokens.RemoveAt(i);
+				tokens.Insert(i, new KeywordToken(combined));
+			}
 		}
 	}
 
@@ -487,7 +512,8 @@ public class Lexer
 			position = area.End;
 		}
 
-		Functions(tokens);
+		CreateFunctionCalls(tokens);
+		JoinModifiers(tokens);
 
 		return tokens;
 	}
