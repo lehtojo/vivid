@@ -30,6 +30,14 @@ public class Context
 	public Dictionary<string, Label> Labels { get; protected set; } = new Dictionary<string, Label>();
 
 	/// <summary>
+	/// Returns whether the given context is a parent context or higher to this context
+	/// </summary>
+	public bool IsInside(Context context)
+	{
+		return context == this || (Parent?.IsInside(context) ?? false);
+	}
+
+	/// <summary>
 	/// Returns the global name of the context
 	/// </summary>
 	/// <returns>Global name of the context</returns>
@@ -92,10 +100,9 @@ public class Context
 		Update();
 	}
 
-	/**
-     * Moves all types, functions and variables from the given context to this context, and then destroyes the given context
-     * @param context Context to merge with
-     */
+	/// <summary>
+	/// Moves all types, functions and variables from the given context to this context, and then destroyes the given context
+	/// </summary>
 	public void Merge(Context context)
 	{
 		foreach (var pair in context.Types)
@@ -185,6 +192,23 @@ public class Context
 		}
 
 		// Update variable context
+		variable.Context = this;
+
+		// Add variable to the list
+		Variables.Add(variable.Name, variable);
+	}
+
+	/// <summary>
+	/// Declares a variable into the context
+	/// </summary>
+	public void Declare(Type? type, VariableCategory category, string name)
+	{
+		if (IsLocalVariableDeclared(name))
+		{
+			throw new Exception($"Variable '{name}' already exists in this context");
+		}
+
+		var variable = new Variable(this, type, category, name, AccessModifier.PUBLIC);
 		variable.Context = this;
 
 		// Add variable to the list

@@ -9,6 +9,14 @@ public static class Constructors
             throw new NotImplementedException("No implementation for empty objects found");
         }
 
-        unit.Self = Calls.Build(unit, Memory.FUNCTION_ALLOCATE, new NumberNode(NumberType.INT32, type.ContentSize));
+        if (unit.Self == null)
+        {
+            throw new ApplicationException("Couldn't create constructor header since this pointer was missing");
+        }
+
+        var allocation = Calls.Build(unit, Memory.FUNCTION_ALLOCATE, new NumberNode(NumberType.INT32, type.ContentSize));
+        allocation.Metadata.Attach(new VariableAttribute(unit.Self, -1));
+
+        unit.Cache(unit.Self, allocation, true);
     }
 }

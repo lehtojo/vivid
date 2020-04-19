@@ -7,6 +7,8 @@ public static class RegisterFlag
     public const int RETURN = 4;
     public const int BASE_POINTER = 8;
     public const int STACK_POINTER = 16;
+    public const int DENOMINATOR = 32;
+    public const int REMAINDER = 64;
 }
 
 public class Register
@@ -23,10 +25,11 @@ public class Register
     public int Flags { get; private set; }
     
     public bool IsUsed { get; private set; } = false;
+    public bool IsLocked { get; set; } = false;
     public bool IsVolatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
     public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
     public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
-    public bool IsReleasable => Handle == null || Handle.IsReleasable();
+    public bool IsReleasable => !IsLocked && (Handle == null || Handle.IsReleasable());
 
     public Register(string name, params int[] flags) 
     {
@@ -36,7 +39,7 @@ public class Register
 
     public bool IsAvailable(int position)
     {
-        return Handle == null || !Handle.IsValid(position);
+        return !IsLocked && (Handle == null || !Handle.IsValid(position));
     }
 
     public void Reset(bool full = false)

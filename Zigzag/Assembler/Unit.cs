@@ -6,7 +6,7 @@ using System.Linq;
 public class Lifetime
 {
     public int Start { get; set; } = -1;
-    public int End { get; set; } = -1;
+    public int End { get; set; } = -1;
 
     public void Reset()
     {
@@ -16,7 +16,7 @@ public class Lifetime
 
     public bool IsActive(int position)
     {
-        return position >= Start && (End == -1 || position <= End);
+        return position >= Start && (End == -1 || position <= End);
     }
 
     public bool IsIntersecting(int start, int end)
@@ -32,7 +32,8 @@ public class Lifetime
 
     public Lifetime Clone()
     {
-        return new Lifetime() {
+        return new Lifetime()
+        {
             Start = Start,
             End = End
         };
@@ -51,7 +52,7 @@ public class VariableState
     public Variable Variable { get; private set; }
     public Register Register { get; private set; }
 
-    public VariableState(Variable variable, Register register) 
+    public VariableState(Variable variable, Register register)
     {
         Variable = variable;
         Register = register;
@@ -59,7 +60,7 @@ public class VariableState
 
     public void Restore(Unit unit)
     {
-        if (Register.Handle != null) 
+        if (Register.Handle != null)
         {
             throw new ApplicationException("During state restoration one of the registers was conflicted");
         }
@@ -79,40 +80,45 @@ public class Unit
     public bool Optimize = true;
 
     public FunctionImplementation Function { get; private set; }
-    
+
     public List<Register> Registers { get; private set; } = new List<Register>();
     public List<Register> NonVolatileRegisters { get; private set; } = new List<Register>();
     public List<Register> VolatileRegisters { get; private set; } = new List<Register>();
     public List<Register> NonReservedRegisters { get; private set; } = new List<Register>();
-    
+
     public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
-    
+
     private StringBuilder Builder { get; set; } = new StringBuilder();
 
     private int LabelIndex { get; set; } = 0;
     private int StringIndex { get; set; } = 0;
 
-    private bool IsReindexingNeeded { get; set; } = false;
+    private bool IsReindexingNeeded { get; set; } = false;
 
-    public Result? Self { get; set; }
+    public Variable? Self { get; set; }
 
     private Instruction? Anchor { get; set; }
     public int Position { get; private set; } = -1;
 
-    public Scope? Scope { get; set; }
+    public Scope? Scope { get; set; }
     public UnitMode Mode { get; private set; } = UnitMode.READ_ONLY_MODE;
 
     public Unit(FunctionImplementation function)
     {
         Function = function;
 
-        // 64-bit:
-        Registers = new List<Register>()
+        if (function.Metadata?.IsMember ?? false)
         {
-            new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
+            Self = function.GetVariable(global::Function.THIS_POINTER_IDENTIFIER);
+        }
+
+        // 64-bit:
+        /*Registers = new List<Register>()
+        {
+            new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
             new Register("rbx"),
             new Register("rcx", RegisterFlag.VOLATILE),
-            new Register("rdx", RegisterFlag.VOLATILE),
+            new Register("rdx", RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
             new Register("rsi"),
             new Register("rdi"),
             new Register("rbp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
@@ -125,22 +131,22 @@ public class Unit
             new Register("r13", RegisterFlag.VOLATILE),
             new Register("r14", RegisterFlag.VOLATILE),
             new Register("r15", RegisterFlag.VOLATILE)
-        };
+        };*/
 
         // 32-bit:
-        /*Registers = new List<Register>()
+        Registers = new List<Register>()
         {
-            new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN),
+            new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
             new Register("ebx"),
             new Register("ecx", RegisterFlag.VOLATILE),
-            new Register("edx", RegisterFlag.VOLATILE),
+            new Register("edx", RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
             new Register("esi"),
             new Register("edi"),
             new Register("ebp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
             new Register("esp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER)
-        };*/
+        };
 
-        NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile);
+        NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
         VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
 
         NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
@@ -213,7 +219,7 @@ public class Unit
         if (Mode == UnitMode.BUILD_MODE)
         {
             var previous = Anchor;
-            
+
             Anchor = instruction;
             instruction.TryBuild();
             Anchor = previous;
@@ -231,7 +237,7 @@ public class Unit
     public RegisterHandle? TryGetCached(Result handle, bool write)
     {
         var register = Registers.Find(r => (r.Handle != null) ? r.Handle.Value == handle.Value : false);
-        
+
         if (register != null)
         {
             return new RegisterHandle(register);
@@ -255,10 +261,10 @@ public class Unit
         foreach (var attribute in attributes)
         {
             var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
-            
+
             var move = new MoveInstruction(this, destination, value);
             move.Mode = MoveMode.RELOCATE;
-            
+
             Append(move);
         }
 
@@ -276,7 +282,7 @@ public class Unit
         return $"S{StringIndex++}";
     }
 
-#region Registers
+    #region Registers
 
     public Register? GetNextNonVolatileRegister(int start, int end)
     {
@@ -291,7 +297,7 @@ public class Unit
         var register = NonVolatileRegisters
             .Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
-        if (register != null || !release)
+        if (register != null || !release)
         {
             return register;
         }
@@ -305,6 +311,18 @@ public class Unit
         }
 
         return null;
+    }
+
+    public Register? GetNextRegisterWithoutReleasing()
+    {
+        var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+        if (register != null)
+        {
+            return register;
+        }
+
+        return NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
     }
 
     public Register GetNextRegister()
@@ -340,7 +358,7 @@ public class Unit
             Release(register);
             return register;
         }
-        
+
         throw new NotImplementedException("Couldn't find available register");
     }
 
@@ -364,16 +382,16 @@ public class Unit
         Registers.ForEach(r => r.Reset(true));
     }
 
-#endregion
+    #endregion
 
-#region Interaction
+    #region Interaction
 
     public void Execute(UnitMode mode, Action action)
     {
         Mode = mode;
         Position = -1;
 
-        try 
+        try
         {
             action();
         }
@@ -395,14 +413,14 @@ public class Unit
         Mode = mode;
         Position = 0;
         Scope = null;
-        
+
         Reset();
 
         var instructions = new List<Instruction>(Instructions);
-        
+
         foreach (var instruction in instructions)
         {
-            try 
+            try
             {
                 if (instruction.Scope == null)
                 {
@@ -413,12 +431,24 @@ public class Unit
 
                 if (Scope != instruction.Scope)
                 {
+                    var back = false;
+
+                    // Detect if the program is exiting the current scope
                     if (Scope?.Outer == instruction.Scope)
                     {
                         Scope?.Exit();
+                        back = true;
                     }
 
-                    instruction.Scope.Enter(this);
+                    // Scope enter function is designed for entering not for falling back
+                    if (back)
+                    {
+                        Scope = instruction.Scope;
+                    }
+                    else
+                    {
+                        instruction.Scope.Enter(this);
+                    }
                 }
 
                 action(instruction);
@@ -428,7 +458,7 @@ public class Unit
                 Console.Error.WriteLine($"ERROR: Unit simulation failed: {e}");
                 break;
             }
-            
+
             Position++;
         }
 
@@ -441,7 +471,7 @@ public class Unit
         Mode = UnitMode.READ_ONLY_MODE;
     }
 
-#endregion
+    #endregion
 
     public void Cache(Variable variable, Result result, bool invalidate)
     {

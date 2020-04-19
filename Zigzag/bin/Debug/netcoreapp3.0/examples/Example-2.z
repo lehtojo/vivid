@@ -34,7 +34,7 @@ fibonacci(iterations) {
         if i <= 1 {
             next = i
         } 
-        else {
+        else if 1 < 2 {
             next = first + second
             first = second
             second = next
@@ -47,6 +47,7 @@ fibonacci(iterations) {
 }
 
 memcpy(source, destination, count) {
+    i = 0
     loop (i = 0, i < count, ++i) {
         destination[i] = source[i]
     }
@@ -70,6 +71,8 @@ run() {
 
     fibonacci(10)
 
+    i = 1
+
     # {1, 2} {2, 3}, {3, 4}
     loop (i = 1, i <= 3, ++i) {
         a = A(i, i + 1)
@@ -78,8 +81,8 @@ run() {
 
     # {1, 2} -> {2, 2}, {2, 3} -> {4, 3}, {3, 4} -> {6, 4}
     loop (i = 0, i < list.size(), ++i) {
-        a = list.at(i) -> A
-        a.f(i)
+        b = list.at(i) -> A
+        b.f(i)
         print('Yeet')
     }
 
@@ -95,9 +98,9 @@ run() {
     # 43
     # 22
     loop (list.size() >= 0) {
-        a = list.take() -> A
-        x = a.x
-        y = a.y
+        c = list.take() -> A
+        x = c.x
+        y = c.y
         prints(to_string(x))
         printsln(to_string(y))
     }

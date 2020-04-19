@@ -8,7 +8,7 @@ public static class Conditionals
     {
         return body.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
                     .Select(n => ((VariableNode)n).Variable)
-                    .Where(v => v.IsPredictable && v.Context != local_context)
+                    .Where(v => v.IsPredictable && !v.Context.IsInside(local_context))
                     .Distinct();
     }
 
@@ -64,6 +64,7 @@ public static class Conditionals
         // Recover the previous state
         unit.Append(new RestoreStateInstruction(unit, recovery));
 
+        //#error Else statements need a scope as well
         // If the if-statement body is executed it must skip the potential successors
         if (node.Successor != null)
         {

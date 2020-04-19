@@ -16,20 +16,21 @@ public class VariableUsageInfo
 
 public static class Loops
 {
-    private static Dictionary<Variable, int> GetVariableUsageCount(Node parent)
+    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Node parent, params Context[] local_contexts)
     {
         var variables = new Dictionary<Variable, int>();
         var iterator = parent.First;
 
         while (iterator != null)
         {
-            if (iterator is VariableNode node && node.Variable.IsPredictable)
+            /// TODO: Detect this pointer need
+            if (iterator is VariableNode node && node.Variable.IsPredictable && !local_contexts.Any(c => node.Variable.Context.IsInside(c)))
             {
                 variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
             }
             else
             {
-                foreach (var usage in GetVariableUsageCount(iterator))
+                foreach (var usage in GetNonLocalVariableUsageCount(iterator))
                 {
                     variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
                 }
@@ -43,8 +44,9 @@ public static class Loops
 
     private static List<VariableUsageInfo> GetAllVariableUsages(LoopNode node)
     {
-        // Get all variables in the loop and their number of usages
-        var variables = GetVariableUsageCount(node).Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
+        // Get all non-local variables in the loop and their number of usages
+        var variables = GetNonLocalVariableUsageCount(node, node.StepsContext, node.BodyContext)
+                            .Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
 
         // Sort the variables based on their number of usages (most used variables first)
         variables.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
@@ -68,17 +70,24 @@ public static class Loops
         return result;
     }
 
+    private static bool ContainsFunction(LoopNode node)
+    {
+        return node.Find(n => n.Is(NodeType.FUNCTION_NODE)) != null;
+    }
+
     private static void PrepareRelevantVariables(Unit unit, LoopNode node)
     {
         var variables = GetAllVariableUsages(node);
-        unit.Append(new CacheVariablesInstruction(unit, variables));
+        var non_volatile_mode = ContainsFunction(node);
+
+        unit.Append(new CacheVariablesInstruction(unit, node, variables, non_volatile_mode));
     }
 
     private static IEnumerable<Variable> GetAllNonLocalVariables(Context local_context, Node body)
     {
         return body.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
                     .Select(n => ((VariableNode)n).Variable)
-                    .Where(v => v.IsPredictable && v.Context != local_context)
+                    .Where(v => v.IsPredictable && !v.Context.IsInside(local_context))
                     .Distinct();
     }
 
@@ -94,7 +103,8 @@ public static class Loops
             // Append the label where the loop will start
             unit.Append(start);
 
-            var merge = new MergeScopeInstruction(unit, non_local_variables);
+            var symmetry_start = new SymmetryStartInstruction(unit, non_local_variables);
+            unit.Append(symmetry_start);
 
             // Build the loop body
             result = Builders.Build(unit, loop.Body);
@@ -105,11 +115,13 @@ public static class Loops
                 Builders.Build(unit, loop.Action);
             }
 
-            // Restore the state after the body
-            merge.Append();
+            var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
 
             // Restore the state after the body
-            unit.Append(merge);
+            symmetry_end.Append();
+
+            // Restore the state after the body
+            unit.Append(symmetry_end);
         }
 
         unit.Set(state);

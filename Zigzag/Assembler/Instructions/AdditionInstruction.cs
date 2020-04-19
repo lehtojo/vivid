@@ -21,13 +21,14 @@ public class AdditionInstruction : DualParameterInstruction
         {
             var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
-            if (First.Metadata.IsComplex)
+            if (Assigns)
             {
                 Build(
                     "add",
                     new InstructionParameter(
                         First,
                         flags,
+                        HandleType.REGISTER,
                         HandleType.MEMORY
                     ),
                     new InstructionParameter(

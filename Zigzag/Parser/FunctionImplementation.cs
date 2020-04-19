@@ -6,8 +6,8 @@ public class FunctionImplementation : Context
 {
 	public Function? Metadata { get; set; }
 
-	public List<Variable> Parameters => Variables.Values.Where(v => v.Category == VariableCategory.PARAMETER).ToList();
-	public List<Type> ParameterTypes => Parameters.Select(p => p.Type!).ToList();
+	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsThisPointer && v.Category == VariableCategory.PARAMETER).ToList();
+	public List<Type> ParameterTypes => Parameters.Where(p => !p.IsThisPointer).Select(p => p.Type!).ToList();
 	
 	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
 										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
@@ -57,6 +57,13 @@ public class FunctionImplementation : Context
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public void Implement(List<Token> blueprint)
 	{
+		if (Metadata != null && Metadata.IsMember)
+		{
+			/// TODO: Prevent user from defining local variable called this
+			var type = Metadata.GetTypeParent();
+			Declare(type, VariableCategory.PARAMETER, Function.THIS_POINTER_IDENTIFIER);
+		}
+
 		Node = new ImplementationNode(this);
 		Parser.Parse(Node, this, blueprint, 0, 19);
 	}

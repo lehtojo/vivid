@@ -12,13 +12,14 @@ public class SubtractionInstruction : DualParameterInstruction
 
     public override void Build()
     {
-        if (First.Metadata.IsComplex)
+        if (Assigns)
         {
             Build(
                 "sub",
                 new InstructionParameter(
                     First,
                     ParameterFlag.DESTINATION,
+                    HandleType.REGISTER,
                     HandleType.MEMORY
                 ),
                 new InstructionParameter(

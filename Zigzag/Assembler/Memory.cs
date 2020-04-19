@@ -3,6 +3,38 @@ using System;
 public static class Memory
 {
     public const string FUNCTION_ALLOCATE = "allocate";
+
+    public static void ClearRegister(Unit unit, Register target)
+    {
+        if (target.Handle == null)
+        {
+            return;
+        }
+
+        var register = (Register?)null;
+
+        if (target.IsVolatile)
+        {
+            register = unit.GetNextRegisterWithoutReleasing();
+        }
+        else
+        {
+            register = unit.GetNextNonVolatileRegister(false);
+        }
+
+        if (register == null)
+        {
+            unit.Release(target);
+            return;
+        }
+
+        var destination = new RegisterHandle(register);
+        
+        var move = new MoveInstruction(unit, new Result(destination), target.Handle);
+        move.Mode = MoveMode.RELOCATE;
+
+        unit.Append(move);
+    }
     
     public static Result CopyToRegister(Unit unit, Result result)
     {

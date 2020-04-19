@@ -10,6 +10,7 @@ public static class ParameterFlag
     public const int WRITE_ACCESS = 2;
     public const int ATTACH_TO_DESTINATION = 4;
     public const int RELOCATE_TO_DESTINATION = 8;
+    public const int HIDDEN = 16;
 }
 
 public class InstructionParameter
@@ -17,6 +18,7 @@ public class InstructionParameter
     public Result Result { get; set; }
     public Handle? Value { get; set; } = null;
     public HandleType[] Types { get; private set; }
+    public bool IsHidden { get; set; } = false;
 
     public HandleType PrefferedType => Types[0];
     public int Flags { get; private set; }
@@ -156,21 +158,6 @@ public abstract class Instruction
         Operation = operation;
     }
 
-    private void RemoveDependencies(Result result)
-    {
-        // Duplicate the result and redirect the dependencies to use the duplicate
-        var duplicate = new DuplicateInstruction(Unit, result).Execute();
-
-        foreach (var dependency in result.Metadata.Dependencies)
-        {
-            duplicate.Metadata.Attach(new VariableAttribute(dependency.Variable, 0));
-
-            Unit.Cache(dependency.Variable, duplicate, true);
-        }
-
-        duplicate.Metadata.Attach(result.Metadata.PrimaryAttribute!);
-    }
-
     public void Build(string operation, params InstructionParameter[] parameters)
     {
         Parameters.Clear();
@@ -183,11 +170,6 @@ public abstract class Instruction
 
             if (parameter.IsDestination)
             {
-                if (parameter.Result.Metadata.IsDependent)
-                {
-                    //RemoveDependencies(result);
-                }
-
                 // Set the result to be equal to the destination
                 Result.Value = result.Value;
             }
@@ -272,7 +254,10 @@ public abstract class Instruction
 
         foreach (var parameter in Parameters)
         {
-            result.Append($" {parameter.Value},");
+            if (!Flag.Has(parameter.Flags, ParameterFlag.HIDDEN))
+            {
+                result.Append($" {parameter.Value},");
+            }
         }
 
         // -----------------------------------------------------

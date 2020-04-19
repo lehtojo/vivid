@@ -94,7 +94,7 @@ public static class Oracle
         {
             var handle = unit.GetCurrentVariableHandle(v.Variable);
 
-            if (handle != null && IsPropertyOf(v.Variable, handle))
+            if (handle != null && (v.Mode == AccessMode.READ || IsPropertyOf(v.Variable, handle)))
             {
                 v.Connect(handle);
             }
@@ -120,10 +120,10 @@ public static class Oracle
 
             c.SetSource(References.CreateConstantNumber(unit, c.Value));
         }
-        else if (instruction is GetSelfPointerInstruction s)
+        /*else if (instruction is GetSelfPointerInstruction s)
         {
             unit.Self!.Use(unit.Position);
-        }
+        }*/
     }
 
     private static void SimulateCaching(Unit unit)
@@ -160,7 +160,16 @@ public static class Oracle
         {
             if (i is ReturnInstruction instruction)
             {
-                instruction.Redirect(new RegisterHandle(unit.GetStandardReturnRegister()));
+                var return_register = unit.GetStandardReturnRegister();
+
+                var start = instruction.GetRedirectionRoot();
+                var end = unit.Position;
+
+                if (return_register.Handle == null ||
+                    !return_register.Handle.Lifetime.IsIntersecting(start, end))
+                {
+                    instruction.Redirect(new RegisterHandle(return_register));
+                }
             }
         });
     }

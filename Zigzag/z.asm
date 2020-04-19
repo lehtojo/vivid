@@ -1,38 +1,38 @@
 function_run:
-push rbx
-mov rbx, 0
-cmp rbx, 10
+push ebx
+xor ebx, ebx
+cmp ebx, 10
 jge function_run_L1
 function_run_L0:
 push S0
 call function_print
-add rbx, 1
-cmp rbx, 10
+add ebx, 1
+cmp ebx, 10
 jl function_run_L0
 function_run_L1:
-pop rbx
+pop ebx
 ret
 
 function_length_of:
-mov rax, 0
-mov rcx, [rbp]
+xor eax, eax
+mov ecx, [ebp]
 function_length_of_L0:
-mov rdx, [rcx+rax*4]
-cmp rdx, 0
+mov edx, [ecx+eax*4]
+cmp edx, 0
 jne function_length_of_L1
 ret
 function_length_of_L1:
-add rax, 1
+add eax, 1
 jmp function_length_of_L0
 ret
 
 function_print:
-push rbx
-mov rbx, [rbp]
-push rbx
+push ebx
+mov ebx, [ebp]
+push ebx
 call function_length_of
-push rax
-push rbx
+push eax
+push ebx
 call function_sys_print
-pop rbx
+pop ebx
 ret

@@ -26,10 +26,6 @@ public static class Assembler
                         {
                             Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
                         }
-                        else if (function.IsMember)
-                        {
-                            unit.Self = new Result(MemoryHandle.FromStack(unit, 8));
-                        }
 
                         Builders.Build(unit, implementation.Node);
                     }

@@ -5,6 +5,7 @@ public enum InstructionType
     CACHE_VARIABLES,
     CALL,
     COMPARE,
+    DIVISION,
     DUPLICATE,
     GET_CONSTANT,
     GET_MEMORY_ADDRESS,
@@ -21,5 +22,7 @@ public enum InstructionType
     RESTORE,
     RETURN,
     SAVE,
-    SUBTRACT
+    SUBTRACT,
+    SYMMETRY_START,
+    SYMMETRY_END
 }

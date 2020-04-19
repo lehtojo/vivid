@@ -1,3 +1,5 @@
+using System;
+
 public enum MoveMode
 {
     /// <summary>
@@ -16,18 +18,22 @@ public enum MoveMode
 
 public class MoveInstruction : DualParameterInstruction
 {
-    public const string INSTRUCTION = "mov";
+    public const string MOVE_INSTRUCTION = "mov";
+    public const string CLEAR_INSTRUCTION = "xor";
 
     public MoveMode Mode { get; set; } = MoveMode.COPY;
+    public bool IsSafe { get; set; } = false;
 
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
     public override void Build()
     {
+        /// TODO: XOR-instruction when moving zero
+
         // Move shouldn't happen if the source is the same as the destination
         if (First.Value.Equals(Second.Value)) return;
 
-        var flags_first = ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS;
+        var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);
         var flags_second = ParameterFlag.NONE;
 
         switch (Mode)
@@ -53,11 +59,32 @@ public class MoveInstruction : DualParameterInstruction
                 break;
             }
         }
-        
-        if (First.Value.Type == HandleType.MEMORY)
+
+        if (First.Value.Type == HandleType.REGISTER && Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
         {
             Build(
-                INSTRUCTION,
+                CLEAR_INSTRUCTION,
+                new InstructionParameter(
+                    First,
+                    flags_first,
+                    HandleType.REGISTER
+                ),
+                new InstructionParameter(
+                    First,
+                    ParameterFlag.NONE,
+                    HandleType.REGISTER
+                ),
+                new InstructionParameter(
+                    Second,
+                    flags_second| ParameterFlag.HIDDEN,
+                    HandleType.CONSTANT
+                )
+            );
+        }
+        else if (First.Value.Type == HandleType.MEMORY)
+        {
+            Build(
+                MOVE_INSTRUCTION,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -75,7 +102,7 @@ public class MoveInstruction : DualParameterInstruction
         else
         {
             Build(
-                INSTRUCTION,
+                MOVE_INSTRUCTION,
                 new InstructionParameter(
                     First,
                     flags_first,

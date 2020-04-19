@@ -43,11 +43,11 @@ List {
         }
 
         elements[position] = element
-        position = position + 1
+        position += 1
     }
 
     take() {
-        position = position - 1
+        position -= 1
         element = elements[position]
         => element
     }

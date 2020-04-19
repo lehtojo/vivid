@@ -11,6 +11,16 @@ public class GetVariableInstruction : LoadInstruction
         
         SetSource(References.CreateVariableHandle(unit, Self, variable));
     }
+
+    public override void Build()
+    {
+        if (Self != null)
+        {
+            Memory.Convert(Unit, Self, true, HandleType.REGISTER);
+        }
+
+        base.Build();
+    }
     
     public override InstructionType GetInstructionType()
     {

@@ -112,15 +112,12 @@ public class Scope : IDisposable
                     }
 
                     var current = handles.First();
-
                     current.Value = new RegisterHandle(register);
                     current.Metadata.Attach(handle.Metadata.SecondaryAttributes);
 
                     register.Handle = current;
                 }
             }
-
-            /// TODO: Constant reconnection?
         }
     }
 

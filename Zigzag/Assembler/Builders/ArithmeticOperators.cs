@@ -9,6 +9,7 @@ public static class ArithmeticOperators
 
     public static Result Build(Unit unit, OperatorNode node)
     {
+        /// TODO: Create a register preference system dependent on the situation
         var operation = node.Operator;
         
         if (operation == Operators.ADD)
@@ -23,6 +24,14 @@ public static class ArithmeticOperators
         {
             return BuildMultiplicationOperator(unit, node.Left, node.Right);
         }
+        else if (operation == Operators.DIVIDE)
+        {
+            return BuildDivisionOperator(unit, false, node.Left, node.Right);
+        }
+        else if (operation == Operators.MODULUS)
+        {
+            return BuildDivisionOperator(unit, true, node.Left, node.Right);
+        }
         else if (operation == Operators.ASSIGN_ADD)
         {
             return BuildAdditionOperator(unit, node.Left, node.Right, true);
@@ -34,6 +43,14 @@ public static class ArithmeticOperators
         else if (operation == Operators.ASSIGN_MULTIPLY)
         {
             return BuildMultiplicationOperator(unit, node.Left, node.Right, true);
+        }
+        else if (operation == Operators.ASSIGN_DIVIDE)
+        {
+            return BuildDivisionOperator(unit, false, node.Left, node.Right, true);
+        }
+        else if (operation == Operators.ASSIGN_MODULUS)
+        {
+            return BuildDivisionOperator(unit, true, node.Left, node.Right, true);
         }
         else if (operation == Operators.ASSIGN)
         {
@@ -69,6 +86,14 @@ public static class ArithmeticOperators
         var right = References.Get(unit, second);
 
         return new MultiplicationInstruction(unit, left, right, assigns).Execute();
+    }
+
+    public static Result BuildDivisionOperator(Unit unit, bool modulus, Node first, Node second, bool assigns = false)
+    {
+        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
+        var right = References.Get(unit, second);
+
+        return new DivisionInstruction(unit, modulus, left, right, assigns).Execute();
     }
 
     public static Result BuildAssignOperator(Unit unit, OperatorNode node) 

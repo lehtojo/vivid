@@ -2,7 +2,7 @@ public static class Analyzer
 {
     public static bool IsEdited(VariableNode reference)
     {
-        return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION;
+        return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION || (reference.Parent?.Is(NodeType.INCREMENT_NODE) ?? false);
     }
 
     public static void AnalyzeVariableUsages(Context context)
@@ -22,9 +22,14 @@ public static class Analyzer
             }
         }
 
-        foreach (var subcontext in context.Subcontexts)
+        foreach (var type in context.Types.Values)
         {
-            AnalyzeVariableUsages(subcontext);
+            AnalyzeVariableUsages(type);
+        }
+
+        foreach (var function in context.GetImplementedFunctions())
+        {
+            AnalyzeVariableUsages(function);
         }
     }
 

@@ -16,6 +16,8 @@ public struct Parameter
 
 public class Function : Context
 {
+	public const string THIS_POINTER_IDENTIFIER = "this";
+
 	public int Modifiers { get; private set; }
 
 	public List<string> Parameters { get; private set; }

@@ -64,6 +64,12 @@ public class Result
 
     public bool IsReleasable()
     {
+        if (Metadata.PrimaryAttribute is VariableAttribute attribute &&
+            attribute.Variable.IsThisPointer)
+        {
+            return false;
+        }
+
         var variables = Metadata.Variables;
         return variables.Count() > 0 && variables.All(v => v.Variable.Category != VariableCategory.MEMBER);
     }

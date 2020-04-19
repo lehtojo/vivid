@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class SymmetryEndInstruction : Instruction
+{
+    public SymmetryStartInstruction Start  { get; private set; }
+    private List<Result> Loads { get; set; } = new List<Result>();
+
+    public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit) 
+    {
+        Start = start;
+    }
+
+    public void Append()
+    {
+        foreach (var variable in Start.NonLocalVariables)
+        {
+            var source = References.GetVariable(Unit, variable, AccessMode.READ);
+            Loads.Add(source);
+        }
+    }
+
+    public override void Build()
+    {
+        var moves = new List<MoveInstruction>();
+
+        for (var i = 0; i < Loads.Count; i++)
+        {
+            var source = Loads[i];
+            var destination = new Result(Start.Handles[i]);
+
+            moves.Add(new MoveInstruction(Unit, destination, source));
+        }
+
+        var remove_list = new List<MoveInstruction>();
+
+        foreach (var a in moves)
+        {
+            foreach (var b in moves)
+            {
+                if (a == b) continue;
+                
+                if (a.First.Value.Equals(b.Second.Value) &&
+                    a.Second.Value.Equals(b.First.Value))
+                {
+                    // Append XCHG
+                    throw new NotImplementedException("Implement exchange instruction");
+                    
+                    //remove_list.Add(a);
+                    //remove_list.Add(b);
+                    //break;
+                }
+            }
+        }
+
+        moves.RemoveAll(m => remove_list.Contains(m));
+
+        moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? 1 : 0);
+        moves.ForEach(move => Unit.Append(move));
+    }
+
+    public override Result? GetDestinationDependency()
+    {
+        throw new ApplicationException("Tried to redirect Loop-Connect-End-Instruction");
+    }
+
+    public override InstructionType GetInstructionType()
+    {
+        return InstructionType.SYMMETRY_END;
+    }
+
+    public override Result[] GetResultReferences()
+    {
+        return new Result[] { Result };
+    }
+}

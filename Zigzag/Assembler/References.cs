@@ -49,7 +49,7 @@ public static class References
 
         if (variable.Category == VariableCategory.MEMBER)
         {
-            self = new GetSelfPointerInstruction(unit).Execute();
+            self = new GetVariableInstruction(unit, null, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
         }
 
         var handle = new GetVariableInstruction(unit, self, variable, mode).Execute();

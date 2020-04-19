@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public class Variable
 {
@@ -8,7 +9,8 @@ public class Variable
 	public int Modifiers { get; set; }
 	public int Length { get; private set; }
 	public bool IsArray => Length > 0;
-
+	public bool IsThisPointer => Name == Function.THIS_POINTER_IDENTIFIER;
+	
 	public Context Context { get; set; }
 
 	public int Alignment { get; set; }
@@ -39,5 +41,10 @@ public class Variable
 		{
 			context.Declare(this);
 		}
+	}
+
+    public bool IsEditedInside(Node node)
+	{
+		return Edits.Any(e => e.FindParent(p => p == node) != null);
 	}
 }

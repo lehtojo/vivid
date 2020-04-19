@@ -31,9 +31,9 @@ public class CallInstruction : Instruction
                 move.Mode = MoveMode.RELOCATE;
 
                 Unit.Append(move);
-
-                source.Reset();
             }
+
+            source.Reset();
         });
     }
 

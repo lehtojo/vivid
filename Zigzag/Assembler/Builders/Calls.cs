@@ -35,7 +35,7 @@ public static class Calls
 
         if (self == null && IsSelfCall(unit.Function, implementation))
         {
-            self = new GetSelfPointerInstruction(unit).Execute();
+            self = new GetVariableInstruction(unit, null, unit.Self!, AccessMode.READ).Execute();
         }
 
         if (self != null)

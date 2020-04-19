@@ -1,0 +1,63 @@
+Operator {
+    identifier: string
+    priority: num
+
+    this == other => identifier == other.identifier && priority == other.priority
+}
+
+(Item) List {
+    elements: Item link
+}
+
+(Key, Value) Map {
+    keys: Key List
+    values: Value List
+
+    get(key: Key) {
+        i = keys.index_of(key)
+        
+        if i == -1 {
+            fail 'Couldn\'t find a value paired with the given key'
+        }
+
+        => values[i]
+    }
+}
+
+Lexer {
+    operators: Operator List,
+    variables: string Variable Map
+}
+
+# Idea: Project or module wide include
+
+f() {
+    async loop (i = 0, i < 10, i++) {
+        println(i)
+    }
+
+    # vs.
+
+    loop... (i = 0, i < 10, i++) {
+        println(i)
+    }
+
+    if... GetReponseCode() == ReponseCode.OK {
+        SendFile('./index.html')
+    }
+
+    # also:
+
+    if GetReponseCode() == ReponseCode.OK {
+        SendFile('./index.html')
+    }...
+}
+
+run(lexer: Lexer) {
+    async_operator = Operator {
+        identifier: '...'
+        priority: 2
+    }
+
+    lexer.operators.add(async_operator)
+}

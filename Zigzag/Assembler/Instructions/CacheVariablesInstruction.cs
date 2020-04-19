@@ -38,10 +38,14 @@ public static class ListPopExtensionStructs
 public class CacheVariablesInstruction : Instruction
 {
     private List<VariableUsageInfo> Usages { get; set; }
+    private Node Body { get; set; }
+    private bool NonVolatileMode { get; set; }
 
-    public CacheVariablesInstruction(Unit unit, List<VariableUsageInfo> variables) : base(unit)
+    public CacheVariablesInstruction(Unit unit, Node body, List<VariableUsageInfo> variables, bool non_volatile_mode) : base(unit)
     {
         Usages = variables;
+        Body = body;
+        NonVolatileMode = non_volatile_mode;
 
         foreach (var usage in Usages)
         {
@@ -49,52 +53,93 @@ public class CacheVariablesInstruction : Instruction
         }
     }
 
+    private void RemoveAllReadonlyConstantVariables()
+    {
+        for (var i = Usages.Count - 1; i >= 0; i--)
+        {
+            var usage = Usages[i];
+
+            // There's no need to move variables to registers that aren't edited in the body and are constants
+            if (!usage.Variable.IsEditedInside(Body) && 
+                usage.Reference?.Value.Type == HandleType.CONSTANT)
+            {
+                Usages.RemoveAt(i);
+            }
+        }
+    }
+
+    private void Release(VariableUsageInfo usage)
+    {
+        // Get the memory address of the variables where its value can be saved
+        var destination = References.GetVariable(Unit, usage.Variable, AccessMode.WRITE);
+        var source = usage.Reference ?? throw new ApplicationException("Variable reference was not loaded");
+
+        // The variable value must be saved so it must be relocated to the destination
+        var move = new MoveInstruction(Unit, destination, source);
+        move.Mode = MoveMode.RELOCATE;
+
+        Unit.Append(move);
+    }
+
     public override void Build()
     {
-        var usages = new List<VariableUsageInfo>(Usages);
+        RemoveAllReadonlyConstantVariables();
 
-        var available = new List<Register>(Unit.NonReservedRegisters);
-        var removed = new List<(VariableUsageInfo Info, Register Register)>();
+        var load_list = new List<VariableUsageInfo>(Usages);
+
+        var available_registers = new List<Register>(NonVolatileMode ? Unit.NonVolatileRegisters : Unit.NonReservedRegisters);
+        var removed_variables = new List<(VariableUsageInfo Info, Register Register)>();
 
         foreach (var usage in Usages)
         {
             // Try to find a register that contains the current variable
-            var register = available.Find(r => r.Handle?.Metadata.Equals(usage.Variable) ?? false);
+            var register = available_registers.Find(r => (r.Handle?.Metadata.Equals(usage.Variable) ?? false) && (!NonVolatileMode || !r.IsVolatile));
 
             if (register != null)
             {  
-                usages.Remove(usage);
-                available.Remove(register);
+                // Remove this variable from the load list since it's in a correct location
+                load_list.Remove(usage);
 
-                removed.Add((usage, register));
+                // The current variable occupies the register so it's not available
+                available_registers.Remove(register);
+
+                removed_variables.Add((usage, register));
             }
         }
 
+        /// TODO: Maybe the wrong order since the objective is to remove the most unused variables first
         // Sort the variables based on their number of usages (most used variables first)
-        removed.Sort((a, b) => -a.Info.Usages.CompareTo(b.Info.Usages));
+        removed_variables.Sort((a, b) => -a.Info.Usages.CompareTo(b.Info.Usages));
 
-        foreach (var usage in usages)
+        var remaining_usages = new List<VariableUsageInfo>();
+
+        foreach (var usage in load_list)
         {
             // Try to get an available register
-            var register = available.Pop();
+            var register = available_registers.Pop();
 
             if (register == null)
             {
-                if (removed.Count == 0)
+                if (removed_variables.Count == 0)
                 {
-                    // There are no available registers anymore
+                    // There are no available registers
+                    remaining_usages.Add(usage);
                     break;
                 }
 
-                var next = removed.First();
+                var removed = removed_variables.First();
 
                 // The current variable is only allowed to take over the used register if it will be more used
-                if (next.Info.Usages >= usage.Usages)
+                if (removed.Info.Usages >= usage.Usages)
                 {
+                    remaining_usages.Add(usage);
                     continue;
                 }
 
-                register = next.Register;
+                // Release the removed variable since its register will used with the current variable
+                Release(removed.Info);
+
+                register = removed.Register;
             }
 
             // Clear the register safely if it holds something
@@ -107,6 +152,12 @@ public class CacheVariablesInstruction : Instruction
             move.Mode = MoveMode.RELOCATE;
 
             Unit.Append(move);
+        }
+
+        // Release the remaining variables
+        foreach (var usage in remaining_usages)
+        {
+            Release(usage);
         }
     }
 

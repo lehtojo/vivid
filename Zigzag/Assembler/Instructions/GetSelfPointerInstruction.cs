@@ -4,7 +4,8 @@ public class GetSelfPointerInstruction : LoadInstruction
 {
     public GetSelfPointerInstruction(Unit unit) : base(unit, AccessMode.READ) 
     {
-        Source.Join(unit.Self ?? throw new ApplicationException("Tried to get self pointer in a non-member function"));
+        throw new ApplicationException("Legacy Get-Self-Pointer-Instruction used");
+        //Source.Join(unit.Self ?? throw new ApplicationException("Tried to get self pointer in a non-member function"));
     }
 
     public override void Build()

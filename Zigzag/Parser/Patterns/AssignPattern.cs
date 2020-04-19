@@ -31,6 +31,11 @@ class AssignPattern : Pattern
 
 		if (!context.IsVariableDeclared(destination.Value))
 		{
+			if (destination.Value == Function.THIS_POINTER_IDENTIFIER)
+			{
+				throw Errors.Get(destination.Position, $"Cannot declare variable called '{Function.THIS_POINTER_IDENTIFIER}' since the name is reserved");
+			}
+
 			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
 
 			var variable = new Variable

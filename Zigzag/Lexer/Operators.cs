@@ -36,6 +36,7 @@ public class Operators
 	public static readonly ActionOperator ASSIGN_SUBTRACT = new ActionOperator("-=", Operators.SUBTRACT, 1);
 	public static readonly ActionOperator ASSIGN_MULTIPLY = new ActionOperator("*=", Operators.MULTIPLY, 1);
 	public static readonly ActionOperator ASSIGN_DIVIDE = new ActionOperator("/=", Operators.DIVIDE, 1);
+	public static readonly ActionOperator ASSIGN_MODULUS = new ActionOperator("%=", Operators.MODULUS, 1);
 
 	public static readonly IndependentOperator COMMA = new IndependentOperator(",");
 	public static readonly IndependentOperator DOT = new IndependentOperator(".");
