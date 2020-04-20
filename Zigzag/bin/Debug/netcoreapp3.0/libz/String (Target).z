@@ -7,7 +7,7 @@ to_string(n) {
         n = -n
     }
 
-    loop() {
+    loop {
         remainder = n % 10
         n /= 10
 

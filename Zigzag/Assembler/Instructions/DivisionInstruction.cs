@@ -35,7 +35,10 @@ public class DivisionInstruction : DualParameterInstruction
 
     private void ClearRemainderRegister(Register register)
     {
-        Memory.ClearRegister(Unit, register);
+        if (!register.IsAvailable(Unit.Position))
+        {
+            Memory.ClearRegister(Unit, register);
+        }
     }
 
     private void BuildModulus(Result denominator)
@@ -84,8 +87,8 @@ public class DivisionInstruction : DualParameterInstruction
     public override void Build()
     {
         var denominator = CorrectDenominatorLocation();
-
         var remainder = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!;
+
         ClearRemainderRegister(remainder);
 
         using (new RegisterLock(remainder))

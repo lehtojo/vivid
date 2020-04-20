@@ -1,17 +1,29 @@
 public class NumberNode : Node, IType
 {
-	public Number Type { get; private set; }
+	public NumberType Type { get; private set; }
 	public object Value { get; set; }
 
 	public NumberNode(NumberType type, object value)
 	{
-		Type = Numbers.Get(type);
+		Type = type;
 		Value = value;
+	}
+
+	public void Negate()
+	{
+		if (Type == NumberType.DECIMAL32)
+		{
+			Value = -(double)Value;
+		}
+		else
+		{
+			Value = -(long)Value;
+		}
 	}
 
 	public new Type GetType()
 	{
-		return Type;
+		return Numbers.Get(Type);
 	}
 
 	public override NodeType GetNodeType()

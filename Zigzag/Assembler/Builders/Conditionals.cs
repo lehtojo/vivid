@@ -14,16 +14,16 @@ public static class Conditionals
 
     public static Result BuildBody(Unit unit, Context local_context, Node body, Instruction? perspective = null)
     {
-        var non_local_variables = GetAllNonLocalVariables(local_context, body);
+        var active_variables = GetAllNonLocalVariables(local_context, body).Concat(unit.Scope!.ActiveVariables).Distinct();
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
         
         // Since this is a body of some statement is also has a scope
-        using (var scope = new Scope(unit, non_local_variables))
+        using (var scope = new Scope(unit, active_variables))
         {
             // Must be executed after caching
-            var merge = new MergeScopeInstruction(unit, non_local_variables);
+            var merge = new MergeScopeInstruction(unit, active_variables);
 
             // Build the body
             result = Builders.Build(unit, body);

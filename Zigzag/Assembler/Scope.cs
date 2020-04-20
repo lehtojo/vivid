@@ -2,22 +2,29 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
+public struct VariableLoad
+{
+    public Variable Variable;
+    public Result Reference;
+}
+
 public class Scope : IDisposable
 {
-    private HashSet<Variable> Loads { get; set; } = new HashSet<Variable>();
+    private List<VariableLoad> OuterLoads { get; set; } = new List<VariableLoad>();
+    private HashSet<Variable> StartLoads { get; set; } = new HashSet<Variable>();
+    private HashSet<Variable> EndLoads { get; set; } = new HashSet<Variable>();
 
     public Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
     public Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
 
-    private List<Variable> NonLocalVariables { get; set; } = new List<Variable>();
-    private List<Result> NonLocalVariableLoads { get; set; } = new List<Result>();
+    public List<Variable> ActiveVariables { get; set; } = new List<Variable>();
 
     public Unit? Unit { get; private set; }
     public Scope? Outer { get; private set; } = null;
 
-    public Scope(Unit unit, IEnumerable<Variable>? non_local_variables = null) 
+    public Scope(Unit unit, IEnumerable<Variable>? active_variables = null)
     {
-        NonLocalVariables = non_local_variables?.ToList() ?? new List<Variable>();
+        ActiveVariables = active_variables?.ToList() ?? new List<Variable>();
 
         Enter(unit);
     }
@@ -38,43 +45,75 @@ public class Scope : IDisposable
         return current.Lifetime.End > Unit!.Position || (Outer?.IsUsedLater(variable) ?? false);
     }
 
+    private bool ContainsPredictableVariable(Register register, out Variable? variable)
+    {
+        var handle = register.Handle;
+
+        if (handle != null && handle.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsPredictable)
+        {
+            variable = attribute.Variable;
+            return true;
+        }
+        else
+        {
+            variable = null;
+            return false;
+        }
+    }
+
     public void Enter(Unit unit)
     {
         Unit = unit;
 
-        // Save the outer scope so that this scope can be exited
+        // Save the outer scope so that this scope can be exited later
         if (unit.Scope != this)
         {
             Outer = unit.Scope;
         }
 
-        if (NonLocalVariableLoads.Count == 0)
+        // Look for variables in registers to protect during this scope
+        /*foreach (var register in Unit.NonReservedRegisters)
         {
-            foreach (var variable in NonLocalVariables)
+            if (ContainsPredictableVariable(register, out Variable? variable) && !ActiveVariables.Contains(variable!))
             {
-                NonLocalVariableLoads.Add(References.GetVariable(Unit, variable, AccessMode.READ));
+                ActiveVariables.Add(variable!);
+            }
+        }*/
+
+        // Detect new variables to load
+        if (OuterLoads.Count != ActiveVariables.Count)
+        {
+            foreach (var variable in ActiveVariables)
+            {
+                if (!OuterLoads.Exists(l => l.Variable == variable))
+                {
+                    var reference = References.GetVariable(Unit, variable, AccessMode.READ);
+                    var load = new VariableLoad { Variable = variable, Reference = reference };
+
+                    OuterLoads.Add(load);
+                }
             }
         }
 
         // Switch the current unit scope to be this scope
         Unit.Scope = this;
-        
+
         // Connect to the outer scope if it exists
         if (Outer != null)
         {
-            for (var i = 0; i < NonLocalVariables.Count; i++)
+            for (var i = 0; i < ActiveVariables.Count; i++)
             {
-                var variable = NonLocalVariables[i];
-                var current_outer = NonLocalVariableLoads[i]; // Outer.GetCurrentVariableHandle(unit, variable);
+                var variable = ActiveVariables[i];
+                var outer_reference = OuterLoads[i].Reference;
 
-                if (current_outer != null)
+                if (outer_reference != null)
                 {
                     var variable_handles = GetVariableHandles(unit, variable);
 
                     if (variable_handles.Count == 0)
                     {
-                        var first_local = new Result(current_outer.Value);
-                        var variable_attribute = current_outer.Metadata[variable];
+                        var first_local = new Result(outer_reference.Value);
+                        var variable_attribute = outer_reference.Metadata[variable];
 
                         first_local.Metadata.Attach(variable_attribute);
 
@@ -83,27 +122,25 @@ public class Scope : IDisposable
                     else
                     {
                         var first = variable_handles[0];
-                        first.Value = current_outer.Value;
+                        first.Value = outer_reference.Value;
                     }
                 }
 
-                if (!Loads.Contains(variable))
+                if (!StartLoads.Contains(variable))
                 {
-                    // Reference the variable at the start of the scope in order to make it active so that the local variables don't steal its register for example
+                    // The current variable is an active one so it must stay protected during the whole scope
                     References.GetVariable(unit, variable, AccessMode.READ);
 
-                    Loads.Add(variable);
+                    StartLoads.Add(variable);
                 }
             }
 
             // Since a new scope has begun the current register variables must be reconnected
             foreach (var register in Unit.NonReservedRegisters)
             {
-                var handle = register.Handle;
-
-                if (handle != null && handle.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsPredictable)
+                if (ContainsPredictableVariable(register, out Variable? variable))
                 {
-                    var handles = GetVariableHandles(Unit, attribute.Variable);
+                    var handles = GetVariableHandles(Unit, variable!);
 
                     if (handles.Count == 0)
                     {
@@ -113,7 +150,7 @@ public class Scope : IDisposable
 
                     var current = handles.First();
                     current.Value = new RegisterHandle(register);
-                    current.Metadata.Attach(handle.Metadata.SecondaryAttributes);
+                    current.Metadata.Attach(register.Handle!.Metadata.SecondaryAttributes);
 
                     register.Handle = current;
                 }
@@ -139,10 +176,10 @@ public class Scope : IDisposable
         else
         {
             var source = Outer?.GetCurrentVariableHandle(Unit!, variable);
-            
+
             var handles = new List<Result>();
             Variables.Add(variable, handles);
-     
+
             if (source != null)
             {
                 // Create a reference to the outer reference and configure it so that this scope cannot change the outer reference
@@ -155,7 +192,7 @@ public class Scope : IDisposable
 
                 return Variables[variable];
             }
-            
+
             return handles;
         }
     }
@@ -195,6 +232,17 @@ public class Scope : IDisposable
     public void Exit()
     {
         if (Unit == null) throw new ApplicationException("Unit was not assigned to a scope or the scope was never entered");
+
+        foreach (var variable in ActiveVariables)
+        {
+            if (!EndLoads.Contains(variable))
+            {
+                // The current variable is an active one so it must stay protected during the whole scope
+                References.GetVariable(Unit, variable, AccessMode.READ);
+
+                EndLoads.Add(variable);
+            }
+        }
 
         // Exit to the outer scope
         Unit.Scope = Outer ?? this;

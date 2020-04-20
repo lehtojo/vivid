@@ -7,7 +7,6 @@ run() {
     hello_world = string('Hello World!')
 
     i = 0
-    
     loop (i = 0, i < 10, ++i) {
         prints(hello_world)
     }

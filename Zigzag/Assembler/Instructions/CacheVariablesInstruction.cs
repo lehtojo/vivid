@@ -107,9 +107,8 @@ public class CacheVariablesInstruction : Instruction
             }
         }
 
-        /// TODO: Maybe the wrong order since the objective is to remove the most unused variables first
-        // Sort the variables based on their number of usages (most used variables first)
-        removed_variables.Sort((a, b) => -a.Info.Usages.CompareTo(b.Info.Usages));
+        // Sort the variables based on their number of usages (the least used variables first)
+        removed_variables.Sort((a, b) => a.Info.Usages.CompareTo(b.Info.Usages));
 
         var remaining_usages = new List<VariableUsageInfo>();
 
@@ -135,6 +134,8 @@ public class CacheVariablesInstruction : Instruction
                     remaining_usages.Add(usage);
                     continue;
                 }
+
+                removed_variables.RemoveAt(0);
 
                 // Release the removed variable since its register will used with the current variable
                 Release(removed.Info);

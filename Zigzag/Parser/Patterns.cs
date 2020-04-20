@@ -98,5 +98,6 @@ public class Patterns
 		Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
 		Add(new TypePattern());
+		Add(new UnarySignPattern());
 	}
 }

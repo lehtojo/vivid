@@ -4,7 +4,7 @@ to_string(n) {
 
     if n < 0 {
         sign = string('-')
-        n = 0 - n
+        n = -n
     }
 
     loop() {
@@ -30,7 +30,7 @@ to_number(text) {
     sign = 1
 
     if buffer[0] == 45 {
-        sign = 0 - sign
+        sign = -sign
     }
 
     i = 0

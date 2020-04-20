@@ -7,7 +7,7 @@ type List {
     size => position
 
     List(count) {
-        elements = allocate(count * 4) -> num
+        elements = allocate(count * 4) as num
         capacity = count
         batch = capacity
         position = 0
@@ -50,9 +50,11 @@ type List {
     take() => elements[--position]
 
     at(i) => elements[i]
-    operator[] (i) => elements[i]
+
+    this[i] => elements[i]
     
-    operator+ (other) {
+    # Concats two lists
+    this + other: List {
         result = List(size + other.size)
 
         loop (i = 0, i < size, i++) {

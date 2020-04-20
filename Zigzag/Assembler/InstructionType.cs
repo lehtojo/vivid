@@ -18,6 +18,7 @@ public enum InstructionType
     MERGE_SCOPE,
     MOVE,
     MULTIPLICATION,
+    NEGATE,
     PASS_PARAMETER,
     RESTORE,
     RETURN,

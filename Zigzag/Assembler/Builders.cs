@@ -51,6 +51,11 @@ public static class Builders
                 return Builders.Build(unit, node.First!);
             }
 
+            case NodeType.NEGATE_NODE:
+            {
+                return ArithmeticOperators.BuildNegate(unit, (NegateNode)node);
+            }
+
             default:
             {
                 var iterator = node.First;

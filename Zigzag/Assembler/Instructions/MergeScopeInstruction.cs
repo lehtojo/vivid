@@ -4,12 +4,12 @@ using System;
 
 public class MergeScopeInstruction : Instruction
 {
-    private List<Variable> Variables { get; set; }
-    private List<Result> Loads { get; set; } = new List<Result>();
+    //private List<Variable> Variables { get; set; }
+    //private List<Result> Loads { get; set; } = new List<Result>();
 
     public MergeScopeInstruction(Unit unit, IEnumerable<Variable> variables) : base(unit)
     {
-        Variables = variables.ToList();
+        //Variables = variables.ToList();
     }
 
     private Result GetDestinationHandle(Variable variable)
@@ -24,18 +24,31 @@ public class MergeScopeInstruction : Instruction
 
     public void Append()
     {
-        foreach (var variable in Variables)
+        /*foreach (var variable in Variables)
         {
-            var source = References.GetVariable(Unit, variable, AccessMode.READ);
-            Loads.Add(source);
-        }
+            Loads.Add(References.GetVariable(Unit, variable, AccessMode.READ));
+        }*/
     }
 
     public override void Build() 
     {
         var moves = new List<MoveInstruction>();
 
-        for (var i = 0; i < Loads.Count; i++)
+        foreach (var variable in Scope!.ActiveVariables)
+        {
+            var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get the current handle for an active variable");
+            var destination = GetDestinationHandle(variable);
+            
+            // When the destination is a memory handle, it most likely means it won't be used later
+            if (destination.Value.Type == HandleType.MEMORY && !IsUsedLater(variable))
+            {
+                continue;
+            }
+
+            moves.Add(new MoveInstruction(Unit, destination, source));
+        }
+
+        /*for (var i = 0; i < Loads.Count; i++)
         {
             var source = Loads[i];
             var destination = GetDestinationHandle(Variables[i]);
@@ -47,7 +60,7 @@ public class MergeScopeInstruction : Instruction
             }
 
             moves.Add(new MoveInstruction(Unit, destination, source));
-        }
+        }*/
 
         var remove_list = new List<MoveInstruction>();
 
@@ -60,7 +73,7 @@ public class MergeScopeInstruction : Instruction
                 if (a.First.Value.Equals(b.Second.Value) &&
                     a.Second.Value.Equals(b.First.Value))
                 {
-                    // Append XCHG
+                    /// TODO: Implement XCHG
                     throw new NotImplementedException("Implement exchange instruction");
                     
                     //remove_list.Add(a);
@@ -88,6 +101,7 @@ public class MergeScopeInstruction : Instruction
 
     public override Result[] GetResultReferences()
     {
-        return Loads.ToArray();
+        //return Loads.ToArray();
+        return new Result[] { Result };
     }
 }

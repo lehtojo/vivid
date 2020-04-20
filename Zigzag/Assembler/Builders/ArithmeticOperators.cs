@@ -62,7 +62,12 @@ public static class ArithmeticOperators
         }
 
         throw new ArgumentException("Node not implemented yet");
-    } 
+    }
+
+    public static Result BuildNegate(Unit unit, NegateNode node)
+    {
+        return new NegateInstruction(unit, References.Get(unit, node.Target)).Execute();
+    }
 
     public static Result BuildAdditionOperator(Unit unit, Node first, Node second, bool assigns = false)
     {

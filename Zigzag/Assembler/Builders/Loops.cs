@@ -47,7 +47,7 @@ public static class Loops
             }
             else
             {
-                foreach (var usage in GetNonLocalVariableUsageCount(unit, iterator))
+                foreach (var usage in GetNonLocalVariableUsageCount(unit, iterator, local_contexts))
                 {
                     variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
                 }
@@ -110,17 +110,17 @@ public static class Loops
 
     private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
     {
-        var non_local_variables = GetAllNonLocalVariables(loop.BodyContext, loop);
+        var active_variables = GetAllNonLocalVariables(loop.BodyContext, loop).Concat(unit.Scope!.ActiveVariables).Distinct();
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
 
-        using (var scope = new Scope(unit, non_local_variables))
+        using (var scope = new Scope(unit, active_variables))
         {
             // Append the label where the loop will start
             unit.Append(start);
 
-            var symmetry_start = new SymmetryStartInstruction(unit, non_local_variables);
+            var symmetry_start = new SymmetryStartInstruction(unit, active_variables);
             unit.Append(symmetry_start);
 
             // Build the loop body

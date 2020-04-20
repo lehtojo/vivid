@@ -1,8 +1,10 @@
 public class NegateNode : Node
 {
-	public NegateNode(Node @object)
+	public Node Target => First!;
+
+	public NegateNode(Node target)
 	{
-		Add(@object);
+		Add(target);
 	}
 
 	public override NodeType GetNodeType()

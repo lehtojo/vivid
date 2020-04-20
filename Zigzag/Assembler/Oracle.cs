@@ -120,10 +120,6 @@ public static class Oracle
 
             c.SetSource(References.CreateConstantNumber(unit, c.Value));
         }
-        /*else if (instruction is GetSelfPointerInstruction s)
-        {
-            unit.Self!.Use(unit.Position);
-        }*/
     }
 
     private static void SimulateCaching(Unit unit)
@@ -156,6 +152,8 @@ public static class Oracle
 
     private static void ConnectReturnStatements(Unit unit)
     {
+        var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
+
         unit.Simulate(UnitMode.READ_ONLY_MODE, i =>
         {
             if (i is ReturnInstruction instruction)
@@ -165,8 +163,7 @@ public static class Oracle
                 var start = instruction.GetRedirectionRoot();
                 var end = unit.Position;
 
-                if (return_register.Handle == null ||
-                    !return_register.Handle.Lifetime.IsIntersecting(start, end))
+                if ((return_register.Handle == null || !return_register.Handle.Lifetime.IsIntersecting(start, end)) && !functions.Any(f => f.Result.Lifetime.IsIntersecting(start, end)))
                 {
                     instruction.Redirect(new RegisterHandle(return_register));
                 }
