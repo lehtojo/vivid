@@ -28,8 +28,6 @@ public class MoveInstruction : DualParameterInstruction
 
     public override void Build()
     {
-        /// TODO: XOR-instruction when moving zero
-
         // Move shouldn't happen if the source is the same as the destination
         if (First.Value.Equals(Second.Value)) return;
 

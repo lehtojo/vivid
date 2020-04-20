@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public class VariableUsageInfo
 {
@@ -16,21 +17,37 @@ public class VariableUsageInfo
 
 public static class Loops
 {
-    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Node parent, params Context[] local_contexts)
+    private static bool IsNonLocalVariable(Variable variable, params Context[] local_contexts)
+    {
+        return !local_contexts.Any(local_context => variable.Context.IsInside(local_context));
+    }
+
+    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node parent, params Context[] local_contexts)
     {
         var variables = new Dictionary<Variable, int>();
         var iterator = parent.First;
 
         while (iterator != null)
         {
-            /// TODO: Detect this pointer need
-            if (iterator is VariableNode node && node.Variable.IsPredictable && !local_contexts.Any(c => node.Variable.Context.IsInside(c)))
+            if (iterator is VariableNode node && IsNonLocalVariable(node.Variable, local_contexts))
             {
-                variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
+                if (node.Variable.IsPredictable)
+                {
+                    variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
+                }
+                else if (!node.Parent?.Is(NodeType.LINK_NODE) ?? false)
+                {
+                    if (unit.Self == null)
+                    {
+                        throw new ApplicationException("Detected a use of the this pointer but it was missing");
+                    }
+
+                    variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
+                }
             }
             else
             {
-                foreach (var usage in GetNonLocalVariableUsageCount(iterator))
+                foreach (var usage in GetNonLocalVariableUsageCount(unit, iterator))
                 {
                     variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
                 }
@@ -42,10 +59,10 @@ public static class Loops
         return variables;
     }
 
-    private static List<VariableUsageInfo> GetAllVariableUsages(LoopNode node)
+    private static List<VariableUsageInfo> GetAllVariableUsages(Unit unit, LoopNode node)
     {
         // Get all non-local variables in the loop and their number of usages
-        var variables = GetNonLocalVariableUsageCount(node, node.StepsContext, node.BodyContext)
+        var variables = GetNonLocalVariableUsageCount(unit, node, node.StepsContext, node.BodyContext)
                             .Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
 
         // Sort the variables based on their number of usages (most used variables first)
@@ -77,7 +94,7 @@ public static class Loops
 
     private static void PrepareRelevantVariables(Unit unit, LoopNode node)
     {
-        var variables = GetAllVariableUsages(node);
+        var variables = GetAllVariableUsages(unit, node);
         var non_volatile_mode = ContainsFunction(node);
 
         unit.Append(new CacheVariablesInstruction(unit, node, variables, non_volatile_mode));

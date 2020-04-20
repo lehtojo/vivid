@@ -64,14 +64,13 @@ public class Result
 
     public bool IsReleasable()
     {
-        if (Metadata.PrimaryAttribute is VariableAttribute attribute &&
-            attribute.Variable.IsThisPointer)
+        // Prevent releasing the this pointer
+        if (Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsThisPointer)
         {
             return false;
         }
 
-        var variables = Metadata.Variables;
-        return variables.Count() > 0 && variables.All(v => v.Variable.Category != VariableCategory.MEMBER);
+        return Metadata.Variables.Count() > 0 && Metadata.Variables.All(v => v.Variable.IsPredictable);
     }
 
     public Result(Instruction instruction)

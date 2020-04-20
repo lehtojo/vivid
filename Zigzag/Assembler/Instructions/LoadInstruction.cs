@@ -17,10 +17,6 @@ public abstract class LoadInstruction : Instruction
     public void Connect(Result result)
     {
         Result.Join(result);
-
-        /// TODO: Probably useless
-        Result.Instruction = result.Instruction;
-
         Source.Join(result);
     }
 

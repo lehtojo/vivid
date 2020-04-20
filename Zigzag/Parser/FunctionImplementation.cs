@@ -59,7 +59,6 @@ public class FunctionImplementation : Context
 	{
 		if (Metadata != null && Metadata.IsMember)
 		{
-			/// TODO: Prevent user from defining local variable called this
 			var type = Metadata.GetTypeParent();
 			Declare(type, VariableCategory.PARAMETER, Function.THIS_POINTER_IDENTIFIER);
 		}

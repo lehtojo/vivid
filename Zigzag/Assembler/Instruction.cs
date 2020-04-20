@@ -234,8 +234,7 @@ public abstract class Instruction
         {
             return;
         }
-
-        /// TODO: Maybe convert back to result?
+        
         foreach (var parameter in Parameters)
         {
             if (!parameter.IsValueValid || parameter.Value == null)

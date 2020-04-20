@@ -345,7 +345,6 @@ public class Unit
 
         if (register != null)
         {
-            /// TODO: Handle member variables, for example their base handle is not passed
             Release(register);
             return register;
         }
@@ -354,7 +353,6 @@ public class Unit
 
         if (register != null)
         {
-            /// TODO: Handle member variables, for example their base handle is not passed
             Release(register);
             return register;
         }
