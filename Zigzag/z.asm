@@ -37,7 +37,7 @@ xor eax, eax
 mov ecx, [ebp]
 function_length_of_L0:
 mov edx, [ecx+eax*4]
-cmp edx, 0
+test edx, edx
 jne function_length_of_L1
 ret
 function_length_of_L1:
@@ -88,7 +88,7 @@ mov ecx, [ebp]
 type_string_function_length_L0:
 mov edx, [ecx]
 mov ebx, [edx+eax*4]
-cmp ebx, 0
+test ebx, ebx
 jne type_string_function_length_L1
 pop ebx
 ret
