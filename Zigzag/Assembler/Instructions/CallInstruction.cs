@@ -28,7 +28,7 @@ public class CallInstruction : Instruction
                 }
 
                 var move = new MoveInstruction(Unit, new Result(destination), source.Handle!);
-                move.Mode = MoveMode.RELOCATE;
+                move.Type = MoveType.RELOCATE;
 
                 Unit.Append(move);
             }
@@ -59,7 +59,7 @@ public class CallInstruction : Instruction
             var move = new MoveInstruction(Unit, Result, new Result(source));
             
             // Configure the move so that this instruction's result is attached to the destination
-            move.Mode = MoveMode.LOAD;
+            move.Type = MoveType.LOAD;
 
             // The result is predefined so the value from the source handle must be moved to the predefined result
             Unit.Append(move, true);

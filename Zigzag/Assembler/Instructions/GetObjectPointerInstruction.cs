@@ -13,7 +13,7 @@ public class GetObjectPointerInstruction : Instruction
     public override void Build()
     {
         Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
-        Result.Value = new MemoryHandle(Base, Offset);
+        Result.Value = new MemoryHandle(Unit, Base, Offset);
     }
 
     public override Result[] GetResultReferences()

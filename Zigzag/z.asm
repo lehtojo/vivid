@@ -1,99 +1,120 @@
+section .text
+global _start
+_start:
+jmp function_run
+
+extern function_allocate
+extern function_integer_power
+extern function_sys_print
+extern function_sys_read
+extern function_copy
+extern function_offset_copy
+extern function_free
+
 function_run:
-push ebx
-push esi
-push edi
-xor ebx, ebx
-cmp ebx, 10
+push rbx
+push rsi
+push rdi
+xor rbx, rbx
+cmp rbx, 10
 jge function_run_L1
 function_run_L0:
-push S0
+push function_run_S0
 call function_print
-add ebx, 1
-cmp ebx, 10
+add rsp, 8
+add rbx, 1
+cmp rbx, 10
 jl function_run_L0
 function_run_L1:
-push S1
+push function_run_S1
 call type_string_constructor
-xor ebx, ebx
-mov esi, eax
-cmp ebx, 10
+add rsp, 8
+xor rbx, rbx
+mov rsi, rax
+cmp rbx, 10
 jge function_run_L3
 function_run_L2:
-push esi
-mov edi, esi
+push rsi
+mov rdi, rsi
 call function_prints
-add ebx, 1
-mov esi, edi
-cmp ebx, 10
+add rsp, 8
+add rbx, 1
+mov rsi, rdi
+cmp rbx, 10
 jl function_run_L2
 function_run_L3:
-pop edi
-pop esi
-pop ebx
+pop rdi
+pop rsi
+pop rbx
 ret
 
 function_length_of:
-xor eax, eax
-mov ecx, [ebp]
+xor rax, rax
+mov rcx, [rsp+8]
 function_length_of_L0:
-mov edx, [ecx+eax*4]
-test edx, edx
+mov rdx, [rcx+rax]
+test rdx, rdx
 jne function_length_of_L1
 ret
 function_length_of_L1:
-add eax, 1
+add rax, 1
 jmp function_length_of_L0
 ret
 
 function_prints:
-push ebx
-mov ebx, [ebp]
-push ebx
+push rbx
+mov rbx, [rsp+16]
+push rbx
 call type_string_function_length
-push eax
-push ebx
+add rsp, 8
+push rax
+push rbx
 call type_string_function_data
-push eax
+add rsp, 8
+push rax
 call function_sys_print
-pop ebx
+pop rbx
 ret
 
 function_print:
-push ebx
-mov ebx, [ebp]
-push ebx
+push rbx
+mov rbx, [rsp+16]
+push rbx
 call function_length_of
-push eax
-push ebx
+add rsp, 8
+push rax
+push rbx
 call function_sys_print
-pop ebx
+pop rbx
 ret
 
 type_string_constructor:
-push 4
-call allocate
-mov ecx, [ebp+4]
-mov [eax], ecx
+push 8
+call function_allocate
+mov rcx, [rsp+8]
+mov qword [rax], rcx
 ret
 
 type_string_function_data:
-mov ecx, [ebp]
-mov eax, [ecx]
+mov rcx, [rsp+8]
+mov rax, [rcx]
 ret
 
 type_string_function_length:
-push ebx
-xor eax, eax
-mov ecx, [ebp]
+xor rax, rax
+mov rcx, [rsp+8]
 type_string_function_length_L0:
-mov edx, [ecx]
-mov ebx, [edx+eax*4]
-test ebx, ebx
+mov rdx, [rcx]
+mov r8, [rdx+rax]
+test r8, r8
 jne type_string_function_length_L1
-pop ebx
 ret
 type_string_function_length_L1:
-add eax, 1
+add rax, 1
 jmp type_string_function_length_L0
-pop ebx
 ret
+
+section .data
+
+function_run_S0 db 'Hello World!', 0
+function_run_S1 db 'Hello World!', 0

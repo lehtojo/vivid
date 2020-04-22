@@ -13,22 +13,22 @@ public static class References
         {
             case VariableCategory.PARAMETER:
             {
-                return MemoryHandle.FromStack(unit, variable.Alignment);
+                return new VariableMemoryHandle(unit, variable);
             }
 
             case VariableCategory.LOCAL:
             {
-                return MemoryHandle.FromStack(unit, -variable.Alignment - variable.Type!.ReferenceSize);
+                return new VariableMemoryHandle(unit, variable);
             }
 
             case VariableCategory.MEMBER:
             {
-                return new MemoryHandle(self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
+                return new MemoryHandle(unit, self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
             }
 
             case VariableCategory.GLOBAL:
             {
-                return new DataSectionHandle(variable.Context.GetFullname() + '_' + variable.Name.ToLower());
+                return new DataSectionHandle(variable.GetStaticName());
             }
 
             default:

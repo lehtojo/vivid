@@ -40,7 +40,7 @@ public class Lifetime
     }
 }
 
-public enum UnitMode
+public enum UnitPhase
 {
     READ_ONLY_MODE,
     APPEND_MODE,
@@ -85,6 +85,7 @@ public class Unit
     public List<Register> NonVolatileRegisters { get; private set; } = new List<Register>();
     public List<Register> VolatileRegisters { get; private set; } = new List<Register>();
     public List<Register> NonReservedRegisters { get; private set; } = new List<Register>();
+    public List<Register> MediaRegisters { get; private set; } = new List<Register>();
 
     public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
 
@@ -99,9 +100,10 @@ public class Unit
 
     private Instruction? Anchor { get; set; }
     public int Position { get; private set; } = -1;
+    public int StackOffset { get; set; } = 0;
 
     public Scope? Scope { get; set; }
-    public UnitMode Mode { get; private set; } = UnitMode.READ_ONLY_MODE;
+    public UnitPhase Phase { get; private set; } = UnitPhase.READ_ONLY_MODE;
 
     public Unit(FunctionImplementation function)
     {
@@ -112,50 +114,62 @@ public class Unit
             Self = function.GetVariable(global::Function.THIS_POINTER_IDENTIFIER);
         }
 
-        // 64-bit:
-        /*Registers = new List<Register>()
-        {
-            new Register("rax", RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
-            new Register("rbx"),
-            new Register("rcx", RegisterFlag.VOLATILE),
-            new Register("rdx", RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
-            new Register("rsi"),
-            new Register("rdi"),
-            new Register("rbp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
-            new Register("rsp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
-            new Register("r8"),
-            new Register("r9"),
-            new Register("r10"),
-            new Register("r11"),
-            new Register("r12", RegisterFlag.VOLATILE),
-            new Register("r13", RegisterFlag.VOLATILE),
-            new Register("r14", RegisterFlag.VOLATILE),
-            new Register("r15", RegisterFlag.VOLATILE)
-        };*/
-
-        // 32-bit:
         Registers = new List<Register>()
         {
-            new Register("eax", RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
-            new Register("ebx"),
-            new Register("ecx", RegisterFlag.VOLATILE),
-            new Register("edx", RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
-            new Register("esi"),
-            new Register("edi"),
-            new Register("ebp", RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER),
-            new Register("esp", RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER)
+            new Register(Size.QWORD, new string[] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
+            new Register(Size.QWORD, new string[] { "rbx", "ebx", "bx", "bl" }),
+            new Register(Size.QWORD, new string[] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
+            new Register(Size.QWORD, new string[] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
+            new Register(Size.QWORD, new string[] { "rsi", "esi", "si", "sil" }),
+            new Register(Size.QWORD, new string[] { "rdi", "edi", "di", "dil" }),
+            new Register(Size.QWORD, new string[] { "rbp", "ebp", "bp", "bpl" }),
+            new Register(Size.QWORD, new string[] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
+
+            new Register(Size.YWORD, new string[] { "ymm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.YWORD, new string[] { "ymm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
         };
+
+        if (Assembler.Size == Size.QWORD)
+        {
+            Registers.AddRange(new List<Register>()
+            {
+                new Register(Size.QWORD, new string[] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
+                new Register(Size.QWORD, new string[] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
+                new Register(Size.QWORD, new string[] { "r10", "r10d", "r10w", "r10b" }, RegisterFlag.VOLATILE),
+                new Register(Size.QWORD, new string[] { "r11", "r11d", "r11w", "r11b" }, RegisterFlag.VOLATILE),
+                new Register(Size.QWORD, new string[] { "r12", "r12d", "r12w", "r12b" }),
+                new Register(Size.QWORD, new string[] { "r13", "r13d", "r13w", "r13b" }),
+                new Register(Size.QWORD, new string[] { "r14", "r14d", "r14w", "r14b" }),
+                new Register(Size.QWORD, new string[] { "r15", "r15d", "r15w", "r15b" })
+            });
+        }
 
         NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
         VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
 
         NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
         NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
+
+        MediaRegisters = Registers.FindAll(r => Flag.Has(r.Flags, RegisterFlag.MEDIA));
     }
 
-    public void ExpectMode(UnitMode expected)
+    public void ExpectMode(UnitPhase expected)
     {
-        if (Mode != expected)
+        if (Phase != expected)
         {
             throw new InvalidOperationException("Unit mode didn't match the expected");
         }
@@ -216,7 +230,7 @@ public class Unit
         instruction.Scope = Scope;
         instruction.Result.Lifetime.Start = instruction.Position;
 
-        if (Mode == UnitMode.BUILD_MODE)
+        if (Phase == UnitPhase.BUILD_MODE)
         {
             var previous = Anchor;
 
@@ -228,7 +242,7 @@ public class Unit
 
     public void Write(string instruction)
     {
-        ExpectMode(UnitMode.BUILD_MODE);
+        ExpectMode(UnitPhase.BUILD_MODE);
 
         Builder.Append(instruction);
         Builder.AppendLine();
@@ -263,7 +277,8 @@ public class Unit
             var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
 
             var move = new MoveInstruction(this, destination, value);
-            move.Mode = MoveMode.RELOCATE;
+            //move.Mode = attribute.Variable.GetInstructionParameterSize();
+            move.Type = MoveType.RELOCATE;
 
             Append(move);
         }
@@ -279,7 +294,7 @@ public class Unit
 
     public string GetNextString()
     {
-        return $"S{StringIndex++}";
+        return Function.Metadata!.GetFullname() + $"_S{StringIndex++}";
     }
 
     #region Registers
@@ -384,9 +399,9 @@ public class Unit
 
     #region Interaction
 
-    public void Execute(UnitMode mode, Action action)
+    public void Execute(UnitPhase mode, Action action)
     {
-        Mode = mode;
+        Phase = mode;
         Position = -1;
 
         try
@@ -403,13 +418,14 @@ public class Unit
             Reindex();
         }
 
-        Mode = UnitMode.READ_ONLY_MODE;
+        Phase = UnitPhase.READ_ONLY_MODE;
     }
 
-    public void Simulate(UnitMode mode, Action<Instruction> action)
+    public void Simulate(UnitPhase mode, Action<Instruction> action)
     {
-        Mode = mode;
+        Phase = mode;
         Position = 0;
+        StackOffset = 0;
         Scope = null;
 
         Reset();
@@ -450,6 +466,9 @@ public class Unit
                 }
 
                 action(instruction);
+
+                // Simulate the stack size change
+                StackOffset += instruction.GetStackOffsetChange();
             }
             catch (Exception e)
             {
@@ -466,7 +485,7 @@ public class Unit
         }
 
         // Reset the state after this simulation
-        Mode = UnitMode.READ_ONLY_MODE;
+        Phase = UnitPhase.READ_ONLY_MODE;
     }
 
     #endregion

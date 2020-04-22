@@ -124,7 +124,7 @@ public static class Oracle
 
     private static void SimulateCaching(Unit unit)
     {
-        unit.Simulate(UnitMode.APPEND_MODE, i =>
+        unit.Simulate(UnitPhase.APPEND_MODE, i =>
         {
             SimulateMoves(unit, i);
             SimulateLoads(unit, i);
@@ -133,7 +133,7 @@ public static class Oracle
 
     public static void SimulateLifetimes(Unit unit)
     {
-        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
         {
             foreach (var result in instruction.GetAllUsedResults())
             {
@@ -141,7 +141,7 @@ public static class Oracle
             }
         });
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
         {
             foreach (var result in instruction.GetAllUsedResults())
             {
@@ -154,7 +154,7 @@ public static class Oracle
     {
         var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, i =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
         {
             if (i is ReturnInstruction instruction)
             {
@@ -175,7 +175,7 @@ public static class Oracle
     {
         var functions = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, instruction =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
         {
             var result = instruction.Result;
 

@@ -17,15 +17,26 @@ public class InstructionParameter
 {
     public Result Result { get; set; }
     public Handle? Value { get; set; } = null;
+    public Size Size { get; set; } = Size.NONE;
     public HandleType[] Types { get; private set; }
-    public bool IsHidden { get; set; } = false;
+    public HandleType OptimalType => Types[0];
 
-    public HandleType PrefferedType => Types[0];
     public int Flags { get; private set; }
+    public bool IsHidden { get; set; } = false;
     public bool IsDestination => Flag.Has(Flags, ParameterFlag.DESTINATION);
     public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
     public bool IsValid => Types.Contains(Result.Value.Type);
     public bool IsValueValid => Value != null && Types.Contains(Value.Type);
+    public bool IsSizeVisible
+    {
+        set
+        {
+            if (Value != null)
+            {
+                Value.Size = (value || Value.Type == HandleType.REGISTER) ? Size : Size.NONE;
+            }
+        }
+    }
 
     public InstructionParameter(Result handle, int flags, params HandleType[] types)
     {
@@ -86,7 +97,7 @@ public abstract class Instruction
     {
         Unit.Append(this);
 
-        if (Unit.Mode == UnitMode.BUILD_MODE)
+        if (Unit.Phase == UnitPhase.BUILD_MODE)
         {
             TryBuild();
         }
@@ -158,7 +169,7 @@ public abstract class Instruction
         Operation = operation;
     }
 
-    public void Build(string operation, params InstructionParameter[] parameters)
+    public void Build(string operation, Size mode, params InstructionParameter[] parameters)
     {
         Parameters.Clear();
 
@@ -166,6 +177,8 @@ public abstract class Instruction
         {
             // Convert the parameter into a valid format
             var parameter = parameters[i];
+            parameter.Size = mode;
+
             var result = Convert(parameter);
 
             if (parameter.IsDestination)
@@ -234,7 +247,7 @@ public abstract class Instruction
         {
             return;
         }
-        
+
         foreach (var parameter in Parameters)
         {
             if (!parameter.IsValueValid || parameter.Value == null)
@@ -250,6 +263,27 @@ public abstract class Instruction
         }
 
         var result = new StringBuilder(Operation);
+
+        // Detect whether all parameter are meant to be the same size
+        if (Parameters.Select(p => p.Size).Distinct().Count() == 1)
+        {
+            // Only one parameter is required to show its size
+            Parameters[0].IsSizeVisible = true;
+
+            // Hide other parameter's sizes for cleaner output
+            foreach (var parameter in Parameters.Skip(1))
+            {
+                parameter.IsSizeVisible = false;
+            }
+        }
+        else
+        {
+            // Each parameter must be configured to display their sizes
+            foreach (var parameter in Parameters)
+            {
+                parameter.IsSizeVisible = true;
+            }
+        }
 
         foreach (var parameter in Parameters)
         {
@@ -387,6 +421,11 @@ public abstract class Instruction
             IsBuilt = true;
             Build();
         }
+    }
+
+    public virtual int GetStackOffsetChange()
+    {
+        return 0;
     }
 
     public int GetRedirectionRoot()

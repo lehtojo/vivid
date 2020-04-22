@@ -12,6 +12,7 @@ public enum HandleType
 public class Handle
 {
     public HandleType Type { get; private set; }
+    public Size Size { get; set; } = Size.NONE;
 
     public Handle()
     {
@@ -23,17 +24,7 @@ public class Handle
         Type = type;
     }
 
-    public T? As<T>() where T : Handle 
-    {
-        return this as T;
-    }
-
-    public T To<T>() where T : Handle 
-    {
-        return (T)this;
-    }
-
-    public virtual void Use(int position) {}
+    public virtual void Use(int position) { }
 
     public override string ToString()
     {
@@ -52,7 +43,14 @@ public class DataSectionHandle : Handle
 
     public override string ToString()
     {
-        return $"[{Identifier}]";
+        if (Size.IsVisible())
+        {
+            return $"{Size} [{Identifier}]";
+        }
+        else
+        {
+            return $"[{Identifier}]";
+        }
     }
 
     public override bool Equals(object? obj)
@@ -94,25 +92,52 @@ public class ConstantHandle : Handle
     }
 }
 
-public class MemoryHandle : Handle
+public class VariableMemoryHandle : MemoryHandle
 {
-    public Result Base { get; private set; }
-    public int Offset { get; private set; }
+    public Variable Variable { get; private set; }
 
-    public static MemoryHandle FromStack(Unit unit, int offset)
+    public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), variable.Alignment)
     {
-        return new MemoryHandle(new Result(new RegisterHandle(unit.GetBasePointer())), offset);
+        Variable = variable;
     }
 
-    public MemoryHandle(Result @base, int offset) : base(HandleType.MEMORY)
+    public override string ToString() 
     {
-        Base = @base;
+        if (Variable.Alignment < 0)
+        {
+            return $"[?]";
+        }
+
+        Offset = Variable.Alignment;
+
+        return base.ToString();
+    }
+}
+
+public class MemoryHandle : Handle
+{
+    public Unit Unit { get; private set; }
+    public Result Start { get; private set; }
+    public int Offset { get; protected set; }
+    
+    private bool IsStackMemoryPointer => Start.Value is RegisterHandle handle && handle.Register == Unit.GetStackPointer();
+    private int CorrectedOffset => (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
+    
+    public static MemoryHandle FromStack(Unit unit, int offset)
+    {
+        return new MemoryHandle(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset);
+    }
+
+    public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY)
+    {
+        Unit = unit;
+        Start = start;
         Offset = offset;
     }
 
     public override void Use(int position)
     {
-        Base.Use(position);
+        Start.Use(position);
     }
 
     public override string ToString()
@@ -121,51 +146,60 @@ public class MemoryHandle : Handle
 
         if (Offset > 0)
         {
-            offset = $"+{Offset}";
+            offset = $"+{CorrectedOffset}";
         }
         else if (Offset < 0)
         {
-            offset = Offset.ToString();
+            offset = CorrectedOffset.ToString();
         }
 
-        if (Base.Value.Type == HandleType.REGISTER ||
-            Base.Value.Type == HandleType.CONSTANT)
+        if (Start.Value.Type == HandleType.REGISTER ||
+            Start.Value.Type == HandleType.CONSTANT)
         {
-            return $"[{Base.Value}{offset}]";
+            var address = $"[{Start.Value}{offset}]";
+
+            if (Size.IsVisible())
+            {
+                return $"{Size} {address}";
+            }
+            else
+            {
+                return $"{address}";
+            }
         }
-        
+
         throw new ApplicationException("Base of the memory handle was no longer in register");
     }
 
     public override bool Equals(object? obj)
     {
         return obj is MemoryHandle handle &&
-               EqualityComparer<Result>.Default.Equals(Base, handle.Base) &&
+               EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
                Offset == handle.Offset;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Base, Offset);
+        return HashCode.Combine(Start, Offset);
     }
 }
 
 public class ComplexMemoryHandle : Handle
 {
-    public Result Base { get; private set; }
+    public Result Start { get; private set; }
     public Result Offset { get; private set; }
     public int Stride { get; private set; }
 
-    public ComplexMemoryHandle(Result @base, Result offset, int stride) : base(HandleType.MEMORY)
+    public ComplexMemoryHandle(Result start, Result offset, int stride) : base(HandleType.MEMORY)
     {
-        Base = @base;
+        Start = start;
         Offset = offset;
         Stride = stride;
     }
 
     public override void Use(int position)
     {
-        Base.Use(position);
+        Start.Use(position);
         Offset.Use(position);
     }
 
@@ -196,26 +230,35 @@ public class ComplexMemoryHandle : Handle
             throw new ApplicationException("Complex memory address's offset wasn't a constant or in a register");
         }
 
-        if (Base.Value.Type == HandleType.REGISTER ||
-            Base.Value.Type == HandleType.CONSTANT)
+        if (Start.Value.Type == HandleType.REGISTER ||
+            Start.Value.Type == HandleType.CONSTANT)
         {
-            return $"[{Base.Value}{offset}]";
+            var address = $"[{Start.Value}{offset}]";
+
+            if (Size.IsVisible())
+            {
+                return $"{Size} {address}";
+            }
+            else
+            {
+                return $"{address}";
+            }
         }
-        
+
         throw new ApplicationException("Base of the memory handle was no longer in register");
     }
 
     public override bool Equals(object? obj)
     {
         return obj is ComplexMemoryHandle handle &&
-               EqualityComparer<Result>.Default.Equals(Base, handle.Base) &&
+               EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
                EqualityComparer<Result>.Default.Equals(Offset, handle.Offset) &&
                Stride == handle.Stride;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Base, Offset, Stride);
+        return HashCode.Combine(Start, Offset, Stride);
     }
 }
 
@@ -230,7 +273,12 @@ public class RegisterHandle : Handle
 
     public override string ToString()
     {
-        return Register.Name;
+        if (Size == Size.NONE)
+        {
+            return Register[Assembler.Size];
+        }
+
+        return Register[Size];
     }
 
     public override bool Equals(object? obj)

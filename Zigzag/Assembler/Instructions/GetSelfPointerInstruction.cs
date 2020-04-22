@@ -16,7 +16,7 @@ public class GetSelfPointerInstruction : LoadInstruction
         }
 
         var move = new MoveInstruction(Unit, Result, Source);
-        move.Mode = MoveMode.LOAD;
+        move.Type = MoveType.LOAD;
 
         Unit.Append(move);
     }

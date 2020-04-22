@@ -19,10 +19,11 @@ public enum InstructionType
     MOVE,
     MULTIPLICATION,
     NEGATE,
-    PASS_PARAMETER,
+    PUSH,
     RESTORE,
     RETURN,
     SAVE,
+    STACK_MEMORY,
     SUBTRACT,
     SYMMETRY_START,
     SYMMETRY_END

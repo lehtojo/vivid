@@ -9,17 +9,24 @@ public static class RegisterFlag
     public const int STACK_POINTER = 16;
     public const int DENOMINATOR = 32;
     public const int REMAINDER = 64;
+    public const int MEDIA = 128;
 }
 
 public class Register
 {
-    public String Name { get; private set; }
+    public string[] Partitions { get; private set; }
+    public Size Width { get; private set; }
 
     private Result? _Value { get; set; } = null;
     public Result? Handle 
     { 
         get => _Value;
         set { _Value = value; IsUsed = true; }
+    }
+
+    public string this[Size size]
+    {
+        get => Partitions[Partitions.Length - 1 - (int)Math.Log2(size.Bytes)];
     }
 
     public int Flags { get; private set; }
@@ -31,9 +38,10 @@ public class Register
     public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
     public bool IsReleasable => !IsLocked && (Handle == null || Handle.IsReleasable());
 
-    public Register(string name, params int[] flags) 
+    public Register(Size width, string[] partitions, params int[] flags) 
     {
-        Name = name;
+        Width = width;
+        Partitions = partitions;
         Flags = Flag.Combine(flags);
     }
 
@@ -54,6 +62,6 @@ public class Register
 
     public override string ToString()
     {
-        return Name;
+        return this[Assembler.Size];
     }
 }

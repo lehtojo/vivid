@@ -25,7 +25,7 @@ public class DivisionInstruction : DualParameterInstruction
             Memory.ClearRegister(Unit, location.Register);
 
             var move = new MoveInstruction(Unit, new Result(location), First);
-            move.Mode = MoveMode.COPY;
+            move.Type = MoveType.COPY;
 
             return move.Execute();
         }
@@ -47,6 +47,7 @@ public class DivisionInstruction : DualParameterInstruction
 
         Build(
             "idiv",
+            Assembler.Size,
             new InstructionParameter(
                 denominator,
                 ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN,
@@ -70,6 +71,7 @@ public class DivisionInstruction : DualParameterInstruction
     {
         Build(
             "idiv",
+            Assembler.Size,
             new InstructionParameter(
                 denominator,
                 ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN,

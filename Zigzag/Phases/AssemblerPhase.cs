@@ -124,7 +124,7 @@ public class AssemblerPhase : Phase
 		var object_file = output_file + ".obj";
 
 		var context = parse.Context;
-		var assembly = Assembler.Build(context).TrimEnd();
+		var assembly = Assembler.Assemble(context, 64).TrimEnd();
 
 		try
 		{

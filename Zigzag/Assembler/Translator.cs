@@ -9,11 +9,20 @@ public static class Translator
         return unit.NonVolatileRegisters.Where(r => r.IsUsed).ToList();
     }
 
+    private static IEnumerable<Variable> GetAllSavedLocalVariables(Unit unit)
+    {
+        return unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")))
+                .Where(h => h is VariableMemoryHandle v && v.Variable.IsLocal).Select(h => ((VariableMemoryHandle)h).Variable).Distinct();
+    }
+
     public static string Translate(Unit unit)
     {
         var registers = GetAllUsedNonVolatileRegisters(unit);
+        var local_variables = GetAllSavedLocalVariables(unit);
+        var required_local_memory = local_variables.Sum(v => v.Type!.ReferenceSize);
+        var local_variables_bottom = 0;
 
-        unit.Execute(UnitMode.BUILD_MODE, () => 
+        unit.Execute(UnitPhase.BUILD_MODE, () => 
         {
             if (unit.Instructions.Last().Type != InstructionType.RETURN)
             {
@@ -21,25 +30,29 @@ public static class Translator
             }
         });
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, i =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
         {
             if (i is InitializeInstruction instruction)
             {
-                instruction.Build(registers, 0);
+                instruction.Build(registers, required_local_memory);
+                local_variables_bottom = instruction.LocalVariablesBottom;
             }
         });
 
         registers.Reverse();
 
-        unit.Simulate(UnitMode.READ_ONLY_MODE, i =>
+        unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
         {
             if (i is ReturnInstruction instruction)
             {
-                instruction.Build(registers, 0);
+                instruction.Build(registers, required_local_memory);
             }
         });
 
-        unit.Simulate(UnitMode.BUILD_MODE, instruction => 
+        // Align all used local variables
+        Aligner.AlignLocalVariables(local_variables, local_variables_bottom);
+
+        unit.Simulate(UnitPhase.BUILD_MODE, instruction => 
         {
             instruction.Translate();
         });
@@ -61,7 +74,7 @@ public static class Translator
         }
         else
         {
-            registers.ForEach(r => Console.WriteLine(r.Name));
+            registers.ForEach(r => Console.WriteLine(r[Assembler.Size]));
         }
 
         Console.WriteLine("\n");

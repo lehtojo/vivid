@@ -11,7 +11,7 @@ public class DuplicateInstruction : DualParameterInstruction
         }
 
         var move = new MoveInstruction(Unit, Result, Second);
-        move.Mode = MoveMode.LOAD;
+        move.Type = MoveType.LOAD;
 
         if (Second.Metadata.PrimaryAttribute != null)
         {

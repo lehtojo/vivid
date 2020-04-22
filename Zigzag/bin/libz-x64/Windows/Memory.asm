@@ -1,39 +1,32 @@
 [section .text]
 
-global function_allocate
+extern _VirtualAlloc@16
+extern _VirtualFree@12
+
+global function_allocate:function
 function_allocate:
 
-;   System call parameters
-;
-;   off_t offset,
-;   int fd, 
-;   int flags,    
-;   int prot, 
-;   size_t length, 
-;   void *addr
-;
-push dword 0
-push dword -1
-push dword 0x22 ; HARDWARE_MEMORY | VISIBILITY_PRIVATE
-push dword 0x03 ; PERMISSION_READ | PERMISSION_WRITE
-push dword [esp+20] ; Parameter: Region size
-push dword 0
+push 0x04 ; PAGE_READWRITE
+push 0x00001000 | 0x00002000
+push dword [esp+8]
+push 0
 
-; push qword 0xFFFFFFFF ; 0 | -1
-; push qword 0x0000002200000003 ; HARDWARE_MEMORY | VISIBILITY_PRIVATE + PERMISSION_READ | PERMISSION_WRITE
-; push dword [esp+16] ; Parameter: Region size
-; push dword 0
+call _VirtualAlloc@16   
 
-; System call: mmap
-mov eax, 0x5a
-mov ebx, esp
-int 0x80
-
-; Cleanup
-add esp, 24
 ret
 
-global function_copy
+global function_free:function
+function_free:
+
+push 0x00008000 ; MEM_RELEASE
+push 0 ; dwSize
+push dword [esp+12] ; lpAddress
+
+call _VirtualFree@12  
+
+ret
+
+global function_copy:function
 function_copy:
 
 ; Parameters
@@ -53,7 +46,7 @@ sub esp, 12
 
 jmp ebx
 
-global function_offset_copy
+global function_offset_copy:function
 function_offset_copy:
 
 ; Parameters
@@ -90,8 +83,7 @@ pop ecx
 
 xor al, al
 
-rep stos
-
+rep stosb
 sub esp, 8
 
 jmp ebx
@@ -110,7 +102,7 @@ pop edi
 pop ecx
 pop eax
 
-rep stos
+rep stosb
 
 sub esp, 12
 

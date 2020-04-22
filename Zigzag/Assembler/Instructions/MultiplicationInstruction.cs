@@ -18,6 +18,7 @@ public class MultiplicationInstruction : DualParameterInstruction
         {
             Build(
                 "imul",
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags,
@@ -37,6 +38,7 @@ public class MultiplicationInstruction : DualParameterInstruction
         {
             Build(
                 "imul",
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags,

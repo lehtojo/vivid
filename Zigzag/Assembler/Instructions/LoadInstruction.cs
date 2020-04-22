@@ -37,7 +37,7 @@ public abstract class LoadInstruction : Instruction
         if (Mode != AccessMode.WRITE && !Result.Value.Equals(Source.Value))
         {
             var move = new MoveInstruction(Unit, Result, Source);
-            move.Mode = MoveMode.LOAD;
+            move.Type = MoveType.LOAD;
 
             // Since the source is not where it should be, it must be moved to the result 
             Unit.Append(move);

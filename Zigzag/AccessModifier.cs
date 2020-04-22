@@ -6,4 +6,5 @@ public class AccessModifier
 	public const int STATIC = 8;
 	public const int EXTERNAL = 16;
 	public const int READONLY = 32;
+	public const int RESPONSIBLE = 64;
 }

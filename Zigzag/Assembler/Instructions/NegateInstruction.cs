@@ -14,6 +14,7 @@ public class NegateInstruction : Instruction
     {
         Build(
             INSTRUCTION,
+            Assembler.Size,
             new InstructionParameter(
                 Target,
                 ParameterFlag.DESTINATION,

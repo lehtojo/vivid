@@ -7,6 +7,7 @@ public class ReturnInstruction : Instruction
     private const string RETURN = "ret";
 
     public Result? Object { get; private set; }
+    public int StackMemoryChange { get; private set; }
 
     public ReturnInstruction(Unit unit, Result? value) : base(unit)
     {
@@ -35,20 +36,30 @@ public class ReturnInstruction : Instruction
     public void Build(List<Register> recover_registers, int allocated_local_memory)
     {
         var builder = new StringBuilder();
+        var start = Unit.StackOffset;
 
         if (allocated_local_memory > 0)
         {
             builder.AppendLine($"add {Unit.GetStackPointer()}, {allocated_local_memory}");
+            Unit.StackOffset -= allocated_local_memory;
         }
 
         foreach (var register in recover_registers)
         {
             builder.AppendLine($"pop {register}");
+            Unit.StackOffset -= Assembler.Size.Bytes;
         }
 
         builder.Append(RETURN);
 
+        StackMemoryChange = Unit.StackOffset - start;
+
         Build(builder.ToString());
+    }
+
+    public override int GetStackOffsetChange()
+    {
+        return StackMemoryChange;
     }
 
     public override Result? GetDestinationDependency()

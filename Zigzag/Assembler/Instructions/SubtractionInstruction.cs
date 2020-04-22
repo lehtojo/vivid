@@ -16,6 +16,7 @@ public class SubtractionInstruction : DualParameterInstruction
         {
             Build(
                 "sub",
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     ParameterFlag.DESTINATION,
@@ -34,6 +35,7 @@ public class SubtractionInstruction : DualParameterInstruction
         {
             Build(
                 "sub",
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     ParameterFlag.DESTINATION,

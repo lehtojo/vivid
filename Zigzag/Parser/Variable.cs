@@ -9,11 +9,14 @@ public class Variable
 	public int Modifiers { get; set; }
 	public int Length { get; private set; }
 	public bool IsArray => Length > 0;
+
+	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
+	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
 	public bool IsThisPointer => Name == Function.THIS_POINTER_IDENTIFIER;
 	
 	public Context Context { get; set; }
 
-	public int Alignment { get; set; }
+	public int Alignment { get; set; } = -1;
 
 	public List<Node> References { get; private set; } = new List<Node>();
 	public List<Node> Edits { get; private set; } = new List<Node>();
@@ -25,6 +28,7 @@ public class Variable
 
 	public bool IsUnresolved => Type == Types.UNKNOWN || Type is IResolvable;
 	
+	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, int length = 0)
@@ -41,6 +45,11 @@ public class Variable
 		{
 			context.Declare(this);
 		}
+	}
+
+	public string GetStaticName()
+	{
+		return Context.GetFullname() + '_' + Name.ToLower();
 	}
 
     public bool IsEditedInside(Node node)

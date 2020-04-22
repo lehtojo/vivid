@@ -1,7 +1,9 @@
+using System.Collections.Generic;
+
 public class Aligner
 {
-	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 4;
-	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 0;
+	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 2;
+	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 1;
 	
 	/// <summary>
 	/// Aligns all variable and parameters recursively in the context
@@ -16,16 +18,24 @@ public class Aligner
 		}
 
 		// Align function variables in memory
-		foreach (var function in context.Functions.Values)
+		foreach (var implementation in context.GetImplementedFunctions())
 		{
-			foreach (var overload in function.Overloads)
-			{
-				foreach (var implementation in overload.Implementations)
-				{
-					// Align function parameters using global function offset
-					Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
-				}
-			}
+			// Align function parameters using global function offset
+			Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+		}
+	}
+
+	/// <summary>
+	/// Aligns all the given local variables
+	/// </summary>
+	public static void AlignLocalVariables(IEnumerable<Variable> variables, int bottom)
+	{
+		var position = bottom;
+
+		foreach (var variable in variables)
+		{
+			variable.Alignment = position;
+			position -= Parser.Size.Bytes;
 		}
 	}
 
@@ -48,15 +58,9 @@ public class Aligner
 		}
 
 		// Member functions:
-		foreach (var function in type.Functions.Values)
+		foreach (var implementation in type.GetImplementedFunctions())
 		{
-			foreach (var overload in function.Overloads)
-			{
-				foreach (var implementation in overload.Implementations)
-				{
-					Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
-				}
-			}
+			Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
 		}
 
 		// Constructors:
@@ -64,7 +68,7 @@ public class Aligner
 		{
 			foreach (var implementation in constructor.Implementations)
 			{
-				Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+				Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
 			}
 		}
 
@@ -91,7 +95,13 @@ public class Aligner
 	/// <param name="offset">Base offset to apply to all variables</param>
 	private static void Align(FunctionImplementation function, int offset)
 	{
-		var position = offset;
+		var position = offset * Parser.Size.Bytes;
+
+		// Align the this pointer if it exists
+		if (function.Variables.TryGetValue(Function.THIS_POINTER_IDENTIFIER, out Variable? this_pointer))
+		{
+			this_pointer.Alignment = position - Parser.Size.Bytes;
+		}
 
 		// Parameters:
 		foreach (var variable in function.Parameters)
@@ -99,20 +109,20 @@ public class Aligner
 			if (variable.Category == VariableCategory.PARAMETER)
 			{
 				variable.Alignment = position;
-				position += variable.Type!.ReferenceSize;
+				position += Parser.Size.Bytes;
 			}
 		}
 
 		position = 0;
 
 		// Local variables:
-		foreach (var variable in function.Locals)
+		/*foreach (var variable in function.Locals)
 		{
 			if (variable.Category == VariableCategory.LOCAL)
 			{
 				variable.Alignment = position;
 				position += variable.Type!.ReferenceSize;
 			}
-		}
+		}*/
 	}
 }

@@ -3,18 +3,18 @@ public class GetMemoryAddressInstruction : Instruction
     public AccessMode Mode { get; private set; }
     public Result Source { get; set; } = new Result();
 
-    public Result Base { get; private set; }
+    public Result Start { get; private set; }
     public Result Offset { get; private set; }
     public int Stride { get; private set; }
 
-    public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Result @base, Result offset, int stride) : base(unit)
+    public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Result start, Result offset, int stride) : base(unit)
     {
         Mode = mode;
-        Base = @base;
+        Start = start;
         Offset = offset;
         Stride = stride;
 
-        Result.Value = new ComplexMemoryHandle(Base, Offset, Stride);
+        Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
         Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
         Source.Value = Result.Value;
@@ -23,13 +23,13 @@ public class GetMemoryAddressInstruction : Instruction
 
     public override void Build()
     {
-        Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
+        Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
         Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);
 
         if (Mode != AccessMode.WRITE && !Result.Equals(Source))
         {
             var move = new MoveInstruction(Unit, Result, Source);
-            move.Mode = MoveMode.LOAD;
+            move.Type = MoveType.LOAD;
 
             // Since the source is not where it should be, it must be moved to the result 
             Unit.Append(move);
@@ -38,7 +38,7 @@ public class GetMemoryAddressInstruction : Instruction
 
     public override Result[] GetResultReferences()
     {
-        return new Result[] { Result, Base, Offset };
+        return new Result[] { Result, Start, Offset };
     }
 
     public override InstructionType GetInstructionType()

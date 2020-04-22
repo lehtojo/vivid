@@ -95,6 +95,8 @@ public static class Extensions
 
 public class Parser
 {
+	public static Size Size { get; private set; } = Size.QWORD;
+
 	public const int MAX_PRIORITY = 21;
 	public const int MEMBERS = 19;
 	public const int MIN_PRIORITY = 1;
@@ -302,65 +304,67 @@ public class Parser
 		var context = new Context();
 		Types.Inject(context);
 
+		var number = context.GetType("num") ?? throw new ApplicationException("Couldn't find type 'num'");
+
 		var allocate = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL, 
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE, 
 			"allocate", 
 			Types.LINK, 
-			new Parameter() { Name = "bytes", Type = Types.NORMAL }
+			new Parameter() { Name = "bytes", Type = number }
 		);
 		
 		var power = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"integer_power",
-			Types.NORMAL,
-			new Parameter() { Name = "a", Type = Types.NORMAL },
-			new Parameter() { Name = "b", Type = Types.NORMAL }
+			number,
+			new Parameter() { Name = "a", Type = number },
+			new Parameter() { Name = "b", Type = number }
 		);
 
 		var system_print = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"sys_print",
 			Types.UNKNOWN,
 			new Parameter() { Name = "address", Type = Types.LINK },
-			new Parameter() { Name = "count", Type = Types.NORMAL }
+			new Parameter() { Name = "count", Type = number }
 		);
 
 		var system_read = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"sys_read",
-			Types.NORMAL,
+			number,
 			new Parameter() { Name = "buffer", Type = Types.LINK },
-			new Parameter() { Name = "count", Type = Types.NORMAL }
+			new Parameter() { Name = "count", Type = number }
 		);
 
 		var copy = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"copy",
 			Types.UNKNOWN,
 			new Parameter() { Name = "source", Type = Types.LINK },
-			new Parameter() { Name = "bytes", Type = Types.NORMAL },
+			new Parameter() { Name = "bytes", Type = number },
 			new Parameter() { Name = "destination", Type = Types.LINK }
 		);
 
 		var offset_copy = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"offset_copy",
 			Types.UNKNOWN,
 			new Parameter() { Name = "source", Type = Types.LINK },
-			new Parameter() { Name = "bytes", Type = Types.NORMAL },
+			new Parameter() { Name = "bytes", Type = number },
 			new Parameter() { Name = "destination", Type = Types.LINK },
-			new Parameter() { Name = "offset", Type = Types.NORMAL }
+			new Parameter() { Name = "offset", Type = number }
 		);
 
 		var free = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"free",
 			Types.UNKNOWN,
 			new Parameter() { Name = "address", Type = Types.LINK }

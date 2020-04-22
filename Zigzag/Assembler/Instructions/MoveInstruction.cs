@@ -1,6 +1,6 @@
 using System;
 
-public enum MoveMode
+public enum MoveType
 {
     /// <summary>
     /// The source value is loaded to the destination attaching the source value to the destination and leaving the source untouched
@@ -21,7 +21,7 @@ public class MoveInstruction : DualParameterInstruction
     public const string MOVE_INSTRUCTION = "mov";
     public const string CLEAR_INSTRUCTION = "xor";
 
-    public MoveMode Mode { get; set; } = MoveMode.COPY;
+    public new MoveType Type { get; set; } = MoveType.COPY;
     public bool IsSafe { get; set; } = false;
 
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
@@ -34,23 +34,23 @@ public class MoveInstruction : DualParameterInstruction
         var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);
         var flags_second = ParameterFlag.NONE;
 
-        switch (Mode)
+        switch (Type)
         {
-            case MoveMode.COPY:
+            case MoveType.COPY:
             {
                 // Source value must be attached to the destination
                 flags_second |= ParameterFlag.ATTACH_TO_DESTINATION;
                 break;
             }
 
-            case MoveMode.LOAD:
+            case MoveType.LOAD:
             {
                 // Destination value must be attached to the destination
                 flags_first |= ParameterFlag.ATTACH_TO_DESTINATION;
                 break;
             }
 
-            case MoveMode.RELOCATE:
+            case MoveType.RELOCATE:
             {
                 // Source value must be attached and relocated to destination
                 flags_second |= ParameterFlag.ATTACH_TO_DESTINATION | ParameterFlag.RELOCATE_TO_DESTINATION;
@@ -62,6 +62,7 @@ public class MoveInstruction : DualParameterInstruction
         {
             Build(
                 CLEAR_INSTRUCTION,
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -83,6 +84,7 @@ public class MoveInstruction : DualParameterInstruction
         {
             Build(
                 MOVE_INSTRUCTION,
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -101,6 +103,7 @@ public class MoveInstruction : DualParameterInstruction
         {
             Build(
                 MOVE_INSTRUCTION,
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,

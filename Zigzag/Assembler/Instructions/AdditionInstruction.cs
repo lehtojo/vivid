@@ -25,6 +25,7 @@ public class AdditionInstruction : DualParameterInstruction
             {
                 Build(
                     "add",
+                    Assembler.Size,
                     new InstructionParameter(
                         First,
                         flags,
@@ -43,6 +44,7 @@ public class AdditionInstruction : DualParameterInstruction
             {
                 Build(
                     "add",
+                    Assembler.Size,
                     new InstructionParameter(
                         First,
                         flags,

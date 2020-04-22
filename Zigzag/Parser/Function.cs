@@ -26,7 +26,10 @@ public class Function : Context
 
 	public List<FunctionImplementation> Implementations { get; private set; } = new List<FunctionImplementation>();
 
+	public bool IsUsed => References.Count > 0;
 	public bool IsConstructor => this is Constructor;
+	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
+	public bool IsResponsible => Flag.Has(Modifiers, AccessModifier.RESPONSIBLE);
 
 	/// <summary>
 	/// Creates a unimplemented function

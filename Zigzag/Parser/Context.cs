@@ -229,6 +229,19 @@ public class Context
 		Labels.Add(label.GetName(), label);
 	}
 
+	/// <summary>
+	/// Declares an already existing type with different name
+	/// </summary>
+	public void DeclareTypeAlias(string alias, Type type)
+	{
+		if (IsLocalTypeDeclared(alias))
+		{
+			throw new Exception($"Tried to declare type alias '{alias}' but the name was already reserved");
+		}
+
+		Types.Add(alias, type);
+	}
+
 	public virtual bool IsLocalTypeDeclared(string name)
 	{
 		return Types.ContainsKey(name);

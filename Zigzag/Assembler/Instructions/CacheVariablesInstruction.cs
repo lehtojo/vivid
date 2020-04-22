@@ -76,7 +76,7 @@ public class CacheVariablesInstruction : Instruction
 
         // The variable value must be saved so it must be relocated to the destination
         var move = new MoveInstruction(Unit, destination, source);
-        move.Mode = MoveMode.RELOCATE;
+        move.Type = MoveType.RELOCATE;
 
         Unit.Append(move);
     }
@@ -150,7 +150,7 @@ public class CacheVariablesInstruction : Instruction
             var source = usage.Reference!;
 
             var move = new MoveInstruction(Unit, destination, source);
-            move.Mode = MoveMode.RELOCATE;
+            move.Type = MoveType.RELOCATE;
 
             Unit.Append(move);
         }

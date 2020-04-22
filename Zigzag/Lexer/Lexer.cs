@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class Lexer
 {
+	public static Size Size { get; private set; } = Size.QWORD;
+
 	private const char COMMENT = '#';
 	private const char STRING = '\'';
 

@@ -25,6 +25,7 @@ public class FunctionImplementation : Context
 	public bool IsEmpty => Node == null || Node.First == null;
 
 	public bool IsConstructor => Metadata is Constructor;
+	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, AccessModifier.RESPONSIBLE);
 	
 	/// <summary>
 	/// Optionally links this function to some context

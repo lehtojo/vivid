@@ -2,8 +2,6 @@ using System;
 
 public static class Memory
 {
-    public const string FUNCTION_ALLOCATE = "allocate";
-
     public static void ClearRegister(Unit unit, Register target)
     {
         if (target.Handle == null)
@@ -31,7 +29,7 @@ public static class Memory
         var destination = new RegisterHandle(register);
         
         var move = new MoveInstruction(unit, new Result(destination), target.Handle);
-        move.Mode = MoveMode.RELOCATE;
+        move.Type = MoveType.RELOCATE;
 
         unit.Append(move);
     }
@@ -50,7 +48,7 @@ public static class Memory
         var destination = new Result(new RegisterHandle(register));
 
         var move = new MoveInstruction(unit, destination, result);
-        move.Mode = MoveMode.RELOCATE;
+        move.Type = MoveType.RELOCATE;
         
         return move.Execute();
     }
@@ -68,7 +66,7 @@ public static class Memory
         register.Handle = value;
         value.Value = handle;
     }
-
+    
     public static Result Convert(Unit unit, Result result, bool move, params HandleType[] types)
     {
         return Convert(unit, result, types, move, false);

@@ -11,6 +11,7 @@ public class CompareInstruction : DualParameterInstruction
         {
             Build(
                 ZERO_COMPARISON_INSTRUCTION,
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     ParameterFlag.NONE,
@@ -27,6 +28,7 @@ public class CompareInstruction : DualParameterInstruction
         {
             Build(
                 INSTRUCTION,
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     ParameterFlag.NONE,

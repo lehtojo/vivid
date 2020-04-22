@@ -1,3 +1,5 @@
+using System;
+
 public class StringNode : Node, IType
 {
 	public string Text { get; private set; }
@@ -8,9 +10,9 @@ public class StringNode : Node, IType
 		Text = text;
 	}
 
-	public string GetIdentifier(Unit unit)
+	public string GetIdentifier(Unit? unit)
 	{
-		return Identifier ?? (Identifier = unit.GetNextString());
+		return Identifier ?? (Identifier = unit?.GetNextString() ?? throw new ApplicationException("String didn't have an identifier"));
 	}
 
 	public new Type? GetType()

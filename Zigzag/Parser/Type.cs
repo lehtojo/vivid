@@ -81,7 +81,7 @@ public class Type : Context
 
 	public virtual int GetReferenceSize()
 	{
-		return REFERENCE_SIZE;
+		return Parser.Size.Bytes;
 	}
 
 	public virtual int GetContentSize()

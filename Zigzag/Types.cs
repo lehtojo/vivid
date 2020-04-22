@@ -1,3 +1,5 @@
+using System;
+
 public class Types
 {
 	public const Type UNKNOWN = null;
@@ -27,5 +29,15 @@ public class Types
 		context.Declare(UINT);
 		context.Declare(ULONG);
 		context.Declare(USHORT);
+
+		switch (Parser.Size.Bytes)
+		{
+			case 1: { context.DeclareTypeAlias("num", BYTE); break; }
+			case 2: { context.DeclareTypeAlias("num", SHORT); break; }
+			case 4: { context.DeclareTypeAlias("num", NORMAL); break; }
+			case 8: { context.DeclareTypeAlias("num", LONG); break; }
+
+			default: throw new ApplicationException("Couldn't declare alias type 'num'");
+		}
 	}
 }

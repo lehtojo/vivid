@@ -18,21 +18,21 @@ public class NumberToken : Token
 		{
 			Value = double.Parse(text.Replace('.', ','));
 			NumberType = NumberType.DECIMAL32;
+			Bits = 32;
 		}
 		else
 		{
 			Value = long.Parse(text);
-			NumberType = NumberType.INT32;
+			NumberType = Lexer.Size.ToNumberType(false);
+			Bits = Lexer.Size.Bytes * 8;
 		}
-		
-		Bits = 32;
 	}
 
 	public NumberToken(int number) : base(TokenType.NUMBER)
 	{
 		Value = (long)number;
-		NumberType = NumberType.INT32;
-		Bits = 32;
+		NumberType = Lexer.Size.ToNumberType(false);
+		Bits = Lexer.Size.Bytes * 8;
 	}
 
 	public NumberToken(double number) : base(TokenType.NUMBER)
