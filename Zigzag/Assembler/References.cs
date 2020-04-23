@@ -9,26 +9,33 @@ public static class References
 
     public static Handle CreateVariableHandle(Unit unit, Result? self, Variable variable)
     {
+        var handle = (Handle?)null;
+
         switch (variable.Category)
         {
             case VariableCategory.PARAMETER:
             {
-                return new VariableMemoryHandle(unit, variable);
+                handle = new VariableMemoryHandle(unit, variable);
+                break;
             }
 
             case VariableCategory.LOCAL:
             {
-                return new VariableMemoryHandle(unit, variable);
+                handle = new VariableMemoryHandle(unit, variable);
+                break;
             }
 
             case VariableCategory.MEMBER:
             {
-                return new MemoryHandle(unit, self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
+                handle = new MemoryHandle(unit, self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
+                handle.Size = variable.Type!.GetSize();
+                break;
             }
 
             case VariableCategory.GLOBAL:
             {
-                return new DataSectionHandle(variable.GetStaticName());
+                handle = new DataSectionHandle(variable.GetStaticName());
+                break;
             }
 
             default:
@@ -36,6 +43,13 @@ public static class References
                 throw new NotImplementedException("Variable category not implemented");
             }
         }
+
+        if (variable.Type is Number number && !number.IsUnsigned)
+        {
+            handle.IsUnsigned = false;
+        }
+
+        return handle;
     }
 
     public static Result GetVariable(Unit unit, VariableNode node, AccessMode mode)
@@ -90,6 +104,12 @@ public static class References
             case NodeType.STRING_NODE:
             {
                 return GetString(unit, (StringNode)node);
+            }
+
+            case NodeType.CAST_NODE:
+            {
+                var cast = (CastNode)node;
+                return References.Get(unit, cast.First!, mode);
             }
 
             case NodeType.OPERATOR_NODE:

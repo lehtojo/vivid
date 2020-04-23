@@ -1,0 +1,20 @@
+Player {
+    Health
+    Speed
+    Accuracy
+
+    Player(health, speed, accuracy) {
+        Health = health as normal
+        Speed = speed as small
+        Accuracy = accuracy as byte
+    }
+
+    get_score() {
+        => Health * 10 + Speed * 5 + Accuracy
+    }
+}
+
+run() {
+    player = Player(100, 7, 999999999)
+    => player.get_score()
+}

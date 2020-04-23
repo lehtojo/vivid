@@ -13,6 +13,7 @@ public class Size
     public string Identifier { get; private set; }
     public string Allocator => "d" + Identifier[0];
     public int Bytes { get; private set; }
+    public int Bits => Bytes * 8;
 
     private Size(string identifier, int bytes)
     {

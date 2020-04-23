@@ -24,7 +24,7 @@ public static class Calls
 
     private static Size GetParameterSize(FunctionImplementation implementation, int current)
     {
-        var mode = implementation.ParameterTypes[current].GetInstructionParameterSize();
+        var mode = implementation.ParameterTypes[current].GetSize();
 
         // Stack doesn't accept bytes
         return mode == Size.BYTE ? Size.WORD : mode;
@@ -69,7 +69,7 @@ public static class Calls
         {
             var handle = References.Get(unit, parameters[i]);
 
-            var size = ((IType)parameters[i]).GetType()?.GetInstructionParameterSize() ?? throw new ApplicationException("Couldn't get type of a parameter");
+            var size = ((IType)parameters[i]).GetType()?.GetSize() ?? throw new ApplicationException("Couldn't get type of a parameter");
             size = size == Size.BYTE ? Size.WORD : size; // Stack doesn't accept bytes
 
             unit.Append(new PushInstruction(unit, handle, size));

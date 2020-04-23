@@ -1,7 +1,10 @@
 section .text
 global _start
 _start:
-jmp function_run
+call function_run
+mov rax, 60
+xor rdi, rdi
+syscall
 
 extern function_allocate
 extern function_integer_power
@@ -52,7 +55,7 @@ function_length_of:
 xor rax, rax
 mov rcx, [rsp+8]
 function_length_of_L0:
-mov rdx, [rcx+rax]
+movzx rdx, byte [rcx+rax]
 test rdx, rdx
 jne function_length_of_L1
 ret
@@ -105,7 +108,7 @@ xor rax, rax
 mov rcx, [rsp+8]
 type_string_function_length_L0:
 mov rdx, [rcx]
-mov r8, [rdx+rax]
+movzx r8, byte [rdx+rax]
 test r8, r8
 jne type_string_function_length_L1
 ret

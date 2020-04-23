@@ -14,6 +14,7 @@
             "args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/StaticVariable.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ConstantPermanence.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicTypeDataFields.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/TheBully.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SimpleScopeTest.z", "--asm", "--time", "-st" ],

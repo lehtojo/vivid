@@ -367,7 +367,8 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"free",
 			Types.UNKNOWN,
-			new Parameter() { Name = "address", Type = Types.LINK }
+			new Parameter() { Name = "address", Type = Types.LINK },
+			new Parameter() { Name = "bytes", Type = number }
 		);
 
 		context.Declare(allocate);

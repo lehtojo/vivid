@@ -17,7 +17,6 @@ public class InstructionParameter
 {
     public Result Result { get; set; }
     public Handle? Value { get; set; } = null;
-    public Size Size { get; set; } = Size.NONE;
     public HandleType[] Types { get; private set; }
     public HandleType OptimalType => Types[0];
 
@@ -33,7 +32,8 @@ public class InstructionParameter
         {
             if (Value != null)
             {
-                Value.Size = (value || Value.Type == HandleType.REGISTER) ? Size : Size.NONE;
+                Value.IsSizeVisible = value;
+                //Value.Size = (value || Value.Type == HandleType.REGISTER) ? Size : Size.NONE;
             }
         }
     }
@@ -80,8 +80,11 @@ public abstract class Instruction
     public int Position { get; set; } = -1;
     public InstructionType Type => GetInstructionType();
 
-    public string Operation { get; private set; } = string.Empty;
+    public string Operation { get; set; } = string.Empty;
+    
     public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
+    public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
+
     public bool IsBuilt { get; private set; } = false;
 
     public Instruction(Unit unit)
@@ -177,7 +180,6 @@ public abstract class Instruction
         {
             // Convert the parameter into a valid format
             var parameter = parameters[i];
-            parameter.Size = mode;
 
             var result = Convert(parameter);
 
@@ -188,7 +190,7 @@ public abstract class Instruction
             }
 
             parameter.Result = result;
-            parameter.Value = result.Value;
+            parameter.Value = result.Value.Clone();
 
             Parameters.Add(parameter);
         }
@@ -239,6 +241,7 @@ public abstract class Instruction
         }
 
         Operation = operation;
+        OnPostBuild();
     }
 
     public void Translate()
@@ -265,7 +268,7 @@ public abstract class Instruction
         var result = new StringBuilder(Operation);
 
         // Detect whether all parameter are meant to be the same size
-        if (Parameters.Select(p => p.Size).Distinct().Count() == 1)
+        if (Parameters.Select(p => p.Value!.Size).Distinct().Count() == 1)
         {
             // Only one parameter is required to show its size
             Parameters[0].IsSizeVisible = true;
@@ -352,6 +355,7 @@ public abstract class Instruction
 
     public abstract Result? GetDestinationDependency();
     public abstract void Build();
+    public virtual void OnPostBuild() {}
 
     public void TryBuild()
     {

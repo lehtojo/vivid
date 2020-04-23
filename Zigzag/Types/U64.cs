@@ -1,8 +1,8 @@
-public class Long : Number
+public class U64 : Number
 {
 	private const int BYTES = 8;
 
-	public Long() : base(NumberType.INT64, 64, "long") { }
+	public U64() : base(NumberType.UINT64, 64, true, "u64") { }
 
 	public override int GetReferenceSize()
 	{

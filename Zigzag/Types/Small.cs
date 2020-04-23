@@ -1,8 +1,8 @@
-public class Uint : Number
+public class Small : Number
 {
-	private const int BYTES = 4;
+	private const int BYTES = 2;
 
-	public Uint() : base(NumberType.UINT32, 32, "uint") { }
+	public Small() : base(NumberType.INT16, 16, false, "small") { }
 
 	public override int GetReferenceSize()
 	{

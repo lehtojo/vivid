@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 public class Keywords
 {
+	public static readonly Keyword AS = new Keyword("as");
 	public static readonly Keyword BASE = new Keyword("base");
 	public static readonly Keyword CASE = new FlowKeyword("case");
 	public static readonly Keyword CONTINUE = new FlowKeyword("continue");
@@ -32,6 +33,7 @@ public class Keywords
 
 	static Keywords()
 	{
+		Values.Add(AS.Identifier, AS);
 		Values.Add(BASE.Identifier, BASE);
 		Values.Add(CASE.Identifier, CASE);
 		Values.Add(CONTINUE.Identifier, CONTINUE);

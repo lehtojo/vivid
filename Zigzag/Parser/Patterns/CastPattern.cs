@@ -8,11 +8,11 @@ public class CastPattern : Pattern
 	private const int CAST = 1;
 	private const int TYPE = 2;
 
-	// ... -> Type
+	// ... as Type
 	public CastPattern() : base
 	(
 		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC,
-		TokenType.OPERATOR,
+		TokenType.KEYWORD,
 		TokenType.IDENTIFIER | TokenType.DYNAMIC
 	) { }
 
@@ -23,8 +23,8 @@ public class CastPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var cast = (OperatorToken)tokens[CAST];
-		return cast.Operator == Operators.CAST;
+		var cast = (KeywordToken)tokens[CAST];
+		return cast.Keyword == Keywords.AS;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)

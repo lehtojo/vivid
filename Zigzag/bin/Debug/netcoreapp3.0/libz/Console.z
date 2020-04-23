@@ -9,7 +9,7 @@ readln() {
 
     result = allocate(length)
     copy(buffer, length, result)
-    free(buffer)
+    free(buffer, 256)
 
     => string(result)
 }

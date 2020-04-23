@@ -2,7 +2,7 @@
 {
 	private const int BYTES = 4;
 
-	public Decimal() : base(NumberType.DECIMAL32, 32, "decimal") { }
+	public Decimal() : base(NumberType.DECIMAL32, 32, false, "decimal") { }
 
 	public override int GetReferenceSize()
 	{

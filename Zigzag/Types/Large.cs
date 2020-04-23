@@ -1,8 +1,8 @@
-public class Ushort : Number
+public class Large : Number
 {
-	private const int BYTES = 2;
+	private const int BYTES = 8;
 
-	public Ushort() : base(NumberType.UINT16, 16, "ushort") { }
+	public Large() : base(NumberType.INT64, 64, false, "large") { }
 
 	public override int GetReferenceSize()
 	{

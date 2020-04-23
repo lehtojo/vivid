@@ -3,6 +3,8 @@ public abstract class DualParameterInstruction : Instruction
     public Result First { get; private set; }
     public Result Second { get; private set; }
 
+    public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
+
     public DualParameterInstruction(Unit unit, Result first, Result second) : base(unit)
     {
         First = first;

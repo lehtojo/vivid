@@ -81,7 +81,7 @@ run() {
 
     # {1, 2} -> {2, 2}, {2, 3} -> {4, 3}, {3, 4} -> {6, 4}
     loop (i = 0, i < list.size(), ++i) {
-        b = list.at(i) -> A
+        b = list.at(i) as A
         b.f(i)
         print('Yeet')
     }
@@ -98,7 +98,7 @@ run() {
     # 43
     # 22
     loop (list.size() >= 0) {
-        c = list.take() -> A
+        c = list.take() as A
         x = c.x
         y = c.y
         prints(to_string(x))

@@ -14,7 +14,10 @@ public static class Assembler
     public const string TEXT_SECTION = "section .text";
     public const string TEXT_SECTION_HEADER =   "global _start" + "\n" +
                                                 "_start:" + "\n" +
-                                                "jmp function_run" + SEPARATOR;   
+                                                "call function_run" + "\n" +
+                                                "mov rax, 60" + "\n" +
+                                                "xor rdi, rdi" + "\n" +
+                                                "syscall" + SEPARATOR;   
     public const string DATA_SECTION = "section .data";
     public const string SEPARATOR = "\n\n";
 

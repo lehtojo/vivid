@@ -2,12 +2,7 @@ using System;
 
 public static class AssemblerExtensions
 {
-    public static Size GetInstructionParameterSize(this Variable variable)
-    {
-        return Size.FromBytes(variable.Type?.ReferenceSize ?? throw new ApplicationException("Couldn't get variable type"));
-    }
-
-    public static Size GetInstructionParameterSize(this Type type)
+    public static Size GetSize(this Type type)
     {
         return Size.FromBytes(type.ReferenceSize);
     }

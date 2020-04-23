@@ -37,7 +37,7 @@ to_number(text) {
     n = 0
 
     loop (i < length) {
-        a = buffer[i] -> num - 48
+        a = buffer[i] as num - 48
         n = n * 10 + a
         ++i
     }
@@ -49,10 +49,7 @@ length_of(text) {
     i = 0
 
     loop() {
-        if text[i] == 0 {
-            => i
-        }
-
+        if text[i] == 0 { => i }
         ++i
     }
 }

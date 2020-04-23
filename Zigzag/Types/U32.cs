@@ -1,8 +1,8 @@
-public class Ulong : Number
+public class U32 : Number
 {
-	private const int BYTES = 8;
+	private const int BYTES = 4;
 
-	public Ulong() : base(NumberType.UINT64, 64, "ulong") { }
+	public U32() : base(NumberType.UINT32, 32, true, "u32") { }
 
 	public override int GetReferenceSize()
 	{

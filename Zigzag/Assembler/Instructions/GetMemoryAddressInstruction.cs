@@ -15,6 +15,7 @@ public class GetMemoryAddressInstruction : Instruction
         Stride = stride;
 
         Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
+        Result.Value.Size = Size.FromBytes(Stride);
         Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
         Source.Value = Result.Value;

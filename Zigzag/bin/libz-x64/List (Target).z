@@ -1,5 +1,5 @@
-type List {
-    elements: link
+type List(T) {
+    elements: T[]
     capacity: num
     batch: num
     position: num
@@ -7,7 +7,7 @@ type List {
     size => position
 
     List(count) {
-        elements = allocate(count * 4) as num
+        elements = allocate(count * T.size) as T[]
         capacity = count
         batch = capacity
         position = 0
@@ -54,8 +54,8 @@ type List {
     this[i] => elements[i]
     
     # Concats two lists
-    this + other: List {
-        result = List(size + other.size)
+    (this + other: T List) {
+        result = T List(size + other.size)
 
         loop (i = 0, i < size, i++) {
             result.add(elements[i])

@@ -19,6 +19,9 @@ public enum MoveType
 public class MoveInstruction : DualParameterInstruction
 {
     public const string MOVE_INSTRUCTION = "mov";
+    public const string UNSIGNED_CONVERSION = "movzx";
+    public const string SIGNED_CONVERSION = "movsx";
+    public const string SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE = "movsxd";
     public const string CLEAR_INSTRUCTION = "xor";
 
     public new MoveType Type { get; set; } = MoveType.COPY;
@@ -118,6 +121,64 @@ public class MoveInstruction : DualParameterInstruction
                     HandleType.MEMORY
                 )
             );
+        }
+    }
+
+    public override void OnPostBuild()
+    {
+        var is_source_memory_address = Source!.Value?.Type == HandleType.MEMORY;
+        var is_destination_memory_address = Destination!.Value?.Type == HandleType.MEMORY;
+
+        if (is_source_memory_address)
+        {
+            if (is_destination_memory_address)
+            {
+                throw new ApplicationException("Both destination and source were memory handles at the same time in move instruction");
+            }
+
+            // Now the destination parameter must be a register
+
+            // Check if a conversion is needed
+            if (Source!.Value!.Size != Destination!.Value!.Size)
+            {
+                // In 32-bit mode or lower there's only one conversion instruction type needed
+                if (Assembler.Size.Bits <= 32)
+                {
+                    Operation = Destination.Value!.IsUnsigned ? UNSIGNED_CONVERSION : SIGNED_CONVERSION;
+                }
+                else if (Assembler.Size.Bits == 64)
+                {
+                    if (Destination.Value!.Size.Bits != 64)
+                    {
+                        throw new ApplicationException("Destination register should be 64-bit in 64-bit mode always");
+                    }
+
+                    if (Source.Value!.Size.Bits == 32)
+                    {
+                        if (Destination.Value!.IsUnsigned)
+                        {
+                            // In 64-bit mode if you move data from 32-bit register to another 32-bit register it zeroes out the high half of the destination 64-bit register
+                            Destination.Value!.Size = Size.DWORD;
+                        }
+                        else
+                        {
+                            Operation = SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE;
+                        }
+                    }
+                    else
+                    {
+                        Operation = Destination.Value!.IsUnsigned ? UNSIGNED_CONVERSION : SIGNED_CONVERSION;
+                    }
+                }
+                else
+                {
+                    throw new ApplicationException("Conversion needed in move instruction but current bitmode is unsupported");
+                }
+            }
+        }
+        else if (is_destination_memory_address)
+        {
+            Source.Value!.Size = Destination.Value!.Size;
         }
     }
 

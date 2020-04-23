@@ -14,45 +14,22 @@ public class MultiplicationInstruction : DualParameterInstruction
     {
         var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
-        if (Assigns)
-        {
-            Build(
-                "imul",
-                Assembler.Size,
-                new InstructionParameter(
-                    First,
-                    flags,
-                    HandleType.REGISTER,
-                    HandleType.MEMORY
-                ),
-                new InstructionParameter(
-                    Second,
-                    ParameterFlag.NONE,
-                    HandleType.CONSTANT,
-                    HandleType.REGISTER,
-                    HandleType.MEMORY
-                )
-            );
-        }
-        else
-        {
-            Build(
-                "imul",
-                Assembler.Size,
-                new InstructionParameter(
-                    First,
-                    flags,
-                    HandleType.REGISTER
-                ),
-                new InstructionParameter(
-                    Second,
-                    ParameterFlag.NONE,
-                    HandleType.CONSTANT,
-                    HandleType.REGISTER,
-                    HandleType.MEMORY
-                )
-            );
-        }
+        Build(
+            "imul",
+            Assembler.Size,
+            new InstructionParameter(
+                First,
+                flags,
+                HandleType.REGISTER
+            ),
+            new InstructionParameter(
+                Second,
+                ParameterFlag.NONE,
+                HandleType.CONSTANT,
+                HandleType.REGISTER,
+                HandleType.MEMORY
+            )
+        );
     }
 
     public override Result GetDestinationDependency()

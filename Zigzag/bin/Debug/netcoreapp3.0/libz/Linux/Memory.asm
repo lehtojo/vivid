@@ -33,6 +33,9 @@ int 0x80
 add esp, 24
 ret
 
+global function_free
+function_free:
+
 global function_copy
 function_copy:
 

@@ -5,7 +5,7 @@ List {
     position
 
     create(count) {
-        elements = allocate(count * 4) -> num
+        elements = allocate(count * 8) as num
         capacity = count
         batch = capacity
         position = 0
@@ -22,7 +22,7 @@ List {
         if batch < 0 {
             memory = allocate(capacity * 2)
             copy(elements, capacity, memory)
-            free(elements)
+            free(elements, capacity)
 
             elements = memory
             capacity = capacity * 2
@@ -30,7 +30,7 @@ List {
         else {
             memory = allocate(capacity + batch)
             copy(elements, capacity, memory)
-            free(elements)
+            free(elements, capacity)
 
             elements = memory
             capacity = capacity + batch

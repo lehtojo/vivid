@@ -16,14 +16,16 @@ public class Numbers
 
 	static Numbers()
 	{
-		Add(Types.BYTE);
-		Add(Types.LONG);
-		Add(Types.NORMAL);
-		Add(Types.DECIMAL);
-		Add(Types.SHORT);
 		Add(Types.TINY);
-		Add(Types.UINT);
-		Add(Types.ULONG);
-		Add(Types.USHORT);
+		Add(Types.SMALL);
+		Add(Types.NORMAL);
+		Add(Types.LARGE);
+		
+		Add(Types.U8);
+		Add(Types.U16);
+		Add(Types.U32);
+		Add(Types.U64);
+
+		Add(Types.DECIMAL);
 	}
 }

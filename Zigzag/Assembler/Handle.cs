@@ -12,19 +12,27 @@ public enum HandleType
 public class Handle
 {
     public HandleType Type { get; private set; }
-    public Size Size { get; set; } = Size.NONE;
+    public Size Size { get; set; }
+    public bool IsUnsigned { get; set; } = true;
+    public bool IsSizeVisible { get; set; } = false;
 
     public Handle()
     {
         Type = HandleType.NONE;
+        Size = Assembler.Size;
     }
 
     public Handle(HandleType type)
     {
         Type = type;
+        Size = Assembler.Size;
     }
 
     public virtual void Use(int position) { }
+    public virtual Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
+    }
 
     public override string ToString()
     {
@@ -43,7 +51,7 @@ public class DataSectionHandle : Handle
 
     public override string ToString()
     {
-        if (Size.IsVisible())
+        if (IsSizeVisible)
         {
             return $"{Size} [{Identifier}]";
         }
@@ -51,6 +59,11 @@ public class DataSectionHandle : Handle
         {
             return $"[{Identifier}]";
         }
+    }
+
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
     }
 
     public override bool Equals(object? obj)
@@ -86,6 +99,11 @@ public class ConstantHandle : Handle
                EqualityComparer<object>.Default.Equals(Value, handle.Value);
     }
 
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
+    }
+
     public override int GetHashCode()
     {
         return HashCode.Combine(Value);
@@ -94,6 +112,8 @@ public class ConstantHandle : Handle
 
 public class VariableMemoryHandle : MemoryHandle
 {
+    private const string UNKNOWN = "[?]";
+
     public Variable Variable { get; private set; }
 
     public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), variable.Alignment)
@@ -105,12 +125,34 @@ public class VariableMemoryHandle : MemoryHandle
     {
         if (Variable.Alignment < 0)
         {
-            return $"[?]";
+            return UNKNOWN;
         }
 
         Offset = Variable.Alignment;
 
         return base.ToString();
+    }
+
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is VariableMemoryHandle handle &&
+               base.Equals(obj) &&
+               Type == handle.Type &&
+               EqualityComparer<Size>.Default.Equals(Size, handle.Size) &&
+               EqualityComparer<Unit>.Default.Equals(Unit, handle.Unit) &&
+               EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
+               Offset == handle.Offset &&
+               EqualityComparer<Variable>.Default.Equals(Variable, handle.Variable);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(base.GetHashCode(), Type, Size, Unit, Start, Offset, Variable);
     }
 }
 
@@ -121,12 +163,7 @@ public class MemoryHandle : Handle
     public int Offset { get; protected set; }
     
     private bool IsStackMemoryPointer => Start.Value is RegisterHandle handle && handle.Register == Unit.GetStackPointer();
-    private int CorrectedOffset => (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
-    
-    public static MemoryHandle FromStack(Unit unit, int offset)
-    {
-        return new MemoryHandle(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset);
-    }
+    private int Position => (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
 
     public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY)
     {
@@ -146,11 +183,11 @@ public class MemoryHandle : Handle
 
         if (Offset > 0)
         {
-            offset = $"+{CorrectedOffset}";
+            offset = $"+{Position}";
         }
         else if (Offset < 0)
         {
-            offset = CorrectedOffset.ToString();
+            offset = Position.ToString();
         }
 
         if (Start.Value.Type == HandleType.REGISTER ||
@@ -158,7 +195,7 @@ public class MemoryHandle : Handle
         {
             var address = $"[{Start.Value}{offset}]";
 
-            if (Size.IsVisible())
+            if (IsSizeVisible)
             {
                 return $"{Size} {address}";
             }
@@ -168,7 +205,12 @@ public class MemoryHandle : Handle
             }
         }
 
-        throw new ApplicationException("Base of the memory handle was no longer in register");
+        throw new ApplicationException("Start of the memory handle was no longer in register");
+    }
+
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
     }
 
     public override bool Equals(object? obj)
@@ -235,7 +277,7 @@ public class ComplexMemoryHandle : Handle
         {
             var address = $"[{Start.Value}{offset}]";
 
-            if (Size.IsVisible())
+            if (IsSizeVisible)
             {
                 return $"{Size} {address}";
             }
@@ -246,6 +288,11 @@ public class ComplexMemoryHandle : Handle
         }
 
         throw new ApplicationException("Base of the memory handle was no longer in register");
+    }
+
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
     }
 
     public override bool Equals(object? obj)
@@ -279,6 +326,11 @@ public class RegisterHandle : Handle
         }
 
         return Register[Size];
+    }
+
+    public override Handle Clone() 
+    {
+        return (Handle)this.MemberwiseClone();
     }
 
     public override bool Equals(object? obj)

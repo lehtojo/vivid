@@ -1,8 +1,8 @@
-public class Byte : Number
+public class U16 : Number
 {
-	private const int BYTES = 1;
+	private const int BYTES = 2;
 
-	public Byte() : base(NumberType.UINT8, 8, "byte") { }
+	public U16() : base(NumberType.UINT16, 16, true, "u16") { }
 
 	public override int GetReferenceSize()
 	{
