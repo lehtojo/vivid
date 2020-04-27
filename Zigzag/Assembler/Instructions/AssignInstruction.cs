@@ -5,11 +5,11 @@ public class AssignInstruction : DualParameterInstruction
         Result.Join(Second);
     }
 
-    public override void Build() 
+    public override void OnBuild() 
     {
         if (!Unit.Optimize ||
             First.Metadata.IsComplexMemoryAddress || 
-            First.Metadata.PrimaryAttribute is VariableAttribute attribute && 
+            First.Metadata.Primary is VariableAttribute attribute && 
             !attribute.Variable.IsPredictable)
         {
             Unit.Append(new MoveInstruction(Unit, First, Second));

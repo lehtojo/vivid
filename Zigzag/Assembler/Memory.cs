@@ -32,18 +32,55 @@ public static class Memory
         move.Type = MoveType.RELOCATE;
 
         unit.Append(move);
+
+        target.Reset();
+    }
+
+    public static void Zero(Unit unit, Register register)
+    {
+        if (!register.IsAvailable(unit.Position))
+        {
+            Memory.ClearRegister(unit, register);
+        }
+
+        var handle = new RegisterHandle(register);
+        var instruction = new XorInstruction(unit, new Result(handle), new Result(handle))
+        {
+            IsSafe = false
+        };
+
+        unit.Append(instruction);
     }
     
     public static Result CopyToRegister(Unit unit, Result result)
     {
-        var register = unit.GetNextRegister();
-        var destination = new Result(new RegisterHandle(register));
+        if (result.Value.Type == HandleType.REGISTER)
+        {
+            using (RegisterLock.Create(result))
+            {
+                var register = unit.GetNextRegister();
+                var destination = new Result(new RegisterHandle(register));
         
-        return new MoveInstruction(unit, destination, result).Execute();
+                return new MoveInstruction(unit, destination, result).Execute();
+            }
+        }
+        else
+        {
+            var register = unit.GetNextRegister();
+            var destination = new Result(new RegisterHandle(register));
+        
+            return new MoveInstruction(unit, destination, result).Execute();
+        }
     }
 
     public static Result MoveToRegister(Unit unit, Result result)
     {
+        // Prevents reduntant moving to registers
+        if (result.Value.Type == HandleType.REGISTER)
+        {
+            return result;
+        }
+
         var register = unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
 
@@ -110,7 +147,10 @@ public static class Memory
                 {
                     if (protect && !dying)
                     {
-                        return CopyToRegister(unit, new Result(register));
+                        using (new RegisterLock(register.Register))
+                        {
+                            return CopyToRegister(unit, new Result(register));
+                        }
                     }
                     else
                     {
@@ -122,7 +162,10 @@ public static class Memory
 
                 if (protect && !dying)
                 {
-                    return CopyToRegister(unit, destination);
+                    using (new RegisterLock(destination.Value.To<RegisterHandle>().Register))
+                    {
+                        return CopyToRegister(unit, destination);
+                    }
                 }
 
                 return destination;

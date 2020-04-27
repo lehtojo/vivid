@@ -26,5 +26,6 @@ public enum InstructionType
     STACK_MEMORY,
     SUBTRACT,
     SYMMETRY_START,
-    SYMMETRY_END
+    SYMMETRY_END,
+    XOR
 }

@@ -28,8 +28,13 @@ public class Handle
         Size = Assembler.Size;
     }
 
+    public T To<T>() where T: Handle
+    {
+        return (T)this;
+    }
+
     public virtual void Use(int position) { }
-    public virtual Handle Clone() 
+    public virtual Handle Freeze() 
     {
         return (Handle)this.MemberwiseClone();
     }
@@ -61,7 +66,7 @@ public class DataSectionHandle : Handle
         }
     }
 
-    public override Handle Clone() 
+    public override Handle Freeze() 
     {
         return (Handle)this.MemberwiseClone();
     }
@@ -99,7 +104,7 @@ public class ConstantHandle : Handle
                EqualityComparer<object>.Default.Equals(Value, handle.Value);
     }
 
-    public override Handle Clone() 
+    public override Handle Freeze() 
     {
         return (Handle)this.MemberwiseClone();
     }
@@ -112,8 +117,6 @@ public class ConstantHandle : Handle
 
 public class VariableMemoryHandle : MemoryHandle
 {
-    private const string UNKNOWN = "[?]";
-
     public Variable Variable { get; private set; }
 
     public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), variable.Alignment)
@@ -123,19 +126,9 @@ public class VariableMemoryHandle : MemoryHandle
 
     public override string ToString() 
     {
-        if (Variable.Alignment < 0)
-        {
-            return UNKNOWN;
-        }
-
         Offset = Variable.Alignment;
 
         return base.ToString();
-    }
-
-    public override Handle Clone() 
-    {
-        return (Handle)this.MemberwiseClone();
     }
 
     public override bool Equals(object? obj)
@@ -181,11 +174,11 @@ public class MemoryHandle : Handle
     {
         var offset = string.Empty;
 
-        if (Offset > 0)
+        if (Position > 0)
         {
             offset = $"+{Position}";
         }
-        else if (Offset < 0)
+        else if (Position < 0)
         {
             offset = Position.ToString();
         }
@@ -208,9 +201,15 @@ public class MemoryHandle : Handle
         throw new ApplicationException("Start of the memory handle was no longer in register");
     }
 
-    public override Handle Clone() 
+    public override Handle Freeze() 
     {
-        return (Handle)this.MemberwiseClone();
+        if (Start.Value.Type == HandleType.REGISTER ||
+            Start.Value.Type == HandleType.CONSTANT)
+        {
+            return new MemoryHandle(Unit, new Result(Start.Value), Offset);
+        }
+
+        throw new ApplicationException("Start of the memory handle was in invalid format for freeze operation");
     }
 
     public override bool Equals(object? obj)
@@ -237,6 +236,7 @@ public class ComplexMemoryHandle : Handle
         Start = start;
         Offset = offset;
         Stride = stride;
+        Size = Size.FromBytes(stride);
     }
 
     public override void Use(int position)
@@ -290,9 +290,15 @@ public class ComplexMemoryHandle : Handle
         throw new ApplicationException("Base of the memory handle was no longer in register");
     }
 
-    public override Handle Clone() 
+    public override Handle Freeze() 
     {
-        return (Handle)this.MemberwiseClone();
+        if ((Start.Value.Type == HandleType.REGISTER || Start.Value.Type == HandleType.CONSTANT) && 
+            (Offset.Value.Type == HandleType.REGISTER || Offset.Value.Type == HandleType.CONSTANT))
+        {
+            return new ComplexMemoryHandle(new Result(Start.Value), new Result(Offset.Value), Stride);
+        }
+
+        throw new ApplicationException("Parameters of a complex memory handle were in invalid format for freeze operation");
     }
 
     public override bool Equals(object? obj)
@@ -328,7 +334,7 @@ public class RegisterHandle : Handle
         return Register[Size];
     }
 
-    public override Handle Clone() 
+    public override Handle Freeze() 
     {
         return (Handle)this.MemberwiseClone();
     }

@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 
 public class Lifetime
-{
+{ 
     public int Start { get; set; } = -1;
     public int End { get; set; } = -1;
 
@@ -37,6 +37,16 @@ public class Lifetime
             Start = Start,
             End = End
         };
+    }
+
+    public override string ToString()
+    {
+        if (Start == -1 && End == -1)
+        {
+            return "static";
+        }
+
+        return (Start == -1 ? string.Empty : Start.ToString()) + ".." + (End == -1 ? string.Empty : End.ToString());
     }
 }
 
@@ -235,7 +245,7 @@ public class Unit
             var previous = Anchor;
 
             Anchor = instruction;
-            instruction.TryBuild();
+            instruction.Build();
             Anchor = previous;
         }
     }
@@ -270,14 +280,11 @@ public class Unit
         }
 
         // Get all the variables that this value represents
-        var attributes = value.Metadata.Variables;
-
-        foreach (var attribute in attributes)
+        foreach (var attribute in value.Metadata.Variables)
         {
             var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
 
             var move = new MoveInstruction(this, destination, value);
-            //move.Mode = attribute.Variable.GetInstructionParameterSize();
             move.Type = MoveType.RELOCATE;
 
             Append(move);

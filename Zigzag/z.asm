@@ -23,7 +23,7 @@ cmp rbx, 10
 jge function_run_L1
 function_run_L0:
 push function_run_S0
-call function_print
+call function_println
 add rsp, 8
 add rbx, 1
 cmp rbx, 10
@@ -39,7 +39,7 @@ jge function_run_L3
 function_run_L2:
 push rsi
 mov rdi, rsi
-call function_prints
+call function_printsln
 add rsp, 8
 add rbx, 1
 mov rsi, rdi
@@ -49,19 +49,6 @@ function_run_L3:
 pop rdi
 pop rsi
 pop rbx
-ret
-
-function_length_of:
-xor rax, rax
-mov rcx, [rsp+8]
-function_length_of_L0:
-movzx rdx, byte [rcx+rax]
-test rdx, rdx
-jne function_length_of_L1
-ret
-function_length_of_L1:
-add rax, 1
-jmp function_length_of_L0
 ret
 
 function_prints:
@@ -79,16 +66,37 @@ call function_sys_print
 pop rbx
 ret
 
-function_print:
+function_printsln:
 push rbx
 mov rbx, [rsp+16]
 push rbx
-call function_length_of
+call type_string_function_length
+add rsp, 8
+add rax, 1
+push rax
+push 10
+push rbx
+call type_string_function_append
+add rsp, 16
+push rax
+call type_string_function_data
 add rsp, 8
 push rax
-push rbx
 call function_sys_print
 pop rbx
+ret
+
+function_println:
+push qword [rsp+8]
+call type_string_constructor
+add rsp, 8
+push 10
+push rax
+call type_string_function_append
+add rsp, 16
+push rax
+call function_prints
+add rsp, 8
 ret
 
 type_string_constructor:
@@ -96,6 +104,35 @@ push 8
 call function_allocate
 mov rcx, [rsp+8]
 mov qword [rax], rcx
+ret
+
+type_string_function_append:
+push rsi
+push rdi
+push rbp
+mov rsi, [rsp+32]
+push rsi
+call type_string_function_length
+mov rdi, rax
+add rsp, 8
+lea rcx, [rdi+2]
+push rcx
+call function_allocate
+mov rbp, rax
+push rbp
+push rdi
+push qword [rsi]
+call function_copy
+mov rcx, [rsp+40]
+mov byte [rbp+rdi], cl
+add rdi, 1
+mov byte [rbp+rdi], 0
+push rbp
+call type_string_constructor
+add rsp, 8
+pop rbp
+pop rdi
+pop rsi
 ret
 
 type_string_function_data:

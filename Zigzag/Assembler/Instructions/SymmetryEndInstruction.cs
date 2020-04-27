@@ -14,14 +14,14 @@ public class SymmetryEndInstruction : Instruction
 
     public void Append()
     {
-        foreach (var variable in Start.NonLocalVariables)
+        foreach (var variable in Start.ActiveVariables)
         {
             var source = References.GetVariable(Unit, variable, AccessMode.READ);
             Loads.Add(source);
         }
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         var moves = new List<MoveInstruction>();
 
@@ -62,7 +62,7 @@ public class SymmetryEndInstruction : Instruction
 
     public override Result? GetDestinationDependency()
     {
-        throw new ApplicationException("Tried to redirect Loop-Connect-End-Instruction");
+        throw new ApplicationException("Tried to redirect Symmetry-End-Instruction");
     }
 
     public override InstructionType GetInstructionType()

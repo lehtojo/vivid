@@ -31,7 +31,7 @@ public class JumpInstruction : Instruction
         Comparator = invert ? comparator.Counterpart : comparator;    
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         var instruction = Comparator == null ? "jmp" : Instructions[Comparator];
         Build($"{instruction} {Label.GetName()}");

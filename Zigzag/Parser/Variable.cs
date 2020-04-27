@@ -56,4 +56,9 @@ public class Variable
 	{
 		return Edits.Any(e => e.FindParent(p => p == node) != null);
 	}
+
+	public override string ToString()
+	{
+		return $"{Name}: {(Type?.Name ?? "?")}";
+	}
 }

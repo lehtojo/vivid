@@ -10,7 +10,7 @@ public class NegateInstruction : Instruction
         Target = target;
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         Build(
             INSTRUCTION,

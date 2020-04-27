@@ -33,14 +33,6 @@ public class DivisionInstruction : DualParameterInstruction
         return First;
     }
 
-    private void ClearRemainderRegister(Register register)
-    {
-        if (!register.IsAvailable(Unit.Position))
-        {
-            Memory.ClearRegister(Unit, register);
-        }
-    }
-
     private void BuildModulus(Result denominator)
     {
         var destination = new RegisterHandle(Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!);
@@ -86,12 +78,13 @@ public class DivisionInstruction : DualParameterInstruction
         );
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         var denominator = CorrectDenominatorLocation();
         var remainder = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!;
 
-        ClearRemainderRegister(remainder);
+        // Clear the remainder register
+        Memory.Zero(Unit, remainder);
 
         using (new RegisterLock(remainder))
         {

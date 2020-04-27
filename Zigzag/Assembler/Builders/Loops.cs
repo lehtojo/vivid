@@ -17,15 +17,21 @@ public class VariableUsageInfo
 
 public static class Loops
 {
+    /// <summary>
+    /// Returns whether the given variable is a local variable
+    /// </summary>
     private static bool IsNonLocalVariable(Variable variable, params Context[] local_contexts)
     {
         return !local_contexts.Any(local_context => variable.Context.IsInside(local_context));
     }
 
-    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node parent, params Context[] local_contexts)
+    /// <summary>
+    /// Analyzes how many times each variable in the given node tree is used and sorts the result as well
+    /// </summary>
+    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node root, params Context[] local_contexts)
     {
         var variables = new Dictionary<Variable, int>();
-        var iterator = parent.First;
+        var iterator = root.First;
 
         while (iterator != null)
         {
@@ -39,7 +45,7 @@ public static class Loops
                 {
                     if (unit.Self == null)
                     {
-                        throw new ApplicationException("Detected a use of the this pointer but it was missing");
+                        throw new ApplicationException("Detected an use of the this pointer but it was missing");
                     }
 
                     variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
@@ -59,42 +65,38 @@ public static class Loops
         return variables;
     }
 
+    /// <summary>
+    /// Returns info about variable usage in the given loop
+    /// </summary>
     private static List<VariableUsageInfo> GetAllVariableUsages(Unit unit, LoopNode node)
     {
         // Get all non-local variables in the loop and their number of usages
         var variables = GetNonLocalVariableUsageCount(unit, node, node.StepsContext, node.BodyContext)
                             .Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
 
-        // Sort the variables based on their number of usages (most used variables first)
+        // Sort the variables based on their number of usages (most used variable first)
         variables.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
 
         return variables;
     }
 
-    private static Result BuildForeverLoop(Unit unit, LoopNode node)
-    {
-        var start = unit.GetNextLabel();
-
-        // Initialize the loop
-        PrepareRelevantVariables(unit, node);
-
-        // Build the loop body
-        var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start));
-
-        // Jump to the start of the loop
-        unit.Append(new JumpInstruction(unit, start));
-
-        return result;
-    }
-
+    /// <summary>
+    /// Returns whether the given loop contains functions
+    /// </summary>
     private static bool ContainsFunction(LoopNode node)
     {
         return node.Find(n => n.Is(NodeType.FUNCTION_NODE)) != null;
     }
 
-    private static void PrepareRelevantVariables(Unit unit, LoopNode node)
+    /// <summary>
+    /// Tries to move most used loop variables into registers
+    /// </summary>
+    private static void CacheLoopVariables(Unit unit, LoopNode node)
     {
         var variables = GetAllVariableUsages(unit, node);
+
+        // If the loop contains at least one function, the variables should be cached into non-volatile registers
+        // (Otherwise there would be a lot of register moves trying to save the cached variables)
         var non_volatile_mode = ContainsFunction(node);
 
         unit.Append(new CacheVariablesInstruction(unit, node, variables, non_volatile_mode));
@@ -110,7 +112,7 @@ public static class Loops
 
     private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
     {
-        var active_variables = GetAllNonLocalVariables(loop.BodyContext, loop).Concat(unit.Scope!.ActiveVariables).Distinct();
+        var active_variables = Scope.GetAllActiveVariablesForScope(unit, loop, loop.BodyContext.Parent!, loop.BodyContext, loop.StepsContext);
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
@@ -146,6 +148,29 @@ public static class Loops
         return result;
     }
 
+    private static Result BuildForeverLoop(Unit unit, LoopNode node)
+    {
+        var start = unit.GetNextLabel();
+
+        // Get the current state of the unit for later recovery
+        var recovery = new SaveStateInstruction(unit);
+        unit.Append(recovery);
+
+        // Initialize the loop
+        CacheLoopVariables(unit, node);
+
+        // Build the loop body
+        var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start));
+
+        // Jump to the start of the loop
+        unit.Append(new JumpInstruction(unit, start));
+        
+        // Recover the previous state
+        unit.Append(new RestoreStateInstruction(unit, recovery));
+
+        return result;
+    }
+
     public static Result Build(Unit unit, LoopNode node)
     {
         if (node.IsForeverLoop)
@@ -158,7 +183,10 @@ public static class Loops
         var end = unit.GetNextLabel();
 
         // Initialize the loop
-        PrepareRelevantVariables(unit, node);
+        Builders.Build(unit, node.Initialization);
+
+        // Try to cache loop variables
+        CacheLoopVariables(unit, node);
     
         if (node.Condition is OperatorNode start_condition)
         {
@@ -171,6 +199,10 @@ public static class Loops
             // Jump to the end based on the comparison
             unit.Append(new JumpInstruction(unit, comparison, (ComparisonOperator)start_condition.Operator, true, end));
         }
+
+        // Get the current state of the unit for later recovery
+        var recovery = new SaveStateInstruction(unit);
+        unit.Append(recovery);
 
         // Build the loop body
         var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start));
@@ -189,6 +221,9 @@ public static class Loops
 
         // Append the label where the loop ends
         unit.Append(new LabelInstruction(unit, end));
+
+        // Recover the previous state
+        unit.Append(new RestoreStateInstruction(unit, recovery));
 
         return result;
     }

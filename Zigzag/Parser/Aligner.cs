@@ -28,14 +28,14 @@ public class Aligner
 	/// <summary>
 	/// Aligns all the given local variables
 	/// </summary>
-	public static void AlignLocalVariables(IEnumerable<Variable> variables, int bottom)
+	public static void AlignLocalVariables(IEnumerable<Variable> variables, int top)
 	{
-		var position = bottom;
+		var position = -top;
 
 		foreach (var variable in variables)
 		{
-			variable.Alignment = position;
 			position -= Parser.Size.Bytes;
+			variable.Alignment = position;
 		}
 	}
 

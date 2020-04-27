@@ -1,24 +1,25 @@
 public class GetObjectPointerInstruction : Instruction
 {
-    public Result Base { get; private set; }
+    public Result Start { get; private set; }
     public int Offset { get; private set; }
 
-    public GetObjectPointerInstruction(Unit unit, Variable variable, Result @base, int offset) : base(unit)
+    public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset) : base(unit)
     {
-        Result.Metadata.Attach(new VariableAttribute(variable, -1));
-        Base = @base;
+        Result.Metadata.Attach(new VariableAttribute(variable));
+        Start = start;
         Offset = offset;
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
-        Memory.Convert(Unit, Base, true, HandleType.CONSTANT, HandleType.REGISTER);
-        Result.Value = new MemoryHandle(Unit, Base, Offset);
+        // Lock the parameters
+        Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
+        Result.Value = new MemoryHandle(Unit, Start, Offset);
     }
 
     public override Result[] GetResultReferences()
     {
-        return new Result[] { Result, Base };
+        return new Result[] { Result, Start };
     }
 
     public override InstructionType GetInstructionType()

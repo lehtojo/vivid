@@ -20,7 +20,7 @@ public static class Translator
         var registers = GetAllUsedNonVolatileRegisters(unit);
         var local_variables = GetAllSavedLocalVariables(unit);
         var required_local_memory = local_variables.Sum(v => v.Type!.ReferenceSize);
-        var local_variables_bottom = 0;
+        var local_variables_top = 0;
 
         unit.Execute(UnitPhase.BUILD_MODE, () => 
         {
@@ -35,7 +35,7 @@ public static class Translator
             if (i is InitializeInstruction instruction)
             {
                 instruction.Build(registers, required_local_memory);
-                local_variables_bottom = instruction.LocalVariablesBottom;
+                local_variables_top = instruction.LocalVariablesTop;
             }
         });
 
@@ -50,7 +50,7 @@ public static class Translator
         });
 
         // Align all used local variables
-        Aligner.AlignLocalVariables(local_variables, local_variables_bottom);
+        Aligner.AlignLocalVariables(local_variables, local_variables_top);
 
         unit.Simulate(UnitPhase.BUILD_MODE, instruction => 
         {

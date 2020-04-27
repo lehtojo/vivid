@@ -1,20 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 public static class Conditionals
 {
-    private static IEnumerable<Variable> GetAllNonLocalVariables(Context local_context, Node body)
-    {
-        return body.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
-                    .Select(n => ((VariableNode)n).Variable)
-                    .Where(v => v.IsPredictable && !v.Context.IsInside(local_context))
-                    .Distinct();
-    }
-
     public static Result BuildBody(Unit unit, Context local_context, Node body, Instruction? perspective = null)
     {
-        var active_variables = GetAllNonLocalVariables(local_context, body).Concat(unit.Scope!.ActiveVariables).Distinct();
+        var active_variables = Scope.GetAllActiveVariablesForScope(unit, body, local_context.Parent!, local_context);
 
         var state = unit.GetState(unit.Position);
         var result = (Result?)null;
@@ -64,7 +54,6 @@ public static class Conditionals
         // Recover the previous state
         unit.Append(new RestoreStateInstruction(unit, recovery));
 
-        //#error Else statements need a scope as well
         // If the if-statement body is executed it must skip the potential successors
         if (node.Successor != null)
         {

@@ -11,7 +11,7 @@ public class PushInstruction : Instruction
         Value = value;
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         // Check if the value must be converted to the accepted stack element size
         if (Size != Assembler.Size && Value.Value.Type == HandleType.MEMORY)

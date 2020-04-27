@@ -7,7 +7,7 @@ public class LabelInstruction : Instruction
         Label = label;
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         Build($"{Label.GetName()}:");
     }

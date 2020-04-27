@@ -15,7 +15,7 @@ public static class Constructors
         }
 
         var allocation = Calls.Build(unit, Assembler.AllocationFunction!, new NumberNode(NumberType.INT32, type.ContentSize));
-        allocation.Metadata.Attach(new VariableAttribute(unit.Self, -1));
+        allocation.Metadata.Attach(new VariableAttribute(unit.Self));
 
         unit.Cache(unit.Self, allocation, true);
     }

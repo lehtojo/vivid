@@ -5,7 +5,7 @@ public static class Oracle
     private static void DifferentiateDependencies(Unit unit, Result result)
     {
         // Get all variable dependencies
-        var dependencies = result.Metadata.SecondaryAttributes
+        var dependencies = result.Metadata.Secondary
             .Where(a => a.Type == AttributeType.VARIABLE)
             .Select(a => (VariableAttribute)a);
 
@@ -23,12 +23,11 @@ public static class Oracle
             // Redirect the dependency to the result of the duplication
             unit.Cache(dependency.Variable, duplicate, true);
 
-            var version = unit.GetCurrentVariableVersion(dependency.Variable);
-            duplicate.Metadata.Attach(new VariableAttribute(dependency.Variable, version));
+            duplicate.Metadata.Attach(new VariableAttribute(dependency.Variable));
         }
 
         // Attach the primary attribute since it's still valid
-        duplicate.Metadata.Attach(result.Metadata.PrimaryAttribute!);
+        duplicate.Metadata.Attach(result.Metadata.Primary!);
     }
 
     public static void DifferentiateTarget(Unit unit, Result result, Variable target)
@@ -39,8 +38,7 @@ public static class Oracle
         // Redirect the dependency to the target
         unit.Cache(target, duplicate, true);
 
-        var version = unit.GetCurrentVariableVersion(target);
-        duplicate.Metadata.Attach(new VariableAttribute(target, version));
+        duplicate.Metadata.Attach(new VariableAttribute(target));
     }
 
     /// <summary>
@@ -48,7 +46,7 @@ public static class Oracle
     /// </summary>
     private static void Resolve(Unit unit, Result result, Variable target)
     {
-        var destination = (VariableAttribute?)result.Metadata.PrimaryAttribute;
+        var destination = (VariableAttribute?)result.Metadata.Primary;
 
         if (destination == null)
         {
@@ -63,29 +61,27 @@ public static class Oracle
 
     private static void SimulateMoves(Unit unit, Instruction i)
     {
-        if (i.Type == InstructionType.ASSIGN ||
-           (i is AdditionInstruction a && a.Assigns) ||
-           (i is SubtractionInstruction s && s.Assigns) ||
-           (i is MultiplicationInstruction m && m.Assigns))
+        if (i.Type == InstructionType.ASSIGN)
         {
             var instruction = (DualParameterInstruction)i;
             var destination = instruction.First;
             var source = instruction.Second;
 
             // Check if the destination is a variable
-            if (destination.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsPredictable)
+            if (destination.Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsPredictable)
             {
                 unit.Cache(attribute.Variable, instruction.Result, true);
 
+
                 // The source value now contains the new value of the destination
-                source.Metadata.Attach(new VariableAttribute(attribute.Variable, attribute.Version + 1));
+                source.Metadata.Attach(new VariableAttribute(attribute.Variable));
             }
         }
     }
 
     private static bool IsPropertyOf(Variable expected, Result result)
     {
-        return result.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable == expected;
+        return result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == expected;
     }
 
     private static void SimulateLoads(Unit unit, Instruction instruction)
@@ -101,7 +97,7 @@ public static class Oracle
             else
             {
                 var version = unit.GetCurrentVariableVersion(v.Variable);
-                v.SetSource(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable, version));
+                v.Configure(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable));
 
                 if (v.Mode != AccessMode.WRITE && v.Variable.IsPredictable)
                 {
@@ -118,7 +114,7 @@ public static class Oracle
         {
             var handle = unit.GetCurrentConstantHandle(c.Value);
 
-            c.SetSource(References.CreateConstantNumber(unit, c.Value));
+            c.Configure(References.CreateConstantNumber(unit, c.Value));
         }
     }
 
@@ -160,7 +156,7 @@ public static class Oracle
             {
                 var return_register = unit.GetStandardReturnRegister();
 
-                var start = instruction.GetRedirectionRoot();
+                var start = instruction.GetRedirectionRoot().Position;
                 var end = unit.Position;
 
                 if ((return_register.Handle == null || !return_register.Handle.Lifetime.IsIntersecting(start, end)) && !functions.Any(f => f.Result.Lifetime.IsIntersecting(start, end)))
@@ -182,7 +178,7 @@ public static class Oracle
             if (functions.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
                 !(result.Value is RegisterHandle handle && !handle.Register.IsVolatile))
             {
-                var start = instruction.GetRedirectionRoot();
+                var start = instruction.GetRedirectionRoot().Position;
                 var end = unit.Position;
 
                 // Make sure redirection root is not in range

@@ -20,7 +20,7 @@ public abstract class LoadInstruction : Instruction
         Source.Join(result);
     }
 
-    public void SetSource(Handle handle, MetadataAttribute? attribute = null)
+    public void Configure(Handle handle, MetadataAttribute? attribute = null)
     {
         Source.Value = handle;
         Result.Value = handle;
@@ -32,10 +32,15 @@ public abstract class LoadInstruction : Instruction
         }
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Mode != AccessMode.WRITE && !Result.Value.Equals(Source.Value))
         {
+            if (Result.Value.Type == HandleType.REGISTER)
+            {
+                Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
+            }
+
             var move = new MoveInstruction(Unit, Result, Source);
             move.Type = MoveType.LOAD;
 

@@ -24,7 +24,7 @@ public class ReturnInstruction : Instruction
         return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
     }
     
-    public override void Build()
+    public override void OnBuild()
     {
         // Ensure that if there's a value to return it's in a return register
         if (Object != null && !IsObjectInReturnRegister())

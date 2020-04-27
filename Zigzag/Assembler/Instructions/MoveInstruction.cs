@@ -29,7 +29,7 @@ public class MoveInstruction : DualParameterInstruction
 
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Build()
+    public override void OnBuild()
     {
         // Move shouldn't happen if the source is the same as the destination
         if (First.Value.Equals(Second.Value)) return;

@@ -1,12 +1,12 @@
 type List(T) {
-    elements: T[]
-    capacity: num
-    batch: num
-    position: num
+    private elements: T[]
+    private capacity: num
+    private batch: num
+    private position: num
 
     size => position
 
-    List(count) {
+    List(count: num) {
         elements = allocate(count * T.size) as T[]
         capacity = count
         batch = capacity
@@ -39,7 +39,7 @@ type List(T) {
         }
     }
 
-    add(element) {
+    add(element: T) {
         if position == capacity {
             grow()
         }
@@ -49,9 +49,9 @@ type List(T) {
 
     take() => elements[--position]
 
-    at(i) => elements[i]
+    at(i: num) => elements[i]
 
-    this[i] => elements[i]
+    this[i: num] => elements[i]
     
     # Concats two lists
     (this + other: T List) {

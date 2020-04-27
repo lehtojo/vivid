@@ -30,7 +30,7 @@ public class MergeScopeInstruction : Instruction
         }*/
     }
 
-    public override void Build() 
+    public override void OnBuild() 
     {
         var moves = new List<MoveInstruction>();
 

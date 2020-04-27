@@ -5,17 +5,12 @@ public class SaveStateInstruction : Instruction
     public Instruction Perspective { get; private set; }
     public List<VariableState>? State { get; private set; }
 
-    public SaveStateInstruction(Unit unit, Instruction? perspective) : base(unit)
-    {
-        Perspective = perspective ?? this;
-    }
-
     public SaveStateInstruction(Unit unit) : base(unit)
     {
         Perspective = this;
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         // Get state that only contains important variables from the position of the perspective
         State = Unit.GetState(Perspective.Position);

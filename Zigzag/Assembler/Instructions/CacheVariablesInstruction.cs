@@ -47,6 +47,7 @@ public class CacheVariablesInstruction : Instruction
         Body = body;
         NonVolatileMode = non_volatile_mode;
 
+        // Load all the variables before caching
         foreach (var usage in Usages)
         {
             usage.Reference = References.GetVariable(unit, usage.Variable, AccessMode.READ);
@@ -81,7 +82,7 @@ public class CacheVariablesInstruction : Instruction
         Unit.Append(move);
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         RemoveAllReadonlyConstantVariables();
 

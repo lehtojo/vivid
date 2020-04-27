@@ -65,7 +65,7 @@ public class Result
     public bool IsReleasable()
     {
         // Prevent releasing the this pointer
-        if (Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable.IsThisPointer)
+        if (Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsThisPointer)
         {
             return false;
         }
@@ -181,9 +181,9 @@ public class Result
         }
     }
 
-    public override bool Equals(object? obj)
+    public override bool Equals(object? other)
     {
-        return base.Equals(obj) || obj is Result result && result.Connections.Exists(c => c.Result == this);
+        return base.Equals(other) || other is Result result && result.Connections.Exists(c => c.Result == this);
     }
 
     public override int GetHashCode()

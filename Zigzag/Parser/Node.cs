@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Node
 {
 	public Node? Parent { get; private set; }
+	public IEnumerable<Node> Path => Parent != null ? new List<Node> { Parent }.Concat(Parent.Path) : new List<Node>(); 
 
 	public Node? Previous { get; private set; }
 	public Node? Next { get; private set; }
@@ -14,6 +16,11 @@ public class Node
 	public bool Is(NodeType type)
 	{
 		return GetNodeType() == type;
+	}
+
+	public T To<T>() where T : Node
+	{
+		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Node' to '{typeof(T).Name}'");
 	}
 
 	public List<T> Select<T>(Func<Node, T> selector)

@@ -10,7 +10,7 @@ public class MultiplicationInstruction : DualParameterInstruction
         }
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 

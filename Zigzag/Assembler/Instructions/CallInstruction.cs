@@ -37,7 +37,7 @@ public class CallInstruction : Instruction
         });
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         // Move all values that are later needed to safe registers or to stack
         Evacuate();

@@ -1,5 +1,8 @@
 public class AdditionInstruction : DualParameterInstruction
 {
+    public const string INSTRUCTION = "add";
+    public const string EXTENDED_ADDITION_INSTRUCTION = "lea";
+
     public bool Assigns { get; private set; }
 
     public AdditionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
@@ -15,20 +18,18 @@ public class AdditionInstruction : DualParameterInstruction
         return InstructionType.ADDITION;
     }
     
-    public override void Build()
+    public override void OnBuild()
     {
         if (First.IsExpiring(Position) || Assigns)
         {
-            var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
-
             if (Assigns)
             {
                 Build(
-                    "add",
+                    INSTRUCTION,
                     Assembler.Size,
                     new InstructionParameter(
                         First,
-                        flags,
+                        ParameterFlag.WRITE_ACCESS,
                         HandleType.REGISTER,
                         HandleType.MEMORY
                     ),
@@ -43,11 +44,11 @@ public class AdditionInstruction : DualParameterInstruction
             else
             {
                 Build(
-                    "add",
+                    INSTRUCTION,
                     Assembler.Size,
                     new InstructionParameter(
                         First,
-                        flags,
+                        ParameterFlag.DESTINATION,
                         HandleType.REGISTER
                     ),
                     new InstructionParameter(
@@ -85,7 +86,7 @@ public class AdditionInstruction : DualParameterInstruction
                 Memory.GetRegisterFor(Unit, Result);
             }
 
-            Build($"lea {Result}, {calculation}");
+            Build($"{EXTENDED_ADDITION_INSTRUCTION} {Result}, {calculation}");
         }
     }
 

@@ -79,7 +79,7 @@ public static class Assembler
 
                     unit.Simulate(UnitPhase.BUILD_MODE, instruction => 
                     {
-                        instruction.TryBuild();
+                        instruction.Build();
                     });
 
                     current = unit.Instructions.Count;

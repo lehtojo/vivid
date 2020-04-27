@@ -27,6 +27,10 @@
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicMathWithFunctionCalls.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicDivision.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicMathAndIfStatement.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ActiveVariablesTests.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/LoopFeatureTest.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Test.z", "--asm", "--time", "-st" ],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/PI.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st" ],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",

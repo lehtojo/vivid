@@ -22,7 +22,7 @@ public class GetMemoryAddressInstruction : Instruction
         Source.Metadata.Attach(new ComplexMemoryAddressAttribute());
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
         Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);

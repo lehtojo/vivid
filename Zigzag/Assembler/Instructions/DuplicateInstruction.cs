@@ -3,7 +3,7 @@ public class DuplicateInstruction : DualParameterInstruction
 {
     public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value) {}
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Result.Empty)
         {
@@ -13,9 +13,9 @@ public class DuplicateInstruction : DualParameterInstruction
         var move = new MoveInstruction(Unit, Result, Second);
         move.Type = MoveType.LOAD;
 
-        if (Second.Metadata.PrimaryAttribute != null)
+        if (Second.Metadata.Primary != null)
         {
-            Result.Metadata.Attach(Second.Metadata.PrimaryAttribute);
+            Result.Metadata.Attach(Second.Metadata.Primary);
         }
 
         Unit.Append(move);

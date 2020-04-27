@@ -9,17 +9,17 @@ public class GetVariableInstruction : LoadInstruction
         Self = self;
         Variable = variable;
         
-        SetSource(References.CreateVariableHandle(unit, Self, variable));
+        Configure(References.CreateVariableHandle(unit, Self, variable));
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Self != null)
         {
             Memory.Convert(Unit, Self, true, HandleType.REGISTER);
         }
 
-        base.Build();
+        base.OnBuild();
     }
     
     public override InstructionType GetInstructionType()

@@ -22,7 +22,7 @@ public class RestoreStateInstruction : Instruction
         return destination ?? References.GetVariable(unit, variable, mode);
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Save.State == null)
         {

@@ -67,9 +67,7 @@ public static class References
         }
 
         var handle = new GetVariableInstruction(unit, self, variable, mode).Execute();
-        var version = unit.GetCurrentVariableVersion(variable);
-        
-        handle.Metadata.Attach(new VariableAttribute(variable, version));
+        handle.Metadata.Attach(new VariableAttribute(variable));
 
         return handle;
     }

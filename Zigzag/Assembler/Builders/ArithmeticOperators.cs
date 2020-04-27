@@ -4,7 +4,7 @@ public static class ArithmeticOperators
 {
     public static Result Build(Unit unit, IncrementNode node)
     {
-        return BuildAdditionOperator(unit, node.Object, new NumberNode(NumberType.INT32, 1), true);
+        return BuildAdditionOperator(unit, node.Object, new NumberNode(Assembler.Size.ToNumberType(false), 1), true);
     }
 
     public static Result Build(Unit unit, OperatorNode node)

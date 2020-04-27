@@ -10,7 +10,7 @@ public class SubtractionInstruction : DualParameterInstruction
         }
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Assigns)
         {
@@ -19,7 +19,7 @@ public class SubtractionInstruction : DualParameterInstruction
                 Assembler.Size,
                 new InstructionParameter(
                     First,
-                    ParameterFlag.DESTINATION,
+                    ParameterFlag.WRITE_ACCESS,
                     HandleType.REGISTER,
                     HandleType.MEMORY
                 ),

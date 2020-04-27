@@ -4,11 +4,11 @@ using System.Text;
 public class InitializeInstruction : Instruction
 {
     public int StackMemoryChange { get; private set; }
-    public int LocalVariablesBottom { get; private set; }
+    public int LocalVariablesTop { get; private set; }
 
     public InitializeInstruction(Unit unit) : base(unit) {}
 
-    public override void Build() {}
+    public override void OnBuild() {}
 
     public void Build(List<Register> save_registers, int required_local_memory)
     {
@@ -21,6 +21,9 @@ public class InitializeInstruction : Instruction
             Unit.StackOffset += Assembler.Size.Bytes;
         }
 
+        // Local variables in memory start now
+        LocalVariablesTop = Unit.StackOffset;
+
         if (required_local_memory > 0)
         {
             builder.Append($"sub {Unit.GetStackPointer()}, {required_local_memory}");
@@ -32,7 +35,6 @@ public class InitializeInstruction : Instruction
             builder.Remove(builder.Length - 1, 1);
         }
 
-        LocalVariablesBottom = Unit.StackOffset;
         StackMemoryChange = Unit.StackOffset - start;
 
         Build(builder.ToString());

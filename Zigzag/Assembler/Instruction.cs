@@ -33,7 +33,6 @@ public class InstructionParameter
             if (Value != null)
             {
                 Value.IsSizeVisible = value;
-                //Value.Size = (value || Value.Type == HandleType.REGISTER) ? Size : Size.NONE;
             }
         }
     }
@@ -42,7 +41,7 @@ public class InstructionParameter
     {
         if (types == null || types.Length == 0)
         {
-            throw new ArgumentException("Instruction parameter types must contain atleast one option");
+            throw new ArgumentException("Instruction parameter types must contain at least one option");
         }
 
         Flags = flags;
@@ -99,12 +98,6 @@ public abstract class Instruction
     public Result Execute()
     {
         Unit.Append(this);
-
-        if (Unit.Phase == UnitPhase.BUILD_MODE)
-        {
-            TryBuild();
-        }
-
         return Result;
     }
 
@@ -142,6 +135,7 @@ public abstract class Instruction
     public string Format(string format, params InstructionParameter[] parameters)
     {
         var handles = new List<Handle>();
+        var locks = new List<RegisterLock>();
 
         foreach (var parameter in parameters)
         {
@@ -153,8 +147,17 @@ public abstract class Instruction
                 throw new NotImplementedException("Format called with a parameter that is a destination");
             }
 
+            // Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
+            if (handle.Value is RegisterHandle register_handle)
+            {
+                // Register locks have a destructor which releases the register so they are safe
+                locks.Add(new RegisterLock(register_handle.Register));
+            }
+
             handles.Add(handle.Value);
         }
+
+        locks.ForEach(l => l.Dispose());
 
         return string.Format(format, handles.ToArray());
     }
@@ -164,7 +167,7 @@ public abstract class Instruction
     /// </summary> 
     private static bool IsReference(Variable variable, Result result)
     {
-        return !(result.Metadata.PrimaryAttribute is VariableAttribute attribute && attribute.Variable == variable);
+        return !(result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == variable);
     }
 
     public void Build(string operation)
@@ -175,6 +178,8 @@ public abstract class Instruction
     public void Build(string operation, Size mode, params InstructionParameter[] parameters)
     {
         Parameters.Clear();
+
+        var locks = new List<RegisterLock>();
 
         for (var i = 0; i < parameters.Length; i++)
         {
@@ -189,8 +194,15 @@ public abstract class Instruction
                 Result.Value = result.Value;
             }
 
+            // Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
+            if (result.Value is RegisterHandle register_handle)
+            {
+                // Register locks have a destructor which releases the register so they are safe
+                locks.Add(new RegisterLock(register_handle.Register));
+            }
+
             parameter.Result = result;
-            parameter.Value = result.Value.Clone();
+            parameter.Value = result.Value.Freeze();
 
             Parameters.Add(parameter);
         }
@@ -242,6 +254,8 @@ public abstract class Instruction
 
         Operation = operation;
         OnPostBuild();
+
+        locks.ForEach(l => l.Dispose());
     }
 
     public void Translate()
@@ -354,10 +368,10 @@ public abstract class Instruction
     }
 
     public abstract Result? GetDestinationDependency();
-    public abstract void Build();
+    public abstract void OnBuild();
     public virtual void OnPostBuild() {}
 
-    public void TryBuild()
+    public void Build()
     {
         if (IsBuilt)
         {
@@ -423,7 +437,7 @@ public abstract class Instruction
         else
         {
             IsBuilt = true;
-            Build();
+            OnBuild();
         }
     }
 
@@ -432,7 +446,7 @@ public abstract class Instruction
         return 0;
     }
 
-    public int GetRedirectionRoot()
+    public Instruction GetRedirectionRoot()
     {
         var instruction = this;
 
@@ -443,7 +457,7 @@ public abstract class Instruction
         {
             if (dependency == null || dependency.Instruction == null || dependency == previous)
             {
-                return instruction.Position;
+                return instruction;
             }
 
             instruction = dependency.Instruction;

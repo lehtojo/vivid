@@ -5,7 +5,7 @@ public class CompareInstruction : DualParameterInstruction
 
     public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
         {

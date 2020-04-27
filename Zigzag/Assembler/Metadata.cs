@@ -26,9 +26,9 @@ public class MetadataAttribute
 
 public class Metadata
 {
-    public MetadataAttribute? PrimaryAttribute => Attributes.Count > 0 ? Attributes[0] : null;
-    public IEnumerable<MetadataAttribute> SecondaryAttributes => Attributes.Skip(1);
-    public IEnumerable<VariableAttribute> Dependencies => SecondaryAttributes.Where(a => a.Type == AttributeType.VARIABLE).Select(a => (VariableAttribute)a);
+    public MetadataAttribute? Primary => Attributes.Count > 0 ? Attributes[0] : null;
+    public IEnumerable<MetadataAttribute> Secondary => Attributes.Skip(1);
+    public IEnumerable<VariableAttribute> Dependencies => Secondary.Where(a => a.Type == AttributeType.VARIABLE).Select(a => (VariableAttribute)a);
 
     public List<MetadataAttribute> Attributes { get; private set; } = new List<MetadataAttribute>();
 
@@ -36,17 +36,17 @@ public class Metadata
         .Where(a => a.Type == AttributeType.VARIABLE)
         .Select(a => (VariableAttribute)a);
     
-    public bool IsPrimarilyVariable => PrimaryAttribute?.Type == AttributeType.VARIABLE;
-    public bool IsPrimarilyConstant => PrimaryAttribute?.Type == AttributeType.CONSTANT;
+    public bool IsPrimarilyVariable => Primary?.Type == AttributeType.VARIABLE;
+    public bool IsPrimarilyConstant => Primary?.Type == AttributeType.CONSTANT;
     public bool IsVariable => Attributes.Exists(a => a.Type == AttributeType.VARIABLE);
     public bool IsConstant => Attributes.Exists(a => a.Type == AttributeType.CONSTANT);
     public bool IsComplexMemoryAddress => Attributes.Exists(a => a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
-    public bool IsComplex => IsComplexMemoryAddress || (PrimaryAttribute is VariableAttribute attribute && !attribute.Variable.IsPredictable);
-    public bool IsDependent => SecondaryAttributes.Any(a => a.Type == AttributeType.VARIABLE || a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
+    public bool IsComplex => IsComplexMemoryAddress || (Primary is VariableAttribute attribute && !attribute.Variable.IsPredictable);
+    public bool IsDependent => Secondary.Any(a => a.Type == AttributeType.VARIABLE || a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
 
     public VariableAttribute this[Variable variable]
     {
-        get => Variables.Where(i => i.Variable == variable).Aggregate((i, j) => i.Version > j.Version ? i : j);
+        get => Variables.Where(i => i.Variable == variable).First();
     }
 
     private int GetPriorityValue(MetadataAttribute attribute)
@@ -78,13 +78,9 @@ public class Metadata
             return true;
         }
 
-        if (other is (Variable a, int b))
+        if (other is Variable variable)
         {
-            return Contains(a, b);
-        }
-        else if (other is Variable variable)
-        {
-            return Contains(variable, -1);
+            return Contains(variable);
         }
         else if (other != null)
         {
@@ -96,9 +92,9 @@ public class Metadata
         }
     }
 
-    public bool Contains(Variable variable, int version)
+    public bool Contains(Variable variable)
     {
-        return Attributes.Exists(a => a is VariableAttribute attribute && attribute.Equals(variable, version));
+        return Attributes.Exists(a => a is VariableAttribute attribute && attribute.Equals(variable));
     }
 
     public bool Contains(object constant)
@@ -115,23 +111,15 @@ public class Metadata
 public class VariableAttribute : MetadataAttribute
 {
     public Variable Variable { get; private set; }
-    public int Version { get; private set; }
 
-    public VariableAttribute(Variable variable, int version) : base(AttributeType.VARIABLE)
+    public VariableAttribute(Variable variable) : base(AttributeType.VARIABLE)
     {
         Variable = variable;
-        Version = version;
     }
 
-    public VariableAttribute(Unit unit, Variable variable) : base(AttributeType.VARIABLE)
+    public bool Equals(Variable variable)
     {
-        Variable = variable;
-        Version = unit.GetCurrentVariableVersion(variable);
-    }
-
-    public bool Equals(Variable variable, int version)
-    {
-        return Variable == variable; //&& (version == -1 || Version == version);
+        return Variable == variable;
     }
 
     public override bool Contradicts(MetadataAttribute other)

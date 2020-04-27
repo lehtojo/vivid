@@ -22,7 +22,7 @@ public class StackMemoryInstruction : Instruction
         return new StackMemoryInstruction(unit, -bytes, hidden);
     }
 
-    public override void Build()
+    public override void OnBuild()
     {
         if (!Hidden)
         {
