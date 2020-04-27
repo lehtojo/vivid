@@ -1,6 +1,0 @@
-run() {
-    buffer = allocate(100) as normal
-    buffer[0] = 1
-    buffer[1] = 2
-    buffer[2] = 3
-}

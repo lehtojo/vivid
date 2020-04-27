@@ -56,6 +56,11 @@ public static class Builders
                 return ArithmeticOperators.BuildNegate(unit, (NegateNode)node);
             }
 
+            case NodeType.ARRAY_ALLOCATION:
+            {
+                return Arrays.BuildAllocation(unit, (ArrayAllocationNode)node);
+            }
+
             default:
             {
                 var iterator = node.First;

@@ -2,7 +2,7 @@
 
 public class OffsetPattern : Pattern
 {
-	public const int PRIORITY = 19;
+	public const int PRIORITY = 18;
 
 	private const int OBJECT = 0;
 	private const int INDEX = 1;

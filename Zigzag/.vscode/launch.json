@@ -11,7 +11,7 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/Zigzag.dll",
-            "args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
+            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/StaticVariable.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ConstantPermanence.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicTypeDataFields.z", "--asm", "--time", "-st" ],
@@ -29,8 +29,9 @@
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicMathAndIfStatement.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ActiveVariablesTests.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/LoopFeatureTest.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Test.z", "--asm", "--time", "-st" ],
+            "args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ArrayAllocation.z", "--asm", "--time", "-st" ],
             //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/PI.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st" ],
+            
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",

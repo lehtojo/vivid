@@ -116,7 +116,7 @@ public static class References
 
                 if (operation.Operator == Operators.EXTENDER)
                 {
-                    return Arrays.Build(unit, operation, mode);
+                    return Arrays.BuildOffset(unit, operation, mode);
                 }
 
                 return Builders.Build(unit, node);

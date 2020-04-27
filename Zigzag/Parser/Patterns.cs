@@ -81,6 +81,7 @@ public class Patterns
 
 	static Patterns()
 	{
+		Add(new ArrayAllocationPattern());
 		Add(new AssignPattern());
 		Add(new CastPattern());
 		Add(new ConstructorPattern());

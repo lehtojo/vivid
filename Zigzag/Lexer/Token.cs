@@ -10,6 +10,11 @@ public class Token
 		Type = type;
 	}
 
+	public T To<T>() where T : Token
+	{
+		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Token' to '{typeof(T).Name}'");
+	}
+
 	public override bool Equals(object? obj)
 	{
 		return obj is Token token &&

@@ -1,0 +1,11 @@
+test(a, b) {
+    array = normal[10]
+    array[7] = 7
+
+    array = normal[a + b]
+    array[b] = array[1]
+}
+
+run() {
+    test(1, 2)
+}
