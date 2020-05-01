@@ -2,6 +2,9 @@ using System;
 
 public static class Memory
 {
+    /// <summary>
+    /// Moves the value inside the given register to other register or releases it memory
+    /// </summary>
     public static void ClearRegister(Unit unit, Register target)
     {
         if (target.Handle == null)
@@ -36,6 +39,9 @@ public static class Memory
         target.Reset();
     }
 
+    /// <summary>
+    /// Sets the value of the register to zero
+    /// </summary>
     public static void Zero(Unit unit, Register register)
     {
         if (!register.IsAvailable(unit.Position))
@@ -52,13 +58,16 @@ public static class Memory
         unit.Append(instruction);
     }
     
-    public static Result CopyToRegister(Unit unit, Result result)
+    /// <summary>
+    /// Copies the given result to a register
+    /// </summary>
+    public static Result CopyToRegister(Unit unit, Result result, bool media_register)
     {
         if (result.Value.Type == HandleType.REGISTER)
         {
             using (RegisterLock.Create(result))
             {
-                var register = unit.GetNextRegister();
+                var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
                 var destination = new Result(new RegisterHandle(register));
         
                 return new MoveInstruction(unit, destination, result).Execute();
@@ -66,14 +75,17 @@ public static class Memory
         }
         else
         {
-            var register = unit.GetNextRegister();
+            var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
             var destination = new Result(new RegisterHandle(register));
         
             return new MoveInstruction(unit, destination, result).Execute();
         }
     }
 
-    public static Result MoveToRegister(Unit unit, Result result)
+    /// <summary>
+    /// Moves the given result to a register
+    /// </summary>
+    public static Result MoveToRegister(Unit unit, Result result, bool media_register)
     {
         // Prevents reduntant moving to registers
         if (result.Value.Type == HandleType.REGISTER)
@@ -81,7 +93,7 @@ public static class Memory
             return result;
         }
 
-        var register = unit.GetNextRegister();
+        var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
         var destination = new Result(new RegisterHandle(register));
 
         var move = new MoveInstruction(unit, destination, result);
@@ -90,18 +102,15 @@ public static class Memory
         return move.Execute();
     }
 
+    /// <summary>
+    /// Moves the given result to an available register
+    /// </summary>
     public static void GetRegisterFor(Unit unit, Result value)
     {
         var register = unit.GetNextRegister();
-        var handle = new RegisterHandle(register);
-
-        if (!register.IsAvailable(unit.Position))
-        {
-            throw new NotImplementedException("Register values cannot be yet saved");
-        }
 
         register.Handle = value;
-        value.Value = handle;
+        value.Value = new RegisterHandle(register);
     }
     
     public static Result Convert(Unit unit, Result result, bool move, params HandleType[] types)
@@ -138,6 +147,7 @@ public static class Memory
     {
         switch (type)
         {
+            case HandleType.MEDIA_REGISTER:
             case HandleType.REGISTER:
             {
                 var register = unit.TryGetCached(result, !protect);
@@ -149,7 +159,7 @@ public static class Memory
                     {
                         using (new RegisterLock(register.Register))
                         {
-                            return CopyToRegister(unit, new Result(register));
+                            return CopyToRegister(unit, new Result(register), type == HandleType.MEDIA_REGISTER);
                         }
                     }
                     else
@@ -158,13 +168,13 @@ public static class Memory
                     }
                 }
 
-                var destination = MoveToRegister(unit, result);
+                var destination = MoveToRegister(unit, result, type == HandleType.MEDIA_REGISTER);
 
                 if (protect && !dying)
                 {
                     using (new RegisterLock(destination.Value.To<RegisterHandle>().Register))
                     {
-                        return CopyToRegister(unit, destination);
+                        return CopyToRegister(unit, destination, type == HandleType.MEDIA_REGISTER);
                     }
                 }
 

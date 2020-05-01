@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public class StringNode : Node, IType
 {
@@ -24,4 +25,19 @@ public class StringNode : Node, IType
 	{
 		return NodeType.STRING_NODE;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is StringNode node &&
+               base.Equals(obj) &&
+               Text == node.Text;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Text);
+        return hash.ToHashCode();
+    }
 }

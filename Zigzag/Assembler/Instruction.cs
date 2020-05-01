@@ -7,31 +7,39 @@ public static class ParameterFlag
 {
     public const int NONE = 0;
     public const int DESTINATION = 1;
-    public const int WRITE_ACCESS = 2;
-    public const int ATTACH_TO_DESTINATION = 4;
-    public const int RELOCATE_TO_DESTINATION = 8;
-    public const int HIDDEN = 16;
+    public const int SOURCE = 2;
+    public const int WRITE_ACCESS = 4;
+    public const int ATTACH_TO_DESTINATION = 8;
+    public const int ATTACH_TO_SOURCE = 16;
+    public const int RELOCATE_TO_DESTINATION = 32;
+    public const int RELOCATE_TO_SOURCE = 64;
+    public const int HIDDEN = 128;
 }
 
 public class InstructionParameter
 {
     public Result Result { get; set; }
     public Handle? Value { get; set; } = null;
+    public Size RequiredSize { get; set; } = Size.NONE;
     public HandleType[] Types { get; private set; }
     public HandleType OptimalType => Types[0];
 
     public int Flags { get; private set; }
-    public bool IsHidden { get; set; } = false;
+    
+    public bool IsHidden => Flag.Has(Flags, ParameterFlag.HIDDEN);
     public bool IsDestination => Flag.Has(Flags, ParameterFlag.DESTINATION);
+    public bool IsSource => Flag.Has(Flags, ParameterFlag.SOURCE);
     public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
+
+    public bool IsMediaRegister => Value is RegisterHandle handle && handle.Register.IsMediaRegister;
+    public bool IsMemoryAddress => Result.Value.Type == HandleType.MEMORY;
+
     public bool IsValid => Types.Contains(Result.Value.Type);
-    public bool IsValueValid => Value != null && Types.Contains(Value.Type);
-    public bool IsSizeVisible
-    {
-        set
-        {
-            if (Value != null)
-            {
+    public bool IsValueValid => Value != null && (Types.Contains(Value.Type) || (Types.Contains(HandleType.MEDIA_REGISTER) && IsMediaRegister));
+    
+    public bool IsSizeVisible {
+        set {
+            if (Value != null) {
                 Value.IsSizeVisible = value;
             }
         }
@@ -80,7 +88,7 @@ public abstract class Instruction
     public InstructionType Type => GetInstructionType();
 
     public string Operation { get; set; } = string.Empty;
-    
+
     public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
     public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
 
@@ -112,6 +120,7 @@ public abstract class Instruction
 
             if (options.Contains(HandleType.REGISTER))
             {
+                // No need to worry about required size since registers are always in the right format
                 var cached = Unit.TryGetCached(parameter.Result, !protect);
 
                 if (cached != null)
@@ -120,10 +129,17 @@ public abstract class Instruction
                 }
             }
 
+            // If the parameter size doesn't match the required size, it can be converted by moving it to register
+            if (parameter.IsMemoryAddress && parameter.RequiredSize != Size.NONE && parameter.Result.Value.Size != parameter.RequiredSize)
+            {
+                Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
+            }
+
             // If the current parameter is the destination and it is needed later, then it must me copied to another register
             if (protect && !parameter.Result.IsExpiring(Position))
             {
-                return Memory.CopyToRegister(Unit, parameter.Result);
+                /// TODO: All parameter that include media register type are not floating point numbers
+                return Memory.CopyToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
             }
 
             return parameter.Result;
@@ -132,13 +148,19 @@ public abstract class Instruction
         return Memory.Convert(Unit, parameter.Result, parameter.Types, false, protect);
     }
 
-    public string Format(string format, params InstructionParameter[] parameters)
+    /// <summary>
+    /// Formats the instruction with the given arguments and forces the parameters to match the given size
+    /// </summary>
+    public string Format(string format, Size size, params InstructionParameter[] parameters)
     {
         var handles = new List<Handle>();
         var locks = new List<RegisterLock>();
 
         foreach (var parameter in parameters)
         {
+            // Force the parameter to match the given size
+            parameter.RequiredSize = size;
+
             // Convert the parameter into a usable format
             var handle = Convert(parameter);
 
@@ -170,12 +192,121 @@ public abstract class Instruction
         return !(result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == variable);
     }
 
+    /// <summary>
+    /// Simulates the interactions between the instruction parameters such as relocating the source to the destination
+    /// </summary>
+    private void SimulateParameterFlags()
+    {
+        var destination = (Handle?)null;
+        var source = (Handle?)null;
+
+        for (var i = 0; i < Parameters.Count; i++)
+        {
+            var parameter = Parameters[i];
+
+            if (parameter.IsDestination)
+            {
+                if (destination != null)
+                {
+                    throw new ApplicationException("Instruction parameters had multiple destinations");
+                }
+
+                destination = parameter.Value;
+            }
+            else if (parameter.IsSource)
+            {
+                if (source != null)
+                {
+                    throw new ApplicationException("Instruction parameters had multiple sources");
+                }
+
+                source = parameter.Value;
+            }
+        }
+
+        if (destination != null)
+        {
+            if (destination is RegisterHandle handle)
+            {
+                var register = handle.Register;
+                var attached = false;
+
+                // Search for values to attach to the destination register
+                foreach (var parameter in Parameters)
+                {
+                    if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION))
+                    {
+                        register.Handle = parameter.Result;
+                        attached = true;
+                        break;
+                    }
+                }
+
+                // If no result was attachted to the destination, the default action should be taken
+                if (!attached)
+                {
+                    register.Handle = Result;
+                }
+            }
+
+            // Search for values to relocate to the destination
+            foreach (var parameter in Parameters)
+            {
+                if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
+                {
+                    parameter.Result.Value = destination;
+                }
+            }
+        }
+
+        if (source != null)
+        {
+            if (source is RegisterHandle handle)
+            {
+                var register = handle.Register;
+
+                // Search for values to attach to the source register
+                foreach (var parameter in Parameters)
+                {
+                    if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE))
+                    {
+                        register.Handle = parameter.Result;
+                        break;
+                    }
+                }
+            }
+
+            // Search for values to relocate to the source
+            foreach (var parameter in Parameters)
+            {
+                if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
+                {
+                    parameter.Result.Value = source;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds the given operation without any processing
+    /// </summary>
     public void Build(string operation)
     {
         Operation = operation;
     }
 
-    public void Build(string operation, Size mode, params InstructionParameter[] parameters)
+    /// <summary>
+    /// Builds the instruction with the given arguments but doesn't force the parameters to be the same size
+    /// </summary>
+    public void Build(string operation, params InstructionParameter[] parameters)
+    {
+        Build(operation, Size.NONE, parameters);
+    }
+
+    /// <summary>
+    /// Builds the instruction with the given arguments and forces the parameters to match the given size
+    /// </summary>
+    public void Build(string operation, Size size, params InstructionParameter[] parameters)
     {
         Parameters.Clear();
 
@@ -185,7 +316,9 @@ public abstract class Instruction
         {
             // Convert the parameter into a valid format
             var parameter = parameters[i];
+            parameter.RequiredSize = size;
 
+            // Convert the parameter to a valid format for this instruction
             var result = Convert(parameter);
 
             if (parameter.IsDestination)
@@ -207,50 +340,7 @@ public abstract class Instruction
             Parameters.Add(parameter);
         }
 
-        var destination = (Handle?)null;
-
-        for (var i = 0; i < Parameters.Count; i++)
-        {
-            var parameter = Parameters[i];
-
-            if (parameter.IsDestination)
-            {
-                destination = parameter.Value;
-                break;
-            }
-        }
-
-        if (destination != null)
-        {
-            if (destination is RegisterHandle handle)
-            {
-                var register = handle.Register;
-                var attached = false;
-
-                foreach (var parameter in Parameters)
-                {
-                    if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION))
-                    {
-                        register.Handle = parameter.Result;
-                        attached = true;
-                        break;
-                    }
-                }
-
-                if (!attached)
-                {
-                    register.Handle = Result;
-                }
-            }
-
-            foreach (var parameter in Parameters)
-            {
-                if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
-                {
-                    parameter.Result.Value = destination;
-                }
-            }
-        }
+        SimulateParameterFlags();
 
         Operation = operation;
         OnPostBuild();
@@ -260,6 +350,7 @@ public abstract class Instruction
 
     public void Translate()
     {
+        // Check if this instruction is meant to be translated
         if (string.IsNullOrEmpty(Operation))
         {
             return;
@@ -284,13 +375,27 @@ public abstract class Instruction
         // Detect whether all parameter are meant to be the same size
         if (Parameters.Select(p => p.Value!.Size).Distinct().Count() == 1)
         {
-            // Only one parameter is required to show its size
-            Parameters[0].IsSizeVisible = true;
+            // Try to find the first parameter which is actually visible
+            var visible = Parameters.Find(p => !p.IsHidden);
+
+            if (visible != null)
+            {
+                // Only one parameter is required to show its size
+                visible.IsSizeVisible = true;
+            }
+            else
+            {
+                /// TODO: Investigate whether this is bad or not
+                Console.WriteLine("Warning: All parameter of an instruction were hidden");
+            }
 
             // Hide other parameter's sizes for cleaner output
             foreach (var parameter in Parameters.Skip(1))
             {
-                parameter.IsSizeVisible = false;
+                if (parameter != visible)
+                {
+                    parameter.IsSizeVisible = false;
+                }
             }
         }
         else
@@ -304,60 +409,13 @@ public abstract class Instruction
 
         foreach (var parameter in Parameters)
         {
-            if (!Flag.Has(parameter.Flags, ParameterFlag.HIDDEN))
+            if (!parameter.IsHidden)
             {
                 result.Append($" {parameter.Value},");
             }
         }
-
-        // -----------------------------------------------------
-
-        var destination = (Handle?)null;
-
-        for (var i = 0; i < Parameters.Count; i++)
-        {
-            var parameter = Parameters[i];
-
-            if (parameter.IsDestination)
-            {
-                destination = parameter.Value;
-                break;
-            }
-        }
-
-        if (destination != null)
-        {
-            if (destination is RegisterHandle handle)
-            {
-                var register = handle.Register;
-                var attached = false;
-
-                foreach (var parameter in Parameters)
-                {
-                    if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION))
-                    {
-                        register.Handle = parameter.Result;
-                        attached = true;
-                        break;
-                    }
-                }
-
-                if (!attached)
-                {
-                    register.Handle = Result;
-                }
-            }
-
-            foreach (var parameter in Parameters)
-            {
-                if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
-                {
-                    parameter.Result.Value = destination;
-                }
-            }
-        }
-
-        // -------------------------------------------------------
+        
+        SimulateParameterFlags();
 
         if (Parameters.Count > 0)
         {
@@ -369,7 +427,7 @@ public abstract class Instruction
 
     public abstract Result? GetDestinationDependency();
     public abstract void OnBuild();
-    public virtual void OnPostBuild() {}
+    public virtual void OnPostBuild() { }
 
     public void Build()
     {
@@ -388,51 +446,8 @@ public abstract class Instruction
                     Result.Value = parameter.Value;
                 }
             }
-
-            var destination = (Handle?)null;
-
-            for (var i = 0; i < Parameters.Count; i++)
-            {
-                var parameter = Parameters[i];
-
-                if (parameter.IsDestination)
-                {
-                    destination = parameter.Value;
-                    break;
-                }
-            }
-
-            if (destination != null)
-            {
-                if (destination is RegisterHandle handle)
-                {
-                    var register = handle.Register;
-                    var attached = false;
-
-                    foreach (var parameter in Parameters)
-                    {
-                        if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION))
-                        {
-                            register.Handle = parameter.Result;
-                            attached = true;
-                            break;
-                        }
-                    }
-
-                    if (!attached)
-                    {
-                        register.Handle = Result;
-                    }
-                }
-
-                foreach (var parameter in Parameters)
-                {
-                    if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
-                    {
-                        parameter.Result.Value = destination;
-                    }
-                }
-            }
+    
+            SimulateParameterFlags();
         }
         else
         {

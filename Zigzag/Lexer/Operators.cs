@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public class Operators
 {
-	public static readonly ClassicOperator EXTENDER = new ClassicOperator(":", 19, false);
+	public static readonly ClassicOperator COLON = new ClassicOperator(":", 1, false);
 
 	public static readonly ClassicOperator POWER = new ClassicOperator("^", 15);
 
@@ -89,7 +89,7 @@ public class Operators
 		Add(DECREMENT);
 		Add(CAST);
 		Add(RETURN);
-		Add(EXTENDER);
+		Add(COLON);
 		Add(END);
 	}
 

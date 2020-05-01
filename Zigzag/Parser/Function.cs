@@ -132,8 +132,39 @@ public class Function : Context
 		return Implement(parameters);
 	}
 
-	public FunctionImplementation? this[List<Type> parameters]
+    public override bool Equals(object? obj)
+    {
+        return obj is Function function &&
+               EqualityComparer<List<Context>>.Default.Equals(Subcontexts, function.Subcontexts) &&
+               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, function.Variables) &&
+               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, function.Functions) &&
+               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, function.Types) &&
+               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, function.Labels) &&
+               Modifiers == function.Modifiers &&
+               EqualityComparer<List<string>>.Default.Equals(Parameters, function.Parameters) &&
+               EqualityComparer<int>.Default.Equals(References.Count, function.References.Count) &&
+               EqualityComparer<List<FunctionImplementation>>.Default.Equals(Implementations, function.Implementations);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(Subcontexts);
+        hash.Add(Variables);
+        hash.Add(Functions);
+        hash.Add(Types);
+        hash.Add(Labels);
+        hash.Add(Modifiers);
+        hash.Add(Parameters);
+        hash.Add(References.Count);
+        hash.Add(Implementations);
+        return hash.ToHashCode();
+    }
+
+    public FunctionImplementation? this[List<Type> parameters]
 	{
 		get => Get(parameters);
 	}
+
+	
 }

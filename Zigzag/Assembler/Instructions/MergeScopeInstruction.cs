@@ -1,16 +1,9 @@
 using System.Collections.Generic;
-using System.Linq;
 using System;
 
 public class MergeScopeInstruction : Instruction
 {
-    //private List<Variable> Variables { get; set; }
-    //private List<Result> Loads { get; set; } = new List<Result>();
-
-    public MergeScopeInstruction(Unit unit, IEnumerable<Variable> variables) : base(unit)
-    {
-        //Variables = variables.ToList();
-    }
+    public MergeScopeInstruction(Unit unit, IEnumerable<Variable> variables) : base(unit) {}
 
     private Result GetDestinationHandle(Variable variable)
     {
@@ -22,22 +15,16 @@ public class MergeScopeInstruction : Instruction
         return Unit.Scope!.Outer?.IsUsedLater(variable) ?? false;
     }
 
-    public void Append()
-    {
-        /*foreach (var variable in Variables)
-        {
-            Loads.Add(References.GetVariable(Unit, variable, AccessMode.READ));
-        }*/
-    }
-
     public override void OnBuild() 
     {
-        var moves = new List<MoveInstruction>();
+        var moves = new List<DualParameterInstruction>();
 
         foreach (var variable in Scope!.ActiveVariables)
         {
             var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get the current handle for an active variable");
-            var destination = GetDestinationHandle(variable);
+
+            // Copy the destination value to prevent any relocation leaks
+            var destination = new Result(GetDestinationHandle(variable).Value);
             
             // When the destination is a memory handle, it most likely means it won't be used later
             if (destination.Value.Type == HandleType.MEMORY && !IsUsedLater(variable))
@@ -45,24 +32,19 @@ public class MergeScopeInstruction : Instruction
                 continue;
             }
 
-            moves.Add(new MoveInstruction(Unit, destination, source));
-        }
-
-        /*for (var i = 0; i < Loads.Count; i++)
-        {
-            var source = Loads[i];
-            var destination = GetDestinationHandle(Variables[i]);
-            
-            // When the destination is a memory handle, it most likely means it won't be used later
-            if (destination.Value.Type == HandleType.MEMORY && !IsUsedLater(Variables[i]))
+            if (destination.Value.Type == HandleType.CONSTANT)
             {
-                continue;
+                throw new ApplicationException("Constant value was not moved to register or released before entering scope");
             }
 
-            moves.Add(new MoveInstruction(Unit, destination, source));
-        }*/
+            if (!destination.Value.Equals(source.Value))
+            {
+                moves.Add(new MoveInstruction(Unit, destination, source));
+            }
+        }
 
-        var remove_list = new List<MoveInstruction>();
+        var remove_list = new List<DualParameterInstruction>();
+        var exchanges = new List<ExchangeInstruction>();
 
         foreach (var a in moves)
         {
@@ -73,16 +55,16 @@ public class MergeScopeInstruction : Instruction
                 if (a.First.Value.Equals(b.Second.Value) &&
                     a.Second.Value.Equals(b.First.Value))
                 {
-                    /// TODO: Implement XCHG
-                    throw new NotImplementedException("Implement exchange instruction");
+                    exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second));
                     
-                    //remove_list.Add(a);
-                    //remove_list.Add(b);
-                    //break;
+                    remove_list.Add(a);
+                    remove_list.Add(b);
+                    break;
                 }
             }
         }
 
+        moves.AddRange(exchanges);
         moves.RemoveAll(m => remove_list.Contains(m));
 
         moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? 1 : 0);
@@ -101,7 +83,6 @@ public class MergeScopeInstruction : Instruction
 
     public override Result[] GetResultReferences()
     {
-        //return Loads.ToArray();
         return new Result[] { Result };
     }
 }

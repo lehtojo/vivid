@@ -56,6 +56,12 @@ public class CallInstruction : Instruction
         }
         else
         {
+            // Ensure that the destination register is empty
+            if (Result.Value.Type == HandleType.REGISTER)
+            {
+                Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
+            }
+
             var move = new MoveInstruction(Unit, Result, new Result(source));
             
             // Configure the move so that this instruction's result is attached to the destination

@@ -1,0 +1,9 @@
+run() {
+    a = 1.0
+    b = 2.0
+    c = a + b
+    d = c + a * 2.0
+
+    storage = decimal[c]
+    storage[9] = d
+}

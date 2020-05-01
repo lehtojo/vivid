@@ -26,7 +26,7 @@ public class Register
 
     public string this[Size size]
     {
-        get => Partitions[Partitions.Length - 1 - (int)Math.Log2(size.Bytes)];
+        get => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
     }
 
     public int Flags { get; private set; }
@@ -36,6 +36,7 @@ public class Register
     public bool IsVolatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
     public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
     public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
+    public bool IsMediaRegister => Flag.Has(Flags, RegisterFlag.MEDIA);
     public bool IsReleasable => !IsLocked && (Handle == null || Handle.IsReleasable());
 
     public Register(Size width, string[] partitions, params int[] flags) 

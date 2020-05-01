@@ -22,6 +22,11 @@ public static class Analyzer
             }
         }
 
+        foreach (var subcontext in context.Subcontexts)
+        {
+            AnalyzeVariableUsages(subcontext);
+        }
+
         foreach (var type in context.Types.Values)
         {
             AnalyzeVariableUsages(type);

@@ -2,7 +2,7 @@ public class Normal : Number
 {
 	private const int BYTES = 4;
 
-	public Normal() : base(NumberType.INT32, 32, false, "normal") { }
+	public Normal() : base(Format.INT32, 32, false, "normal") { }
 
 	public override int GetReferenceSize()
 	{

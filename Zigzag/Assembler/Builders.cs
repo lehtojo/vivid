@@ -61,6 +61,11 @@ public static class Builders
                 return Arrays.BuildAllocation(unit, (ArrayAllocationNode)node);
             }
 
+            case NodeType.LOOP_CONTROL:
+            {
+                return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
+            }
+
             default:
             {
                 var iterator = node.First;

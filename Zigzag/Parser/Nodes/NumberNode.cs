@@ -1,17 +1,20 @@
+using System;
+using System.Collections.Generic;
+
 public class NumberNode : Node, IType
 {
-	public NumberType Type { get; private set; }
+	public Format Type { get; private set; }
 	public object Value { get; set; }
 
-	public NumberNode(NumberType type, object value)
+	public NumberNode(Format type, object value)
 	{
-		Type = type;
+        Type = type;
 		Value = value;
 	}
 
 	public void Negate()
 	{
-		if (Type == NumberType.DECIMAL32)
+		if (Type == Format.DECIMAL)
 		{
 			Value = -(double)Value;
 		}
@@ -30,4 +33,21 @@ public class NumberNode : Node, IType
 	{
 		return NodeType.NUMBER_NODE;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is NumberNode node &&
+               base.Equals(obj) &&
+               Type == node.Type &&
+               EqualityComparer<object>.Default.Equals(Value, node.Value);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Type);
+        hash.Add(Value);
+        return hash.ToHashCode();
+    }
 }

@@ -38,7 +38,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 			while (parameter != null)
 			{
-				var resolved = Resolver.ResolveAll(environment, parameter!, new List<string>());
+				var resolved = Resolver.ResolveTree(environment, parameter!);
 
 				if (resolved != null)
 				{
@@ -93,4 +93,19 @@ public class UnresolvedFunction : Node, IResolvable
 	{
 		return Status.Error($"Couldn't resolve function or constructor '{Name}'");
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is UnresolvedFunction function &&
+               base.Equals(obj) &&
+               Name == function.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Name);
+        return hash.ToHashCode();
+    }
 }

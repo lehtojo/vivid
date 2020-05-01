@@ -1,15 +1,14 @@
 ﻿public class Decimal : Number
 {
-	private const int BYTES = 4;
-
-	public Decimal() : base(NumberType.DECIMAL32, 32, false, "decimal") { }
+	public Decimal() : base(Format.DECIMAL, 32, false, "decimal") { }
 
 	public override int GetReferenceSize()
 	{
-		return BYTES;
+		return Parser.Size.Bytes;
 	}
+	
 	public override int GetContentSize()
 	{
-		return BYTES;
+		return Parser.Size.Bytes;
 	}
 }

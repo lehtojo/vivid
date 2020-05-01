@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public class SymmetryEndInstruction : Instruction
 {
@@ -23,7 +22,7 @@ public class SymmetryEndInstruction : Instruction
 
     public override void OnBuild()
     {
-        var moves = new List<MoveInstruction>();
+        var moves = new List<DualParameterInstruction>();
 
         for (var i = 0; i < Loads.Count; i++)
         {
@@ -33,7 +32,8 @@ public class SymmetryEndInstruction : Instruction
             moves.Add(new MoveInstruction(Unit, destination, source));
         }
 
-        var remove_list = new List<MoveInstruction>();
+        var remove_list = new List<DualParameterInstruction>();
+        var exchanges = new List<ExchangeInstruction>();
 
         foreach (var a in moves)
         {
@@ -44,16 +44,16 @@ public class SymmetryEndInstruction : Instruction
                 if (a.First.Value.Equals(b.Second.Value) &&
                     a.Second.Value.Equals(b.First.Value))
                 {
-                    // Append XCHG
-                    throw new NotImplementedException("Implement exchange instruction");
-                    
-                    //remove_list.Add(a);
-                    //remove_list.Add(b);
-                    //break;
+                    exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second));
+
+                    remove_list.Add(a);
+                    remove_list.Add(b);
+                    break;
                 }
             }
         }
 
+        moves.AddRange(exchanges);
         moves.RemoveAll(m => remove_list.Contains(m));
 
         moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? 1 : 0);

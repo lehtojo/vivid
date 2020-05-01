@@ -9,8 +9,9 @@ public static class Arrays
 
         var type = node.GetType() ?? throw new ApplicationException("Couldn't get the memory stride type");
         var stride = type == Types.LINK ? 1 : type.ReferenceSize;
+        var format = type == Types.LINK ? Format.UINT8 : type.Format;
 
-        return new GetMemoryAddressInstruction(unit, mode, start, offset, stride).Execute();
+        return new GetMemoryAddressInstruction(unit, mode, format, start, offset, stride).Execute();
     }
 
     public static Result BuildAllocation(Unit unit, ArrayAllocationNode array)

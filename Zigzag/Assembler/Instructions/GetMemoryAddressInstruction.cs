@@ -7,7 +7,7 @@ public class GetMemoryAddressInstruction : Instruction
     public Result Offset { get; private set; }
     public int Stride { get; private set; }
 
-    public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Result start, Result offset, int stride) : base(unit)
+    public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Format format, Result start, Result offset, int stride) : base(unit)
     {
         Mode = mode;
         Start = start;
@@ -15,7 +15,7 @@ public class GetMemoryAddressInstruction : Instruction
         Stride = stride;
 
         Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
-        Result.Value.Size = Size.FromBytes(Stride);
+        Result.Value.Format = format;
         Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
         Source.Value = Result.Value;

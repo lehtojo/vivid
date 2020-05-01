@@ -19,9 +19,6 @@ public static class Conditionals
             result = Builders.Build(unit, body);
 
             // Restore the state after the body
-            merge.Append();
-
-            // Restore the state after the body
             unit.Append(merge);
         }
 

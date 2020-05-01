@@ -12,7 +12,7 @@ public class GetObjectPointerInstruction : Instruction
 
     public override void OnBuild()
     {
-        // Lock the parameters
+        // Lock the parameters (Maybe new type of lifetime which stores a result its dependent on)
         Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
         Result.Value = new MemoryHandle(Unit, Start, Offset);
     }

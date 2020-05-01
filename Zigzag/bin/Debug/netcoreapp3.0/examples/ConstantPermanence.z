@@ -11,5 +11,4 @@ run() {
     source = allocate(1024)
     destination = allocate(1024)
     copy(source, destination)
-    # Crashes: copy(0 -> link, 0 -> link)
 }

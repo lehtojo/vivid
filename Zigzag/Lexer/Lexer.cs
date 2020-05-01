@@ -5,8 +5,12 @@ public class Lexer
 {
 	public static Size Size { get; private set; } = Size.QWORD;
 
-	private const char COMMENT = '#';
-	private const char STRING = '\'';
+	public const char COMMENT = '#';
+	public const char STRING = '\'';
+	public const char DECIMAL_SEPARATOR = '.';
+	public const char EXPONENT_SEPARATOR = 'e';
+	public const char SIGNED_TYPE_SEPARATOR = 'i';
+	public const char UNSIGNED_TYPE_SEPARATOR = 'u';
 
 	public enum Type
 	{
@@ -134,9 +138,10 @@ public class Lexer
 	/// </summary>
 	/// <param name="previous">Type of the progressing token</param>
 	/// <param name="current">Type of the current character</param>
-	/// <param name="c">Current character</param>
+	/// <param name="previous_symbol">Previous character</param>
+	/// <param name="current_symbol">Current character</param>
 	/// <returns>True if the character is part of the progressing token</returns>
-	private static bool IsPartOf(Type previous, Type current, char c)
+	private static bool IsPartOf(Type previous, Type current, char previous_symbol, char current_symbol)
 	{
 		if (current == previous || previous == Type.UNSPECIFIED)
 		{
@@ -152,7 +157,11 @@ public class Lexer
 
 			case Type.NUMBER:
 			{
-				return c == '.';
+				return 	current_symbol == DECIMAL_SEPARATOR || // Example: 7.0
+					   	current_symbol == EXPONENT_SEPARATOR ||	// Example: 100e0
+						current_symbol == SIGNED_TYPE_SEPARATOR || // Example 0i8
+						current_symbol == UNSIGNED_TYPE_SEPARATOR || // Example 0u32
+						(previous_symbol == EXPONENT_SEPARATOR && (current_symbol == '+' || current_symbol == '-')); // Examples: 3.14159e+10, 10e-10
 			}
 
 			default: return false;
@@ -333,9 +342,9 @@ public class Lexer
 		// Possible types are now: TEXT, NUMBER, OPERATOR
 		while (position.Absolute < text.Length)
 		{
-			var c = text[position.Absolute];
+			var current_symbol = text[position.Absolute];
 
-			if (IsContent(c))
+			if (IsContent(current_symbol))
 			{
 
 				// There cannot be number and content tokens side by side
@@ -347,9 +356,10 @@ public class Lexer
 				break;
 			}
 
-			var type = GetType(c);
+			var type = GetType(current_symbol);
+			var previous_symbol = position.Absolute == 0 ? (char)0 : text[position.Absolute];
 
-			if (!IsPartOf(area.Type, type, c))
+			if (!IsPartOf(area.Type, type, previous_symbol, current_symbol))
 			{
 				break;
 			}
@@ -417,7 +427,7 @@ public class Lexer
 		{
 			return;
 		}
-
+		
 		for (int i = tokens.Count - 2; i >= 0;)
 		{
 			var current = tokens[i];

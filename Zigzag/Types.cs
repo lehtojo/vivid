@@ -30,6 +30,7 @@ public class Types
 		context.Declare(U32);
 		context.Declare(U64);
 		context.Declare(U16);
+		context.Declare(U8);
 		context.Declare(DECIMAL);
 
 		switch (Parser.Size.Bytes)

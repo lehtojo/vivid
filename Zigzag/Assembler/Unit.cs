@@ -100,9 +100,12 @@ public class Unit
     public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
 
     private StringBuilder Builder { get; set; } = new StringBuilder();
+    public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; private set; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
+    public Dictionary<double, string> Decimals { get; private set; } = new Dictionary<double, string>();
 
     private int LabelIndex { get; set; } = 0;
     private int StringIndex { get; set; } = 0;
+    private int DecimalIndex { get; set; } = 0;
 
     private bool IsReindexingNeeded { get; set; } = false;
 
@@ -121,7 +124,7 @@ public class Unit
 
         if (function.Metadata?.IsMember ?? false)
         {
-            Self = function.GetVariable(global::Function.THIS_POINTER_IDENTIFIER);
+            Self = function.GetVariable(global::Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("Member function didn't have this pointer");
         }
 
         Registers = new List<Register>()
@@ -135,22 +138,22 @@ public class Unit
             new Register(Size.QWORD, new string[] { "rbp", "ebp", "bp", "bpl" }),
             new Register(Size.QWORD, new string[] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-            new Register(Size.YWORD, new string[] { "ymm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-            new Register(Size.YWORD, new string[] { "ymm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+            new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
         };
 
         if (Assembler.Size == Size.QWORD)
@@ -183,11 +186,6 @@ public class Unit
         {
             throw new InvalidOperationException("Unit mode didn't match the expected");
         }
-    }
-
-    public int GetCurrentVariableVersion(Variable variable)
-    {
-        return Math.Max(GetVariableHandles(variable).FindLastIndex(h => h.IsValid(Position)), 0);
     }
 
     /// <summary>
@@ -304,6 +302,19 @@ public class Unit
         return Function.Metadata!.GetFullname() + $"_S{StringIndex++}";
     }
 
+    public string GetDecimalIdentifier(double number)
+    {
+        if (Decimals.TryGetValue(number, out string? identifier))
+        {
+            return identifier;
+        }
+
+        identifier = Function.Metadata!.GetFullname() + $"_D{DecimalIndex++}";
+
+        Decimals.Add(number, identifier);
+        return identifier;
+    }
+
     #region Registers
 
     public Register? GetNextNonVolatileRegister(int start, int end)
@@ -382,9 +393,16 @@ public class Unit
         throw new NotImplementedException("Couldn't find available register");
     }
 
-    public Register GetBasePointer()
+    public Register GetNextMediaRegister()
     {
-        return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.BASE_POINTER)) ?? throw new Exception("Architecture didn't have base pointer register?");
+        var register = MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
+
+        if (register != null)
+        {
+            return register;
+        }
+
+        throw new NotImplementedException("Implement media register release");
     }
 
     public Register GetStackPointer()

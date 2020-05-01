@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Linq;
 using System;
@@ -41,9 +42,10 @@ public static class Assembler
         return builder.ToString();
     }
 
-    private static string GetText(Function function)
+    private static string GetText(Function function, out List<(string, double)> decimals)
     {
         var builder = new StringBuilder();
+        var decimal_constants = new List<(string, double)>();
 
         foreach (var implementation in function.Implementations)
         {
@@ -88,8 +90,12 @@ public static class Assembler
 
                 builder.Append(Translator.Translate(unit));
                 builder.AppendLine();
+
+                unit.Decimals.ToList().ForEach(p => decimal_constants.Add((p.Value, p.Key)));
             }
         }
+
+        decimals = decimal_constants;
 
         if (builder.Length == 0)
         {
@@ -99,9 +105,11 @@ public static class Assembler
         return function.GetFullname() + ":\n" + builder.ToString();
     }
 
-    private static string GetText(Context context)
+    private static string GetText(Context context, out List<(string, double)> decimals)
     {
         var builder = new StringBuilder();
+
+        decimals = new List<(string, double)>();
 
         foreach (var function in context.Functions.Values)
         {
@@ -109,8 +117,10 @@ public static class Assembler
             {
                 if (!Flag.Has(overload.Modifiers, AccessModifier.EXTERNAL))
                 {
-                    builder.Append(Assembler.GetText(overload));
+                    builder.Append(Assembler.GetText(overload, out List<(string, double)> function_decimals));
                     builder.Append(SEPARATOR);
+
+                    decimals.AddRange(function_decimals);
                 }
             }
         }
@@ -119,11 +129,15 @@ public static class Assembler
         {
             foreach (var overload in type.Constructors.Overloads)
             {
-                builder.Append(Assembler.GetText(overload));
+                builder.Append(Assembler.GetText(overload, out List<(string, double)> constructor_decimals));
                 builder.Append(SEPARATOR);
+
+                decimals.AddRange(constructor_decimals);
             }
 
-            builder.Append(GetText(type));
+            builder.Append(GetText(type, out List<(string, double)> type_decimals));
+
+            decimals.AddRange(type_decimals);
         }
 
         return Regex.Replace(builder.ToString(), "\n{3,}", "\n\n");
@@ -199,6 +213,23 @@ public static class Assembler
         return builder.ToString();
     }
 
+    private static string GetDecimalData(List<(string Identifier, double Value)> decimals)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var constant in decimals)
+        {
+            var name = constant.Identifier;
+            
+            var allocator = Size.FromFormat(Types.DECIMAL.Format).Allocator;
+            var text = constant.Value.ToString(CultureInfo.InvariantCulture);
+
+            builder.AppendLine($"{name} {allocator} {text}");
+        }
+
+        return builder.ToString();
+    }
+
     public static string Assemble(Context context, int bits)
     {
         Size = Size.FromBytes(bits / 8);
@@ -209,11 +240,12 @@ public static class Assembler
         builder.AppendLine(TEXT_SECTION);
         builder.AppendLine(TEXT_SECTION_HEADER);
         builder.Append(GetExternalFunctions(context));
-        builder.Append(GetText(context));
+        builder.Append(GetText(context, out List<(string, double)> decimals));
         builder.Append(SEPARATOR);
 
         builder.AppendLine(DATA_SECTION);
         builder.Append(GetData(context));
+        builder.Append(GetDecimalData(decimals));
         builder.Append(SEPARATOR);
 
         return Regex.Replace(builder.ToString(), "\n{3,}", "\n\n");

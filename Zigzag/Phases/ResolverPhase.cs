@@ -104,7 +104,6 @@ public class ResolverPhase : Phase
 		}
 
 		var parse = bundle.Get<Parse>("parse");
-		var legacy = new List<string>();
 
 		var context = parse.Context;
 		var previous = string.Empty;
@@ -118,7 +117,7 @@ public class ResolverPhase : Phase
 				previous = report;
 
 				// Try to resolve any problems in the node tree
-				Resolver.Resolve(context, legacy);
+				Resolver.ResolveContext(context);
 				report = GetReport(context);
 
 				// Try again only if the errors have changed

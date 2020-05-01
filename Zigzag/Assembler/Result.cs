@@ -64,7 +64,7 @@ public class Result
 
     public bool IsReleasable()
     {
-        // Prevent releasing the this pointer
+        // Prevent releasing this pointer
         if (Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsThisPointer)
         {
             return false;

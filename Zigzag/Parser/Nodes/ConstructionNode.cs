@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 public class ConstructionNode : Node, IResolvable, IType
 {
 	public Node? Parameters => Last;
@@ -60,4 +63,19 @@ public class ConstructionNode : Node, IResolvable, IType
 	{
 		return Status.OK;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is ConstructionNode node &&
+               base.Equals(obj) &&
+               EqualityComparer<Type>.Default.Equals(Type, node.Type);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Type);
+        return hash.ToHashCode();
+    }
 }

@@ -1,4 +1,7 @@
-﻿public class IncrementNode : Node
+﻿using System;
+using System.Collections.Generic;
+
+public class IncrementNode : Node
 {
 	public bool Post { get; private set; }
 	public Node Object => First!;
@@ -13,4 +16,19 @@
 	{
 		return NodeType.INCREMENT_NODE;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is IncrementNode node &&
+               base.Equals(obj) &&
+               Post == node.Post;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Post);
+        return hash.ToHashCode();
+    }
 }

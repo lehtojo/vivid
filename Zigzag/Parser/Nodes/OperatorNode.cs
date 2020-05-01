@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public class OperatorNode : Node, IType
 {
@@ -7,9 +8,15 @@ public class OperatorNode : Node, IType
 	public Node Left => First!;
 	public Node Right => Last!;
 
-	public OperatorNode(Operator @operator)
+	public OperatorNode(Operator operation)
 	{
-		Operator = @operator;
+		Operator = operation;
+	}
+
+	public OperatorNode(Operator operation, Node left, Node right)
+	{
+		Operator = operation;
+		SetOperands(left, right);
 	}
 
 	public OperatorNode SetOperands(Node left, Node right)
@@ -101,4 +108,19 @@ public class OperatorNode : Node, IType
 	{
 		return NodeType.OPERATOR_NODE;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is OperatorNode node &&
+               base.Equals(obj) &&
+               EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Operator);
+        return hash.ToHashCode();
+    }
 }

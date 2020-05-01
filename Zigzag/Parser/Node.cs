@@ -232,14 +232,21 @@ public class Node
 		Last = null;
 	}
 
-	public Node Disconnect()
-	{
-		Parent?.Remove(this);
-		return this;
-	}
-
 	public virtual NodeType GetNodeType()
 	{
 		return NodeType.NORMAL;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Node node &&
+			   GetNodeType() == node.GetNodeType() &&
+               EqualityComparer<Node?>.Default.Equals(Next, node.Next) &&
+               EqualityComparer<Node?>.Default.Equals(First, node.First);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Next, First);
+    }
 }

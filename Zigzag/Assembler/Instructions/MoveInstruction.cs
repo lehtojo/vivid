@@ -22,12 +22,120 @@ public class MoveInstruction : DualParameterInstruction
     public const string UNSIGNED_CONVERSION = "movzx";
     public const string SIGNED_CONVERSION = "movsx";
     public const string SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE = "movsxd";
+    
+    public const string SINGLE_PRECISION_MOVE = "movss";
+    public const string DOUBLE_PRECISION_MOVE = "movsd";
+
+    public const string CONVERT_SINGLE_PRECISION_TO_INTEGER = "cvtss2si";
+    public const string CONVERT_DOUBLE_PRECISION_TO_INTEGER = "cvtsd2si";
+
+    public const string CONVERT_INTEGER_TO_SINGLE_PRECISION = "cvtsi2ss";
+    public const string CONVERT_INTEGER_TO_DOUBLE_PRECISION = "cvtsi2sd";
+
     public const string CLEAR_INSTRUCTION = "xor";
 
     public new MoveType Type { get; set; } = MoveType.COPY;
     public bool IsSafe { get; set; } = false;
 
     public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+
+    private bool IsDecimalConversionNeeded()
+    {
+        return First.Value.Format != Second.Value.Format;
+    }
+
+    private void OnBuildDecimalConversion(int flags_first, int flags_second)
+    {
+        var is_destination_media_register = First.Value is RegisterHandle handle && handle.Register.IsMediaRegister;
+        var is_destination_register = First.Value is RegisterHandle;
+        var is_destination_memory_address = First!.Value?.Type == HandleType.MEMORY;
+
+        if (is_destination_media_register)
+        {
+            var instruction = Assembler.Size.Bits == 32 ? CONVERT_INTEGER_TO_SINGLE_PRECISION : CONVERT_INTEGER_TO_DOUBLE_PRECISION;
+
+            Build(
+                instruction,
+                new InstructionParameter(
+                    First,
+                    flags_first,
+                    HandleType.MEDIA_REGISTER
+                ),
+                new InstructionParameter(
+                    Second,
+                    flags_second,
+                    HandleType.REGISTER,
+                    HandleType.MEMORY
+                )
+            );
+        }
+        else if (is_destination_register)
+        {
+            var instruction = Assembler.Size.Bits == 32 ? CONVERT_SINGLE_PRECISION_TO_INTEGER : CONVERT_DOUBLE_PRECISION_TO_INTEGER;
+
+            Build(
+                instruction,
+                new InstructionParameter(
+                    First,
+                    flags_first,
+                    HandleType.REGISTER
+                ),
+                new InstructionParameter(
+                    Second,
+                    flags_second,
+                    HandleType.MEDIA_REGISTER,
+                    HandleType.MEMORY
+                )
+            );
+        }
+        else if (is_destination_memory_address)
+        {
+            var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_MOVE : DOUBLE_PRECISION_MOVE;
+            
+            Build(
+                instruction,
+                new InstructionParameter(
+                    First,
+                    flags_first,
+                    HandleType.MEMORY
+                ),
+                new InstructionParameter(
+                    Second,
+                    flags_second,
+                    HandleType.MEDIA_REGISTER
+                )
+            );
+        }
+    }
+
+    private void OnBuildDecimalMoves(int flags_first, int flags_second)
+    {
+        if (IsDecimalConversionNeeded())
+        {
+            OnBuildDecimalConversion(flags_first, flags_second);
+        }
+        else
+        {
+            var size = First.Value.Size;
+            var instruction = size.Bits == 32 ? SINGLE_PRECISION_MOVE : DOUBLE_PRECISION_MOVE;
+
+            Build(
+                instruction,
+                new InstructionParameter(
+                    First,
+                    flags_first,
+                    HandleType.MEDIA_REGISTER,
+                    HandleType.MEMORY
+                ),
+                new InstructionParameter(
+                    Second,
+                    flags_second,
+                    HandleType.MEDIA_REGISTER,
+                    HandleType.MEMORY
+                )
+            );
+        }
+    }
 
     public override void OnBuild()
     {
@@ -61,11 +169,17 @@ public class MoveInstruction : DualParameterInstruction
             }
         }
 
+        if (First.Value.Format == global::Format.DECIMAL || Second.Value.Format == global::Format.DECIMAL)
+        {
+            // Decimals have their own handler
+            OnBuildDecimalMoves(flags_first, flags_second);
+            return;
+        }
+
         if (First.Value.Type == HandleType.REGISTER && Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
         {
             Build(
                 CLEAR_INSTRUCTION,
-                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -87,7 +201,6 @@ public class MoveInstruction : DualParameterInstruction
         {
             Build(
                 MOVE_INSTRUCTION,
-                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -106,7 +219,6 @@ public class MoveInstruction : DualParameterInstruction
         {
             Build(
                 MOVE_INSTRUCTION,
-                Assembler.Size,
                 new InstructionParameter(
                     First,
                     flags_first,
@@ -158,7 +270,7 @@ public class MoveInstruction : DualParameterInstruction
                         if (Destination.Value!.IsUnsigned)
                         {
                             // In 64-bit mode if you move data from 32-bit register to another 32-bit register it zeroes out the high half of the destination 64-bit register
-                            Destination.Value!.Size = Size.DWORD;
+                            Destination.Value!.Format = global::Format.UINT32;
                         }
                         else
                         {
@@ -178,7 +290,7 @@ public class MoveInstruction : DualParameterInstruction
         }
         else if (is_destination_memory_address)
         {
-            Source.Value!.Size = Destination.Value!.Size;
+            Source.Value!.Format = Destination.Value!.Format;
         }
     }
 

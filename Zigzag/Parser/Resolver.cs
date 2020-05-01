@@ -3,9 +3,12 @@ using System.Collections.Generic;
 
 public class Resolver
 {
+	/// <summary>
+	/// Tries to resolve the given node tree
+	/// </summary>
 	public static void Resolve(Context context, Node node)
 	{
-		var resolved = ResolveAll(context, node, new List<string>());
+		var resolved = ResolveTree(context, node);
 
 		if (resolved != null)
 		{
@@ -13,41 +16,28 @@ public class Resolver
 		}
 	}
 
-	public static void Resolve(Context context, List<string> errors)
+	/// <summary>
+	/// Tries to resolve the problems in the given context
+	/// </summary>
+	public static void ResolveContext(Context context)
 	{
 		foreach (var type in context.Types.Values)
 		{
-			ResolveVariables(type, errors);
-			Resolve(type, errors);
+			ResolveVariables(type);
+			ResolveContext(type);
 		}
 
-		foreach (var function in context.Functions.Values)
+		foreach (var implementation in context.GetImplementedFunctions())
 		{
-			foreach (var overload in function.Overloads)
-			{
-				foreach (var implementation in overload.Implementations)
-				{
-					if (implementation.Node != null)
-					{
-						ResolveVariables(implementation, errors);
-						ResolveAll(implementation, implementation.Node, errors);
-					}
-				}
-			}
+			ResolveVariables(implementation);
+			ResolveTree(implementation, implementation.Node!);
 		}
 	}
 
-	/**
-    * Tries to resolve any unresolved nodes in a node tree
-    * @param context Context to use when resolving
-    * @param node Node tree
-    * @param errors Output list for errors
-    * @return Returns a resolved node tree on success, otherwise null
-    */
 	/// <summary>
 	/// Tries to resolve the problems in the node tree
 	/// </summary>
-	public static Node? ResolveAll(Context context, Node node, List<string> errors)
+	public static Node? ResolveTree(Context context, Node node)
 	{
 		if (node is IResolvable resolvable)
 		{
@@ -55,9 +45,9 @@ public class Resolver
 			{
 				return resolvable.Resolve(context) ?? node;
 			}
-			catch (Exception e)
+			catch
 			{
-				errors.Add(e.Message);
+				Console.WriteLine("Warning: Resolvable threw an exception");
 			}
 
 			return null;
@@ -68,7 +58,7 @@ public class Resolver
 
 			while (iterator != null)
 			{
-				var resolved = Resolver.ResolveAll(context, iterator, errors);
+				var resolved = Resolver.ResolveTree(context, iterator);
 
 				if (resolved != null)
 				{
@@ -82,6 +72,9 @@ public class Resolver
 		}
 	}
 
+	/// <summary>
+	/// Returns the number type that should be the outcome when using the two given numbers together
+	/// </summary>
 	private static Type GetSharedNumber(Number a, Number b)
 	{
 		return a.Bits > b.Bits ? a : b;
@@ -128,7 +121,7 @@ public class Resolver
 	 /// </summary>
 	 /// <param name="types">Type list to go through</param>
 	 /// <returns>Success: Shared type between the types, Failure: null</returns>
-	public static Type? GetSharedType(List<Type> types)
+	private static Type? GetSharedType(List<Type> types)
 	{
 		if (types.Count == 0)
 		{
@@ -191,9 +184,12 @@ public class Resolver
 		return types;
 	}
 
+	/// <summary>
+	/// Tries to get the assign type from the given assign operation
+	///</summary>
 	private static Type? TryGetTypeFromAssignOperation(Node assign)
 	{
-		var operation = (OperatorNode)assign;
+		var operation = assign.To<OperatorNode>();
 
 		// Try to resolve type via contextable right side of the assign operator
 		if (operation.Operator == Operators.ASSIGN &&
@@ -205,6 +201,9 @@ public class Resolver
 		return Types.UNKNOWN;
 	}
 
+	/// <summary>
+	/// Tries to resolve the given variable by going through its references
+	/// </summary>	
 	public static void Resolve(Variable variable)
 	{
 		var types = new List<Type>();
@@ -261,7 +260,10 @@ public class Resolver
 		}
 	}
 
-	public static void ResolveVariables(Context context, List<string> errors)
+	/// <summary>
+	/// Tries to resolve all the variables in the given context
+	/// </summary>
+	private static void ResolveVariables(Context context)
 	{
 		foreach (var variable in context.Variables.Values)
 		{
@@ -273,7 +275,7 @@ public class Resolver
 
 		foreach (var subcontext in context.Subcontexts)
 		{
-			ResolveVariables(subcontext, errors);
+			ResolveVariables(subcontext);
 		}
 	}
 }

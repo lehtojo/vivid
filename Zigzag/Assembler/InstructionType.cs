@@ -7,6 +7,7 @@ public enum InstructionType
     COMPARE,
     DIVISION,
     DUPLICATE,
+    EXCHANGE,
     GET_CONSTANT,
     GET_MEMORY_ADDRESS,
     GET_OBJECT_POINTER,

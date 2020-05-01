@@ -35,6 +35,6 @@ public class OffsetPattern : Pattern
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var index = Singleton.Parse(context, tokens[INDEX]);
 
-		return new OperatorNode(Operators.EXTENDER).SetOperands(source, index);
+		return new OperatorNode(Operators.COLON).SetOperands(source, index);
 	}
 }

@@ -208,11 +208,8 @@ public class Context
 			throw new Exception($"Variable '{name}' already exists in this context");
 		}
 
+		// When a variable is created this way it is automatically declared into this context
 		var variable = new Variable(this, type, category, name, AccessModifier.PUBLIC);
-		variable.Context = this;
-
-		// Add variable to the list
-		Variables.Add(variable.Name, variable);
 	}
 
 	/// <summary>
@@ -368,8 +365,36 @@ public class Context
 
 	public IEnumerable<FunctionImplementation> GetImplementedFunctions()
 	{
-		return Functions.Values.SelectMany(f => f.Overloads)
-								.SelectMany(f => f.Implementations)
-									.Where(i => i.Node != null);
+		return Functions.Values
+			.SelectMany(f => f.Overloads)
+			.SelectMany(f => f.Implementations)
+			.Where(i => i.Node != null);
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Context context &&
+			   Name == context.Name &&
+               EqualityComparer<List<Context>>.Default.Equals(Subcontexts, context.Subcontexts) &&
+               IsType == context.IsType &&
+               IsFunction == context.IsFunction &&
+               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, context.Variables) &&
+               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, context.Functions) &&
+               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, context.Types) &&
+               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, context.Labels);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(Name);
+        hash.Add(Subcontexts);
+        hash.Add(IsType);
+        hash.Add(IsFunction);
+        hash.Add(Variables);
+        hash.Add(Functions);
+        hash.Add(Types);
+        hash.Add(Labels);
+        return hash.ToHashCode();
+    }
 }

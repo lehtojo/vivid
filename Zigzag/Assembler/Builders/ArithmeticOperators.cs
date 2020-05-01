@@ -4,7 +4,7 @@ public static class ArithmeticOperators
 {
     public static Result Build(Unit unit, IncrementNode node)
     {
-        return BuildAdditionOperator(unit, node.Object, new NumberNode(Assembler.Size.ToNumberType(false), 1), true);
+        return BuildIncrementOperation(unit, node);
     }
 
     public static Result Build(Unit unit, OperatorNode node)
@@ -14,49 +14,49 @@ public static class ArithmeticOperators
         
         if (operation == Operators.ADD)
         {
-            return BuildAdditionOperator(unit, node.Left, node.Right);
+            return BuildAdditionOperator(unit, node);
         }
         else if (operation == Operators.SUBTRACT)
         {
-            return BuildSubtractionOperator(unit, node.Left, node.Right);
+            return BuildSubtractionOperator(unit, node);
         }
         else if (operation == Operators.MULTIPLY)
         {
-            return BuildMultiplicationOperator(unit, node.Left, node.Right);
+            return BuildMultiplicationOperator(unit, node);
         }
         else if (operation == Operators.DIVIDE)
         {
-            return BuildDivisionOperator(unit, false, node.Left, node.Right);
+            return BuildDivisionOperator(unit, false, node);
         }
         else if (operation == Operators.MODULUS)
         {
-            return BuildDivisionOperator(unit, true, node.Left, node.Right);
+            return BuildDivisionOperator(unit, true, node);
         }
         else if (operation == Operators.ASSIGN_ADD)
         {
-            return BuildAdditionOperator(unit, node.Left, node.Right, true);
+            return BuildAdditionOperator(unit, node, true);
         }
         else if (operation == Operators.ASSIGN_SUBTRACT)
         {
-            return BuildSubtractionOperator(unit, node.Left, node.Right, true);
+            return BuildSubtractionOperator(unit, node, true);
         }
         else if (operation == Operators.ASSIGN_MULTIPLY)
         {
-            return BuildMultiplicationOperator(unit, node.Left, node.Right, true);
+            return BuildMultiplicationOperator(unit, node, true);
         }
         else if (operation == Operators.ASSIGN_DIVIDE)
         {
-            return BuildDivisionOperator(unit, false, node.Left, node.Right, true);
+            return BuildDivisionOperator(unit, false, node, true);
         }
         else if (operation == Operators.ASSIGN_MODULUS)
         {
-            return BuildDivisionOperator(unit, true, node.Left, node.Right, true);
+            return BuildDivisionOperator(unit, true, node, true);
         }
         else if (operation == Operators.ASSIGN)
         {
             return BuildAssignOperator(unit, node);
         }
-        else if (operation == Operators.EXTENDER)
+        else if (operation == Operators.COLON)
         {
             return Arrays.BuildOffset(unit, node, AccessMode.READ);
         }
@@ -69,36 +69,54 @@ public static class ArithmeticOperators
         return new NegateInstruction(unit, References.Get(unit, node.Target)).Execute();
     }
 
-    public static Result BuildAdditionOperator(Unit unit, Node first, Node second, bool assigns = false)
-    {
-        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
-        var right = References.Get(unit, second);
+    public static Result BuildAdditionOperator(Unit unit, OperatorNode operation, bool assigns = false)
+    {   
+        var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+        var right = References.Get(unit, operation.Right);
 
-        return new AdditionInstruction(unit, left, right, assigns).Execute();
+        var number_type = operation.GetType()!.To<Number>().Type;
+
+        return new AdditionInstruction(unit, left, right, number_type, assigns).Execute();
     }
 
-    public static Result BuildSubtractionOperator(Unit unit, Node first, Node second, bool assigns = false)
-    {
-        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
-        var right = References.Get(unit, second);
+    public static Result BuildIncrementOperation(Unit unit, IncrementNode increment)
+    {   
+        var left = References.Get(unit, increment.Object, AccessMode.WRITE);
+        var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1));
 
-        return new SubtractionInstruction(unit, left, right, assigns).Execute();
+        var number_type = ((IType)increment.Object).GetType()!.To<Number>().Type;
+
+        return new AdditionInstruction(unit, left, right, number_type, true).Execute();
     }
 
-    public static Result BuildMultiplicationOperator(Unit unit, Node first, Node second, bool assigns = false)
+    public static Result BuildSubtractionOperator(Unit unit, OperatorNode operation, bool assigns = false)
     {
-        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
-        var right = References.Get(unit, second);
+        var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+        var right = References.Get(unit, operation.Right);
+        
+        var number_type = operation.GetType()!.To<Number>().Type;
 
-        return new MultiplicationInstruction(unit, left, right, assigns).Execute();
+        return new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
     }
 
-    public static Result BuildDivisionOperator(Unit unit, bool modulus, Node first, Node second, bool assigns = false)
+    public static Result BuildMultiplicationOperator(Unit unit, OperatorNode operation, bool assigns = false)
     {
-        var left = References.Get(unit, first, assigns ? AccessMode.WRITE : AccessMode.READ);
-        var right = References.Get(unit, second);
+        var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+        var right = References.Get(unit, operation.Right);
+        
+        var number_type = operation.GetType()!.To<Number>().Type;
 
-        return new DivisionInstruction(unit, modulus, left, right, assigns).Execute();
+        return new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
+    }
+
+    public static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
+    {
+        var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+        var right = References.Get(unit, operation.Right);
+        
+        var number_type = operation.GetType()!.To<Number>().Type;
+
+        return new DivisionInstruction(unit, modulus, left, right, number_type, assigns).Execute();
     }
 
     public static Result BuildAssignOperator(Unit unit, OperatorNode node) 

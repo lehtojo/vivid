@@ -38,6 +38,16 @@ public class ArrayAllocationPattern : Pattern
     {
         var type = context.GetType(tokens[TYPE].To<IdentifierToken>().Value) ?? throw new ApplicationException("Array allocation type was confirmed to be valid before the current state");
         var length = Parser.Parse(context, tokens[BRACKETS].To<ContentToken>().GetTokens()).First ?? throw new ApplicationException("Array didn't have length specifier");
+        
+        if (length.Is(NodeType.NUMBER_NODE))
+        {
+            var bytes = (long)length.To<NumberNode>().Value * type.ReferenceSize;
+            length = new NumberNode(Format.INT32, bytes);
+        }
+        else
+        {
+            length = new OperatorNode(Operators.MULTIPLY, length, new NumberNode(Format.INT32, type.ReferenceSize));   
+        }
 
         return new ArrayAllocationNode(type, length);
     }

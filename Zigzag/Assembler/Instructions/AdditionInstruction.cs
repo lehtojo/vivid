@@ -1,12 +1,18 @@
 public class AdditionInstruction : DualParameterInstruction
 {
-    public const string INSTRUCTION = "add";
-    public const string EXTENDED_ADDITION_INSTRUCTION = "lea";
+    private const string STANDARD_ADDITION_INSTRUCTION = "add";
+    private const string EXTENDED_ADDITION_INSTRUCTION = "lea";
+
+    private const string SINGLE_PRECISION_ADDITION_INSTRUCTION = "addss";
+    private const string DOUBLE_PRECISION_ADDITION_INSTRUCTION = "addsd";
 
     public bool Assigns { get; private set; }
+    public new Format Type { get; private set; }
 
-    public AdditionInstruction(Unit unit, Result first, Result second, bool assigns) : base(unit, first, second) 
+    public AdditionInstruction(Unit unit, Result first, Result second, Format type, bool assigns) : base(unit, first, second) 
     {
+        Type = type;
+
         if (Assigns = assigns)
         {
             Result.Metadata = First.Metadata;
@@ -20,12 +26,37 @@ public class AdditionInstruction : DualParameterInstruction
     
     public override void OnBuild()
     {
+        // Handle decimal addition separately
+        if (Type == global::Format.DECIMAL)
+        {
+            var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
+            var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
+
+            Build(
+                instruction,
+                Assembler.Size,
+                new InstructionParameter(
+                    First,
+                    flags,
+                    HandleType.MEDIA_REGISTER
+                ),
+                new InstructionParameter(
+                    Second,
+                    ParameterFlag.NONE,
+                    HandleType.MEDIA_REGISTER,
+                    HandleType.MEMORY
+                )
+            );
+            
+            return;
+        }
+
         if (First.IsExpiring(Position) || Assigns)
         {
             if (Assigns)
             {
                 Build(
-                    INSTRUCTION,
+                    STANDARD_ADDITION_INSTRUCTION,
                     Assembler.Size,
                     new InstructionParameter(
                         First,
@@ -44,7 +75,7 @@ public class AdditionInstruction : DualParameterInstruction
             else
             {
                 Build(
-                    INSTRUCTION,
+                    STANDARD_ADDITION_INSTRUCTION,
                     Assembler.Size,
                     new InstructionParameter(
                         First,
@@ -66,6 +97,7 @@ public class AdditionInstruction : DualParameterInstruction
             // Form the calculation parameter
             var calculation = Format(
                 "[{0}+{1}]",
+                Assembler.Size,
                 new InstructionParameter(
                     First,
                     ParameterFlag.NONE,

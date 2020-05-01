@@ -96,7 +96,6 @@ public static class Oracle
             }
             else
             {
-                var version = unit.GetCurrentVariableVersion(v.Variable);
                 v.Configure(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable));
 
                 if (v.Mode != AccessMode.WRITE && v.Variable.IsPredictable)

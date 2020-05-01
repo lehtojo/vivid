@@ -2,7 +2,7 @@ public class U8 : Number
 {
 	private const int BYTES = 1;
 
-	public U8() : base(NumberType.UINT8, 8, true, "u8") { }
+	public U8() : base(Format.UINT8, 8, true, "u8") { }
 
 	public override int GetReferenceSize()
 	{

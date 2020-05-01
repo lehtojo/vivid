@@ -2,12 +2,20 @@ using System;
 
 public class DivisionInstruction : DualParameterInstruction
 {
+    private const string SIGNED_INTEGER_DIVISION_INSTRUCTION = "idiv";
+    private const string UNSIGNED_INTEGER_DIVISION_INSTRUCTION = "div";
+
+    private const string SINGLE_PRECISION_DIVISION_INSTRUCTION = "divss";
+    private const string DOUBLE_PRECISION_DIVISION_INSTRUCTION = "divsd";
+
     public bool IsModulus { get; private set; }
     public bool Assigns { get; private set; }
+    public new Format Type { get; private set; }
 
-    public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, bool assigns) : base(unit, first, second)
+    public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format type, bool assigns) : base(unit, first, second)
     {
         IsModulus = modulus;
+        Type = type;
 
         if (Assigns = assigns)
         {
@@ -38,7 +46,7 @@ public class DivisionInstruction : DualParameterInstruction
         var destination = new RegisterHandle(Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!);
 
         Build(
-            "idiv",
+            SIGNED_INTEGER_DIVISION_INSTRUCTION,
             Assembler.Size,
             new InstructionParameter(
                 denominator,
@@ -62,7 +70,7 @@ public class DivisionInstruction : DualParameterInstruction
     private void BuildDivision(Result denominator)
     {
         Build(
-            "idiv",
+            SIGNED_INTEGER_DIVISION_INSTRUCTION,
             Assembler.Size,
             new InstructionParameter(
                 denominator,
@@ -80,12 +88,37 @@ public class DivisionInstruction : DualParameterInstruction
 
     public override void OnBuild()
     {
+        // Handle decimal division separately
+        if (Type == global::Format.DECIMAL)
+        {
+            var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_DIVISION_INSTRUCTION : DOUBLE_PRECISION_DIVISION_INSTRUCTION;
+            var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
+
+            Build(
+                instruction,
+                Assembler.Size,
+                new InstructionParameter(
+                    First,
+                    flags,
+                    HandleType.MEDIA_REGISTER
+                ),
+                new InstructionParameter(
+                    Second,
+                    ParameterFlag.NONE,
+                    HandleType.MEDIA_REGISTER,
+                    HandleType.MEMORY
+                )
+            );
+            
+            return;
+        }
+
         var denominator = CorrectDenominatorLocation();
         var remainder = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!;
 
         // Clear the remainder register
         Memory.Zero(Unit, remainder);
-
+        
         using (new RegisterLock(remainder))
         {
             if (IsModulus)

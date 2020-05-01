@@ -4,7 +4,6 @@ using System;
 
 public class Type : Context
 {
-	public const int REFERENCE_SIZE = 4;
 	public const string IDENTIFIER_PREFIX = "type_";
 
 	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
@@ -12,6 +11,7 @@ public class Type : Context
 
 	public bool IsUnresolved => this is IResolvable;
 
+	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
 
@@ -160,4 +160,59 @@ public class Type : Context
 			return base.GetVariable(name);
 		}
 	}
+
+	public virtual Format GetFormat()
+	{
+		return Size.FromBytes(ReferenceSize).ToFormat();
+	}
+
+	public T To<T>() where T : Type
+	{
+		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Type' to '{typeof(T).Name}'");
+	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Type type &&
+               Name == type.Name &&
+               EqualityComparer<List<Context>>.Default.Equals(Subcontexts, type.Subcontexts) &&
+               IsFunction == type.IsFunction &&
+               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, type.Variables) &&
+               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, type.Functions) &&
+               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, type.Types) &&
+               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, type.Labels) &&
+               Identifier == type.Identifier &&
+               Modifiers == type.Modifiers &&
+               IsUnresolved == type.IsUnresolved &&
+               Format == type.Format &&
+               ReferenceSize == type.ReferenceSize &&
+               ContentSize == type.ContentSize &&
+               EqualityComparer<List<Type>>.Default.Equals(Supertypes, type.Supertypes) &&
+               EqualityComparer<FunctionList>.Default.Equals(Constructors, type.Constructors) &&
+               EqualityComparer<FunctionList>.Default.Equals(Destructors, type.Destructors) &&
+               EqualityComparer<FunctionList>.Default.Equals(Operators, type.Operators);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(Name);
+        hash.Add(Subcontexts);
+        hash.Add(IsFunction);
+        hash.Add(Variables);
+        hash.Add(Functions);
+        hash.Add(Types);
+        hash.Add(Labels);
+        hash.Add(Identifier);
+        hash.Add(Modifiers);
+        hash.Add(IsUnresolved);
+        hash.Add(Format);
+        hash.Add(ReferenceSize);
+        hash.Add(ContentSize);
+        hash.Add(Supertypes);
+        hash.Add(Constructors);
+        hash.Add(Destructors);
+        hash.Add(Operators);
+        return hash.ToHashCode();
+    }
 }

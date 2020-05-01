@@ -6,26 +6,28 @@ public enum HandleType
     MEMORY,
     CONSTANT,
     REGISTER,
+    MEDIA_REGISTER,
     NONE
 }
 
 public class Handle
 {
     public HandleType Type { get; private set; }
-    public Size Size { get; set; }
-    public bool IsUnsigned { get; set; } = true;
+    public Size Size => Size.FromFormat(Format);
+    public bool IsUnsigned => Format.IsUnsigned();
+    public Format Format { get; set; }
     public bool IsSizeVisible { get; set; } = false;
 
     public Handle()
     {
         Type = HandleType.NONE;
-        Size = Assembler.Size;
+        Format = Assembler.Size.ToFormat();
     }
 
     public Handle(HandleType type)
     {
         Type = type;
-        Size = Assembler.Size;
+        Format = Assembler.Size.ToFormat();
     }
 
     public T To<T>() where T: Handle
@@ -131,6 +133,11 @@ public class VariableMemoryHandle : MemoryHandle
         return base.ToString();
     }
 
+    public override Handle Freeze() 
+    {
+        return (Handle)this.MemberwiseClone();
+    }
+
     public override bool Equals(object? obj)
     {
         return obj is VariableMemoryHandle handle &&
@@ -205,8 +212,11 @@ public class MemoryHandle : Handle
     {
         if (Start.Value.Type == HandleType.REGISTER ||
             Start.Value.Type == HandleType.CONSTANT)
-        {
-            return new MemoryHandle(Unit, new Result(Start.Value), Offset);
+        {            
+            return new MemoryHandle(Unit, new Result(Start.Value), Offset)
+            {
+                Format = Format
+            };
         }
 
         throw new ApplicationException("Start of the memory handle was in invalid format for freeze operation");
@@ -236,7 +246,7 @@ public class ComplexMemoryHandle : Handle
         Start = start;
         Offset = offset;
         Stride = stride;
-        Size = Size.FromBytes(stride);
+        Format = Size.FromBytes(stride).ToFormat();
     }
 
     public override void Use(int position)
@@ -322,6 +332,7 @@ public class RegisterHandle : Handle
     public RegisterHandle(Register register) : base(HandleType.REGISTER)
     {
         Register = register;
+        Format = Register.IsMediaRegister ? Format.DECIMAL : Assembler.Size.ToFormat();
     }
 
     public override string ToString()

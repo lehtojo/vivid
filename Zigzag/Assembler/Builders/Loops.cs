@@ -65,6 +65,34 @@ public static class Loops
         return variables;
     }
 
+    public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
+    {
+        if (node.Loop == null)
+        {
+            throw new ApplicationException("Loop control instruction was not inside a loop");
+        }
+
+        if (node.Instruction == Keywords.STOP)
+        {
+            var exit = node.Loop.Exit ?? throw new NotImplementedException("Forever loops don't have exit labels yet");
+            
+            var symmetry_start = unit.Loops[node.Loop] ?? throw new ApplicationException("Loop was not registered to unit");
+            var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
+
+            // Restore the state after the body
+            symmetry_end.Append();
+
+            // Restore the state after the body
+            unit.Append(symmetry_end);
+
+            return new JumpInstruction(unit, exit).Execute();
+        }
+        else
+        {
+            throw new NotImplementedException("Loop control instruction not implemented yet");
+        }
+    }
+
     /// <summary>
     /// Returns info about variable usage in the given loop
     /// </summary>
@@ -125,6 +153,9 @@ public static class Loops
             var symmetry_start = new SymmetryStartInstruction(unit, active_variables);
             unit.Append(symmetry_start);
 
+            // Register loop to the unit
+            unit.Loops.Add(loop, symmetry_start);
+
             // Build the loop body
             result = Builders.Build(unit, loop.Body);
 
@@ -181,6 +212,9 @@ public static class Loops
         // Create the start and end label of the loop
         var start = unit.GetNextLabel();
         var end = unit.GetNextLabel();
+
+        // Register the exit label to the loop for control keywords
+        node.Exit = end;
 
         // Initialize the loop
         Builders.Build(unit, node.Initialization);

@@ -1,11 +1,12 @@
 public class LoopNode : Node
-{
+{	
 	public Context StepsContext { get; private set; }
 	public Context BodyContext { get; private set; }
 	public Node Initialization => First!.First!;
 	public Node Condition => Initialization!.Next!;
 	public Node Action => First!.Last!;
 	public Node Body => Last!;
+	public Label? Exit { get; set; } = null;
 
 	public bool IsForeverLoop => First == Last;
 

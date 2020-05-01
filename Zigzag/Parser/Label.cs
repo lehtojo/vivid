@@ -18,28 +18,15 @@ public class Label
 	{
 		throw new InvalidOperationException("Use method 'GetName' instead of 'ToString' when interacting with labels");
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Label label &&
+               Name == label.Name;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name);
+    }
 }
-
-/*
-public class RequestableLabel : Label
-{
-	public bool Used { get; private set; } = false;
-
-	private Editor Unit { get; set; }
-
-	public RequestableLabel(Editor unit)
-	{
-		Unit = unit;
-	}
-
-	public override string GetName()
-	{
-		if (!Used)
-		{
-			Used = true;
-			Name = Unit.NextLabel;
-		}
-		
-		return base.GetName();
-	}
-}*/

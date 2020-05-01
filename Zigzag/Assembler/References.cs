@@ -4,6 +4,13 @@ public static class References
 {
     public static Handle CreateConstantNumber(Unit unit, object value)
     {
+        if (value is double)
+        {
+            var identifier = unit.GetDecimalIdentifier((double)value);
+
+            return new DataSectionHandle(identifier);
+        }
+
         return new ConstantHandle(value);
     }
 
@@ -28,8 +35,8 @@ public static class References
             case VariableCategory.MEMBER:
             {
                 handle = new MemoryHandle(unit, self ?? throw new ArgumentException("Member variable didn't have its base pointer"), variable.Alignment);
-                handle.Size = variable.Type!.GetSize();
-                break;
+                handle.Format = variable.Type!.Format;
+                return handle;
             }
 
             case VariableCategory.GLOBAL:
@@ -44,9 +51,15 @@ public static class References
             }
         }
 
-        if (variable.Type is Number number && !number.IsUnsigned)
+        if (variable.Type != Types.DECIMAL)
         {
-            handle.IsUnsigned = false;
+            // Local variables and parameters must be forced to match the current base size
+            var unsigned = variable.Type!.Format.IsUnsigned();
+            handle.Format = Assembler.Size.ToFormat(unsigned);
+        }
+        else
+        {
+            handle.Format = variable.Type!.Format;
         }
 
         return handle;
@@ -114,7 +127,7 @@ public static class References
             {
                 var operation = (OperatorNode)node;
 
-                if (operation.Operator == Operators.EXTENDER)
+                if (operation.Operator == Operators.COLON)
                 {
                     return Arrays.BuildOffset(unit, operation, mode);
                 }

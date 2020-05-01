@@ -1,4 +1,7 @@
-﻿public class InlineNode : Node, IType
+﻿using System;
+using System.Collections.Generic;
+
+public class InlineNode : Node, IType
 {
 	public FunctionImplementation Implementation { get; private set; }
 
@@ -48,4 +51,23 @@
 	{
 		return Implementation.ReturnType;
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is InlineNode node &&
+               base.Equals(obj) &&
+               EqualityComparer<Node>.Default.Equals(Parameters, node.Parameters) &&
+               EqualityComparer<Node>.Default.Equals(Body, node.Body) &&
+               End == node.End;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(base.GetHashCode());
+        hash.Add(Parameters);
+        hash.Add(Body);
+        hash.Add(End);
+        return hash.ToHashCode();
+    }
 }

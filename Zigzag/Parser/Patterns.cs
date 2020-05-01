@@ -91,6 +91,7 @@ public class Patterns
 		Add(new IfPattern());
 		Add(new IncrementPattern());
 		Add(new LinkPattern());
+		Add(new LoopControlPattern());
 		Add(new LoopPattern());
 		Add(new ModifierPattern());
 		Add(new OffsetPattern());
@@ -100,5 +101,6 @@ public class Patterns
 		Add(new SingletonPattern());
 		Add(new TypePattern());
 		Add(new UnarySignPattern());
+		Add(new VariableDeclarationPattern());
 	}
 }

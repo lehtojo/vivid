@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 public class Numbers
 {
-	private static Dictionary<NumberType, Number> numbers = new Dictionary<NumberType, Number>();
+	private static Dictionary<Format, Number> numbers = new Dictionary<Format, Number>();
 
-	public static Number Get(NumberType type)
+	public static Number Get(Format type)
 	{
 		return numbers[type];
 	}

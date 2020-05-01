@@ -47,7 +47,7 @@ public class FunctionImplementation : Context
 	{
 		foreach (var properties in parameters)
 		{
-			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC);
+			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC, false);
 			Variables.Add(parameter.Name, parameter);
 		}
 	}
@@ -128,5 +128,39 @@ public class FunctionImplementation : Context
 
 		return base.GetVariable(name);
 	}
+
+    public override bool Equals(object? obj)
+    {
+        return obj is FunctionImplementation implementation &&
+               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, implementation.Variables) &&
+               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, implementation.Functions) &&
+               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, implementation.Types) &&
+               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, implementation.Labels) &&
+               EqualityComparer<string?>.Default.Equals(Metadata?.Name, implementation.Metadata?.Name) &&
+               EqualityComparer<List<Variable>>.Default.Equals(Parameters, implementation.Parameters) &&
+               EqualityComparer<List<Type>>.Default.Equals(ParameterTypes, implementation.ParameterTypes) &&
+               EqualityComparer<List<Variable>>.Default.Equals(Locals, implementation.Locals) &&
+               LocalMemorySize == implementation.LocalMemorySize &&
+               EqualityComparer<int>.Default.Equals(References.Count, implementation.References.Count) &&
+               EqualityComparer<Type?>.Default.Equals(ReturnType, implementation.ReturnType);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(Subcontexts);
+        hash.Add(Variables);
+        hash.Add(Functions);
+        hash.Add(Types);
+        hash.Add(Labels);
+        hash.Add(Metadata?.Name);
+        hash.Add(Parameters);
+        hash.Add(ParameterTypes);
+        hash.Add(Locals);
+        hash.Add(LocalMemorySize);
+        hash.Add(References.Count);
+        hash.Add(ReturnType);
+        return hash.ToHashCode();
+    }
 }
 

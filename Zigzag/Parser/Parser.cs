@@ -85,14 +85,6 @@ public class Sublist<T> : IList<T>
 	}
 }
 
-public static class Extensions
-{
-	public static IList<T> Sublist<T>(this List<T> list, int start, int end)
-	{
-		return new Sublist<T>(list, start, end);
-	}
-}
-
 public class Parser
 {
 	public static Size Size { get; private set; } = Size.QWORD;

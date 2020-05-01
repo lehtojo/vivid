@@ -1,12 +1,12 @@
 Player {
-    Health
-    Speed
-    Accuracy
+    Health: normal
+    Speed: small
+    Accuracy: byte
 
     Player(health, speed, accuracy) {
-        Health = health as normal
-        Speed = speed as small
-        Accuracy = accuracy as byte
+        Health = health
+        Speed = speed
+        Accuracy = accuracy
     }
 
     get_score() {
