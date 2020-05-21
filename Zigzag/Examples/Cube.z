@@ -16,7 +16,7 @@ run() {
     }
 
     # Create a windowed mode window and its OpenGL context
-    window: link = glfwCreateWindow(1280, 720, 'Hello World', 0 as link, 0 as link)
+    window: link = glfwCreateWindow(1280, 720, 'Hello World!', 0 as link, 0 as link)
 
     if window == 0 {
         glfwTerminate()
