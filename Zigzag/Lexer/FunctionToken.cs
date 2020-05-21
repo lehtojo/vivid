@@ -5,6 +5,7 @@ public class FunctionToken : Token
 {
 	public IdentifierToken Identifier { get; private set; }
 	public ContentToken Parameters { get; private set; }
+	public Node ParameterTree { get; private set; } = new Node();
 
 	public string Name => Identifier.Value;
 
@@ -21,22 +22,27 @@ public class FunctionToken : Token
 	/// <returns>Parameters as node tree</returns>
 	public Node GetParsedParameters(Context context)
 	{
-		var node = new Node();
+		if (ParameterTree.First != null)
+		{
+			return ParameterTree;
+		}
+
+		ParameterTree = new Node();
 
 		for (int i = 0; i < Parameters.SectionCount; i++)
 		{
 			var tokens = Parameters.GetTokens(i);
-			Parser.Parse(node, context, tokens);
+			Parser.Parse(ParameterTree, context, tokens);
 		}
 
-		return node;
+		return ParameterTree;
 	}
 
 	/// <summary>
 	/// Returns the parameter names
 	/// </summary>
 	/// <returns>List of parameter names</returns>
-	public List<string> GetParameterNames()
+	public List<string> GetParameterNames(Context function_context)
 	{
 		var names = new List<string>();
 
@@ -45,23 +51,30 @@ public class FunctionToken : Token
 			return names;
 		}
 
-		for (int i = 0; i < Parameters.SectionCount; i++)
+		ParameterTree = GetParsedParameters(function_context);
+
+		var parameter = ParameterTree.First;
+
+		while (parameter != null)
 		{
-			var tokens = Parameters.GetTokens(i);
-
-			if (tokens.Count > 1)
+			if (parameter is VariableNode variable_node)
 			{
-				throw Errors.Get(tokens[0].Position, "Advanced parameters aren't supported yet!");
+				names.Add(variable_node.Variable.Name);
+			}
+			else if (parameter is OperatorNode assign && assign.Operator == Operators.ASSIGN)
+			{
+				throw new NotImplementedException("Parameter default values aren't supported yet");
+			}
+			else if (parameter is UnresolvedIdentifier parameter_identifier)
+			{
+				names.Add(parameter_identifier.Value);
+			}
+			else
+			{
+				throw new NotImplementedException("Unknown parameter syntax");
 			}
 
-			var token = tokens[0];
-
-			if (!(token is IdentifierToken name))
-			{
-				throw Errors.Get(token.Position, "Invalid parameter name");
-			}
-
-			names.Add(name.Value);
+			parameter = parameter.Next;
 		}
 
 		return names;

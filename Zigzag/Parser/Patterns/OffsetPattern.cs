@@ -10,7 +10,7 @@ public class OffsetPattern : Pattern
 	// ... [...]
 	public OffsetPattern() : base
 	(
-		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC, TokenType.CONTENT
+		TokenType.OBJECT, TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -20,7 +20,7 @@ public class OffsetPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var index = (ContentToken)tokens[INDEX];
+		var index = tokens[INDEX].To<ContentToken>();
 
 		if (index.Type != ParenthesisType.BRACKETS)
 		{

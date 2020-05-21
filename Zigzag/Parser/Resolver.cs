@@ -21,6 +21,8 @@ public class Resolver
 	/// </summary>
 	public static void ResolveContext(Context context)
 	{
+		ResolveVariables(context);
+		
 		foreach (var type in context.Types.Values)
 		{
 			ResolveVariables(type);

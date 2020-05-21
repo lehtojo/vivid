@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 
-public class NumberNode : Node, IType
+public class NumberNode : Node, IType, ICloneable
 {
 	public Format Type { get; private set; }
 	public object Value { get; set; }
 
 	public NumberNode(Format type, object value)
 	{
-        Type = type;
+		Type = type;
 		Value = value;
 	}
 
@@ -34,20 +34,25 @@ public class NumberNode : Node, IType
 		return NodeType.NUMBER_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is NumberNode node &&
-               base.Equals(obj) &&
-               Type == node.Type &&
-               EqualityComparer<object>.Default.Equals(Value, node.Value);
-    }
+	public object Clone()
+	{
+		return new NumberNode(Type, Value);
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Type);
-        hash.Add(Value);
-        return hash.ToHashCode();
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is NumberNode node &&
+				base.Equals(obj) &&
+				Type == node.Type &&
+				EqualityComparer<object>.Default.Equals(Value, node.Value);
+	}
+
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Type);
+		hash.Add(Value);
+		return hash.ToHashCode();
+	}
 }

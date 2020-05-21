@@ -1,0 +1,62 @@
+List {
+	elements
+	capacity
+	batch
+	position
+
+	create(count) {
+		elements = allocate(count * 4) -> num
+		capacity = count
+		batch = capacity
+		position = 0
+	}
+
+	List() {
+		elements = 0
+		capacity = 0
+		batch = 0
+		position = 0
+	}
+
+	grow() {
+		if batch < 0 {
+			memory = allocate(capacity * 2)
+			copy(elements, capacity, memory)
+			free(elements, capacity)
+
+			elements = memory
+			capacity = capacity * 2
+		} 
+		else {
+			memory = allocate(capacity + batch)
+			copy(elements, capacity, memory)
+			free(elements, capacity)
+
+			elements = memory
+			capacity = capacity + batch
+		}
+	}
+
+	add(element) {
+		if position == capacity {
+			grow()
+		}
+
+		elements[position] = element
+		position += 1
+	}
+
+	take() {
+		position -= 1
+		element = elements[position]
+		=> element
+	}
+
+	at(i) {
+		=> elements[i]
+	}
+
+	size() {
+		=> position
+	}
+}

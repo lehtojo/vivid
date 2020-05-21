@@ -1,41 +1,59 @@
 
 public class GetVariableInstruction : LoadInstruction
 {
-    public Result? Self { get; private set; }
-    public Variable Variable { get; private set; }
+	public Result? Self { get; private set; }
+	public Variable Variable { get; private set; }
 
-    public GetVariableInstruction(Unit unit, Result? self, Variable variable, AccessMode mode) : base(unit, mode)
-    {
-        Self = self;
-        Variable = variable;
-        
-        Configure(References.CreateVariableHandle(unit, Self, variable));
-    }
+	public GetVariableInstruction(Unit unit, Result? self, Variable variable, AccessMode mode) : base(unit, mode)
+	{
+		Self = self;
+		Variable = variable;
+		Description = $"Get the current handle of variable '{variable.Name}' with { (mode == AccessMode.WRITE ? "write" : "read") } access";
+		
+		Configure(References.CreateVariableHandle(unit, Self, variable));
+	}
 
-    public override void OnBuild()
-    {
-        if (Self != null)
-        {
-            Memory.Convert(Unit, Self, true, HandleType.REGISTER);
-        }
+	public override void OnSimulate()
+	{
+		var current = Unit.GetCurrentVariableHandle(Variable);
 
-        base.OnBuild();
-    }
-    
-    public override InstructionType GetInstructionType()
-    {
-        return InstructionType.GET_VARIABLE;
-    }
+		if (current != null && !current.Equals(Source))
+		{
+			if (!IsRedirected)
+			{
+				Result.Join(current);
+			}
 
-    public override Result[] GetResultReferences()
-    {
-        if (Self != null)
-        {
-            return new Result[] { Result, Self };
-        }
-        else
-        {
-            return new Result[] { Result  };
-        }
-    }
+			Source.Join(current);
+		}
+	}
+
+	public override void OnBuild()
+	{
+		OnSimulate();
+
+		if (Self != null)
+		{
+			Memory.Convert(Unit, Self, true, HandleType.REGISTER);
+		}
+
+		base.OnBuild();
+	}
+	
+	public override InstructionType GetInstructionType()
+	{
+		return InstructionType.GET_VARIABLE;
+	}
+
+	public override Result[] GetResultReferences()
+	{
+		if (Self != null)
+		{
+			return new Result[] { Result, Self };
+		}
+		else
+		{
+			return new Result[] { Result  };
+		}
+	}
 }

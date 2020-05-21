@@ -1,33 +1,28 @@
 
 public class DuplicateInstruction : DualParameterInstruction
 {
-    public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value) {}
+	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value) {}
 
-    public override void OnBuild()
-    {
-        if (Result.Empty)
-        {
-            Result.Value = new RegisterHandle(Unit.GetNextRegister());
-        }
+	public override void OnBuild()
+	{
+		if (Result.Empty)
+		{
+			Result.Value = new RegisterHandle(Unit.GetNextRegister());
+		}
 
-        var move = new MoveInstruction(Unit, Result, Second);
-        move.Type = MoveType.LOAD;
+		var move = new MoveInstruction(Unit, Result, Second);
+		move.Type = MoveType.LOAD;
 
-        if (Second.Metadata.Primary != null)
-        {
-            Result.Metadata.Attach(Second.Metadata.Primary);
-        }
+		Unit.Append(move);
+	}
 
-        Unit.Append(move);
-    }
+	public override Result? GetDestinationDependency()
+	{
+		return Result;
+	}
 
-    public override Result? GetDestinationDependency()
-    {
-        return Result;
-    }
-
-    public override InstructionType GetInstructionType()
-    {
-        return InstructionType.DUPLICATE;
-    }
+	public override InstructionType GetInstructionType()
+	{
+		return InstructionType.DUPLICATE;
+	}
 }

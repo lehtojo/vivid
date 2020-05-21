@@ -1,3 +1,5 @@
+using System;
+
 public class Keyword
 {
 	public KeywordType Type { get; private set; }
@@ -9,5 +11,10 @@ public class Keyword
 	{
 		Type = type;
 		Identifier = identifier;
+	}
+
+	public T To<T>() where T : Keyword
+	{
+		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Keyword' to '{typeof(T).Name}'");
 	}
 }

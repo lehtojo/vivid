@@ -19,14 +19,14 @@ public class Label
 		throw new InvalidOperationException("Use method 'GetName' instead of 'ToString' when interacting with labels");
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Label label &&
-               Name == label.Name;
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is Label label &&
+			   Name == label.Name;
+	}
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Name);
-    }
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Name);
+	}
 }

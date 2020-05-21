@@ -3,6 +3,7 @@ using System;
 public class Token
 {
 	public int Type { get; private set; }
+	public bool IsFirst { get; set; } = false;
 	public Position Position { get; set; } = new Position();
 
 	public Token(int type)

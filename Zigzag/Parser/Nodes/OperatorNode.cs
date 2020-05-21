@@ -109,18 +109,18 @@ public class OperatorNode : Node, IType
 		return NodeType.OPERATOR_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is OperatorNode node &&
-               base.Equals(obj) &&
-               EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is OperatorNode node &&
+				base.Equals(obj) &&
+				EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Operator);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Operator);
+		return hash.ToHashCode();
+	}
 }

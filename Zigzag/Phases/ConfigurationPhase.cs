@@ -55,10 +55,11 @@ public class ConfigurationPhase : Phase
 					new Option() { Command = "-o <filename> / --output <filename>",    Description = "Sets the output filename (Default: z.asm, z.o, z, ...)" },
 					new Option() { Command = "-l <library> / --library <library>",     Description = "Includes a library to the compilation process" },
 					new Option() { Command = "--asm",                                  Description = "Exports the generated assembly to a file" },
-					new Option() { Command = "--shared",                               Description = "Sets the output type to shared library (.so)" },
-					new Option() { Command = "--static",                               Description = "Sets the output type to static library (.a)"},
+					new Option() { Command = "--shared",                               Description = "Sets the output type to shared library (.dll or .so)" },
+					new Option() { Command = "--static",                               Description = "Sets the output type to static library (.lib or .a)"},
 					new Option() { Command = "-st / --single-thread",                  Description = "Compiles on a single thread instead of multiple threads" },
-					new Option() { Command = "-q / --quiet",                           Description = "Suppresses the console output" }
+					new Option() { Command = "-q / --quiet",                           Description = "Suppresses the console output" },
+					new Option() { Command = "-f <bits> / --format <bits>",            Description = "Specifies the bitmode to use" }
 				};
 
 				Console.WriteLine
@@ -158,6 +159,22 @@ public class ConfigurationPhase : Phase
 			{
 				bundle.PutBool("time", true);
 				return Status.OK;
+			}
+
+			case "-f":
+			case "--format":
+			{
+				if (int.TryParse(parameters.Dequeue(), out int bits) && (bits == 64 || bits == 32))
+				{
+					Lexer.Size = Size.FromBytes(bits / 8);
+					Parser.Size = Size.FromBytes(bits / 8);
+					Assembler.Size = Size.FromBytes(bits / 8);
+					return Status.OK;
+				}
+				else
+				{
+					return Status.Error("Invalid format argument");
+				}
 			}
 
 			default:

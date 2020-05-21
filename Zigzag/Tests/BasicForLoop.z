@@ -1,0 +1,20 @@
+export basic_for_loop(start, count) {
+    result = start
+
+    i = 0
+    j = 0
+
+    loop (i, i < count, ++i) {
+        result += j
+        j += 3
+    }
+
+    => result
+}
+
+run() {
+	=> 1
+    
+    # Dummy for type resolvation
+    basic_for_loop(1, 1)
+}

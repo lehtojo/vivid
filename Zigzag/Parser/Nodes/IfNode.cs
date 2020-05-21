@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public class IfNode : Node
 {
@@ -31,6 +32,27 @@ public class IfNode : Node
 		{
 			throw new Exception("Couldn't add successor to a (else) if node");
 		}
+	}
+
+	public Node[] GetAllBranches()
+	{
+		var branches = new List<Node>() { Body };
+
+		if (Successor == null)
+		{
+			return branches.ToArray();
+		}
+		
+		if (Successor.Is(NodeType.ELSE_IF_NODE))
+		{
+			branches.AddRange(Successor.To<ElseIfNode>().GetAllBranches());
+		}
+		else
+		{
+			branches.Add(Successor);
+		}
+		
+		return branches.ToArray();
 	}
 
 	public override NodeType GetNodeType()

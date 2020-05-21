@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 
 public class UnresolvedIdentifier : Node, IResolvable
 {
-	private string Value { get; set; }
+	public string Value { get; private set; }
 
 	public UnresolvedIdentifier(string value)
 	{
@@ -41,15 +40,15 @@ public class UnresolvedIdentifier : Node, IResolvable
 		return Status.Error($"Couldn't resolve identifier '{Value}'");
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is UnresolvedIdentifier identifier &&
-               base.Equals(obj) &&
-               Value == identifier.Value;
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is UnresolvedIdentifier identifier &&
+				base.Equals(obj) &&
+				Value == identifier.Value;
+	}
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(base.GetHashCode(), Value);
-    }
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Value);
+	}
 }

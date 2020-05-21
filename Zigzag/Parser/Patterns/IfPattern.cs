@@ -21,21 +21,20 @@ public class IfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var keyword = (KeywordToken)tokens[KEYWORD];
+		var keyword = tokens[KEYWORD].To<KeywordToken>();
 
 		if (keyword.Keyword != Keywords.IF)
 		{
 			return false;
 		}
 
-		var body = (ContentToken)tokens[BODY];
-		return body.Type == ParenthesisType.CURLY_BRACKETS;
+		return tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		var condition = (DynamicToken)tokens[CONDITION];
-		var body = (ContentToken)tokens[BODY];
+		var condition = tokens[CONDITION].To<DynamicToken>();
+		var body = tokens[BODY].To<ContentToken>();
 
 		var context = new Context();
 		context.Link(environment);

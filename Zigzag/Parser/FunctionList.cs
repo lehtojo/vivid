@@ -17,18 +17,18 @@ public class FunctionList
 		Overloads.Add(function);
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is FunctionList list &&
-               EqualityComparer<List<Function>>.Default.Equals(Overloads, list.Overloads);
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is FunctionList list &&
+			   EqualityComparer<List<Function>>.Default.Equals(Overloads, list.Overloads);
+	}
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Overloads);
-    }
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Overloads);
+	}
 
-    public Function? this[int parameters]
+	public Function? this[int parameters]
 	{
 		get => Overloads.Find(o => o.Parameters.Count == parameters);
 	}

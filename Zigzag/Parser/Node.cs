@@ -23,6 +23,11 @@ public class Node
 		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Node' to '{typeof(T).Name}'");
 	}
 
+	public new Type GetType()
+	{
+		return (this as IType)?.GetType() ?? throw new ApplicationException($"Couldn't get type from {Enum.GetName(typeof(NodeType), GetNodeType())}");
+	}
+
 	public List<T> Select<T>(Func<Node, T> selector)
 	{
 		var result = new List<T>();
@@ -237,16 +242,16 @@ public class Node
 		return NodeType.NORMAL;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Node node &&
+	public override bool Equals(object? obj)
+	{
+		return obj is Node node &&
 			   GetNodeType() == node.GetNodeType() &&
-               EqualityComparer<Node?>.Default.Equals(Next, node.Next) &&
-               EqualityComparer<Node?>.Default.Equals(First, node.First);
-    }
+			   EqualityComparer<Node?>.Default.Equals(Next, node.Next) &&
+			   EqualityComparer<Node?>.Default.Equals(First, node.First);
+	}
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Next, First);
-    }
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Next, First);
+	}
 }

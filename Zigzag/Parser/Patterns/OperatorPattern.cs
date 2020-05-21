@@ -20,8 +20,7 @@ public class OperatorPattern : Pattern
 
 	public override int GetPriority(List<Token> tokens)
 	{
-		OperatorToken @operator = (OperatorToken)tokens[OPERATOR];
-		return @operator.Operator.Priority;
+		return tokens[OPERATOR].To<OperatorToken>().Operator.Priority;
 	}
 
 	public override bool Passes(Context context, List<Token> tokens)
@@ -31,7 +30,7 @@ public class OperatorPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var operation = (OperatorToken)tokens[OPERATOR];
+		var operation = tokens[OPERATOR].To<OperatorToken>();
 
 		var left = tokens[LEFT];
 		var right = tokens[RIGHT];

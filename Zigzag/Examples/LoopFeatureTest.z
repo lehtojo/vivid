@@ -1,0 +1,34 @@
+A {
+	value
+}
+
+B {
+	value
+}
+
+Holder {
+	a
+}
+
+loop_feature_test(count) {
+	result = 0
+
+	a = A()
+	a.value = 7
+	b = B()
+	b.value = 7
+
+	holder = Holder()
+	holder.a = a # Joo
+	#holder.a = b # Ei
+
+	loop (i = 0, i < count, ++i) {
+		++result
+	}
+
+	=> result
+}
+
+run() {
+	loop_feature_test(10)
+}

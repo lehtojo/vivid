@@ -10,7 +10,7 @@ class ReturnPattern : Pattern
 	// => ...
 	public ReturnPattern() : base
 	(
-		TokenType.OPERATOR, TokenType.NUMBER | TokenType.STRING | TokenType.DYNAMIC
+		TokenType.OPERATOR, TokenType.OBJECT
 	) {}
 
 	public override int GetPriority(List<Token> tokens)
@@ -20,8 +20,7 @@ class ReturnPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var @operator = (OperatorToken)tokens[RETURN];
-		return @operator.Operator == Operators.RETURN;
+		return tokens[RETURN].To<OperatorToken>().Operator == Operators.RETURN;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
@@ -33,7 +32,7 @@ class ReturnPattern : Pattern
 
 		if (function == null)
 		{
-			throw Errors.Get(tokens[RETURN].Position, "Return statement cannot be outside a function!");
+			throw Errors.Get(tokens[RETURN].Position, "Return statement cannot be outside a function");
 		}
 
 		if (token is NumberToken)

@@ -1,77 +1,87 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class SymmetryEndInstruction : Instruction
 {
-    public SymmetryStartInstruction Start  { get; private set; }
-    private List<Result> Loads { get; set; } = new List<Result>();
+	public SymmetryStartInstruction Start  { get; private set; }
+	private List<Result> Loads { get; set; } = new List<Result>();
 
-    public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit) 
-    {
-        Start = start;
-    }
+	public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit) 
+	{
+		Start = start;
+	}
 
-    public void Append()
-    {
-        foreach (var variable in Start.ActiveVariables)
-        {
-            var source = References.GetVariable(Unit, variable, AccessMode.READ);
-            Loads.Add(source);
-        }
-    }
+	public void Append()
+	{
+		foreach (var variable in Start.ActiveVariables)
+		{
+			var source = References.GetVariable(Unit, variable, AccessMode.READ);
+			Loads.Add(source);
+		}
+	}
 
-    public override void OnBuild()
-    {
-        var moves = new List<DualParameterInstruction>();
+	public override void OnBuild()
+	{
+		var moves = new List<DualParameterInstruction>();
 
-        for (var i = 0; i < Loads.Count; i++)
-        {
-            var source = Loads[i];
-            var destination = new Result(Start.Handles[i]);
+		for (var i = 0; i < Loads.Count; i++)
+		{
+			var source = Loads[i];
+			var destination = new Result(Start.Handles[i]);
 
-            moves.Add(new MoveInstruction(Unit, destination, source));
-        }
+			// Skip moves that are not necessary
+			if (source.Value.Equals(destination.Value))
+			{
+				continue;
+			}
 
-        var remove_list = new List<DualParameterInstruction>();
-        var exchanges = new List<ExchangeInstruction>();
+			var move = new MoveInstruction(Unit, destination, source);
+			move.Description = "Relocate the source in order to make the loop symmetric";
 
-        foreach (var a in moves)
-        {
-            foreach (var b in moves)
-            {
-                if (a == b) continue;
-                
-                if (a.First.Value.Equals(b.Second.Value) &&
-                    a.Second.Value.Equals(b.First.Value))
-                {
-                    exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second));
+			moves.Add(move);
+		}
 
-                    remove_list.Add(a);
-                    remove_list.Add(b);
-                    break;
-                }
-            }
-        }
+		var remove_list = new List<DualParameterInstruction>();
+		var exchanges = new List<ExchangeInstruction>();
 
-        moves.AddRange(exchanges);
-        moves.RemoveAll(m => remove_list.Contains(m));
+		foreach (var a in moves)
+		{
+			foreach (var b in moves)
+			{
+				if (a == b) continue;
+				
+				if (a.First.Value.Equals(b.Second.Value) &&
+					a.Second.Value.Equals(b.First.Value))
+				{
+					exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second));
 
-        moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? 1 : 0);
-        moves.ForEach(move => Unit.Append(move));
-    }
+					remove_list.Add(a);
+					remove_list.Add(b);
+					break;
+				}
+			}
+		}
 
-    public override Result? GetDestinationDependency()
-    {
-        throw new ApplicationException("Tried to redirect Symmetry-End-Instruction");
-    }
+		moves.AddRange(exchanges);
+		moves.RemoveAll(m => remove_list.Contains(m));
 
-    public override InstructionType GetInstructionType()
-    {
-        return InstructionType.SYMMETRY_END;
-    }
+		moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? -1 : 0);
+		moves.ForEach(move => Unit.Append(move));
+	}
 
-    public override Result[] GetResultReferences()
-    {
-        return new Result[] { Result };
-    }
+	public override Result? GetDestinationDependency()
+	{
+		throw new ApplicationException("Tried to redirect Symmetry-End-Instruction");
+	}
+
+	public override InstructionType GetInstructionType()
+	{
+		return InstructionType.SYMMETRY_END;
+	}
+
+	public override Result[] GetResultReferences()
+	{
+		return new Result[] { Result };
+	}
 }

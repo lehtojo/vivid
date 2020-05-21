@@ -95,9 +95,9 @@ public class Operators
 
 	public static Operator Get(string text)
 	{
-		if (Map.TryGetValue(text, out Operator? @operator))
+		if (Map.TryGetValue(text, out Operator? operation))
 		{
-			return @operator!;
+			return operation!;
 		}
 
 		throw new System.Exception($"Unknown operator '{text}'");

@@ -1,0 +1,14 @@
+import large_function()
+
+export basic_call_evacuation(a, b) {
+    c = a * b + 10
+    large_function()
+    => a + b + c
+}
+
+run() {
+	=> 1
+    
+    # Dummy for type resolvation
+    basic_call_evacuation(1, 1)
+}

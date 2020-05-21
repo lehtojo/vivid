@@ -1,0 +1,8 @@
+Holder {
+	public static Text = 'Banana'
+}
+
+run() {
+	Holder.Text = 'Banana'
+	=> Holder.Text[0] -> num
+}

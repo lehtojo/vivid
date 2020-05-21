@@ -1,30 +1,54 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 public class AssemblerPhase : Phase
 {
 	private const int EXIT_CODE_OK = 0;
 
 	private const string COMPILER = "yasm";
-	private const string LINKER = "link";
 
-	private const string COMPILER_DEBUG_ARGUMENT = "-g cv8";
-	private const string COMPILER_PLATFORM = "-f win32";
+	private const string WINDOWS_ASSEMBLER_FORMAT = "-f win";
+	private const string LINUX_ASSEMBLER_FORMAT = "-f elf";
 
-	private const string LINKER_SUBSYSTEM = "/subsystem:console";
-	private const string LINKER_DEFAULT_LIB = "/nodefaultlib";
-	private const string LINKER_ENTRY = "/entry:main";
-	private const string LINKER_DEBUG = "/debug";
-	private const string LINKER_LIBRARY_PATH = "/libpath:\"C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.18362.0\\um\\x86\"";
-	private const string LINKER_STANDARD_LIBRARY = "libz.obj";
+	private const string WINDOWS_ASSEMBLER_DEBUG_ARGUMENT = "-g cv8";
+	private const string LINUX_ASSEMBLER_DEBUG_ARGUMENT = "-g dwarf2";
+
+	private const string WINDOWS_LINKER = "link";
+	private const string LINUX_LINKER = "ld";
+
+	private const string WINDOWS_LINKER_SUBSYSTEM = "/subsystem:console";
+	private const string WINDOWS_LINKER_DEFAULT_LIB = "/nodefaultlib";
+	private const string WINDOWS_LINKER_ENTRY = "/entry:function_run";
+	private const string WINDOWS_LINKER_DEBUG = "/debug";
+	private const string WINDOWS_LARGE_ADDRESS_UNAWARE = "/largeaddressaware:no";
+
+	private const string LINUX_SHARED_LIBRARY_FLAG = "--shared";
+	private const string LINUX_STATIC_LIBRARY_FLAG = "--static";
+
+	private const string WINDOWS_SHARED_LIBRARY_FLAG = "/dll";
+
+	private const string STANDARD_LIBRARY = "libz";
 
 	private const string ERROR = "Internal assembler failed";
 
+	private bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+	private string AssemblerFormat => (IsLinux ? LINUX_ASSEMBLER_FORMAT : WINDOWS_ASSEMBLER_FORMAT) + Assembler.Size.Bits;
+	private string AssemblerDebugArgument => IsLinux ? LINUX_ASSEMBLER_DEBUG_ARGUMENT : WINDOWS_ASSEMBLER_DEBUG_ARGUMENT;
+	private string ObjectFileExtension => IsLinux ? ".o" : ".obj";
+	private string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
+	private string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
+	private string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
+
+	/// <symmary>
+	/// Runs the specified executable with the given arguments
+	/// </summary>
 	private Status Run(string executable, List<string> arguments)
 	{
-		ProcessStartInfo configuration = new ProcessStartInfo()
+		var configuration = new ProcessStartInfo()
 		{
 			FileName = executable,
 			Arguments = string.Join(' ', arguments),
@@ -39,7 +63,21 @@ public class AssemblerPhase : Phase
 			var process = Process.Start(configuration);
 			process.WaitForExit();
 
-			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR + "\n" + process.StandardError.ReadToEnd());
+			var output = string.Empty;
+
+			var standard_output = process.StandardOutput.ReadToEnd();
+			var standard_error = process.StandardError.ReadToEnd();
+
+			if (string.IsNullOrEmpty(standard_output) || string.IsNullOrEmpty(standard_error))
+			{
+				output = standard_output + standard_error;
+			}
+			else
+			{
+				output = $"Output:\n{standard_output}\n\n\nError(s):\n{standard_error}"; 
+			}
+
+			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR + "\n" + output);
 		}
 		catch
 		{
@@ -47,32 +85,36 @@ public class AssemblerPhase : Phase
 		}
 	}
 
-	private Status Compile(Bundle bundle, string input, string output)
+	/// <summary>
+	/// Compiles the specified input file and exports the result with the specified output filename
+	/// </summary>
+	private Status Compile(Bundle bundle, string input_file, string output_file)
 	{
 		var debug = bundle.Get("debug", false);
-		var delete = !bundle.Get("assembly", false);
+		var keep_assembly = bundle.Get("assembly", false);
 
 		var arguments = new List<string>();
 
 		if (debug)
 		{
-			arguments.Add(COMPILER_DEBUG_ARGUMENT);
+			arguments.Add(AssemblerDebugArgument);
 		}
 
+		// Add assembler format and output filename
 		arguments.AddRange(new string[]
 		{
-			COMPILER_PLATFORM,
-			$"-o {output}",
-			input
+			AssemblerFormat,
+			$"-o {output_file}",
+			input_file
 		});
 
 		var status = Run(COMPILER, arguments);
 
-		if (delete)
+		if (!keep_assembly)
 		{
 			try
 			{
-				File.Delete(input);
+				File.Delete(input_file);
 			}
 			catch
 			{
@@ -83,30 +125,123 @@ public class AssemblerPhase : Phase
 		return status;
 	}
 
-	private Status Link(Bundle bundle, string input, string output)
+	/// <summary>
+	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
+	/// </summary>
+	private Status Windows_Link(Bundle bundle, string input_file, string output_name)
 	{
-		List<string> arguments = new List<string>()
+		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
+		var output_extension = ".exe";
+
+		if (output_type == BinaryType.SHARED_LIBRARY)
 		{
-			$"/out:{output + ".exe"}",
-			LINKER_SUBSYSTEM,
-			LINKER_DEFAULT_LIB,
-			LINKER_ENTRY,
-			LINKER_DEBUG,
-			LINKER_LIBRARY_PATH,
+			output_extension = SharedLibraryExtension;
+		}
+		else if (output_type == BinaryType.STATIC_LIBRARY)
+		{
+			output_extension = StaticLibraryExtension;
+		}
+
+		// Provide all folders in PATH to linker as library paths
+		var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
+		var library_paths = path.Split(';').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"/libpath:\"{p}\"").Select(p => p.Replace('\\', '/'));
+
+		var arguments = new List<string>()
+		{
+			$"/out:{output_name + output_extension}",
+			WINDOWS_LINKER_SUBSYSTEM,
+			WINDOWS_LINKER_ENTRY,
+			WINDOWS_LINKER_DEBUG,
+			WINDOWS_LARGE_ADDRESS_UNAWARE,
 			"kernel32.lib",
 			"user32.lib",
-			input,
-			LINKER_STANDARD_LIBRARY
+			input_file,
+			StandardLibrary
 		};
+
+		if (output_type == BinaryType.SHARED_LIBRARY)
+		{
+			arguments.Add(WINDOWS_SHARED_LIBRARY_FLAG);
+		}
+		else if (output_type == BinaryType.STATIC_LIBRARY)
+		{
+			return Status.Error("Static libraries on Windows are not supported yet");
+		}
+
+		arguments.AddRange(library_paths);
 
 		var libraries = bundle.Get("libraries", new string[] { });
 
-		foreach (string library in libraries)
+		foreach (var library in libraries)
+		{
+			arguments.Add(library);
+		}
+
+		var result = Run(WINDOWS_LINKER, arguments);
+
+		try
+		{
+			File.Delete(input_file);
+		}
+		catch
+		{
+			Console.WriteLine("Warning: Couldn't remove generated object file");
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
+	/// </summary>
+	private Status Linux_Link(Bundle bundle, string input_file, string output_file)
+	{
+		var arguments = (List<string>?)null;
+		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
+
+		if (output_type != BinaryType.EXECUTABLE)
+		{
+			var extension = output_type == BinaryType.SHARED_LIBRARY ? SharedLibraryExtension : StaticLibraryExtension;
+
+			var flag = output_type == BinaryType.SHARED_LIBRARY ? LINUX_SHARED_LIBRARY_FLAG : LINUX_STATIC_LIBRARY_FLAG;
+
+			arguments = new List<string>()
+			{
+				flag,
+				$"-o {output_file}{extension}",
+				input_file,
+				StandardLibrary
+			};
+		}
+		else
+		{
+			arguments = new List<string>()
+			{
+				$"-o {output_file}",
+				input_file,
+				StandardLibrary
+			};
+		}
+
+		var libraries = bundle.Get("libraries", new string[] { });
+
+		foreach (var library in libraries)
 		{
 			arguments.Add("-l" + library);
 		}
 
-		return Run(LINKER, arguments);
+		var result = Run(LINUX_LINKER, arguments);
+
+		try
+		{
+			File.Delete(input_file);
+		}
+		catch
+		{
+			Console.WriteLine("Warning: Couldn't remove generated object file");
+		}
+
+		return result;
 	}
 
 	public override Status Execute(Bundle bundle)
@@ -117,14 +252,13 @@ public class AssemblerPhase : Phase
 		}
 
 		var parse = bundle.Get<Parse>("parse");
-		var only_assembly = bundle.Get("assembly", false);
 
 		var output_file = bundle.Get("output", ConfigurationPhase.DEFAULT_OUTPUT);
 		var source_file = output_file + ".asm";
-		var object_file = output_file + ".obj";
+		var object_file = output_file + ObjectFileExtension;
 
 		var context = parse.Context;
-		var assembly = Assembler.Assemble(context, 64).TrimEnd();
+		var assembly = Assembler.Assemble(context).TrimEnd();
 
 		try
 		{
@@ -135,11 +269,6 @@ public class AssemblerPhase : Phase
 			return Status.Error("Couldn't move generated assembly into a file");
 		}
 
-		if (only_assembly)
-		{
-			return Status.OK;
-		}
-
 		Status status;
 
 		if ((status = Compile(bundle, source_file, object_file)).IsProblematic)
@@ -147,11 +276,13 @@ public class AssemblerPhase : Phase
 			return status;
 		}
 
-		if ((status = Link(bundle, object_file, output_file)).IsProblematic)
+		if (IsLinux)
 		{
-			return status;
+			return Linux_Link(bundle, object_file, output_file);
 		}
-
-		return Status.OK;
+		else
+		{
+			return Windows_Link(bundle, object_file, output_file);
+		}
 	}
 }

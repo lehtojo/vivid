@@ -1,18 +1,18 @@
 public abstract class DualParameterInstruction : Instruction
 {
-    public Result First { get; private set; }
-    public Result Second { get; private set; }
+	public Result First { get; private set; }
+	public Result Second { get; private set; }
 
-    public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
+	public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
 
-    public DualParameterInstruction(Unit unit, Result first, Result second) : base(unit)
-    {
-        First = first;
-        Second = second;
-    }
+	public DualParameterInstruction(Unit unit, Result first, Result second) : base(unit)
+	{
+		First = first;
+		Second = second;
+	}
 
-    public override Result[] GetResultReferences()
-    {
-        return new Result[] { Result, First, Second };
-    }
+	public override Result[] GetResultReferences()
+	{
+		return new Result[] { Result, First, Second };
+	}
 }

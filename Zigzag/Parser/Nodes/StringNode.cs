@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class StringNode : Node, IType
+public class StringNode : Node, IType, ICloneable
 {
 	public string Text { get; private set; }
 	private string? Identifier { get; set; }
@@ -21,23 +21,31 @@ public class StringNode : Node, IType
 		return Types.LINK;
 	}
 
+	public object Clone()
+	{
+		return new StringNode(Text)
+		{
+			Identifier = Identifier
+		};
+	}
+
 	public override NodeType GetNodeType()
 	{
 		return NodeType.STRING_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is StringNode node &&
-               base.Equals(obj) &&
-               Text == node.Text;
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is StringNode node &&
+				base.Equals(obj) &&
+				Text == node.Text;
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Text);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Text);
+		return hash.ToHashCode();
+	}
 }

@@ -1,14 +1,17 @@
 f(a, b) {
-    o = 0
+    x = 2 * a
+    y = 7 + b + x
 
-    if a + f(a - o, b + o) > b {
-        x = a + a
-        z = x * x
-        o = 3 * z + x + f(x, a)
+    if x > 10 {
+        x += y
+        y *= 10 + x
+    }
+    else {
+        x -= y
+        y /= 10 + x
     }
 
-    c = a + b - o
-    => c
+    => x + a + y + b
 }
 
 run() {

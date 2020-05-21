@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public class VariableDeclarationPattern : Pattern
 {
-	public const int PRIORITY = 2;
+	public const int PRIORITY = 19;
 
 	public const int NAME = 0;
 	public const int OPERATOR = 1;
@@ -11,7 +11,7 @@ public class VariableDeclarationPattern : Pattern
 	// Example: apples: num[]
 	public VariableDeclarationPattern() : base
 	(
-        TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.IDENTIFIER
+		TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.IDENTIFIER
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -42,6 +42,7 @@ public class VariableDeclarationPattern : Pattern
 		var type = context.GetType(type_name) ?? throw Errors.Get(tokens[TYPE].Position, $"Couldn't resolve variable type '{type_name}'");
 
 		var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
+		var is_constant = !context.IsInsideFunction && !context.IsInsideType;
 
 		var variable = new Variable
 		(
@@ -49,7 +50,7 @@ public class VariableDeclarationPattern : Pattern
 			type,
 			category,
 			name.Value,
-			AccessModifier.PUBLIC
+			AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
 		);
 
 		return new VariableNode(variable);

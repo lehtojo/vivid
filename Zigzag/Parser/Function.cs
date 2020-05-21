@@ -20,7 +20,7 @@ public class Function : Context
 
 	public int Modifiers { get; private set; }
 
-	public List<string> Parameters { get; private set; }
+	public List<string> Parameters { get; set; } = new List<string>();
 	public List<Token> Blueprint { get; private set; }
 	public List<Node> References { get; private set; } = new List<Node>();
 
@@ -28,7 +28,8 @@ public class Function : Context
 
 	public bool IsUsed => References.Count > 0;
 	public bool IsConstructor => this is Constructor;
-	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
+	public bool IsImported => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
+	public bool IsExported => Flag.Has(Modifiers, AccessModifier.GLOBAL);
 	public bool IsResponsible => Flag.Has(Modifiers, AccessModifier.RESPONSIBLE);
 
 	/// <summary>
@@ -37,15 +38,13 @@ public class Function : Context
 	/// <param name="context">Context to link into</param>
 	/// <param name="modifiers">Function access modifiers</param>
 	/// <param name="name">Function name</param>
-	/// <param name="parameters">Function parameter names</param>
 	/// <param name="blueprint">Function blueprint is used to create implementations of this function</param>
-	public Function(Context context, int modifiers, string name, List<string> parameters, List<Token> blueprint)
+	public Function(Context context, int modifiers, string name, List<Token> blueprint)
 	{
 		Parent = context;
 		Name = name;
 		Prefix = "Function";
 		Modifiers = modifiers;
-		Parameters = parameters;
 		Blueprint = blueprint;
 	}
 
@@ -132,39 +131,47 @@ public class Function : Context
 		return Implement(parameters);
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Function function &&
-               EqualityComparer<List<Context>>.Default.Equals(Subcontexts, function.Subcontexts) &&
-               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, function.Variables) &&
-               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, function.Functions) &&
-               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, function.Types) &&
-               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, function.Labels) &&
-               Modifiers == function.Modifiers &&
-               EqualityComparer<List<string>>.Default.Equals(Parameters, function.Parameters) &&
-               EqualityComparer<int>.Default.Equals(References.Count, function.References.Count) &&
-               EqualityComparer<List<FunctionImplementation>>.Default.Equals(Implementations, function.Implementations);
-    }
+	public override string GetFullname()
+	{
+		if (IsImported)
+		{
+			return Name;
+		}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(Subcontexts);
-        hash.Add(Variables);
-        hash.Add(Functions);
-        hash.Add(Types);
-        hash.Add(Labels);
-        hash.Add(Modifiers);
-        hash.Add(Parameters);
-        hash.Add(References.Count);
-        hash.Add(Implementations);
-        return hash.ToHashCode();
-    }
+		return base.GetFullname();
+	}
 
-    public FunctionImplementation? this[List<Type> parameters]
+	public override bool Equals(object? obj)
+	{
+		return obj is Function function &&
+			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, function.Subcontexts) &&
+			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, function.Variables) &&
+			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, function.Functions) &&
+			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, function.Types) &&
+			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, function.Labels) &&
+			   Modifiers == function.Modifiers &&
+			   EqualityComparer<List<string>>.Default.Equals(Parameters, function.Parameters) &&
+			   EqualityComparer<int>.Default.Equals(References.Count, function.References.Count) &&
+			   EqualityComparer<List<FunctionImplementation>>.Default.Equals(Implementations, function.Implementations);
+	}
+
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(Subcontexts);
+		hash.Add(Variables);
+		hash.Add(Functions);
+		hash.Add(Types);
+		hash.Add(Labels);
+		hash.Add(Modifiers);
+		hash.Add(Parameters);
+		hash.Add(References.Count);
+		hash.Add(Implementations);
+		return hash.ToHashCode();
+	}
+
+	public FunctionImplementation? this[List<Type> parameters]
 	{
 		get => Get(parameters);
 	}
-
-	
 }

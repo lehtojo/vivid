@@ -3,46 +3,38 @@ using System;
 public class CallInstruction : Instruction
 {
     public string Function { get; private set; }
+    public CallingConvention Convention { get; private set; }
+    public Instruction[] ParameterInstructions { get; set; } = new Instruction[0];
 
-    public CallInstruction(Unit unit, string function) : base(unit)
+    public CallInstruction(Unit unit, string function, CallingConvention convention) : base(unit)
     {
         Function = function;
+        Convention = convention;
     }
 
-    public void Evacuate()
+    /// <summary>
+    /// Iterates through the volatile registers and ensures that they don't contain any important values which are needed later
+    /// </summary>
+    private void ValidateEvacuation()
     {
-        Unit.VolatileRegisters.ForEach(source => 
+        foreach (var register in Unit.VolatileRegisters)
         {
-            if (!source.IsAvailable(Position)) 
+            if (!register.IsAvailable(Position))
             {
-                var destination = (Handle?)null;
-                var register = Unit.GetNextNonVolatileRegister();
-                
-                if (register != null) 
-                {
-                    destination = new RegisterHandle(register);
-                }
-                else
-                {
-                    throw new NotImplementedException("Stack move required but not implemented");
-                }
-
-                var move = new MoveInstruction(Unit, new Result(destination), source.Handle!);
-                move.Type = MoveType.RELOCATE;
-
-                Unit.Append(move);
+                throw new ApplicationException("Detected failure in register evacuation");
             }
-
-            source.Reset();
-        });
+        }
     }
 
     public override void OnBuild()
     {
-        // Move all values that are later needed to safe registers or to stack
-        Evacuate();
-        
+        // Validate evacuation since it's very important to be correct
+        ValidateEvacuation();
+
         Build($"call {Function}");
+
+        // After a call all volatile registers might be changed
+        Unit.VolatileRegisters.ForEach(r => r.Reset());
 
         // Returns value is always in the following handle
         var register = Unit.GetStandardReturnRegister();

@@ -2,7 +2,7 @@
 
 class AssignPattern : Pattern
 {
-	public const int PRIORITY = 19;
+	public const int PRIORITY = 18;
 
 	public const int DESTINATION = 0;
 	public const int OPERATOR = 1;
@@ -21,13 +21,12 @@ class AssignPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var operation = (OperatorToken)tokens[OPERATOR];
-		return operation.Operator == Operators.ASSIGN;
+		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.ASSIGN;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var destination = (IdentifierToken)tokens[DESTINATION];
+		var destination = tokens[DESTINATION].To<IdentifierToken>();
 
 		if (!context.IsVariableDeclared(destination.Value))
 		{
@@ -37,6 +36,7 @@ class AssignPattern : Pattern
 			}
 
 			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
+			var is_constant = !context.IsInsideFunction && !context.IsInsideType;
 
 			var variable = new Variable
 			(
@@ -44,7 +44,7 @@ class AssignPattern : Pattern
 				Types.UNKNOWN,
 				category,
 				destination.Value,
-				AccessModifier.PUBLIC
+				AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
 			);
 
 			return new VariableNode(variable);

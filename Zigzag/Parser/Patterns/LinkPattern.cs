@@ -8,12 +8,14 @@ public class LinkPattern : Pattern
 	private const int RIGHT = 4;
 
 	// ... [\n] . [\n] ...
-	public LinkPattern() : base(TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC,  /* ... */
-								TokenType.END | TokenType.OPTIONAL, /* [\n] */
-								TokenType.OPERATOR, /* . */
-								TokenType.END | TokenType.OPTIONAL, /* [\n] */
-								TokenType.FUNCTION | TokenType.IDENTIFIER) /* ... */
-	{ }
+	public LinkPattern() : base
+	(
+		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC,
+		TokenType.END | TokenType.OPTIONAL,
+		TokenType.OPERATOR,
+		TokenType.END | TokenType.OPTIONAL,
+		TokenType.FUNCTION | TokenType.IDENTIFIER
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -42,8 +44,8 @@ public class LinkPattern : Pattern
 
 	public override Node Build(Context environment, List<Token> tokens)
 	{
-		Node left = Singleton.Parse(environment, tokens[LEFT]);
-		Node right;
+		var left = Singleton.Parse(environment, tokens[LEFT]);
+		var right = (Node?)null;
 
 		if (left is IType type)
 		{

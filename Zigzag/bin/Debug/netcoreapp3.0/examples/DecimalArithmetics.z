@@ -1,9 +1,17 @@
-run() {
-    a = 1.0
-    b = 2.0
-    c = a + b
-    d = c + a * 2.0
+basic_calculation(a, b) {
+    => a + b - a * b / (1.0 + a) + 3.14159
+}
 
-    storage = decimal[c]
-    storage[9] = d
+decimal_array_test(a, b, c) {
+    array = decimal[(a + c) as num]
+    array[a as num] = b + c
+    => array[(b + 7) as num] + c
+}
+
+run() {
+    a = 100.0
+    b = 700.0
+    c = basic_calculation(a, b)
+    d = decimal_array_test(a, b, c)
+    => a + b + c + d
 }

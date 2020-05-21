@@ -89,6 +89,7 @@ public class Patterns
 		Add(new ElsePattern());
 		Add(new FunctionPattern());
 		Add(new IfPattern());
+		Add(new ImportPattern());
 		Add(new IncrementPattern());
 		Add(new LinkPattern());
 		Add(new LoopControlPattern());

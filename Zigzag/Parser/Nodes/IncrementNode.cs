@@ -17,18 +17,18 @@ public class IncrementNode : Node
 		return NodeType.INCREMENT_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is IncrementNode node &&
-               base.Equals(obj) &&
-               Post == node.Post;
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is IncrementNode node &&
+			   base.Equals(obj) &&
+			   Post == node.Post;
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Post);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Post);
+		return hash.ToHashCode();
+	}
 }

@@ -4,195 +4,212 @@ using System;
 
 public enum JoinSettings
 {
-    /// <summary>
-    /// Normal send and receive
-    /// </summary>
-    DEFAULT,
-    /// <summary>
-    /// Filters all the changes coming from the other system
-    /// </summary>
-    DISABLE_RECEIVE,
-    /// <summary>
-    /// Filters all the changes leaving to the other system
-    /// </summary>
-    DISABLE_SEND
+	/// <summary>
+	/// Normal send and receive
+	/// </summary>
+	DEFAULT,
+	/// <summary>
+	/// Filters all the changes coming from the other system
+	/// </summary>
+	DISABLE_RECEIVE,
+	/// <summary>
+	/// Filters all the changes leaving to the other system
+	/// </summary>
+	DISABLE_SEND
 }
 
 public struct Connection
 {
-    public Result Result;
-    public bool IsSendingEnabled;
+	public Result Result;
+	public bool IsSendingEnabled;
 }
 
 public class Result
 {
-    public Instruction? Instruction { get; set; }
+	public Instruction? Instruction { get; set; }
 
-    private Metadata _Metadata = new Metadata();
-    public Metadata Metadata { 
-        get => _Metadata; 
-        set {
-            _Metadata = value;
-            Connections.ForEach(c => {
-                if (c.IsSendingEnabled) {
-                    c.Result._Metadata = value;
-                }
-            });
-        }
-    }
+	private Metadata _Metadata = new Metadata();
+	public Metadata Metadata { 
+		get => _Metadata; 
+		set {
+			_Metadata = value;
+			Connections.ForEach(c => {
+				if (c.IsSendingEnabled) {
+					c.Result._Metadata = value;
+				}
+			});
+		}
+	}
 
-    private Handle _Value;
-    public Handle Value {
-        get => _Value;
-        set {
-            _Value = value;
-            Connections.ForEach(c => {
-                if (c.IsSendingEnabled) {
-                    c.Result._Value = value;
-                }
-            });
-        }
-    }
+	private Handle _Value;
+	public Handle Value {
+		get => _Value;
+		set {
+			_Value = value;
+			Connections.ForEach(c => {
+				if (c.IsSendingEnabled) {
+					c.Result._Value = value;
+				}
+			});
+		}
+	}
 
-    public Lifetime Lifetime { get; private set; } = new Lifetime();
+	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
-    private List<Connection> Connections = new List<Connection>();
-    private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
-    private IEnumerable<Result> Others => Connections.Select(c => c.Result);
+	private List<Connection> Connections = new List<Connection>();
+	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
+	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 
-    public bool Empty => _Value.Type == HandleType.NONE;
+	public bool Empty => _Value.Type == HandleType.NONE;
 
-    public bool IsReleasable()
-    {
-        // Prevent releasing this pointer
-        if (Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsThisPointer)
-        {
-            return false;
-        }
+	public bool IsReleasable()
+	{
+		// Prevent releasing this pointer
+		if (Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsThisPointer)
+		{
+			return false;
+		}
 
-        return Metadata.Variables.Count() > 0 && Metadata.Variables.All(v => v.Variable.IsPredictable);
-    }
+		return Metadata.Variables.Count() > 0 && Metadata.Variables.All(v => v.Variable.IsPredictable);
+	}
 
-    public Result(Instruction instruction)
-    {
-        _Value = new Handle();
-        Instruction = instruction;
-    }
+	public Result(Instruction instruction)
+	{
+		_Value = new Handle();
+		Instruction = instruction;
+	}
 
-    public Result(Instruction instruction, Handle value)
-    {
-        _Value = value;
-        Instruction = instruction;
-    }
+	public Result(Instruction instruction, Handle value)
+	{
+		_Value = value;
+		Instruction = instruction;
+	}
 
-    public Result(Handle value)
-    {
-        _Value = value;
-    }
+	public Result(Handle value)
+	{
+		_Value = value;
+	}
 
-    public Result()
-    {
-        _Value = new Handle();
-    }
+	public Result()
+	{
+		_Value = new Handle();
+	}
 
-    /// <summary>
-    /// Connects this result to the other system (doesn't make duplicates)
-    /// </summary>
-    private void Connect(IEnumerable<Result> system)
-    {
-        Connections.AddRange(system
-            .Where(result => System.All(m => m != result))
-            .Select(result => new Connection() {
-                Result = result,
-                IsSendingEnabled = true
-            })
-        );
-    }
+	/// <summary>
+	/// Connects this result to the other system (doesn't make duplicates)
+	/// </summary>
+	private void Connect(IEnumerable<Result> system)
+	{
+		Connections.AddRange(system
+			.Where(result => System.All(m => m != result))
+			.Select(result => new Connection() {
+				Result = result,
+				IsSendingEnabled = true
+			})
+		);
+	}
 
-    private void Update()
-    {
-        // Update the value to the same because it sends an update wave which corrects all values across the system
-        Metadata = Metadata;
-        Value = Value;
+	private void Update()
+	{
+		// Update the value to the same because it sends an update wave which corrects all values across the system
+		Metadata = Metadata;
+		Value = Value;
 
-        /// TODO: Turn into automatic update?
-        foreach (var member in Others)
-        {
-            member.Instruction = Instruction;
-            member.Lifetime = Lifetime;
-        }
-    }
+		/// TODO: Turn into automatic update?
+		foreach (var member in Others)
+		{
+			member.Instruction = Instruction;
+			member.Lifetime = Lifetime;
+		}
+	}
 
-    public void Join(Result parent)
-    {
-        foreach (var member in System)
-        {
-            member.Connect(parent.System);
-        }
+	private void Disconnect()
+	{
+		foreach (var member in Others)
+		{
+			var connection = member.Connections.FindIndex(c => c.Result == this);
 
-        foreach (var member in parent.System)
-        {
-            member.Connect(System);
-        }
+			if (connection != -1)
+			{
+				member.Connections.RemoveAt(connection);
+			}
+		}
 
-        parent.Update();
-    }
+		Connections.Clear();
+	}
 
-    public bool IsExpiring(int position)
-    {
-        return position == -1 || !Lifetime.IsActive(position + 1);
-    }
+	public void Join(Result parent)
+	{
+		Disconnect();
+		
+		foreach (var member in System)
+		{
+			member.Connect(parent.System);
+		}
 
-    public bool IsValid(int position)
-    {
-        return Lifetime.IsActive(position);
-    }
+		foreach (var member in parent.System)
+		{
+			member.Connect(System);
+		}
 
-    public void Use(int position)
-    {
-        if (position > Lifetime.End)
-        {
-            Lifetime.End = position;
-        }
+		parent.Update();
+	}
 
-        if (Lifetime.Start == -1 || position < Lifetime.Start)
-        {
-            Lifetime.Start = position;
-        }
+	public bool IsExpiring(int position)
+	{
+		return position == -1 || !Lifetime.IsActive(position + 1);
+	}
 
-        Value.Use(position);
-        Connections.ForEach(c => {
-            if (c.IsSendingEnabled) {
-                c.Result.Lifetime = Lifetime.Clone();
-            }
-        });
-    }
+	public bool IsValid(int position)
+	{
+		return Lifetime.IsActive(position);
+	}
 
-    public void Set(Handle value, bool force = false)
-    {
-        if (force)
-        {
-            // Do not care about the value permissions
-            System.ToList().ForEach(r => r._Value = value);
-        }
-        else
-        {
-            Value = value;
-        }
-    }
+	public void Use(int position)
+	{
+		if (position > Lifetime.End)
+		{
+			Lifetime.End = position;
+		}
 
-    public override bool Equals(object? other)
-    {
-        return base.Equals(other) || other is Result result && result.Connections.Exists(c => c.Result == this);
-    }
+		if (Lifetime.Start == -1 || position < Lifetime.Start)
+		{
+			Lifetime.Start = position;
+		}
 
-    public override int GetHashCode()
-    {
-        throw new NotImplementedException();
-    }
+		Value.Use(position);
+		Connections.ForEach(c => {
+			if (c.IsSendingEnabled) {
+				c.Result.Lifetime = Lifetime.Clone();
+			}
+		});
+	}
 
-    public override string ToString() 
-    {
-        return Value?.ToString() ?? throw new InvalidOperationException("Missing value");
-    }
+	public void Set(Handle value, bool force = false)
+	{
+		if (force)
+		{
+			// Do not care about the value permissions
+			System.ToList().ForEach(r => r._Value = value);
+		}
+		else
+		{
+			Value = value;
+		}
+	}
+
+	public override bool Equals(object? other)
+	{
+		return base.Equals(other) || other is Result result && result.Connections.Exists(c => c.Result == this);
+	}
+
+	public override int GetHashCode()
+	{
+		return 0;
+	}
+
+	public override string ToString() 
+	{
+		return Value?.ToString() ?? throw new InvalidOperationException("Missing value");
+	}
 }

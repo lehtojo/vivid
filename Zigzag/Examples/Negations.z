@@ -1,0 +1,10 @@
+negate(x) {
+   x = -x
+   => x
+}
+
+run() {
+   a = -7
+   b = negate(a)
+   c = negate(-a)
+}

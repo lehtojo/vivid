@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Lexer
 {
-	public static Size Size { get; private set; } = Size.QWORD;
+	public static Size Size { get; set; } = Size.QWORD;
 
 	public const char COMMENT = '#';
 	public const char STRING = '\'';
@@ -357,7 +358,7 @@ public class Lexer
 			}
 
 			var type = GetType(current_symbol);
-			var previous_symbol = position.Absolute == 0 ? (char)0 : text[position.Absolute];
+			var previous_symbol = position.Absolute == 0 ? (char)0 : text[position.Absolute - 1];
 
 			if (!IsPartOf(area.Type, type, previous_symbol, current_symbol))
 			{
@@ -526,6 +527,11 @@ public class Lexer
 
 		CreateFunctionCalls(tokens);
 		JoinModifiers(tokens);
+
+		if (tokens.Count > 0)
+		{
+			tokens.First().IsFirst = true;
+		}
 
 		return tokens;
 	}

@@ -1,0 +1,28 @@
+test(a, b) {
+	array = normal[10]
+	array[7] = 7
+
+	array = normal[a + b]
+	array[b] = array[1]
+}
+
+copy_array(source, destination, length) {
+	i = 0
+	loop (i, i < length, ++i) {
+		destination[i] = source[i]
+	}
+}
+
+run() {
+	test(1, 2)
+
+	source1 = num[10]
+	destination1 = num[10]
+
+	copy_array(source1, destination1, 10)
+
+	source2 = byte[10]
+	destination2 = byte[10]
+
+	copy_array(source2, destination2, 10)
+}

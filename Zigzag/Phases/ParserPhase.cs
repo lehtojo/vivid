@@ -25,7 +25,7 @@ public class ParserPhase : Phase
 		{
 			if (node.GetNodeType() == NodeType.TYPE_NODE)
 			{
-				TypeNode type = (TypeNode)node;
+				var type = (TypeNode)node;
 
 				Run(() =>
 				{
@@ -86,6 +86,11 @@ public class ParserPhase : Phase
 
 		Sync();
 
+		if (Failed)
+		{
+			return Status.Error(GetTaskErrors());
+		}
+
 		// Parse types, subtypes and their members
 		for (int i = 0; i < files.Length; i++)
 		{
@@ -99,6 +104,11 @@ public class ParserPhase : Phase
 		}
 
 		Sync();
+
+		if (Failed)
+		{
+			return Status.Error(GetTaskErrors());
+		}
 
 		// Merge all parsed files
 		var context = new Context();

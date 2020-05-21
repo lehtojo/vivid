@@ -20,14 +20,13 @@ public class TypePattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var body = (ContentToken)tokens[BODY];
-		return body.Type != ParenthesisType.BRACKETS;
+		return tokens[BODY].To<ContentToken>().Type != ParenthesisType.BRACKETS;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var name = (IdentifierToken)tokens[NAME];
-		var body = (ContentToken)tokens[BODY];
+		var name = tokens[NAME].To<IdentifierToken>();
+		var body = tokens[BODY].To<ContentToken>();
 
 		var type = new Type(context, name.Value, AccessModifier.PUBLIC);
 

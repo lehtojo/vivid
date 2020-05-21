@@ -17,7 +17,7 @@ public class Chain
 	/// Executes the configured phases with the given bundle
 	/// </summary>
 	/// <param name="bundle">Bundle to pass to the phases</param>
-	public void Execute(Bundle bundle)
+	public bool Execute(Bundle bundle)
 	{
 		foreach (var template in Phases)
 		{
@@ -39,7 +39,7 @@ public class Chain
 				if (status.IsProblematic)
 				{
 					Console.Error.WriteLine($"Terminated: {status.Description}");
-					break;
+					return false;
 				}
 
 				phase.Sync();
@@ -47,19 +47,22 @@ public class Chain
 				if (status.IsProblematic)
 				{
 					Console.Error.WriteLine($"Terminated: {status.Description}");
-					break;
+					return false;
 				}
 				else if (phase.Failed)
 				{
 					Console.Error.WriteLine($"Terminated: {phase.GetTaskErrors()}");
-					break;
+					return false;
 				}
 			}
 			catch (Exception e)
 			{
 				Console.Error.WriteLine("Internal error: " + e.Message);
-				return;
+				return false;
 			}
 		}
+
+
+		return true;
 	}
 }

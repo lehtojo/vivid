@@ -26,6 +26,6 @@ public class LoopControlPattern : Pattern
 
 	public override Node? Build(Context context, List<Token> tokens)
 	{
-        return new LoopControlNode(tokens[INSTRUCTION].To<KeywordToken>().Keyword);
+		return new LoopControlNode(tokens[INSTRUCTION].To<KeywordToken>().Keyword);
 	}
 }

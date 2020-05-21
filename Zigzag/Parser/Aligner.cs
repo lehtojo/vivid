@@ -34,7 +34,7 @@ public class Aligner
 
 		foreach (var variable in variables)
 		{
-			position -= Parser.Size.Bytes;
+			position -= variable.Type!.ReferenceSize;
 			variable.Alignment = position;
 		}
 	}
@@ -109,7 +109,7 @@ public class Aligner
 			if (variable.Category == VariableCategory.PARAMETER)
 			{
 				variable.Alignment = position;
-				position += Parser.Size.Bytes;
+				position += variable.Type!.ReferenceSize;
 			}
 		}
 

@@ -3,6 +3,8 @@
 # CS8600: Converting null literal or possible null value to non-nullable type.
 dotnet_diagnostic.CS8600.severity = error
 
+dotnet_diagnostic.CS8602.severity = error
+
 # CS8603: Possible null reference return.
 dotnet_diagnostic.CS8603.severity = error
 

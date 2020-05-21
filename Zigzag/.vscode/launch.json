@@ -1,49 +1,45 @@
 {
-   // Use IntelliSense to find out which attributes exist for C# debugging
-   // Use hover for the description of the existing attributes
-   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
-   "version": "0.2.0",
-   "configurations": [
-        {
-            "name": ".NET Core Launch (console)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/Zigzag.dll",
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SpamHelloWorld.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/StaticVariable.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ConstantPermanence.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicTypeDataFields.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/TheBully.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/SimpleScopeTest.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/States_Conditional.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/States_Loop.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ReferenceDecoy.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Example-2.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/List.z", "--asm", "--time", "-st"],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicString.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st"],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/Example-4.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicMathWithFunctionCalls.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicDivision.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/BasicMathAndIfStatement.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ActiveVariablesTests.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/LoopFeatureTest.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/ArrayAllocation.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/DecimalArithmetics.z", "--asm", "--time", "-st" ],
-            "args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/PrimeNumbers.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st" ],
-            //"args": [ "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/examples/PI.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/String.z", "/home/jolehto/Projects/Zigzag/Zigzag/bin/Debug/netcoreapp3.0/libz/Console.z", "--asm", "--time", "-st" ],
-            
-            "cwd": "${workspaceFolder}",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
-        }
-    ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "Build",
+			"program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Zigzag.dll",
+
+			"args": [ "${workspaceFolder}/Examples/SpamHelloWorld.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st"],
+			//"args": [ "${workspaceFolder}/Examples/StaticVariable.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/ConstantPermanence.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/BasicTypeDataFields.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/TheBully.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/SimpleScopeTest.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/States_Conditional.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/SimpleMath.z", "--time", "--asm" ],
+			//"args": [ "${workspaceFolder}/Examples/States_Loop.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/ReferenceDecoy.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Example-2.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "${workspaceFolder}/libz/List.z", "--asm", "--time", "-st"],
+			//"args": [ "${workspaceFolder}/Examples/BasicString.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st"],
+			//"args": [ "${workspaceFolder}/Examples/Example-4.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/BasicMathWithFunctionCalls.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/BasicDivision.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/BasicMathAndIfStatement.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/ActiveVariablesTests.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/LoopFeatureTest.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/ArrayAllocation.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Redirections.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/memcpy.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/DecimalArithmetics.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/PrimeNumbers.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/PI.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st", "--debug" ],
+			//"args": [ "${workspaceFolder}/Examples/Cube.z", "--asm", "--time", "-l", "glfw3.lib", "-l", "OpenGL32.lib", "-l", "vcruntime.lib", "-l", "gdi32.lib", "-l", "ucrt.lib", "-l", "shell32.lib" ],
+			//"args": [ "${workspaceFolder}/Examples/Negations.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/DoubleRelocationBugTest.z", "--asm", "--time", "-st" ],
+
+			"cwd": "${workspaceFolder}",
+			"console": "internalConsole",
+			"stopAtEntry": false
+		}
+	]
 }

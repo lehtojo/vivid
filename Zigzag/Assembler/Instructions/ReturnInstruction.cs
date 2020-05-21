@@ -4,76 +4,80 @@ using System.Text;
 
 public class ReturnInstruction : Instruction
 {
-    private const string RETURN = "ret";
+	private const string RETURN = "ret";
 
-    public Result? Object { get; private set; }
-    public int StackMemoryChange { get; private set; }
+	public Result? Object { get; private set; }
+	public Type? ReturnType { get; private set; }
 
-    public ReturnInstruction(Unit unit, Result? value) : base(unit)
-    {
-        Object = value;
-    }
+	public int StackMemoryChange { get; private set; }
 
-    private bool IsObjectInReturnRegister()
-    {
-        return Object!.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
-    }
+	public ReturnInstruction(Unit unit, Result? value, Type? return_type) : base(unit)
+	{
+		Object = value;
+		ReturnType = return_type;
+	}
 
-    private Result GetReturnRegister()
-    {
-        return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
-    }
-    
-    public override void OnBuild()
-    {
-        // Ensure that if there's a value to return it's in a return register
-        if (Object != null && !IsObjectInReturnRegister())
-        {
-            Unit.Append(new MoveInstruction(Unit, GetReturnRegister(), Object));
-        }
-    }
+	private bool IsObjectInReturnRegister()
+	{
+		return Object!.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
+	}
 
-    public void Build(List<Register> recover_registers, int allocated_local_memory)
-    {
-        var builder = new StringBuilder();
-        var start = Unit.StackOffset;
+	private Result GetReturnRegister()
+	{
+		return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
+	}
+	
+	public override void OnBuild()
+	{
+		// Ensure that if there's a value to return it's in a return register
+		if (Object != null && !IsObjectInReturnRegister())
+		{
+			Unit.Append(new MoveInstruction(Unit, GetReturnRegister(), Object));
+		}
+	}
 
-        if (allocated_local_memory > 0)
-        {
-            builder.AppendLine($"add {Unit.GetStackPointer()}, {allocated_local_memory}");
-            Unit.StackOffset -= allocated_local_memory;
-        }
+	public void Build(List<Register> recover_registers, int local_variables_top)
+	{
+		var builder = new StringBuilder();
+		var start = Unit.StackOffset;
+		var allocated_local_memory = start - local_variables_top;
 
-        foreach (var register in recover_registers)
-        {
-            builder.AppendLine($"pop {register}");
-            Unit.StackOffset -= Assembler.Size.Bytes;
-        }
+		if (allocated_local_memory > 0)
+		{
+			builder.AppendLine($"add {Unit.GetStackPointer()}, {allocated_local_memory}");
+			Unit.StackOffset -= allocated_local_memory;
+		}
 
-        builder.Append(RETURN);
+		foreach (var register in recover_registers)
+		{
+			builder.AppendLine($"pop {register}");
+			Unit.StackOffset -= Assembler.Size.Bytes;
+		}
 
-        StackMemoryChange = Unit.StackOffset - start;
+		builder.Append(RETURN);
 
-        Build(builder.ToString());
-    }
+		StackMemoryChange = Unit.StackOffset - start;
 
-    public override int GetStackOffsetChange()
-    {
-        return StackMemoryChange;
-    }
+		Build(builder.ToString());
+	}
 
-    public override Result? GetDestinationDependency()
-    {
-        return Object;
-    }
+	public override int GetStackOffsetChange()
+	{
+		return StackMemoryChange;
+	}
 
-    public override InstructionType GetInstructionType()
-    {
-        return InstructionType.RETURN;
-    }
+	public override Result? GetDestinationDependency()
+	{
+		return Object;
+	}
 
-    public override Result[] GetResultReferences()
-    {
-        return Object != null ? new Result[] { Result, Object } : new Result[] { Result };
-    }
+	public override InstructionType GetInstructionType()
+	{
+		return InstructionType.RETURN;
+	}
+
+	public override Result[] GetResultReferences()
+	{
+		return Object != null ? new Result[] { Result, Object } : new Result[] { Result };
+	}
 }

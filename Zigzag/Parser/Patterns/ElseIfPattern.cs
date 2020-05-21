@@ -29,24 +29,24 @@ public class ElseIfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var previous = (DynamicToken)tokens[FORMER];
+		var previous = (DynamicToken)tokens[FORMER].To<DynamicToken>();
 		
 		if (previous.Node.GetNodeType() != NodeType.IF_NODE ||
-			((KeywordToken)tokens[ELSE]).Keyword != Keywords.ELSE ||
-			((KeywordToken)tokens[IF]).Keyword != Keywords.IF)
+			tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE ||
+			tokens[IF].To<KeywordToken>().Keyword != Keywords.IF)
 		{
 			return false;
 		}
 
-		var condition = (DynamicToken)tokens[CONDITION];
+		var condition = tokens[CONDITION].To<DynamicToken>();
 		return condition.Node is IType type && type.GetType() == Types.BOOL;
 	}
 
 	public override Node? Build(Context environment, List<Token> tokens)
 	{
-		var former = (IfNode)((DynamicToken)tokens[FORMER]).Node;
-		var condition = (DynamicToken)tokens[CONDITION];
-		var body = (ContentToken)tokens[BODY];
+		var former = tokens[FORMER].To<DynamicToken>().Node.To<IfNode>();
+		var condition = tokens[CONDITION].To<DynamicToken>();
+		var body = tokens[BODY].To<ContentToken>();
 
 		var context = new Context();
 		context.Link(environment);

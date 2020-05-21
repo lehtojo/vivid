@@ -2,14 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public static class Text
-{
-	public static string Concat(this string @string, object other)
-	{
-		return string.Concat(@string, other);
-	}
-}
-
 public class Context
 {
 	public string Name { get; protected set; } = string.Empty;
@@ -23,6 +15,8 @@ public class Context
 	public bool IsMember => !IsGlobal;
 	public bool IsType => this is Type;
 	public bool IsFunction => this is FunctionImplementation;
+	public bool IsInsideFunction => IsFunction || GetFunctionParent() != null;
+	public bool IsInsideType => IsType || GetTypeParent() != null;
 
 	public Dictionary<string, Variable> Variables { get; protected set; } = new Dictionary<string, Variable>();
 	public Dictionary<string, FunctionList> Functions { get; protected set; } = new Dictionary<string, FunctionList>();
@@ -144,6 +138,8 @@ public class Context
 		}
 
 		Update();
+
+		context.Destroy();
 	}
 
 	/// <summary>
@@ -371,30 +367,36 @@ public class Context
 			.Where(i => i.Node != null);
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Context context &&
-			   Name == context.Name &&
-               EqualityComparer<List<Context>>.Default.Equals(Subcontexts, context.Subcontexts) &&
-               IsType == context.IsType &&
-               IsFunction == context.IsFunction &&
-               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, context.Variables) &&
-               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, context.Functions) &&
-               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, context.Types) &&
-               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, context.Labels);
-    }
+	public void Destroy()
+	{
+		Parent?.Subcontexts.Remove(this);
+		Parent = null;
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(Name);
-        hash.Add(Subcontexts);
-        hash.Add(IsType);
-        hash.Add(IsFunction);
-        hash.Add(Variables);
-        hash.Add(Functions);
-        hash.Add(Types);
-        hash.Add(Labels);
-        return hash.ToHashCode();
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is Context context &&
+			   Name == context.Name &&
+			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, context.Subcontexts) &&
+			   IsType == context.IsType &&
+			   IsFunction == context.IsFunction &&
+			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, context.Variables) &&
+			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, context.Functions) &&
+			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, context.Types) &&
+			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, context.Labels);
+	}
+
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(Name);
+		hash.Add(Subcontexts);
+		hash.Add(IsType);
+		hash.Add(IsFunction);
+		hash.Add(Variables);
+		hash.Add(Functions);
+		hash.Add(Types);
+		hash.Add(Labels);
+		return hash.ToHashCode();
+	}
 }

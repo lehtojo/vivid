@@ -21,16 +21,17 @@ public class ShortFunctionPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var @operator = (OperatorToken)tokens[OPERATOR];
-		return @operator.Operator == Operators.RETURN;
+		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.RETURN;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var header = (FunctionToken)tokens[HEADER];
+		var header = tokens[HEADER].To<FunctionToken>();
 		var value = tokens[VALUE];
 
-		var function = new Function(context, AccessModifier.PUBLIC, header.Name, header.GetParameterNames(), new List<Token>() { tokens[OPERATOR], value });
+		var function = new Function(context, AccessModifier.PUBLIC, header.Name, new List<Token>() { tokens[OPERATOR], value });
+		function.Parameters = header.GetParameterNames(function);
+		
 		context.Declare(function);
 
 		return new Node();

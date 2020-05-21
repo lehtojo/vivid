@@ -1,0 +1,14 @@
+export basic_if_statement(a, b) {
+	if a >= b {
+		=> a
+	}
+	else {
+		=> b
+	}
+}
+
+run() {
+	=> 1
+	
+	basic_if_statement(1, 2)
+}

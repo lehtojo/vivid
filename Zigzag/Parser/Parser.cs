@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Sublist<T> : IList<T>
 {
@@ -87,7 +88,7 @@ public class Sublist<T> : IList<T>
 
 public class Parser
 {
-	public static Size Size { get; private set; } = Size.QWORD;
+	public static Size Size { get; set; } = Size.QWORD;
 
 	public const int MAX_PRIORITY = 21;
 	public const int MEMBERS = 19;
@@ -118,18 +119,33 @@ public class Parser
 			}
 		}
 
+		private int GetAbsolutePosition(int virtual_position)
+		{
+			var absolute_position = 0;
+
+			for (var i = 0; i < virtual_position; i++)
+			{
+				if (Molded[i].Type != TokenType.NONE)
+				{
+					absolute_position++;
+				}
+			}
+
+			return absolute_position;
+		}
+
 		public void Replace(DynamicToken token)
 		{
-			int start = Pattern.GetStart();
-			int end = Pattern.GetEnd();
-			int count = (end == -1 ? Tokens.Count : end) - start;
+			int absolute_start = GetAbsolutePosition(Pattern.GetStart());
+			int virtual_end = Pattern.GetEnd();
+			int count = (virtual_end == -1 ? Tokens.Count : GetAbsolutePosition(virtual_end)) - absolute_start;
 
 			for (int i = 0; i < count; i++)
 			{
-				Tokens.RemoveAt(start);
+				Tokens.RemoveAt(absolute_start);
 			}
 
-			Tokens.Insert(start, token);
+			Tokens.Insert(absolute_start, token);
 		}
 	}
 
@@ -354,10 +370,10 @@ public class Parser
 			new Parameter() { Name = "offset", Type = number }
 		);
 
-		var free = new Function
+		var deallocate = new Function
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
-			"free",
+			"deallocate",
 			Types.UNKNOWN,
 			new Parameter() { Name = "address", Type = Types.LINK },
 			new Parameter() { Name = "bytes", Type = number }
@@ -369,7 +385,7 @@ public class Parser
 		context.Declare(system_read);
 		context.Declare(copy);
 		context.Declare(offset_copy);
-		context.Declare(free);
+		context.Declare(deallocate);
 
 		return context;
 	}

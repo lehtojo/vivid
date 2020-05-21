@@ -1,0 +1,11 @@
+memcpy(destination, source, count) {
+   i = 0
+
+   loop (i, i < count, ++i) {
+      destination[i] = source[i]
+   }
+}
+
+run() {
+   memcpy(0, 0, 100)
+}

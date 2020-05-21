@@ -28,10 +28,9 @@ namespace Zigzag.Unit
 		[TestCase]
 		public void Lexer_SimpleMathAssign()
 		{
-			var actual = Lexer.GetTokens("var sum = a * b + 5");
+			var actual = Lexer.GetTokens("sum = a * b + 5");
 			var expected = GetTokens
 			(
-				new KeywordToken(Keywords.VAR),
 				new IdentifierToken("sum"),
 				new OperatorToken(Operators.ASSIGN),
 				new IdentifierToken("a"),
@@ -132,10 +131,9 @@ namespace Zigzag.Unit
 		[TestCase]
 		public void Lexer_Functions()
 		{
-			var actual = Lexer.GetTokens("var foo = bar() * apple() + 7");
+			var actual = Lexer.GetTokens("foo = bar() * apple() + 7");
 			var expected = GetTokens
 			(
-				new KeywordToken(Keywords.VAR),
 				new IdentifierToken("foo"),
 				new OperatorToken(Operators.ASSIGN),
 				new FunctionToken

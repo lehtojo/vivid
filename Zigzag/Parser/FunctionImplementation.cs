@@ -2,9 +2,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
+public enum CallingConvention
+{
+	CDECL,
+	X64
+}
+
 public class FunctionImplementation : Context
 {
 	public Function? Metadata { get; set; }
+	public CallingConvention Convention { get; set; } = CallingConvention.X64;
 
 	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsThisPointer && v.Category == VariableCategory.PARAMETER).ToList();
 	public List<Type> ParameterTypes => Parameters.Where(p => !p.IsThisPointer).Select(p => p.Type!).ToList();
@@ -129,38 +136,38 @@ public class FunctionImplementation : Context
 		return base.GetVariable(name);
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is FunctionImplementation implementation &&
-               EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, implementation.Variables) &&
-               EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, implementation.Functions) &&
-               EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, implementation.Types) &&
-               EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, implementation.Labels) &&
-               EqualityComparer<string?>.Default.Equals(Metadata?.Name, implementation.Metadata?.Name) &&
-               EqualityComparer<List<Variable>>.Default.Equals(Parameters, implementation.Parameters) &&
-               EqualityComparer<List<Type>>.Default.Equals(ParameterTypes, implementation.ParameterTypes) &&
-               EqualityComparer<List<Variable>>.Default.Equals(Locals, implementation.Locals) &&
-               LocalMemorySize == implementation.LocalMemorySize &&
-               EqualityComparer<int>.Default.Equals(References.Count, implementation.References.Count) &&
-               EqualityComparer<Type?>.Default.Equals(ReturnType, implementation.ReturnType);
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is FunctionImplementation implementation &&
+			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, implementation.Variables) &&
+			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, implementation.Functions) &&
+			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, implementation.Types) &&
+			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, implementation.Labels) &&
+			   EqualityComparer<string?>.Default.Equals(Metadata?.Name, implementation.Metadata?.Name) &&
+			   EqualityComparer<List<Variable>>.Default.Equals(Parameters, implementation.Parameters) &&
+			   EqualityComparer<List<Type>>.Default.Equals(ParameterTypes, implementation.ParameterTypes) &&
+			   EqualityComparer<List<Variable>>.Default.Equals(Locals, implementation.Locals) &&
+			   LocalMemorySize == implementation.LocalMemorySize &&
+			   EqualityComparer<int>.Default.Equals(References.Count, implementation.References.Count) &&
+			   EqualityComparer<Type?>.Default.Equals(ReturnType, implementation.ReturnType);
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(Subcontexts);
-        hash.Add(Variables);
-        hash.Add(Functions);
-        hash.Add(Types);
-        hash.Add(Labels);
-        hash.Add(Metadata?.Name);
-        hash.Add(Parameters);
-        hash.Add(ParameterTypes);
-        hash.Add(Locals);
-        hash.Add(LocalMemorySize);
-        hash.Add(References.Count);
-        hash.Add(ReturnType);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(Subcontexts);
+		hash.Add(Variables);
+		hash.Add(Functions);
+		hash.Add(Types);
+		hash.Add(Labels);
+		hash.Add(Metadata?.Name);
+		hash.Add(Parameters);
+		hash.Add(ParameterTypes);
+		hash.Add(Locals);
+		hash.Add(LocalMemorySize);
+		hash.Add(References.Count);
+		hash.Add(ReturnType);
+		return hash.ToHashCode();
+	}
 }
 

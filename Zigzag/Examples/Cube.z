@@ -1,0 +1,50 @@
+import glfwInit(): num
+import glfwCreateWindow(width: normal, height: normal, title: link, monitor: link, share: link): link
+import glfwTerminate()
+import glfwMakeContextCurrent(window: link)
+import glfwWindowShouldClose(window: link): num
+import glClear(flags: normal)
+import glClearColor(r: decimal, g: decimal, b: decimal, a: decimal)
+import glfwSwapBuffers(window: link)
+import glfwPollEvents()
+
+GL_COLOR_BUFFER_BIT = 16384
+
+run() {
+    if glfwInit() == 0 {
+        => 1
+    }
+
+    # Create a windowed mode window and its OpenGL context
+    window: link = glfwCreateWindow(1280, 720, 'Hello World', 0 as link, 0 as link)
+
+    if window == 0 {
+        glfwTerminate()
+        => 1
+    }
+
+    # Make the window's context current
+    glfwMakeContextCurrent(window)
+
+    r = 0.0
+
+    # Loop until the user closes the window
+    loop (glfwWindowShouldClose(window) == 0) {
+        
+        r += 0.001
+
+        glClearColor(r, 0.0, 0.0, 1.0)
+
+        # Render here
+        glClear(GL_COLOR_BUFFER_BIT)
+
+        # Swap front and back buffers
+        glfwSwapBuffers(window)
+
+        # Poll for and process events
+        glfwPollEvents()
+    }
+
+    glfwTerminate()
+    => 0
+}

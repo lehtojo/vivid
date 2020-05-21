@@ -1,0 +1,13 @@
+sum(a, b) {
+	=> a + b
+}
+
+parameter_redirection(a, b) {
+	c = sum(a + 1, b - 1)
+	d = 7 + a * b * c
+	=> sum(d, c)
+}
+
+run() {
+	parameter_redirection(1, 2)
+}

@@ -7,4 +7,6 @@ public class AccessModifier
 	public const int EXTERNAL = 16;
 	public const int READONLY = 32;
 	public const int RESPONSIBLE = 64;
+	public const int GLOBAL = 128;
+	public const int CONSTANT = 256;
 }

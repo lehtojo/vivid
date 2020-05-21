@@ -21,15 +21,15 @@ public class VariableNode : Node, IType
 		return NodeType.VARIABLE_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is VariableNode node &&
-               base.Equals(obj) &&
-               EqualityComparer<Variable>.Default.Equals(Variable, node.Variable);
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is VariableNode node &&
+				base.Equals(obj) &&
+				EqualityComparer<Variable>.Default.Equals(Variable, node.Variable);
+	}
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(base.GetHashCode(), Variable);
-    }
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Variable);
+	}
 }

@@ -1,0 +1,33 @@
+B {
+	dummy
+
+	sum(a, b) {
+		dummy = a
+		=> a + b
+	}
+}
+
+A {
+	other
+
+	A(b) {
+		other = b
+	}
+}
+
+f(primary) {
+	if primary != 0 {
+		if primary.other != 0 {
+			primary.other.dummy += 2
+			primary.other.dummy -= 2
+			=> primary.other.sum(1, 2)
+		}
+	}
+	
+	=> 0
+}
+
+run() {
+	a = A(B())
+	f(a)
+}

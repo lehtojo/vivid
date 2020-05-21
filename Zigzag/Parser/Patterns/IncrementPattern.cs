@@ -27,8 +27,7 @@ class IncrementPattern : Pattern
 			return false;
 		}
 
-		var @operator = (OperatorToken)tokens[OPERATOR];
-		return @operator.Operator == Operators.INCREMENT;
+		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)

@@ -11,7 +11,7 @@ public class CastPattern : Pattern
 	// ... as Type
 	public CastPattern() : base
 	(
-		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.NUMBER | TokenType.DYNAMIC,
+		TokenType.OBJECT,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER | TokenType.DYNAMIC
 	) { }
@@ -23,8 +23,7 @@ public class CastPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var cast = (KeywordToken)tokens[CAST];
-		return cast.Keyword == Keywords.AS;
+		return tokens[CAST].To<KeywordToken>().Keyword == Keywords.AS;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)

@@ -1,0 +1,11 @@
+export basic_math(a, b, c) {
+	x = a * c + a + c
+	y = b * a * (c + 1) * 100
+	=> x + y
+}
+
+run() {
+	=> 1
+	
+	basic_math(1, 2, 3)
+}

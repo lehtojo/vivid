@@ -25,12 +25,12 @@ public class ElsePattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		if (((KeywordToken)tokens[ELSE]).Keyword != Keywords.ELSE)
+		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
 		{
 			return false;
 		}
 		
-		var former = (DynamicToken)tokens[FORMER];
+		var former = tokens[FORMER].To<DynamicToken>();
 
 		return former.Node.GetNodeType() == NodeType.IF_NODE ||
 				former.Node.GetNodeType() == NodeType.ELSE_IF_NODE;
@@ -38,8 +38,8 @@ public class ElsePattern : Pattern
 
 	public override Node? Build(Context environment, List<Token> tokens)
 	{
-		var former = (IfNode)((DynamicToken)tokens[FORMER]).Node;
-		var body = (ContentToken)tokens[BODY];
+		var former = tokens[FORMER].To<DynamicToken>().Node.To<IfNode>();
+		var body = tokens[BODY].To<ContentToken>();
 
 		var context = new Context();
 		context.Link(environment);

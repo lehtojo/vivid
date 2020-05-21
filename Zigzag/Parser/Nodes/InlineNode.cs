@@ -52,22 +52,22 @@ public class InlineNode : Node, IType
 		return Implementation.ReturnType;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is InlineNode node &&
-               base.Equals(obj) &&
-               EqualityComparer<Node>.Default.Equals(Parameters, node.Parameters) &&
-               EqualityComparer<Node>.Default.Equals(Body, node.Body) &&
-               End == node.End;
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is InlineNode node &&
+			   base.Equals(obj) &&
+			   EqualityComparer<Node>.Default.Equals(Parameters, node.Parameters) &&
+			   EqualityComparer<Node>.Default.Equals(Body, node.Body) &&
+			   End == node.End;
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Parameters);
-        hash.Add(Body);
-        hash.Add(End);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Parameters);
+		hash.Add(Body);
+		hash.Add(End);
+		return hash.ToHashCode();
+	}
 }

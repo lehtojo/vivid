@@ -10,7 +10,7 @@ public class TypeNode : Node, IType
 
 	public TypeNode(Type type, List<Token> body)
 	{
-        Type = type;
+		Type = type;
 		Body = body;
 	}
 
@@ -30,18 +30,18 @@ public class TypeNode : Node, IType
 		return NodeType.TYPE_NODE;
 	}
 
-    public override bool Equals(object? obj)
-    {
-        return obj is TypeNode node &&
-               base.Equals(obj) &&
-               EqualityComparer<Type>.Default.Equals(Type, node.Type);
-    }
+	public override bool Equals(object? obj)
+	{
+		return obj is TypeNode node &&
+				base.Equals(obj) &&
+				EqualityComparer<Type>.Default.Equals(Type, node.Type);
+	}
 
-    public override int GetHashCode()
-    {
-        HashCode hash = new HashCode();
-        hash.Add(base.GetHashCode());
-        hash.Add(Type.Name);
-        return hash.ToHashCode();
-    }
+	public override int GetHashCode()
+	{
+		HashCode hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Type.Name);
+		return hash.ToHashCode();
+	}
 }

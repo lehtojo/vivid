@@ -30,8 +30,7 @@ public class LoopPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var keyword = (KeywordToken)tokens[KEYWORD];
-		return keyword.Keyword == Keywords.LOOP;
+		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP;
 	}
 
 	private Node? GetSteps(Context context, ContentToken content)
@@ -88,9 +87,9 @@ public class LoopPattern : Pattern
 		body_context.Link(environment);
 		steps_context.Link(environment);
 
-		var steps = GetSteps(steps_context, (ContentToken)tokens[STEPS]);
+		var steps = GetSteps(steps_context, tokens[STEPS].To<ContentToken>());
 
-		var token = (ContentToken)tokens[BODY];
+		var token = tokens[BODY].To<ContentToken>();
 		var body = Parser.Parse(body_context, token.GetTokens(), 0, 20);
 
 		return new LoopNode(steps_context, body_context, steps, body);

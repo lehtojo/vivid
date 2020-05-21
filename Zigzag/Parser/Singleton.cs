@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 public class Singleton
 {
-	 /// <summary>
-	 /// Tries to build identifier into a node
-	 /// </summary>
-	 /// <param name="context">Context to use for linking indentifier</param>
-	 /// <param name="id">Identifier to link</param>
+	/// <summary>
+	/// Tries to build identifier into a node
+	/// </summary>
+	/// <param name="context">Context to use for linking indentifier</param>
+	/// <param name="id">Identifier to link</param>
 	public static Node GetIdentifier(Context context, IdentifierToken id)
 	{
 		if (context.IsVariableDeclared(id.Value))
@@ -29,12 +29,9 @@ public class Singleton
 		}
 	}
 
-	/**
-     * Tries to find function or constructor by name 
-     * @param context Context to look for the function
-     * @param name    Name of the function
-     * @return Success: Function / Constructor, Failure: null
-     */
+	/// <summary>
+	/// Tries to find function or constructor by name 
+	/// </summary>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters)
 	{
 		FunctionList functions;
@@ -55,13 +52,9 @@ public class Singleton
 		return functions[parameters];
 	}
 
-	/**
-     * Tries to build function into a node
-     * @param environment Context to parse function parameters
-     * @param primary Context to find the function by name
-     * @param info Function in token form
-     * @return Function built into a node
-     */
+	/// <summary>
+	/// Tries to build function into a node
+	/// </summary>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken info)
 	{
 		var parameters = info.GetParsedParameters(environment);
@@ -92,22 +85,17 @@ public class Singleton
 		}
 	}
 
-	/**
-     * Tries to build number into a node
-     * @param number Number in token form
-     * @return Number built into a node
-     */
+	/// <summary>
+	/// Tries to build number into a node
+	/// </summary>
 	public static Node GetNumber(NumberToken number)
 	{
 		return new NumberNode(number.NumberType, number.Value);
 	}
 
-	/**
-     * Tries to build content into a node
-     * @param context Context to parse content
-     * @param content Content in token form
-     * @return Content built into a node
-     */
+	/// <summary>
+	/// Tries to build content into a node
+	/// </summary>
 	public static Node GetContent(Context context, ContentToken content)
 	{
 		var node = new ContentNode();
@@ -121,11 +109,9 @@ public class Singleton
 		return node;
 	}
 
-	/**
-     * Tries to build string into a node
-     * @param string string in token form
-     * @return string built into a node
-     */
+	/// <summary>
+	/// Tries to build string into a node
+	/// </summary>
 	public static Node GetString(StringToken @string)
 	{
 		return new StringNode(@string.Text);
