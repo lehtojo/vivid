@@ -57,7 +57,7 @@ length_of(text) {
 string {
 	text
 
-	string(source) {
+	init(source) {
 		text = source
 	}
 

@@ -68,7 +68,7 @@ public static class Calls
 			var instructions = new List<Instruction>();
 
 			// On Windows x64 a 'shadow space' is allocated for the first four parameters
-			var stack_position = MemoryHandle.FromStack(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0);
+			var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
 
 			if (this_pointer != null)
 			{

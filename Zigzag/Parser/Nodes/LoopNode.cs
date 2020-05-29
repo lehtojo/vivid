@@ -1,4 +1,4 @@
-public class LoopNode : Node
+public class LoopNode : Node, IResolvable
 {	
 	public Context StepsContext { get; private set; }
 	public Context BodyContext { get; private set; }
@@ -21,6 +21,21 @@ public class LoopNode : Node
 		}
 
 		Add(body);
+	}
+
+	public Node? Resolve(Context context)
+	{
+		Resolver.Resolve(StepsContext, Initialization);
+		Resolver.Resolve(StepsContext, Condition);
+		Resolver.Resolve(StepsContext, Action);
+		Resolver.Resolve(BodyContext, Body);
+
+		return null;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 
 	public override NodeType GetNodeType()

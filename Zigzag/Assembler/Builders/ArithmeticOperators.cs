@@ -42,10 +42,14 @@ public static class ArithmeticOperators
 		}
 		else if (operation == Operators.ASSIGN_MULTIPLY)
 		{
+			throw new ApplicationException("Assign multiplication is not implemented");
+
 			return BuildMultiplicationOperator(unit, node, true);
 		}
 		else if (operation == Operators.ASSIGN_DIVIDE)
 		{
+			throw new ApplicationException("Assign division is not implemented");
+
 			return BuildDivisionOperator(unit, false, node, true);
 		}
 		else if (operation == Operators.ASSIGN_MODULUS)

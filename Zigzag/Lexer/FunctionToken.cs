@@ -93,4 +93,13 @@ public class FunctionToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Identifier, Parameters, Name);
 	}
+
+	public override object Clone()
+	{
+		var clone = (FunctionToken)MemberwiseClone();
+		clone.Parameters = (ContentToken)Parameters.Clone();
+		clone.Identifier = (IdentifierToken)Identifier.Clone();
+		
+		return clone;
+	}
 }

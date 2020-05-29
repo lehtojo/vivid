@@ -1,0 +1,67 @@
+Item {
+   x: num
+   y: num
+
+   init(x0, y0) {
+      x = x0
+      y = y0
+   }
+
+   add(amount: num) {
+      x += amount
+      y += amount
+   }
+}
+
+Adder { T } {
+   private amount: num
+   private target: T
+
+   init(a) {
+      amount = a
+   }
+
+   set_target(t: T) {
+      target = t
+   }
+
+   add() {
+      target.add(amount)
+   }
+}
+
+run() {
+   list = List(Item)
+   i = 0
+
+   local_item = Item(1, 2)
+
+   adder = Adder(Item, 10)
+   adder.set_target(local_item)
+   adder.add()
+   
+   loop (i < 4) {
+      item = Item(i + 1, i)
+      list.add(item)
+      ++i
+   }
+
+   i = 0
+
+   loop (i < list.size()) {
+      item = list.at(i)
+      item.add(i)
+      ++i
+   }
+
+   i = 0
+
+   loop (i < list.size()) {
+      item = list.at(i)
+
+      prints(to_string(item.x))
+      print(', ')
+      printsln(to_string(item.y))
+      ++i
+   }
+}

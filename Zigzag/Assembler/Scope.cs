@@ -40,7 +40,10 @@ public class Scope : IDisposable
 	/// </summary>
 	private static IEnumerable<Variable> GetAllActiveContextVariables(Unit unit, Context context)
 	{
-		return context.Variables.Values.Where(v => unit.Instructions.Exists(i => i is GetVariableInstruction x && x.Variable == v));
+		return context.Variables.Values.Where(v => unit.Instructions.Exists(i => 
+			(i is GetVariableInstruction x && x.Variable == v) ||
+			(i is RequireVariablesInstruction r && r.Variables.Contains(v))
+		));
 	}
 
 	/// </summary>
@@ -110,22 +113,20 @@ public class Scope : IDisposable
 		}
 	}
 
-	
-
 	private List<VariableLoad> Loads { get; set; } = new List<VariableLoad>();
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
 	private HashSet<Variable> Finalizers { get; set; } = new HashSet<Variable>();
 
-	//public Dictionary<Variable, List<Result>> Variables = new Dictionary<Variable, List<Result>>();
+	public List<Variable> ActiveVariables { get; set; } = new List<Variable>();
 	public Dictionary<Variable, Result> Variables { get; set; } = new Dictionary<Variable, Result>();
 	public Dictionary<Variable, Result> TransitionHandles { get; set; } = new Dictionary<Variable, Result>();
 
 	public Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
 
-	public List<Variable> ActiveVariables { get; set; } = new List<Variable>();
-
 	public Unit? Unit { get; private set; }
 	public Scope? Outer { get; private set; } = null;
+
+	public int StackOffset { get; set; }= 0;
 
 	/// <summary>
 	/// Creates a scope with variables that are returned to their original locations once the scope is exited
@@ -142,11 +143,8 @@ public class Scope : IDisposable
 	/// </summary>
 	public bool IsUsedLater(Variable variable)
 	{
-		Console.WriteLine("Implement IsUsedLater by registering all Get-Variable-Instructions");
-		return true;
-		/* Try to get the most recently used handle of the variable
-		var handles = GetVariableHandles(Unit!, variable);
-		var current = handles.Count > 0 ? handles.Last() : null;
+		// Try to get the most recently used handle of the variable
+		var current = GetCurrentVariableHandle(Unit!, variable);
 
 		// If there's no handle of the variable, it means that the outer scope doesn't have it either
 		if (current == null)
@@ -155,7 +153,7 @@ public class Scope : IDisposable
 		}
 
 		// Check if the handle is used later or if the outer scope uses the variable later
-		return current.Lifetime.End > Unit!.Position || (Outer?.IsUsedLater(variable) ?? false);*/
+		return current.Lifetime.End > Unit!.Position || (Outer?.IsUsedLater(variable) ?? false);
 	}
 
 	/// <summary>
@@ -206,6 +204,10 @@ public class Scope : IDisposable
 	public void Enter(Unit unit)
 	{
 		Unit = unit;
+		StackOffset = Unit.StackOffset;
+
+		// Remove old variable data
+		Reset();
 
 		// Save the outer scope so that this scope can be exited later
 		if (unit.Scope != this)
@@ -244,23 +246,6 @@ public class Scope : IDisposable
 
 				if (external_handle != null)
 				{
-					/*var handles = GetVariableHandles(unit, variable);
-
-					if (handles.Count == 0)
-					{
-						var first = new Result(external_handle.Value);
-						first.Lifetime.Start = unit.Position;
-
-						first.Metadata.Attach(new VariableAttribute(variable));
-
-						handles.Add(first);
-					}
-					else
-					{
-						// Connect the first variable handle to the outer handle since the first handle can be considered as a 'loader' of the variable
-						handles.First().Value = external_handle.Value;
-					}*/
-
 					SetOrCreateTransitionHandle(variable, external_handle.Value);
 				}
 
@@ -321,8 +306,7 @@ public class Scope : IDisposable
 				}
 				else
 				{
-					// Stack
-					throw new NotImplementedException("...");
+					throw new ApplicationException("This pointer shouldn't be in stack (x64 calling convention)");
 				}
 			}
 
@@ -346,45 +330,11 @@ public class Scope : IDisposable
 				}
 				else
 				{
-					// Stack
-					throw new NotImplementedException("...");
+					SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, null, parameter));
 				}
 			}
 		}
 	}
-
-	/// <summary>
-	/// Returns all handles to the given variable
-	/// </summary>
-	/*public List<Result> GetVariableHandles(Unit unit, Variable variable)
-	{
-		// First check if the variable handle list already exists
-		if (Variables.TryGetValue(variable, out List<Result>? elements))
-		{
-			return elements;
-		}
-		else
-		{
-			var source = Outer?.GetCurrentVariableHandle(Unit!, variable);
-
-			var handles = new List<Result>();
-			Variables.Add(variable, handles);
-
-			if (source != null)
-			{
-				// Create a reference to the outer reference and configure it so that this scope cannot change the outer reference
-				var current = new Result();
-
-				current.Metadata.Attach(new VariableAttribute(variable));
-
-				Unit!.Cache(variable, current, true);
-
-				return Variables[variable];
-			}
-
-			return handles;
-		}
-	}*/
 
 	/// <summary>
 	/// Returns all handles to the given constant
@@ -404,14 +354,6 @@ public class Scope : IDisposable
 		}
 	}
 
-	/// <summary>
-	/// Returns the current handle to the given variable
-	/// </summary>
-	/*public Result? GetCurrentVariableHandle(Unit unit, Variable variable)
-	{
-		var handles = GetVariableHandles(unit, variable).FindAll(h => h.IsValid(unit.Position));
-		return handles.Count == 0 ? null : handles.Last();
-	}*/
 	public Result? GetCurrentVariableHandle(Unit unit, Variable variable)
 	{
 		// First check if the variable handle list already exists
@@ -461,6 +403,11 @@ public class Scope : IDisposable
 
 		// Exit to the outer scope
 		Unit.Scope = Outer ?? this;
+	}
+
+	public void Reset()
+	{
+		Variables.Clear();
 	}
 
 	/// <summary>

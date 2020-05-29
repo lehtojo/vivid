@@ -26,16 +26,12 @@ public class ReturnNode : InstructionNode, IResolvable
 		// Returned object must be resolved first
 		var node = First;
 
-		if (node is IResolvable resolvable)
+		if (node == null)
 		{
-			var resolved = resolvable.Resolve(context);
-
-			if (resolved != null)
-			{
-				node.Replace(resolved);
-				node = resolved;
-			}
+			return null;
 		}
+
+		Resolver.Resolve(context, node);
 
 		// Find the parent function where the return value can be assigned
 		var function = context.GetFunctionParent() ?? throw new ApplicationException("Return statement was not inside a function");
@@ -43,7 +39,13 @@ public class ReturnNode : InstructionNode, IResolvable
 		var current = function.ReturnType;
 		var type = GetReturnType(node ?? throw new ApplicationException("Return statment didn't have a value to return"));
 
-		if (type != Types.UNKNOWN && current != type)
+		if (type == Types.UNKNOWN)
+		{
+			CurrentStatus = Status.Error("Couldn't resolve return type");
+			return null;
+		}
+
+		if (current != type)
 		{
 			var shared = (Type?)type;
 

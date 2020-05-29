@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Resolver
 {
@@ -29,7 +30,9 @@ public class Resolver
 			ResolveContext(type);
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		var implementations = context.GetImplementedFunctions().ToList();
+
+		foreach (var implementation in implementations)
 		{
 			ResolveVariables(implementation);
 			ResolveTree(implementation, implementation.Node!);
@@ -241,6 +244,11 @@ public class Resolver
 					}
 
 					parent = parent.Parent;
+					
+					if (parent == null || !parent.Is(NodeType.OPERATOR_NODE))
+					{
+						continue;
+					}
 
 					var type = TryGetTypeFromAssignOperation(parent!);
 

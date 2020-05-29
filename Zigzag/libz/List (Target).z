@@ -1,26 +1,15 @@
-type List(T) {
-	private elements: T[]
-	private capacity: num
-	private batch: num
-	private position: num
+List { T } {
+
+	private:
+
+	elements: T[]
+	capacity: num
+	batch: num
+	position: num
 
 	size => position
 
-	List(count: num) {
-		elements = allocate(count * T.size) as T[]
-		capacity = count
-		batch = capacity
-		position = 0
-	}
-
-	List() {
-		elements = 0
-		capacity = 0
-		batch = 0
-		position = 0
-	}
-
-	private grow() {
+	grow() {
 		if batch < 0 {
 			memory = allocate(capacity * 2)
 			copy(elements, capacity, memory)
@@ -37,6 +26,22 @@ type List(T) {
 			elements = memory
 			capacity = capacity + batch
 		}
+	}
+
+	public:
+
+	init(count: num) {
+		elements = allocate(count * T.size) as T[]
+		capacity = count
+		batch = capacity
+		position = 0
+	}
+
+	init() {
+		elements = 0
+		capacity = 0
+		batch = 0
+		position = 0
 	}
 
 	add(element: T) {

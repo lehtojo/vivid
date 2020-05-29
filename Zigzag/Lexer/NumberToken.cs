@@ -137,4 +137,9 @@ public class NumberToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Value, NumberType, Bits, Bytes);
 	}
+
+	public override object Clone()
+	{
+		return MemberwiseClone();
+	}
 }

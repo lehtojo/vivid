@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class IfNode : Node
+public class IfNode : Node, IResolvable
 {
 	public Context Context { get; set; }
 	public Node? Successor { get; private set; }
@@ -53,6 +53,19 @@ public class IfNode : Node
 		}
 		
 		return branches.ToArray();
+	}
+
+	public Node? Resolve(Context context)
+	{
+		Resolver.Resolve(context, Condition);
+		Resolver.Resolve(Context, Body);
+
+		return null;
+	}
+
+	public Status GetStatus()
+	{
+		return Status.OK;
 	}
 
 	public override NodeType GetNodeType()

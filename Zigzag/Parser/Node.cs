@@ -101,6 +101,23 @@ public class Node
 		return nodes;
 	}
 
+	/// <summary>
+	/// Returns the number of children this node holds
+	/// </summary>
+	public int Count()
+	{
+		var iterator = First;
+		var count = 0;
+
+		while (iterator != null)
+		{
+			count++;
+			iterator = iterator.Next;
+		}
+
+		return count;
+	}
+
 	public void Insert(Node position, Node child)
 	{
 		if (position == First)

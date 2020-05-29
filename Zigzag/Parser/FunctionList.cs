@@ -35,6 +35,6 @@ public class FunctionList
 
 	public FunctionImplementation? this[List<Type> parameters]
 	{
-		get => Overloads.Find(o => o.Parameters.Count == parameters.Count)?.Get(parameters);
+		get => Overloads.Find(o => o.Passes(parameters))?.Get(parameters);
 	}
 }

@@ -525,7 +525,6 @@ public class Lexer
 			position = area.End;
 		}
 
-		CreateFunctionCalls(tokens);
 		JoinModifiers(tokens);
 
 		if (tokens.Count > 0)

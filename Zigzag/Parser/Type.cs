@@ -10,6 +10,7 @@ public class Type : Context
 	public int Modifiers { get; private set; }
 
 	public bool IsUnresolved => this is IResolvable;
+	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
 
 	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
@@ -22,7 +23,7 @@ public class Type : Context
 
 	public void AddConstructor(Constructor constructor)
 	{
-		Constructor first = (Constructor)Constructors.Overloads.First();
+		var first = (Constructor)Constructors.Overloads.First();
 
 		if (first.IsDefault)
 		{

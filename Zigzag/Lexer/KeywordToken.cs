@@ -26,4 +26,9 @@ public class KeywordToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Keyword);
 	}
+
+	public override object Clone()
+	{
+		return MemberwiseClone();
+	}
 }

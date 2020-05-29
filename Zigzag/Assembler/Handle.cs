@@ -13,9 +13,9 @@ public enum HandleType
 public class Handle
 {
 	public HandleType Type { get; protected set; }
+	public Format Format { get; set; }
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
-	public Format Format { get; set; }
 	public bool IsSizeVisible { get; set; } = false;
 
 	public Handle()
@@ -30,6 +30,14 @@ public class Handle
 		Format = Assembler.Size.ToFormat();
 	}
 
+	/// <summary>
+	/// Returns all results which the handle requires to be in registers
+	/// </summary>
+	public virtual Result[] GetRegisterDependentResults()
+	{
+		return Array.Empty<Result>();
+	}
+	
 	public T To<T>() where T: Handle
 	{
 		return (T)this;
@@ -117,11 +125,11 @@ public class ConstantHandle : Handle
 	}
 }
 
-public class VariableMemoryHandle : MemoryHandle
+public class VariableMemoryHandle : StackMemoryHandle
 {
 	public Variable Variable { get; private set; }
 
-	public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), variable.Alignment ?? 0)
+	public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, variable.Alignment ?? 0)
 	{
 		Variable = variable;
 	}
@@ -167,19 +175,24 @@ public class MemoryHandle : Handle
 	public Result Start { get; private set; }
 	public int Offset { get; set; }
 	
-	private bool IsStackMemoryPointer => Start.Value is RegisterHandle handle && handle.Register == Unit.GetStackPointer();
-	private int Position => (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
+	//private bool IsStackMemoryPointer => Start.Value is RegisterHandle handle && handle.Register == Unit.GetStackPointer();
+	private int AbsoluteOffset => GetAbsoluteOffset(); // (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
 
-	public static MemoryHandle FromStack(Unit unit, int offset)
-    {
-        return new MemoryHandle(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset);
-    }
+	//public static MemoryHandle FromStack(Unit unit, int offset)
+	//{
+	//	return new MemoryHandle(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset);
+	//}
 
 	public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY)
 	{
 		Unit = unit;
 		Start = start;
 		Offset = offset;
+	}
+
+	public virtual int GetAbsoluteOffset()
+	{
+		return Offset;
 	}
 
 	public override void Use(int position)
@@ -191,13 +204,13 @@ public class MemoryHandle : Handle
 	{
 		var offset = string.Empty;
 
-		if (Position > 0)
+		if (AbsoluteOffset > 0)
 		{
-			offset = $"+{Position}";
+			offset = $"+{AbsoluteOffset}";
 		}
-		else if (Position < 0)
+		else if (AbsoluteOffset < 0)
 		{
-			offset = Position.ToString();
+			offset = AbsoluteOffset.ToString();
 		}
 
 		if (Start.Value.Type == HandleType.REGISTER ||
@@ -218,10 +231,15 @@ public class MemoryHandle : Handle
 		throw new ApplicationException("Start of the memory handle was no longer in register");
 	}
 
+	public override Result[] GetRegisterDependentResults()
+	{
+		return new Result[] { Start };
+	}
+
 	public override Handle Freeze() 
 	{
 		if (Start.Value.Type == HandleType.REGISTER ||
-			Start.Value.Type == HandleType.CONSTANT)
+				Start.Value.Type == HandleType.CONSTANT)
 		{            
 			return new MemoryHandle(Unit, new Result(Start.Value), Offset)
 			{
@@ -243,6 +261,49 @@ public class MemoryHandle : Handle
 	{
 		return HashCode.Combine(Start, Offset);
 	}
+}
+
+public class StackMemoryHandle : MemoryHandle
+{
+	public bool IsAbsolute { get; private set; }
+
+	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset)
+	{
+		IsAbsolute = absolute;
+	}
+
+	public override int GetAbsoluteOffset()
+	{
+		return (IsAbsolute ? Unit.StackOffset : 0) + Offset;
+	}
+
+	public override Handle Freeze() 
+	{
+		if (Start.Value.To<RegisterHandle>().Register == Unit.GetStackPointer())
+		{            
+			return new StackMemoryHandle(Unit, Offset, IsAbsolute)
+			{
+				Format = Format
+			};
+		}
+
+		throw new ApplicationException("Stack memory handle's register was invalid");
+	}
+
+   public override bool Equals(object? obj)
+   {
+      return obj is StackMemoryHandle handle &&
+             base.Equals(obj) &&
+				 IsAbsolute == handle.IsAbsolute;
+   }
+
+   public override int GetHashCode()
+   {
+      HashCode hash = new HashCode();
+      hash.Add(base.GetHashCode());
+      hash.Add(IsAbsolute);
+      return hash.ToHashCode();
+   }
 }
 
 public class ComplexMemoryHandle : Handle
@@ -308,6 +369,11 @@ public class ComplexMemoryHandle : Handle
 		}
 
 		throw new ApplicationException("Base of the memory handle was no longer in register");
+	}
+
+	public override Result[] GetRegisterDependentResults()
+	{
+		return new Result[] { Start, Offset };
 	}
 
 	public override Handle Freeze() 

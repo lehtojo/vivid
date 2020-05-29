@@ -22,11 +22,11 @@ ret
 global function_reference_decoy_2
 export function_reference_decoy_2
 function_reference_decoy_2:
-mov rax, 2
-imul rax, rcx
-mov rcx, 2
-imul rcx, 1
-add rax, rcx
+sal rcx, 1
+mov rdx, 1
+sal rdx, 1
+add rcx, rdx
+mov rax, rcx
 ret
 
 global function_reference_decoy_3

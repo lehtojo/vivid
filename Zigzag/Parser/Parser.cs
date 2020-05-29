@@ -90,9 +90,10 @@ public class Parser
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
-	public const int MAX_PRIORITY = 21;
+	public const int MAX_PRIORITY = 23;
 	public const int MEMBERS = 19;
 	public const int MIN_PRIORITY = 1;
+	private const int FUNCTION_LENGTH = 2;
 
 	private class Instance
 	{
@@ -268,6 +269,8 @@ public class Parser
 	/// <param name="max">Maximum priority for pattern filtering</param>
 	public static void Parse(Node parent, Context context, List<Token> tokens, int min, int max)
 	{
+		CreateFunctionCalls(tokens);
+		
 		for (int priority = max; priority >= min; priority--)
 		{
 			Instance? instance;
@@ -300,6 +303,48 @@ public class Parser
 				var dynamic = (DynamicToken)token;
 				parent.Add(dynamic.Node);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Forms function tokens from the given tokens
+	/// </summary>
+	/// <param name="tokens">Tokens to iterate</param>
+	private static void CreateFunctionCalls(List<Token> tokens)
+	{
+		if (tokens.Count < FUNCTION_LENGTH)
+		{
+			return;
+		}
+		
+		for (int i = tokens.Count - 2; i >= 0;)
+		{
+			var current = tokens[i];
+
+			if (current.Type == TokenType.IDENTIFIER)
+			{
+				var next = tokens[i + 1];
+
+				if (next.Type == TokenType.CONTENT)
+				{
+					var parameters = (ContentToken)next;
+
+					if (parameters.Type == ParenthesisType.PARENTHESIS)
+					{
+						var name = (IdentifierToken)current;
+						var function = new FunctionToken(name, parameters);
+						function.Position = name.Position;
+
+						tokens[i] = function;
+						tokens.RemoveAt(i + 1);
+
+						i -= FUNCTION_LENGTH;
+						continue;
+					}
+				}
+			}
+
+			i--;
 		}
 	}
 

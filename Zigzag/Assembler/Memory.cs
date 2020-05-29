@@ -70,16 +70,22 @@ public static class Memory
 			{
 				var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 				var destination = new Result(new RegisterHandle(register));
+
+				var move = new MoveInstruction(unit, destination, result);
+				move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
 		
-				return new MoveInstruction(unit, destination, result).Execute();
+				return move.Execute();
 			}
 		}
 		else
 		{
 			var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 			var destination = new Result(new RegisterHandle(register));
+
+			var move = new MoveInstruction(unit, destination, result);
+			move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
 		
-			return new MoveInstruction(unit, destination, result).Execute();
+			return move.Execute();
 		}
 	}
 
@@ -98,6 +104,7 @@ public static class Memory
 		var destination = new Result(new RegisterHandle(register));
 
 		var move = new MoveInstruction(unit, destination, result);
+		move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle
 		move.Description = "Move source to register";
 		move.Type = MoveType.RELOCATE;
 		

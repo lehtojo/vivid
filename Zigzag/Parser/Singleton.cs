@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Singleton
 {
@@ -38,7 +39,19 @@ public class Singleton
 
 		if (context.IsTypeDeclared(name)) // Type constructors
 		{
-			functions = context.GetType(name)!.GetConstructors();
+			var type = context.GetType(name)!;
+
+			if (type.IsTemplateType)
+			{
+				var template_type = (TemplateType)type;
+				functions = template_type[parameters.ToArray()].GetConstructors();
+
+				parameters = parameters.Take(parameters.Count - template_type.TemplateArgumentNames.Count).ToList();
+			}
+			else
+			{
+				functions = context.GetType(name)!.GetConstructors();
+			}
 		}
 		else if (context.IsFunctionDeclared(name)) // Functions
 		{
@@ -112,9 +125,9 @@ public class Singleton
 	/// <summary>
 	/// Tries to build string into a node
 	/// </summary>
-	public static Node GetString(StringToken @string)
+	public static Node GetString(StringToken string_token)
 	{
-		return new StringNode(@string.Text);
+		return new StringNode(string_token.Text);
 	}
 
 	public static Node Parse(Context context, Token token)
@@ -153,7 +166,7 @@ public class Singleton
 
 			case TokenType.DYNAMIC:
 			{
-				return ((DynamicToken)token).Node;
+				return token.To<DynamicToken>().Node;
 			}
 		}
 
@@ -164,13 +177,10 @@ public class Singleton
 	{
 		switch (token.Type)
 		{
-			case TokenType.IDENTIFIER:
-			IdentifierToken id = (IdentifierToken)token;
-			return new UnresolvedIdentifier(id.Value);
-			case TokenType.FUNCTION:
-			FunctionToken function = (FunctionToken)token;
-			return new UnresolvedFunction(function.Name)
-							.SetParameters(function.GetParsedParameters(environment));
+			case TokenType.IDENTIFIER: return new UnresolvedIdentifier(token.To<IdentifierToken>().Value);
+			case TokenType.FUNCTION: 	
+			return new UnresolvedFunction(token.To<FunctionToken>().Name)
+				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment));
 		}
 
 		throw new Exception($"Couldn't create unresolved token ({token.Type})");

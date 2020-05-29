@@ -20,18 +20,14 @@ mov word [rcx+21], 12345
 ret
 
 function_run:
-push rbx
-sub rsp, 48
+sub rsp, 40
 mov rax, 1
-add rsp, 48
-pop rbx
+add rsp, 40
 ret
 mov rcx, 23
 call allocate
-mov rbx, rax
-mov rcx, rbx
+mov rcx, rax
 call function_basic_data_field_assign
-pop rbx
 ret
 
 section .data

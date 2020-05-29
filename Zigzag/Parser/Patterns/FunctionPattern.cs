@@ -43,6 +43,6 @@ class FunctionPattern : Pattern
 		
 		context.Declare(function);
 
-		return new Node();
+		return new FunctionDefinitionNode(function);
 	}
 }

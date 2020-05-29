@@ -123,4 +123,13 @@ public class ContentToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Sections, Tokens, Type, IsTable, IsEmpty, SectionCount);
 	}
+
+	public override object Clone()
+	{
+		var clone = (ContentToken)MemberwiseClone();
+		clone.Sections = Sections.Select(s => (ContentToken)s.Clone()).ToList();
+		clone.Tokens = Tokens.Select(t => (Token)t.Clone()).ToList();
+
+		return clone;
+	}
 }

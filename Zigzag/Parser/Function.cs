@@ -21,7 +21,7 @@ public class Function : Context
 	public int Modifiers { get; private set; }
 
 	public List<string> Parameters { get; set; } = new List<string>();
-	public List<Token> Blueprint { get; private set; }
+	public List<Token> Blueprint { get; protected set; }
 	public List<Node> References { get; private set; } = new List<Node>();
 
 	public List<FunctionImplementation> Implementations { get; private set; } = new List<FunctionImplementation>();
@@ -102,6 +102,14 @@ public class Function : Context
 		return implementation;
 	}
 
+	/// </summary>
+	/// Returns whether there are enough parameters to call this function
+	/// </summary>
+	public virtual bool Passes(List<Type> parameters)
+	{
+		return parameters.Count == Parameters.Count;
+	}
+
 	/// <summary>
 	/// Tries to find function implementation with the given parameter
 	/// </summary>
@@ -115,7 +123,7 @@ public class Function : Context
 	/// Tries to find function implementation with the given parameters
 	/// </summary>
 	/// <param name="parameter">Parameter types used in filtering</param>
-	public FunctionImplementation? Get(List<Type> parameters)
+	public virtual FunctionImplementation? Get(List<Type> parameters)
 	{
 		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(parameters));
 
@@ -133,12 +141,7 @@ public class Function : Context
 
 	public override string GetFullname()
 	{
-		if (IsImported)
-		{
-			return Name;
-		}
-
-		return base.GetFullname();
+		return IsImported ? Name : base.GetFullname();
 	}
 
 	public override bool Equals(object? obj)

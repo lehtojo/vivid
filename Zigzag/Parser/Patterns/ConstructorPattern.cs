@@ -2,12 +2,12 @@
 
 public class ConstructorPattern : Pattern
 {
-	public const int PRIORITY = 20;
+	public const int PRIORITY = 21;
 
 	private const int HEAD = 0;
 	private const int BODY = 2;
 
-	// a-z (...) [\n] (...)
+	// init (...) [\n] {...}
 	public ConstructorPattern() : base
 	(
 	   TokenType.FUNCTION,
@@ -25,7 +25,7 @@ public class ConstructorPattern : Pattern
 		var head = tokens[HEAD].To<FunctionToken>();
 		var type = context.GetTypeParent();
 
-		return type != null && head.Name == type.Name;
+		return type != null && head.Name == Keywords.INIT.Identifier;
 	}
 
 	public override Node? Build(Context context, List<Token> tokens)

@@ -53,6 +53,15 @@ namespace Zigzag.Unit
       [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_reference_decoy_4(Int64 b);
 
+      [DllImport("NUnit_Stack", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_multi_return(Int64 a, Int64 b);
+
+      [DllImport("NUnit_RegisterUtilization", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_register_utilization(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e);
+
+      [DllImport("NUnit_SpecialMultiplications", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_special_multiplications(Int64 a, Int64 b);
+
       private bool Compile(string output, params string[] source_files)
       {
          // Configure the flow of the compiler
@@ -135,6 +144,36 @@ namespace Zigzag.Unit
       private string LoadAssemblyOutput(string output)
       {
          return File.ReadAllText("NUnit_" + output + ".asm");
+      }
+
+      private int GetCountOf(string assembly, string pattern)
+      {
+         var count = 0;
+
+         foreach (var line in assembly.Split('\n'))
+         {
+            if (Regex.IsMatch(line, pattern))
+            {
+               count++;
+            }
+         }
+
+         return count;
+      }
+
+      private int GetMemoryAddressCount(string assembly)
+      {
+         var count = 0;
+
+         foreach (var line in assembly.Split('\n'))
+         {
+            if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains("lea"))
+            {
+               count++;
+            }
+         }
+
+         return count;
       }
 
       private void AssertNoMemoryAddress(string assembly)
@@ -299,6 +338,78 @@ namespace Zigzag.Unit
          string expected = File.ReadAllText(INCLUDE_PATH + "Digits.txt");
 
          Assert.AreEqual(expected, actual);
+      }
+
+      [TestCase]
+      public void Assembler_Fibonacci()
+      {
+         if (!CompileExecutable("Fibonacci", "Fibonacci.z", LIBZ + "String.z", LIBZ + "Console.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         string actual = Execute("Fibonacci");
+         string expected = File.ReadAllText(INCLUDE_PATH + "Fibonacci_Output.txt").Replace("\r\n", "\n");
+
+         Assert.AreEqual(expected, actual);
+      }
+
+      [TestCase]
+      public void Assembler_StackSymmetryWithMultipleReturns()
+      {
+         if (!Compile("Stack", "Stack.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(1, function_multi_return(7, 1));
+         Assert.AreEqual(0, function_multi_return(-1, -1));
+         Assert.AreEqual(-1, function_multi_return(5, 20));
+
+         var assembly = LoadAssemblyOutput("Stack");
+         var j = 0;
+
+         // There should be five 'add rsp, 40' instructions
+         for (var i = 0; i < 5; i++)
+         {
+            j = assembly.IndexOf("add rsp, 40", j);
+
+            if (j++ == -1)
+            {
+               Assert.Fail("Warning: Assembly output didn't contain five 'add rsp, 40' instructions");
+            }
+         }  
+      }
+
+      [TestCase]
+      public void Assembler_RegisterUtilization()
+      {
+         if (!Compile("RegisterUtilization", "RegisterUtilization.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(-10799508, function_register_utilization(90, 7, 1, 1, 1));
+
+         // Ensure the assembly output has only two memory addresses since otherwise the compiler wouldn't be utilizing registers as much as it should
+         Assert.AreEqual(2, GetMemoryAddressCount(LoadAssemblyOutput("RegisterUtilization")));
+      }
+
+      [TestCase]
+      public void Assembler_SpecialMultiplications()
+      {
+         if (!Compile("SpecialMultiplications", "SpecialMultiplications.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(1802, function_special_multiplications(7, 100));
+
+         var assembly = LoadAssemblyOutput("SpecialMultiplications");
+         Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
+         Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));
+         Assert.AreEqual(1, GetCountOf(assembly, "lea\\ [a-z]+"));
+         Assert.AreEqual(1, GetCountOf(assembly, "sar\\ [a-z]+"));
       }
    }
 }

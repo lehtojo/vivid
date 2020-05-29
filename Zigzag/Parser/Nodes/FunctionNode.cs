@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 public class FunctionNode : Node, IType
 {
@@ -20,6 +21,19 @@ public class FunctionNode : Node, IType
 	public FunctionNode SetParameters(Node parameters)
 	{
 		var parameter = parameters.First;
+
+		if (Function.Parameters.Count != parameters.Count())
+		{
+			if (Function.Parameters.Count > parameters.Count())
+			{
+				throw new ApplicationException("Tried to build a function call with too few arguments");
+			}
+
+			for (var i = 0; i < parameters.Count() - Function.Parameters.Count; i++)
+			{
+				parameter = parameter!.Next;
+			}
+		}
 
 		while (parameter != null)
 		{

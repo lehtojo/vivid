@@ -8,6 +8,8 @@ public class DivisionInstruction : DualParameterInstruction
 	private const string SINGLE_PRECISION_DIVISION_INSTRUCTION = "divss";
 	private const string DOUBLE_PRECISION_DIVISION_INSTRUCTION = "divsd";
 
+	private const string DIVIDE_BY_TWO_INSTRUCTION = "sar";
+
 	public bool IsModulus { get; private set; }
 	public bool Assigns { get; private set; }
 	public new Format Type { get; private set; }
@@ -95,6 +97,39 @@ public class DivisionInstruction : DualParameterInstruction
 		}
 	}
 
+	private class ConstantDivision
+	{
+		public Result Other;
+		public long Constant;
+
+		public ConstantDivision(Result other, Result constant)
+		{
+			Other = other;
+			Constant = (long)constant.Value.To<ConstantHandle>().Value;
+		}
+	}
+
+	private ConstantDivision? TryGetConstantDivision()
+	{
+		if (First.Value.Type == HandleType.CONSTANT)
+		{
+			return new ConstantDivision(Second, First);
+		}
+		else if (Second.Value.Type == HandleType.CONSTANT)
+		{
+			return new ConstantDivision(First, Second);
+		}
+		else
+		{
+			return null;
+		}
+	}
+
+	private bool IsPowerOfTwo(long x)
+	{
+    	return (x & (x - 1)) == 0;
+	}
+
 	public override void OnBuild()
 	{
 		// Handle decimal division separately
@@ -120,6 +155,32 @@ public class DivisionInstruction : DualParameterInstruction
 			);
 			
 			return;
+		}
+
+		if (!IsModulus)
+		{
+			var constant_multiplication = TryGetConstantDivision();
+
+			if (constant_multiplication != null && IsPowerOfTwo(constant_multiplication.Constant))
+			{
+				var count = new ConstantHandle((long)Math.Log2(constant_multiplication.Constant));
+
+				Build(
+					DIVIDE_BY_TWO_INSTRUCTION,
+					new InstructionParameter(
+						constant_multiplication.Other,
+						ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE),
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						new Result(count),
+						ParameterFlag.NONE,
+						HandleType.CONSTANT
+					)
+				);
+
+				return;
+			}
 		}
 
 		var denominator = CorrectDenominatorLocation();

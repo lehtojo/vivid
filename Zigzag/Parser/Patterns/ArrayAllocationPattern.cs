@@ -42,11 +42,11 @@ public class ArrayAllocationPattern : Pattern
 		if (length.Is(NodeType.NUMBER_NODE))
 		{
 			var bytes = (long)length.To<NumberNode>().Value * type.ReferenceSize;
-			length = new NumberNode(Format.INT32, bytes);
+			length = new NumberNode(Assembler.Size.ToFormat(), bytes);
 		}
 		else
 		{
-			length = new OperatorNode(Operators.MULTIPLY, length, new NumberNode(Format.INT32, type.ReferenceSize));   
+			length = new OperatorNode(Operators.MULTIPLY, length, new NumberNode(Assembler.Size.ToFormat(), (long)type.ReferenceSize));   
 		}
 
 		return new ArrayAllocationNode(type, length);

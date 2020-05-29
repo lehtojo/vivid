@@ -5,13 +5,27 @@ Operator {
 	this == other => identifier == other.identifier && priority == other.priority
 }
 
-(Item) List {
-	elements: Item link
+List {
+	private elements: Item[]
+
+	List(capacity: num) {
+		elements = Item[capacity]
+	}
+
+	List() {
+		elements = Item[1024]
+	}
 }
 
-(Key, Value) Map {
+Map { Key, Value } : { Iterable, Disposable } { 
+
+}
+
+Map {
 	keys: Key List
 	values: Value List
+
+	init(Key: type, Value: type)
 
 	get(key: Key) {
 		i = keys.index_of(key)
@@ -30,6 +44,10 @@ Lexer {
 }
 
 # Idea: Project or module wide include
+
+.to{T}() => this as T
+
+inline assert(x) => if !x => fail
 
 f() {
 	async loop (i = 0, i < 10, i++) {
@@ -57,12 +75,25 @@ f() {
 	if GetReponseCode() == ReponseCode.OK {
 		SendFile('./index.html')
 	}...
+
+	keyword_operator = operator.to(KeywordOperator)
+
+	operators = List(Operator)
+	operators = List(Operator, 100)
+	operators = Operator List
+	operators = Operator List(100)
+
+	operator_map = Map(string, Operator)
+	operator_map = Map(string, Operator, 100)
+
+	operator_map_list = List(Map(string, Operator))
+
 }
 
 run(lexer: Lexer) {
 	async_operator = Operator {
-		identifier: '...'
-		priority: 2
+		identifier = '...'
+		priority = 2
 	}
 
 	lexer.operators.add(async_operator)

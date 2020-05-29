@@ -114,7 +114,12 @@ public class Unit
 
 	private Instruction? Anchor { get; set; }
 	public int Position { get; private set; } = -1;
-	public int StackOffset { get; set; } = 0;
+
+	public int StackOffset 
+	{
+		get => Scope?.StackOffset ?? 0;
+		set => Scope!.StackOffset = value;
+	}
 
 	public Scope? Scope { get; set; }
 	public UnitPhase Phase { get; private set; } = UnitPhase.READ_ONLY_MODE;
@@ -332,8 +337,6 @@ public class Unit
 		return identifier;
 	}
 
-	#region Registers
-
 	public Register? GetNextNonVolatileRegister(int start, int end)
 	{
 		var register = NonVolatileRegisters
@@ -407,7 +410,7 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Couldn't find available register");
+		throw new NotImplementedException("Couldn't find an available register");
 	}
 
 	public Register GetNextMediaRegister()
@@ -419,7 +422,20 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Implement media register release");
+		register = MediaRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister));
+
+		if (register != null)
+		{
+			Release(register);
+			return register;
+		}
+
+		throw new NotImplementedException("Couldn't find an available media register");
+	}
+
+	public Register? GetNextMediaRegisterWithoutReleasing()
+	{
+		return MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
 	}
 
 	public Register GetStackPointer()
@@ -441,10 +457,6 @@ public class Unit
 	{
 		Registers.ForEach(r => r.Reset(true));
 	}
-
-	#endregion
-
-	#region Interaction
 
 	public void Execute(UnitPhase mode, Action action)
 	{
@@ -539,47 +551,6 @@ public class Unit
 		Phase = UnitPhase.READ_ONLY_MODE;
 	}
 
-	#endregion
-
-	/*public void Cache(Variable variable, Result result, bool invalidate)
-	{
-		// Get all cached versions of this variable
-		var handles = GetVariableHandles(variable);
-		var position = handles.FindIndex(0, handles.Count, h => h.Lifetime.Start >= Position);
-
-		result.Lifetime.Start = Position;
-
-		if (position == -1)
-		{
-			// Crop the lifetime of the previous handle
-			var index = handles.Count - 1;
-
-			if (index != -1)
-			{
-				/// NOTE: Limited usage of the result which was used by other variables
-				//handles[index].Lifetime.End = Position;
-			}
-
-			handles.Add(result);
-		}
-		else
-		{
-			// Crop the lifetime of the previous handle
-			var index = position - 1;
-
-			if (index != -1)
-			{
-				/// NOTE: Limited usage of the result which was used by other variables
-				//handles[index].Lifetime.End = Position;
-			}
-
-			/// NOTE: Limited usage of the result which was used by other variables
-			//result.Lifetime.End = handles[position].Lifetime.Start;
-
-			handles.Insert(position, result);
-		}
-	}*/
-
 	public void Cache(object constant, Result value)
 	{
 		var handles = GetConstantHandles(constant);
@@ -588,21 +559,10 @@ public class Unit
 		handles.Add(value);
 	}
 
-	/*public List<Result> GetVariableHandles(Variable variable)
-	{
-		return Scope?.GetVariableHandles(this, variable) ?? throw new ApplicationException("Couldn't get variable reference list");
-	}*/
-
 	public List<Result> GetConstantHandles(object constant)
 	{
 		return Scope?.GetConstantHandles(constant) ?? throw new ApplicationException("Couldn't get constant reference list");
 	}
-
-	/*public Result? GetCurrentVariableHandle(Variable variable)
-	{
-		var handles = GetVariableHandles(variable).FindAll(h => h.IsValid(Position));
-		return handles.Count == 0 ? null : handles.Last();
-	}*/
 
 	public Result? GetCurrentVariableHandle(Variable variable)
 	{

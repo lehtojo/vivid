@@ -20,4 +20,9 @@ public class StringToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Text);
 	}
+
+	public override object Clone()
+	{
+		return MemberwiseClone();
+	}
 }

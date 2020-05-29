@@ -94,6 +94,7 @@ public abstract class Instruction
 	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
 	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
 
+	public bool IsFutureUsageAnalyzed { get; set; } = true;
 	public bool IsBuilt { get; private set; } = false;
 
 	public Instruction(Unit unit)
@@ -134,6 +135,30 @@ public abstract class Instruction
 				{
 					return new Result(this, cached);
 				}
+
+				/// TODO: Analyze whether the value will be actually used as a register
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, false);
+				}
+			}
+			else if (options.Contains(HandleType.MEDIA_REGISTER))
+			{
+				// No need to worry about required size since registers are always in the right format
+				var cached = Unit.TryGetCachedMediaRegister(parameter.Result);
+
+				if (cached != null)
+				{
+					return new Result(this, cached);
+				}
+
+				/// TODO: Analyze whether the value will be actually used as a register
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, true);
+				}
 			}
 
 			// If the parameter size doesn't match the required size, it can be converted by moving it to register
@@ -169,21 +194,24 @@ public abstract class Instruction
 			parameter.RequiredSize = size;
 
 			// Convert the parameter into a usable format
-			var handle = Convert(parameter);
+			var result = Convert(parameter);
 
 			if (parameter.IsDestination)
 			{
 				throw new NotImplementedException("Format called with a parameter that is a destination");
 			}
 
+			// Prepare the handle for use
+			locks.AddRange(ValidateHandle(result.Value));
+
 			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
-			if (handle.Value is RegisterHandle register_handle)
+			if (result.Value is RegisterHandle register_handle)
 			{
 				// Register locks have a destructor which releases the register so they are safe
 				locks.Add(new RegisterLock(register_handle.Register));
 			}
 
-			handles.Add(handle.Value);
+			handles.Add(result.Value);
 		}
 
 		locks.ForEach(l => l.Dispose());
@@ -311,6 +339,30 @@ public abstract class Instruction
 	}
 
 	/// <summary>
+	/// Prepares the handle for use
+	/// </summary>
+	/// <returns>
+	/// Returns a list of register locks which must be active while the handle is in use
+	/// </returns>
+	private List<RegisterLock> ValidateHandle(Handle handle)
+	{
+		var results = handle.GetRegisterDependentResults();
+		var locks = new List<RegisterLock>();
+
+		foreach (var result in results)
+		{
+			if (result.Value.Type != HandleType.REGISTER)
+			{
+				Memory.MoveToRegister(Unit, result, false);
+			}
+
+			locks.Add(RegisterLock.Create(result));
+		}
+
+		return locks;
+	}
+
+	/// <summary>
 	/// Builds the instruction with the given arguments and forces the parameters to match the given size
 	/// </summary>
 	public void Build(string operation, Size size, params InstructionParameter[] parameters)
@@ -333,6 +385,9 @@ public abstract class Instruction
 				// Set the result to be equal to the destination
 				Result.Value = result.Value;
 			}
+
+			// Prepare the handle for use
+			locks.AddRange(ValidateHandle(result.Value));
 
 			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
 			if (result.Value is RegisterHandle register_handle)

@@ -1,0 +1,11 @@
+export register_utilization(a: num, b: num, c: num, d: num, e: num) {
+	x = a + a - 1 * b * 7
+	y = a - a * x * b + e
+	z = x * y + e
+	=> z
+}
+
+run() {
+   register_utilization(1, 1, 1, 1, 1)
+   => 1
+}

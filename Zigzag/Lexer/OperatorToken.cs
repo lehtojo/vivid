@@ -26,4 +26,9 @@ public class OperatorToken : Token
 	{
 		return HashCode.Combine(base.GetHashCode(), Operator);
 	}
+
+	public override object Clone()
+	{
+		return MemberwiseClone();
+	}
 }

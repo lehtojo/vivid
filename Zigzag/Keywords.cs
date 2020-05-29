@@ -9,6 +9,7 @@ public class Keywords
 	public static readonly Keyword EXPORT = new AccessModifierKeyword("export", AccessModifier.GLOBAL);
 	public static readonly Keyword GOTO = new FlowKeyword("goto");
 	public static readonly Keyword IF = new FlowKeyword("if");
+	public static readonly Keyword INIT = new Keyword("init");
 	public static readonly Keyword IMPORT = new AccessModifierKeyword("import", AccessModifier.EXTERNAL);
 	public static readonly Keyword LOOP = new Keyword("loop");
 	public static readonly Keyword NEW = new Keyword("new");
@@ -33,6 +34,7 @@ public class Keywords
 		Values.Add(EXPORT.Identifier, EXPORT);
 		Values.Add(GOTO.Identifier, GOTO);
 		Values.Add(IF.Identifier, IF);
+		//Values.Add(INIT.Identifier, INIT);
 		Values.Add(IMPORT.Identifier, IMPORT);
 		Values.Add(LOOP.Identifier, LOOP);
 		Values.Add(NEW.Identifier, NEW);

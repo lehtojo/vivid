@@ -145,7 +145,7 @@ public class MoveInstruction : DualParameterInstruction
 		// There's no need to move the source value to the destination if it's already there (Example: x64 function parameters)
 		if (First.Value is RegisterHandle destination && (destination.Register.Handle?.Equals(Second) ?? false))
 		{
-			return;
+			//return;
 		}
 
 		var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);

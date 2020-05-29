@@ -100,6 +100,8 @@ public class Patterns
 		Add(new ReturnPattern());
 		Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
+		Add(new TemplateFunctionPattern());
+		Add(new TemplateTypePattern());
 		Add(new TypePattern());
 		Add(new UnarySignPattern());
 		Add(new VariableDeclarationPattern());

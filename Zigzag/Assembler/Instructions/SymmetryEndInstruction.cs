@@ -49,12 +49,12 @@ public class SymmetryEndInstruction : Instruction
 		{
 			foreach (var b in moves)
 			{
-				if (a == b) continue;
+				if (a == b || remove_list.Contains(a) || remove_list.Contains(b)) continue;
 				
 				if (a.First.Value.Equals(b.Second.Value) &&
 					a.Second.Value.Equals(b.First.Value))
 				{
-					exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second));
+					exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second, false));
 
 					remove_list.Add(a);
 					remove_list.Add(b);

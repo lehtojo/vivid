@@ -2,7 +2,7 @@ using System;
 
 public class IdentifierToken : Token
 {
-	public string Value { get; private set; }
+	public string Value { get; set; }
 
 	public IdentifierToken(string value) : base(TokenType.IDENTIFIER)
 	{
@@ -19,5 +19,10 @@ public class IdentifierToken : Token
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(base.GetHashCode(), Value);
+	}
+
+	public override object Clone()
+	{
+		return MemberwiseClone();
 	}
 }

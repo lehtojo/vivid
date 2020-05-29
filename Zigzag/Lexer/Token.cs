@@ -1,6 +1,6 @@
 using System;
 
-public class Token
+public class Token : ICloneable
 {
 	public int Type { get; private set; }
 	public bool IsFirst { get; set; } = false;
@@ -25,5 +25,14 @@ public class Token
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(Type);
+	}
+
+	public virtual object Clone()
+	{
+		return new Token(Type)
+		{
+			IsFirst = IsFirst,
+			Position = Position.Clone()
+		};
 	}
 }
