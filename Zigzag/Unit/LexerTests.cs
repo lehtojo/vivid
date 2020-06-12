@@ -6,7 +6,7 @@ namespace Zigzag.Unit
 	[TestFixture]
 	public class LexerTests
 	{
-		private List<Token> GetTokens(params Token[] tokens)
+		private static List<Token> GetTokens(params Token[] tokens)
 		{
 			return new List<Token>(tokens);
 		}

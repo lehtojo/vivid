@@ -43,18 +43,27 @@ public class Result
 		}
 	}
 
+	public Format Format { get; set; } = Assembler.Size.ToFormat();
+	public Size Size => Size.FromFormat(Format);
+	public bool IsUnsigned => Format.IsUnsigned();
+
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
 	private List<Connection> Connections { get; } = new List<Connection>();
 	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
 	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 
-	public bool Empty => _Value.Type == HandleType.NONE;
+	public bool IsCalculation => _Value.Type == HandleType.CALCULATION;
+	public bool IsConstant => _Value.Type == HandleType.CONSTANT;
+	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;
+	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
+	public bool IsEmpty => _Value.Type == HandleType.NONE;
+	public bool IsRegister => _Value.Type == HandleType.REGISTER;
 
 	public bool IsReleasable()
 	{
 		// Prevent releasing this pointer
-		if (Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsThisPointer)
+		if (Metadata.IsPrimarilyVariable && Metadata.Primary!.To<VariableAttribute>().Variable.IsThisPointer)
 		{
 			return false;
 		}
@@ -74,14 +83,22 @@ public class Result
 		Instruction = instruction;
 	}
 
-	public Result(Handle value)
+	public Result(Handle value, Format format)
 	{
 		_Value = value;
+		Format = format;
+	}
+
+	public Result(Format format)
+	{
+		_Value = new Handle();
+		Format = format;
 	}
 
 	public Result()
 	{
 		_Value = new Handle();
+		Format = Assembler.Format;
 	}
 
 	/// <summary>
@@ -109,6 +126,7 @@ public class Result
 		{
 			member.Instruction = Instruction;
 			member.Lifetime = Lifetime;
+			member.Format = Format;
 		}
 	}
 

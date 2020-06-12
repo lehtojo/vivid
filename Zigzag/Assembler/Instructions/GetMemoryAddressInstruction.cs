@@ -22,23 +22,19 @@ public class GetMemoryAddressInstruction : Instruction
       Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
 		Source.Value = Result.Value;
+		Result.Format = format;
 		Source.Metadata.Attach(new ComplexMemoryAddressAttribute());
 	}
 
 	public override void OnBuild()
 	{
-		Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
-		Memory.Convert(Unit, Offset, true, HandleType.CONSTANT, HandleType.REGISTER);
-
 		if (Mode != AccessMode.WRITE && !Result.Equals(Source))
 		{
-         var move = new MoveInstruction(Unit, Result, Source)
-         {
-            Type = MoveType.LOAD
-         };
-
-         // Since the source is not where it should be, it must be moved to the result 
-         Unit.Append(move);
+			// Since the source is not where it should be, it must be moved to the result 
+			Unit.Append(new MoveInstruction(Unit, Result, Source)
+			{
+				Type = MoveType.LOAD
+			});
 		}
 	}
 

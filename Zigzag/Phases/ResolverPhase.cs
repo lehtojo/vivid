@@ -109,22 +109,19 @@ public class ResolverPhase : Phase
 		var previous = string.Empty;
 		var report = GetReport(context);
 
-		if (report != previous)
+		// Try to resolve as long as errors change -- errors don't always decrease since the program may expand each cycle
+		while (true)
 		{
-			// Try to resolve as long as errors change -- errors don't always decrease since the program may expand each cycle
-			while (true)
+			previous = report;
+
+			// Try to resolve any problems in the node tree
+			Resolver.ResolveContext(context);
+			report = GetReport(context);
+
+			// Try again only if the errors have changed
+			if (report == previous)
 			{
-				previous = report;
-
-				// Try to resolve any problems in the node tree
-				Resolver.ResolveContext(context);
-				report = GetReport(context);
-
-				// Try again only if the errors have changed
-				if (report == previous)
-				{
-					break;
-				}
+				break;
 			}
 		}
 

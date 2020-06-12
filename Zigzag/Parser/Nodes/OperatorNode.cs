@@ -66,7 +66,7 @@ public class OperatorNode : Node, IType
 		return Resolver.GetSharedType(left, right);
 	}
 
-	private Type? GetComparisonType()
+	private static Type? GetComparisonType()
 	{
 		return Types.BOOL;
 	}
@@ -98,6 +98,11 @@ public class OperatorNode : Node, IType
 			case OperatorType.ACTION:
 			{
 				return GetActionType();
+			}
+
+			case OperatorType.LOGIC:
+			{
+				return Types.BOOL;
 			}
 
 			default: throw new Exception("Independent operator shouldn't be processed here!");

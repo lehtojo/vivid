@@ -9,11 +9,6 @@ public class RestoreStateInstruction : Instruction
 		Save = save;
 	}
 
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
 	public override void OnBuild()
 	{
 		if (Save.State == null)
@@ -22,6 +17,11 @@ public class RestoreStateInstruction : Instruction
 		}
 
 		Unit.Set(Save.State);
+	}
+
+	public override Result? GetDestinationDependency()
+	{
+		return null;
 	}
 
 	public override InstructionType GetInstructionType()

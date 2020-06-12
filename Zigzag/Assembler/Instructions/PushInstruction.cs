@@ -7,6 +7,7 @@ public class PushInstruction : Instruction
 	public PushInstruction(Unit unit, Result value) : base(unit)
 	{
 		Value = value;
+		Result.Format = Value.Format;
 	}
 
 	public override void OnBuild()

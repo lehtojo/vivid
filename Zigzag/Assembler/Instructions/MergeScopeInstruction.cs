@@ -17,63 +17,35 @@ public class MergeScopeInstruction : Instruction
 
 	public override void OnBuild() 
 	{
-		var moves = new List<DualParameterInstruction>();
+		var moves = new List<MoveInstruction>();
 
 		foreach (var variable in Scope!.ActiveVariables)
 		{
 			var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get the current handle for an active variable");
 
 			// Copy the destination value to prevent any relocation leaks
-			var destination = new Result(GetDestinationHandle(variable).Value);
+			var destination = new Result(GetDestinationHandle(variable).Value, variable.Type!.Format);
 			
 			// When the destination is a memory handle, it most likely means it won't be used later
-			if (destination.Value.Type == HandleType.MEMORY && !IsUsedLater(variable))
+			if (destination.IsMemoryAddress && !IsUsedLater(variable))
 			{
 				continue;
 			}
 
-			if (destination.Value.Type == HandleType.CONSTANT)
+			if (destination.IsConstant)
 			{
 				throw new ApplicationException("Constant value was not moved to register or released before entering scope");
 			}
 
-			if (!destination.Value.Equals(source.Value))
-			{
-				moves.Add(new MoveInstruction(Unit, destination, source));
-			}
+			moves.Add(new MoveInstruction(Unit, destination, source));
 		}
 
-		var remove_list = new List<DualParameterInstruction>();
-		var exchanges = new List<ExchangeInstruction>();
-
-		foreach (var a in moves)
-		{
-			foreach (var b in moves)
-			{
-				if (a == b || remove_list.Contains(a) || remove_list.Contains(b)) continue;
-				
-				if (a.First.Value.Equals(b.Second.Value) &&
-					a.Second.Value.Equals(b.First.Value))
-				{
-					exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second, false));
-					
-					remove_list.Add(a);
-					remove_list.Add(b);
-					break;
-				}
-			}
-		}
-
-		moves.AddRange(exchanges);
-		moves.RemoveAll(m => remove_list.Contains(m));
-
-		moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? -1 : 0);
-		moves.ForEach(move => Unit.Append(move));
+		Unit.Append(Memory.Relocate(Unit, moves), true);
 	}
 
 	public override Result? GetDestinationDependency()
 	{
-		return null;
+		throw new ApplicationException("Tried to redirect Merge-Scope-Instruction");
 	}
 
 	public override InstructionType GetInstructionType()

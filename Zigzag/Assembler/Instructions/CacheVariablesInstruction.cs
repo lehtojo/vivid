@@ -1,39 +1,6 @@
 using System;
 using System.Linq;
-
 using System.Collections.Generic;
-
-public static class ListPopExtensionClasses
-{
-	public static T? Pop<T>(this List<T> source) where T : class
-	{
-		if (source.Count == 0)
-		{
-			return null;
-		}
-
-		var element = source[0];
-		source.RemoveAt(0);
-
-		return element;
-	}
-}
-
-public static class ListPopExtensionStructs
-{
-	public static T? Pop<T>(this List<T> source) where T : struct
-	{
-		if (source.Count == 0)
-		{
-			return null;
-		}
-
-		var element = source[0];
-		source.RemoveAt(0);
-
-		return element;
-	}
-}
 
 public class CacheVariablesInstruction : Instruction
 {
@@ -71,17 +38,7 @@ public class CacheVariablesInstruction : Instruction
 
 	private void Release(VariableUsageInfo usage)
 	{
-		// Get the memory address of the variables where its value can be saved
-		var destination = References.GetVariable(Unit, usage.Variable, AccessMode.WRITE);
-		var source = usage.Reference ?? throw new ApplicationException("Variable reference was not loaded");
-
-      // The variable value must be saved so it must be relocated to the destination
-      var move = new MoveInstruction(Unit, destination, source)
-      {
-         Type = MoveType.RELOCATE
-      };
-
-      Unit.Append(move);
+		Unit.Release(usage.Reference!.Value.To<RegisterHandle>().Register);
 	}
 
 	public override void OnBuild()
@@ -164,15 +121,13 @@ public class CacheVariablesInstruction : Instruction
 				register = removed.Register;
 			}
 
-			var destination = new Result(new RegisterHandle(register));
+			var destination = new Result(new RegisterHandle(register), usage.Reference!.Format);
 			var source = usage.Reference!;
 
-         var move = new MoveInstruction(Unit, destination, source)
-         {
-            Type = MoveType.RELOCATE
-         };
-
-         Unit.Append(move);
+			Unit.Append(new MoveInstruction(Unit, destination, source)
+			{
+				Type = MoveType.RELOCATE
+			});
 		}
 
 		// Release the remaining variables
@@ -184,8 +139,7 @@ public class CacheVariablesInstruction : Instruction
 
 	public override Result? GetDestinationDependency()
 	{
-		Console.WriteLine("Warning: Cache-Variables-Instruction cannot be redirected");
-		return null;
+		throw new ApplicationException("Tried to redirect Cache-Variables-Instruction");
 	}
 
 	public override InstructionType GetInstructionType()

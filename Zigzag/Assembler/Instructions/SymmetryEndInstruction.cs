@@ -5,7 +5,7 @@ using System.Linq;
 public class SymmetryEndInstruction : Instruction
 {
 	public SymmetryStartInstruction Start  { get; private set; }
-	private List<Result> Loads { get; set; } = new List<Result>();
+	private List<Result> Handles { get; set; } = new List<Result>();
 
 	public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit) 
 	{
@@ -16,60 +16,27 @@ public class SymmetryEndInstruction : Instruction
 	{
 		foreach (var variable in Start.ActiveVariables)
 		{
-			var source = References.GetVariable(Unit, variable, AccessMode.READ);
-			Loads.Add(source);
+			Handles.Add(References.GetVariable(Unit, variable, AccessMode.READ));
 		}
 	}
 
 	public override void OnBuild()
 	{
-		var moves = new List<DualParameterInstruction>();
+		var moves = new List<MoveInstruction>();
 
-		for (var i = 0; i < Loads.Count; i++)
+		for (var i = 0; i < Handles.Count; i++)
 		{
-			var source = Loads[i];
-			var destination = new Result(Start.Handles[i]);
+			var source = Handles[i];
+			var destination = new Result(Start.Handles[i], source.Format);
 
-			// Skip moves that are not necessary
-			if (source.Value.Equals(destination.Value))
+			moves.Add(new MoveInstruction(Unit, destination, source)
 			{
-				continue;
-			}
-
-         var move = new MoveInstruction(Unit, destination, source)
-         {
-            Description = "Relocate the source in order to make the loop symmetric"
-         };
-
-         moves.Add(move);
+				IsSafe = true,
+				Description = "Relocate the source in order to make the loop symmetric",
+			});
 		}
 
-		var remove_list = new List<DualParameterInstruction>();
-		var exchanges = new List<ExchangeInstruction>();
-
-		foreach (var a in moves)
-		{
-			foreach (var b in moves)
-			{
-				if (a == b || remove_list.Contains(a) || remove_list.Contains(b)) continue;
-				
-				if (a.First.Value.Equals(b.Second.Value) &&
-					a.Second.Value.Equals(b.First.Value))
-				{
-					exchanges.Add(new ExchangeInstruction(Unit, a.First, a.Second, false));
-
-					remove_list.Add(a);
-					remove_list.Add(b);
-					break;
-				}
-			}
-		}
-
-		moves.AddRange(exchanges);
-		moves.RemoveAll(m => remove_list.Contains(m));
-
-		moves.Sort((a, b) => a.First.Value.Equals(b.Second.Value) ? -1 : 0);
-		moves.ForEach(move => Unit.Append(move));
+		Unit.Append(Memory.Relocate(Unit, moves), true);
 	}
 
 	public override Result? GetDestinationDependency()
@@ -84,6 +51,6 @@ public class SymmetryEndInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result };
+		return new Result[] { Result }.Concat(Handles).ToArray();
 	}
 }

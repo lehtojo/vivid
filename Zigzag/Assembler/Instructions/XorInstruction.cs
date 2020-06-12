@@ -4,7 +4,7 @@ public class XorInstruction : DualParameterInstruction
 	public const string INSTRUCTION = "xor";
 	public bool IsSafe { get; set; } = true;
 
-	public XorInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+	public XorInstruction(Unit unit, Result first, Result second) : base(unit, first, second, first.Format) {}
 
 	public override void OnBuild()
 	{

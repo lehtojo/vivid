@@ -6,16 +6,16 @@ using System;
 public class InitializeInstruction : Instruction
 {
 	public int StackMemoryChange { get; private set; }
-	public int LocalVariablesTop { get; private set; }
+	public int LocalMemoryTop { get; private set; }
 
-	private bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
-	private bool IsStackAligned => Assembler.Size.Bits == 64;
+	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.IsTargetX64;
+	private static bool IsStackAligned => Assembler.IsTargetX64;
 
 	public InitializeInstruction(Unit unit) : base(unit) {}
 
 	public override void OnBuild() {}
 
-	public int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
+	private static int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
 	{
 		if (!calls.Any())
 		{
@@ -57,7 +57,7 @@ public class InitializeInstruction : Instruction
 		}
 
 		// Local variables in memory start now
-		LocalVariablesTop = Unit.StackOffset;
+		LocalMemoryTop = Unit.StackOffset;
 
 		// Apply the required memory for local variables
 		var additional_memory = required_local_memory;

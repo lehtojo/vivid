@@ -8,7 +8,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		SetOperands(left, right);
 	}
 
-	private Type? GetNodeContext(Node node)
+	private static Type? GetNodeContext(Node node)
 	{
 		if (node is IType type)
 		{

@@ -8,6 +8,7 @@ public class NegateInstruction : Instruction
 	public NegateInstruction(Unit unit, Result target) : base(unit)
 	{
 		Target = target;
+		Result.Format = target.Format;
 	}
 
 	public override void OnBuild()

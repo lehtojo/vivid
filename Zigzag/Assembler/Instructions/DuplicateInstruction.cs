@@ -1,21 +1,19 @@
 
 public class DuplicateInstruction : DualParameterInstruction
 {
-	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value) {}
+	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value, value.Format) {}
 
 	public override void OnBuild()
 	{
-		if (Result.Empty)
+		if (Result.IsEmpty)
 		{
 			Result.Value = new RegisterHandle(Unit.GetNextRegister());
 		}
 
-      var move = new MoveInstruction(Unit, Result, Second)
-      {
-         Type = MoveType.LOAD
-      };
-
-      Unit.Append(move);
+		Unit.Append(new MoveInstruction(Unit, Result, Second)
+		{
+			Type = MoveType.LOAD
+		});
 	}
 
 	public override Result? GetDestinationDependency()

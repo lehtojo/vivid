@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public static class Aligner
 {
@@ -26,9 +27,9 @@ public static class Aligner
 	}
 
 	/// <summary>
-	/// Aligns all the given local variables
+	/// Aligns the local memory used by a function
 	/// </summary>
-	public static void AlignLocalVariables(IEnumerable<Variable> variables, int top)
+	public static void AlignLocalMemory(IEnumerable<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, int top)
 	{
 		var position = -top;
 
@@ -36,6 +37,24 @@ public static class Aligner
 		{
 			position -= variable.Type!.ReferenceSize;
 			variable.Alignment = position;
+		}
+
+		while (temporary_handles.Count > 0)
+		{
+			var first = temporary_handles.First();
+			var identifier = first.Identifier;
+
+			position -= first.Size.Bytes;
+
+			var copies = temporary_handles.Where(t => t.Identifier.Equals(identifier)).ToList();
+
+			copies.ForEach(c => c.Offset = position);
+			copies.ForEach(c => temporary_handles.Remove(c));
+		}
+
+		foreach (var temporary_handle in temporary_handles)
+		{
+			temporary_handle.Offset = position;
 		}
 	}
 

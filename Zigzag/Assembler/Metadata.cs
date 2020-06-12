@@ -18,6 +18,11 @@ public class MetadataAttribute
 		Type = type;
 	}
 
+	public T To<T>() where T : MetadataAttribute
+	{
+		return this as T ?? throw new ApplicationException($"Couldn't convert 'MetadataAttribute' to '{typeof(T).Name}'");
+	}
+
 	public virtual bool Contradicts(MetadataAttribute other)
 	{
 		return false;
@@ -46,7 +51,7 @@ public class Metadata
 	public bool IsComplex => IsComplexMemoryAddress || (Primary is VariableAttribute attribute && !attribute.Variable.IsPredictable);
 	public bool IsDependent => Secondary.Any(a => a.Type == AttributeType.VARIABLE || a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
 
-	private int GetPriorityValue(MetadataAttribute attribute)
+	private static int GetPriorityValue(MetadataAttribute attribute)
 	{
 		return attribute.Type == AttributeType.VARIABLE ? 1 : 0;
 	}

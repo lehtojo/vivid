@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 public class JumpInstruction : Instruction
 {
@@ -14,8 +15,9 @@ public class JumpInstruction : Instruction
 		Instructions.Add(Operators.NOT_EQUALS, "jne");
 	}
 
-	public Label Label { get; private set; }
+	public Label Label { get; set; }
 	public ComparisonOperator? Comparator { get; private set; }
+	public bool IsConditional => Comparator != null;
 
 	public JumpInstruction(Unit unit, Label label) : base(unit)
 	{
@@ -23,12 +25,15 @@ public class JumpInstruction : Instruction
 		Comparator = null;
 	}
 
-	public JumpInstruction(Unit unit, Result comparison, ComparisonOperator comparator, bool invert, Label label) : base(unit)
+	public JumpInstruction(Unit unit, ComparisonOperator comparator, bool invert, Label label) : base(unit)
 	{
-		Result.Join(comparison);
-
 		Label = label;
 		Comparator = invert ? comparator.Counterpart : comparator;    
+	}
+
+	public void Invert()
+	{
+		Comparator = Comparator?.Counterpart ?? throw new ApplicationException("Standard jump instruction shouldn't be inverted");
 	}
 
 	public override void OnBuild()
@@ -49,6 +54,6 @@ public class JumpInstruction : Instruction
 
 	public override Result? GetDestinationDependency()
 	{
-		return null;
+		throw new ApplicationException("Tried to redirect Jump-Instruction");
 	}
 }

@@ -2,15 +2,8 @@ using System;
 
 public static class References
 {
-	public static Handle CreateConstantNumber(Unit unit, object value)
+	public static Handle CreateConstantNumber(object value)
 	{
-		if (value is double x)
-		{
-			var identifier = unit.GetDecimalIdentifier(x);
-
-			return new DataSectionHandle(identifier);
-		}
-
 		return new ConstantHandle(value);
 	}
 
@@ -53,7 +46,7 @@ public static class References
 			default: throw new NotImplementedException("Unrecognized variable category");
 		}
 
-		handle.Format = variable.Type!.Format;
+		// handle.Format = variable.Type!.Format;
 
 		return handle;
 	}
@@ -80,7 +73,7 @@ public static class References
 
 	public static Result GetConstant(Unit unit, NumberNode node)
 	{
-		var handle = new GetConstantInstruction(unit, node.Value).Execute();
+		var handle = new GetConstantInstruction(unit, node.Value, node.Type).Execute();
 		handle.Metadata.Attach(new ConstantAttribute(node.Value));
 
 		return handle;
@@ -88,7 +81,7 @@ public static class References
 
 	public static Result GetString(Unit unit, StringNode node)
 	{
-		return new Result(new ConstantHandle(node.GetIdentifier(unit)));
+		return new Result(new ConstantHandle(node.GetIdentifier(unit)), Assembler.Size.ToFormat());
 	}
 
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)

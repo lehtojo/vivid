@@ -7,6 +7,7 @@ public class GetObjectPointerInstruction : Instruction
 	public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset) : base(unit)
 	{
 		Result.Metadata.Attach(new VariableAttribute(variable));
+		Result.Format = variable.Type!.Format;
 
 		Variable = variable;
 		Start = start;
@@ -15,14 +16,8 @@ public class GetObjectPointerInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		// Lock the parameters (Maybe new type of lifetime which stores a result its dependent on)
-		Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
-		
-      Result.Value = new MemoryHandle(Unit, Start, Offset)
-      {
-         Format = Variable.Type!.Format
-      };
-   }
+		Result.Value = new MemoryHandle(Unit, Start, Offset);
+	}
 
 	public override Result[] GetResultReferences()
 	{

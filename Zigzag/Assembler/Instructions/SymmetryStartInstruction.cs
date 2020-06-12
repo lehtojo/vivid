@@ -19,7 +19,7 @@ public class SymmetryStartInstruction : Instruction
 		foreach (var variable in ActiveVariables)
 		{
 			var current_handle = Unit.GetCurrentVariableHandle(variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
-			Handles.Add(current_handle.Value.Freeze());
+			Handles.Add(current_handle.Value.Finalize());
 		}
 	}
 

@@ -8,27 +8,32 @@ public enum HandleType
 	CONSTANT,
 	REGISTER,
 	MEDIA_REGISTER,
+	CALCULATION,
 	NONE
 }
 
 public class Handle
 {
 	public HandleType Type { get; protected set; }
-	public Format Format { get; set; }
+	public bool IsSizeVisible { get; set; } = false;
+
+	public Format Format { get; set; } = Assembler.Format;
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
-	public bool IsSizeVisible { get; set; } = false;
 
 	public Handle()
 	{
 		Type = HandleType.NONE;
-		Format = Assembler.Size.ToFormat();
 	}
 
 	public Handle(HandleType type)
 	{
 		Type = type;
-		Format = Assembler.Size.ToFormat();
+	}
+
+	public bool Is(HandleType type)
+	{
+		return Type == type;
 	}
 
 	/// <summary>
@@ -45,7 +50,7 @@ public class Handle
 	}
 
 	public virtual void Use(int position) { }
-	public virtual Handle Freeze() 
+	public virtual Handle Finalize() 
 	{
 		return (Handle)this.MemberwiseClone();
 	}
@@ -56,9 +61,36 @@ public class Handle
 	}
 }
 
+public class ConstantDataSectionHandle : DataSectionHandle
+{
+	public object Value { get; private set; }
+
+	public ConstantDataSectionHandle(ConstantHandle handle) : base(handle.ToString())
+	{
+		Value = handle.Value;
+	}
+
+	public override Handle Finalize() 
+	{
+		return (Handle)this.MemberwiseClone();
+	}
+
+   public override bool Equals(object? obj)
+   {
+      return obj is ConstantDataSectionHandle handle &&
+             base.Equals(obj) &&
+             EqualityComparer<object>.Default.Equals(Value, handle.Value);
+   }
+
+   public override int GetHashCode()
+   {
+      return HashCode.Combine(base.GetHashCode(), Value);
+   }
+}
+
 public class DataSectionHandle : Handle
 {
-	public string Identifier { get; private set; }
+	public string Identifier { get; set; }
 
 	public DataSectionHandle(string identifier) : base(HandleType.MEMORY)
 	{
@@ -77,7 +109,7 @@ public class DataSectionHandle : Handle
 		}
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize()
 	{
 		return (Handle)this.MemberwiseClone();
 	}
@@ -104,9 +136,33 @@ public class ConstantHandle : Handle
 		Value = value;
 	}
 
+	public void Convert(Format format)
+	{
+      Value = format switch
+      {
+         Format.DECIMAL => System.Convert.ToDouble(Value, CultureInfo.InvariantCulture),
+         Format.INT8 => System.Convert.ToSByte(Value, CultureInfo.InvariantCulture),
+         Format.INT16 => System.Convert.ToInt16(Value, CultureInfo.InvariantCulture),
+         Format.INT32 => System.Convert.ToInt32(Value, CultureInfo.InvariantCulture),
+         Format.INT64 => System.Convert.ToInt64(Value, CultureInfo.InvariantCulture),
+         Format.UINT8 => System.Convert.ToByte(Value, CultureInfo.InvariantCulture),
+         Format.UINT16 => System.Convert.ToUInt16(Value, CultureInfo.InvariantCulture),
+         Format.UINT32 => System.Convert.ToUInt32(Value, CultureInfo.InvariantCulture),
+         Format.UINT64 => System.Convert.ToUInt64(Value, CultureInfo.InvariantCulture),
+         _ => throw new ApplicationException("Unsupported format encountered while converting a handle"),
+      };
+   }
+
 	public override string ToString()
 	{
-		return Value?.ToString() ?? throw new NullReferenceException("Constant value was missing");
+		var result = Value?.ToString()?.Replace(',', '.') ?? throw new NullReferenceException("Constant value was missing");
+
+		if (Format.IsDecimal() && !result.Contains('.'))
+		{
+			return result + ".0";
+		}
+
+		return result;
 	}
 
 	public override bool Equals(object? obj)
@@ -115,7 +171,7 @@ public class ConstantHandle : Handle
 			   EqualityComparer<object>.Default.Equals(Value, handle.Value);
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize()
 	{
 		return (Handle)this.MemberwiseClone();
 	}
@@ -134,7 +190,6 @@ public class VariableMemoryHandle : StackMemoryHandle
 	{
 		Variable = variable;
 	}
-
 	public override string ToString() 
 	{
 		if (Variable.Alignment == null)
@@ -147,7 +202,7 @@ public class VariableMemoryHandle : StackMemoryHandle
 		return base.ToString();
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize()
 	{
 		return (Handle)this.MemberwiseClone();
 	}
@@ -156,17 +211,12 @@ public class VariableMemoryHandle : StackMemoryHandle
 	{
 		return obj is VariableMemoryHandle handle &&
 			   base.Equals(obj) &&
-			   Type == handle.Type &&
-			   EqualityComparer<Size>.Default.Equals(Size, handle.Size) &&
-			   EqualityComparer<Unit>.Default.Equals(Unit, handle.Unit) &&
-			   EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
-			   Offset == handle.Offset &&
 			   EqualityComparer<Variable>.Default.Equals(Variable, handle.Variable);
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Type, Size, Unit, Start, Offset, Variable);
+		return HashCode.Combine(base.GetHashCode(), Variable);
 	}
 }
 
@@ -175,14 +225,8 @@ public class MemoryHandle : Handle
 	public Unit Unit { get; private set; }
 	public Result Start { get; private set; }
 	public int Offset { get; set; }
-	
-	//private bool IsStackMemoryPointer => Start.Value is RegisterHandle handle && handle.Register == Unit.GetStackPointer();
-	private int AbsoluteOffset => GetAbsoluteOffset(); // (IsStackMemoryPointer ? Unit.StackOffset : 0) + Offset;
 
-	//public static MemoryHandle FromStack(Unit unit, int offset)
-	//{
-	//	return new MemoryHandle(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset);
-	//}
+	private int AbsoluteOffset => GetAbsoluteOffset();
 
 	public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY)
 	{
@@ -214,8 +258,7 @@ public class MemoryHandle : Handle
 			offset = AbsoluteOffset.ToString(CultureInfo.InvariantCulture);
 		}
 
-		if (Start.Value.Type == HandleType.REGISTER ||
-			Start.Value.Type == HandleType.CONSTANT)
+		if (Start.IsRegister || Start.IsConstant)
 		{
 			var address = $"[{Start.Value}{offset}]";
 
@@ -237,15 +280,11 @@ public class MemoryHandle : Handle
 		return new Result[] { Start };
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize() 
 	{
-		if (Start.Value.Type == HandleType.REGISTER ||
-				Start.Value.Type == HandleType.CONSTANT)
-		{            
-			return new MemoryHandle(Unit, new Result(Start.Value), Offset)
-			{
-				Format = Format
-			};
+		if (Start.IsRegister || Start.IsConstant)
+		{
+			return new MemoryHandle(Unit, new Result(Start.Value, Start.Format), Offset);
 		}
 
 		throw new ApplicationException("Start of the memory handle was in invalid format for freeze operation");
@@ -268,24 +307,28 @@ public class StackMemoryHandle : MemoryHandle
 {
 	public bool IsAbsolute { get; private set; }
 
-	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer())), offset)
-	{
-		IsAbsolute = absolute;
-	}
+	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base
+	(
+		unit, 
+		new Result
+		(
+			new RegisterHandle(unit.GetStackPointer()),
+			Assembler.Format
+		), 
+		offset
+
+	) { IsAbsolute = absolute; }
 
 	public override int GetAbsoluteOffset()
 	{
 		return (IsAbsolute ? Unit.StackOffset : 0) + Offset;
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize() 
 	{
 		if (Start.Value.To<RegisterHandle>().Register == Unit.GetStackPointer())
-		{            
-			return new StackMemoryHandle(Unit, Offset, IsAbsolute)
-			{
-				Format = Format
-			};
+		{
+			return new StackMemoryHandle(Unit, Offset, IsAbsolute);
 		}
 
 		throw new ApplicationException("Stack memory handle's register was invalid");
@@ -294,8 +337,8 @@ public class StackMemoryHandle : MemoryHandle
    public override bool Equals(object? obj)
    {
       return obj is StackMemoryHandle handle &&
-             base.Equals(obj) &&
-				 IsAbsolute == handle.IsAbsolute;
+					Offset == handle.Offset &&
+				 	IsAbsolute == handle.IsAbsolute;
    }
 
    public override int GetHashCode()
@@ -305,6 +348,33 @@ public class StackMemoryHandle : MemoryHandle
       hash.Add(IsAbsolute);
       return hash.ToHashCode();
    }
+}
+
+public class TemporaryMemoryHandle : StackMemoryHandle
+{
+	public Guid Identifier { get; private set; }
+
+	public TemporaryMemoryHandle(Unit unit) : base(unit, 0)
+	{
+		Identifier = Guid.NewGuid();
+	}
+
+	public override Handle Finalize()
+	{
+		return (Handle)this.MemberwiseClone();
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is TemporaryMemoryHandle handle &&
+			   base.Equals(obj) &&
+			   EqualityComparer<Guid>.Default.Equals(Identifier, handle.Identifier);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Identifier);
+	}
 }
 
 public class ComplexMemoryHandle : Handle
@@ -318,7 +388,6 @@ public class ComplexMemoryHandle : Handle
 		Start = start;
 		Offset = offset;
 		Stride = stride;
-		Format = Size.FromBytes(stride).ToFormat();
 	}
 
 	public override void Use(int position)
@@ -331,7 +400,7 @@ public class ComplexMemoryHandle : Handle
 	{
 		var offset = string.Empty;
 
-		if (Offset.Value.Type == HandleType.REGISTER)
+		if (Offset.IsRegister)
 		{
 			offset = "+" + Offset.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
 		}
@@ -377,12 +446,18 @@ public class ComplexMemoryHandle : Handle
 		return new Result[] { Start, Offset };
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize() 
 	{
 		if ((Start.Value.Type == HandleType.REGISTER || Start.Value.Type == HandleType.CONSTANT) && 
 			(Offset.Value.Type == HandleType.REGISTER || Offset.Value.Type == HandleType.CONSTANT))
 		{
-			return new ComplexMemoryHandle(new Result(Start.Value), new Result(Offset.Value), Stride);
+			return new ComplexMemoryHandle
+			(
+				new Result(Start.Value, Start.Format), 
+				new Result(Offset.Value, Offset.Format), 
+				Stride
+
+			);
 		}
 
 		throw new ApplicationException("Parameters of a complex memory handle were in invalid format for freeze operation");
@@ -402,6 +477,117 @@ public class ComplexMemoryHandle : Handle
 	}
 }
 
+public class CalculationHandle : Handle
+{
+	public Result Multiplicand { get; private set; }
+	public int Multiplier { get; private set; }
+	public Result? Addition { get; private set; }
+	public int Constant { get; private set; }
+
+	public static CalculationHandle CreateAddition(Result left, Result right)
+	{
+		return new CalculationHandle(left, 1, right, 0);
+	}
+
+	public CalculationHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.CALCULATION)
+	{
+		Multiplicand = multiplicand;
+		Multiplier = multiplier;
+		Addition = addition;
+		Constant = constant;
+	}
+
+	public override void Use(int position)
+	{
+		Multiplicand.Use(position);
+		Addition?.Use(position);
+	}
+
+	private void Validate()
+	{
+		if ((Multiplicand.Value.Type != HandleType.REGISTER && Multiplicand.Value.Type != HandleType.CONSTANT) || 
+			 (Addition != null && (Addition.Value.Type != HandleType.REGISTER && Addition.Value.Type != HandleType.CONSTANT)) ||
+				Multiplier <= 0 || Constant < 0 )
+		{
+			throw new ApplicationException("Detected an invalid calculation handle");
+		}
+	}
+
+	public override string ToString()
+	{
+		Validate();
+
+		var result = Multiplicand.ToString();
+		
+		if (Multiplier > 1)
+		{
+			result += '*' + Multiplier.ToString(CultureInfo.InvariantCulture);
+		}
+
+		if (Addition != null)
+		{
+			result += '+' + Addition.ToString();
+		}
+
+		if (Constant != 0)
+		{
+			result += '+' + Constant;
+		}
+
+		return '[' + result + ']';
+	}
+
+	public override Result[] GetRegisterDependentResults()
+	{
+		var result = new List<Result>();
+
+		if (Multiplicand.Value.Type != HandleType.CONSTANT)
+		{
+			result.Add(Multiplicand);
+		}
+
+		if (Addition != null && Addition.Value.Type != HandleType.CONSTANT)
+		{
+			result.Add(Addition);
+		}
+
+		return result.ToArray();
+	}
+
+	public override Handle Finalize()
+	{
+		Validate();
+
+		return new CalculationHandle
+		(
+			new Result(Multiplicand.Value, Assembler.Format),
+			Multiplier,
+			Addition == null ? null : new Result(Addition.Value, Assembler.Format),
+			Constant
+		);
+	}
+
+   public override bool Equals(object? obj)
+   {
+      return obj is CalculationHandle handle &&
+             EqualityComparer<Result>.Default.Equals(Multiplicand, handle.Multiplicand) &&
+             Multiplier == handle.Multiplier &&
+             EqualityComparer<Result?>.Default.Equals(Addition, handle.Addition) &&
+             Constant == handle.Constant;
+   }
+
+   public override int GetHashCode()
+   {
+      HashCode hash = new HashCode();
+      hash.Add(Type);
+      hash.Add(Multiplicand);
+      hash.Add(Multiplier);
+      hash.Add(Addition);
+      hash.Add(Constant);
+      return hash.ToHashCode();
+   }
+}
+
 public class RegisterHandle : Handle
 {
 	public Register Register { get; private set; }
@@ -409,7 +595,6 @@ public class RegisterHandle : Handle
 	public RegisterHandle(Register register) : base(register.IsMediaRegister ? HandleType.MEDIA_REGISTER : HandleType.REGISTER)
 	{
 		Register = register;
-		Format = Register.IsMediaRegister ? Format.DECIMAL : Assembler.Size.ToFormat();
 	}
 
 	public override string ToString()
@@ -422,15 +607,14 @@ public class RegisterHandle : Handle
 		return Register[Size];
 	}
 
-	public override Handle Freeze() 
+	public override Handle Finalize()
 	{
 		return (Handle)this.MemberwiseClone();
 	}
 
 	public override bool Equals(object? obj)
 	{
-		return obj is RegisterHandle handle &&
-			   EqualityComparer<Register>.Default.Equals(Register, handle.Register);
+		return obj is RegisterHandle handle && Register == handle.Register;
 	}
 
 	public override int GetHashCode()

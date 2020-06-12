@@ -11,9 +11,9 @@ extern deallocate
 global function_basic_for_loop
 export function_basic_for_loop
 function_basic_for_loop:
-mov rax, rcx
 xor r8, r8
 xor r9, r9
+mov rax, rcx
 cmp r8, rdx
 jge function_basic_for_loop_L1
 function_basic_for_loop_L0:

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Globalization;
 
 public class Lifetime
-{ 
+{
 	public int Start { get; set; } = -1;
 	public int End { get; set; } = -1;
 
@@ -14,10 +14,21 @@ public class Lifetime
 		Start = -1;
 		End = -1;
 	}
-
+	
+	/// <summary>
+	/// Returns whether this lifetime is active, that is, whether the lifetime has started but not ended from the specified instruction position's perspective
+	/// </summary>
 	public bool IsActive(int position)
 	{
 		return position >= Start && (End == -1 || position <= End);
+	}
+
+	/// <summary>
+	/// Returns true, if the lifetime is active and is not starting or ending at the specified instruction position, otherwise false
+	/// </summary>
+	public bool IsOnlyActive(int position)
+	{
+		return IsActive(position) && Start != position && End != position;
 	}
 
 	public bool IsIntersecting(int start, int end)
@@ -100,13 +111,11 @@ public class Unit
 
 	private StringBuilder Builder { get; set; } = new StringBuilder();
 	public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; private set; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
-	public Dictionary<double, string> Decimals { get; private set; } = new Dictionary<double, string>();
+	public Dictionary<object, string> Constants { get; private set; } = new Dictionary<object, string>();
 
 	private int LabelIndex { get; set; } = 0;
 	private int StringIndex { get; set; } = 0;
-	private int DecimalIndex { get; set; } = 0;
-
-	private bool IsReindexingNeeded { get; set; } = false;
+	private int ConstantIndex { get; set; } = 0;
 
 	public Variable? Self { get; set; }
 
@@ -132,6 +141,20 @@ public class Unit
 		}
 
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
+
+		/* Registers = new List<Register>()
+		{
+			new Register(Size.QWORD, new string[] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
+			new Register(Size.QWORD, new string[] { "rbx", "ebx", "bx", "bl" }),
+			new Register(Size.QWORD, new string[] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new string[] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
+			new Register(Size.QWORD, new string[] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
+			new Register(Size.QWORD, new string[] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new string[] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
+			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED | RegisterFlag.DECIMAL_RETURN),
+			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
+			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
+		}; */
 
 		Registers = new List<Register>()
 		{
@@ -238,7 +261,7 @@ public class Unit
 			Instructions.Insert(position, instruction);
 			instruction.Position = Position;
 
-			IsReindexingNeeded = true;
+			Reindex();
 		}
 
 		instruction.Scope = Scope;
@@ -249,8 +272,64 @@ public class Unit
 			var previous = Anchor;
 
 			Anchor = instruction;
+			Position = Anchor.Position;
 			instruction.Build();
+			instruction.OnSimulate();
 			Anchor = previous;
+			Position = Anchor!.Position;
+		}
+	}
+
+	public void Append(IEnumerable<Instruction> instructions, bool after = false)
+	{
+		if (Phase != UnitPhase.BUILD_MODE)
+		{
+			throw new ApplicationException("Appending a range of instructions only works in build mode since it uses reindexing");
+		}
+
+		if (Position < 0)
+		{
+			Instructions.AddRange(instructions);
+		}
+		else
+		{
+			// Find the last instruction with the current position since there can be many
+			var position = Instructions.IndexOf(Anchor!);
+
+			if (position == -1)
+			{
+				position = Position;
+			}
+
+			if (after)
+			{
+				position++;
+			}
+
+			Instructions.InsertRange(position, instructions);
+		}
+
+		foreach (var instruction in instructions)
+		{
+			instruction.Scope = Scope;
+		}
+
+		Reindex();	
+
+		if (Phase == UnitPhase.BUILD_MODE)
+		{
+			var previous = Anchor;
+
+			foreach (var instruction in instructions)
+			{
+				Anchor = instruction;
+				Position = Anchor.Position;
+				instruction.Build();
+				instruction.OnSimulate();
+			}
+
+			Anchor = previous;
+			Position = Anchor!.Position;
 		}
 	}
 
@@ -291,21 +370,35 @@ public class Unit
 	{
 		var value = register.Handle;
 
-		if (value == null || !value.IsReleasable())
+		if (value == null)
 		{
 			return;
 		}
 
-		// Get all the variables that this value represents
-		foreach (var attribute in value.Metadata.Variables)
+		if (value.IsReleasable())
 		{
-			var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
+			// Get all the variables that this value represents
+			foreach (var attribute in value.Metadata.Variables)
+			{
+				var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable), attribute.Variable.Type!.Format);
 
-         var move = new MoveInstruction(this, destination, value)
-         {
-            Description = "Releases the source value to memory",
-            Type = MoveType.RELOCATE
-         };
+				var move = new MoveInstruction(this, destination, value)
+				{
+					Description = "Releases the source value to memory",
+					Type = MoveType.RELOCATE
+				};
+
+				Append(move);
+			}
+		}
+		else
+		{
+			var destination = new Result(new TemporaryMemoryHandle(this), value.Format);
+			var move = new MoveInstruction(this, destination, value)
+			{
+				Description = "Releases an unregistered value to a temporary memory location",
+				Type = MoveType.RELOCATE
+			};
 
          Append(move);
 		}
@@ -324,16 +417,16 @@ public class Unit
 		return Function.Metadata!.GetFullname() + $"_S{StringIndex++}";
 	}
 
-	public string GetDecimalIdentifier(double number)
+	public string GetNextConstantIdentifier(object constant)
 	{
-		if (Decimals.TryGetValue(number, out string? identifier))
+		if (Constants.TryGetValue(constant, out string? identifier))
 		{
 			return identifier;
 		}
 
-		identifier = Function.Metadata!.GetFullname() + $"_D{DecimalIndex++}";
+		identifier = Function.Metadata!.GetFullname() + $"_C{ConstantIndex++}";
 
-		Decimals.Add(number, identifier);
+		Constants.Add(constant, identifier);
 		return identifier;
 	}
 
@@ -378,8 +471,12 @@ public class Unit
 		return NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 	}
 
+	/// <summary>
+	/// Retrieves the next available register, releasing a register to memory if necessary
+	/// </summary>
 	public Register GetNextRegister()
 	{
+		// Try to find the next fully available volatile register
 		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
@@ -387,6 +484,7 @@ public class Unit
 			return register;
 		}
 
+		// Try to find the next fully available non-volatile register
 		register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
@@ -394,6 +492,7 @@ public class Unit
 			return register;
 		}
 
+		// Try to find the next volatile register which contains a value that has a corresponding memory location
 		register = VolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
@@ -402,6 +501,7 @@ public class Unit
 			return register;
 		}
 
+		// Try to find the next volatile register which contains a value that has a corresponding memory location
 		register = NonVolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
@@ -410,7 +510,20 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Couldn't find an available register");
+		// Since all registers contain intermidate values, one of them must be released a temporary memory location
+		// NOTE: Some registers may be locked which prevents them from being used, but not all registers should be locked, otherwise something very strange has happened
+
+		// Find the next register which is not locked
+		register = NonReservedRegisters.Find(r => !r.IsReserved && !r.IsLocked && !(Function.Returns && r.IsReturnRegister));
+
+		if (register == null)
+		{
+			throw new ApplicationException("All registers were locked or reserved, this should not happen");
+		}
+
+		Release(register);
+
+		return register;
 	}
 
 	public Register GetNextMediaRegister()
@@ -469,12 +582,7 @@ public class Unit
 		}
 		catch (Exception e)
 		{
-			Console.Error.WriteLine($"ERROR: Unit execution failed: {e}");
-		}
-
-		if (IsReindexingNeeded)
-		{
-			Reindex();
+			throw new ApplicationException($"ERROR: Unit execution failed: {e}");
 		}
 
 		Phase = UnitPhase.READ_ONLY_MODE;
@@ -489,10 +597,11 @@ public class Unit
 
 		Reset();
 
-		var instructions = new List<Instruction>(Instructions);
-
-		foreach (var instruction in instructions)
+		for (Position = 0; Position < Instructions.Count;)
 		{
+			var instruction = Instructions[Position];
+			var next = Position + 1 < Instructions.Count ? Instructions[Position + 1] : null;
+
 			try
 			{
 				if (instruction.Scope == null)
@@ -535,16 +644,20 @@ public class Unit
 			{
 				var name = Enum.GetName(typeof(InstructionType), instruction.Type);
 
-				Console.Error.WriteLine($"ERROR: Unit simulation failed while processing {name}-instruction at position {Position}: {e}");
+				throw new ApplicationException($"ERROR: Unit simulation failed while processing {name}-instruction at position {Position}: {e}");
+			}
+
+			if (next == null)
+			{
 				break;
 			}
 
-			Position++;
-		}
+			Position = Instructions.IndexOf(next, instruction.Position);
 
-		if (IsReindexingNeeded)
-		{
-			Reindex();
+			if (Position == -1)
+			{
+				throw new ApplicationException("Next instruction was removed from the instruction list");
+			}
 		}
 
 		// Reset the state after this simulation
@@ -584,11 +697,32 @@ public class Unit
 	{
 		Position = 0;
 
+		// Reindex all instructions
 		foreach (var instruction in Instructions)
 		{
 			instruction.Position = Position++;
 		}
 
-		IsReindexingNeeded = false;
+		// Reset all lifetimes
+		foreach (var instruction in Instructions)
+		{
+			foreach (var result in instruction.GetAllUsedResults())
+			{
+				result.Lifetime.Reset();
+			}
+		}
+
+		// Calculate lifetimes
+		for (var i = 0; i < Instructions.Count; i++)
+		{
+			var instruction = Instructions[i];
+
+			foreach (var result in instruction.GetAllUsedResults())
+			{
+				result.Use(i);
+			}
+		}
+
+		//IsReindexingNeeded = false;
 	}
 }

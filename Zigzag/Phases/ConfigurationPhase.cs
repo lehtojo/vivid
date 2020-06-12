@@ -184,7 +184,7 @@ public class ConfigurationPhase : Phase
 		}
 	}
 
-	private bool IsOption(string element)
+	private static bool IsOption(string element)
 	{
 		return element[0] == '-';
 	}

@@ -11,7 +11,7 @@ public class ReturnNode : InstructionNode, IResolvable
 		Add(node);
 	}
 
-	private Type? GetReturnType(Node node)
+	private static Type? GetReturnType(Node node)
 	{
 		if (node is IType type)
 		{

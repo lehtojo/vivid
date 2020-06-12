@@ -12,12 +12,9 @@ public class MultiplicationInstruction : DualParameterInstruction
 	public const string MULTIPLY_BY_TWO_INSTRUCTION = "sal";
 
 	public bool Assigns { get; private set; }
-	public new Format Type { get; private set; }
 
-	public MultiplicationInstruction(Unit unit, Result first, Result second, Format type, bool assigns) : base(unit, first, second)
+	public MultiplicationInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
-		Type = type;
-
 		if (Assigns = assigns)
 		{
 			Result.Metadata = First.Metadata;
@@ -33,12 +30,12 @@ public class MultiplicationInstruction : DualParameterInstruction
 		}
 	}
 
-	private bool IsPowerOfTwo(long x)
+	private static bool IsPowerOfTwo(long x)
 	{
     	return (x & (x - 1)) == 0;
 	}
 
-	private bool IsConstantValidForExtendedMultiplication(long x)
+	private static bool IsConstantValidForExtendedMultiplication(long x)
 	{
     	return IsPowerOfTwo(x) && x <= 8;
 	}
@@ -76,9 +73,9 @@ public class MultiplicationInstruction : DualParameterInstruction
 		var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
 		// Handle decimal multiplication separately
-		if (Type == global::Format.DECIMAL)
+		if (Result.Format.IsDecimal())
 		{
-			var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION : DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION;
+			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION : DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION;
 
 			Build(
 				instruction,
@@ -119,7 +116,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 							HandleType.REGISTER
 						),
 						new InstructionParameter(
-							new Result(count),
+							new Result(count, Assembler.Format),
 							ParameterFlag.NONE,
 							HandleType.CONSTANT
 						)
@@ -129,34 +126,29 @@ public class MultiplicationInstruction : DualParameterInstruction
 				}
 				else if (IsConstantValidForExtendedMultiplication(value - 1))
 				{
-					var count = new ConstantHandle(value - 1);
+					// Example: imul eax, 3 => lea ..., [eax*2+eax]
+					var calculation = new CalculationHandle
+					(
+						constant_multiplication.Other, 
+						(int)value - 1, 
+						constant_multiplication.Other, 
+						0
+					);
 
-					var calculation = Format(
-						"[{0}*{1}+{0}]",
-						Assembler.Size,
+					Build(
+						EXTENDED_MULTIPLICATION_INSTRUCTION,
 						new InstructionParameter(
-							constant_multiplication.Other,
-							ParameterFlag.NONE,
+							Result,
+							ParameterFlag.DESTINATION,
 							HandleType.REGISTER
 						),
 						new InstructionParameter(
-							new Result(count),
+							new Result(calculation, Result.Format),
 							ParameterFlag.NONE,
-							HandleType.CONSTANT
+							HandleType.CALCULATION
 						)
 					);
 
-					if (Result.Value.Type != HandleType.REGISTER)
-					{
-						// Get a new register for the result
-						Memory.GetRegisterFor(Unit, Result);
-					}
-					else
-					{
-						Result.Value.To<RegisterHandle>().Register.Handle = Result;
-					}
-
-					Build($"{EXTENDED_MULTIPLICATION_INSTRUCTION} {Result}, {calculation}");
 					return;
 				}
 			}

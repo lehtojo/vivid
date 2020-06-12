@@ -1,15 +1,14 @@
 public class SubtractionInstruction : DualParameterInstruction
 {
+	private const string STANDARD_SUBTRACTION_INSTRUCTION = "sub";
+
 	private const string SINGLE_PRECISION_SUBTRACTION_INSTRUCTION = "subss";
 	private const string DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION = "subsd";
 
 	public bool Assigns { get; private set; }
-	public new Format Type { get; private set; }
 	
-	public SubtractionInstruction(Unit unit, Result first, Result second, Format type, bool assigns) : base(unit, first, second)
+	public SubtractionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
-		Type = type;
-		
 		if (Assigns = assigns)
 		{
 			Result.Metadata = First.Metadata;
@@ -28,9 +27,9 @@ public class SubtractionInstruction : DualParameterInstruction
 	public override void OnBuild()
 	{
 		// Handle decimal division separately
-		if (Type == global::Format.DECIMAL)
+		if (Result.Format.IsDecimal())
 		{
-			var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_SUBTRACTION_INSTRUCTION : DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION;
+			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_SUBTRACTION_INSTRUCTION : DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION;
 			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
 			Build(
@@ -55,7 +54,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		if (Assigns)
 		{
 			Build(
-				"sub",
+				STANDARD_SUBTRACTION_INSTRUCTION,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -74,7 +73,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		else
 		{
 			Build(
-				"sub",
+				STANDARD_SUBTRACTION_INSTRUCTION,
 				Assembler.Size,
 				new InstructionParameter(
 					First,

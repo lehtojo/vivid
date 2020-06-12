@@ -35,18 +35,18 @@ public class AssemblerPhase : Phase
 
 	private const string ERROR = "Internal assembler failed";
 
-	private bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-	private string AssemblerFormat => (IsLinux ? LINUX_ASSEMBLER_FORMAT : WINDOWS_ASSEMBLER_FORMAT) + Assembler.Size.Bits;
-	private string AssemblerDebugArgument => IsLinux ? LINUX_ASSEMBLER_DEBUG_ARGUMENT : WINDOWS_ASSEMBLER_DEBUG_ARGUMENT;
-	private string ObjectFileExtension => IsLinux ? ".o" : ".obj";
-	private string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
-	private string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
-	private string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
+	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+	private static string AssemblerFormat => (IsLinux ? LINUX_ASSEMBLER_FORMAT : WINDOWS_ASSEMBLER_FORMAT) + Assembler.Size.Bits;
+	private static string AssemblerDebugArgument => IsLinux ? LINUX_ASSEMBLER_DEBUG_ARGUMENT : WINDOWS_ASSEMBLER_DEBUG_ARGUMENT;
+	private static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
+	private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
+	private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
+	private static string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
 
 	/// <symmary>
 	/// Runs the specified executable with the given arguments
 	/// </summary>
-	private Status Run(string executable, List<string> arguments)
+	private static Status Run(string executable, List<string> arguments)
 	{
 		var configuration = new ProcessStartInfo()
 		{
@@ -88,7 +88,7 @@ public class AssemblerPhase : Phase
 	/// <summary>
 	/// Compiles the specified input file and exports the result with the specified output filename
 	/// </summary>
-	private Status Compile(Bundle bundle, string input_file, string output_file)
+	private static Status Compile(Bundle bundle, string input_file, string output_file)
 	{
 		var debug = bundle.Get("debug", false);
 		var keep_assembly = bundle.Get("assembly", false);
@@ -128,7 +128,7 @@ public class AssemblerPhase : Phase
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private Status Windows_Link(Bundle bundle, string input_file, string output_name)
+	private static Status Windows_Link(Bundle bundle, string input_file, string output_name)
 	{
 		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
 		var output_extension = ".exe";
@@ -194,7 +194,7 @@ public class AssemblerPhase : Phase
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private Status Linux_Link(Bundle bundle, string input_file, string output_file)
+	private static Status Linux_Link(Bundle bundle, string input_file, string output_file)
 	{
       var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
 
@@ -259,7 +259,16 @@ public class AssemblerPhase : Phase
 		var object_file = output_file + ObjectFileExtension;
 
 		var context = parse.Context;
-		var assembly = Assembler.Assemble(context).TrimEnd();
+      string? assembly;
+		
+      try
+		{
+			assembly = Assembler.Assemble(context).TrimEnd();
+		}
+		catch (Exception e)
+		{
+			return Status.Error(e.Message);
+		}
 
 		try
 		{

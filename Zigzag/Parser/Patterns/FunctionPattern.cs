@@ -27,7 +27,7 @@ class FunctionPattern : Pattern
 		return tokens[MODIFIERS].Type == TokenType.NONE || tokens[MODIFIERS]?.To<KeywordToken>().Keyword is AccessModifierKeyword;
 	}
 
-	private int GetModifiers(List<Token> tokens)
+	private static int GetModifiers(List<Token> tokens)
 	{
 		return tokens[MODIFIERS].Type == TokenType.NONE ? AccessModifier.PUBLIC : tokens[MODIFIERS].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier;
 	}

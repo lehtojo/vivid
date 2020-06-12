@@ -16,6 +16,6 @@ public static class Arrays
 
 	public static Result BuildAllocation(Unit unit, ArrayAllocationNode array)
 	{
-		return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, array.Length);
+		return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, array.Length);
 	}
 }

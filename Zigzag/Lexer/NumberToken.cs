@@ -9,17 +9,17 @@ public class NumberToken : Token
 	public int Bits { get; private set; }
 	public int Bytes => Bits / 8;
 
-	private bool IsDecimal(string text)
+	private static bool IsDecimal(string text)
 	{
 		return text.Contains('.');
 	}
 
-	private string GetNumberPart(string text)
+	private static string GetNumberPart(string text)
 	{
 		return new string(text.TakeWhile(c => char.IsDigit(c) || c == Lexer.DECIMAL_SEPARATOR).ToArray());
 	}
 
-	private void GetType(string text, out int bits, out bool unsigned)
+	private static void GetType(string text, out int bits, out bool unsigned)
 	{
 		var index = text.IndexOf(Lexer.SIGNED_TYPE_SEPARATOR);
 
@@ -53,7 +53,7 @@ public class NumberToken : Token
 		}
 	}
 
-	private int GetExponent(string text)
+	private static int GetExponent(string text)
 	{
 		var index = text.IndexOf(Lexer.EXPONENT_SEPARATOR);
 

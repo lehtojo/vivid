@@ -24,11 +24,11 @@ public static class Operators
 	public static readonly ComparisonOperator EQUALS = new ComparisonOperator("==", 8);
 	public static readonly ComparisonOperator NOT_EQUALS = new ComparisonOperator("!=", 8);
 
-	public static readonly ClassicOperator BITWISE_AND = new ClassicOperator("and", 7);
+	public static readonly ClassicOperator BITWISE_AND = new ClassicOperator("&", 7);
 	public static readonly ClassicOperator BITWISE_XOR = new ClassicOperator("xor", 6);
-	public static readonly ClassicOperator BITWISE_OR = new ClassicOperator("or", 5);
-	public static readonly LogicOperator AND = new LogicOperator("&", 4);
-	public static readonly LogicOperator OR = new LogicOperator("|", 3);
+	public static readonly ClassicOperator BITWISE_OR = new ClassicOperator("|", 5);
+	public static readonly LogicOperator AND = new LogicOperator("and", 4);
+	public static readonly LogicOperator OR = new LogicOperator("or", 3);
 
 	public static readonly ActionOperator ASSIGN = new ActionOperator("=", null, 1);
 	public static readonly ActionOperator ASSIGN_POWER = new ActionOperator("^=", Operators.POWER, 1);
