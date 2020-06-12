@@ -7,12 +7,9 @@ public class AdditionInstruction : DualParameterInstruction
 	private const string DOUBLE_PRECISION_ADDITION_INSTRUCTION = "addsd";
 
 	public bool Assigns { get; private set; }
-	public new Format Type { get; private set; }
 
-	public AdditionInstruction(Unit unit, Result first, Result second, Format type, bool assigns) : base(unit, first, second) 
+	public AdditionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format) 
 	{
-		Type = type;
-
 		if (Assigns = assigns)
 		{
 			Result.Metadata = First.Metadata;
@@ -36,7 +33,7 @@ public class AdditionInstruction : DualParameterInstruction
 	public override void OnBuild()
 	{
 		// Handle decimal addition separately
-		if (Type == global::Format.DECIMAL)
+		if (Result.Format.IsDecimal())
 		{
 			var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
 			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
@@ -103,35 +100,21 @@ public class AdditionInstruction : DualParameterInstruction
 		}
 		else
 		{
-			// Form the calculation parameter
-			var calculation = Format(
-				"[{0}+{1}]",
-				Assembler.Size,
+			var calculation = CalculationHandle.CreateAddition(First, Second);
+
+			Build(
+				EXTENDED_ADDITION_INSTRUCTION,
 				new InstructionParameter(
-					First,
-					ParameterFlag.NONE,
-					HandleType.CONSTANT,
+					Result,
+					ParameterFlag.DESTINATION,
 					HandleType.REGISTER
 				),
 				new InstructionParameter(
-					Second,
+					new Result(calculation, Result.Format),
 					ParameterFlag.NONE,
-					HandleType.CONSTANT,
-					HandleType.REGISTER
+					HandleType.CALCULATION
 				)
 			);
-
-			if (Result.Value.Type != HandleType.REGISTER)
-			{
-				// Get a new register for the result
-				Memory.GetRegisterFor(Unit, Result);
-			}
-			else
-			{
-				Result.Value.To<RegisterHandle>().Register.Handle = Result;
-			}
-
-			Build($"{EXTENDED_ADDITION_INSTRUCTION} {Result}, {calculation}");
 		}
 	}
 

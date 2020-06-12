@@ -9,6 +9,7 @@ public class SetVariableInstruction : Instruction
    {
       Variable = variable;
       Value = value;
+      Result.Format = Value.Format;
    }
 
    public override Result? GetDestinationDependency()

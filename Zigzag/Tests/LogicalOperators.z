@@ -1,0 +1,51 @@
+export logical_operators_1(a: num, b: num) {
+   if a > b or a == 0 {
+      => b
+   }
+   else if a == b and b == 1 {
+      => a
+   }
+   else {
+      => 0
+   }
+}
+
+export logical_operators_2(a: num, b: num, c: num) {
+   if (a > b and a > c) or c > b {
+      => 1
+   }
+   else if (a <= b or b >= c) and (c == 1 or a == 1) {
+      => 0
+   }
+   else {
+      => -1
+   }
+}
+
+true = 1
+false = 0
+
+f(a: num) {
+   if a == 7 {
+      => true
+   }
+   else {
+      => false
+   }
+}
+
+export logical_operators_3(a: num, b: num) {
+   if (a > 10 or f(a) == true) and a > b {
+      => 0
+   }
+   else {
+      => 1
+   }
+}
+
+run() {
+   logical_operators_1(1, 1)
+   logical_operators_2(1, 1, 1)
+   logical_operators_3(1, 1)
+   => 1
+}

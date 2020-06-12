@@ -100,6 +100,11 @@ public class OperatorNode : Node, IType
 				return GetActionType();
 			}
 
+			case OperatorType.LOGIC:
+			{
+				return Types.BOOL;
+			}
+
 			default: throw new Exception("Independent operator shouldn't be processed here!");
 		}
 	}

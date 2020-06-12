@@ -18,6 +18,11 @@ public class MetadataAttribute
 		Type = type;
 	}
 
+	public T To<T>() where T : MetadataAttribute
+	{
+		return this as T ?? throw new ApplicationException($"Couldn't convert 'MetadataAttribute' to '{typeof(T).Name}'");
+	}
+
 	public virtual bool Contradicts(MetadataAttribute other)
 	{
 		return false;

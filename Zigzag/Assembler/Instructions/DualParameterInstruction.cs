@@ -5,10 +5,11 @@ public abstract class DualParameterInstruction : Instruction
 
 	public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
 
-	public DualParameterInstruction(Unit unit, Result first, Result second) : base(unit)
+	public DualParameterInstruction(Unit unit, Result first, Result second, Format format) : base(unit)
 	{
 		First = first;
 		Second = second;
+		Result.Format = format;
 	}
 
 	public override Result[] GetResultReferences()

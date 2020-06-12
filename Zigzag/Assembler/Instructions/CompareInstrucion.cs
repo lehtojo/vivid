@@ -3,7 +3,7 @@ public class CompareInstruction : DualParameterInstruction
 	public const string INSTRUCTION = "cmp";
 	public const string ZERO_COMPARISON_INSTRUCTION = "test";
 
-	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second) {}
+	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format) {}
 
 	public override void OnBuild()
 	{

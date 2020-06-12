@@ -103,6 +103,11 @@ public abstract class Instruction
 		Result = new Result(this);
 	}
 
+	public bool Is(InstructionType type)
+	{
+		return Type == type;
+	}
+
 	/// <summary>
 	/// Depending on the state of the unit, this instruction is executed or added to the execution chain
 	/// </summary>
@@ -133,7 +138,10 @@ public abstract class Instruction
 
 				if (cached != null)
 				{
-					return new Result(this, cached);
+					return new Result(this, cached)
+					{
+						Format = parameter.Result.Format
+					};
 				}
 
 				/// TODO: Analyze whether the value will be actually used as a register
@@ -150,7 +158,10 @@ public abstract class Instruction
 
 				if (cached != null)
 				{
-					return new Result(this, cached);
+					return new Result(this, cached)
+					{
+						Format = parameter.Result.Format
+					};
 				}
 
 				/// TODO: Analyze whether the value will be actually used as a register
@@ -162,7 +173,7 @@ public abstract class Instruction
 			}
 
 			// If the parameter size doesn't match the required size, it can be converted by moving it to register
-			if (parameter.IsMemoryAddress && parameter.RequiredSize != Size.NONE && parameter.Result.Value.Size != parameter.RequiredSize)
+			if (parameter.IsMemoryAddress && parameter.RequiredSize != Size.NONE && parameter.Result.Size != parameter.RequiredSize)
 			{
 				Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
 			}
@@ -269,7 +280,7 @@ public abstract class Instruction
 				// Search for values to attach to the destination register
 				foreach (var parameter in Parameters)
 				{
-					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION))
+					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
 					{
 						register.Handle = parameter.Result;
 						attached = true;
@@ -303,7 +314,7 @@ public abstract class Instruction
 				// Search for values to attach to the source register
 				foreach (var parameter in Parameters)
 				{
-					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE))
+					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
 					{
 						register.Handle = parameter.Result;
 						break;
@@ -397,7 +408,8 @@ public abstract class Instruction
 			}
 
 			parameter.Result = result;
-			parameter.Value = result.Value.Freeze();
+			parameter.Value = result.Value.Finalize();
+			parameter.Value.Format = parameter.Result.Format;
 
 			Parameters.Add(parameter);
 		}

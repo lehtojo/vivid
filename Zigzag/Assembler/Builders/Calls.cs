@@ -52,9 +52,6 @@ public static class Calls
 
 		if (convention == CallingConvention.X64)
 		{
-			// Evacuate all imporant values before moving parameters
-			unit.Append(new EvacuateInstruction(unit, call));
-
 			var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
 			var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
@@ -78,18 +75,16 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					var move = new MoveInstruction(unit, new Result(destination), this_pointer);
-					move.IsSafe = true;
-
-					instructions.Add(move);
+					instructions.Add(new MoveInstruction(unit, new Result(destination, this_pointer.Format), this_pointer)
+					{
+						IsSafe = true
+					});
 				}
 				else
 				{
 					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					stack_position.Format = this_pointer.Value.Format;
-
-					instructions.Add(new MoveInstruction(unit, new Result(stack_position), this_pointer));
-					stack_position.Offset += Size.FromFormat(stack_position.Format).Bytes;
+					instructions.Add(new MoveInstruction(unit, new Result(stack_position, this_pointer.Format), this_pointer));
+					stack_position.Offset += Size.FromFormat(this_pointer.Format).Bytes;
 				}
 			}
 
@@ -112,26 +107,21 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					var move = new MoveInstruction(unit, new Result(destination), source);
-					move.IsSafe = true;
-
-					instructions.Add(move);
+					instructions.Add(new MoveInstruction(unit, new Result(destination, source.Format), source)
+					{
+						IsSafe = true
+					});
 				}
 				else
 				{
 					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					stack_position.Format = source.Value.Format;
-
-					instructions.Add(new MoveInstruction(unit, new Result(stack_position.Freeze()), source));
-					stack_position.Offset += Size.FromFormat(stack_position.Format).Bytes;
+					instructions.Add(new MoveInstruction(unit, new Result(stack_position.Finalize(), source.Format), source));
+					stack_position.Offset += Size.FromFormat(source.Format).Bytes;
 				}
 			}
-
-			// Execute all the parameter instructions
-			instructions.ForEach(instruction => instruction.Execute());
 			
 			// Save the parameter instructions for inspection
-			call.ParameterInstructions = instructions.ToArray();
+			call.ParameterInstructions = instructions;
 		}
 		else
 		{
@@ -164,10 +154,12 @@ public static class Calls
 				stack_parameter_count++;
 			}
 
-			// Save the parameter instructions for inspection
-			call.ParameterInstructions = instructions.ToArray();
+			instructions.ForEach(i => i.Execute());
 
-			unit.Append(new EvacuateInstruction(unit, call));
+			// Save the parameter instructions for inspection
+			call.ParameterInstructions = instructions;
+
+			//unit.Append(new EvacuateInstruction(unit, call));
 		}
 
 		return stack_parameter_count;
@@ -197,7 +189,7 @@ public static class Calls
 
 	public static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)
 	{
-		var call = new CallInstruction(unit, implementation.Metadata!.GetFullname(), implementation.Convention);
+		var call = new CallInstruction(unit, implementation.Metadata!.GetFullname(), implementation.Convention, implementation.ReturnType);
 
 		// Pass the parameters to the function and then execute it
 		var is_this_pointer_required = IsThisPointerRequired(unit.Function, implementation);
@@ -211,9 +203,9 @@ public static class Calls
 		return result;
 	}
 
-	public static Result Build(Unit unit, Function function, CallingConvention convention, params Node[] parameters)
+	public static Result Build(Unit unit, Function function, CallingConvention convention, Type return_type, params Node[] parameters)
 	{
-		var call = new CallInstruction(unit, function.GetFullname(), convention);
+		var call = new CallInstruction(unit, function.GetFullname(), convention, return_type);
 
 		// Pass the parameters to the function and then execute it
 		var stack_parameter_count = PassParameters(unit, call, convention, null, false, parameters);

@@ -12,6 +12,7 @@ global function_constant_permanence_and_array_copy
 export function_constant_permanence_and_array_copy
 function_constant_permanence_and_array_copy:
 xor rax, rax
+xor rax, rax
 cmp rax, 10
 jge function_constant_permanence_and_array_copy_L1
 function_constant_permanence_and_array_copy_L0:

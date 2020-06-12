@@ -28,14 +28,14 @@ ret
 jmp function_multi_return_L0
 function_multi_return_L1:
 cmp rbx, rsi
-jge function_multi_return_L2
+jge function_multi_return_L3
 mov rax, -1
 add rsp, 40
 pop rsi
 pop rbx
 ret
 jmp function_multi_return_L0
-function_multi_return_L2:
+function_multi_return_L3:
 xor rax, rax
 add rsp, 40
 pop rsi

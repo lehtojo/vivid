@@ -26,11 +26,14 @@ namespace Zigzag.Unit
       [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_basic_call_evacuation(Int64 a, Int64 b);
 
+      [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_basic_call_evacuation_with_memory(Int64 a, Int64 b);
+
       [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_basic_for_loop(Int64 start, Int64 count);
 
       [DllImport("NUnit_BasicDataFieldAssign", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern void function_basic_data_field_assign([MarshalAs(UnmanagedType.LPStruct)] BasicDataType target);
+      private static extern void function_basic_data_field_assign(ref BasicDataType target);
 
       [DllImport("NUnit_ConditionallyChangingConstant", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_conditionally_changing_constant_with_if_statement(Int64 a, Int64 b);
@@ -61,6 +64,9 @@ namespace Zigzag.Unit
 
       [DllImport("NUnit_SpecialMultiplications", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_special_multiplications(Int64 a, Int64 b);
+
+      [DllImport("NUnit_LargeFunctions", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_g(Int64 a, Int64 b);
 
       private bool Compile(string output, params string[] source_files)
       {
@@ -240,14 +246,14 @@ namespace Zigzag.Unit
          Assert.AreEqual(570, function_basic_call_evacuation(10, 50));
       }
 
-      [StructLayout(LayoutKind.Sequential)]
+      [StructLayout(LayoutKind.Explicit)]
       public struct BasicDataType
       {
-         public int Normal;
-         public byte Tiny;
-         public double Double;
-         public long Large;
-         public short Small;
+         [FieldOffset(0)] public int Normal;
+         [FieldOffset(4)] public byte Tiny;
+         [FieldOffset(5)] public double Double;
+         [FieldOffset(13)] public long Large;
+         [FieldOffset(21)] public short Small;
       }
 
       [TestCase]
@@ -259,7 +265,7 @@ namespace Zigzag.Unit
          }
 
          var target = new BasicDataType();
-         function_basic_data_field_assign(target);
+         function_basic_data_field_assign(ref target);
 
          Assert.AreEqual(64, target.Tiny);
          Assert.AreEqual(12345, target.Small);
@@ -372,7 +378,7 @@ namespace Zigzag.Unit
          // There should be five 'add rsp, 40' instructions
          for (var i = 0; i < 5; i++)
          {
-            j = assembly.IndexOf("add rsp, 40", j);
+            j = assembly.IndexOf("add rsp, ", j);
 
             if (j++ == -1)
             {
@@ -410,6 +416,17 @@ namespace Zigzag.Unit
          Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));
          Assert.AreEqual(1, GetCountOf(assembly, "lea\\ [a-z]+"));
          Assert.AreEqual(1, GetCountOf(assembly, "sar\\ [a-z]+"));
+      }
+
+      [TestCase]
+      public void Assembler_LargeFunctions()
+      {
+         if (!Compile("LargeFunctions", "LargeFunctions.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(197, function_g(26, 16));
       }
    }
 }

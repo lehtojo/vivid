@@ -39,8 +39,9 @@ Map {
 }
 
 Lexer {
-	operators: Operator List,
+	operators: Operator List
 	variables: string Variable Map
+	
 }
 
 # Idea: Project or module wide include

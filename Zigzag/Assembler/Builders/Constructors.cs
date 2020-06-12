@@ -14,7 +14,7 @@ public static class Constructors
 			throw new ApplicationException("Couldn't create constructor header since this pointer was missing");
 		}
 
-		var allocation = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, new NumberNode(Format.INT32, type.ContentSize));
+		var allocation = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, type.ContentSize));
 		allocation.Metadata.Attach(new VariableAttribute(unit.Self));
 
 		//unit.Cache(unit.Self, allocation, true);

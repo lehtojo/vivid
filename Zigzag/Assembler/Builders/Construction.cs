@@ -13,7 +13,7 @@ public static class Construction
 				throw new NotImplementedException("No implementation for empty objects found");
 			}
 
-			return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, new NumberNode(Format.INT32, node.Type.ContentSize));
+			return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Format.INT32, node.Type.ContentSize));
 		}
 		else
 		{

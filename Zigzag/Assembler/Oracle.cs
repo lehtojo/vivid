@@ -6,7 +6,7 @@ using VariableGroup = System.Collections.Generic.List<Variable>;
 
 public static class Oracle
 {
-	private static void DifferentiateDependencies(Unit unit, Result result)
+	/*private static void DifferentiateDependencies(Unit unit, Result result)
 	{
 		// Get all variable dependencies
 		var dependencies = result.Metadata.Secondary
@@ -52,6 +52,13 @@ public static class Oracle
 
 		duplication.Metadata.Attach(new VariableAttribute(target));
 	}
+	
+	private static bool IsPropertyOf(Variable expected, Result result)
+	{
+		return result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == expected;
+	}
+	
+	*/
 
 	/// <summary>
 	/// Resolves all write dependencies in the given result
@@ -87,51 +94,6 @@ public static class Oracle
 		}
 	}
 
-	private static void SimulateMoves(Unit unit, Instruction i)
-	{
-		/*if (i.Type == InstructionType.ASSIGN)
-		{
-			var instruction = (DualParameterInstruction)i;
-			var destination = instruction.First;
-			var source = instruction.Second;
-
-			// Check if the destination is a variable
-			if (destination.Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsPredictable)
-			{
-				unit.Cache(attribute.Variable, instruction.Result, true);
-
-				// The source value now contains the new value of the destination
-				source.Metadata.Attach(new VariableAttribute(attribute.Variable));
-			}
-		}
-		else if (
-			/// TODO: Must be generalized in the future
-			(i is AdditionInstruction addition && addition.Assigns) ||
-			(i is SubtractionInstruction subtraction && subtraction.Assigns) ||
-			(i is MultiplicationInstruction multiplication && multiplication.Assigns) ||
-			(i is DivisionInstruction division && division.Assigns)
-		)
-		{
-			var instruction = (DualParameterInstruction)i;
-			var destination = instruction.First;
-			var source = instruction.Second;
-
-			// Check if the destination is a variable
-			if (destination.Metadata.Primary is VariableAttribute attribute && attribute.Variable.IsPredictable)
-			{
-				unit.Cache(attribute.Variable, instruction.Result, true);
-
-				// The source value now contains the new value of the destination
-				source.Metadata.Attach(new VariableAttribute(attribute.Variable));
-			}
-		}*/
-	}
-
-	private static bool IsPropertyOf(Variable expected, Result result)
-	{
-		return result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == expected;
-	}
-
 	private static IEnumerable<Variable> GetAllDependencies(Unit unit, Result result)
 	{
 		return unit.Scope!.Variables.Where(p => p.Value.Equals(result)).Select(p => p.Key);
@@ -162,12 +124,6 @@ public static class Oracle
 					unit.Append(new SetVariableInstruction(unit, v.Variable, v.Result));
 				}
 			}
-		}
-		else if (instruction is GetConstantInstruction c)
-		{
-			var handle = unit.GetCurrentConstantHandle(c.Value);
-
-			c.Configure(References.CreateConstantNumber(unit, c.Value));
 		}
 		else if (instruction is RequireVariablesInstruction r)
 		{
@@ -274,7 +230,6 @@ public static class Oracle
 	{
 		unit.Simulate(UnitPhase.APPEND_MODE, i =>
 		{
-			SimulateMoves(unit, i);
 			SimulateLoads(unit, i);
 			SimulateLinkage(unit, i);
 		});
@@ -339,7 +294,7 @@ public static class Oracle
 
 	private static void ConnectReturnStatements(Unit unit)
 	{
-		var calls = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
+		var calls = unit.Instructions.FindAll(i => i.Is(InstructionType.CALL));
 
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
@@ -360,12 +315,6 @@ public static class Oracle
 		// Try to redirect call parameters that follow x64 calling conventions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
 		{
-			if (instruction.Type == InstructionType.EVACUATE)
-			{
-				// Evacuate-Instruction moves all important values from volatile register to non-volatile registers or into memory, so resetting volatile registers is acceptable
-				unit.VolatileRegisters.ForEach(r => r.Reset());
-			}
-
 			if (instruction is CallInstruction call && call.Convention == CallingConvention.X64)
 			{
 				foreach (var parameter in call.ParameterInstructions)
@@ -374,27 +323,37 @@ public static class Oracle
 					{
 						var source = move.Second.Instruction;
 						
-						if (source != null && move.First.Value is RegisterHandle destination)
+						if (source != null && move.First.IsRegister)
 						{
-							TryRedirect(unit, source, destination.Register, calls);
+							TryRedirect(unit, source, move.First.Value.To<RegisterHandle>().Register, calls);
 						}
 					}
 				}
+
+				// Evacuate-Instruction moves all important values from volatile register to non-volatile registers or into memory, so resetting volatile registers is acceptable
+				unit.VolatileRegisters.ForEach(r => r.Reset());
 			}
 
 			// When a call is made, it might corrupt all the volatile registers, so they must be reset
-			if (instruction.Type == InstructionType.CALL)
+			if (instruction.Is(InstructionType.CALL))
 			{
 				unit.VolatileRegisters.ForEach(r => r.Reset());
 			}
 		});
 
+		// Redirect values to non-volatile register if they intersect with functions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
 		{
 			var result = instruction.Result;
 
-			if (calls.Any(f => result.Lifetime.IsActive(f.Position) && result.Lifetime.Start != f.Position && result.Lifetime.End != f.Position) &&
-				!(result.Value is RegisterHandle handle && !handle.Register.IsVolatile))
+			// Decimal values should not be redirected since they are usually in media registers
+			if (result.Format.IsDecimal())
+			{
+				return;
+			}
+
+			if (calls.Any(f => result.Lifetime.IsOnlyActive(f.Position)) && 
+				(!result.IsRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
 			{         
 				// Get the instruction range that the redirection would affect
 				var start = instruction.GetRedirectionRoot().Position;

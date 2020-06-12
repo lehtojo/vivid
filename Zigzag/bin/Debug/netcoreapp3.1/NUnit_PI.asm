@@ -27,25 +27,22 @@ xor rdx, rdx
 mov r9, 3
 idiv r9
 add rax, 2
+mov rdx, rax
+sal rdx, 3
+mov r8, rcx
+mov rcx, rdx
 mov rbx, rax
-mov rsi, rcx
-mov rdi, rdx
-mov rcx, rbx
-sal rcx, 3
-mov rbp, rdi
+mov rsi, r8
 call allocate
 mov rdi, rax
 mov rcx, rbx
 sal rcx, 3
-mov r12, rbp
 call allocate
 mov rbp, rax
 mov rcx, rsi
 sal rcx, 3
-mov r13, r12
 call allocate
 mov r12, rax
-mov r14, r13
 xor r13, r13
 cmp r13, rbx
 jge function_pidigits_L1
@@ -60,56 +57,54 @@ xor rbx, rbx
 cmp rbx, rsi
 jge function_pidigits_L3
 function_pidigits_L2:
-xor rax, rax
 xor rcx, rcx
+xor rdx, rdx
 cmp rcx, r14
 jge function_pidigits_L5
 function_pidigits_L4:
-mov rdx, r14
-sub rdx, rcx
-sub rdx, 1
-mov r8, rdx
-sal r8, 1
-add r8, 1
-mov r9, [rdi+rcx*8]
-add r9, rax
-mov qword [rdi+rcx*8], r9
-mov r9, rax
+mov r8, r14
+sub r8, rcx
+sub r8, 1
+mov r9, r8
+sal r9, 1
+add r9, 1
+mov r10, [rdi+rcx*8]
+add r10, rdx
+mov qword [rdi+rcx*8], r10
 mov rax, [rdi+rcx*8]
 mov r10, rdx
 xor rdx, rdx
-idiv r8
-mov r11, rax
+idiv r9
+mov rdx, rax
 mov rax, [rdi+rcx*8]
-mov r13, rdx
+mov r11, rdx
 xor rdx, rdx
-idiv r8
+idiv r9
 mov qword [rbp+rcx*8], rdx
-imul r11, r10
+imul r11, r8
 add rcx, 1
-mov rax, r11
 cmp rcx, r14
+mov rdx, r11
 jl function_pidigits_L4
 function_pidigits_L5:
-mov rdx, r14
-sub rdx, 1
-mov r8, rax
-mov rax, [rdi+rdx*8]
+mov r8, r14
+sub r8, 1
+mov rax, [rdi+r8*8]
 mov r9, rdx
 xor rdx, rdx
 mov r10, 10
 idiv r10
 mov qword [r12+rbx*8], rax
-mov r9, r14
-sub r9, 1
-mov r10, r14
-sub r10, 1
-mov rax, [rdi+r10*8]
-mov r11, rdx
+mov rdx, r14
+sub rdx, 1
+mov r8, r14
+sub r8, 1
+mov rax, [rdi+r8*8]
+mov r10, rdx
 xor rdx, rdx
-mov r13, 10
-idiv r13
-mov qword [rbp+r9*8], rdx
+mov r11, 10
+idiv r11
+mov qword [rbp+r10*8], rdx
 xor rcx, rcx
 cmp rcx, r14
 jge function_pidigits_L7
@@ -122,8 +117,8 @@ cmp rcx, r14
 jl function_pidigits_L6
 function_pidigits_L7:
 add rbx, 1
-mov r13, rcx
 cmp rbx, rsi
+mov r13, rcx
 jl function_pidigits_L2
 function_pidigits_L3:
 mov rcx, rsi
@@ -142,19 +137,19 @@ mov r8, rdx
 xor rdx, rdx
 mov r9, 10
 idiv r9
-mov r9, rax
+mov rdx, rax
 mov rax, [r12+rcx*8]
-mov r10, rdx
+mov r9, rdx
 xor rdx, rdx
-mov r11, 10
-idiv r11
-mov r11, 48
-add r11, rdx
-mov byte [r8+rcx], r11b
+mov r10, 10
+idiv r10
+mov r10, 48
+add r10, rdx
+mov byte [r8+rcx], r10b
 sub rcx, 1
+test rcx, rcx
 mov rax, r8
 mov rdx, r9
-test rcx, rcx
 jge function_pidigits_L8
 function_pidigits_L9:
 add rsp, 48
@@ -179,14 +174,15 @@ add rsp, 40
 ret
 
 function_length_of:
-xor rax, rax
+xor rdx, rdx
 function_length_of_L0:
-movzx rdx, byte [rcx+rax]
-test rdx, rdx
+movzx r8, byte [rcx+rdx]
+test r8b, r8b
 jne function_length_of_L1
+mov rax, rdx
 ret
 function_length_of_L1:
-add rax, 1
+add rdx, 1
 jmp function_length_of_L0
 ret
 
@@ -194,7 +190,6 @@ function_print:
 push rbx
 sub rsp, 48
 mov rbx, rcx
-mov rcx, rbx
 call function_length_of
 mov rcx, rbx
 mov rdx, rax

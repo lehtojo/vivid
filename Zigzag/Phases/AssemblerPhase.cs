@@ -258,7 +258,16 @@ public class AssemblerPhase : Phase
 		var object_file = output_file + ObjectFileExtension;
 
 		var context = parse.Context;
-		var assembly = Assembler.Assemble(context).TrimEnd();
+		var assembly = string.Empty;
+
+		try
+		{
+			assembly = Assembler.Assemble(context).TrimEnd();
+		}
+		catch (Exception e)
+		{
+			return Status.Error(e.Message);
+		}
 
 		try
 		{

@@ -7,6 +7,7 @@ public class LoadOnlyIfConstantInstruction : Instruction
    public LoadOnlyIfConstantInstruction(Unit unit, Variable variable) : base(unit)
    {
       Variable = variable;
+      Result.Format = Variable.Type.Format;
    }
 
    public override void OnBuild()
@@ -18,12 +19,12 @@ public class LoadOnlyIfConstantInstruction : Instruction
          throw new ApplicationException("Scope tried to edit an external variable which wasn't defined yet");
       }
 
-      if (handle.Value.Type == HandleType.CONSTANT)
+      if (handle.IsConstant)
       {
          var destination = Result;
 
          // Decide the destination if it isn't predefined
-         if (Result.Empty)
+         if (Result.IsEmpty)
          {
             var register = Unit.GetNextRegisterWithoutReleasing();
             
@@ -38,10 +39,10 @@ public class LoadOnlyIfConstantInstruction : Instruction
             }
          }
 
-         var relocation = new MoveInstruction(Unit, Result, handle);
-         relocation.Type = MoveType.RELOCATE;
-
-         Unit.Append(relocation);
+         Unit.Append(new MoveInstruction(Unit, Result, handle)
+         {
+            Type = MoveType.RELOCATE
+         });
       }
    }
 

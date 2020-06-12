@@ -14,6 +14,14 @@ public class RegisterLock : IDisposable
 
 	/// <summary>
 	/// Locks the register until this lock is destroyed
+	/// </summary>    
+	public static RegisterLock Create(Register register)
+	{
+		return new RegisterLock(register);
+	}
+
+	/// <summary>
+	/// Locks the register until this lock is destroyed
 	/// </summary>
 	public RegisterLock(Register register)
 	{

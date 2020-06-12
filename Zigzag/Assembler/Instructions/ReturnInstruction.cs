@@ -1,10 +1,12 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 public class ReturnInstruction : Instruction
 {
 	private const string RETURN = "ret";
+
+	private Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
+	private Result ReturnRegisterHandle => new Result(new RegisterHandle(ReturnRegister), ReturnType.Format);
 
 	public Result? Object { get; private set; }
 	public Type? ReturnType { get; private set; }
@@ -15,16 +17,15 @@ public class ReturnInstruction : Instruction
 	{
 		Object = value;
 		ReturnType = return_type;
+		Result.Format = ReturnType?.Format ?? Assembler.Format;
 	}
 
+	/// <summary>
+	/// Returns whether the return value is in the wanted return register
+	/// </summary>
 	private bool IsObjectInReturnRegister()
 	{
-		return Object!.Value is RegisterHandle handle && handle.Register.IsReturnRegister;
-	}
-
-	private Result GetReturnRegister()
-	{
-		return new Result(new RegisterHandle(Unit.GetStandardReturnRegister()));
+		return Object!.Value.Is(HandleType.REGISTER) && Object!.Value.To<RegisterHandle>().Register == ReturnRegister;
 	}
 	
 	public override void OnBuild()
@@ -32,7 +33,7 @@ public class ReturnInstruction : Instruction
 		// Ensure that if there's a value to return it's in a return register
 		if (Object != null && !IsObjectInReturnRegister())
 		{
-			Unit.Append(new MoveInstruction(Unit, GetReturnRegister(), Object));
+			Unit.Append(new MoveInstruction(Unit, ReturnRegisterHandle, Object));
 		}
 	}
 

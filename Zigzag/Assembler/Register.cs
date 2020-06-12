@@ -18,6 +18,7 @@ public class Register
 {
 	public string[] Partitions { get; private set; }
 	public Size Width { get; private set; }
+	public Format Format => IsMediaRegister ? Format.DECIMAL : Assembler.Format;
 
 	private Result? _Value { get; set; } = null;
 	public Result? Handle 

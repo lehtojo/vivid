@@ -12,12 +12,10 @@ public class DivisionInstruction : DualParameterInstruction
 
 	public bool IsModulus { get; private set; }
 	public bool Assigns { get; private set; }
-	public new Format Type { get; private set; }
 
-	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format type, bool assigns) : base(unit, first, second)
+	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
 		IsModulus = modulus;
-		Type = type;
 
 		if (Assigns = assigns)
 		{
@@ -34,10 +32,11 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			Memory.ClearRegister(Unit, location.Register);
 
-			var move = new MoveInstruction(Unit, new Result(location), First);
-			move.Type = Assigns ? MoveType.RELOCATE : MoveType.COPY;
+			return new MoveInstruction(Unit, new Result(location, First.Format), First)
+			{
+				Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
 
-			return move.Execute();
+			}.Execute();
 		}
 
 		return First;
@@ -62,7 +61,7 @@ public class DivisionInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			),
 			new InstructionParameter(
-				new Result(destination),
+				new Result(destination, Assembler.Format),
 				ParameterFlag.WRITE_ACCESS | ParameterFlag.DESTINATION | ParameterFlag.HIDDEN,
 				HandleType.REGISTER
 			)
@@ -111,11 +110,11 @@ public class DivisionInstruction : DualParameterInstruction
 
 	private ConstantDivision? TryGetConstantDivision()
 	{
-		if (First.Value.Type == HandleType.CONSTANT)
+		if (First.IsConstant)
 		{
 			return new ConstantDivision(Second, First);
 		}
-		else if (Second.Value.Type == HandleType.CONSTANT)
+		else if (Second.IsConstant)
 		{
 			return new ConstantDivision(First, Second);
 		}
@@ -133,7 +132,7 @@ public class DivisionInstruction : DualParameterInstruction
 	public override void OnBuild()
 	{
 		// Handle decimal division separately
-		if (Type == global::Format.DECIMAL)
+		if (Result.Format.IsDecimal())
 		{
 			var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_DIVISION_INSTRUCTION : DOUBLE_PRECISION_DIVISION_INSTRUCTION;
 			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
@@ -163,7 +162,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 			if (constant_multiplication != null && IsPowerOfTwo(constant_multiplication.Constant))
 			{
-				var count = new ConstantHandle((long)Math.Log2(constant_multiplication.Constant));
+				var count = new ConstantHandle((long)Math.Log2(constant_multiplication.Constant), Assembler.Size.ToFormat());
 
 				Build(
 					DIVIDE_BY_TWO_INSTRUCTION,
@@ -173,7 +172,7 @@ public class DivisionInstruction : DualParameterInstruction
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(count),
+						new Result(count, Assembler.Format),
 						ParameterFlag.NONE,
 						HandleType.CONSTANT
 					)

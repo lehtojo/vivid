@@ -9,7 +9,8 @@ public class GetVariableInstruction : LoadInstruction
 		Self = self;
 		Variable = variable;
 		Description = $"Get the current handle of variable '{variable.Name}' with { (mode == AccessMode.WRITE ? "write" : "read") } access";
-		
+		Result.Format = variable.Type.Format;
+
 		Configure(References.CreateVariableHandle(unit, Self, variable));
 	}
 
@@ -31,12 +32,6 @@ public class GetVariableInstruction : LoadInstruction
 	public override void OnBuild()
 	{
 		OnSimulate();
-
-		if (Self != null)
-		{
-			Memory.Convert(Unit, Self, true, HandleType.REGISTER);
-		}
-
 		base.OnBuild();
 	}
 	
@@ -49,11 +44,11 @@ public class GetVariableInstruction : LoadInstruction
 	{
 		if (Self != null)
 		{
-			return new Result[] { Result, Self };
+			return new Result[] { Result, Source, Self };
 		}
 		else
 		{
-			return new Result[] { Result  };
+			return new Result[] { Result, Source };
 		}
 	}
 }

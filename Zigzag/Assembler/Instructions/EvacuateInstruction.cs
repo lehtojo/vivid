@@ -11,26 +11,53 @@ public class EvacuateInstruction : Instruction
 
 	public override void OnBuild() 
 	{
+		// Save all imporant values in normal volatile registers
 		Unit.VolatileRegisters.ForEach(source => 
 		{
-			if (!source.IsAvailable(Perspective.Position)) 
+			// Skip values which aren't needed after the call instruction
+			if (source.IsAvailable(Perspective.Position)) 
 			{
-				var destination = (Handle?)null;
-				var register = Unit.GetNextNonVolatileRegister();
+				return;
+			}
+			
+			// Media registers must be released to memory
+			if (source.IsMediaRegister)
+			{
+				Unit.Release(source);
+				return;
+			}
+
+			var destination = (Handle?)null;
+			var register = Unit.GetNextNonVolatileRegister(false);
 				
-				if (register != null) 
+			if (register != null) 
+			{
+				destination = new RegisterHandle(register);
+			}
+			else
+			{
+				if (!source.IsReleasable)
 				{
-					destination = new RegisterHandle(register);
-				}
-				else
-				{
-					throw new NotImplementedException("Stack move required but not implemented");
+					throw new ApplicationException("Register evacuation failed because releasing a non-variable value to memory is not implemented");
 				}
 
-				var move = new MoveInstruction(Unit, new Result(destination), source.Handle!);
-				move.Type = MoveType.RELOCATE;
+				Unit.Release(source);
+				return;
+			}
 
-				Unit.Append(move);
+			Unit.Append(new MoveInstruction(Unit, new Result(destination, source.Format), source.Handle!)
+			{
+				Description = $"Evacuate an important value in '{destination}'",
+				Type = MoveType.RELOCATE
+			});
+		});
+
+		// Save all important values inside media registers by releasing them to memory
+		Unit.MediaRegisters.ForEach(source =>
+		{
+			if (!source.IsAvailable(Perspective.Position))
+			{
+				Unit.Release(source);
 			}
 		});
 	}
@@ -42,7 +69,7 @@ public class EvacuateInstruction : Instruction
 
 	public override Result? GetDestinationDependency()
 	{
-		return null;   
+		throw new ApplicationException("Tried to redirect Evacuate-Instruction");
 	}
 
 	public override InstructionType GetInstructionType()

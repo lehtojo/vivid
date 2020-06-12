@@ -4,6 +4,17 @@ using System;
 
 public class Type : Context
 {
+	private static readonly Dictionary<Operator, string> OperatorOverloadFunctions = new Dictionary<Operator, string>();
+
+	static Type() 
+	{
+		OperatorOverloadFunctions.Add(Operators.ADD, "plus");
+		OperatorOverloadFunctions.Add(Operators.SUBTRACT, "minus");
+		OperatorOverloadFunctions.Add(Operators.MULTIPLY, "times");
+		OperatorOverloadFunctions.Add(Operators.DIVIDE, "divide");
+		OperatorOverloadFunctions.Add(Operators.MODULUS, "remainder");
+	}
+
 	public const string IDENTIFIER_PREFIX = "type_";
 
 	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
@@ -19,7 +30,6 @@ public class Type : Context
 	public List<Type> Supertypes { get; private set; } = new List<Type>();
 	public FunctionList Constructors { get; private set; } = new FunctionList();
 	public FunctionList Destructors { get; private set; } = new FunctionList();
-	public FunctionList Operators { get; set; } = new FunctionList();
 
 	public void AddConstructor(Constructor constructor)
 	{
@@ -88,6 +98,11 @@ public class Type : Context
 	public virtual int GetContentSize()
 	{
 		return Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
+	}
+
+	public bool IsOperatorOverloaded(Operator operation)
+	{
+		return OperatorOverloadFunctions.TryGetValue(operation, out string? name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
 	}
 	
 	public bool IsSuperFunctionDeclared(string name)
@@ -190,8 +205,7 @@ public class Type : Context
 			   ContentSize == type.ContentSize &&
 			   EqualityComparer<List<Type>>.Default.Equals(Supertypes, type.Supertypes) &&
 			   EqualityComparer<FunctionList>.Default.Equals(Constructors, type.Constructors) &&
-			   EqualityComparer<FunctionList>.Default.Equals(Destructors, type.Destructors) &&
-			   EqualityComparer<FunctionList>.Default.Equals(Operators, type.Operators);
+			   EqualityComparer<FunctionList>.Default.Equals(Destructors, type.Destructors);
 	}
 
 	public override int GetHashCode()
@@ -213,7 +227,6 @@ public class Type : Context
 		hash.Add(Supertypes);
 		hash.Add(Constructors);
 		hash.Add(Destructors);
-		hash.Add(Operators);
 		return hash.ToHashCode();
 	}
 }

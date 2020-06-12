@@ -5,9 +5,10 @@ public class ExchangeInstruction : DualParameterInstruction
 
 	public bool IsSafe { get; private set; }
 
-	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second) 
+	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second, first.Format) 
 	{
 		IsSafe = is_safe;
+		IsFutureUsageAnalyzed = false;
 	}
 
 	public override void OnBuild()

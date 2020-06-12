@@ -12,10 +12,13 @@ public static class Assembler
 
 	public static Function? AllocationFunction { get; private set; }
 	public static Size Size { get; set; } = Size.QWORD;
+	public static Format Format => Size.ToFormat();
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
 	public static bool IsTargetWindows => Target == OSPlatform.Windows;
 	public static bool IsTargetLinux => Target == OSPlatform.Linux;
-	
+	public static bool IsTargetX86 => Assembler.Size.Bits == 32;
+	public static bool IsTargetX64 => Assembler.Size.Bits == 64;
+
 	public const string TEXT_SECTION = "section .text";
 	public const string LINUX_TEXT_SECTION_HEADER = "global _start" + "\n" +
 													"_start:" + "\n" +
@@ -23,10 +26,6 @@ public static class Assembler
 													"mov rax, 60" + "\n" +
 													"xor rdi, rdi" + "\n" +
 													"syscall" + SEPARATOR;   
-
-	//public const string WINDOWS_TEXT_SECTION_HEADER = 	"global main" + "\n" +
-	//																	"main:" + "\n" +
-	//																	"jmp function_run" + SEPARATOR;
 	public const string WINDOWS_TEXT_SECTION_HEADER = "global function_run";
 
 	public const string DATA_SECTION = "section .data";
@@ -52,10 +51,10 @@ public static class Assembler
 		return builder.ToString();
 	}
 
-	private static string GetText(Function function, out List<(string, double)> decimals)
+	private static string GetText(Function function, out List<ConstantDataSectionHandle> out_constants)
 	{
 		var builder = new StringBuilder();
-		var decimal_constants = new List<(string, double)>();
+		var constants = new List<ConstantDataSectionHandle>();
 
 		foreach (var implementation in function.Implementations)
 		{
@@ -127,14 +126,14 @@ public static class Assembler
 				}
 				while (previous != current);
 
-				builder.Append(Translator.Translate(unit));
+				builder.Append(Translator.Translate(unit, out List<ConstantDataSectionHandle> constant_handles));
 				builder.AppendLine();
 
-				unit.Decimals.ToList().ForEach(p => decimal_constants.Add((p.Value, p.Key)));
+				constants.AddRange(constant_handles);
 			}
 		}
 
-		decimals = decimal_constants;
+		out_constants = constants;
 
 		if (builder.Length == 0)
 		{
@@ -144,11 +143,11 @@ public static class Assembler
 		return builder.ToString();
 	}
 
-	private static string GetText(Context context, out List<(string, double)> decimals)
+	private static string GetText(Context context, out List<ConstantDataSectionHandle> constants)
 	{
 		var builder = new StringBuilder();
 
-		decimals = new List<(string, double)>();
+		constants = new List<ConstantDataSectionHandle>();
 
 		foreach (var function in context.Functions.Values)
 		{
@@ -156,10 +155,10 @@ public static class Assembler
 			{
 				if (!overload.IsImported)
 				{
-					builder.Append(Assembler.GetText(overload, out List<(string, double)> function_decimals));
+					builder.Append(Assembler.GetText(overload, out List<ConstantDataSectionHandle> function_constants));
 					builder.Append(SEPARATOR);
 
-					decimals.AddRange(function_decimals);
+					constants.AddRange(function_constants);
 				}
 			}
 		}
@@ -168,15 +167,15 @@ public static class Assembler
 		{
 			foreach (var overload in type.Constructors.Overloads)
 			{
-				builder.Append(Assembler.GetText(overload, out List<(string, double)> constructor_decimals));
+				builder.Append(Assembler.GetText(overload, out List<ConstantDataSectionHandle> constructor_constants));
 				builder.Append(SEPARATOR);
 
-				decimals.AddRange(constructor_decimals);
+				constants.AddRange(constructor_constants);
 			}
 
-			builder.Append(GetText(type, out List<(string, double)> type_decimals));
+			builder.Append(GetText(type, out List<ConstantDataSectionHandle> type_constants));
 
-			decimals.AddRange(type_decimals);
+			constants.AddRange(type_constants);
 		}
 
 		return Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n");
@@ -252,16 +251,22 @@ public static class Assembler
 		return builder.ToString();
 	}
 
-	private static string GetDecimalData(List<(string Identifier, double Value)> decimals)
+	private static string GetConstantData(List<ConstantDataSectionHandle> constants)
 	{
 		var builder = new StringBuilder();
 
-		foreach (var constant in decimals)
+		foreach (var constant in constants)
 		{
 			var name = constant.Identifier;
 			
-			var allocator = Size.FromFormat(Types.DECIMAL.Format).Allocator;
-			var text = BitConverter.DoubleToInt64Bits(constant.Value).ToString();
+			var allocator = constant.Size.Allocator;
+			var text = constant.Value.ToString()!.Replace(',', '.');
+
+			// Add decimal part to the value if necessary
+			if (Format.IsDecimal() && !text.Contains('.'))
+			{
+				text += ".0";
+			}
 
 			builder.AppendLine($"{name} {allocator} {text}");
 		}
@@ -278,12 +283,12 @@ public static class Assembler
 		builder.AppendLine(TEXT_SECTION);
 		builder.AppendLine(IsTargetWindows ? WINDOWS_TEXT_SECTION_HEADER : LINUX_TEXT_SECTION_HEADER);
 		builder.Append(GetExternalFunctions(context));
-		builder.Append(GetText(context, out List<(string, double)> decimals));
+		builder.Append(GetText(context, out List<ConstantDataSectionHandle> constants));
 		builder.Append(SEPARATOR);
 
 		builder.AppendLine(DATA_SECTION);
 		builder.Append(GetData(context));
-		builder.Append(GetDecimalData(decimals));
+		builder.Append(GetConstantData(constants));
 		builder.Append(SEPARATOR);
 
 		return Regex.Replace(builder.Replace("\r\n", "\n").ToString(), "\n{3,}", "\n\n");

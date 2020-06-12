@@ -9,11 +9,6 @@ public class RestoreStateInstruction : Instruction
 		Save = save;
 	}
 
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
 	private static Result GetVariableHandle(Scope scope, Variable variable, AccessMode mode)
 	{
 		var unit = scope.Unit!;
@@ -30,6 +25,11 @@ public class RestoreStateInstruction : Instruction
 		}
 
 		Unit.Set(Save.State);
+	}
+
+	public override Result? GetDestinationDependency()
+	{
+		return null;
 	}
 
 	public override InstructionType GetInstructionType()
