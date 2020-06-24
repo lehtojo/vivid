@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public class Numbers
 {
-	private static Dictionary<Format, Number> numbers = new Dictionary<Format, Number>();
+	private static readonly Dictionary<Format, Number> numbers = new Dictionary<Format, Number>();
 
 	public static Number Get(Format type)
 	{

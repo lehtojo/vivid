@@ -106,7 +106,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			{
 				if (IsPowerOfTwo(value))
 				{
-					var count = new ConstantHandle((long)Math.Log2(value), Assembler.Size.ToFormat());
+					var count = new ConstantHandle((long)Math.Log2(value));
 
 					Build(
 						MULTIPLY_BY_TWO_INSTRUCTION,
@@ -126,8 +126,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 				}
 				else if (IsConstantValidForExtendedMultiplication(value - 1))
 				{
-					var count = new ConstantHandle(value - 1, Assembler.Size.ToFormat());
-
 					// Example: imul eax, 3 => lea ..., [eax*2+eax]
 					var calculation = new CalculationHandle
 					(

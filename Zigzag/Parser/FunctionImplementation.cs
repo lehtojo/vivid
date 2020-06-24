@@ -21,9 +21,9 @@ public class FunctionImplementation : Context
 	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum() +
 									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum());
 	
-	public Node? Node { get; set; }
+	public Node? Node { get; private set; }
 
-	public List<Node> References { get; private set; } = new List<Node>();
+	public List<Node> References { get; } = new List<Node>();
 
 	public Type? ReturnType { get; set; }
 	public bool Returns => ReturnType != null;
@@ -101,7 +101,7 @@ public class FunctionImplementation : Context
 
 		if (ParameterTypes.Count > 0)
 		{
-			header = header.Substring(0, header.Length - 2);
+			header = header[0..^2];
 		}
 
 		if (ReturnType != null)

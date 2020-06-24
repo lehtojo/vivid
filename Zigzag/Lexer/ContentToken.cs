@@ -26,7 +26,7 @@ public class ContentToken : Token
 		var indices = new Stack<int>();
 		indices.Push(tokens.Count);
 
-		for (int i = tokens.Count - 1; i >= 0; i--)
+		for (var i = tokens.Count - 1; i >= 0; i--)
 		{
 			var token = tokens[i];
 
@@ -45,7 +45,7 @@ public class ContentToken : Token
 
 		if (raw.Length != EMPTY)
 		{
-			var content = raw.Substring(1, raw.Length - 2);
+			var content = raw[1..^1];
 
 			var tokens = Lexer.GetTokens(content, position.Clone().NextCharacter());
 			var sections = FindSections(tokens);

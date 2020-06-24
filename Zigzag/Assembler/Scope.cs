@@ -60,7 +60,7 @@ public class Scope : IDisposable
    /// </summary>
    /// Returns all variables that the scope must take care of
    /// </summary>
-   public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node root, Context current_context)
+   public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Context current_context)
    {
       return GetAllActiveContextVariables(unit, current_context)
             .Concat(unit.Scope!.ActiveVariables)
@@ -157,7 +157,7 @@ public class Scope : IDisposable
    public bool IsUsedLater(Variable variable)
    {
       // Try to get the most recently used handle of the variable
-      var current = GetCurrentVariableHandle(Unit!, variable);
+      var current = GetCurrentVariableHandle(variable);
 
       // If there's no handle of the variable, it means that the outer scope doesn't have it either
       if (current == null)
@@ -199,7 +199,7 @@ public class Scope : IDisposable
       }
       else
       {
-         transition_handle = new Result(handle, variable.Type.Format);
+         transition_handle = new Result(handle, variable.Type!.Format);
          transition_handle.Metadata.Attach(new VariableAttribute(variable));
 
          TransitionHandles.Add(variable, transition_handle);
@@ -367,8 +367,14 @@ public class Scope : IDisposable
       }
    }
 
-   public Result? GetCurrentVariableHandle(Unit unit, Variable variable)
+   public Result? GetCurrentVariableHandle(Variable variable)
    {
+      // Only predictable variables are allowed to be cached
+      if (!variable.IsPredictable)
+      {
+         return null;
+      }
+      
       // First check if the variable handle list already exists
       if (Variables.TryGetValue(variable, out Result? handle))
       {
@@ -376,7 +382,7 @@ public class Scope : IDisposable
       }
       else
       {
-         var source = Outer?.GetCurrentVariableHandle(Unit!, variable);
+         var source = Outer?.GetCurrentVariableHandle(variable);
 
          if (source != null)
          {

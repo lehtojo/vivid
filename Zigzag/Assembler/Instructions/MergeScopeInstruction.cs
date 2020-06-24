@@ -4,11 +4,11 @@ using System;
 
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit, IEnumerable<Variable> variables) : base(unit) {}
+	public MergeScopeInstruction(Unit unit) : base(unit) {}
 
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Unit.Scope!.Outer?.GetCurrentVariableHandle(Unit, variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
+		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
 	}
 
 	private bool IsUsedLater(Variable variable)
@@ -25,7 +25,7 @@ public class MergeScopeInstruction : Instruction
 			var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get the current handle for an active variable");
 
 			// Copy the destination value to prevent any relocation leaks
-			var destination = new Result(GetDestinationHandle(variable).Value, variable.Type.Format);
+			var destination = new Result(GetDestinationHandle(variable).Value, variable.Type!.Format);
 			
 			// When the destination is a memory handle, it most likely means it won't be used later
 			if (destination.IsMemoryAddress && !IsUsedLater(variable))

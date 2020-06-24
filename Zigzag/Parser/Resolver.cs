@@ -30,19 +30,34 @@ public class Resolver
 			ResolveContext(type);
 		}
 
-		var implementations = context.GetImplementedFunctions().ToList();
+		var implementations = context.GetFunctionImplementations().ToList();
 
 		foreach (var implementation in implementations)
 		{
 			ResolveVariables(implementation);
-			ResolveTree(implementation, implementation.Node!);
+
+			// Check if the implementation has a return type and if it's unresolved
+			if (implementation.ReturnType?.IsUnresolved ?? false)
+			{
+				var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
+
+				if (!Equals(type, Types.UNKNOWN))
+				{
+					implementation.ReturnType = type;
+				}
+			}
+
+			if (implementation.Node != null)
+			{
+				ResolveTree(implementation, implementation.Node!);
+			}
 		}
 	}
 
 	/// <summary>
 	/// Tries to resolve the problems in the node tree
 	/// </summary>
-	public static Node? ResolveTree(Context context, Node node)
+	private static Node? ResolveTree(Context context, Node node)
 	{
 		if (node is IResolvable resolvable)
 		{
@@ -57,24 +72,22 @@ public class Resolver
 
 			return null;
 		}
-		else
+		
+		var iterator = node.First;
+
+		while (iterator != null)
 		{
-			var iterator = node.First;
+			var resolved = ResolveTree(context, iterator);
 
-			while (iterator != null)
+			if (resolved != null)
 			{
-				var resolved = Resolver.ResolveTree(context, iterator);
-
-				if (resolved != null)
-				{
-					iterator.Replace(resolved);
-				}
-
-				iterator = iterator.Next;
+				iterator.Replace(resolved);
 			}
 
-			return node;
+			iterator = iterator.Next;
 		}
+
+		return node;
 	}
 
 	/// <summary>
@@ -91,34 +104,26 @@ public class Resolver
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	public static Type? GetSharedType(Type? a, Type? b)
 	{
-		if (a == b)
+		if (Equals(a, b))
 		{
 			return a;
 		}
-		else if (a == Types.UNKNOWN || b == Types.UNKNOWN)
+		
+		if (a == Types.UNKNOWN || b == Types.UNKNOWN)
 		{
 			return Types.UNKNOWN;
 		}
 
-		if (a is Number && b is Number)
+		if (!(a is Number x) || !(b is Number y))
+			return a.Supertypes.FirstOrDefault(type => b.Supertypes.Contains(type));
+		
+		if (a is Decimal || b is Decimal)
 		{
-			if (a is Decimal || b is Decimal)
-			{
-				return Types.DECIMAL;
-			}
-
-			return GetSharedNumber((Number)a, (Number)b);
+			return Types.DECIMAL;
 		}
 
-		foreach (Type type in a.Supertypes)
-		{
-			if (b.Supertypes.Contains(type))
-			{
-				return type;
-			}
-		}
+		return GetSharedNumber(x, y);
 
-		return Types.UNKNOWN;
 	}
 
 	 /// <summary>
@@ -126,18 +131,17 @@ public class Resolver
 	 /// </summary>
 	 /// <param name="types">Type list to go through</param>
 	 /// <returns>Success: Shared type between the types, Failure: null</returns>
-	private static Type? GetSharedType(List<Type> types)
+	private static Type? GetSharedType(IReadOnlyList<Type> types)
 	{
-		if (types.Count == 0)
+		switch (types.Count)
 		{
-			return Types.UNKNOWN;
-		}
-		else if (types.Count == 1)
-		{
-			return types[0];
+			case 0:
+				return Types.UNKNOWN;
+			case 1:
+				return types[0];
 		}
 
-		var current = (Type?)types[0];
+		var current = types[0];
 
 		for (var i = 1; i < types.Count; i++)
 		{
@@ -146,7 +150,7 @@ public class Resolver
 				break;
 			}
 
-			current = Resolver.GetSharedType(current, types[i]);
+			current = GetSharedType(current, types[i]);
 		}
 
 		return current;
@@ -172,10 +176,8 @@ public class Resolver
 					// This operation must be aborted since type list cannot contain unresolved types
 					return null;
 				}
-				else
-				{
-					types.Add(type);
-				}
+				
+				types.Add(type);
 			}
 			else
 			{
@@ -209,7 +211,7 @@ public class Resolver
 	/// <summary>
 	/// Tries to resolve the given variable by going through its references
 	/// </summary>	
-	public static void Resolve(Variable variable)
+	private static void Resolve(Variable variable)
 	{
 		var types = new List<Type>();
 
@@ -218,50 +220,49 @@ public class Resolver
 		{
 			var parent = reference.Parent;
 
-			if (parent != null)
+			if (parent == null) continue;
+			
+			if (parent.GetNodeType() == NodeType.OPERATOR_NODE) // Locals
 			{
-				if (parent.GetNodeType() == NodeType.OPERATOR_NODE) // Locals
+				// Reference must be the destination in assign operation in order to resolve the type
+				if (parent.First != reference)
 				{
-					// Reference must be the destination in assign operation in order to resolve the type
-					if (parent.First != reference)
-					{
-						continue;
-					}
-
-					var type = TryGetTypeFromAssignOperation(parent);
-
-					if (type != Types.UNKNOWN)
-					{
-						types.Add(type);
-					}
+					continue;
 				}
-				else if (parent.GetNodeType() == NodeType.LINK_NODE) // Members
+
+				var type = TryGetTypeFromAssignOperation(parent);
+
+				if (type != Types.UNKNOWN)
 				{
-					// Reference must be the destination in assign operation in order to resolve the type
-					if (parent.Last != reference)
-					{
-						continue;
-					}
+					types.Add(type);
+				}
+			}
+			else if (parent.GetNodeType() == NodeType.LINK_NODE) // Members
+			{
+				// Reference must be the destination in assign operation in order to resolve the type
+				if (parent.Last != reference)
+				{
+					continue;
+				}
 
-					parent = parent.Parent;
+				parent = parent.Parent;
 					
-					if (parent == null || !parent.Is(NodeType.OPERATOR_NODE))
-					{
-						continue;
-					}
+				if (parent == null || !parent.Is(NodeType.OPERATOR_NODE))
+				{
+					continue;
+				}
 
-					var type = TryGetTypeFromAssignOperation(parent!);
+				var type = TryGetTypeFromAssignOperation(parent!);
 
-					if (type != Types.UNKNOWN)
-					{
-						types.Add(type);
-					}
+				if (type != Types.UNKNOWN)
+				{
+					types.Add(type);
 				}
 			}
 		}
 
 		// Get the shared type between the references
-		var shared = Resolver.GetSharedType(types);
+		var shared = GetSharedType(types);
 
 		if (shared != Types.UNKNOWN)
 		{
@@ -275,12 +276,9 @@ public class Resolver
 	/// </summary>
 	private static void ResolveVariables(Context context)
 	{
-		foreach (var variable in context.Variables.Values)
+		foreach (var variable in context.Variables.Values.Where(v => Equals(v.Type, Types.UNKNOWN) || v.Type.IsUnresolved))
 		{
-			if (variable.Type == Types.UNKNOWN)
-			{
-				Resolve(variable);
-			}
+			Resolve(variable);
 		}
 
 		foreach (var subcontext in context.Subcontexts)

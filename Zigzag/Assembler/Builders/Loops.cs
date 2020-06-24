@@ -130,14 +130,6 @@ public static class Loops
       unit.Append(new CacheVariablesInstruction(unit, node, variables, non_volatile_mode));
    }
 
-   private static IEnumerable<Variable> GetAllNonLocalVariables(Context local_context, Node body)
-   {
-      return body.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
-               .Select(n => ((VariableNode)n).Variable)
-               .Where(v => v.IsPredictable && !v.Context.IsInside(local_context))
-               .Distinct();
-   }
-
    private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
    {
       var active_variables = Scope.GetAllActiveVariablesForScope(unit, loop, loop.BodyContext.Parent!, loop.BodyContext, loop.StepsContext);

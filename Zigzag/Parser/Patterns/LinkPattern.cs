@@ -45,7 +45,7 @@ public class LinkPattern : Pattern
 	public override Node Build(Context environment, List<Token> tokens)
 	{
 		var left = Singleton.Parse(environment, tokens[LEFT]);
-		var right = (Node?)null;
+		Node? right;
 
 		if (left is IType type)
 		{

@@ -162,7 +162,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 			if (constant_multiplication != null && IsPowerOfTwo(constant_multiplication.Constant))
 			{
-				var count = new ConstantHandle((long)Math.Log2(constant_multiplication.Constant), Assembler.Size.ToFormat());
+				var count = new ConstantHandle((long)Math.Log2(constant_multiplication.Constant));
 
 				Build(
 					DIVIDE_BY_TWO_INSTRUCTION,

@@ -2,10 +2,10 @@
 
 public class OffsetPattern : Pattern
 {
-	public const int PRIORITY = 18;
+	private const int PRIORITY = 18;
 
 	private const int OBJECT = 0;
-	private const int INDEX = 1;
+	private const int INDICES = 1;
 
 	// ... [...]
 	public OffsetPattern() : base
@@ -20,9 +20,9 @@ public class OffsetPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var index = tokens[INDEX].To<ContentToken>();
+		var index = tokens[INDICES].To<ContentToken>();
 
-		if (index.Type != ParenthesisType.BRACKETS)
+		if (!Equals(index.Type, ParenthesisType.BRACKETS))
 		{
 			return false;
 		}
@@ -33,8 +33,8 @@ public class OffsetPattern : Pattern
 	public override Node Build(Context context, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
-		var index = Singleton.Parse(context, tokens[INDEX]);
+		var indices = Singleton.Parse(context, tokens[INDICES]);
 
-		return new OperatorNode(Operators.COLON).SetOperands(source, index);
+		return new OperatorNode(Operators.COLON).SetOperands(source, indices);
 	}
 }

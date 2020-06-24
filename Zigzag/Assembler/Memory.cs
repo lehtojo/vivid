@@ -80,7 +80,7 @@ public static class Memory
 	/// </summary>
 	public static List<Instruction> Relocate(Unit unit, List<MoveInstruction> moves)
 	{
-		var locks = moves.Where(m => m.IsRedundant && m.First.IsRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
+		var locks = moves.Where(m => m.IsRedundant && m.First.IsStandardRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
 		var unlocks = locks.Select(l => LockStateInstruction.Unlock(unit, l.Register)).ToList();
 
 		// Now remove all redundant moves
@@ -109,7 +109,7 @@ public static class Memory
          {
             var move = instruction.To<MoveInstruction>();
 
-            if (move.First.IsRegister)
+            if (move.First.IsStandardRegister)
             {
                var register = move.First.Value.To<RegisterHandle>().Register;
 
@@ -136,13 +136,20 @@ public static class Memory
 			return;
 		}
 
-		var register = (Register?)null;
+		var register = (Register?)null;	
 
 		using (RegisterLock.Create(target))
 		{
 			if (target.IsVolatile)
-			{
-				register = unit.GetNextRegisterWithoutReleasing();
+			{	
+				if (target.IsMediaRegister)
+				{
+					register = unit.GetNextMediaRegisterWithoutReleasing();
+				}
+				else
+				{
+					register = unit.GetNextRegisterWithoutReleasing();
+				}
 			}
 			else
 			{
@@ -174,7 +181,7 @@ public static class Memory
 	{
 		if (!register.IsAvailable(unit.Position))
 		{
-			Memory.ClearRegister(unit, register);
+			ClearRegister(unit, register);
 		}
 
 		var handle = new RegisterHandle(register);
@@ -192,18 +199,14 @@ public static class Memory
 	/// </summary>
 	public static Result CopyToRegister(Unit unit, Result result, bool media_register)
 	{
-		if (result.IsRegister)
+		if (result.IsStandardRegister)
 		{
 			using (RegisterLock.Create(result))
 			{
 				var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 				var destination = new Result(new RegisterHandle(register), register.Format);
 
-				return new MoveInstruction(unit, destination, result)
-				{
-					IsFutureUsageAnalyzed = false // Important: Prevents a future usage cycle (maybe)
-
-				}.Execute();
+				return new MoveInstruction(unit, destination, result).Execute();
 			}
 		}
 		else
@@ -211,11 +214,7 @@ public static class Memory
 			var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 			var destination = new Result(new RegisterHandle(register), register.Format);
 
-			return new MoveInstruction(unit, destination, result)
-			{
-				IsFutureUsageAnalyzed = false // Important: Prevents a future usage cycle (maybe)
-
-			}.Execute();
+			return new MoveInstruction(unit, destination, result).Execute();
 		}
 	}
 
@@ -235,7 +234,6 @@ public static class Memory
 
 		return new MoveInstruction(unit, destination, result)
 		{
-			IsFutureUsageAnalyzed = false, // Important: Prevents a future usage cycle
 			Description = "Move source to register",
 			Type = MoveType.RELOCATE
 
@@ -290,14 +288,14 @@ public static class Memory
 			case HandleType.MEDIA_REGISTER:
 			case HandleType.REGISTER:
 			{
-				var register = (RegisterHandle?)null;
-
 				// If the result is empty, a new available register can be assigned to it
 				if (result.IsEmpty)
 				{
-					Memory.GetRegisterFor(unit, result);
+					GetRegisterFor(unit, result);
 					return result;
 				}
+
+				RegisterHandle? register;
 
 				if (type == HandleType.MEDIA_REGISTER)
 				{

@@ -9,14 +9,6 @@ public class RestoreStateInstruction : Instruction
 		Save = save;
 	}
 
-	private static Result GetVariableHandle(Scope scope, Variable variable, AccessMode mode)
-	{
-		var unit = scope.Unit!;
-		var destination = scope.GetCurrentVariableHandle(unit, variable);
-
-		return destination ?? References.GetVariable(unit, variable, mode);
-	}
-
 	public override void OnBuild()
 	{
 		if (Save.State == null)

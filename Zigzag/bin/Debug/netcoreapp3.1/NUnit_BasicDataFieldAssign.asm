@@ -13,7 +13,8 @@ export function_basic_data_field_assign
 function_basic_data_field_assign:
 mov dword [rcx], 314159265
 mov byte [rcx+4], 64
-mov qword [rcx+5], 1.414
+movsd xmm0, qword [rel function_basic_data_field_assign_C0]
+movsd qword [rcx+5], xmm0
 mov qword [rcx+13], -2718281828459045
 mov word [rcx+21], 12345
 ret
@@ -30,3 +31,5 @@ call function_basic_data_field_assign
 ret
 
 section .data
+
+function_basic_data_field_assign_C0 dq 1.414

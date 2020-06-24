@@ -100,27 +100,25 @@ public class Unit
 {
 	public bool Optimize = true;
 
-	public FunctionImplementation Function { get; private set; }
+	public FunctionImplementation Function { get; }
 
-	public List<Register> Registers { get; private set; } = new List<Register>();
-	public List<Register> NonVolatileRegisters { get; private set; } = new List<Register>();
-	public List<Register> VolatileRegisters { get; private set; } = new List<Register>();
-	public List<Register> NonReservedRegisters { get; private set; } = new List<Register>();
-	public List<Register> MediaRegisters { get; private set; } = new List<Register>();
+	public List<Register> Registers { get; }
+	public List<Register> NonVolatileRegisters { get; }
+	public List<Register> VolatileRegisters { get; }
+	public List<Register> NonReservedRegisters { get; }
+	public List<Register> MediaRegisters { get; }
 
-	public List<Instruction> Instructions { get; private set; } = new List<Instruction>();
+	public List<Instruction> Instructions { get; } = new List<Instruction>();
 
-	private StringBuilder Builder { get; set; } = new StringBuilder();
-	public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; private set; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
-	public Dictionary<object, string> Constants { get; private set; } = new Dictionary<object, string>();
+	private StringBuilder Builder { get; } = new StringBuilder();
+	public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
+	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
 
-	private int LabelIndex { get; set; } = 0;
-	private int StringIndex { get; set; } = 0;
-	private int ConstantIndex { get; set; } = 0;
+	private int LabelIndex { get; set; }
+	private int StringIndex { get; set; }
+	private int ConstantIndex { get; set; }
 
-	private bool IsReindexingNeeded { get; set; } = false;
-
-	public Variable? Self { get; set; }
+	public Variable? Self { get; }
 
 	private Instruction? Anchor { get; set; }
 	public int Position { get; private set; } = -1;
@@ -132,7 +130,7 @@ public class Unit
 	}
 
 	public Scope? Scope { get; set; }
-	public UnitPhase Phase { get; private set; } = UnitPhase.READ_ONLY_MODE;
+	private UnitPhase Phase { get; set; } = UnitPhase.READ_ONLY_MODE;
 
 	public Unit(FunctionImplementation function)
 	{
@@ -161,14 +159,14 @@ public class Unit
 
 		Registers = new List<Register>()
 		{
-			new Register(Size.QWORD, new string[] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
-			new Register(Size.QWORD, new string[] { "rbx", "ebx", "bx", "bl" }),
-			new Register(Size.QWORD, new string[] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new string[] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
-			new Register(Size.QWORD, new string[] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new string[] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new string[] { "rbp", "ebp", "bp", "bpl" }),
-			new Register(Size.QWORD, new string[] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
+			new Register(Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
+			new Register(Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
+			new Register(Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
+			new Register(Size.QWORD, new [] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new [] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }),
+			new Register(Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED | RegisterFlag.DECIMAL_RETURN),
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
@@ -192,14 +190,14 @@ public class Unit
 		{
 			Registers.AddRange(new List<Register>()
 			{
-				new Register(Size.QWORD, new string[] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
-				new Register(Size.QWORD, new string[] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
-				new Register(Size.QWORD, new string[] { "r10", "r10d", "r10w", "r10b" }, RegisterFlag.VOLATILE),
-				new Register(Size.QWORD, new string[] { "r11", "r11d", "r11w", "r11b" }, RegisterFlag.VOLATILE),
-				new Register(Size.QWORD, new string[] { "r12", "r12d", "r12w", "r12b" }),
-				new Register(Size.QWORD, new string[] { "r13", "r13d", "r13w", "r13b" }),
-				new Register(Size.QWORD, new string[] { "r14", "r14d", "r14w", "r14b" }),
-				new Register(Size.QWORD, new string[] { "r15", "r15d", "r15w", "r15b" })
+				new Register(Size.QWORD, new [] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
+				new Register(Size.QWORD, new [] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
+				new Register(Size.QWORD, new [] { "r10", "r10d", "r10w", "r10b" }, RegisterFlag.VOLATILE),
+				new Register(Size.QWORD, new [] { "r11", "r11d", "r11w", "r11b" }, RegisterFlag.VOLATILE),
+				new Register(Size.QWORD, new [] { "r12", "r12d", "r12w", "r12b" }),
+				new Register(Size.QWORD, new [] { "r13", "r13d", "r13w", "r13b" }),
+				new Register(Size.QWORD, new [] { "r14", "r14d", "r14w", "r14b" }),
+				new Register(Size.QWORD, new [] { "r15", "r15d", "r15w", "r15b" })
 			});
 		}
 
@@ -270,17 +268,16 @@ public class Unit
 		instruction.Scope = Scope;
 		instruction.Result.Lifetime.Start = instruction.Position;
 
-		if (Phase == UnitPhase.BUILD_MODE)
-		{
-			var previous = Anchor;
+		if (Phase != UnitPhase.BUILD_MODE) return;
+		
+		var previous = Anchor;
 
-			Anchor = instruction;
-			Position = Anchor.Position;
-			instruction.Build();
-			instruction.OnSimulate();
-			Anchor = previous;
-			Position = Anchor!.Position;
-		}
+		Anchor = instruction;
+		Position = Anchor.Position;
+		instruction.Build();
+		instruction.OnSimulate();
+		Anchor = previous;
+		Position = Anchor!.Position;
 	}
 
 	public void Append(IEnumerable<Instruction> instructions, bool after = false)
@@ -347,7 +344,7 @@ public class Unit
 	public RegisterHandle? TryGetCached(Result handle)
 	{
 		var register = Registers
-			.Find(r => !r.IsMediaRegister && ((r.Handle != null) ? r.Handle.Value == handle.Value : false));
+			.Find(r => !r.IsMediaRegister && ((r.Handle != null) && r.Handle.Value == handle.Value));
 
 		if (register != null)
 		{
@@ -359,14 +356,9 @@ public class Unit
 
 	public RegisterHandle? TryGetCachedMediaRegister(Result handle)
 	{
-		var register = MediaRegisters.Find(r => (r.Handle != null) ? r.Handle.Value == handle.Value : false);
+		var register = MediaRegisters.Find(r => (r.Handle != null) && r.Handle.Value == handle.Value);
 
-		if (register != null)
-		{
-			return new RegisterHandle(register);
-		}
-
-		return null;
+		return register != null ? new RegisterHandle(register) : null;
 	}
 
 	public void Release(Register register)
@@ -383,7 +375,7 @@ public class Unit
 			// Get all the variables that this value represents
 			foreach (var attribute in value.Metadata.Variables)
 			{
-				var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable), attribute.Variable.Type.Format);
+				var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable), attribute.Variable.Type!.Format);
 
 				var move = new MoveInstruction(this, destination, value)
 				{
@@ -466,12 +458,7 @@ public class Unit
 	{
 		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
-		if (register != null)
-		{
-			return register;
-		}
-
-		return NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		return register ?? NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 	}
 
 	/// <summary>
@@ -513,7 +500,7 @@ public class Unit
 			return register;
 		}
 
-		// Since all registers contain intermidate values, one of them must be released a temporary memory location
+		// Since all registers contain intermediate values, one of them must be released a temporary memory location
 		// NOTE: Some registers may be locked which prevents them from being used, but not all registers should be locked, otherwise something very strange has happened
 
 		// Find the next register which is not locked
@@ -682,7 +669,7 @@ public class Unit
 
 	public Result? GetCurrentVariableHandle(Variable variable)
 	{
-		return Scope?.GetCurrentVariableHandle(this, variable);
+		return Scope?.GetCurrentVariableHandle(variable);
 	}
 
 	public Result? GetCurrentConstantHandle(object constant)
@@ -707,12 +694,9 @@ public class Unit
 		}
 
 		// Reset all lifetimes
-		foreach (var instruction in Instructions)
+		foreach (var result in Instructions.SelectMany(instruction => instruction.GetAllUsedResults()))
 		{
-			foreach (var result in instruction.GetAllUsedResults())
-			{
-				result.Lifetime.Reset();
-			}
+			result.Lifetime.Reset();
 		}
 
 		// Calculate lifetimes
@@ -725,7 +709,5 @@ public class Unit
 				result.Use(i);
 			}
 		}
-
-		//IsReindexingNeeded = false;
 	}
 }

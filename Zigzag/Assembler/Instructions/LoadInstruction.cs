@@ -37,7 +37,7 @@ public abstract class LoadInstruction : Instruction
 	{
 		if (Mode != AccessMode.WRITE && IsRedirected)
 		{
-			if (Result.IsRegister)
+			if (Result.IsStandardRegister)
 			{
 				Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
 			}

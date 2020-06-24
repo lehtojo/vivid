@@ -84,9 +84,6 @@ public class NumberToken : Token
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
 
-			var format = new NumberFormatInfo();
-			format.NumberDecimalSeparator = Lexer.DECIMAL_SEPARATOR.ToString();
-
 			/// TODO: Think about overriding the decimal type
 			Value = value;
 			NumberType = Format.DECIMAL;

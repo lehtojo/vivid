@@ -231,14 +231,6 @@ public abstract class Instruction
 	}
 
 	/// <summary>
-	/// Returns whether the result is actually a reference to another variable's value
-	/// </summary> 
-	private static bool IsReference(Variable variable, Result result)
-	{
-		return !(result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == variable);
-	}
-
-	/// <summary>
 	/// Simulates the interactions between the instruction parameters such as relocating the source to the destination
 	/// </summary>
 	private void SimulateParameterFlags()

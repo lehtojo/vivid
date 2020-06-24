@@ -38,9 +38,10 @@ public class ImportPattern : Pattern
 		{
 			return true;
 		}
-		else if (tokens[OPERATOR].Type != TokenType.NONE && tokens[RETURN_TYPE].Type != TokenType.NONE)
+
+		if (tokens[OPERATOR].Type != TokenType.NONE && tokens[RETURN_TYPE].Type != TokenType.NONE)
 		{
-			return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.COLON;
+			return Equals(tokens[OPERATOR].To<OperatorToken>().Operator, Operators.COLON);
 		}
 
 		return false;

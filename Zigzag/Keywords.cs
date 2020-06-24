@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-public class Keywords
+public static class Keywords
 {
 	public static readonly Keyword AS = new Keyword("as");
 	public static readonly Keyword CASE = new FlowKeyword("case");
@@ -23,7 +23,7 @@ public class Keywords
 	public static readonly Keyword THIS = new Keyword("this");
 	public static readonly Keyword TYPE = new Keyword("type");
 
-	private static Dictionary<string, Keyword> Values = new Dictionary<string, Keyword>();
+	private static readonly Dictionary<string, Keyword> Values = new Dictionary<string, Keyword>();
 
 	static Keywords()
 	{

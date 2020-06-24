@@ -82,10 +82,12 @@ public static class Oracle
 				return;
 			}
 
-			var duplicate = new DuplicateInstruction(unit, result);
-			duplicate.Description = "Separate variable " + variable.Name;
+         var duplicate = new DuplicateInstruction(unit, result)
+         {
+            Description = "Separate variable " + variable.Name
+         };
 
-			var duplication = duplicate.Execute();
+         var duplication = duplicate.Execute();
 
 			// Set the duplication result as a new value for the edited variable
 			unit.Append(new SetVariableInstruction(unit, variable, duplication));
@@ -198,11 +200,13 @@ public static class Oracle
 
 		foreach (var variable in edited_variables)
 		{
-			// Duplicate the shared value and give it to the edited variable
-			var duplicate = new DuplicateInstruction(unit, shared_value);
-			duplicate.Description = "Separate " + variable.Name  + " from variable group { " + string.Join(", ", group.Select(v => v.Name)) + " }";
+         // Duplicate the shared value and give it to the edited variable
+         var duplicate = new DuplicateInstruction(unit, shared_value)
+         {
+            Description = "Separate " + variable.Name + " from variable group { " + string.Join(", ", group.Select(v => v.Name)) + " }"
+         };
 
-			var duplication = duplicate.Execute();
+         var duplication = duplicate.Execute();
 
 			// Set the duplication result as a new value for the edited variable
 			unit.Append(new SetVariableInstruction(unit, variable, duplication));
@@ -254,7 +258,7 @@ public static class Oracle
 		});
 	}
 
-	private static void TryRedirectToReturnRegister(Unit unit, Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirectToReturnRegister(Instruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
@@ -273,7 +277,7 @@ public static class Oracle
 		}
 	}
 
-	private static void TryRedirect(Unit unit, Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirect(Instruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
@@ -303,7 +307,7 @@ public static class Oracle
 				var is_decimal = instruction.ReturnType == Types.DECIMAL;
 				var return_register = is_decimal ? unit.GetDecimalReturnRegister() : unit.GetStandardReturnRegister();
 
-				TryRedirectToReturnRegister(unit, instruction, return_register, calls);
+				TryRedirectToReturnRegister(instruction, return_register, calls);
 			}
 		});
 	}
@@ -323,9 +327,9 @@ public static class Oracle
 					{
 						var source = move.Second.Instruction;
 						
-						if (source != null && move.First.IsRegister)
+						if (source != null && move.First.IsStandardRegister)
 						{
-							TryRedirect(unit, source, move.First.Value.To<RegisterHandle>().Register, calls);
+							TryRedirect(source, move.First.Value.To<RegisterHandle>().Register, calls);
 						}
 					}
 				}
@@ -353,7 +357,7 @@ public static class Oracle
 			}
 
 			if (calls.Any(f => result.Lifetime.IsOnlyActive(f.Position)) && 
-				(!result.IsRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
+				(!result.IsStandardRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
 			{         
 				// Get the instruction range that the redirection would affect
 				var start = instruction.GetRedirectionRoot().Position;

@@ -2,7 +2,7 @@ using System;
 
 public class UnresolvedType : Type, IResolvable
 {
-	private IResolvable Resolvable;
+	private IResolvable Resolvable { get; }
 
 	public UnresolvedType(Context context, string name) : base(context)
 	{
@@ -24,6 +24,11 @@ public class UnresolvedType : Type, IResolvable
 		}
 
 		return null;
+	}
+
+	public Type? TryResolveType(Context context)
+	{
+		return Resolve(context)?.GetType();
 	}
 
 	public Status GetStatus()

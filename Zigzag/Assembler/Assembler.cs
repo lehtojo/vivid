@@ -1,296 +1,273 @@
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Linq;
 using System;
 
-public static class Assembler 
+public static class Assembler
 {
-	private const string AllocateFunctionIdentifier = "allocate";
+    private const string ALLOCATE_FUNCTION_IDENTIFIER = "allocate";
 
-	public static Function? AllocationFunction { get; private set; }
-	public static Size Size { get; set; } = Size.QWORD;
-	public static Format Format => Size.ToFormat();
-	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
-	public static bool IsTargetWindows => Target == OSPlatform.Windows;
-	public static bool IsTargetLinux => Target == OSPlatform.Linux;
-	public static bool IsTargetX86 => Assembler.Size.Bits == 32;
-	public static bool IsTargetX64 => Assembler.Size.Bits == 64;
+    public static Function? AllocationFunction { get; private set; }
+    public static Size Size { get; set; } = Size.QWORD;
+    public static Format Format => Size.ToFormat();
+    public static OSPlatform Target { get; } = OSPlatform.Windows;
+    public static bool IsTargetWindows => Target == OSPlatform.Windows;
+    public static bool IsTargetLinux => Target == OSPlatform.Linux;
+    public static bool IsTargetX86 => Size.Bits == 32;
+    public static bool IsTargetX64 => Size.Bits == 64;
 
-	public const string TEXT_SECTION = "section .text";
-	public const string LINUX_TEXT_SECTION_HEADER = "global _start" + "\n" +
-													"_start:" + "\n" +
-													"call function_run" + "\n" +
-													"mov rax, 60" + "\n" +
-													"xor rdi, rdi" + "\n" +
-													"syscall" + SEPARATOR;   
-	public const string WINDOWS_TEXT_SECTION_HEADER = "global function_run";
+    private const string TEXT_SECTION = "section .text";
 
-	public const string DATA_SECTION = "section .data";
-	public const string SEPARATOR = "\n\n";
+    private const string LINUX_TEXT_SECTION_HEADER = "global _start" + "\n" +
+                                                     "_start:" + "\n" +
+                                                     "call function_run" + "\n" +
+                                                     "mov rax, 60" + "\n" +
+                                                     "xor rdi, rdi" + "\n" +
+                                                     "syscall" + SEPARATOR;
 
-	private static string GetExternalFunctions(Context context)
-	{
-		var builder = new StringBuilder();
+    private const string WINDOWS_TEXT_SECTION_HEADER = "global function_run";
 
-		foreach (var function in context.Functions.Values)
-		{
-			foreach (var overload in function.Overloads)
-			{
-				if (overload.IsImported)
-				{
-					builder.AppendLine($"extern {overload.GetFullname()}");
-				}
-			}
-		}
+    private const string DATA_SECTION = "section .data";
+    private const string SEPARATOR = "\n\n";
 
-		builder.Append(SEPARATOR);
+    private static string GetExternalFunctions(Context context)
+    {
+        var builder = new StringBuilder();
 
-		return builder.ToString();
-	}
+        foreach (var overload in from function in context.Functions.Values from overload in function.Overloads where overload.IsImported select overload)
+        {
+            builder.AppendLine($"extern {overload.GetFullname()}");
+        }
 
-	private static string GetText(Function function, out List<ConstantDataSectionHandle> out_constants)
-	{
-		var builder = new StringBuilder();
-		var constants = new List<ConstantDataSectionHandle>();
+        builder.Append(SEPARATOR);
 
-		foreach (var implementation in function.Implementations)
-		{
-			if (implementation.Node != null && !implementation.IsEmpty)
-			{
-				var header = string.Empty;
+        return builder.ToString();
+    }
 
-				// Export this function if necessary
-				if (function.IsExported)
-				{
-					builder.AppendLine($"global {function.GetFullname()}");
+    private static string GetText(Function function, out List<ConstantDataSectionHandle> out_constants)
+    {
+        var builder = new StringBuilder();
+        var constants = new List<ConstantDataSectionHandle>();
 
-					if (IsTargetWindows)
-					{
-						builder.AppendLine($"export {function.GetFullname()}");
-					}
-				}
+        foreach (var implementation in function.Implementations.Where(implementation => implementation.Node != null && !implementation.IsEmpty))
+        {
+            // Export this function if necessary
+            if (function.IsExported)
+            {
+                builder.AppendLine($"global {function.GetFullname()}");
 
-				// Append the function label
-				builder.AppendLine(function.GetFullname() + ':');
+                if (IsTargetWindows)
+                {
+                    builder.AppendLine($"export {function.GetFullname()}");
+                }
+            }
 
-				var unit = new Unit(implementation);
+            // Append the function label
+            builder.AppendLine(function.GetFullname() + ':');
 
-				unit.Execute(UnitPhase.APPEND_MODE, () => 
-				{
-					// Create the most outer scope where all instructions will be placed
-					using (var scope = new Scope(unit))
-					{
-						// Initialize this function
-						unit.Append(new InitializeInstruction(unit));
+            var unit = new Unit(implementation);
 
-						// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
-						var variables = unit.Function.Parameters;
+            unit.Execute(UnitPhase.APPEND_MODE, () =>
+            {
+                // Create the most outer scope where all instructions will be placed
+                using var scope = new Scope(unit);
 
-						if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
-						{
-							variables.Add(unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("This pointer was missing in member function"));
-						}
+                // Initialize this function
+                unit.Append(new InitializeInstruction(unit));
 
-						unit.Append(new RequireVariablesInstruction(unit, variables));
+                // Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
+                var variables = unit.Function.Parameters;
 
-						if (function is Constructor constructor)
-						{
-							Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
-						}
+                if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
+                {
+                    variables.Add(unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ??
+                                  throw new ApplicationException("This pointer was missing in member function"));
+                }
 
-						Builders.Build(unit, implementation.Node);
-					}
-				});
+                unit.Append(new RequireVariablesInstruction(unit, variables));
 
-				// Sprinkle a little intelligence into the output code
-				Oracle.Channel(unit);
+                if (function is Constructor constructor)
+                {
+                    Constructors.CreateHeader(unit,
+                        constructor.GetTypeParent() ??
+                        throw new ApplicationException("Couldn't get constructor owner type"));
+                }
 
-				var previous = 0;
-				var current = unit.Instructions.Count;
+                Builders.Build(unit, implementation.Node!);
+            });
 
-				do
-				{
-					previous = current;
+            // Sprinkle a little intelligence into the output code
+            Oracle.Channel(unit);
 
-					Oracle.SimulateLifetimes(unit);
+            var previous = 0;
+            var current = unit.Instructions.Count;
 
-					unit.Simulate(UnitPhase.BUILD_MODE, instruction => 
-					{
-						instruction.Build();
-					});
+            do
+            {
+                previous = current;
 
-					current = unit.Instructions.Count;
-				}
-				while (previous != current);
+                Oracle.SimulateLifetimes(unit);
 
-				builder.Append(Translator.Translate(unit, out List<ConstantDataSectionHandle> constant_handles));
-				builder.AppendLine();
+                unit.Simulate(UnitPhase.BUILD_MODE, instruction => { instruction.Build(); });
 
-				constants.AddRange(constant_handles);
-			}
-		}
+                current = unit.Instructions.Count;
+                    
+            } while (previous != current);
 
-		out_constants = constants;
+            builder.Append(Translator.Translate(unit, out List<ConstantDataSectionHandle> constant_handles));
+            builder.AppendLine();
 
-		if (builder.Length == 0)
-		{
-			return string.Empty;
-		}
+            constants.AddRange(constant_handles);
+        }
 
-		return builder.ToString();
-	}
+        out_constants = constants;
 
-	private static string GetText(Context context, out List<ConstantDataSectionHandle> constants)
-	{
-		var builder = new StringBuilder();
+        return builder.Length == 0 ? string.Empty : builder.ToString();
+    }
 
-		constants = new List<ConstantDataSectionHandle>();
+    private static string GetText(Context context, out List<ConstantDataSectionHandle> constants)
+    {
+        var builder = new StringBuilder();
 
-		foreach (var function in context.Functions.Values)
-		{
-			foreach (var overload in function.Overloads)
-			{
-				if (!overload.IsImported)
-				{
-					builder.Append(Assembler.GetText(overload, out List<ConstantDataSectionHandle> function_constants));
-					builder.Append(SEPARATOR);
+        constants = new List<ConstantDataSectionHandle>();
 
-					constants.AddRange(function_constants);
-				}
-			}
-		}
+        foreach (var overload in from function in context.Functions.Values from overload in function.Overloads where !overload.IsImported select overload)
+        {
+            builder.Append(GetText(overload, out List<ConstantDataSectionHandle> function_constants));
+            builder.Append(SEPARATOR);
 
-		foreach (var type in context.Types.Values)
-		{
-			foreach (var overload in type.Constructors.Overloads)
-			{
-				builder.Append(Assembler.GetText(overload, out List<ConstantDataSectionHandle> constructor_constants));
-				builder.Append(SEPARATOR);
+            constants.AddRange(function_constants);
+        }
 
-				constants.AddRange(constructor_constants);
-			}
+        foreach (var type in context.Types.Values)
+        {
+            foreach (var overload in type.Constructors.Overloads)
+            {
+                builder.Append(GetText(overload, out List<ConstantDataSectionHandle> constructor_constants));
+                builder.Append(SEPARATOR);
 
-			builder.Append(GetText(type, out List<ConstantDataSectionHandle> type_constants));
+                constants.AddRange(constructor_constants);
+            }
 
-			constants.AddRange(type_constants);
-		}
+            builder.Append(GetText(type, out List<ConstantDataSectionHandle> type_constants));
 
-		return Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n");
-	}
+            constants.AddRange(type_constants);
+        }
 
-	private static string GetStaticVariables(Type type)
-	{
-		var builder = new StringBuilder();
-		
-		foreach (var variable in type.Variables.Values)
-		{
-			if (variable.IsStatic)
-			{
-				var name = variable.GetStaticName();
-				var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
+        return Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n");
+    }
 
-				builder.AppendLine($"{name} {allocator} 0");
-			}
-		}
+    private static string GetStaticVariables(Type type)
+    {
+        var builder = new StringBuilder();
 
-		foreach (var subtype in type.Supertypes)
-		{
-			builder.Append(SEPARATOR);
-			builder.AppendLine(GetStaticVariables(subtype));
-		}
+        foreach (var variable in type.Variables.Values)
+        {
+            if (!variable.IsStatic) continue;
+            
+            var name = variable.GetStaticName();
+            var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
 
-		return builder.ToString();
-	}
+            builder.AppendLine($"{name} {allocator} 0");
+        }
 
-	private static IEnumerable<StringNode> GetFunctionStringNodes(FunctionImplementation implementation)
-	{
-		return implementation.Node?.FindAll(n => n is StringNode).Select(n => (StringNode)n) ?? new List<StringNode>();
-	}
+        foreach (var subtype in type.Supertypes)
+        {
+            builder.Append(SEPARATOR);
+            builder.AppendLine(GetStaticVariables(subtype));
+        }
 
-	public static IEnumerable<StringNode> GetStringNodes(Context context)
-	{
-		var nodes = new List<StringNode>();
+        return builder.ToString();
+    }
 
-		foreach (var implementation in context.GetImplementedFunctions())
-		{
-			nodes.AddRange(GetFunctionStringNodes(implementation));
-		}
+    private static IEnumerable<StringNode> GetFunctionStringNodes(FunctionImplementation implementation)
+    {
+        return implementation.Node?.FindAll(n => n is StringNode).Select(n => (StringNode) n) ?? new List<StringNode>();
+    }
 
-		foreach (var type in context.Types.Values)
-		{
-			nodes.AddRange(GetStringNodes(type));
-		}
+    private static IEnumerable<StringNode> GetStringNodes(Context context)
+    {
+        var nodes = new List<StringNode>();
 
-		return nodes;
-	}
+        foreach (var implementation in context.GetImplementedFunctions())
+        {
+            nodes.AddRange(GetFunctionStringNodes(implementation));
+        }
 
-	private static string GetData(Context context)
-	{
-		var builder = new StringBuilder();
+        foreach (var type in context.Types.Values)
+        {
+            nodes.AddRange(GetStringNodes(type));
+        }
 
-		foreach (var type in context.Types.Values)
-		{
-			builder.AppendLine(GetStaticVariables(type));
-			builder.Append(SEPARATOR);
-		}
+        return nodes;
+    }
 
-		var nodes = GetStringNodes(context);
+    private static string GetData(Context context)
+    {
+        var builder = new StringBuilder();
 
-		foreach (var node in nodes)
-		{
-			var name = node.GetIdentifier(null);
-			var allocator = Size.BYTE.Allocator;
-			var text = node.Text;
+        foreach (var type in context.Types.Values)
+        {
+            builder.AppendLine(GetStaticVariables(type));
+            builder.Append(SEPARATOR);
+        }
 
-			builder.AppendLine($"{name} {allocator} '{text}', 0");
-		}
+        var nodes = GetStringNodes(context);
 
-		return builder.ToString();
-	}
+        foreach (var node in nodes)
+        {
+            var name = node.GetIdentifier(null);
+            var allocator = Size.BYTE.Allocator;
+            var text = node.Text;
 
-	private static string GetConstantData(List<ConstantDataSectionHandle> constants)
-	{
-		var builder = new StringBuilder();
+            builder.AppendLine($"{name} {allocator} '{text}', 0");
+        }
 
-		foreach (var constant in constants)
-		{
-			var name = constant.Identifier;
-			
-			var allocator = constant.Size.Allocator;
-			var text = constant.Value.ToString()!.Replace(',', '.');
+        return builder.ToString();
+    }
 
-			// Add decimal part to the value if necessary
-			if (Format.IsDecimal() && !text.Contains('.'))
-			{
-				text += ".0";
-			}
+    private static string GetConstantData(List<ConstantDataSectionHandle> constants)
+    {
+        var builder = new StringBuilder();
 
-			builder.AppendLine($"{name} {allocator} {text}");
-		}
+        foreach (var constant in constants)
+        {
+            var name = constant.Identifier;
+            var allocator = constant.Size.Allocator;
+            var text = constant.Value.ToString()!.Replace(',', '.');
 
-		return builder.ToString();
-	}
+            // Add decimal part to the value if necessary
+            if (constant.Format.IsDecimal() && !text.Contains('.'))
+            {
+                text += ".0";
+            }
 
-	public static string Assemble(Context context)
-	{
-		AllocationFunction = context.GetFunction(AllocateFunctionIdentifier)?.Overloads[0] ?? throw new ApplicationException("Allocation function was missing");
-		
-		var builder = new StringBuilder();
+            builder.AppendLine($"{name} {allocator} {text}");
+        }
 
-		builder.AppendLine(TEXT_SECTION);
-		builder.AppendLine(IsTargetWindows ? WINDOWS_TEXT_SECTION_HEADER : LINUX_TEXT_SECTION_HEADER);
-		builder.Append(GetExternalFunctions(context));
-		builder.Append(GetText(context, out List<ConstantDataSectionHandle> constants));
-		builder.Append(SEPARATOR);
+        return builder.ToString();
+    }
 
-		builder.AppendLine(DATA_SECTION);
-		builder.Append(GetData(context));
-		builder.Append(GetConstantData(constants));
-		builder.Append(SEPARATOR);
+    public static string Assemble(Context context)
+    {
+        AllocationFunction = context.GetFunction(ALLOCATE_FUNCTION_IDENTIFIER)?.Overloads[0] ??
+                             throw new ApplicationException("Allocation function was missing");
 
-		return Regex.Replace(builder.Replace("\r\n", "\n").ToString(), "\n{3,}", "\n\n");
-	}
+        var builder = new StringBuilder();
+
+        builder.AppendLine(TEXT_SECTION);
+        builder.AppendLine(IsTargetWindows ? WINDOWS_TEXT_SECTION_HEADER : LINUX_TEXT_SECTION_HEADER);
+        builder.Append(GetExternalFunctions(context));
+        builder.Append(GetText(context, out List<ConstantDataSectionHandle> constants));
+        builder.Append(SEPARATOR);
+
+        builder.AppendLine(DATA_SECTION);
+        builder.Append(GetData(context));
+        builder.Append(GetConstantData(constants));
+        builder.Append(SEPARATOR);
+
+        return Regex.Replace(builder.Replace("\r\n", "\n").ToString(), "\n{3,}", "\n\n");
+    }
 }

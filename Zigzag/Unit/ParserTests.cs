@@ -103,7 +103,7 @@ namespace Zigzag.Unit
 		[TestCase]
 		public void Parser_PrimitiveTypes()
 		{
-			var config = new Configuration(string.Empty)
+			new Configuration(string.Empty)
 				.Local("a", "i8")
 				.Local("b", "i16")
 				.Local("c", "i32")

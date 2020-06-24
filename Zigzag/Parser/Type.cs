@@ -4,21 +4,29 @@ using System;
 
 public class Type : Context
 {
-	private static readonly Dictionary<Operator, string> OperatorOverloadFunctions = new Dictionary<Operator, string>();
+	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
+	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
+	
+	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOAD_FUNCTIONS = new Dictionary<Operator, string>();
 
 	static Type() 
 	{
-		OperatorOverloadFunctions.Add(Operators.ADD, "plus");
-		OperatorOverloadFunctions.Add(Operators.SUBTRACT, "minus");
-		OperatorOverloadFunctions.Add(Operators.MULTIPLY, "times");
-		OperatorOverloadFunctions.Add(Operators.DIVIDE, "divide");
-		OperatorOverloadFunctions.Add(Operators.MODULUS, "remainder");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ADD, "plus");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.SUBTRACT, "minus");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MULTIPLY, "times");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.DIVIDE, "divide");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MODULUS, "remainder");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_ADD, "assign_plus");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
 	}
 
 	public const string IDENTIFIER_PREFIX = "type_";
 
 	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
-	public int Modifiers { get; private set; }
+	public int Modifiers { get; }
 
 	public bool IsUnresolved => this is IResolvable;
 	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
@@ -27,9 +35,9 @@ public class Type : Context
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
 
-	public List<Type> Supertypes { get; private set; } = new List<Type>();
-	public FunctionList Constructors { get; private set; } = new FunctionList();
-	public FunctionList Destructors { get; private set; } = new FunctionList();
+	public List<Type> Supertypes { get; } = new List<Type>();
+	public FunctionList Constructors { get; } = new FunctionList();
+	public FunctionList Destructors { get; } = new FunctionList();
 
 	public void AddConstructor(Constructor constructor)
 	{
@@ -100,9 +108,14 @@ public class Type : Context
 		return Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
 	}
 
+	public FunctionList GetOperatorFunction(Operator operation)
+	{
+		return GetFunction(OPERATOR_OVERLOAD_FUNCTIONS[operation]) ?? throw new InvalidOperationException($"Couldn't find operator function '{OPERATOR_OVERLOAD_FUNCTIONS[operation]}'");
+	}
+
 	public bool IsOperatorOverloaded(Operator operation)
 	{
-		return OperatorOverloadFunctions.TryGetValue(operation, out string? name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
+		return OPERATOR_OVERLOAD_FUNCTIONS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
 	}
 	
 	public bool IsSuperFunctionDeclared(string name)
@@ -151,14 +164,8 @@ public class Type : Context
 		{
 			return base.GetFunction(name);
 		}
-		else if (IsSuperFunctionDeclared(name))
-		{
-			return GetSuperFunction(name);
-		}
-		else
-		{
-			return base.GetFunction(name);
-		}
+		
+		return IsSuperFunctionDeclared(name) ? GetSuperFunction(name) : base.GetFunction(name);
 	}
 
 	public override Variable? GetVariable(string name)
@@ -167,14 +174,25 @@ public class Type : Context
 		{
 			return base.GetVariable(name);
 		}
-		else if (IsSuperVariableDeclared(name))
-		{
-			return GetSuperVariable(name);
-		}
-		else
-		{
-			return base.GetVariable(name);
-		}
+		
+		return IsSuperVariableDeclared(name) ? GetSuperVariable(name) : base.GetVariable(name);
+	}
+
+	public override IEnumerable<FunctionImplementation> GetImplementedFunctions()
+	{
+		// Take all the standard member functions and also the constructors and destructors
+		return base.GetImplementedFunctions()
+			.Concat(Constructors.Overloads.Concat(Destructors.Overloads)
+			.SelectMany(f => f.Implementations)
+			.Where(i => i.Node != null));
+	}
+
+	public override IEnumerable<FunctionImplementation> GetFunctionImplementations()
+	{
+		// Take all the standard member functions and also the constructors and destructors
+		return base.GetImplementedFunctions()
+			.Concat(Constructors.Overloads.Concat(Destructors.Overloads)
+			.SelectMany(f => f.Implementations));
 	}
 
 	public virtual Format GetFormat()

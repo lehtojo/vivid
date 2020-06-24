@@ -11,11 +11,9 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-      private const string INCLUDE_PATH = "C:\\Users\\joona\\Documents\\Zigzag\\Zigzag\\Tests\\";
-      private const string LIBZ = "C:\\Users\\joona\\Documents\\Zigzag\\Zigzag\\libz\\";
-      private const string Output = "z.dll";
+      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Documents\\Intuitive\\Zigzag\\Tests\\";
+      private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
-
 
       [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_basic_math(Int64 a, Int64 b, Int64 c);
@@ -269,7 +267,7 @@ namespace Zigzag.Unit
 
          Assert.AreEqual(64, target.Tiny);
          Assert.AreEqual(12345, target.Small);
-         Assert.AreEqual(3141592653, target.Normal);
+         Assert.AreEqual(314159265, target.Normal);
          Assert.AreEqual(-2718281828459045, target.Large);
          Assert.AreEqual(1.414, target.Double);
       }
@@ -311,7 +309,9 @@ namespace Zigzag.Unit
          // Check whether the array copy with offset succeeded
          Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
 
-         Assert.IsTrue(Regex.IsMatch(LoadAssemblyOutput("ConstantPermanence"), "\\[3\\+[a-z]*\\]"));
+         var assembly = LoadAssemblyOutput("ConstantPermanence");
+         Console.WriteLine(assembly);
+         Assert.IsTrue(Regex.IsMatch(assembly, "\\[3\\+[a-z0-9]*\\]"));
       }
 
       [TestCase]
@@ -378,7 +378,7 @@ namespace Zigzag.Unit
          // There should be five 'add rsp, 40' instructions
          for (var i = 0; i < 5; i++)
          {
-            j = assembly.IndexOf("add rsp, ", j);
+            j = assembly.IndexOf("add rsp, ", j, StringComparison.Ordinal);
 
             if (j++ == -1)
             {

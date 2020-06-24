@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Text;
+using System;
 
 public class ReturnInstruction : Instruction
 {
 	private const string RETURN = "ret";
 
 	private Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
-	private Result ReturnRegisterHandle => new Result(new RegisterHandle(ReturnRegister), ReturnType.Format);
+	private Result ReturnRegisterHandle => new Result(new RegisterHandle(ReturnRegister), ReturnType?.Format ?? throw new ApplicationException("Tried to get a return register for a function which doesn't return"));
 
 	public Result? Object { get; private set; }
 	public Type? ReturnType { get; private set; }

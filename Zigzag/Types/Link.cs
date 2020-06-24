@@ -1,6 +1,6 @@
 public class Link : Type
 {
-	public const int STRIDE = 1;
+	private const int STRIDE = 1;
 
 	public Link() : base("link", AccessModifier.PUBLIC) { }
 

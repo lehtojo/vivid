@@ -9,12 +9,12 @@ public static class Calls
 	private const int MAX_MEDIA_REGISTERS_UNIX_X64 = 7;
 	private const int MAX_MEDIA_REGISTERS_WINDOWS_X64 = 4;
 
-	private static readonly string[] STANDARD_PARAMETER_REGISTERS_UNIX_X64 = new string[] { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
-	private static readonly string[] STANDARD_PARAMETER_REGISTERS_WINDOWS_X64 = new string[] { "rcx", "rdx", "r8", "r9" };
+	private static readonly string[] StandardParameterRegistersUnixX64 = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+	private static readonly string[] StandardParameterRegistersWindowsX64 = { "rcx", "rdx", "r8", "r9" };
 
-	public static string[] GetStandardParameterRegisters()
+	public static IEnumerable<string> GetStandardParameterRegisters()
 	{
-		return Assembler.IsTargetWindows ? STANDARD_PARAMETER_REGISTERS_WINDOWS_X64 : STANDARD_PARAMETER_REGISTERS_UNIX_X64;
+		return Assembler.IsTargetWindows ? StandardParameterRegistersWindowsX64 : StandardParameterRegistersUnixX64;
 	}
 
 	public static int GetMaxMediaRegisterParameters()
@@ -39,7 +39,7 @@ public static class Calls
 
 	private static bool IsThisPointerRequired(FunctionImplementation current, FunctionImplementation other)
 	{
-		return !other.IsConstructor && current.IsMember && other.IsMember && current.GetTypeParent() == other.GetTypeParent();
+		return !other.IsConstructor && current.IsMember && other.IsMember && Equals(current.GetTypeParent(), other.GetTypeParent());
 	}
 	
 	/// <summary>
@@ -91,17 +91,10 @@ public static class Calls
 			foreach (var parameter in parameters)
 			{
 				var source = References.Get(unit, parameter);
-				var is_decimal = parameter.GetType() == Types.DECIMAL;
+				var is_decimal = Equals(parameter.GetType(), Types.DECIMAL);
 
 				// Determine the parameter register
-				if (is_decimal)
-				{
-					register = decimal_parameter_registers.Pop();
-				}
-				else
-				{
-					register = standard_parameter_registers.Pop();
-				}
+				register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 
 				if (register != null)
 				{
@@ -158,8 +151,6 @@ public static class Calls
 
 			// Save the parameter instructions for inspection
 			call.ParameterInstructions = instructions;
-
-			//unit.Append(new EvacuateInstruction(unit, call));
 		}
 
 		return stack_parameter_count;
@@ -187,16 +178,16 @@ public static class Calls
 		return result.ToArray();
 	}
 
-	public static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)
+	private static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)
 	{
 		var call = new CallInstruction(unit, implementation.Metadata!.GetFullname(), implementation.Convention, implementation.ReturnType);
-
+		
 		// Pass the parameters to the function and then execute it
 		var is_this_pointer_required = IsThisPointerRequired(unit.Function, implementation);
 		var stack_parameter_count = PassParameters(unit, call, implementation.Convention, self, is_this_pointer_required, CollectParameters(parameters));
-
+		
 		var result = call.Execute();
-
+		
 		// Remove the passed parameters from the stack
 		StackMemoryInstruction.Shrink(unit, stack_parameter_count * Assembler.Size.Bytes, implementation.IsResponsible).Execute();
 
@@ -206,7 +197,7 @@ public static class Calls
 	public static Result Build(Unit unit, Function function, CallingConvention convention, Type return_type, params Node[] parameters)
 	{
 		var call = new CallInstruction(unit, function.GetFullname(), convention, return_type);
-
+		
 		// Pass the parameters to the function and then execute it
 		var stack_parameter_count = PassParameters(unit, call, convention, null, false, parameters);
 

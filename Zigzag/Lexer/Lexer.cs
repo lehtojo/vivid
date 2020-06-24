@@ -312,14 +312,14 @@ public class Lexer
 			case Type.COMMENT:
 			{
 				area.End = SkipComment(text, area.Start);
-				area.Text = text.Substring(area.Start.Absolute, area.End.Absolute - area.Start.Absolute);
+				area.Text = text[area.Start.Absolute..area.End.Absolute];
 				return area;
 			}
 
 			case Type.CONTENT:
 			{
 				area.End = SkipContent(text, area.Start);
-				area.Text = text.Substring(area.Start.Absolute, area.End.Absolute - area.Start.Absolute);
+				area.Text = text[area.Start.Absolute..area.End.Absolute];
 				return area;
 			}
 
@@ -333,7 +333,7 @@ public class Lexer
 			case Type.STRING:
 			{
 				area.End = SkipString(text, area.Start);
-				area.Text = text.Substring(area.Start.Absolute, area.End.Absolute - area.Start.Absolute);
+				area.Text = text[area.Start.Absolute..area.End.Absolute];
 				return area;
 			}
 
@@ -369,7 +369,7 @@ public class Lexer
 		}
 
 		area.End = position;
-		area.Text = text.Substring(area.Start.Absolute, area.End.Absolute - area.Start.Absolute);
+		area.Text = text[area.Start.Absolute..area.End.Absolute];
 
 		return area;
 	}
@@ -403,67 +403,23 @@ public class Lexer
 	/// <returns>Area as a token</returns>
 	private static Token ParseToken(Area area, Position anchor)
 	{
-		switch (area.Type)
-		{
-			case Type.TEXT: return ParseTextToken(area.Text);
-			case Type.NUMBER: return new NumberToken(area.Text);
-			case Type.OPERATOR: return new OperatorToken(area.Text);
-			case Type.CONTENT: return new ContentToken(area.Text, anchor += area.Start);
-			case Type.END: return new Token(TokenType.END);
-			case Type.STRING: return new StringToken(area.Text);
+      return area.Type switch
+      {
+         Type.TEXT => ParseTextToken(area.Text),
+         Type.NUMBER => new NumberToken(area.Text),
+         Type.OPERATOR => new OperatorToken(area.Text),
+         Type.CONTENT => new ContentToken(area.Text, anchor += area.Start),
+         Type.END => new Token(TokenType.END),
+         Type.STRING => new StringToken(area.Text),
 
-			default: throw Errors.Get(anchor += area.Start, new Exception(string.Format("Unrecognized token '{0}'", area.Text)));
-		}
-	}
+         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format("Unrecognized token '{0}'", area.Text)))
+      };
+   }
 
-	private const int FUNCTION_LENGTH = 2;
-
-	/// <summary>
-	/// Forms function tokens from the given tokens
-	/// </summary>
-	/// <param name="tokens">Tokens to iterate</param>
-	private static void CreateFunctionCalls(List<Token> tokens)
-	{
-		if (tokens.Count < FUNCTION_LENGTH)
-		{
-			return;
-		}
-		
-		for (int i = tokens.Count - 2; i >= 0;)
-		{
-			var current = tokens[i];
-
-			if (current.Type == TokenType.IDENTIFIER)
-			{
-				var next = tokens[i + 1];
-
-				if (next.Type == TokenType.CONTENT)
-				{
-					var parameters = (ContentToken)next;
-
-					if (parameters.Type == ParenthesisType.PARENTHESIS)
-					{
-						var name = (IdentifierToken)current;
-						var function = new FunctionToken(name, parameters);
-						function.Position = name.Position;
-
-						tokens[i] = function;
-						tokens.RemoveAt(i + 1);
-
-						i -= FUNCTION_LENGTH;
-						continue;
-					}
-				}
-			}
-
-			i--;
-		}
-	}
-
-	/// <summary>
-	/// Join all sequential modifier keywords into one token
-	/// </summary>
-	public static void JoinModifiers(List<Token> tokens)
+   /// <summary>
+   /// Join all sequential modifier keywords into one token
+   /// </summary>
+   public static void JoinModifiers(List<Token> tokens)
 	{
 		if (tokens.Count == 1) return;
 

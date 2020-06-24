@@ -2,16 +2,16 @@ using System;
 
 public static class References
 {
-	public static Handle CreateConstantNumber(Unit unit, object value, Format format)
+	public static Handle CreateConstantNumber(object value)
 	{
-		return new ConstantHandle(value, format);
+		return new ConstantHandle(value);
 	}
 
 	public static Handle CreateVariableHandle(Unit unit, Result? self, Variable variable)
 	{
-		var handle = (Handle?)null;
+      Handle? handle;
 
-		switch (variable.Category)
+      switch (variable.Category)
 		{
 			case VariableCategory.PARAMETER:
 			{
@@ -81,7 +81,7 @@ public static class References
 
 	public static Result GetString(Unit unit, StringNode node)
 	{
-		return new Result(new ConstantHandle(node.GetIdentifier(unit), Assembler.Size.ToFormat()), Assembler.Size.ToFormat());
+		return new Result(new ConstantHandle(node.GetIdentifier(unit)), Assembler.Size.ToFormat());
 	}
 
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)

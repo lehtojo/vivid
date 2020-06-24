@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class FunctionList
 {
-	public List<Function> Overloads { get; private set; } = new List<Function>();
+	public List<Function> Overloads { get; } = new List<Function>();
 
 	public void Add(Function function)
 	{
@@ -27,14 +27,8 @@ public class FunctionList
 	{
 		return HashCode.Combine(Overloads);
 	}
-
-	public Function? this[int parameters]
-	{
-		get => Overloads.Find(o => o.Parameters.Count == parameters);
-	}
-
-	public FunctionImplementation? this[List<Type> parameters]
-	{
-		get => Overloads.Find(o => o.Passes(parameters))?.Get(parameters);
-	}
+	
+	public FunctionImplementation? this[List<Type> parameters] => Overloads
+		.Find(o => o.Passes(parameters))?
+		.Get(parameters);
 }

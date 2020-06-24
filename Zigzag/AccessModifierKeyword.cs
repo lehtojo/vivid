@@ -1,6 +1,6 @@
 public class AccessModifierKeyword : Keyword
 {
-	public int Modifier { get; private set; }
+	public int Modifier { get; }
 
 	public AccessModifierKeyword(string identifier, int modifier) : base(KeywordType.ACCESS_MODIFIER, identifier)
 	{

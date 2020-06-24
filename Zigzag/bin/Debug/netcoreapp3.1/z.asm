@@ -8,95 +8,140 @@ extern copy
 extern offset_copy
 extern deallocate
 
-function_basic_calculation:
-movsd xmm2, xmm0
-addsd xmm2, xmm1
-movsd xmm3, xmm0
-mulsd xmm3, xmm1
-movsd xmm1, qword [function_basic_calculation_C0]
-addsd xmm1, xmm0
-divsd xmm3, xmm1
-subsd xmm2, xmm3
-movsd xmm0, qword [function_basic_calculation_C1]
-addsd xmm2, xmm0
-movsd xmm0, xmm2
-ret
-
-function_decimal_array_test:
-sub rsp, 40
-movsd xmm3, xmm0
-addsd xmm3, xmm2
-cvtsd2si rcx, xmm3
-sal rcx, 3
-movsd qword [rsp+48], xmm0
-movsd qword [rsp+56], xmm1
-movsd qword [rsp+64], xmm2
-call allocate
-movsd xmm0, qword [rsp+56]
-movsd xmm1, xmm0
-movsd xmm2, qword [rsp+64]
-addsd xmm1, xmm2
-cvtsd2si rcx, [rsp+48]
-movsd qword [rax+rcx*8], xmm1
-movsd xmm1, qword [function_decimal_array_test_C0]
-addsd xmm0, xmm1
-cvtsd2si rcx, xmm0
-movsd xmm1, qword [rax+rcx*8]
-addsd xmm1, xmm2
-movsd xmm0, xmm1
-add rsp, 40
-ret
-
-function_call_test_end:
-cvtsi2sd xmm1, rcx
-addsd xmm1, xmm0
-cvtsi2sd xmm0, rdx
-addsd xmm1, xmm0
-movsd xmm0, xmm1
-ret
-
-function_call_test_start:
-sub rsp, 40
-movsd xmm0, qword [function_call_test_start_C0]
-cvtsi2sd xmm1, rcx
-addsd xmm0, xmm1
-mov rdx, rcx
-sal rdx, 1
-mov rcx, rcx
-call function_call_test_end
-add rsp, 40
+function_power_of_two:
+imul rcx, rcx
+mov rax, rcx
 ret
 
 function_run:
-sub rsp, 56
-movsd xmm0, qword [function_run_C0]
-movsd xmm1, qword [function_run_C1]
-call function_basic_calculation
-movsd xmm2, xmm0
-movsd xmm1, qword [function_run_C1]
-movsd xmm0, qword [function_run_C0]
-call function_decimal_array_test
-mov rcx, 7
-movsd qword [rsp+48], xmm0
-call function_call_test_start
-movsd xmm1, qword [function_run_C0]
-addsd xmm1, qword [function_run_C1]
-addsd xmm1, xmm0
-addsd xmm1, qword [rsp+48]
-subsd xmm1, xmm0
-movsd xmm0, xmm1
-add rsp, 56
+push rbx
+push rsi
+push rdi
+sub rsp, 48
+call type_apples_constructor
+mov rbx, rax
+mov rcx, 10
+call type_apples_constructor
+mov rsi, rax
+mov rcx, rbx
+mov rdx, 7
+call type_apples_function_assign_plus
+mov rcx, 2
+call function_power_of_two
+mov rdi, rax
+mov rcx, 2
+call function_power_of_two
+imul rdi, rax
+mov rcx, rsi
+mov rdx, rdi
+call type_apples_function_assign_minus
+mov rcx, rbx
+mov rdx, rsi
+call type_apples_function_plus
+mov rcx, rax
+mov rdx, 10
+call type_apples_function_assign_times
+mov rcx, 10
+call type_array_large_constructor
+mov rdi, rax
+mov rcx, rdi
+mov rdx, 1
+mov r8, [rbx]
+call type_array_large_function_set
+mov rbx, 2
+mov rcx, rdi
+mov rdx, 1
+call type_array_large_function_get
+imul rax, [rsi]
+mov rcx, rdi
+mov rdx, rbx
+mov r8, rax
+call type_array_large_function_set
+xor rax, rax
+add rsp, 48
+pop rdi
+pop rsi
+pop rbx
+ret
+
+type_apples_constructor:
+sub rsp, 40
+mov rcx, 8
+call allocate
+mov qword [rax], 1
+add rsp, 40
+ret
+
+type_apples_constructor:
+push rbx
+sub rsp, 48
+mov rdx, rcx
+mov rcx, 8
+mov rbx, rdx
+call allocate
+mov qword [rax], rbx
+add rsp, 48
+pop rbx
+ret
+
+type_apples_function_plus:
+sub rsp, 40
+mov rdx, [rcx]
+add rdx, [rdx]
+mov rcx, rdx
+call type_apples_constructor
+add rsp, 40
+ret
+
+type_apples_function_assign_plus:
+add qword [rcx], rdx
+ret
+
+type_apples_function_assign_minus:
+sub qword [rcx], rdx
+ret
+
+type_apples_function_assign_times:
+mov rax, [rcx]
+imul rax, rdx
+mov qword [rcx], rax
+ret
+
+type_array_large_constructor:
+push rbx
+push rsi
+sub rsp, 40
+mov rdx, rcx
+mov rcx, 16
+mov rbx, rdx
+mov rsi, rbx
+call allocate
+mov rbx, rax
+mov rcx, rsi
+sal rcx, 3
+call allocate
+mov qword [rbx], rax
+mov qword [rbx+8], rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+type_array_large_function_set:
+mov rax, [rcx]
+mov qword [rax+rdx*8], r8
+ret
+
+type_array_large_function_set:
+mov rax, [rcx]
+mov rdx, [rsp+16]
+mov rcx, [rsp+24]
+mov qword [rax+rdx*8], rcx
+ret
+
+type_array_large_function_get:
+mov r8, [rcx]
+mov rax, [r8+rdx*8]
 ret
 
 section .data
-
-function_basic_calculation_C0 dq 1
-function_basic_calculation_C1 dq 3.14159
-function_decimal_array_test_C0 dq 7
-function_call_test_start_C0 dq 1
-function_run_C0 dq 100
-function_run_C1 dq 700
-function_run_C1 dq 700
-function_run_C0 dq 100
-function_run_C0 dq 100
-function_run_C1 dq 700

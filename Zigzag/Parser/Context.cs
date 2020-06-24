@@ -18,17 +18,17 @@ public class Context
 	public bool IsInsideFunction => IsFunction || GetFunctionParent() != null;
 	public bool IsInsideType => IsType || GetTypeParent() != null;
 
-	public Dictionary<string, Variable> Variables { get; protected set; } = new Dictionary<string, Variable>();
-	public Dictionary<string, FunctionList> Functions { get; protected set; } = new Dictionary<string, FunctionList>();
-	public Dictionary<string, Type> Types { get; protected set; } = new Dictionary<string, Type>();
-	public Dictionary<string, Label> Labels { get; protected set; } = new Dictionary<string, Label>();
+	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
+	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
+	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
 	/// </summary>
 	public bool IsInside(Context context)
 	{
-		return context == this || (Parent?.IsInside(context) ?? false);
+		return Equals(context, this) || (Parent?.IsInside(context) ?? false);
 	}
 
 	/// <summary>
@@ -41,7 +41,7 @@ public class Context
 		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
 
 		var prefix = Prefix.ToLower();
-		prefix = string.IsNullOrEmpty(prefix) ? prefix : prefix;
+		prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
 
 		var name = Name.ToLower();
 		name = string.IsNullOrEmpty(name) ? name : '_' + name;
@@ -99,19 +99,19 @@ public class Context
 	/// </summary>
 	public void Merge(Context context)
 	{
-		foreach (var pair in context.Types)
+		foreach (var (key, value) in context.Types)
 		{
-			Types.TryAdd(pair.Key, pair.Value);
+			Types.TryAdd(key, value);
 		}
 
-		foreach (var pair in context.Functions)
+		foreach (var (key, value) in context.Functions)
 		{
-			Functions.TryAdd(pair.Key, pair.Value);
+			Functions.TryAdd(key, value);
 		}
 
-		foreach (var pair in context.Variables)
+		foreach (var (key, value) in context.Variables)
 		{
-			Variables.TryAdd(pair.Key, pair.Value);
+			Variables.TryAdd(key, value);
 		}
 
 		foreach (var type in context.Types.Values)
@@ -205,7 +205,7 @@ public class Context
 		}
 
 		// When a variable is created this way it is automatically declared into this context
-		var variable = new Variable(this, type, category, name, AccessModifier.PUBLIC);
+		Variable.Create(this, type, category, name, AccessModifier.PUBLIC);
 	}
 
 	/// <summary>
@@ -263,6 +263,11 @@ public class Context
 	public virtual bool IsTypeDeclared(string name)
 	{
 		return Types.ContainsKey(name) || (Parent != null && Parent.IsTypeDeclared(name));
+	}
+
+	public virtual bool IsTemplateTypeDeclared(string name)
+	{
+		return IsTypeDeclared(name) && GetType(name)!.IsTemplateType;
 	}
 
 	public virtual bool IsFunctionDeclared(string name)
@@ -359,12 +364,19 @@ public class Context
 		return Parent?.GetFunctionParent();
 	}
 
-	public IEnumerable<FunctionImplementation> GetImplementedFunctions()
+	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
 	{
 		return Functions.Values
 			.SelectMany(f => f.Overloads)
 			.SelectMany(f => f.Implementations)
 			.Where(i => i.Node != null);
+	}
+	
+	public virtual IEnumerable<FunctionImplementation> GetFunctionImplementations()
+	{
+		return Functions.Values
+			.SelectMany(f => f.Overloads)
+			.SelectMany(f => f.Implementations);
 	}
 
 	public void Destroy()

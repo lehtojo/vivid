@@ -28,6 +28,11 @@ public class Node
 		return (this as IType)?.GetType() ?? throw new ApplicationException($"Couldn't get type from {Enum.GetName(typeof(NodeType), GetNodeType())}");
 	}
 
+	public Type? TryGetType()
+	{
+		return (this as IType ?? throw new InvalidOperationException("Tried to get type from a node which didn't represent a typed object")).GetType();
+	}
+
 	public List<T> Select<T>(Func<Node, T> selector)
 	{
 		var result = new List<T>();

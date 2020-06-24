@@ -3,12 +3,12 @@ using System;
 
 public static class Analyzer
 {
-	public static bool IsEdited(VariableNode reference)
+	private static bool IsEdited(VariableNode reference)
 	{
 		return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION || (reference.Parent?.Is(NodeType.INCREMENT_NODE) ?? false);
 	}
 
-	public static void AnalyzeVariableUsages(Context context)
+	private static void AnalyzeVariableUsages(Context context)
 	{
 		foreach (var variable in context.Variables.Values)
 		{
@@ -41,24 +41,21 @@ public static class Analyzer
 		}
 	}
 
-	public static void ConfigureStaticVariables(Context context)
+	private static void ConfigureStaticVariables(Context context)
 	{
 		foreach (var type in context.Types.Values)
 		{
-			foreach (var variable in type.Variables.Values)
+			foreach (var variable in type.Variables.Values.Where(variable => Flag.Has(variable.Modifiers, AccessModifier.STATIC)))
 			{
-				if (Flag.Has(variable.Modifiers, AccessModifier.STATIC))
-				{   
-					// Static variables should be treated like global variables
-					variable.Category = VariableCategory.GLOBAL;
-				}
+				// Static variables should be treated like global variables
+				variable.Category = VariableCategory.GLOBAL;
 			}
-			
+
 			ConfigureStaticVariables(type);
 		}
 	}
 
-	public static void ApplyConstants(Context context)
+	private static void ApplyConstants(Context context)
 	{
 		var constants = context.Variables.Values.Where(v => v.IsConstant);
 

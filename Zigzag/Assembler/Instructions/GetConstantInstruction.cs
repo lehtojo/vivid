@@ -7,7 +7,7 @@ public class GetConstantInstruction : LoadInstruction
 		Value = value;
 		Description = $"Get a handle for constant '{value}'";
 
-		Configure(References.CreateConstantNumber(unit, value, format));
+		Configure(References.CreateConstantNumber(value));
 
 		Result.Format = format;
 	}

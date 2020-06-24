@@ -12,16 +12,16 @@ global function_constant_permanence_and_array_copy
 export function_constant_permanence_and_array_copy
 function_constant_permanence_and_array_copy:
 xor rax, rax
-xor rax, rax
-cmp rax, 10
+xor r8, r8
+cmp r8, 10
 jge function_constant_permanence_and_array_copy_L1
 function_constant_permanence_and_array_copy_L0:
-lea r8, [3+rax]
-lea r9, [3+rax]
+lea rax, [3+r8]
+lea r9, [3+r8]
 movzx r10, byte [rcx+r9]
-mov byte [rdx+r8], r10b
-add rax, 1
-cmp rax, 10
+mov byte [rdx+rax], r10b
+add r8, 1
+cmp r8, 10
 jl function_constant_permanence_and_array_copy_L0
 function_constant_permanence_and_array_copy_L1:
 ret

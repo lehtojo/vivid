@@ -7,6 +7,7 @@ public class TemplateType : Type
    private const int NAME = 0;
 
    public List<string> TemplateArgumentNames { get; private set; }
+   public int TemplateArgumentCount => TemplateArgumentNames.Count;
 
    private List<Token> Blueprint { get; set; }
    private Dictionary<string, Type> Variants { get; set; } = new Dictionary<string, Type>();

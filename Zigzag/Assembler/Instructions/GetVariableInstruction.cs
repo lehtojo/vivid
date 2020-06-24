@@ -9,7 +9,7 @@ public class GetVariableInstruction : LoadInstruction
 		Self = self;
 		Variable = variable;
 		Description = $"Get the current handle of variable '{variable.Name}' with { (mode == AccessMode.WRITE ? "write" : "read") } access";
-		Result.Format = variable.Type.Format;
+		Result.Format = variable.Type!.Format;
 
 		Configure(References.CreateVariableHandle(unit, Self, variable));
 	}
@@ -33,6 +33,11 @@ public class GetVariableInstruction : LoadInstruction
 	{
 		OnSimulate();
 		base.OnBuild();
+
+		if (Mode == AccessMode.WRITE && !Variable.IsPredictable)
+		{
+			Result.Value = Source.Value;
+		}
 	}
 	
 	public override InstructionType GetInstructionType()
