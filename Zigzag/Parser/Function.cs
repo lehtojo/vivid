@@ -18,15 +18,17 @@ public class Function : Context
 {
 	public const string THIS_POINTER_IDENTIFIER = "this";
 
-	public int Modifiers { get; private set; }
+	public int Modifiers { get; }
 
 	public List<string> Parameters { get; set; } = new List<string>();
 	public List<Token> Blueprint { get; }
+<<<<<<< HEAD
 	public List<Node> References { get; private set; } = new List<Node>();
+=======
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
-	public List<FunctionImplementation> Implementations { get; private set; } = new List<FunctionImplementation>();
+	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
-	public bool IsUsed => References.Count > 0;
 	public bool IsConstructor => this is Constructor;
 	public bool IsImported => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
 	public bool IsExported => Flag.Has(Modifiers, AccessModifier.GLOBAL);
@@ -55,7 +57,7 @@ public class Function : Context
 	/// <param name="name">Function name</param>
 	/// <param name="result">Function return type</param>
 	/// <param name="parameters">Function parameters</param>
-	public Function(int modifiers, string name, Type result, params Parameter[] parameters)
+	public Function(int modifiers, string name, Type? result, params Parameter[] parameters)
 	{
 		Modifiers = modifiers;
 		Name = name;
@@ -78,7 +80,7 @@ public class Function : Context
 	/// </summary>
 	/// <param name="types">Parameter types</param>
 	/// <returns>Function implementation</returns>
-	public FunctionImplementation Implement(List<Type> types)
+	public FunctionImplementation Implement(IEnumerable<Type> types)
 	{
 		// Pack parameters with names and types
 		var parameters = Parameters.Zip(types, (name, type) => new Parameter(name, type)).ToList();
@@ -116,7 +118,7 @@ public class Function : Context
 	/// <param name="parameter">Parameter type used in filtering</param>
 	public FunctionImplementation? Get(Type parameter)
 	{
-		return Get(new List<Type>() { parameter });
+		return Get(new List<Type> { parameter });
 	}
 
 	/// <summary>
@@ -127,16 +129,12 @@ public class Function : Context
 	{
 		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(parameters));
 
-		if (implementation != null)
+		if (implementation != null || IsImported)
 		{
 			return implementation;
 		}
-		else if (Parameters.Count != parameters.Count)
-		{
-			return null;
-		}
-
-		return Implement(parameters);
+		
+		return Parameters.Count != parameters.Count ? null : Implement(parameters);
 	}
 
 	public override string GetFullname()
@@ -154,7 +152,6 @@ public class Function : Context
 			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, function.Labels) &&
 			   Modifiers == function.Modifiers &&
 			   EqualityComparer<List<string>>.Default.Equals(Parameters, function.Parameters) &&
-			   EqualityComparer<int>.Default.Equals(References.Count, function.References.Count) &&
 			   EqualityComparer<List<FunctionImplementation>>.Default.Equals(Implementations, function.Implementations);
 	}
 
@@ -168,13 +165,7 @@ public class Function : Context
 		hash.Add(Labels);
 		hash.Add(Modifiers);
 		hash.Add(Parameters);
-		hash.Add(References.Count);
 		hash.Add(Implementations);
 		return hash.ToHashCode();
-	}
-
-	public FunctionImplementation? this[List<Type> parameters]
-	{
-		get => Get(parameters);
 	}
 }

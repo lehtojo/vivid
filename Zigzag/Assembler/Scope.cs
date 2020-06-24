@@ -369,6 +369,12 @@ public sealed class Scope : IDisposable
 
    public Result? GetCurrentVariableHandle(Variable variable)
    {
+      // Only predictable variables are allowed to be cached
+      if (!variable.IsPredictable)
+      {
+         return null;
+      }
+      
       // First check if the variable handle list already exists
       if (Variables.TryGetValue(variable, out Result? handle))
       {

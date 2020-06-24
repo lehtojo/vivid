@@ -328,7 +328,7 @@ public static class Oracle
 					{
 						var source = move.Second.Instruction;
 						
-						if (source != null && move.First.IsRegister)
+						if (source != null && move.First.IsStandardRegister)
 						{
 							TryRedirect(source, move.First.Value.To<RegisterHandle>().Register, calls);
 						}
@@ -358,7 +358,7 @@ public static class Oracle
 			}
 
 			if (calls.Any(f => result.Lifetime.IsOnlyActive(f.Position)) && 
-				(!result.IsRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
+				(!result.IsStandardRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
 			{         
 				// Get the instruction range that the redirection would affect
 				var start = instruction.GetRedirectionRoot().Position;

@@ -3,7 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <WarningsAsErrors>CS8600;CS8602;CS8603;CS8604;CA1707</WarningsAsErrors>
+    <WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
+    <NoWarn>IDE1006</NoWarn>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
@@ -29,6 +30,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.6.1" />
     <PackageReference Include="NUnit" Version="3.12.0" />

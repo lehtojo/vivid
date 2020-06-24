@@ -33,6 +33,11 @@ public class Variable
 	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 
+	public static void Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
+	{
+		new Variable(context, type, category, name, modifiers, declare);
+	}
+
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
 		Name = name;

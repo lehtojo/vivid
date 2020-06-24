@@ -23,18 +23,37 @@ public class ResolverPhase : Phase
 		{
 			builder.Append($"Global function '{implementation.GetHeader()}':\n");
 		}
+		
+		var errors = new List<Status>();
 
-		var errors = implementation.Node?.FindAll(n => n is IResolvable).Cast<IResolvable>()
-			.Select(r => r.GetStatus()).Where(s => s.IsProblematic).ToList() ?? throw new ArgumentException("Tried to take function report from function that wasn't implemented");
-
-		foreach (var variable in implementation.Variables.Values)
+		if (implementation.ReturnType?.IsUnresolved ?? false)
 		{
-			if (variable.IsUnresolved)
-			{
-				errors.Add(Status.Error($"Couldn't resolve type of local variable '{variable.Name}' in function '{implementation.Metadata!.Name}'"));
-			}
+			errors.Add(
+				Status.Error("Couldn't resolve the return type")
+			);
+		}
+
+		if (!Equals(implementation.Node, null))
+		{
+			errors.AddRange(
+				implementation.Node
+					.FindAll(n => n is IResolvable)
+					.Cast<IResolvable>()
+					.Select(r => r.GetStatus())
+					.Where(s => s.IsProblematic)
+					.ToList()
+			);
 		}
 		
+<<<<<<< HEAD
+=======
+		errors.AddRange(
+			implementation.Variables.Values
+				.Where(v => v.IsUnresolved)
+				.Select(v => Status.Error($"Couldn't resolve type of local variable '{v.Name}'"))
+		);
+		
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 		if (!errors.Any())
 		{
 			return string.Empty;
@@ -52,38 +71,30 @@ public class ResolverPhase : Phase
 	{
 		var builder = new StringBuilder();
 
-		foreach (var variable in context.Variables.Values)
+		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUsed && variable.IsUnresolved))
 		{
-			if (variable.IsUsed && variable.IsUnresolved)
+			if (variable.Context.IsType)
 			{
-				if (variable.Context.IsType)
-				{
-					var type = (Type)variable.Context;
-					builder.Append($"ERROR: Couldn't resolve type of member variable '{variable.Name}' of type '{type.Name}'");
-				}
-				else if (variable.Context.IsGlobal)
-				{
-					builder.Append($"ERROR: Couldn't resolve type of global variable '{variable.Name}'");
-				}
-				else
-				{
-					var function = variable.Context.GetFunctionParent() ?? throw new ApplicationException("Coudln't get the function");
-					builder.Append($"ERROR: Couldn't resolve type of local variable '{variable.Name}' of function '{function.GetHeader()}'");
-				}
+				var type = (Type)variable.Context;
+				builder.Append($"ERROR: Couldn't resolve type of member variable '{variable.Name}' of type '{type.Name}'");
+			}
+			else if (variable.Context.IsGlobal)
+			{
+				builder.Append($"ERROR: Couldn't resolve type of global variable '{variable.Name}'");
+			}
+			else
+			{
+				var function = variable.Context.GetFunctionParent() ?? throw new ApplicationException("Couldn't get the function");
+				builder.Append($"ERROR: Couldn't resolve type of local variable '{variable.Name}' of function '{function.GetHeader()}'");
 			}
 		}
 
-		foreach (var type in context.Types.Values)
+		foreach (var report in context.Types.Values.Select(GetReport).Where(report => report.Length > 0))
 		{
-			var report = GetReport(type); 
-   
-			if (report.Length > 0)
-			{
-				builder.Append(report).Append("\n\n");
-			}
+			builder.Append(report).Append("\n\n");
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in context.GetFunctionImplementations())
 		{
 			var report = GetFunctionReport(implementation);
 
@@ -92,7 +103,7 @@ public class ResolverPhase : Phase
 				builder.Append(report).Append("\n\n");
 			}
 		}
-
+		
 		return builder.ToString();
 	}
 
@@ -106,13 +117,12 @@ public class ResolverPhase : Phase
 		var parse = bundle.Get<Parse>("parse");
 
 		var context = parse.Context;
-		var previous = string.Empty;
 		var report = GetReport(context);
 
 		// Try to resolve as long as errors change -- errors don't always decrease since the program may expand each cycle
 		while (true)
 		{
-			previous = report;
+			var previous = report;
 
 			// Try to resolve any problems in the node tree
 			Resolver.ResolveContext(context);

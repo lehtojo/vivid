@@ -30,7 +30,7 @@ public class Context
 	/// </summary>
 	public bool IsInside(Context context)
 	{
-		return context == this || (Parent?.IsInside(context) ?? false);
+		return Equals(context, this) || (Parent?.IsInside(context) ?? false);
 	}
 
 	/// <summary>
@@ -43,8 +43,13 @@ public class Context
 		var parent = Parent?.GetFullname() ?? string.Empty;
 		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
 
+<<<<<<< HEAD
 		var prefix = Prefix.ToLowerInvariant();
 		prefix = string.IsNullOrEmpty(prefix) ? prefix : prefix;
+=======
+		var prefix = Prefix.ToLower();
+		prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 		var name = Name.ToLowerInvariant();
 		name = string.IsNullOrEmpty(name) ? name : '_' + name;
@@ -102,19 +107,19 @@ public class Context
 	/// </summary>
 	public void Merge(Context context)
 	{
-		foreach (var pair in context.Types)
+		foreach (var (key, value) in context.Types)
 		{
-			Types.TryAdd(pair.Key, pair.Value);
+			Types.TryAdd(key, value);
 		}
 
-		foreach (var pair in context.Functions)
+		foreach (var (key, value) in context.Functions)
 		{
-			Functions.TryAdd(pair.Key, pair.Value);
+			Functions.TryAdd(key, value);
 		}
 
-		foreach (var pair in context.Variables)
+		foreach (var (key, value) in context.Variables)
 		{
-			Variables.TryAdd(pair.Key, pair.Value);
+			Variables.TryAdd(key, value);
 		}
 
 		foreach (var type in context.Types.Values)
@@ -207,9 +212,15 @@ public class Context
 			throw new Exception($"Variable '{name}' already exists in this context");
 		}
 
+<<<<<<< HEAD
       // When a variable is created this way it is automatically declared into this context
       _ = new Variable(this, type, category, name, AccessModifier.PUBLIC);
    }
+=======
+		// When a variable is created this way it is automatically declared into this context
+		Variable.Create(this, type, category, name, AccessModifier.PUBLIC);
+	}
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 	/// <summary>
 	/// Declares a label into the context
@@ -266,6 +277,11 @@ public class Context
 	public virtual bool IsTypeDeclared(string name)
 	{
 		return Types.ContainsKey(name) || (Parent != null && Parent.IsTypeDeclared(name));
+	}
+
+	public virtual bool IsTemplateTypeDeclared(string name)
+	{
+		return IsTypeDeclared(name) && GetType(name)!.IsTemplateType;
 	}
 
 	public virtual bool IsFunctionDeclared(string name)
@@ -362,12 +378,19 @@ public class Context
 		return Parent?.GetFunctionParent();
 	}
 
-	public IEnumerable<FunctionImplementation> GetImplementedFunctions()
+	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
 	{
 		return Functions.Values
 			.SelectMany(f => f.Overloads)
 			.SelectMany(f => f.Implementations)
 			.Where(i => i.Node != null);
+	}
+	
+	public virtual IEnumerable<FunctionImplementation> GetFunctionImplementations()
+	{
+		return Functions.Values
+			.SelectMany(f => f.Overloads)
+			.SelectMany(f => f.Implementations);
 	}
 
 	public void Destroy()

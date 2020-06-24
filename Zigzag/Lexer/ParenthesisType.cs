@@ -7,7 +7,11 @@ public class ParenthesisType
 	public static readonly ParenthesisType BRACKETS = new ParenthesisType('[', ']');
 	public static readonly ParenthesisType CURLY_BRACKETS = new ParenthesisType('{', '}');
 
+<<<<<<< HEAD
 	private static Dictionary<char, ParenthesisType> Map { get; } = new Dictionary<char, ParenthesisType>();
+=======
+	private static readonly Dictionary<char, ParenthesisType> Map = new Dictionary<char, ParenthesisType>();
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 	static ParenthesisType()
 	{

@@ -52,7 +52,7 @@ public class MoveInstruction : DualParameterInstruction
 
 	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format) 
 	{
-		IsFutureUsageAnalyzed = false;
+		IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
 	}
 
 	private void UpdateResultFormat()
@@ -68,9 +68,13 @@ public class MoveInstruction : DualParameterInstruction
 	private void OnBuildDecimalConversion(int flags_first, int flags_second)
 	{
 		var is_destination_media_register = First.IsMediaRegister;
-		var is_destination_register = First.IsRegister;
+		var is_destination_register = First.IsStandardRegister;
 		var is_destination_memory_address = First.IsMemoryAddress;
 		var is_source_constant = Second.IsConstant;
+<<<<<<< HEAD
+=======
+
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
       string? instruction;
 		
       if (is_destination_media_register)
@@ -118,11 +122,6 @@ public class MoveInstruction : DualParameterInstruction
 			}
 			else
 			{
-				/*if (Type == MoveType.RELOCATE)
-				{
-					throw new ApplicationException("Warning: Relocating and converting type at the same time");
-				}*/
-
 				instruction = Assembler.IsTargetX86 ? CONVERT_INTEGER_TO_SINGLE_PRECISION : CONVERT_INTEGER_TO_DOUBLE_PRECISION;
 
 				Build(
@@ -327,21 +326,39 @@ public class MoveInstruction : DualParameterInstruction
 				Second.Value = new ConstantDataSectionHandle(Second.Value.To<ConstantHandle>());
 			}
 
-			Build(
-				instruction,
-				new InstructionParameter(
-					First,
-					flags_first,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
-				),
-				new InstructionParameter(
-					Second,
-					flags_second,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
-				)
-			);
+			if (First.IsMemoryAddress)
+			{
+				Build(
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEMORY
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEDIA_REGISTER
+					)
+				);
+			}
+			else
+			{
+				Build(
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEDIA_REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEDIA_REGISTER,
+						HandleType.MEMORY
+					)
+				);
+			}
 		}
 	}
 
@@ -352,7 +369,7 @@ public class MoveInstruction : DualParameterInstruction
 		// Move shouldn't happen if the source is the same as the destination
 		if (IsRedundant) return;
 
-		if (IsSafe && First.IsRegister)
+		if (IsSafe && First.IsAnyRegister)
 		{
 			Memory.ClearRegister(Unit, First.Value.To<RegisterHandle>().Register);
 		}
@@ -391,7 +408,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (First.IsRegister && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
+		if (First.IsStandardRegister && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
 		{
 			// Example: xor rax, rax
 			Build(

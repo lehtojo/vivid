@@ -18,7 +18,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		return null;
 	}
 
-	public Node? Resolve(Context environment)
+	public override Node? Resolve(Context environment)
 	{
 		if (Left is IResolvable a)
 		{
@@ -42,7 +42,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 
 			Node? resolved;
 
-			if (Right.GetNodeType() == NodeType.UNRESOLVED_FUNCTION)
+			if (Right.Is(NodeType.UNRESOLVED_FUNCTION))
 			{
 				var function = (UnresolvedFunction)Right;
 				resolved = function.Solve(environment, context);
@@ -72,7 +72,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		return NodeType.LINK_NODE;
 	}
 
-	public Status GetStatus()
+	public override Status GetStatus()
 	{
 		return Status.OK;
 	}

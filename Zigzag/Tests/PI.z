@@ -59,19 +59,8 @@ pidigits(digits) {
 	=> result
 }
 
-import ExitProcess(code: normal)
-
-#import GetStdHandle(t: normal): link
-#import WriteFile(handle: link, text: link, length: normal, read: link, overlapped: link)
-
 run() {
 	pi = pidigits(3141)
 	print(pi)
-
-	#read = normal[1]
-
-	#handle: link = GetStdHandle(0 - 11)
-	#WriteFile(handle, 'Yeet', 4, read as link, 0 as link)
-
-	ExitProcess(0)
+	=> 0
 }

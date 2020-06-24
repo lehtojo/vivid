@@ -14,20 +14,29 @@ public static class Translator
 		return unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
 	}
 
-	private static IEnumerable<Variable> GetAllSavedLocalVariables(Unit unit)
+	private static List<Variable> GetAllSavedLocalVariables(Unit unit)
 	{
-		return GetAllHandles(unit).Where(h => h is VariableMemoryHandle v && v.Variable.IsLocal)
-					.Select(h => h.To<VariableMemoryHandle>().Variable).Distinct();
+		return GetAllHandles(unit)
+			.Where(h => h is VariableMemoryHandle v && v.Variable.IsLocal)
+			.Select(h => h.To<VariableMemoryHandle>().Variable)
+			.Distinct()
+			.ToList();
 	}
 
-	private static IEnumerable<TemporaryMemoryHandle> GetAllTemporaryMemoryHandles(Unit unit)
+	private static List<TemporaryMemoryHandle> GetAllTemporaryMemoryHandles(Unit unit)
 	{
-		return GetAllHandles(unit).Where(h => h is TemporaryMemoryHandle).Select(h => h.To<TemporaryMemoryHandle>());
+		return GetAllHandles(unit)
+			.Where(h => h is TemporaryMemoryHandle)
+			.Select(h => h.To<TemporaryMemoryHandle>())
+			.ToList();
 	}
 
-	private static IEnumerable<ConstantDataSectionHandle> GetAllConstantDataSectionHandles(Unit unit)
+	private static List<ConstantDataSectionHandle> GetAllConstantDataSectionHandles(Unit unit)
 	{
-		return GetAllHandles(unit).Where(h => h is ConstantDataSectionHandle).Select(h => h.To<ConstantDataSectionHandle>());
+		return GetAllHandles(unit)
+			.Where(h => h is ConstantDataSectionHandle)
+			.Select(h => h.To<ConstantDataSectionHandle>())
+			.ToList();
 	}
 
 	private static void AllocateConstantDataHandles(Unit unit, List<ConstantDataSectionHandle> constant_data_section_handles)
@@ -63,11 +72,10 @@ public static class Translator
 
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
-			if (i is InitializeInstruction instruction)
-			{
-				instruction.Build(registers, required_local_memory);
-				local_memory_top = instruction.LocalMemoryTop;
-			}
+			if (!(i is InitializeInstruction instruction)) return;
+			
+			instruction.Build(registers, required_local_memory);
+			local_memory_top = instruction.LocalMemoryTop;
 		});
 
 		registers.Reverse();
@@ -111,6 +119,9 @@ public static class Translator
 		}
 
 		Console.WriteLine("\n");
+		
+		// Remove duplicates
+		constants = constants.Distinct().ToList();
 
 		return unit.Export();
 	}

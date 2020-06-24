@@ -55,10 +55,13 @@ public class EvacuateInstruction : Instruction
 		// Save all important values inside media registers by releasing them to memory
 		Unit.MediaRegisters.ForEach(source =>
 		{
-			if (!source.IsAvailable(Perspective.Position))
+			// Skip values which aren't needed after the call instruction
+			if (source.IsAvailable(Perspective.Position)) 
 			{
-				Unit.Release(source);
+				return;
 			}
+			
+			Unit.Release(source);
 		});
 	}
 

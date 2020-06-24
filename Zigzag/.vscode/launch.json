@@ -30,7 +30,7 @@
 			//"args": [ "${workspaceFolder}/Examples/ArrayAllocation.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Redirections.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/memcpy.z", "--asm", "--time", "-st" ],
-			"args": [ "${workspaceFolder}/Examples/DecimalArithmetics.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/DecimalArithmetics.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/PrimeNumbers.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/PI.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st", "--debug" ],
 			//"args": [ "${workspaceFolder}/Examples/Cube.z", "--asm", "--time", "-l", "glfw3.lib", "-l", "OpenGL32.lib", "-l", "vcruntime.lib", "-l", "gdi32.lib", "-l", "ucrt.lib", "-l", "shell32.lib" ],
@@ -39,10 +39,15 @@
 			//"args": [ "${workspaceFolder}/Examples/DoubleRelocationBugTest.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Lists.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "${workspaceFolder}/libz/List.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/NN.z", "--asm", "--time", "-st" ],
+			"args": [ "${workspaceFolder}/Examples/OperatorOverload.z", "--asm", "--time", "-st" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"stopAtEntry": false
+			"stopAtEntry": false,
+			"logging": {
+				"moduleLoad": false
+		  	}
 		}
 	]
 }

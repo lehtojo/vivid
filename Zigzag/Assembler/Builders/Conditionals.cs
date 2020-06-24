@@ -7,15 +7,15 @@ public static class Conditionals
    /// <summary>
    /// Builds the body of an if-statement or an else-if-statement
    /// </summary>
-   public static Result BuildBody(Unit unit, Context local_context, Node body)
+   private static Result BuildBody(Unit unit, Context local_context, Node body)
    {
       var active_variables = Scope.GetAllActiveVariablesForScope(unit, body, local_context.Parent!, local_context);
 
       var state = unit.GetState(unit.Position);
-      var result = (Result?)null;
+      Result? result;
 
       // Since this is a body of some statement is also has a scope
-      using (var scope = new Scope(unit, active_variables))
+      using (new Scope(unit, active_variables))
       {
          // Merges all changes that happen in the scope with the outer scope
          var merge = new MergeScopeInstruction(unit);
@@ -37,12 +37,6 @@ public static class Conditionals
    /// </summary>
    private static Result Build(Unit unit, IfNode node, Node condition, LabelInstruction end)
    {
-      //var left = References.Get(unit, condition.Left);
-      //var right = References.Get(unit, condition.Right);
-
-      // Compare the two operands
-      //var comparison = new CompareInstruction(unit, left, right).Execute();
-
       // Set the next label to be the end label if there's no successor since then there wont be any other comparisons
       var interphase = node.Successor == null ? end.Label : unit.GetNextLabel();
 
@@ -61,41 +55,38 @@ public static class Conditionals
       unit.Append(new RestoreStateInstruction(unit, recovery));
 
       // If the if-statement body is executed it must skip the potential successors
-      if (node.Successor != null)
-      {
-         // Skip the next successor from this if-statement's body and add the interphase label
-         unit.Append(new JumpInstruction(unit, end.Label));
-         unit.Append(new LabelInstruction(unit, interphase));
+      if (node.Successor == null) return result;
+      
+      // Skip the next successor from this if-statement's body and add the interphase label
+      unit.Append(new JumpInstruction(unit, end.Label));
+      unit.Append(new LabelInstruction(unit, interphase));
 
-         // Build the successor
-         return Conditionals.Build(unit, node.Successor, end);
-      }
+      // Build the successor
+      return Build(unit, node.Successor, end);
 
-      return result;
    }
 
    private static Result Build(Unit unit, Node node, LabelInstruction end)
    {
-      if (node is IfNode if_node)
+      switch (node)
       {
-         return Build(unit, if_node, if_node.Condition, end);
-      }
-      else if (node is ElseNode else_node)
-      {
-         // Get the current state of the unit for later recovery
-         var recovery = new SaveStateInstruction(unit);
-         unit.Append(recovery);
+         case IfNode if_node:
+            return Build(unit, if_node, if_node.Condition, end);
+         case ElseNode else_node:
+         {
+            // Get the current state of the unit for later recovery
+            var recovery = new SaveStateInstruction(unit);
+            unit.Append(recovery);
 
-         var result = BuildBody(unit, else_node.Context, node);
+            var result = BuildBody(unit, else_node.Context, node);
 
-         // Recover the previous state
-         unit.Append(new RestoreStateInstruction(unit, recovery));
+            // Recover the previous state
+            unit.Append(new RestoreStateInstruction(unit, recovery));
 
-         return result;
-      }
-      else
-      {
-         throw new ApplicationException("Successor of an if-statement wasn't an else-if-statement or an else-statement");
+            return result;
+         }
+         default:
+            throw new ApplicationException("Successor of an if-statement wasn't an else-if-statement or an else-statement");
       }
    }
 
@@ -119,7 +110,7 @@ public static class Conditionals
       var instructions = BuildCondition(unit, condition, success, failure);
       instructions.Add(new LabelInstruction(unit, success));
 
-      // Remove all occurances of the following pattern from the instructions:
+      // Remove all occurrences of the following pattern from the instructions:
       // jmp [Label]
       // [Label]:
       for (var i = instructions.Count - 2; i >= 0; i--)
@@ -129,7 +120,7 @@ public static class Conditionals
             var jump = instructions[i].To<JumpInstruction>();
             var label = instructions[i + 1].To<LabelInstruction>();
 
-            if (!jump.IsConditional && jump.Label == label.Label)
+            if (!jump.IsConditional && Equals(jump.Label, label.Label))
             {
                instructions.RemoveAt(i);
             }
@@ -149,14 +140,14 @@ public static class Conditionals
             instructions[i + 1].Is(InstructionType.JUMP) &&
             instructions[i + 2].Is(InstructionType.LABEL))
          {
-            var conditonal_jump = instructions[i].To<JumpInstruction>();
+            var conditional_jump = instructions[i].To<JumpInstruction>();
             var jump = instructions[i + 1].To<JumpInstruction>();
             var label = instructions[i + 2].To<LabelInstruction>();
 
-            if (conditonal_jump.IsConditional && !jump.IsConditional && conditonal_jump.Label == label.Label && jump.Label != label.Label)
+            if (conditional_jump.IsConditional && !jump.IsConditional && Equals(conditional_jump.Label, label.Label) && !Equals(jump.Label, label.Label))
             {
-               conditonal_jump.Invert();
-               conditonal_jump.Label = jump.Label;
+               conditional_jump.Invert();
+               conditional_jump.Label = jump.Label;
 
                instructions.RemoveAt(i + 1);
             }
@@ -193,12 +184,12 @@ public static class Conditionals
 
    private class PseudoCompareInstruction : PseudoInstruction
    {
-		public Node Comparison { get; private set; }
-      public Node Left => Comparison.First!;
-      public Node Right => Comparison.Last!;
-      public ComparisonOperator Operator { get; private set; }
-      public Label Success { get; private set; }
-      public Label Failure { get; private set; }
+      private Node Comparison { get; }
+      private Node Left => Comparison.First!;
+      private Node Right => Comparison.Last!;
+      private ComparisonOperator Operator { get; }
+      private Label Success { get; }
+      private Label Failure { get; }
 
       public PseudoCompareInstruction(Unit unit, Node comparison, ComparisonOperator operation, Label success, Label failure) : base(unit)
       {
@@ -219,7 +210,7 @@ public static class Conditionals
          var state = Unit.GetState(Unit.Position);
 
          // Since this is a body of some statement is also has a scope
-         using (var scope = new Scope(Unit, active_variables))
+         using (new Scope(Unit, active_variables))
          {
             // Merges all changes that happen in the scope with the outer scope
             var merge = new MergeScopeInstruction(Unit);
@@ -253,32 +244,26 @@ public static class Conditionals
       {
          var operation = condition.To<OperatorNode>();
 
-         if (operation.Operator.Type == OperatorType.LOGIC)
+         return operation.Operator.Type switch
          {
-            return BuildLogicalCondition(unit, operation, success, failure);
-         }
-         else if (operation.Operator.Type == OperatorType.COMPARISON)
-         {
-            return BuildComparison(unit, operation, success, failure);
-         }
-         else
-         {
-            throw new ApplicationException("Unsupported operator encountered while building a conditional statement");
-         }
+            OperatorType.LOGIC => BuildLogicalCondition(unit, operation, success, failure),
+            OperatorType.COMPARISON => BuildComparison(unit, operation, success, failure),
+            _ => throw new ApplicationException(
+               "Unsupported operator encountered while building a conditional statement")
+         };
       }
-      else if (condition.Is(NodeType.CONTENT_NODE))
+      
+      if (condition.Is(NodeType.CONTENT_NODE))
       {
          return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
       }
-      else
-      {
-         throw new ApplicationException("Comparing to zero in conditional statements is not yet automatic");
-      }
+      
+      throw new ApplicationException("Comparing to zero in conditional statements is not yet automatic");
    }
 
    private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)
    {
-      return new List<Instruction>()
+      return new List<Instruction>
       {
          new PseudoCompareInstruction
          (
@@ -298,13 +283,13 @@ public static class Conditionals
       var instructions = new List<Instruction>();
       var interphase = unit.GetNextLabel();
 
-      if (condition.Operator == Operators.AND)
+      if (Equals(condition.Operator, Operators.AND))
       {
          instructions.AddRange(BuildCondition(unit, condition.Left, interphase, failure));
          instructions.Add(new LabelInstruction(unit, interphase));
          instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
       }
-      else if (condition.Operator == Operators.OR)
+      else if (Equals(condition.Operator, Operators.OR))
       {
          instructions.AddRange(BuildCondition(unit, condition.Left, success, interphase));
          instructions.Add(new LabelInstruction(unit, interphase));

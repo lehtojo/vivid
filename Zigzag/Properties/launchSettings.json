@@ -2,7 +2,7 @@
   "profiles": {
     "Zigzag": {
       "commandName": "Project",
-      "commandLineArgs": "C:/Users/joona/Documents/Zigzag/Zigzag/Examples/DecimalArithmetics.z --asm --time -st"
+      "commandLineArgs": "C:\\Users\\Lehto\\Documents\\Intuitive\\Zigzag\\Examples\\OperatorOverload.z --asm --time -st"
     }
   }
 }

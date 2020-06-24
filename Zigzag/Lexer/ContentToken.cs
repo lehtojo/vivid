@@ -26,7 +26,7 @@ public class ContentToken : Token
 		var indices = new Stack<int>();
 		indices.Push(tokens.Count);
 
-		for (int i = tokens.Count - 1; i >= 0; i--)
+		for (var i = tokens.Count - 1; i >= 0; i--)
 		{
 			var token = tokens[i];
 

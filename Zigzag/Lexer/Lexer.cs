@@ -406,6 +406,7 @@ public static class Lexer
 	{
       return area.Type switch
       {
+<<<<<<< HEAD
          AreaType.TEXT => ParseTextToken(area.Text),
          AreaType.NUMBER => new NumberToken(area.Text),
          AreaType.OPERATOR => new OperatorToken(area.Text),
@@ -466,6 +467,23 @@ public static class Lexer
 	/// Join all sequential modifier keywords into one token
 	/// </summary>
 	public static void JoinModifiers(List<Token> tokens)
+=======
+         Type.TEXT => ParseTextToken(area.Text),
+         Type.NUMBER => new NumberToken(area.Text),
+         Type.OPERATOR => new OperatorToken(area.Text),
+         Type.CONTENT => new ContentToken(area.Text, anchor += area.Start),
+         Type.END => new Token(TokenType.END),
+         Type.STRING => new StringToken(area.Text),
+
+         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format("Unrecognized token '{0}'", area.Text)))
+      };
+   }
+
+   /// <summary>
+   /// Join all sequential modifier keywords into one token
+   /// </summary>
+   public static void JoinModifiers(List<Token> tokens)
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	{
 		if (tokens.Count == 1) return;
 

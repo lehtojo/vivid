@@ -228,7 +228,11 @@ public abstract class Instruction
 
 		locks.ForEach(l => ((IDisposable)l).Dispose());
 
+<<<<<<< HEAD
 		return string.Format(CultureInfo.InvariantCulture, format, handles.ToArray());
+=======
+		return string.Format(format, handles.ToArray());
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	}
 
 	/// <summary>

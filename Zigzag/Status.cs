@@ -4,11 +4,11 @@ public class Status
 {
 	public static readonly Status OK = new Status("OK", false);
 
-	public string Description { get; set; }
+	public string Description { get; }
 
 	public bool IsProblematic { get; private set; }
 
-	public Status(string description, bool problematic)
+	private Status(string description, bool problematic)
 	{
 		Description = description;
 		IsProblematic = problematic;

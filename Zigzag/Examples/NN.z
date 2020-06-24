@@ -1,5 +1,10 @@
 error = 0
 ok = 1
+none = 0
+
+random() {
+    => 0.5
+}
 
 Array { T } {
    private data: T
@@ -30,7 +35,8 @@ Node {
 
    connect(layer: Layer) {
       connections = Array(Connection, layer.size)
-
+        
+      i = 0
       loop (i = 0, i < layer.size, ++i) {
          connection = Connection(layer.at(i))
          connections.set(i, connection)
@@ -38,8 +44,9 @@ Node {
    }
 
    signal() {
+      i = 0
       loop (i = 0, i < connections.count, ++i) {
-         connections[i].send(value)
+         connections.at(i).send(value)
       }
    }
 }
@@ -54,7 +61,7 @@ Connection {
    }
 
    send(value: decimal) {
-      receiver.value += value * weight
+      receiver.value = receiver.value + value * weight
    }
 }
 
@@ -68,13 +75,15 @@ Layer {
    }
 
    connect(other: Layer) {
+      i = 0
       loop (i = 0, i < size, ++i) {
          nodes.at(i).connect(other)
       }
    }
 
    signal() {
-      loop (i = 0, i < node.size, ++i) {
+      i = 0
+      loop (i = 0, i < nodes.count, ++i) {
          nodes.at(i).signal()
       }
    }
@@ -92,14 +101,15 @@ Network {
 
       # Create the layers
       layers.set(0, Layer(inputs))
-
+        
+      i = 0
       loop (i = 0, i < hidden_layer_count, ++i) {
          layers.set(i + 1, Layer(hidden_layer_size))
       }
 
       layers.set(hidden_layer_count + 1, Layer(outputs))
 
-      loop (i = 0, i < layers.size - 1, ++i) {
+      loop (i = 0, i < layers.count - 1, ++i) {
          # Connect the current layer to the next one
          layers.at(i).connect(layers.at(i + 1))
       }
@@ -111,12 +121,13 @@ Network {
       }
 
       first = layers.at(0)
+      i = 0
 
       loop (i = 0, i < first.size, ++i) {
          first.at(i).value = input.at(i)
       }
 
-      loop (i = 0, i < layers.size, ++i) {
+      loop (i = 0, i < layers.count, ++i) {
          layers.at(i).signal()
       }
 
@@ -126,6 +137,15 @@ Network {
 
 run() {
    network = Network(10, 16, 16, 4)
-   network.process({ 1, 0, 1, 0, 0, 1 })
+
+   input = Array(decimal, 6)
+   input.set(0, 1.0)
+   input.set(1, 0.0)
+   input.set(2, 1.0)
+   input.set(3, 0.0)
+   input.set(4, 0.0)
+   input.set(5, 1.0)
+
+   network.process(input)
 }
 

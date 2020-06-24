@@ -49,16 +49,21 @@ public class Result
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
+<<<<<<< HEAD
 	private List<Connection> Connections { get; } = new List<Connection>();
+=======
+	private List<Connection> Connections { get; set; } = new List<Connection>();
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
 	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 
 	public bool IsCalculation => _Value.Type == HandleType.CALCULATION;
 	public bool IsConstant => _Value.Type == HandleType.CONSTANT;
+	public bool IsStandardRegister => _Value.Type == HandleType.REGISTER;
 	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;
+	public bool IsAnyRegister => _Value.Type == HandleType.REGISTER || _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
-	public bool IsRegister => _Value.Type == HandleType.REGISTER;
 
 	public bool IsReleasable()
 	{

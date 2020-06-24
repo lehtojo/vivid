@@ -6,22 +6,18 @@ public static class Links
 	{
 		var start = References.Get(unit, node.Object);
 
-		if (node.Member is VariableNode member)
+		return node.Member switch
 		{
-			if (member.Variable.Category == VariableCategory.GLOBAL)
-			{
-				return References.GetVariable(unit, member.Variable, AccessMode.READ);
-			}
-
-			return new GetObjectPointerInstruction(unit, member.Variable, start, member.Variable.Alignment ?? throw new ApplicationException("Member variable wasn't aligned")).Execute();
-		}
-		else if (node.Member is FunctionNode function)
-		{
-			return Calls.Build(unit, start, function);
-		}
-		else
-		{
-			throw new NotImplementedException("Unsupported member node");
-		}
+			VariableNode member when member.Variable.Category == VariableCategory.GLOBAL => References.GetVariable(unit,
+				member.Variable, AccessMode.READ),
+			
+			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, start,
+					member.Variable.Alignment ?? throw new ApplicationException("Member variable wasn't aligned"))
+				.Execute(),
+			
+			FunctionNode function => Calls.Build(unit, start, function),
+			
+			_ => throw new NotImplementedException("Unsupported member node")
+		};
 	}
 }

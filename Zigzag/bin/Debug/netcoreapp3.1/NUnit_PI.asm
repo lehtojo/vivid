@@ -7,7 +7,6 @@ extern sys_read
 extern copy
 extern offset_copy
 extern deallocate
-extern ExitProcess
 
 function_pidigits:
 push rbx
@@ -168,8 +167,7 @@ mov rcx, 3141
 call function_pidigits
 mov rcx, rax
 call function_print
-xor rcx, rcx
-call ExitProcess
+xor rax, rax
 add rsp, 40
 ret
 

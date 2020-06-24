@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 public class CallInstruction : Instruction
 {
-   public string Function { get; private set; }
-   public CallingConvention Convention { get; private set; }
+   public string Function { get; }
+   public CallingConvention Convention { get; }
    public List<Instruction> ParameterInstructions { get; set; } = new List<Instruction>();
-   public bool IsParameterInstructionListExtracted => IsBuilt;
+   private bool IsParameterInstructionListExtracted => IsBuilt;
 
    public CallInstruction(Unit unit, string function, CallingConvention convention, Type? return_type) : base(unit)
    {
@@ -66,6 +66,7 @@ public class CallInstruction : Instruction
             Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
          }
 
+<<<<<<< HEAD
          var move = new MoveInstruction(Unit, Result, new Result(source, Result.Format))
          {
 
@@ -73,8 +74,15 @@ public class CallInstruction : Instruction
             Type = MoveType.LOAD
          };
 
+=======
+>>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
          // The result is predefined so the value from the source handle must be moved to the predefined result
-         Unit.Append(move, true);
+         Unit.Append(new MoveInstruction(Unit, Result, new Result(source, Result.Format))
+         {
+            // Configure the move so that this instruction's result is attached to the destination
+            Type = MoveType.LOAD
+
+         }, true);
       }
    }
 
@@ -99,6 +107,6 @@ public class CallInstruction : Instruction
               .Concat(new Result[] { Result }).ToArray();
       }
 
-      return new Result[] { Result };
+      return new [] { Result };
    }
 }

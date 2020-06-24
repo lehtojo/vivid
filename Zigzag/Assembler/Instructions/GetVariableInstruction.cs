@@ -33,6 +33,11 @@ public class GetVariableInstruction : LoadInstruction
 	{
 		OnSimulate();
 		base.OnBuild();
+
+		if (Mode == AccessMode.WRITE && !Variable.IsPredictable)
+		{
+			Result.Value = Source.Value;
+		}
 	}
 	
 	public override InstructionType GetInstructionType()

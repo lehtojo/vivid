@@ -1,3 +1,5 @@
+none = 0
+
 B {
 	dummy
 
@@ -10,18 +12,16 @@ B {
 A {
 	other
 
-	A(b) {
+	init(b) {
 		other = b
 	}
 }
 
 f(primary) {
-	if primary != 0 {
-		if primary.other != 0 {
-			primary.other.dummy += 2
-			primary.other.dummy -= 2
-			=> primary.other.sum(1, 2)
-		}
+	if primary != none and primary.other != none {
+		primary.other.dummy += 2
+        primary.other.dummy -= 2
+        => primary.other.sum(1, 2)
 	}
 	
 	=> 0

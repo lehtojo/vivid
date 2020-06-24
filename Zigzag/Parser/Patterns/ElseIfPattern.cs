@@ -39,7 +39,7 @@ public class ElseIfPattern : Pattern
 		}
 
 		var condition = tokens[CONDITION].To<DynamicToken>();
-		return condition.Node is IType type && type.GetType() == Types.BOOL;
+		return condition.Node is IType type && Equals(type.GetType(), Types.BOOL);
 	}
 
 	public override Node? Build(Context environment, List<Token> tokens)

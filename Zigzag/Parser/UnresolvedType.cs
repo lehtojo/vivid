@@ -26,6 +26,11 @@ public class UnresolvedType : Type, IResolvable
 		return null;
 	}
 
+	public Type? TryResolveType(Context context)
+	{
+		return Resolve(context)?.GetType();
+	}
+
 	public Status GetStatus()
 	{
 		return Resolvable.GetStatus();
