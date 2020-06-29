@@ -17,7 +17,12 @@ public static class Constructors
 		var allocation = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, (long)type.ContentSize));
 		allocation.Metadata.Attach(new VariableAttribute(unit.Self));
 
-		//unit.Cache(unit.Self, allocation, true);
 		unit.Append(new SetVariableInstruction(unit, unit.Self, allocation));
+	}
+
+	public static void CreateFooter(Unit unit, Type type)
+	{
+		var self = References.GetVariable(unit, unit.Self!, AccessMode.READ);
+		unit.Append(new ReturnInstruction(unit, self, type));
 	}
 }

@@ -12,7 +12,7 @@ public static class Assembler
     public static Function? AllocationFunction { get; private set; }
     public static Size Size { get; set; } = Size.QWORD;
     public static Format Format => Size.ToFormat();
-    public static OSPlatform Target { get; } = OSPlatform.Windows;
+    public static OSPlatform Target { get; set; } = OSPlatform.Windows;
     public static bool IsTargetWindows => Target == OSPlatform.Windows;
     public static bool IsTargetLinux => Target == OSPlatform.Linux;
     public static bool IsTargetX86 => Size.Bits == 32;
@@ -88,14 +88,19 @@ public static class Assembler
 
                 unit.Append(new RequireVariablesInstruction(unit, variables));
 
-                if (function is Constructor constructor)
+                if (function is Constructor a)
                 {
-                    Constructors.CreateHeader(unit,
-                        constructor.GetTypeParent() ??
+                    Constructors.CreateHeader(unit, a.GetTypeParent() ??
                         throw new ApplicationException("Couldn't get constructor owner type"));
                 }
 
                 Builders.Build(unit, implementation.Node!);
+
+                if (function is Constructor b)
+                {
+                    Constructors.CreateFooter(unit, b.GetTypeParent() ??
+                        throw new ApplicationException("Couldn't get constructor owner type"));
+                }
             });
 
             // Sprinkle a little intelligence into the output code
