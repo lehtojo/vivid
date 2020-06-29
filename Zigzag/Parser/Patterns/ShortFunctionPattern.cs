@@ -2,7 +2,7 @@
 
 public class ShortFunctionPattern : Pattern
 {
-	public const int PRIORITY = 20;
+	public const int PRIORITY = 21;
 
 	public const int HEADER = 0;
 	public const int OPERATOR = 2;

@@ -40,6 +40,7 @@
 			//"args": [ "${workspaceFolder}/Examples/Lists.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "${workspaceFolder}/libz/List.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/NN.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Test.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st" ],
 			"args": [ "${workspaceFolder}/Examples/OperatorOverload.z", "--asm", "--time", "-st" ],
 
 			"cwd": "${workspaceFolder}",
