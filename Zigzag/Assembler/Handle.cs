@@ -128,6 +128,32 @@ public class DataSectionHandle : Handle
 public class ConstantHandle : Handle
 {
 	public object Value { get; private set; }
+	public int Bits => GetBits();
+
+	private int GetBits()
+	{
+		if (Value is double)
+		{
+			return Assembler.Size.Bits;
+		}
+
+		var value = Math.Abs((long)Value);
+
+		if (value > int.MaxValue)
+		{
+			return 64;
+		}
+		else if (value > short.MaxValue)
+		{
+			return 32;
+		}
+		else if (value > byte.MaxValue)
+		{
+			return 16;
+		}
+		
+		return 8;
+	}
 
 	public ConstantHandle(object value) : base(HandleType.CONSTANT)
 	{
@@ -135,7 +161,6 @@ public class ConstantHandle : Handle
 	}
 
 	public void Convert(Format format)
-<<<<<<< HEAD
 	{
       Value = format switch
       {
@@ -148,20 +173,6 @@ public class ConstantHandle : Handle
          Format.UINT16 => System.Convert.ToUInt16(Value, CultureInfo.InvariantCulture),
          Format.UINT32 => System.Convert.ToUInt32(Value, CultureInfo.InvariantCulture),
          Format.UINT64 => System.Convert.ToUInt64(Value, CultureInfo.InvariantCulture),
-=======
-   {
-      Value = format switch
-      {
-         Format.DECIMAL => System.Convert.ToDouble(Value),
-         Format.INT8 => System.Convert.ToSByte(Value),
-         Format.INT16 => System.Convert.ToInt16(Value),
-         Format.INT32 => System.Convert.ToInt32(Value),
-         Format.INT64 => System.Convert.ToInt64(Value),
-         Format.UINT8 => System.Convert.ToByte(Value),
-         Format.UINT16 => System.Convert.ToUInt16(Value),
-         Format.UINT32 => System.Convert.ToUInt32(Value),
-         Format.UINT64 => System.Convert.ToUInt64(Value),
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
          _ => throw new ApplicationException("Unsupported format encountered while converting a handle"),
       };
    }

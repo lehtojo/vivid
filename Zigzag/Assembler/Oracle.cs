@@ -351,6 +351,22 @@ public static class Oracle
 		{
 			var result = instruction.Result;
 
+			Result? dependency;
+
+			try
+			{
+				dependency = instruction.GetDestinationDependency();
+			}
+			catch
+         {
+				dependency = null;
+			}
+
+			if (dependency != null && !dependency.IsEmpty)
+			{
+				result.Value = dependency.Value;
+			}
+
 			// Decimal values should not be redirected since they are usually in media registers
 			if (result.Format.IsDecimal())
 			{

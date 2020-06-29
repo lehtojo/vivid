@@ -12,7 +12,8 @@ public class DuplicateInstruction : DualParameterInstruction
 
 		Unit.Append(new MoveInstruction(Unit, Result, Second)
 		{
-			Type = MoveType.LOAD
+			Type = MoveType.LOAD,
+			IsSafe = true
 		});
 	}
 

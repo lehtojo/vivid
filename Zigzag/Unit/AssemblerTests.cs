@@ -11,11 +11,7 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-<<<<<<< HEAD
       private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\Tests\\";
-=======
-      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Documents\\Intuitive\\Zigzag\\Tests\\";
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
       private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
 
@@ -69,6 +65,8 @@ namespace Zigzag.Unit
 
       [DllImport("NUnit_LargeFunctions", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_g(Int64 a, Int64 b);
+      
+      
 
       private static bool Compile(string output, params string[] source_files)
       {
@@ -195,6 +193,23 @@ namespace Zigzag.Unit
          }
       }
 
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_addition(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_subtraction(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_multiplication(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_division(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_addition_with_constant(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_subtraction_with_constant(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_multiplication_with_constant(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_division_with_constant(Int64 a);
+
       [TestCase]
       public void Assembler_BasicMath()
       {
@@ -206,6 +221,56 @@ namespace Zigzag.Unit
          var result = function_basic_math(6, 7, 9);
 
          Assert.AreEqual(42069, result);
+
+         Assert.AreEqual(3, function_addition(1, 2));
+         Assert.AreEqual(-90, function_subtraction(10, 100));
+         Assert.AreEqual(49, function_multiplication(7, 7));
+         Assert.AreEqual(7, function_division(42, 6));
+
+         Assert.AreEqual(64, function_addition_with_constant(44));
+         Assert.AreEqual(-1, function_subtraction_with_constant(19));
+         Assert.AreEqual(1300, function_multiplication_with_constant(13));
+         Assert.AreEqual(1, function_division_with_constant(10));
+      }
+
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_addition(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_subtraction(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_multiplication(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_division(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_addition_with_constant(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_subtraction_with_constant(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_multiplication_with_constant(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_division_with_constant(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_decimal_operator_order(Double a, Double b);
+
+      [TestCase]
+      public void Assembler_DecimalArithmetics()
+      {
+         if (!Compile("Decimals", "Decimals.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(3.141 + 2.718, function_decimal_addition(3.141, 2.718));
+         Assert.AreEqual(3.141 - 2.718, function_decimal_subtraction(3.141, 2.718));
+         Assert.AreEqual(3.141 * 2.718, function_decimal_multiplication(3.141, 2.718));
+         Assert.AreEqual(3.141 / 2.718, function_decimal_division(3.141, 2.718));
+
+         Assert.AreEqual(1.414 + 4.474 + 1.414, function_decimal_addition_with_constant(4.474));
+         Assert.AreEqual(-1.414 + 3.363 - 1.414, function_decimal_subtraction_with_constant(3.363));
+         Assert.AreEqual(1.414 * 2.252 * 1.414, function_decimal_multiplication_with_constant(2.252));
+         Assert.AreEqual(2.0 / 1.414 / 1.414, function_decimal_division_with_constant(1.414));
+
+         Assert.AreEqual(9.870 + 7.389 * 9.870 - 7.389 / 9.870, function_decimal_operator_order(9.870, 7.389));
       }
 
       [TestCase]
@@ -431,6 +496,100 @@ namespace Zigzag.Unit
          }
 
          Assert.AreEqual(197, function_g(26, 16));
+      }
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_logical_operators_1(Int64 a, Int64 b);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern bool function_single_boolean(bool b);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_two_booleans(bool a, bool b);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern bool function_nested_if_statements(Int64 a, Int64 b, Int64 c);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_logical_and_in_if_statement(bool a, bool b);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_logical_or_in_if_statement(bool a, bool b);
+      
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_nested_logical_statements(bool a, bool b, bool c, bool d);
+      
+      [TestCase]
+      public void Assembler_LogicalOperators()
+      {
+         if (!Compile("LogicalOperators", "LogicalOperators.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+         
+         // Single boolean as input
+         Assert.IsFalse(function_single_boolean(true));
+         Assert.IsTrue(function_single_boolean(false));
+         
+         // Two booleans as input
+         Assert.AreEqual(1, function_two_booleans(true, false));
+         Assert.AreEqual(2, function_two_booleans(false, true));
+         Assert.AreEqual(3, function_two_booleans(false, false));
+         
+         // Nested if-statement:
+         
+         // All correct inputs
+         Assert.IsTrue(function_nested_if_statements(1, 2, 3));
+         Assert.IsTrue(function_nested_if_statements(1, 2, 4));
+         Assert.IsTrue(function_nested_if_statements(1, 0, 1));
+         Assert.IsTrue(function_nested_if_statements(1, 0, -1));
+         
+         Assert.IsTrue(function_nested_if_statements(2, 4, 8));
+         Assert.IsTrue(function_nested_if_statements(2, 4, 6));
+         Assert.IsTrue(function_nested_if_statements(2, 3, 4));
+         Assert.IsTrue(function_nested_if_statements(2, 3, 5));
+
+         // Most of the paths for returning false
+         Assert.IsFalse(function_nested_if_statements(0, 0, 0));
+         
+         Assert.IsFalse(function_nested_if_statements(1, 1, 1));
+         Assert.IsFalse(function_nested_if_statements(1, 2, 5));
+         Assert.IsFalse(function_nested_if_statements(1, 0, 0));
+         
+         Assert.IsFalse(function_nested_if_statements(2, 0, 0));
+         Assert.IsFalse(function_nested_if_statements(2, 4, 7));
+         Assert.IsFalse(function_nested_if_statements(2, 3, 6));
+         
+         // Logical and
+         Assert.AreEqual(10, function_logical_and_in_if_statement(true, true));
+         Assert.AreEqual(0, function_logical_and_in_if_statement(true, false));
+         Assert.AreEqual(0, function_logical_and_in_if_statement(false, true));
+         Assert.AreEqual(0, function_logical_and_in_if_statement(false, false));
+         
+         // Logical or
+         Assert.AreEqual(10, function_logical_or_in_if_statement(true, true));
+         Assert.AreEqual(10, function_logical_or_in_if_statement(true, false));
+         Assert.AreEqual(10, function_logical_or_in_if_statement(false, true));
+         Assert.AreEqual(0, function_logical_or_in_if_statement(false, false));
+         
+         // Nested logical statements
+         Assert.AreEqual(1, function_nested_logical_statements(true, true, true, true));
+         Assert.AreEqual(2, function_nested_logical_statements(false, true, true, true));
+         Assert.AreEqual(2, function_nested_logical_statements(true, false, true, true));
+         Assert.AreEqual(3, function_nested_logical_statements(true, true, false, true));
+         Assert.AreEqual(3, function_nested_logical_statements(true, true, true, false));
+         Assert.AreEqual(4, function_nested_logical_statements(true, true, false, false));
+         Assert.AreEqual(4, function_nested_logical_statements(false, false, true, true));
+         Assert.AreEqual(5, function_nested_logical_statements(true, false, false, false));
+         Assert.AreEqual(5, function_nested_logical_statements(false, true, false, false));
+         Assert.AreEqual(5, function_nested_logical_statements(false, false, true, false));
+         Assert.AreEqual(5, function_nested_logical_statements(false, false, false, true));
+         Assert.AreEqual(6, function_nested_logical_statements(false, false, false, false));
+         
+         Assert.AreEqual(5, function_logical_operators_1(10, 5));
+         Assert.AreEqual(7, function_logical_operators_1(0, 7));
+         Assert.AreEqual(1, function_logical_operators_1(1, 1));
+         Assert.AreEqual(0, function_logical_operators_1(3, 3));
       }
    }
 }

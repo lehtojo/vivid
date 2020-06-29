@@ -168,6 +168,11 @@ public class Node
 		Last = child;
 	}
 
+	public bool Remove()
+	{
+		return Parent != null && Parent.Remove(this);
+	}
+
 	public bool Remove(Node child)
 	{
 		if (child.Parent != this)
@@ -186,6 +191,16 @@ public class Node
 		if (right != null)
 		{
 			right.Previous = left;
+		}
+
+		if (First == child)
+		{
+			First = right;
+		}
+		
+		if (Last == child)
+		{
+			Last = left;
 		}
 
 		return true;
@@ -257,6 +272,66 @@ public class Node
 		Next = null;
 		First = null;
 		Last = null;
+	}
+	
+	private static Node[] GetNodesUnderSharedParent(Node a, Node b)
+	{
+		var x = a.Path.Reverse().ToArray();
+		var y = b.Path.Reverse().ToArray();
+
+		var i = 0;
+		var count = Math.Min(x.Length, y.Length);
+
+		for (; i < count; i++)
+		{
+			if (x[i] != y[i]) break;
+		}
+
+		if (i == 0)
+		{
+			return new Node[0];
+		}
+		
+		if (i == count)
+		{
+			// This scenario means that one of the nodes is parent of the other
+			/// TODO: Remove after this function is proven to work (Identical return)
+			return new Node[0];
+		}
+
+		return new [] { x[i], y[i] };
+	}
+	
+	/// <summary>
+	/// Returns whether this node is placed before the specified node
+	/// </summary>
+	/// <param name="other">The node used for comparison</param>
+	/// <returns>True if this node is before the specified node, otherwise false</returns>
+	public bool IsBefore(Node other)
+	{
+		var positions = GetNodesUnderSharedParent(other, this);
+
+		// If the given node is before the given position node, the target node can be found be iterating backwards
+		var iterator = (Node?)positions[1];
+		var target = positions[0];
+
+		if (target == iterator)
+		{
+			return false;
+		}
+
+		// Iterate backwards and try to find the target node
+		while (iterator != null)
+		{
+			if (iterator == target)
+			{
+				return true;
+			}
+
+			iterator = iterator.Previous;
+		}
+
+		return false;
 	}
 
 	public virtual NodeType GetNodeType()

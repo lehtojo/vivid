@@ -86,7 +86,7 @@ public static class ArithmeticOperators
 	private static Result BuildIncrementOperation(Unit unit, IncrementNode increment)
 	{   
 		var left = References.Get(unit, increment.Object, AccessMode.WRITE);
-		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1));
+		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L));
 		
 		var number_type = increment.Object.GetType()!.To<Number>().Type;
 

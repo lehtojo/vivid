@@ -66,14 +66,6 @@ public class OperatorNode : Node, IType, IResolvable
 		return Resolver.GetSharedType(left, right);
 	}
 
-<<<<<<< HEAD
-	private static Type? GetComparisonType()
-	{
-		return Types.BOOL;
-	}
-
-=======
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	private Type? GetActionType()
 	{
 		if (Left is IType type)

@@ -49,11 +49,7 @@ public class Result
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
-<<<<<<< HEAD
 	private List<Connection> Connections { get; } = new List<Connection>();
-=======
-	private List<Connection> Connections { get; set; } = new List<Connection>();
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
 	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 
@@ -171,12 +167,17 @@ public class Result
 	{
 		return position == -1 || !Lifetime.IsActive(position + 1);
 	}
+	
+	public bool IsOnlyValid(int position)
+	{
+		return Lifetime.IsOnlyActive(position);
+	}
 
 	public bool IsValid(int position)
 	{
 		return Lifetime.IsActive(position);
 	}
-
+	
 	public void Use(int position)
 	{
 		if (position > Lifetime.End)

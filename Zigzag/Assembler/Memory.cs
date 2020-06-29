@@ -260,11 +260,6 @@ public static class Memory
 	{
 		foreach (var type in types)
 		{
-			if (result.Value.Type == type)
-			{
-				return result;
-			}
-
 			var converted = TryConvert(unit, result, type, protect);
 
 			if (converted != null)

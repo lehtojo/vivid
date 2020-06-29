@@ -45,15 +45,12 @@ public class ResolverPhase : Phase
 			);
 		}
 		
-<<<<<<< HEAD
-=======
 		errors.AddRange(
 			implementation.Variables.Values
 				.Where(v => v.IsUnresolved)
 				.Select(v => Status.Error($"Couldn't resolve type of local variable '{v.Name}'"))
 		);
 		
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 		if (!errors.Any())
 		{
 			return string.Empty;
@@ -151,6 +148,9 @@ public class ResolverPhase : Phase
 
 		// Analyze the output
 		Analyzer.Analyze(context);
+		
+		// Apply analysis to the functions
+		// Analysis.Analyze(context);
 
 		return Status.OK;
 	}

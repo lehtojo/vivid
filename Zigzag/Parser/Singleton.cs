@@ -178,16 +178,10 @@ public static class Singleton
       return token.Type switch
       {
          TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value),
-<<<<<<< HEAD
 
          TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name)
 				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
 
-=======
-         TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name)
-				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
-				
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
          _ => throw new Exception($"Couldn't create unresolved token ({token.Type})"),
       };
    }

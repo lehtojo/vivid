@@ -66,16 +66,6 @@ public class CallInstruction : Instruction
             Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
          }
 
-<<<<<<< HEAD
-         var move = new MoveInstruction(Unit, Result, new Result(source, Result.Format))
-         {
-
-            // Configure the move so that this instruction's result is attached to the destination
-            Type = MoveType.LOAD
-         };
-
-=======
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
          // The result is predefined so the value from the source handle must be moved to the predefined result
          Unit.Append(new MoveInstruction(Unit, Result, new Result(source, Result.Format))
          {

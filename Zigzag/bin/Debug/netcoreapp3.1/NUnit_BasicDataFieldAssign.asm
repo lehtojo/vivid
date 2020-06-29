@@ -15,7 +15,8 @@ mov dword [rcx], 314159265
 mov byte [rcx+4], 64
 movsd xmm0, qword [rel function_basic_data_field_assign_C0]
 movsd qword [rcx+5], xmm0
-mov qword [rcx+13], -2718281828459045
+mov rax, -2718281828459045
+mov qword [rcx+13], rax
 mov word [rcx+21], 12345
 ret
 

@@ -114,7 +114,6 @@ public static class Resolver
 			return Types.UNKNOWN;
 		}
 
-<<<<<<< HEAD
 		if (a is Number x && b is Number y)
 		{
 			if (a is Decimal || b is Decimal)
@@ -123,18 +122,17 @@ public static class Resolver
 			}
 
 			return GetSharedNumber(x, y);
-=======
-		if (!(a is Number x) || !(b is Number y))
-			return a.Supertypes.FirstOrDefault(type => b.Supertypes.Contains(type));
-		
-		if (a is Decimal || b is Decimal)
-		{
-			return Types.DECIMAL;
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 		}
 
-		return GetSharedNumber(x, y);
+		foreach (Type type in a.Supertypes)
+		{
+			if (b.Supertypes.Contains(type))
+			{
+				return type;
+			}
+		}
 
+		return Types.UNKNOWN;
 	}
 
 	 /// <summary>

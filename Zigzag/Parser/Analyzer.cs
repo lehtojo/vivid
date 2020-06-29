@@ -34,11 +34,6 @@ public static class Analyzer
 		{
 			AnalyzeVariableUsages(type);
 		}
-
-		foreach (var function in context.GetImplementedFunctions())
-		{
-			AnalyzeVariableUsages(function);
-		}
 	}
 
 	private static void ConfigureStaticVariables(Context context)

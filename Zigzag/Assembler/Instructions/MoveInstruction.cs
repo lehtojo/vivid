@@ -71,10 +71,6 @@ public class MoveInstruction : DualParameterInstruction
 		var is_destination_register = First.IsStandardRegister;
 		var is_destination_memory_address = First.IsMemoryAddress;
 		var is_source_constant = Second.IsConstant;
-<<<<<<< HEAD
-=======
-
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
       string? instruction;
 		
       if (is_destination_media_register)
@@ -425,7 +421,7 @@ public class MoveInstruction : DualParameterInstruction
 				),
 				new InstructionParameter(
 					Second,
-					flags_second| ParameterFlag.HIDDEN,
+					flags_second | ParameterFlag.HIDDEN,
 					HandleType.CONSTANT
 				)
 			);
@@ -467,7 +463,7 @@ public class MoveInstruction : DualParameterInstruction
 				),
 				new InstructionParameter(
 					Second,
-					flags_second,
+					flags_second | ParameterFlag.ALLOW_64_BIT_CONSTANT,
 					HandleType.CONSTANT,
 					HandleType.REGISTER,
 					HandleType.MEMORY

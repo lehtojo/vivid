@@ -45,10 +45,7 @@ public class LinkPattern : Pattern
 	public override Node Build(Context environment, List<Token> tokens)
 	{
 		var left = Singleton.Parse(environment, tokens[LEFT]);
-<<<<<<< HEAD
 		
-=======
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 		Node? right;
 
 		if (left is IType type)

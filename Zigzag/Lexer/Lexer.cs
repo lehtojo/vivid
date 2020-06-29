@@ -406,7 +406,6 @@ public static class Lexer
 	{
       return area.Type switch
       {
-<<<<<<< HEAD
          AreaType.TEXT => ParseTextToken(area.Text),
          AreaType.NUMBER => new NumberToken(area.Text),
          AreaType.OPERATOR => new OperatorToken(area.Text),
@@ -416,74 +415,11 @@ public static class Lexer
          _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unrecognized token '{0}'", area.Text))),
       };
    }
-
-	private const int FUNCTION_LENGTH = 2;
-
+	
 	/// <summary>
-	/// Forms function tokens from the given tokens
-	/// </summary>
-	/// <param name="tokens">Tokens to iterate</param>
-	private static void CreateFunctionCalls(List<Token> tokens)
-	{
-		if (tokens.Count < FUNCTION_LENGTH)
-		{
-			return;
-		}
-		
-		for (int i = tokens.Count - 2; i >= 0;)
-		{
-			var current = tokens[i];
-
-			if (current.Type == TokenType.IDENTIFIER)
-			{
-				var next = tokens[i + 1];
-
-				if (next.Type == TokenType.CONTENT)
-				{
-					var parameters = (ContentToken)next;
-
-					if (parameters.Type == ParenthesisType.PARENTHESIS)
-					{
-						var name = (IdentifierToken)current;
-                  var function = new FunctionToken(name, parameters)
-                  {
-                     Position = name.Position
-                  };
-
-                  tokens[i] = function;
-						tokens.RemoveAt(i + 1);
-
-						i -= FUNCTION_LENGTH;
-						continue;
-					}
-				}
-			}
-
-			i--;
-		}
-	}
-
-	/// <summary>
-	/// Join all sequential modifier keywords into one token
-	/// </summary>
-	public static void JoinModifiers(List<Token> tokens)
-=======
-         Type.TEXT => ParseTextToken(area.Text),
-         Type.NUMBER => new NumberToken(area.Text),
-         Type.OPERATOR => new OperatorToken(area.Text),
-         Type.CONTENT => new ContentToken(area.Text, anchor += area.Start),
-         Type.END => new Token(TokenType.END),
-         Type.STRING => new StringToken(area.Text),
-
-         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format("Unrecognized token '{0}'", area.Text)))
-      };
-   }
-
-   /// <summary>
    /// Join all sequential modifier keywords into one token
    /// </summary>
    public static void JoinModifiers(List<Token> tokens)
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 	{
 		if (tokens.Count == 1) return;
 

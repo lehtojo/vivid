@@ -4,8 +4,55 @@ export basic_math(a, b, c) {
 	=> x + y
 }
 
+export addition(a, b) {
+	=> a + b
+}
+
+export subtraction(a, b) {
+	=> a - b
+}
+
+export multiplication(a, b) {
+	=> a * b
+}
+
+export division(a, b) {
+	=> a / b
+}
+
+export remainder(a, b) {
+	=> a % b
+}
+
+export operator_order(a, b) {
+	=> a + b * a - b / a
+}
+
+export addition_with_constant(a) {
+	=> 10 + a + 10
+}
+
+export subtraction_with_constant(a) {
+	=> -10 + a - 10
+}
+
+export multiplication_with_constant(a) {
+	=> 10 * a * 10
+}
+
+export division_with_constant(a) {
+	=> 100 / a / 10
+}
+
 run() {
 	=> 1
-	
+	addition(0, 0)
+	subtraction(0, 0)
+	multiplication(0, 0)
+	division(1, 1)
+	addition_with_constant(0)
+	subtraction_with_constant(0)
+	multiplication_with_constant(0)
+	division_with_constant(0)
 	basic_math(1, 2, 3)
 }

@@ -22,10 +22,6 @@ public class Function : Context
 
 	public List<string> Parameters { get; set; } = new List<string>();
 	public List<Token> Blueprint { get; }
-<<<<<<< HEAD
-	public List<Node> References { get; private set; } = new List<Node>();
-=======
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 

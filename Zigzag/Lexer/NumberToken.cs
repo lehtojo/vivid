@@ -84,13 +84,8 @@ public class NumberToken : Token
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
 
-<<<<<<< HEAD
          /// TODO: Think about overriding the decimal type
          Value = value;
-=======
-			/// TODO: Think about overriding the decimal type
-			Value = value;
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 			NumberType = Format.DECIMAL;
 			Bits = Lexer.Size.Bytes * 8;
 		}

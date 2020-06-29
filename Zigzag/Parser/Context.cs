@@ -43,13 +43,8 @@ public class Context
 		var parent = Parent?.GetFullname() ?? string.Empty;
 		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
 
-<<<<<<< HEAD
 		var prefix = Prefix.ToLowerInvariant();
-		prefix = string.IsNullOrEmpty(prefix) ? prefix : prefix;
-=======
-		var prefix = Prefix.ToLower();
 		prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 		var name = Name.ToLowerInvariant();
 		name = string.IsNullOrEmpty(name) ? name : '_' + name;
@@ -212,15 +207,9 @@ public class Context
 			throw new Exception($"Variable '{name}' already exists in this context");
 		}
 
-<<<<<<< HEAD
-      // When a variable is created this way it is automatically declared into this context
-      _ = new Variable(this, type, category, name, AccessModifier.PUBLIC);
-   }
-=======
 		// When a variable is created this way it is automatically declared into this context
 		Variable.Create(this, type, category, name, AccessModifier.PUBLIC);
 	}
->>>>>>> ec8e325... Improved code quality and implemented basic support for operator overloading
 
 	/// <summary>
 	/// Declares a label into the context
