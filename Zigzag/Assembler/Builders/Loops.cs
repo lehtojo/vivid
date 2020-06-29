@@ -239,6 +239,9 @@ public static class Loops
       // Initialize the loop
       CacheLoopVariables(unit, node);
 
+      Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
+      unit.Append(new PrepareForConditionalExecutionInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+
       // Build the loop body
       var result = BuildForeverLoopBody(unit, node, new LabelInstruction(unit, start));
 
@@ -253,9 +256,6 @@ public static class Loops
 
    public static Result Build(Unit unit, LoopNode node)
    {
-      Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
-      unit.Append(new PrepareForConditionalExecutionInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
-
       if (node.IsForeverLoop)
       {
          return BuildForeverLoop(unit, node);
@@ -273,6 +273,9 @@ public static class Loops
 
       // Try to cache loop variables
       CacheLoopVariables(unit, node);
+
+      Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
+      unit.Append(new PrepareForConditionalExecutionInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
 
       if (node.Condition is OperatorNode start_condition)
       {

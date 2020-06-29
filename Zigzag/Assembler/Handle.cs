@@ -127,6 +127,32 @@ public class DataSectionHandle : Handle
 public class ConstantHandle : Handle
 {
 	public object Value { get; private set; }
+	public int Bits => GetBits();
+
+	private int GetBits()
+	{
+		if (Value is double)
+		{
+			return Assembler.Size.Bits;
+		}
+
+		var value = Math.Abs((long)Value);
+
+		if (value > int.MaxValue)
+		{
+			return 64;
+		}
+		else if (value > short.MaxValue)
+		{
+			return 32;
+		}
+		else if (value > byte.MaxValue)
+		{
+			return 16;
+		}
+		
+		return 8;
+	}
 
 	public ConstantHandle(object value) : base(HandleType.CONSTANT)
 	{

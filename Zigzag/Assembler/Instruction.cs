@@ -14,6 +14,7 @@ public static class ParameterFlag
 	public const int RELOCATE_TO_DESTINATION = 32;
 	public const int RELOCATE_TO_SOURCE = 64;
 	public const int HIDDEN = 128;
+	public const int ALLOW_64_BIT_CONSTANT = 256;
 }
 
 public class InstructionParameter
@@ -35,7 +36,9 @@ public class InstructionParameter
 	public bool IsMediaRegister => Value is RegisterHandle handle && handle.Register.IsMediaRegister;
 	public bool IsMemoryAddress => Result.Value.Type == HandleType.MEMORY;
 
-	public bool IsValid => Types.Contains(Result.Value.Type);
+	public bool IsConstantValid => Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
+
+	public bool IsValid => Types.Contains(Result.Value.Type) && (!Result.IsConstant || IsConstantValid);
 	public bool IsValueValid => Value != null && Types.Contains(Value.Type);
 	
 	public bool IsSizeVisible {
@@ -179,7 +182,7 @@ public abstract class Instruction
 			}
 
 			// If the current parameter is the destination and it is needed later, then it must me copied to another register
-			if (protect && !parameter.Result.IsExpiring(Position))
+			if (protect && parameter.Result.IsOnlyValid(Position))
 			{
 				/// TODO: All parameter that include media register type are not floating point numbers
 				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
@@ -189,45 +192,6 @@ public abstract class Instruction
 		}
 
 		return Memory.Convert(Unit, parameter.Result, parameter.Types, false, protect);
-	}
-
-	/// <summary>
-	/// Formats the instruction with the given arguments and forces the parameters to match the given size
-	/// </summary>
-	public string Format(string format, Size size, params InstructionParameter[] parameters)
-	{
-		var handles = new List<Handle>();
-		var locks = new List<RegisterLock>();
-
-		foreach (var parameter in parameters)
-		{
-			// Force the parameter to match the given size
-			parameter.RequiredSize = size;
-
-			// Convert the parameter into a usable format
-			var result = Convert(parameter);
-
-			if (parameter.IsDestination)
-			{
-				throw new NotImplementedException("Format called with a parameter that is a destination");
-			}
-
-			// Prepare the handle for use
-			locks.AddRange(ValidateHandle(result.Value));
-
-			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
-			if (result.Value is RegisterHandle register_handle)
-			{
-				// Register locks have a destructor which releases the register so they are safe
-				locks.Add(new RegisterLock(register_handle.Register));
-			}
-
-			handles.Add(result.Value);
-		}
-
-		locks.ForEach(l => l.Dispose());
-
-		return string.Format(format, handles.ToArray());
 	}
 
 	/// <summary>

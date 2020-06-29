@@ -32,112 +32,118 @@ mov r8, rcx
 mov rcx, rdx
 mov rbx, rax
 mov rsi, r8
+mov rdi, rsi
 call allocate
-mov rdi, rax
+mov rsi, rax
 mov rcx, rbx
 sal rcx, 3
+mov rbp, rdi
+call allocate
+mov rdi, rax
+mov rcx, rbp
+sal rcx, 3
+mov r12, rbp
 call allocate
 mov rbp, rax
-mov rcx, rsi
-sal rcx, 3
-call allocate
-mov r12, rax
-xor r13, r13
-cmp r13, rbx
+mov r13, r12
+xor r12, r12
+cmp r12, rbx
 jge function_pidigits_L1
 function_pidigits_L0:
-mov qword [rdi+r13*8], 20
-add r13, 1
-cmp r13, rbx
+mov qword [rsi+r12*8], 20
+add r12, 1
+cmp r12, rbx
 jl function_pidigits_L0
 function_pidigits_L1:
 mov r14, rbx
 xor rbx, rbx
-cmp rbx, rsi
+cmp rbx, r13
 jge function_pidigits_L3
 function_pidigits_L2:
+xor rax, rax
 xor rcx, rcx
-xor rdx, rdx
-cmp rcx, r14
+cmp rax, r14
 jge function_pidigits_L5
 function_pidigits_L4:
-mov r8, r14
-sub r8, rcx
-sub r8, 1
-mov r9, r8
-sal r9, 1
-add r9, 1
-mov r10, [rdi+rcx*8]
-add r10, rdx
-mov qword [rdi+rcx*8], r10
-mov rax, [rdi+rcx*8]
+mov rdx, r14
+sub rdx, rax
+sub rdx, 1
+mov r8, rdx
+sal r8, 1
+add r8, 1
+mov r9, [rsi+rax*8]
+add r9, rcx
+mov qword [rsi+rax*8], r9
+mov r9, rax
+mov rax, [rsi+r9*8]
 mov r10, rdx
 xor rdx, rdx
-idiv r9
+idiv r8
 mov rdx, rax
-mov rax, [rdi+rcx*8]
+mov rax, [rsi+r9*8]
 mov r11, rdx
 xor rdx, rdx
-idiv r9
-mov qword [rbp+rcx*8], rdx
-imul r11, r8
-add rcx, 1
-cmp rcx, r14
-mov rdx, r11
+idiv r8
+mov qword [rdi+r9*8], rdx
+imul r11, r10
+add r9, 1
+cmp r9, r14
+mov rcx, r11
+mov rax, r9
 jl function_pidigits_L4
 function_pidigits_L5:
-mov r8, r14
-sub r8, 1
-mov rax, [rdi+r8*8]
+mov rdx, r14
+sub rdx, 1
+mov r8, rax
+mov rax, [rsi+rdx*8]
 mov r9, rdx
 xor rdx, rdx
 mov r10, 10
 idiv r10
-mov qword [r12+rbx*8], rax
+mov qword [rbp+rbx*8], rax
 mov rdx, r14
 sub rdx, 1
-mov r8, r14
-sub r8, 1
-mov rax, [rdi+r8*8]
+mov r9, r14
+sub r9, 1
+mov rax, [rsi+r9*8]
 mov r10, rdx
 xor rdx, rdx
 mov r11, 10
 idiv r11
-mov qword [rbp+r10*8], rdx
-xor rcx, rcx
-cmp rcx, r14
+mov qword [rdi+r10*8], rdx
+xor r12, r12
+cmp r12, r14
 jge function_pidigits_L7
 function_pidigits_L6:
-mov rdx, [rbp+rcx*8]
+mov rdx, [rdi+r12*8]
 imul rdx, 10
-mov qword [rdi+rcx*8], rdx
-add rcx, 1
-cmp rcx, r14
+mov qword [rsi+r12*8], rdx
+add r12, 1
+cmp r12, r14
 jl function_pidigits_L6
 function_pidigits_L7:
 add rbx, 1
-cmp rbx, rsi
-mov r13, rcx
+cmp rbx, r13
 jl function_pidigits_L2
 function_pidigits_L3:
-mov rcx, rsi
+mov rcx, r13
 sal rcx, 3
 call allocate
-mov rcx, rsi
+mov rcx, r13
 sub rcx, 1
 xor rdx, rdx
 test rcx, rcx
 jl function_pidigits_L9
 function_pidigits_L8:
-add qword [r12+rcx*8], rdx
+add qword [rbp+rcx*8], rdx
 mov rdx, rax
-mov rax, [r12+rcx*8]
+mov rax, [rbp+rcx*8]
 mov r8, rdx
 xor rdx, rdx
 mov r9, 10
 idiv r9
 mov rdx, rax
-mov rax, [r12+rcx*8]
+mov rax, [rbp+rcx*8]
 mov r9, rdx
 xor rdx, rdx
 mov r10, 10
@@ -172,15 +178,14 @@ add rsp, 40
 ret
 
 function_length_of:
-xor rdx, rdx
+xor rax, rax
 function_length_of_L0:
-movzx r8, byte [rcx+rdx]
-test r8b, r8b
+movzx rdx, byte [rcx+rax]
+test dl, dl
 jne function_length_of_L1
-mov rax, rdx
 ret
 function_length_of_L1:
-add rdx, 1
+add rax, 1
 jmp function_length_of_L0
 ret
 

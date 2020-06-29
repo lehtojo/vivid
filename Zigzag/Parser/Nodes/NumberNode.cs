@@ -3,16 +3,21 @@ using System.Collections.Generic;
 
 public class NumberNode : Node, IType, ICloneable
 {
-	public Format Type { get; private set; }
+	public Format Type { get;  }
 	public object Value { get; set; }
 
 	public NumberNode(Format type, object value)
 	{
-		Type = type;
+		Type = type; 
 		Value = value;
+
+		if (!(Value is long || Value is double))
+		{
+			throw new ArgumentException("Number node received a number which was not in the correct format");
+		}
 	}
 
-	public void Negate()
+	public NumberNode Negate()
 	{
 		if (Type == Format.DECIMAL)
 		{
@@ -22,6 +27,8 @@ public class NumberNode : Node, IType, ICloneable
 		{
 			Value = -(long)Value;
 		}
+
+		return this;
 	}
 
 	public new Type GetType()

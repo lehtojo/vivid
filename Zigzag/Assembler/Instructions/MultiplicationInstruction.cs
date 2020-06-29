@@ -25,7 +25,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 	{
 		if (Assigns && First.Metadata.IsPrimarilyVariable)
 		{
-      	Unit.Scope!.Variables[First.Metadata.Variable] = Result;
+			Unit.Scope!.Variables[First.Metadata.Variable] = Result;
 			Result.Metadata.Attach(new VariableAttribute(First.Metadata.Variable));
 		}
 	}
@@ -58,14 +58,8 @@ public class MultiplicationInstruction : DualParameterInstruction
 		{
 			return new ConstantMultiplication(Second, First);
 		}
-		else if (Second.Value.Type == HandleType.CONSTANT)
-		{
-			return new ConstantMultiplication(First, Second);
-		}
-		else
-		{
-			return null;
-		}
+		
+		return Second.Value.Type == HandleType.CONSTANT ? new ConstantMultiplication(First, Second) : null;
 	}
 
 	public override void OnBuild()
@@ -174,6 +168,11 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public override Result GetDestinationDependency()
 	{
+		if (Result.Format.IsDecimal())
+		{
+			return First;
+		}
+
 		var constant_multiplication = TryGetConstantMultiplication();
 
 		if (constant_multiplication != null && constant_multiplication.Constant > 0 && IsConstantValidForExtendedMultiplication(constant_multiplication.Constant - 1))

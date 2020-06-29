@@ -1,9 +1,23 @@
-﻿Array { T } {
+﻿require(result: bool) {
+    if !result {
+        println('Requirement failed')
+        exit(1)
+    }
+}
+
+require(result: bool, message: link) {
+    if !result {
+        println(message)
+        exit(1)
+    }
+}
+
+Array { T } {
     private data: link
     count: num
     
     init(count: num) {
-        require(count > 0)
+        require(count >= 0, 'Tried to create a standard array but its size was a negative value')
         
         this.data = allocate(count * T.size)
         this.count = count
@@ -32,7 +46,7 @@ Sheet { T } {
     height: num
     
     init(width: num, height: num) {
-        require(width >= 0 and height >= 0)
+        require(width >= 0 and height >= 0, 'Tried to create a sheet but its width or height was a negative value')
         
         this.data = allocate(width * height * T.size)
         this.width = width
@@ -61,7 +75,7 @@ Box { T } {
     depth: num
         
     init(width: num, height: num, depth: num) {
-        require(width >= 0 and height >= 0, depth >= 0)
+        require(width >= 0 and height >= 0 and depth >= 0, 'Tried to create a box but its width, height or depth was a negative value')
             
         this.data = allocate(width * height * depth * T.size)
         this.width = width

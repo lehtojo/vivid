@@ -23,16 +23,16 @@ ret
 global function_conditionally_changing_constant_with_loop_statement
 export function_conditionally_changing_constant_with_loop_statement
 function_conditionally_changing_constant_with_loop_statement:
-mov r8, 100
+mov rax, 100
 cmp rcx, rdx
 jge function_conditionally_changing_constant_with_loop_statement_L1
 function_conditionally_changing_constant_with_loop_statement_L0:
-add r8, 1
+add rax, 1
 add rcx, 1
 cmp rcx, rdx
 jl function_conditionally_changing_constant_with_loop_statement_L0
 function_conditionally_changing_constant_with_loop_statement_L1:
-imul rdx, r8
+imul rdx, rax
 mov rax, rdx
 ret
 

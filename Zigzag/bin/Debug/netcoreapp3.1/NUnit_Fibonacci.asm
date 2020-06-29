@@ -15,14 +15,10 @@ push rdi
 push rbp
 push r12
 sub rsp, 48
-xor rax, rax
-xor rdx, rdx
-xor r8, r8
-mov r9, 1
-mov rbx, rax
-mov rsi, rdx
-mov rdi, r9
-mov rbp, r8
+xor rbx, rbx
+xor rsi, rsi
+mov rdi, 1
+xor rbp, rbp
 mov r12, rcx
 cmp rbx, r12
 jge function_fibonacci_L1
@@ -104,13 +100,13 @@ mov r8, rdx
 xor rdx, rdx
 mov rbx, rax
 mov rdi, r9
-mov rbp, rdi
+mov rbp, rbx
 call type_string_function_insert
-mov rdi, rax
-test rbx, rbx
+mov rbx, rax
+test rbp, rbp
 jne function_to_string_L3
 mov rcx, rsi
-mov rdx, rdi
+mov rdx, rbx
 call type_string_function_combine
 add rsp, 40
 pop rbp
@@ -119,7 +115,7 @@ pop rsi
 pop rbx
 ret
 function_to_string_L3:
-xchg rbx, rdi
+mov rdi, rbp
 jmp function_to_string_L2
 add rsp, 40
 pop rbp
@@ -278,16 +274,15 @@ mov rax, [rcx]
 ret
 
 type_string_function_length:
-xor rdx, rdx
+xor rax, rax
 type_string_function_length_L0:
-mov r9, [rcx]
-movzx r8, byte [r9+rdx]
-test r8b, r8b
+mov r8, [rcx]
+movzx rdx, byte [r8+rax]
+test dl, dl
 jne type_string_function_length_L1
-mov rax, rdx
 ret
 type_string_function_length_L1:
-add rdx, 1
+add rax, 1
 jmp type_string_function_length_L0
 ret
 

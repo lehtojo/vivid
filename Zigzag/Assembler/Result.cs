@@ -178,12 +178,17 @@ public class Result
 	{
 		return position == -1 || !Lifetime.IsActive(position + 1);
 	}
+	
+	public bool IsOnlyValid(int position)
+	{
+		return Lifetime.IsOnlyActive(position);
+	}
 
 	public bool IsValid(int position)
 	{
 		return Lifetime.IsActive(position);
 	}
-
+	
 	public void Use(int position)
 	{
 		if (position > Lifetime.End)

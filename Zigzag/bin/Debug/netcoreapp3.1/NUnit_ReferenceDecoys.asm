@@ -32,10 +32,12 @@ ret
 global function_reference_decoy_3
 export function_reference_decoy_3
 function_reference_decoy_3:
-xor rdx, rdx
-mov rax, rcx
-mov r8, rcx
-mov r9, rdx
+xor rax, rax
+mov rdx, rcx
+mov rcx, rax
+mov rax, rdx
+mov r8, rdx
+mov r9, rcx
 cmp r9, 3
 jge function_reference_decoy_3_L1
 function_reference_decoy_3_L0:
@@ -54,24 +56,28 @@ ret
 global function_reference_decoy_4
 export function_reference_decoy_4
 function_reference_decoy_4:
-xor rdx, rdx
-mov rax, rcx
-mov r8, rcx
-mov r9, rcx
-mov r10, rcx
-cmp rdx, 5
+xor rax, rax
+mov rdx, rcx
+mov r8, rdx
+mov r9, r8
+mov rcx, rax
+mov rax, r9
+mov rdx, r9
+mov r8, r9
+mov r10, r9
+cmp rcx, 5
 jge function_reference_decoy_4_L1
 function_reference_decoy_4_L0:
 add rax, 1
-add r8, 2
-add r9, 4
+add rdx, 2
+add r8, 4
 add r10, 8
-add rdx, 1
-cmp rdx, 5
+add rcx, 1
+cmp rcx, 5
 jl function_reference_decoy_4_L0
 function_reference_decoy_4_L1:
+add rax, rdx
 add rax, r8
-add rax, r9
 add rax, r10
 ret
 
@@ -87,16 +93,25 @@ sub rsp, 48
 mov rbx, rcx
 call large_function
 xor rcx, rcx
-mov rax, rbx
 mov rdx, rbx
-mov r8, rbx
-mov r9, rbx
-mov r10, rbx
-mov r11, rbx
-mov rsi, rbx
-mov rdi, rbx
-mov rbp, rbx
-mov r12, rbx
+mov r8, rdx
+mov r9, r8
+mov r10, r9
+mov r11, r10
+mov rsi, r11
+mov rdi, rsi
+mov rbp, rdi
+mov r12, rbp
+mov rax, r12
+mov rdx, r12
+mov r8, r12
+mov r9, r12
+mov r10, r12
+mov r11, r12
+mov rbx, r12
+mov rsi, r12
+mov rdi, r12
+mov rbp, r12
 cmp rcx, 5
 jge function_reference_decoy_5_L1
 function_reference_decoy_5_L0:
@@ -106,10 +121,10 @@ add r8, 3
 add r9, 4
 add r10, 5
 add r11, 6
-add rsi, 7
-add rdi, 8
-add rbp, 9
-add r12, 10
+add rbx, 7
+add rsi, 8
+add rdi, 9
+add rbp, 10
 add rcx, 1
 cmp rcx, 5
 jl function_reference_decoy_5_L0
@@ -119,10 +134,10 @@ add rax, r8
 add rax, r9
 add rax, r10
 add rax, r11
+add rax, rbx
 add rax, rsi
 add rax, rdi
 add rax, rbp
-add rax, r12
 add rsp, 48
 pop r12
 pop rbp

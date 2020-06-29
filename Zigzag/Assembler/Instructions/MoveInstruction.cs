@@ -422,7 +422,7 @@ public class MoveInstruction : DualParameterInstruction
 				),
 				new InstructionParameter(
 					Second,
-					flags_second| ParameterFlag.HIDDEN,
+					flags_second | ParameterFlag.HIDDEN,
 					HandleType.CONSTANT
 				)
 			);
@@ -464,7 +464,7 @@ public class MoveInstruction : DualParameterInstruction
 				),
 				new InstructionParameter(
 					Second,
-					flags_second,
+					flags_second | ParameterFlag.ALLOW_64_BIT_CONSTANT,
 					HandleType.CONSTANT,
 					HandleType.REGISTER,
 					HandleType.MEMORY
