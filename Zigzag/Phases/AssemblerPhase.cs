@@ -259,6 +259,7 @@ public class AssemblerPhase : Phase
 		
       try
 		{
+			Assembler.Target = IsLinux ? OSPlatform.Linux : OSPlatform.Windows;
 			assembly = Assembler.Assemble(context).TrimEnd();
 		}
 		catch (Exception e)

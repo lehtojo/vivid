@@ -41,7 +41,6 @@ public static class Conditionals
       var interphase = node.Successor == null ? end.Label : unit.GetNextLabel();
 
       // Jump to the next label based on the comparison
-      //unit.Append(new JumpInstruction(unit, comparison, (ComparisonOperator)condition.Operator, true, interphase));
       BuildCondition(unit, node.Context.Parent!, condition, interphase);
 
       // Get the current state of the unit for later recovery
