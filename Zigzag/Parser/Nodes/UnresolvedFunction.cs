@@ -1,6 +1,6 @@
 using System;
 
-public class UnresolvedFunction : Node, IResolvable
+public class UnresolvedFunction : Node, IResolvable, IType
 {
     public string Name { get; }
 
@@ -64,6 +64,11 @@ public class UnresolvedFunction : Node, IResolvable
         }
 
         return node;
+    }
+
+    public new Type? GetType()
+    {
+        return Types.UNKNOWN;
     }
 
     public Node? Resolve(Context context)
