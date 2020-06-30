@@ -454,13 +454,6 @@ public class Unit
 		return null;
 	}
 
-	public Register? GetNextRegisterWithoutReleasing()
-	{
-		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
-
-		return register ?? NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
-	}
-
 	/// <summary>
 	/// Retrieves the next available register, releasing a register to memory if necessary
 	/// </summary>
@@ -516,6 +509,9 @@ public class Unit
 		return register;
 	}
 
+	/// <summary>
+	/// Retrieves the next available media register, releasing a media register to memory if necessary
+	/// </summary>
 	public Register GetNextMediaRegister()
 	{
 		var register = MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
@@ -536,9 +532,43 @@ public class Unit
 		throw new NotImplementedException("Couldn't find an available media register");
 	}
 
+	/// <summary>
+	/// Tries to get the next available register without releasing a register to memory
+	/// </summary>
+	public Register? GetNextRegisterWithoutReleasing()
+	{
+		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+		return register ?? NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+	}
+
+	/// <summary>
+	/// Tries to get the next available register without releasing a register to memory (excludes the specified registers from the search)
+	/// </summary>
+	public Register? GetNextRegisterWithoutReleasing(Register[] exclude)
+	{
+		var register = VolatileRegisters.Where(r => !exclude.Contains(r)).ToList()
+			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+
+		return register ?? NonVolatileRegisters.Where(r => !exclude.Contains(r)).ToList()
+			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+	}
+
+	/// <summary>
+	/// Tries to get the next available media register without releasing a register to memory
+	/// </summary>
 	public Register? GetNextMediaRegisterWithoutReleasing()
 	{
 		return MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
+	}
+
+	/// <summary>
+	/// Tries to get the next available media register without releasing a register to memory (excludes the specified registers from the search)
+	/// </summary>
+	public Register? GetNextMediaRegisterWithoutReleasing(Register[] exclude)
+	{
+		return MediaRegisters.Where(r => !exclude.Contains(r)).ToList()
+			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
 	}
 
 	public Register GetStackPointer()

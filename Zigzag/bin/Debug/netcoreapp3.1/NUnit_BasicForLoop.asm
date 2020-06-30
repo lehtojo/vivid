@@ -13,17 +13,17 @@ export function_basic_for_loop
 function_basic_for_loop:
 xor rax, rax
 xor r8, r8
-mov r9, rax
-mov rax, rcx
-cmp r9, rdx
+mov r9, rcx
+cmp rax, rdx
 jge function_basic_for_loop_L1
 function_basic_for_loop_L0:
-add rax, r8
+add r9, r8
 add r8, 3
-add r9, 1
-cmp r9, rdx
+add rax, 1
+cmp rax, rdx
 jl function_basic_for_loop_L0
 function_basic_for_loop_L1:
+mov rax, r9
 ret
 
 function_run:

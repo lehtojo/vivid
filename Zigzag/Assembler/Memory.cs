@@ -193,17 +193,56 @@ public static class Memory
 
 		unit.Append(instruction);
 	}
+
+	/// <summary>
+	/// Tries to apply the hint
+	/// </summary>
+	private static Register? Consider(Unit unit, Hint hint, bool media_register)
+	{
+		if (hint is DirectToNonVolatileRegister)
+		{
+			// Try to get an available non-volatile register
+			return unit.GetNextNonVolatileRegister(false);			
+		}
+		else if (hint is DirectToReturnRegister x)
+		{
+			// Try to direct towards the next return register
+			return x.GetClosestReturnInstrution(unit.Position).ReturnRegister;
+		}
+		else if (hint is AvoidRegisters y)
+		{
+			// Try to filter the specified registers
+			return media_register ? unit.GetNextMediaRegisterWithoutReleasing(y.Registers) : unit.GetNextRegisterWithoutReleasing(y.Registers);
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Determines the next register
+	/// </summary>
+	private static Register GetNextRegister(Unit unit, bool media_register, Hint? hint = null)
+	{
+		var register = hint != null ? Consider(unit, hint, media_register) : null;
+
+		if (register == null || !register.IsAvailable(unit.Position))
+		{
+			return media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
+		}
+
+		return register;
+	}
 	
 	/// <summary>
 	/// Copies the given result to a register
 	/// </summary>
-	public static Result CopyToRegister(Unit unit, Result result, bool media_register)
+	public static Result CopyToRegister(Unit unit, Result result, bool media_register, Hint? hint = null)
 	{
 		if (result.IsStandardRegister)
 		{
 			using (RegisterLock.Create(result))
 			{
-				var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
+				var register = GetNextRegister(unit, media_register, hint);
 				var destination = new Result(new RegisterHandle(register), register.Format);
 
 				return new MoveInstruction(unit, destination, result).Execute();
@@ -211,7 +250,7 @@ public static class Memory
 		}
 		else
 		{
-			var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
+			var register = GetNextRegister(unit, media_register, hint);
 			var destination = new Result(new RegisterHandle(register), register.Format);
 
 			return new MoveInstruction(unit, destination, result).Execute();
@@ -219,9 +258,9 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to a register
+	/// Moves the given result to a register considering the specified hints
 	/// </summary>
-	public static Result MoveToRegister(Unit unit, Result result, bool media_register)
+	public static Result MoveToRegister(Unit unit, Result result, bool media_register, Hint? hint = null)
 	{
 		// Prevents reduntant moving to registers
 		if (result.Value.Type == (media_register ? HandleType.MEDIA_REGISTER : HandleType.REGISTER))
@@ -229,7 +268,7 @@ public static class Memory
 			return result;
 		}
 
-		var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
+		var register = GetNextRegister(unit, media_register, hint);
 		var destination = new Result(new RegisterHandle(register), register.Format);
 
 		return new MoveInstruction(unit, destination, result)
@@ -243,32 +282,22 @@ public static class Memory
 	/// <summary>
 	/// Moves the given result to an available register
 	/// </summary>
-	public static void GetRegisterFor(Unit unit, Result value)
+	public static void GetRegisterFor(Unit unit, Result value, bool media_register)
 	{
-		var register = unit.GetNextRegister();
+		var register = GetNextRegister(unit, media_register, value.GetRecommendation(unit));
 
 		register.Handle = value;
 		value.Value = new RegisterHandle(register);
 	}
-	
-	public static Result Convert(Unit unit, Result result, bool move, params HandleType[] types)
-	{
-		return Convert(unit, result, types, move, false);
-	}
 
-	public static Result Convert(Unit unit, Result result, HandleType[] types, bool move, bool protect)
+	public static Result Convert(Unit unit, Result result, HandleType[] types, bool protect, Hint? recommendation)
 	{
 		foreach (var type in types)
 		{
-			var converted = TryConvert(unit, result, type, protect);
+			var converted = TryConvert(unit, result, type, protect, recommendation);
 
 			if (converted != null)
 			{
-				if (move)
-				{
-					result.Value = converted.Value;
-				}
-
 				return converted;
 			}
 		}
@@ -276,23 +305,25 @@ public static class Memory
 		throw new ArgumentException("Couldn't convert reference to the requested format");
 	}
 
-	private static Result? TryConvert(Unit unit, Result result, HandleType type, bool protect)
+	private static Result? TryConvert(Unit unit, Result result, HandleType type, bool protect, Hint? recommendation)
 	{
 		switch (type)
 		{
 			case HandleType.MEDIA_REGISTER:
 			case HandleType.REGISTER:
 			{
+				var is_media_register = type == HandleType.MEDIA_REGISTER;
+
 				// If the result is empty, a new available register can be assigned to it
 				if (result.IsEmpty)
 				{
-					GetRegisterFor(unit, result);
+					GetRegisterFor(unit, result, is_media_register);
 					return result;
 				}
 
 				RegisterHandle? register;
 
-				if (type == HandleType.MEDIA_REGISTER)
+				if (is_media_register)
 				{
 					register = unit.TryGetCachedMediaRegister(result);
 				}
@@ -309,7 +340,7 @@ public static class Memory
 					{
 						using (new RegisterLock(register.Register))
 						{
-							return CopyToRegister(unit, new Result(register, register.Format), type == HandleType.MEDIA_REGISTER);
+							return CopyToRegister(unit, new Result(register, register.Format), is_media_register);
 						}
 					}
 					else
@@ -318,13 +349,16 @@ public static class Memory
 					}
 				}
 
-				var destination = MoveToRegister(unit, result, type == HandleType.MEDIA_REGISTER);
+				// The result must be loaded into a register
+				// The recommendation should not be given to the load instructions if copying is needed, since it would conflict with the copy instructions
+				var copy = protect && !dying;
+				var destination = MoveToRegister(unit, result, is_media_register, copy ? null : recommendation);
 
-				if (protect && !dying)
+				if (copy)
 				{
 					using (new RegisterLock(destination.Value.To<RegisterHandle>().Register))
 					{
-						return CopyToRegister(unit, destination, type == HandleType.MEDIA_REGISTER);
+						return CopyToRegister(unit, destination, is_media_register, recommendation);
 					}
 				}
 

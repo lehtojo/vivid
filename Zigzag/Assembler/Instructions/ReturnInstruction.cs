@@ -6,7 +6,7 @@ public class ReturnInstruction : Instruction
 {
 	private const string RETURN = "ret";
 
-	private Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
+	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 	private Result ReturnRegisterHandle => new Result(new RegisterHandle(ReturnRegister), ReturnType?.Format ?? throw new ApplicationException("Tried to get a return register for a function which doesn't return"));
 
 	public Result? Object { get; private set; }

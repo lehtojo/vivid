@@ -67,26 +67,23 @@ sub rsp, 40
 mov rdx, rcx
 mov rcx, function_to_string_S0
 mov rbx, rdx
-mov rsi, rbx
 call type_string_constructor
-mov rbx, rax
 mov rcx, function_to_string_S1
-mov rdi, rsi
-call type_string_constructor
 mov rsi, rax
-test rdi, rdi
+call type_string_constructor
+test rbx, rbx
 jge function_to_string_L0
 mov rcx, function_to_string_S2
 call type_string_constructor
-neg rdi
-mov rsi, rax
+neg rbx
 function_to_string_L0:
+mov rdi, rax
 function_to_string_L2:
-mov rax, rdi
+mov rax, rbx
 xor rdx, rdx
 mov rcx, 10
 idiv rcx
-mov rax, rdi
+mov rax, rbx
 mov rcx, rdx
 xor rdx, rdx
 mov r8, 10
@@ -94,19 +91,18 @@ idiv r8
 mov rdx, 48
 add rdx, rcx
 mov r8, rcx
-mov rcx, rbx
+mov rcx, rsi
 mov r9, r8
 mov r8, rdx
 xor rdx, rdx
 mov rbx, rax
-mov rdi, r9
-mov rbp, rbx
+mov rsi, r9
 call type_string_function_insert
-mov rbx, rax
-test rbp, rbp
+test rbx, rbx
 jne function_to_string_L3
-mov rcx, rsi
-mov rdx, rbx
+mov rcx, rdi
+mov rdx, rax
+mov rbp, rax
 call type_string_function_combine
 add rsp, 40
 pop rbp
@@ -114,8 +110,9 @@ pop rdi
 pop rsi
 pop rbx
 ret
+mov rax, rbp
 function_to_string_L3:
-mov rdi, rbp
+mov rsi, rax
 jmp function_to_string_L2
 add rsp, 40
 pop rbp
@@ -126,22 +123,20 @@ ret
 
 function_printsln:
 push rbx
-push rsi
-sub rsp, 40
+sub rsp, 48
 mov rdx, 10
 mov rbx, rcx
 call type_string_function_append
 mov rcx, rax
 call type_string_function_data
-mov rsi, rax
 mov rcx, rbx
+mov rbx, rax
 call type_string_function_length
 add rax, 1
-mov rcx, rsi
+mov rcx, rbx
 mov rdx, rax
 call sys_print
-add rsp, 40
-pop rsi
+add rsp, 48
 pop rbx
 ret
 
@@ -162,33 +157,30 @@ push rbx
 push rsi
 push rdi
 push rbp
-push r12
-sub rsp, 48
+sub rsp, 40
 mov rbx, rcx
 mov rsi, rdx
-mov rdi, rsi
 call type_string_function_length
-mov rsi, rax
-mov rcx, rdi
+mov rcx, rsi
+mov rdi, rax
 call type_string_function_length
+add rax, 1
+lea rcx, [rdi+rax]
 mov rbp, rax
-add rbp, 1
-lea rcx, [rsi+rbp]
 call allocate
-mov r12, rax
 mov rcx, [rbx]
-mov rdx, rsi
-mov r8, r12
+mov rdx, rdi
+mov r8, rax
+mov rbx, rax
 call copy
-mov rcx, [rdi]
+mov rcx, [rsi]
 mov rdx, rbp
-mov r8, r12
-mov r9, rsi
+mov r8, rbx
+mov r9, rdi
 call offset_copy
-mov rcx, r12
+mov rcx, rbx
 call type_string_constructor
-add rsp, 48
-pop r12
+add rsp, 40
 pop rbp
 pop rdi
 pop rsi
@@ -199,28 +191,24 @@ type_string_function_append:
 push rbx
 push rsi
 push rdi
-push rbp
-sub rsp, 40
+sub rsp, 48
 mov rbx, rcx
 mov rsi, rdx
-mov rdi, rsi
 call type_string_function_length
-mov rsi, rax
-lea rcx, [rsi+2]
-mov rbp, rdi
-call allocate
+lea rcx, [rax+2]
 mov rdi, rax
+call allocate
 mov rcx, [rbx]
-mov rdx, rsi
-mov r8, rdi
+mov rdx, rdi
+mov r8, rax
+mov rbx, rax
 call copy
-mov byte [rdi+rsi], bpl
-add rsi, 1
-mov byte [rdi+rsi], 0
-mov rcx, rdi
+mov byte [rbx+rdi], sil
+add rdi, 1
+mov byte [rbx+rdi], 0
+mov rcx, rbx
 call type_string_constructor
-add rsp, 40
-pop rbp
+add rsp, 48
 pop rdi
 pop rsi
 pop rbx
@@ -236,30 +224,28 @@ sub rsp, 48
 mov rbx, rcx
 mov rsi, rdx
 mov rdi, r8
-mov rbp, rsi
 call type_string_function_length
-mov rsi, rax
-lea rcx, [rsi+2]
-mov r12, rdi
+lea rcx, [rax+2]
+mov rbp, rax
 call allocate
-mov rdi, rax
 mov rcx, [rbx]
-mov rdx, rbp
-mov r8, rdi
+mov rdx, rsi
+mov r8, rax
+mov r12, rax
 call copy
-mov rcx, rsi
-sub rcx, rbp
-lea rdx, [rbp+1]
+mov rcx, rbp
+sub rcx, rsi
+lea rdx, [rsi+1]
 mov r8, rdx
 mov rdx, rcx
 mov rcx, [rbx]
 mov r9, r8
-mov r8, rdi
+mov r8, r12
 call offset_copy
-mov byte [rdi+rbp], r12b
-add rsi, 1
-mov byte [rdi+rsi], 0
-mov rcx, rdi
+mov byte [r12+rsi], dil
+add rbp, 1
+mov byte [r12+rbp], 0
+mov rcx, r12
 call type_string_constructor
 add rsp, 48
 pop r12

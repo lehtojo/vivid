@@ -16,16 +16,15 @@ push rbx
 push rsi
 push rdi
 sub rsp, 48
-mov r8, rcx
-imul r8, rdx
-add r8, 10
 mov rbx, rcx
-mov rsi, rdx
-mov rdi, r8
+imul rbx, rdx
+add rbx, 10
+mov rsi, rcx
+mov rdi, rdx
 call large_function
-add rbx, rsi
-add rbx, rdi
-mov rax, rbx
+add rsi, rdi
+add rsi, rbx
+mov rax, rsi
 add rsp, 48
 pop rdi
 pop rsi
@@ -41,26 +40,23 @@ push rdi
 push rbp
 push r12
 sub rsp, 48
-mov r8, rcx
-imul r8, rdx
-add r8, 10
-mov r9, rcx
-imul r9, rdx
-add r9, 10
-mov r10, rcx
-imul r10, rdx
-add r10, 10
 mov rbx, rcx
-mov rsi, rdx
-mov rdi, r8
-mov rbp, r9
-mov r12, r10
+imul rbx, rdx
+add rbx, 10
+mov rsi, rcx
+imul rsi, rdx
+add rsi, 10
+mov rdi, rcx
+imul rdi, rdx
+add rdi, 10
+mov rbp, rcx
+mov r12, rdx
 call large_function
-add rbx, rsi
-add rbx, rdi
-add rbx, rbp
-add rbx, r12
-mov rax, rbx
+add rbp, r12
+add rbp, rbx
+add rbp, rsi
+add rbp, rdi
+mov rax, rbp
 add rsp, 48
 pop r12
 pop rbp

@@ -24,6 +24,63 @@ public struct Connection
 	public bool IsSendingEnabled;
 }
 
+public interface Hint 
+{
+	bool IsRelevant(int perspective);
+}
+
+public class DirectToNonVolatileRegister : Hint
+{
+	public Instruction[] Calls { get; }
+
+	public DirectToNonVolatileRegister(Instruction[] calls)
+	{
+		Calls = calls;
+	}
+
+	public bool IsRelevant(int perspective)
+	{
+		return Calls.Any(c => c.Position > perspective);
+	}
+}
+
+public class DirectToReturnRegister : Hint
+{
+	public List<ReturnInstruction> Objectives { get; } = new List<ReturnInstruction>();
+
+	public DirectToReturnRegister(ReturnInstruction objective)
+	{
+		Objectives.Add(objective);
+	}
+
+	public ReturnInstruction GetClosestReturnInstrution(int perspective)
+	{
+		return Objectives.Where(r => r.Position > perspective).OrderBy(r => r.Position - perspective).First();
+	}
+
+   public bool IsRelevant(int perspective)
+   {
+		return Objectives.Any(c => c.Position > perspective);
+   }
+}
+
+public class AvoidRegisters : Hint 
+{
+	public Instruction End { get; }
+	public Register[] Registers { get; }
+
+	public AvoidRegisters(Instruction end, Register[] registers)
+	{
+		End = end;
+		Registers = registers;
+	}
+
+	public bool IsRelevant(int perspective)
+	{
+		return perspective <= End.Position;
+	}
+}
+
 public class Result
 {
 	public Instruction? Instruction { get; set; }
@@ -53,6 +110,8 @@ public class Result
 			});
 		}
 	}
+
+	public List<Hint> Hints { get; private set; } = new List<Hint>();
 
 	public Format Format { get; set; } = Assembler.Size.ToFormat();
 	public Size Size => Size.FromFormat(Format);
@@ -114,6 +173,42 @@ public class Result
 	}
 
 	/// <summary>
+	/// Determines the currently most imporant hint, if any exists
+	/// </summary>
+	public Hint? GetRecommendation(Unit unit)
+	{
+		var relevant_hints = Hints.FindAll(h => h.IsRelevant(unit.Position));
+
+		if (Hints.Count == 0)
+		{
+			return null;
+		}
+
+		if (Hints.Exists(h => h is DirectToNonVolatileRegister))
+		{
+			return Hints.Find(h => h is DirectToNonVolatileRegister);
+		}
+		else if (Hints.Exists(h => h is DirectToReturnRegister))
+		{
+			return Hints.Find(h => h is DirectToReturnRegister);
+		}
+		else if (Hints.Exists(h => h is AvoidRegisters))
+		{
+			return Hints.Find(h => h is AvoidRegisters);
+		}
+
+		return null;
+	}
+
+	public void AddHint(Hint hint)
+	{
+		if (!Hints.Exists(h => h.GetType() == hint.GetType()))
+		{
+			Hints.Add(hint);
+		}
+	}
+
+	/// <summary>
 	/// Connects this result to the other system (doesn't make duplicates)
 	/// </summary>
 	private void Connect(IEnumerable<Result> system)
@@ -139,6 +234,7 @@ public class Result
 			member.Instruction = Instruction;
 			member.Lifetime = Lifetime;
 			member.Format = Format;
+			member.Hints = Hints;
 		}
 	}
 

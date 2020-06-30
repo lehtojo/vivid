@@ -11,16 +11,15 @@ extern deallocate
 global function_basic_math
 export function_basic_math
 function_basic_math:
-mov r9, rcx
-imul r9, r8
-add r9, rcx
-add r9, r8
+mov rax, rcx
+imul rax, r8
+add rax, rcx
+add rax, r8
 imul rdx, rcx
 add r8, 1
 imul rdx, r8
 imul rdx, 100
-add r9, rdx
-mov rax, r9
+add rax, rdx
 ret
 
 global function_addition

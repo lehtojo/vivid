@@ -128,6 +128,7 @@ public abstract class Instruction
 	private Result Convert(InstructionParameter parameter)
 	{
 		var protect = parameter.IsDestination && parameter.IsProtected;
+		var recommendation = parameter.IsDestination ? Result.GetRecommendation(Unit) : parameter.Result.GetRecommendation(Unit);
 
 		if (parameter.IsValid)
 		{
@@ -151,7 +152,7 @@ public abstract class Instruction
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
 				{
-					return Memory.MoveToRegister(Unit, parameter.Result, false);
+					return Memory.MoveToRegister(Unit, parameter.Result, false, recommendation);
 				}
 			}
 			else if (options.Contains(HandleType.MEDIA_REGISTER))
@@ -171,27 +172,27 @@ public abstract class Instruction
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
 				{
-					return Memory.MoveToRegister(Unit, parameter.Result, true);
+					return Memory.MoveToRegister(Unit, parameter.Result, true, recommendation);
 				}
 			}
 
 			// If the parameter size doesn't match the required size, it can be converted by moving it to register
 			if (parameter.IsMemoryAddress && parameter.RequiredSize != Size.NONE && parameter.Result.Size != parameter.RequiredSize)
 			{
-				Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
+				Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
 			}
 
 			// If the current parameter is the destination and it is needed later, then it must me copied to another register
 			if (protect && parameter.Result.IsOnlyValid(Position))
 			{
 				/// TODO: All parameter that include media register type are not floating point numbers
-				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER));
+				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
 			}
 
 			return parameter.Result;
 		}
 
-		return Memory.Convert(Unit, parameter.Result, parameter.Types, false, protect);
+		return Memory.Convert(Unit, parameter.Result, parameter.Types, protect, recommendation);
 	}
 
 	/// <summary>
@@ -320,7 +321,7 @@ public abstract class Instruction
 		{
 			if (result.Value.Type != HandleType.REGISTER)
 			{
-				Memory.MoveToRegister(Unit, result, false);
+				Memory.MoveToRegister(Unit, result, false, result.GetRecommendation(Unit));
 			}
 
 			locks.Add(RegisterLock.Create(result));
@@ -524,6 +525,24 @@ public abstract class Instruction
 		while (destination != null && destination != previous)
 		{
 			destination.Set(to, true);
+
+			previous = destination;
+			destination = destination.Instruction?.GetDestinationDependency();
+		}
+
+		return previous?.Instruction?.Position ?? -1;
+	}
+
+	public int Direct(Hint hint)
+	{
+		Result.AddHint(hint);
+
+		var destination = GetDestinationDependency();
+		var previous = (Result?)null;
+
+		while (destination != null && destination != previous)
+		{
+			destination.AddHint(hint);
 
 			previous = destination;
 			destination = destination.Instruction?.GetDestinationDependency();

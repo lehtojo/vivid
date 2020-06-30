@@ -258,7 +258,7 @@ public static class Oracle
 		});
 	}
 
-	private static void TryRedirectToReturnRegister(Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirectToReturnRegister(ReturnInstruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
@@ -273,7 +273,8 @@ public static class Oracle
 				return;
 			}
 
-			instruction.Redirect(new RegisterHandle(register));
+			instruction.Direct(new DirectToReturnRegister(instruction));
+			//instruction.Redirect(new RegisterHandle(register));
 		}
 	}
 
@@ -350,6 +351,15 @@ public static class Oracle
 		{
 			var result = instruction.Result;
 
+			var intersections = calls.FindAll(c => result.Lifetime.IsOnlyActive(c.Position));
+
+			if (intersections.Count > 0 && 
+				(!result.IsStandardRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
+			{
+				instruction.Direct(new DirectToNonVolatileRegister(intersections.ToArray()));
+			}
+			/*var result = instruction.Result;
+
 			Result? dependency;
 
 			try
@@ -388,7 +398,7 @@ public static class Oracle
 					instruction.Redirect(new RegisterHandle(register));
 					register.Handle = result;
 				}
-			}
+			}*/
 		});
 	}
 

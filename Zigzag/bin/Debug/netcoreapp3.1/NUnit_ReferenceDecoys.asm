@@ -34,10 +34,9 @@ export function_reference_decoy_3
 function_reference_decoy_3:
 xor rax, rax
 mov rdx, rcx
-mov rcx, rax
-mov rax, rdx
+mov rcx, rdx
 mov r8, rdx
-mov r9, rcx
+mov r9, rax
 cmp r9, 3
 jge function_reference_decoy_3_L1
 function_reference_decoy_3_L0:
@@ -46,11 +45,12 @@ mov rdx, r9
 add rdx, 1
 cmp rdx, 3
 mov r8, rcx
-mov rax, r9
+mov rcx, r9
 mov r9, rdx
 jl function_reference_decoy_3_L0
 function_reference_decoy_3_L1:
-add rax, r8
+add rcx, r8
+mov rax, rcx
 ret
 
 global function_reference_decoy_4
@@ -60,25 +60,25 @@ xor rax, rax
 mov rdx, rcx
 mov r8, rdx
 mov r9, r8
-mov rcx, rax
-mov rax, r9
+mov rcx, r9
 mov rdx, r9
 mov r8, r9
 mov r10, r9
-cmp rcx, 5
+cmp rax, 5
 jge function_reference_decoy_4_L1
 function_reference_decoy_4_L0:
-add rax, 1
+add rcx, 1
 add rdx, 2
 add r8, 4
 add r10, 8
-add rcx, 1
-cmp rcx, 5
+add rax, 1
+cmp rax, 5
 jl function_reference_decoy_4_L0
 function_reference_decoy_4_L1:
-add rax, rdx
-add rax, r8
-add rax, r10
+add rcx, rdx
+add rcx, r8
+add rcx, r10
+mov rax, rcx
 ret
 
 global function_reference_decoy_5
@@ -89,7 +89,8 @@ push rsi
 push rdi
 push rbp
 push r12
-sub rsp, 48
+push r13
+sub rsp, 40
 mov rbx, rcx
 call large_function
 xor rcx, rcx
@@ -102,7 +103,6 @@ mov rsi, r11
 mov rdi, rsi
 mov rbp, rdi
 mov r12, rbp
-mov rax, r12
 mov rdx, r12
 mov r8, r12
 mov r9, r12
@@ -112,33 +112,36 @@ mov rbx, r12
 mov rsi, r12
 mov rdi, r12
 mov rbp, r12
+mov r13, r12
 cmp rcx, 5
 jge function_reference_decoy_5_L1
 function_reference_decoy_5_L0:
-add rax, 1
-add rdx, 2
-add r8, 3
-add r9, 4
-add r10, 5
-add r11, 6
-add rbx, 7
-add rsi, 8
-add rdi, 9
-add rbp, 10
+add rdx, 1
+add r8, 2
+add r9, 3
+add r10, 4
+add r11, 5
+add rbx, 6
+add rsi, 7
+add rdi, 8
+add rbp, 9
+add r13, 10
 add rcx, 1
 cmp rcx, 5
 jl function_reference_decoy_5_L0
 function_reference_decoy_5_L1:
-add rax, rdx
-add rax, r8
-add rax, r9
-add rax, r10
-add rax, r11
-add rax, rbx
-add rax, rsi
-add rax, rdi
-add rax, rbp
-add rsp, 48
+add rdx, r8
+add rdx, r9
+add rdx, r10
+add rdx, r11
+add rdx, rbx
+add rdx, rsi
+add rdx, rdi
+add rdx, rbp
+add rdx, r13
+mov rax, rdx
+add rsp, 40
+pop r13
 pop r12
 pop rbp
 pop rdi

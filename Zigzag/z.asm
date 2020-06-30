@@ -122,6 +122,7 @@ sal rcx, 3
 call allocate
 mov qword [rbx], rax
 mov qword [rbx+8], rsi
+mov rax, rbx
 add rsp, 40
 pop rsi
 pop rbx
