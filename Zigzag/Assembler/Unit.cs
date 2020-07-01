@@ -117,7 +117,7 @@ public class Unit
 	private int StringIndex { get; set; }
 	private int ConstantIndex { get; set; }
 
-	public Variable? Self { get; set; }
+	public Variable? Self { get; }
 
 	private Instruction? Anchor { get; set; }
 	public int Position { get; private set; } = -1;

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
+
 public static class ListPopExtensionStructs
 {
 	public static T? Pop<T>(this List<T> source) where T : struct
