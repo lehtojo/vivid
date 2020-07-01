@@ -33,7 +33,7 @@ public class LoopPattern : Pattern
 		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP;
 	}
 
-	private Node? GetSteps(Context context, ContentToken content)
+	private static Node? GetSteps(Context context, ContentToken content)
 	{
 		var steps = new Node();
 

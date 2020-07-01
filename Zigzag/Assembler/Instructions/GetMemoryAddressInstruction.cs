@@ -14,9 +14,12 @@ public class GetMemoryAddressInstruction : Instruction
 		Offset = offset;
 		Stride = stride;
 
-		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
-		Result.Format = format;
-		Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
+      Result.Value = new ComplexMemoryHandle(Start, Offset, Stride)
+      {
+         Format = format
+      };
+		
+      Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
 		Source.Value = Result.Value;
 		Result.Format = format;

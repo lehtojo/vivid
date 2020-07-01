@@ -1,6 +1,6 @@
 using System;
 
-public class Types
+public static class Types
 {
 	public const Type UNKNOWN = null;
 

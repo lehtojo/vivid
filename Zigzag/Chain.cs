@@ -60,7 +60,6 @@ public class Chain
             }
         }
 
-
         return true;
     }
 }

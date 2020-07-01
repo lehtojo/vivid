@@ -30,12 +30,12 @@ public class MultiplicationInstruction : DualParameterInstruction
 		}
 	}
 
-	private bool IsPowerOfTwo(long x)
+	private static bool IsPowerOfTwo(long x)
 	{
     	return (x & (x - 1)) == 0;
 	}
 
-	private bool IsConstantValidForExtendedMultiplication(long x)
+	private static bool IsConstantValidForExtendedMultiplication(long x)
 	{
     	return IsPowerOfTwo(x) && x <= 8;
 	}

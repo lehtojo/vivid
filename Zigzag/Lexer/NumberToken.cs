@@ -9,17 +9,17 @@ public class NumberToken : Token
 	public int Bits { get; private set; }
 	public int Bytes => Bits / 8;
 
-	private bool IsDecimal(string text)
+	private static bool IsDecimal(string text)
 	{
 		return text.Contains('.');
 	}
 
-	private string GetNumberPart(string text)
+	private static string GetNumberPart(string text)
 	{
 		return new string(text.TakeWhile(c => char.IsDigit(c) || c == Lexer.DECIMAL_SEPARATOR).ToArray());
 	}
 
-	private void GetType(string text, out int bits, out bool unsigned)
+	private static void GetType(string text, out int bits, out bool unsigned)
 	{
 		var index = text.IndexOf(Lexer.SIGNED_TYPE_SEPARATOR);
 
@@ -53,7 +53,7 @@ public class NumberToken : Token
 		}
 	}
 
-	private int GetExponent(string text)
+	private static int GetExponent(string text)
 	{
 		var index = text.IndexOf(Lexer.EXPONENT_SEPARATOR);
 
@@ -78,21 +78,21 @@ public class NumberToken : Token
 		if (IsDecimal(text))
 		{
 			// Calculate the value
-			var number_part = GetNumberPart(text).Replace(".", ",");
-			var value = double.Parse(number_part);
+			var number_part = GetNumberPart(text);
+			var value = double.Parse(number_part, CultureInfo.InvariantCulture);
 
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
 
-			/// TODO: Think about overriding the decimal type
-			Value = value;
+         /// TODO: Think about overriding the decimal type
+         Value = value;
 			NumberType = Format.DECIMAL;
 			Bits = Lexer.Size.Bytes * 8;
 		}
 		else
 		{
 			// Calculate the value
-			var value = long.Parse(GetNumberPart(text));
+			var value = long.Parse(GetNumberPart(text), CultureInfo.InvariantCulture);
 			
 			/// TODO: Detect too large exponent
 			value *= (long)Math.Pow(10, exponent);

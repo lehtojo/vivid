@@ -124,7 +124,7 @@ public class DivisionInstruction : DualParameterInstruction
 		}
 	}
 
-	private bool IsPowerOfTwo(long x)
+	private static bool IsPowerOfTwo(long x)
 	{
     	return (x & (x - 1)) == 0;
 	}

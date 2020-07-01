@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using System.Text;
 using System;
 using System.Linq;
+using System.Globalization;
 
 public class Lifetime
-{ 
+{
 	public int Start { get; set; } = -1;
 	public int End { get; set; } = -1;
 
@@ -57,7 +58,7 @@ public class Lifetime
 			return "static";
 		}
 
-		return (Start == -1 ? string.Empty : Start.ToString()) + ".." + (End == -1 ? string.Empty : End.ToString());
+		return (Start == -1 ? string.Empty : Start.ToString(CultureInfo.InvariantCulture)) + ".." + (End == -1 ? string.Empty : End.ToString(CultureInfo.InvariantCulture));
 	}
 }
 
@@ -98,9 +99,7 @@ public class VariableState
 
 public class Unit
 {
-	public bool Optimize = true;
-
-	public FunctionImplementation Function { get; }
+	public FunctionImplementation Function { get; private set; }
 
 	public List<Register> Registers { get; }
 	public List<Register> NonVolatileRegisters { get; }
@@ -344,7 +343,7 @@ public class Unit
 	public RegisterHandle? TryGetCached(Result handle)
 	{
 		var register = Registers
-			.Find(r => !r.IsMediaRegister && ((r.Handle != null) && r.Handle.Value == handle.Value));
+			.Find(r => !r.IsMediaRegister && (r.Handle != null) && r.Handle.Value == handle.Value);
 
 		if (register != null)
 		{
@@ -395,7 +394,7 @@ public class Unit
 				Type = MoveType.RELOCATE
 			};
 
-			Append(move);
+         Append(move);
 		}
 
 		// Now the register is ready for use

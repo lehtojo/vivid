@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-public class Operators
+public static class Operators
 {
 	public static readonly ClassicOperator COLON = new ClassicOperator(":", 1, false);
 

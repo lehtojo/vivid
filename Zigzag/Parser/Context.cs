@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public class Context
@@ -35,18 +37,19 @@ public class Context
 	/// Returns the global name of the context
 	/// </summary>
 	/// <returns>Global name of the context</returns>
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public virtual string GetFullname()
 	{
 		var parent = Parent?.GetFullname() ?? string.Empty;
 		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
 
-		var prefix = Prefix.ToLower();
+		var prefix = Prefix.ToLowerInvariant();
 		prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
 
-		var name = Name.ToLower();
+		var name = Name.ToLowerInvariant();
 		name = string.IsNullOrEmpty(name) ? name : '_' + name;
 
-		var postfix = Postfix.ToLower();
+		var postfix = Postfix.ToLowerInvariant();
 		postfix = string.IsNullOrEmpty(postfix) ? postfix : '_' + postfix;
 
 		return parent + prefix + name + postfix;

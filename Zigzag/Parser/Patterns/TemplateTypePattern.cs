@@ -26,7 +26,7 @@ public class TemplateTypePattern : Pattern
                tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
-	private List<string> GetTemplateArgumentNames(List<Token> tokens)
+	private static List<string> GetTemplateArgumentNames(List<Token> tokens)
 	{
 		var template_arguments = tokens[TEMPLATE_ARGUMENTS].To<ContentToken>();
 		var template_argument_names = new List<string>();

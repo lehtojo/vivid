@@ -14,7 +14,7 @@ public class VariableLoad
    }
 }
 
-public class Scope : IDisposable
+public sealed class Scope : IDisposable
 {
    /// <summary>
    /// Returns whether the given variable is a non-local variable
@@ -127,11 +127,11 @@ public class Scope : IDisposable
    private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
    private HashSet<Variable> Finalizers { get; set; } = new HashSet<Variable>();
 
-   public List<Variable> ActiveVariables { get; set; } = new List<Variable>();
-   public Dictionary<Variable, Result> Variables { get; set; } = new Dictionary<Variable, Result>();
-   public Dictionary<Variable, Result> TransitionHandles { get; set; } = new Dictionary<Variable, Result>();
+   public List<Variable> ActiveVariables { get; } = new List<Variable>();
+   public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
+   public Dictionary<Variable, Result> TransitionHandles { get; } = new Dictionary<Variable, Result>();
 
-   public Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
+   public Dictionary<object, List<Result>> Constants { get; } = new Dictionary<object, List<Result>>();
 
    public Unit? Unit { get; private set; }
    public Scope? Outer { get; private set; } = null;
@@ -172,7 +172,7 @@ public class Scope : IDisposable
    /// <summary>
    /// Returns whether the register contains a variable that is either a parameter or a local variable
    /// </summary>
-   private bool ContainsPredictableVariable(Register register, out Variable? variable)
+   private static bool ContainsPredictableVariable(Register register, out Variable? variable)
    {
       var handle = register.Handle;
 

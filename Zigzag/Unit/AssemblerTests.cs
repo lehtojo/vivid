@@ -11,7 +11,7 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Documents\\Intuitive\\Zigzag\\Tests\\";
+      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\Tests\\";
       private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
 
@@ -68,7 +68,7 @@ namespace Zigzag.Unit
       
       
 
-      private bool Compile(string output, params string[] source_files)
+      private static bool Compile(string output, params string[] source_files)
       {
          // Configure the flow of the compiler
          var chain = new Chain
@@ -91,7 +91,7 @@ namespace Zigzag.Unit
          return chain.Execute(bundle);
       }
 
-      private bool CompileExecutable(string output, params string[] source_files)
+      private static bool CompileExecutable(string output, params string[] source_files)
       {
          // Configure the flow of the compiler
          var chain = new Chain
@@ -114,7 +114,7 @@ namespace Zigzag.Unit
          return chain.Execute(bundle);
       }
 
-      private string Execute(string name)
+      private static string Execute(string name)
       {
          var configuration = new ProcessStartInfo()
          {
@@ -147,12 +147,12 @@ namespace Zigzag.Unit
          }
       }
 
-      private string LoadAssemblyOutput(string output)
+      private static string LoadAssemblyOutput(string output)
       {
          return File.ReadAllText("NUnit_" + output + ".asm");
       }
 
-      private int GetCountOf(string assembly, string pattern)
+      private static int GetCountOf(string assembly, string pattern)
       {
          var count = 0;
 
@@ -167,7 +167,7 @@ namespace Zigzag.Unit
          return count;
       }
 
-      private int GetMemoryAddressCount(string assembly)
+      private static int GetMemoryAddressCount(string assembly)
       {
          var count = 0;
 
@@ -182,7 +182,7 @@ namespace Zigzag.Unit
          return count;
       }
 
-      private void AssertNoMemoryAddress(string assembly)
+      private static void AssertNoMemoryAddress(string assembly)
       {
          foreach (var line in assembly.Split('\n'))
          {

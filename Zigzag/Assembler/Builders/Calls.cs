@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 public static class Calls
 {
@@ -163,7 +164,7 @@ public static class Calls
 	{
 		if (parameters == null)
 		{
-			return new Node[0];
+			return Array.Empty<Node>();
 		}
 
 		var result = new List<Node>();

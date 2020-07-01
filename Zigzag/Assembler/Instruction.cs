@@ -23,7 +23,7 @@ public class InstructionParameter
 	public Handle? Value { get; set; } = null;
 	public Size RequiredSize { get; set; } = Size.NONE;
 	public HandleType[] Types { get; private set; }
-	public HandleType OptimalType => Types[0];
+	public HandleType OptimalType => Types.First();
 
 	public int Flags { get; private set; }
 	
@@ -376,7 +376,7 @@ public abstract class Instruction
 		Operation = operation;
 		OnPostBuild();
 
-		locks.ForEach(l => l.Dispose());
+		locks.ForEach(l => ((IDisposable)l).Dispose());
 	}
 
 	public void Translate()

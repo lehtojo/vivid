@@ -1,8 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
-public class Lexer
+public enum AreaType
+{
+	UNSPECIFIED,
+	TEXT,
+	COMMENT,
+	NUMBER,
+	CONTENT,
+	OPERATOR,
+	STRING,
+	END
+}
+
+public class Area
+{
+	public AreaType Type { get; set; }
+
+	public string Text { get; set; } = string.Empty;
+
+	public Position Start { get; set; } = new Position();
+	public Position End { get; set; } = new Position();
+}
+
+public static class Lexer
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
@@ -12,28 +35,6 @@ public class Lexer
 	public const char EXPONENT_SEPARATOR = 'e';
 	public const char SIGNED_TYPE_SEPARATOR = 'i';
 	public const char UNSIGNED_TYPE_SEPARATOR = 'u';
-
-	public enum Type
-	{
-		UNSPECIFIED,
-		TEXT,
-		COMMENT,
-		NUMBER,
-		CONTENT,
-		OPERATOR,
-		STRING,
-		END
-	}
-
-	public class Area
-	{
-		public Type Type { get; set; }
-
-		public string Text { get; set; } = string.Empty;
-
-		public Position Start { get; set; } = new Position();
-		public Position End { get; set; } = new Position();
-	}
 
 	/// <summary>
 	/// Returns whether the character is a operator
@@ -100,38 +101,38 @@ public class Lexer
 	/// </summary>
 	/// <param name="c">Character to scan</param>
 	/// <returns>Type of the character</returns>
-	private static Type GetType(char c)
+	private static AreaType GetType(char c)
 	{
 		if (IsText(c))
 		{
-			return Type.TEXT;
+			return AreaType.TEXT;
 		}
 		else if (IsDigit(c))
 		{
-			return Type.NUMBER;
+			return AreaType.NUMBER;
 		}
 		else if (IsContent(c))
 		{
-			return Type.CONTENT;
+			return AreaType.CONTENT;
 		}
 		else if (IsOperator(c))
 		{
-			return Type.OPERATOR;
+			return AreaType.OPERATOR;
 		}
 		else if (IsComment(c))
 		{
-			return Type.COMMENT;
+			return AreaType.COMMENT;
 		}
 		else if (IsString(c))
 		{
-			return Type.STRING;
+			return AreaType.STRING;
 		}
 		else if (c == '\n')
 		{
-			return Type.END;
+			return AreaType.END;
 		}
 
-		return Type.UNSPECIFIED;
+		return AreaType.UNSPECIFIED;
 	}
 
 	/// <summary>
@@ -142,27 +143,27 @@ public class Lexer
 	/// <param name="previous_symbol">Previous character</param>
 	/// <param name="current_symbol">Current character</param>
 	/// <returns>True if the character is part of the progressing token</returns>
-	private static bool IsPartOf(Type previous, Type current, char previous_symbol, char current_symbol)
+	private static bool IsPartOf(AreaType previous, AreaType current, char previous_symbol, char current_symbol)
 	{
-		if (current == previous || previous == Type.UNSPECIFIED)
+		if (current == previous || previous == AreaType.UNSPECIFIED)
 		{
 			return true;
 		}
 
 		switch (previous)
 		{
-			case Type.TEXT:
+			case AreaType.TEXT:
 			{
-				return current == Type.NUMBER;
+				return current == AreaType.NUMBER;
 			}
 
-			case Type.NUMBER:
+			case AreaType.NUMBER:
 			{
 				return 	current_symbol == DECIMAL_SEPARATOR || // Example: 7.0
 					   	current_symbol == EXPONENT_SEPARATOR ||	// Example: 100e0
-						current_symbol == SIGNED_TYPE_SEPARATOR || // Example 0i8
-						current_symbol == UNSIGNED_TYPE_SEPARATOR || // Example 0u32
-						(previous_symbol == EXPONENT_SEPARATOR && (current_symbol == '+' || current_symbol == '-')); // Examples: 3.14159e+10, 10e-10
+							current_symbol == SIGNED_TYPE_SEPARATOR || // Example 0i8
+							current_symbol == UNSIGNED_TYPE_SEPARATOR || // Example 0u32
+							(previous_symbol == EXPONENT_SEPARATOR && (current_symbol == '+' || current_symbol == '-')); // Examples: 3.14159e+10, 10e-10
 			}
 
 			default: return false;
@@ -309,28 +310,28 @@ public class Lexer
 		switch (area.Type)
 		{
 
-			case Type.COMMENT:
+			case AreaType.COMMENT:
 			{
 				area.End = SkipComment(text, area.Start);
 				area.Text = text[area.Start.Absolute..area.End.Absolute];
 				return area;
 			}
 
-			case Type.CONTENT:
+			case AreaType.CONTENT:
 			{
 				area.End = SkipContent(text, area.Start);
 				area.Text = text[area.Start.Absolute..area.End.Absolute];
 				return area;
 			}
 
-			case Type.END:
+			case AreaType.END:
 			{
 				area.End = position.Clone().NextLine();
 				area.Text = "\n";
 				return area;
 			}
 
-			case Type.STRING:
+			case AreaType.STRING:
 			{
 				area.End = SkipString(text, area.Start);
 				area.Text = text[area.Start.Absolute..area.End.Absolute];
@@ -349,7 +350,7 @@ public class Lexer
 			{
 
 				// There cannot be number and content tokens side by side
-				if (area.Type == Type.NUMBER)
+				if (area.Type == AreaType.NUMBER)
 				{
 					throw Errors.Get(position, "Missing operator between number and parenthesis");
 				}
@@ -405,18 +406,17 @@ public class Lexer
 	{
       return area.Type switch
       {
-         Type.TEXT => ParseTextToken(area.Text),
-         Type.NUMBER => new NumberToken(area.Text),
-         Type.OPERATOR => new OperatorToken(area.Text),
-         Type.CONTENT => new ContentToken(area.Text, anchor += area.Start),
-         Type.END => new Token(TokenType.END),
-         Type.STRING => new StringToken(area.Text),
-
-         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format("Unrecognized token '{0}'", area.Text)))
+         AreaType.TEXT => ParseTextToken(area.Text),
+         AreaType.NUMBER => new NumberToken(area.Text),
+         AreaType.OPERATOR => new OperatorToken(area.Text),
+         AreaType.CONTENT => new ContentToken(area.Text, anchor += area.Start),
+         AreaType.END => new Token(TokenType.END),
+         AreaType.STRING => new StringToken(area.Text),
+         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unrecognized token '{0}'", area.Text))),
       };
    }
-
-   /// <summary>
+	
+	/// <summary>
    /// Join all sequential modifier keywords into one token
    /// </summary>
    public static void JoinModifiers(List<Token> tokens)
@@ -471,7 +471,7 @@ public class Lexer
 				break;
 			}
 
-			if (area.Type != Type.COMMENT)
+			if (area.Type != AreaType.COMMENT)
 			{
 				var token = ParseToken(area, anchor);
 				token.Position = (anchor += area.Start);

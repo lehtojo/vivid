@@ -46,7 +46,7 @@ public static class Builders
 
 			case NodeType.CAST_NODE:
 			{
-				return Builders.Build(unit, node.First!);
+				return Build(unit, node.First!);
 			}
 
 			case NodeType.NEGATE_NODE:

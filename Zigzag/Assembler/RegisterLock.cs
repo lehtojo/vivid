@@ -1,6 +1,6 @@
 using System;
 
-public class RegisterLock : IDisposable
+public sealed class RegisterLock : IDisposable
 {
 	public Register Register { get; private set; }
 

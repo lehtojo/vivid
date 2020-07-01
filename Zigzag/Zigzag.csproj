@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -23,10 +23,12 @@
     <WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 	  <Nullable>enable</Nullable>
     <GenerateProgramFile>false</GenerateProgramFile>
+    <NoWarn>1701;1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.VersionCheckAnalyzer" Version="3.0.0">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
+      <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

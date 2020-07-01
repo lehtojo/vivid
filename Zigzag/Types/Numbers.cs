@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
-public class Numbers
+public static class Numbers
 {
-	private static readonly Dictionary<Format, Number> Values = new Dictionary<Format, Number>();
+	private static Dictionary<Format, Number> Values { get; } = new Dictionary<Format, Number>();
 
 	public static Number Get(Format type)
 	{
@@ -40,7 +41,7 @@ public class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) + Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) + Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x + (long) y;
@@ -56,7 +57,7 @@ public class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) - Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) - Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x - (long) y;
@@ -72,7 +73,7 @@ public class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) * Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) * Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x * (long) y;
@@ -88,7 +89,7 @@ public class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) / Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) / Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x / (long) y;

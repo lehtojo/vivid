@@ -4,15 +4,15 @@ using System;
 
 public class VariableUsageInfo
 {
-   public Variable Variable;
-   public Result? Reference;
-   public int Usages;
+	public Variable Variable { get; }
+	public Result? Reference { get; set; }
+	public int Usages { get; }
 
-   public VariableUsageInfo(Variable variable, int usages)
-   {
-      Variable = variable;
-      Usages = usages;
-   }
+	public VariableUsageInfo(Variable variable, int usages)
+	{
+		Variable = variable;
+		Usages = usages;
+	}
 }
 
 public static class Loops

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public class Variable
@@ -34,7 +36,7 @@ public class Variable
 
 	public static void Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
-		new Variable(context, type, category, name, modifiers, declare);
+		_ = new Variable(context, type, category, name, modifiers, declare);
 	}
 
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
@@ -51,9 +53,10 @@ public class Variable
 		}
 	}
 
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public string GetStaticName()
 	{
-		return Context.GetFullname() + '_' + Name.ToLower();
+		return Context.GetFullname() + '_' + Name.ToLowerInvariant();
 	}
 
 	public bool IsEditedInside(Node node)

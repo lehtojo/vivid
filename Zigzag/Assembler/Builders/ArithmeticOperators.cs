@@ -44,13 +44,13 @@ public static class ArithmeticOperators
 		{
 			Console.WriteLine("Warning: Assign multiplication is incomplete at the current state");
 
-			return BuildMultiplicationOperator(unit, node, true);
+			// return BuildMultiplicationOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_DIVIDE))
 		{
 			Console.WriteLine("Warning: Assign division is incomplete at the current state");
 
-			return BuildDivisionOperator(unit, false, node, true);
+			// return BuildDivisionOperator(unit, false, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_MODULUS))
 		{
@@ -144,6 +144,6 @@ public static class ArithmeticOperators
 
 	public static void GetDivisionConstants(int divider, int bits)
 	{
-		
+		throw new NotImplementedException("Constant division optimization not implemented yet");
 	}
 }

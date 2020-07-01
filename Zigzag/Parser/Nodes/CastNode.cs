@@ -16,7 +16,7 @@ public class CastNode : Node, IType, IResolvable
 		return Types.UNKNOWN;
 	}
 
-	private void Resolve(Context context, Node node)
+	private static void Resolve(Context context, Node node)
 	{
 		Resolver.Resolve(context, node);
 	}

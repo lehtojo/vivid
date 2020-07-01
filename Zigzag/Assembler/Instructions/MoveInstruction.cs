@@ -71,7 +71,6 @@ public class MoveInstruction : DualParameterInstruction
 		var is_destination_register = First.IsStandardRegister;
 		var is_destination_memory_address = First.IsMemoryAddress;
 		var is_source_constant = Second.IsConstant;
-
       string? instruction;
 		
       if (is_destination_media_register)

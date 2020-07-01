@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 public enum HandleType
 {
@@ -16,7 +17,7 @@ public class Handle
 	public HandleType Type { get; protected set; }
 	public bool IsSizeVisible { get; set; } = false;
 
-	public Format Format = Assembler.Format;
+	public Format Format { get; set; } = Assembler.Format;
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
 
@@ -160,18 +161,18 @@ public class ConstantHandle : Handle
 	}
 
 	public void Convert(Format format)
-   {
+	{
       Value = format switch
       {
-         Format.DECIMAL => System.Convert.ToDouble(Value),
-         Format.INT8 => System.Convert.ToSByte(Value),
-         Format.INT16 => System.Convert.ToInt16(Value),
-         Format.INT32 => System.Convert.ToInt32(Value),
-         Format.INT64 => System.Convert.ToInt64(Value),
-         Format.UINT8 => System.Convert.ToByte(Value),
-         Format.UINT16 => System.Convert.ToUInt16(Value),
-         Format.UINT32 => System.Convert.ToUInt32(Value),
-         Format.UINT64 => System.Convert.ToUInt64(Value),
+         Format.DECIMAL => System.Convert.ToDouble(Value, CultureInfo.InvariantCulture),
+         Format.INT8 => System.Convert.ToSByte(Value, CultureInfo.InvariantCulture),
+         Format.INT16 => System.Convert.ToInt16(Value, CultureInfo.InvariantCulture),
+         Format.INT32 => System.Convert.ToInt32(Value, CultureInfo.InvariantCulture),
+         Format.INT64 => System.Convert.ToInt64(Value, CultureInfo.InvariantCulture),
+         Format.UINT8 => System.Convert.ToByte(Value, CultureInfo.InvariantCulture),
+         Format.UINT16 => System.Convert.ToUInt16(Value, CultureInfo.InvariantCulture),
+         Format.UINT32 => System.Convert.ToUInt32(Value, CultureInfo.InvariantCulture),
+         Format.UINT64 => System.Convert.ToUInt64(Value, CultureInfo.InvariantCulture),
          _ => throw new ApplicationException("Unsupported format encountered while converting a handle"),
       };
    }
@@ -278,7 +279,7 @@ public class MemoryHandle : Handle
 		}
 		else if (AbsoluteOffset < 0)
 		{
-			offset = AbsoluteOffset.ToString();
+			offset = AbsoluteOffset.ToString(CultureInfo.InvariantCulture);
 		}
 
 		if (Start.IsStandardRegister || Start.IsConstant)
@@ -438,7 +439,7 @@ public class ComplexMemoryHandle : Handle
 			}
 			else if (value < 0)
 			{
-				offset = value.ToString();
+				offset = value.ToString(CultureInfo.InvariantCulture);
 			}
 		}
 		else
@@ -544,7 +545,7 @@ public class CalculationHandle : Handle
 		
 		if (Multiplier > 1)
 		{
-			result += '*' + Multiplier.ToString();
+			result += '*' + Multiplier.ToString(CultureInfo.InvariantCulture);
 		}
 
 		if (Addition != null)

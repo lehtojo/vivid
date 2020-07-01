@@ -16,12 +16,12 @@ public class ContentToken : Token
 	public bool IsEmpty => Tokens.Count == 0 && Sections.Count == 0;
 	public int SectionCount => Math.Max(1, Sections.Count);
 
-	private bool IsComma(Token token)
+	private static bool IsComma(Token token)
 	{
 		return token.Type == TokenType.OPERATOR && ((OperatorToken)token).Operator == Operators.COMMA;
 	}
 
-	private Stack<int> FindSections(List<Token> tokens)
+	private static Stack<int> FindSections(List<Token> tokens)
 	{
 		var indices = new Stack<int>();
 		indices.Push(tokens.Count);

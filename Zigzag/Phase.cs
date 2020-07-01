@@ -83,7 +83,7 @@ public abstract class Phase
 	/// <summary>
 	/// Aborts the execution
 	/// </summary>
-	public void Abort()
+	public static void Abort()
 	{
 		Environment.Exit(1);
 	}

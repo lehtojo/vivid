@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
+
 public static class ListPopExtensionStructs
 {
 	public static T? Pop<T>(this List<T> source) where T : struct
@@ -36,9 +38,10 @@ public static class AssemblerExtensions
 		return Size.FromBytes(type.ReferenceSize);
 	}
 
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public static string ToString(this Size size)
 	{
-		return (Enum.GetName(typeof(Size), size) ?? throw new ApplicationException("Couldn't get identifier for instruction parameter size")).ToLower();
+		return (Enum.GetName(typeof(Size), size) ?? throw new ApplicationException("Couldn't get identifier for instruction parameter size")).ToLowerInvariant();
 	}
 
 	public static bool IsVisible(this Size size)

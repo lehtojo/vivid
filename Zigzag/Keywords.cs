@@ -23,7 +23,7 @@ public static class Keywords
 	public static readonly Keyword THIS = new Keyword("this");
 	public static readonly Keyword TYPE = new Keyword("type");
 
-	private static readonly Dictionary<string, Keyword> Values = new Dictionary<string, Keyword>();
+	private static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
 
 	static Keywords()
 	{

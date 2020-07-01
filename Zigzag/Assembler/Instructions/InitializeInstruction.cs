@@ -8,16 +8,16 @@ public class InitializeInstruction : Instruction
 	public int StackMemoryChange { get; private set; }
 	public int LocalMemoryTop { get; private set; }
 
-	private bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.IsTargetX64;
-	private bool IsStackAligned => Assembler.IsTargetX64;
+	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.IsTargetX64;
+	private static bool IsStackAligned => Assembler.IsTargetX64;
 
 	public InitializeInstruction(Unit unit) : base(unit) {}
 
 	public override void OnBuild() {}
 
-	public int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
+	private static int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
 	{
-		if (calls.Count() == 0)
+		if (!calls.Any())
 		{
 			return 0;
 		}
@@ -27,7 +27,7 @@ public class InitializeInstruction : Instruction
 			.Where(i => i.Type == InstructionType.MOVE).Select(i => (MoveInstruction)i)
 			.Where(m => m.Destination?.IsMemoryAddress ?? false);
 
-		if (parameter_instructions.Count() == 0)
+		if (!parameter_instructions.Any())
 		{
 			if (IsShadowSpaceRequired)
 			{
@@ -74,7 +74,7 @@ public class InitializeInstruction : Instruction
 		if (IsStackAligned)
 		{
 			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
-			var total = StackMemoryChange + (calls.Count() > 0 ? Assembler.Size.Bytes : 0);
+			var total = StackMemoryChange + (calls.Any() ? Assembler.Size.Bytes : 0);
 
 			if (total != 0)
 			{

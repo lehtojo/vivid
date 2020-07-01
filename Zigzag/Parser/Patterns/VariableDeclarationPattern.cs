@@ -40,7 +40,7 @@ public class VariableDeclarationPattern : Pattern
         return template_type.TemplateArgumentCount == parameters.Count() ? template_type : null;
     }
 
-    private Type SolveTemplateTypeVariant(Context environment, TemplateType template_type, Node parameters)
+    private static Type SolveTemplateTypeVariant(Context environment, TemplateType template_type, Node parameters)
     {
         var types = Resolver.GetTypes(parameters);
 

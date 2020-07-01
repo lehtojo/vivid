@@ -15,7 +15,7 @@ public class Parse
 
 public class ParserPhase : Phase
 {
-	private readonly List<Exception> Errors = new List<Exception>();
+	private List<Exception> Errors { get; } = new List<Exception>();
 
 	private void ParseMembers(Node root)
 	{

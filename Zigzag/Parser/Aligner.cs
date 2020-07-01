@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class Aligner
+public static class Aligner
 {
 	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 2;
 	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 1;
@@ -15,14 +15,14 @@ public class Aligner
 		// Align types and subtypes
 		foreach (var type in context.Types.Values)
 		{
-			Aligner.Align(type);
+			Align(type);
 		}
 
 		// Align function variables in memory
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
 			// Align function parameters using global function offset
-			Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
 		}
 	}
 

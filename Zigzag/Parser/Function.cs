@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public struct Parameter
+public class Parameter
 {
-	public string Name;
-	public Type? Type;
+	public string Name { get; set; }
+	public Type? Type { get; set; }
 
 	public Parameter(string name, Type? type = Types.UNKNOWN)
 	{

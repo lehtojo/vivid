@@ -186,16 +186,10 @@ public static class Conditionals
       private Node Comparison { get; }
       private Node Left => Comparison.First!;
       private Node Right => Comparison.Last!;
-      private ComparisonOperator Operator { get; }
-      private Label Success { get; }
-      private Label Failure { get; }
 
-      public PseudoCompareInstruction(Unit unit, Node comparison, ComparisonOperator operation, Label success, Label failure) : base(unit)
+      public PseudoCompareInstruction(Unit unit, Node comparison) : base(unit)
       {
          Comparison = comparison;
-         Operator = operation;
-         Success = success;
-         Failure = failure;
       }
 
       public void Append(Context current_context)
@@ -267,10 +261,7 @@ public static class Conditionals
          new PseudoCompareInstruction
          (
             unit,
-            condition,
-            (ComparisonOperator)condition.Operator,
-            success,
-            failure
+            condition
          ),
          new JumpInstruction(unit, (ComparisonOperator)condition.Operator, false, success),
          new JumpInstruction(unit, failure)
