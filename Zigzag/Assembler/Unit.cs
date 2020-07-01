@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using System;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Globalization;
 
 public class Lifetime
 { 
@@ -47,7 +47,7 @@ public class Lifetime
 			return "static";
 		}
 
-		return (Start == -1 ? string.Empty : Start.ToString()) + ".." + (End == -1 ? string.Empty : End.ToString());
+		return (Start == -1 ? string.Empty : Start.ToString(CultureInfo.InvariantCulture)) + ".." + (End == -1 ? string.Empty : End.ToString(CultureInfo.InvariantCulture));
 	}
 }
 
@@ -88,8 +88,6 @@ public class VariableState
 
 public class Unit
 {
-	public bool Optimize = true;
-
 	public FunctionImplementation Function { get; private set; }
 
 	public List<Register> Registers { get; private set; } = new List<Register>();
@@ -267,7 +265,7 @@ public class Unit
 	public RegisterHandle? TryGetCached(Result handle)
 	{
 		var register = Registers
-			.Find(r => !r.IsMediaRegister && ((r.Handle != null) ? r.Handle.Value == handle.Value : false));
+			.Find(r => !r.IsMediaRegister && (r.Handle != null) && r.Handle.Value == handle.Value);
 
 		if (register != null)
 		{
@@ -279,7 +277,7 @@ public class Unit
 
 	public RegisterHandle? TryGetCachedMediaRegister(Result handle)
 	{
-		var register = MediaRegisters.Find(r => (r.Handle != null) ? r.Handle.Value == handle.Value : false);
+		var register = MediaRegisters.Find(r => (r.Handle != null) && r.Handle.Value == handle.Value);
 
 		if (register != null)
 		{
@@ -303,11 +301,13 @@ public class Unit
 		{
 			var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable));
 
-			var move = new MoveInstruction(this, destination, value);
-			move.Description = "Releases the source value to memory";
-			move.Type = MoveType.RELOCATE;
+         var move = new MoveInstruction(this, destination, value)
+         {
+            Description = "Releases the source value to memory",
+            Type = MoveType.RELOCATE
+         };
 
-			Append(move);
+         Append(move);
 		}
 
 		// Now the register is ready for use
@@ -566,7 +566,7 @@ public class Unit
 
 	public Result? GetCurrentVariableHandle(Variable variable)
 	{
-		return Scope?.GetCurrentVariableHandle(this, variable);
+		return Scope?.GetCurrentVariableHandle(variable);
 	}
 
 	public Result? GetCurrentConstantHandle(object constant)

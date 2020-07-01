@@ -36,10 +36,12 @@ public class SymmetryEndInstruction : Instruction
 				continue;
 			}
 
-			var move = new MoveInstruction(Unit, destination, source);
-			move.Description = "Relocate the source in order to make the loop symmetric";
+         var move = new MoveInstruction(Unit, destination, source)
+         {
+            Description = "Relocate the source in order to make the loop symmetric"
+         };
 
-			moves.Add(move);
+         moves.Add(move);
 		}
 
 		var remove_list = new List<DualParameterInstruction>();

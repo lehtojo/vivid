@@ -31,7 +31,7 @@ public class TemplateType : Type
 
    private void InsertArguments(List<Token> tokens, Type[] arguments)
    {
-      for (var i = 0; i < tokens.Count(); i++)
+      for (var i = 0; i < tokens.Count; i++)
       {
          if (tokens[i].Type == TokenType.IDENTIFIER)
          {
@@ -87,7 +87,7 @@ public class TemplateType : Type
 
    public Type GetVariant(Type[] arguments)
    {
-      if (arguments.Count() < TemplateArgumentNames.Count)
+      if (arguments.Length < TemplateArgumentNames.Count)
       {
          throw new ApplicationException("Missing template arguments");
       }

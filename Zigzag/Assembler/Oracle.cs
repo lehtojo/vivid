@@ -14,7 +14,7 @@ public static class Oracle
 			.Select(a => (VariableAttribute)a);
 
 		// Ensure there is dependencies
-		if (dependencies.Count() == 0)
+		if (dependencies.Any())
 		{
 			return;
 		}
@@ -22,11 +22,13 @@ public static class Oracle
 		var primary_variable = (VariableAttribute)result.Metadata.Primary!;
 		var secondary_variables = dependencies.Select(d => d.Variable);
 
-		// Duplicate the current result and share it between the dependencies
-		var duplicate = new DuplicateInstruction(unit, result);
-		duplicate.Description = "Separate " + primary_variable.Variable.Name  + " from its dependencies { " + string.Join(", ", secondary_variables.Select(v => v.Name)) + " }";
+      // Duplicate the current result and share it between the dependencies
+      var duplicate = new DuplicateInstruction(unit, result)
+      {
+         Description = "Separate " + primary_variable.Variable.Name + " from its dependencies { " + string.Join(", ", secondary_variables.Select(v => v.Name)) + " }"
+      };
 
-		var duplication = duplicate.Execute();
+      var duplication = duplicate.Execute();
 
 		foreach (var dependency in dependencies)
 		{
@@ -67,7 +69,6 @@ public static class Oracle
 
 		if (destination.Variable == variable)
 		{
-			//DifferentiateDependencies(unit, result);
 			var dependencies = GetAllDependencies(unit, result);
 
 			if (dependencies.Count() <= 1)
@@ -75,10 +76,12 @@ public static class Oracle
 				return;
 			}
 
-			var duplicate = new DuplicateInstruction(unit, result);
-			duplicate.Description = "Separate variable " + variable.Name;
+         var duplicate = new DuplicateInstruction(unit, result)
+         {
+            Description = "Separate variable " + variable.Name
+         };
 
-			var duplication = duplicate.Execute();
+         var duplication = duplicate.Execute();
 
 			// Set the duplication result as a new value for the edited variable
 			unit.Append(new SetVariableInstruction(unit, variable, duplication));
@@ -165,8 +168,6 @@ public static class Oracle
 		}
 		else if (instruction is GetConstantInstruction c)
 		{
-			var handle = unit.GetCurrentConstantHandle(c.Value);
-
 			c.Configure(References.CreateConstantNumber(unit, c.Value));
 		}
 		else if (instruction is RequireVariablesInstruction r)
@@ -203,7 +204,7 @@ public static class Oracle
 			// Try to find other states that share the same references with the current state
 			var linked_variables = states.Where(s => s != state && s.Reference.Equals(state.Reference)).ToList();
 
-			if (linked_variables.Count() > 0)
+			if (linked_variables.Any())
 			{
 				var group = linked_variables.Select(s => s.Variable).ToList();
 				group.Add(state.Variable);
@@ -242,11 +243,13 @@ public static class Oracle
 
 		foreach (var variable in edited_variables)
 		{
-			// Duplicate the shared value and give it to the edited variable
-			var duplicate = new DuplicateInstruction(unit, shared_value);
-			duplicate.Description = "Separate " + variable.Name  + " from variable group { " + string.Join(", ", group.Select(v => v.Name)) + " }";
+         // Duplicate the shared value and give it to the edited variable
+         var duplicate = new DuplicateInstruction(unit, shared_value)
+         {
+            Description = "Separate " + variable.Name + " from variable group { " + string.Join(", ", group.Select(v => v.Name)) + " }"
+         };
 
-			var duplication = duplicate.Execute();
+         var duplication = duplicate.Execute();
 
 			// Set the duplication result as a new value for the edited variable
 			unit.Append(new SetVariableInstruction(unit, variable, duplication));
@@ -299,7 +302,7 @@ public static class Oracle
 		});
 	}
 
-	private static void TryRedirectToReturnRegister(Unit unit, Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirectToReturnRegister(Instruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
@@ -318,7 +321,7 @@ public static class Oracle
 		}
 	}
 
-	private static void TryRedirect(Unit unit, Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirect(Instruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
@@ -348,7 +351,7 @@ public static class Oracle
 				var is_decimal = instruction.ReturnType == Types.DECIMAL;
 				var return_register = is_decimal ? unit.GetDecimalReturnRegister() : unit.GetStandardReturnRegister();
 
-				TryRedirectToReturnRegister(unit, instruction, return_register, calls);
+				TryRedirectToReturnRegister(instruction, return_register, calls);
 			}
 		});
 	}
@@ -376,7 +379,7 @@ public static class Oracle
 						
 						if (source != null && move.First.Value is RegisterHandle destination)
 						{
-							TryRedirect(unit, source, destination.Register, calls);
+							TryRedirect(source, destination.Register, calls);
 						}
 					}
 				}
@@ -415,18 +418,10 @@ public static class Oracle
 
 	public static Unit Channel(Unit unit)
 	{
-		if (unit.Optimize)
-		{
-			SimulateCaching(unit);
-		}
-
+		SimulateCaching(unit);
 		SimulateLifetimes(unit);
-
-		if (unit.Optimize)
-		{
-			ConnectReturnStatements(unit);
-			SimulateRegisterUsage(unit);
-		}
+		ConnectReturnStatements(unit);
+		SimulateRegisterUsage(unit);
 
 		return unit;
 	}

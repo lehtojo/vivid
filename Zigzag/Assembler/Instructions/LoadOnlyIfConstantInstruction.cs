@@ -20,8 +20,6 @@ public class LoadOnlyIfConstantInstruction : Instruction
 
       if (handle.Value.Type == HandleType.CONSTANT)
       {
-         var destination = Result;
-
          // Decide the destination if it isn't predefined
          if (Result.Empty)
          {
@@ -38,8 +36,10 @@ public class LoadOnlyIfConstantInstruction : Instruction
             }
          }
 
-         var relocation = new MoveInstruction(Unit, Result, handle);
-         relocation.Type = MoveType.RELOCATE;
+         var relocation = new MoveInstruction(Unit, Result, handle)
+         {
+            Type = MoveType.RELOCATE
+         };
 
          Unit.Append(relocation);
       }

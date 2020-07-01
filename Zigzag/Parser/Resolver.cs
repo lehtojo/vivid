@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Resolver
+public static class Resolver
 {
 	/// <summary>
 	/// Tries to resolve the given node tree
@@ -100,14 +100,14 @@ public class Resolver
 			return Types.UNKNOWN;
 		}
 
-		if (a is Number && b is Number)
+		if (a is Number x && b is Number y)
 		{
 			if (a is Decimal || b is Decimal)
 			{
 				return Types.DECIMAL;
 			}
 
-			return GetSharedNumber((Number)a, (Number)b);
+			return GetSharedNumber(x, y);
 		}
 
 		foreach (Type type in a.Supertypes)

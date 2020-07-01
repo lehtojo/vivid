@@ -46,11 +46,6 @@ public class Metadata
 	public bool IsComplex => IsComplexMemoryAddress || (Primary is VariableAttribute attribute && !attribute.Variable.IsPredictable);
 	public bool IsDependent => Secondary.Any(a => a.Type == AttributeType.VARIABLE || a.Type == AttributeType.COMPLEX_MEMORY_ADDRESS);
 
-	public VariableAttribute this[Variable variable]
-	{
-		get => Variables.Where(i => i.Variable == variable).First();
-	}
-
 	private int GetPriorityValue(MetadataAttribute attribute)
 	{
 		return attribute.Type == AttributeType.VARIABLE ? 1 : 0;

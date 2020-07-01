@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 public enum HandleType
 {
@@ -210,7 +211,7 @@ public class MemoryHandle : Handle
 		}
 		else if (AbsoluteOffset < 0)
 		{
-			offset = AbsoluteOffset.ToString();
+			offset = AbsoluteOffset.ToString(CultureInfo.InvariantCulture);
 		}
 
 		if (Start.Value.Type == HandleType.REGISTER ||
@@ -345,7 +346,7 @@ public class ComplexMemoryHandle : Handle
 			}
 			else if (value < 0)
 			{
-				offset = value.ToString();
+				offset = value.ToString(CultureInfo.InvariantCulture);
 			}
 		}
 		else

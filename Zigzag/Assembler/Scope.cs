@@ -14,7 +14,7 @@ public class VariableLoad
 	}
 }
 
-public class Scope : IDisposable
+public sealed class Scope : IDisposable
 {
 	/// <summary>
 	/// Returns whether the given variable is a non-local variable
@@ -117,11 +117,11 @@ public class Scope : IDisposable
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
 	private HashSet<Variable> Finalizers { get; set; } = new HashSet<Variable>();
 
-	public List<Variable> ActiveVariables { get; set; } = new List<Variable>();
-	public Dictionary<Variable, Result> Variables { get; set; } = new Dictionary<Variable, Result>();
-	public Dictionary<Variable, Result> TransitionHandles { get; set; } = new Dictionary<Variable, Result>();
+	public List<Variable> ActiveVariables { get; } = new List<Variable>();
+	public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
+	public Dictionary<Variable, Result> TransitionHandles { get; } = new Dictionary<Variable, Result>();
 
-	public Dictionary<object, List<Result>> Constants = new Dictionary<object, List<Result>>();
+	public Dictionary<object, List<Result>> Constants { get; } = new Dictionary<object, List<Result>>();
 
 	public Unit? Unit { get; private set; }
 	public Scope? Outer { get; private set; } = null;
@@ -144,7 +144,7 @@ public class Scope : IDisposable
 	public bool IsUsedLater(Variable variable)
 	{
 		// Try to get the most recently used handle of the variable
-		var current = GetCurrentVariableHandle(Unit!, variable);
+		var current = GetCurrentVariableHandle(variable);
 
 		// If there's no handle of the variable, it means that the outer scope doesn't have it either
 		if (current == null)
@@ -354,7 +354,7 @@ public class Scope : IDisposable
 		}
 	}
 
-	public Result? GetCurrentVariableHandle(Unit unit, Variable variable)
+	public Result? GetCurrentVariableHandle(Variable variable)
 	{
 		// First check if the variable handle list already exists
 		if (Variables.TryGetValue(variable, out Result? handle))
@@ -363,7 +363,7 @@ public class Scope : IDisposable
 		}
 		else
 		{
-			var source = Outer?.GetCurrentVariableHandle(Unit!, variable);
+			var source = Outer?.GetCurrentVariableHandle(variable);
 
 			if (source != null)
 			{

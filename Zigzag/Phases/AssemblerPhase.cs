@@ -170,7 +170,7 @@ public class AssemblerPhase : Phase
 
 		arguments.AddRange(library_paths);
 
-		var libraries = bundle.Get("libraries", new string[] { });
+		var libraries = bundle.Get("libraries", Array.Empty<string>());
 
 		foreach (var library in libraries)
 		{
@@ -196,34 +196,35 @@ public class AssemblerPhase : Phase
 	/// </summary>
 	private Status Linux_Link(Bundle bundle, string input_file, string output_file)
 	{
-		var arguments = (List<string>?)null;
-		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
+      var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
 
-		if (output_type != BinaryType.EXECUTABLE)
-		{
-			var extension = output_type == BinaryType.SHARED_LIBRARY ? SharedLibraryExtension : StaticLibraryExtension;
+      List<string>? arguments;
 
-			var flag = output_type == BinaryType.SHARED_LIBRARY ? LINUX_SHARED_LIBRARY_FLAG : LINUX_STATIC_LIBRARY_FLAG;
+      if (output_type != BinaryType.EXECUTABLE)
+      {
+         var extension = output_type == BinaryType.SHARED_LIBRARY ? SharedLibraryExtension : StaticLibraryExtension;
 
-			arguments = new List<string>()
-			{
-				flag,
-				$"-o {output_file}{extension}",
-				input_file,
-				StandardLibrary
-			};
-		}
-		else
-		{
-			arguments = new List<string>()
-			{
-				$"-o {output_file}",
-				input_file,
-				StandardLibrary
-			};
-		}
+         var flag = output_type == BinaryType.SHARED_LIBRARY ? LINUX_SHARED_LIBRARY_FLAG : LINUX_STATIC_LIBRARY_FLAG;
 
-		var libraries = bundle.Get("libraries", new string[] { });
+         arguments = new List<string>()
+         {
+            flag,
+            $"-o {output_file}{extension}",
+            input_file,
+            StandardLibrary
+         };
+      }
+      else
+      {
+         arguments = new List<string>()
+         {
+            $"-o {output_file}",
+            input_file,
+            StandardLibrary
+         };
+      }
+
+      var libraries = bundle.Get("libraries", Array.Empty<string>());
 
 		foreach (var library in libraries)
 		{

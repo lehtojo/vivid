@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public class Variable
@@ -45,9 +47,10 @@ public class Variable
 		}
 	}
 
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public string GetStaticName()
 	{
-		return Context.GetFullname() + '_' + Name.ToLower();
+		return Context.GetFullname() + '_' + Name.ToLowerInvariant();
 	}
 
 	public bool IsEditedInside(Node node)

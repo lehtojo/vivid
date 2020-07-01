@@ -27,10 +27,12 @@ public class EvacuateInstruction : Instruction
 					throw new NotImplementedException("Stack move required but not implemented");
 				}
 
-				var move = new MoveInstruction(Unit, new Result(destination), source.Handle!);
-				move.Type = MoveType.RELOCATE;
+            var move = new MoveInstruction(Unit, new Result(destination), source.Handle!)
+            {
+               Type = MoveType.RELOCATE
+            };
 
-				Unit.Append(move);
+            Unit.Append(move);
 			}
 		});
 	}

@@ -10,10 +10,12 @@ public class DuplicateInstruction : DualParameterInstruction
 			Result.Value = new RegisterHandle(Unit.GetNextRegister());
 		}
 
-		var move = new MoveInstruction(Unit, Result, Second);
-		move.Type = MoveType.LOAD;
+      var move = new MoveInstruction(Unit, Result, Second)
+      {
+         Type = MoveType.LOAD
+      };
 
-		Unit.Append(move);
+      Unit.Append(move);
 	}
 
 	public override Result? GetDestinationDependency()

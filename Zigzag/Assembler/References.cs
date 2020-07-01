@@ -4,9 +4,9 @@ public static class References
 {
 	public static Handle CreateConstantNumber(Unit unit, object value)
 	{
-		if (value is double)
+		if (value is double x)
 		{
-			var identifier = unit.GetDecimalIdentifier((double)value);
+			var identifier = unit.GetDecimalIdentifier(x);
 
 			return new DataSectionHandle(identifier);
 		}
@@ -16,9 +16,9 @@ public static class References
 
 	public static Handle CreateVariableHandle(Unit unit, Result? self, Variable variable)
 	{
-		var handle = (Handle?)null;
+      Handle? handle;
 
-		switch (variable.Category)
+      switch (variable.Category)
 		{
 			case VariableCategory.PARAMETER:
 			{

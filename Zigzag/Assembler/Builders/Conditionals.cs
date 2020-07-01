@@ -16,7 +16,7 @@ public static class Conditionals
 		using (var scope = new Scope(unit, active_variables))
 		{
 			// Merges all changes that happen in the scope with the outer scope
-			var merge = new MergeScopeInstruction(unit, active_variables);
+			var merge = new MergeScopeInstruction(unit);
 
 			// Build the body
 			result = Builders.Build(unit, body);

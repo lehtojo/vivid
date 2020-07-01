@@ -101,7 +101,7 @@ public class FunctionImplementation : Context
 
 		if (ParameterTypes.Count > 0)
 		{
-			header = header.Substring(0, header.Length - 2);
+			header = header[0..^2];
 		}
 
 		if (ReturnType != null)

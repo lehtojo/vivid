@@ -1,10 +1,14 @@
 using System.IO;
+using System;
 
 public class FilePhase : Phase
 {
-	public override Status Execute(Bundle bundle)
+   private const string COMPLEX_LINE_ENDING = "\r\n";
+   private const string LINE_ENDING = "\n";
+
+   public override Status Execute(Bundle bundle)
 	{
-		string[] files = bundle.Get("input_files", new string[] { });
+		string[] files = bundle.Get("input_files", Array.Empty<string>());
 
 		if (files.Length == 0)
 		{
@@ -24,7 +28,7 @@ public class FilePhase : Phase
 				try
 				{
 					string content = File.ReadAllText(file);
-					contents[index] = content.Replace("\r\n", "\n").Replace('\t', ' ');
+					contents[index] = content.Replace(COMPLEX_LINE_ENDING, LINE_ENDING).Replace('\t', ' ');
 				}
 				catch
 				{

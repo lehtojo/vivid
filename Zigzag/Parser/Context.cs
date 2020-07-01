@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public class Context
@@ -18,10 +20,10 @@ public class Context
 	public bool IsInsideFunction => IsFunction || GetFunctionParent() != null;
 	public bool IsInsideType => IsType || GetTypeParent() != null;
 
-	public Dictionary<string, Variable> Variables { get; protected set; } = new Dictionary<string, Variable>();
-	public Dictionary<string, FunctionList> Functions { get; protected set; } = new Dictionary<string, FunctionList>();
-	public Dictionary<string, Type> Types { get; protected set; } = new Dictionary<string, Type>();
-	public Dictionary<string, Label> Labels { get; protected set; } = new Dictionary<string, Label>();
+	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
+	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
+	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
@@ -35,18 +37,19 @@ public class Context
 	/// Returns the global name of the context
 	/// </summary>
 	/// <returns>Global name of the context</returns>
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public virtual string GetFullname()
 	{
 		var parent = Parent?.GetFullname() ?? string.Empty;
 		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
 
-		var prefix = Prefix.ToLower();
+		var prefix = Prefix.ToLowerInvariant();
 		prefix = string.IsNullOrEmpty(prefix) ? prefix : prefix;
 
-		var name = Name.ToLower();
+		var name = Name.ToLowerInvariant();
 		name = string.IsNullOrEmpty(name) ? name : '_' + name;
 
-		var postfix = Postfix.ToLower();
+		var postfix = Postfix.ToLowerInvariant();
 		postfix = string.IsNullOrEmpty(postfix) ? postfix : '_' + postfix;
 
 		return parent + prefix + name + postfix;
@@ -204,9 +207,9 @@ public class Context
 			throw new Exception($"Variable '{name}' already exists in this context");
 		}
 
-		// When a variable is created this way it is automatically declared into this context
-		var variable = new Variable(this, type, category, name, AccessModifier.PUBLIC);
-	}
+      // When a variable is created this way it is automatically declared into this context
+      _ = new Variable(this, type, category, name, AccessModifier.PUBLIC);
+   }
 
 	/// <summary>
 	/// Declares a label into the context

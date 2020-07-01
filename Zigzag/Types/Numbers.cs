@@ -1,17 +1,17 @@
 using System.Collections.Generic;
 
-public class Numbers
+public static class Numbers
 {
-	private static Dictionary<Format, Number> numbers = new Dictionary<Format, Number>();
+	private static Dictionary<Format, Number> Values { get; } = new Dictionary<Format, Number>();
 
 	public static Number Get(Format type)
 	{
-		return numbers[type];
+		return Values[type];
 	}
 
 	private static void Add(Number number)
 	{
-		numbers.Add(number.Type, number);
+		Values.Add(number.Type, number);
 	}
 
 	static Numbers()

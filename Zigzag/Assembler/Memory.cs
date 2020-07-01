@@ -12,9 +12,9 @@ public static class Memory
 			return;
 		}
 
-		var register = (Register?)null;
-
-		if (target.IsVolatile)
+      Register? register;
+		
+      if (target.IsVolatile)
 		{
 			register = unit.GetNextRegisterWithoutReleasing();
 		}
@@ -30,11 +30,13 @@ public static class Memory
 		}
 
 		var destination = new RegisterHandle(register);
-		
-		var move = new MoveInstruction(unit, new Result(destination), target.Handle!);
-		move.Type = MoveType.RELOCATE;
 
-		unit.Append(move);
+      var move = new MoveInstruction(unit, new Result(destination), target.Handle!)
+      {
+         Type = MoveType.RELOCATE
+      };
+
+      unit.Append(move);
 
 		target.Reset();
 	}
@@ -71,10 +73,12 @@ public static class Memory
 				var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 				var destination = new Result(new RegisterHandle(register));
 
-				var move = new MoveInstruction(unit, destination, result);
-				move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
-		
-				return move.Execute();
+            var move = new MoveInstruction(unit, destination, result)
+            {
+               IsFutureUsageAnalyzed = false // Important: Prevents a future usage cycle (maybe)
+            };
+
+            return move.Execute();
 			}
 		}
 		else
@@ -82,10 +86,12 @@ public static class Memory
 			var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 			var destination = new Result(new RegisterHandle(register));
 
-			var move = new MoveInstruction(unit, destination, result);
-			move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
-		
-			return move.Execute();
+         var move = new MoveInstruction(unit, destination, result)
+         {
+            IsFutureUsageAnalyzed = false // Important: Prevents a future usage cycle (maybe)
+         };
+
+         return move.Execute();
 		}
 	}
 
@@ -103,12 +109,14 @@ public static class Memory
 		var register = media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 		var destination = new Result(new RegisterHandle(register));
 
-		var move = new MoveInstruction(unit, destination, result);
-		move.IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle
-		move.Description = "Move source to register";
-		move.Type = MoveType.RELOCATE;
-		
-		return move.Execute();
+      var move = new MoveInstruction(unit, destination, result)
+      {
+         IsFutureUsageAnalyzed = false, // Important: Prevents a future usage cycle
+         Description = "Move source to register",
+         Type = MoveType.RELOCATE
+      };
+
+      return move.Execute();
 	}
 
 	/// <summary>
@@ -164,7 +172,7 @@ public static class Memory
 			case HandleType.MEDIA_REGISTER:
 			case HandleType.REGISTER:
 			{
-				var register = (RegisterHandle?)null;
+				RegisterHandle? register;
 
 				if (type == HandleType.MEDIA_REGISTER)
 				{

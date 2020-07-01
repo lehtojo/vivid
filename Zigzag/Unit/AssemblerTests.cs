@@ -11,9 +11,8 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-      private const string INCLUDE_PATH = "C:\\Users\\joona\\Documents\\Zigzag\\Zigzag\\Tests\\";
-      private const string LIBZ = "C:\\Users\\joona\\Documents\\Zigzag\\Zigzag\\libz\\";
-      private const string Output = "z.dll";
+      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\Tests\\";
+      private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
 
 

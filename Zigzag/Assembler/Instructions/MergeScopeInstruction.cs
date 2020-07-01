@@ -3,11 +3,11 @@ using System;
 
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit, IEnumerable<Variable> variables) : base(unit) {}
+	public MergeScopeInstruction(Unit unit) : base(unit) {}
 
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Unit.Scope!.Outer?.GetCurrentVariableHandle(Unit, variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
+		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? References.GetVariable(Unit, variable, AccessMode.WRITE);
 	}
 
 	private bool IsUsedLater(Variable variable)

@@ -2,7 +2,7 @@ using System;
 
 public class UnresolvedType : Type, IResolvable
 {
-	private IResolvable Resolvable;
+	private IResolvable Resolvable { get; }
 
 	public UnresolvedType(Context context, string name) : base(context)
 	{

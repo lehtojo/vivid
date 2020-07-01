@@ -44,13 +44,13 @@ public static class ArithmeticOperators
 		{
 			throw new ApplicationException("Assign multiplication is not implemented");
 
-			return BuildMultiplicationOperator(unit, node, true);
+			// return BuildMultiplicationOperator(unit, node, true);
 		}
 		else if (operation == Operators.ASSIGN_DIVIDE)
 		{
 			throw new ApplicationException("Assign division is not implemented");
 
-			return BuildDivisionOperator(unit, false, node, true);
+			// return BuildDivisionOperator(unit, false, node, true);
 		}
 		else if (operation == Operators.ASSIGN_MODULUS)
 		{

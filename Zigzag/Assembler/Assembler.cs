@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Globalization;
 using System.Text;
 using System.Linq;
 using System;
@@ -81,30 +81,29 @@ public static class Assembler
 
 				unit.Execute(UnitPhase.APPEND_MODE, () => 
 				{
-					// Create the most outer scope where all instructions will be placed
-					using (var scope = new Scope(unit))
-					{
-						// Initialize this function
-						unit.Append(new InitializeInstruction(unit));
+               // Create the most outer scope where all instructions will be placed
+               using var scope = new Scope(unit);
 
-						// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
-						var variables = unit.Function.Parameters;
+               // Initialize this function
+               unit.Append(new InitializeInstruction(unit));
 
-						if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
-						{
-							variables.Add(unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("This pointer was missing in member function"));
-						}
+               // Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
+               var variables = unit.Function.Parameters;
 
-						unit.Append(new RequireVariablesInstruction(unit, variables));
+               if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
+               {
+                  variables.Add(unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("This pointer was missing in member function"));
+               }
 
-						if (function is Constructor constructor)
-						{
-							Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
-						}
+               unit.Append(new RequireVariablesInstruction(unit, variables));
 
-						Builders.Build(unit, implementation.Node);
-					}
-				});
+               if (function is Constructor constructor)
+               {
+                  Constructors.CreateHeader(unit, constructor.GetTypeParent() ?? throw new ApplicationException("Couldn't get constructor owner type"));
+               }
+
+               Builders.Build(unit, implementation.Node);
+            });
 
 				// Sprinkle a little intelligence into the output code
 				Oracle.Channel(unit);
@@ -256,12 +255,10 @@ public static class Assembler
 	{
 		var builder = new StringBuilder();
 
-		foreach (var constant in decimals)
+		foreach (var (name, value) in decimals)
 		{
-			var name = constant.Identifier;
-			
 			var allocator = Size.FromFormat(Types.DECIMAL.Format).Allocator;
-			var text = BitConverter.DoubleToInt64Bits(constant.Value).ToString();
+			var text = BitConverter.DoubleToInt64Bits(value).ToString(CultureInfo.InvariantCulture);
 
 			builder.AppendLine($"{name} {allocator} {text}");
 		}

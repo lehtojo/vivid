@@ -8,11 +8,6 @@ public class Bundle : Dictionary<string, object>
 {
 	public void Put(string name, object element)
 	{
-		if (element == null)
-		{
-			throw new ArgumentNullException("Element may not be null");
-		}
-
 		Add(name, element);
 	}
 

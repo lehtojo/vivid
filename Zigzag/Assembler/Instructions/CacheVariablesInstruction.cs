@@ -75,11 +75,13 @@ public class CacheVariablesInstruction : Instruction
 		var destination = References.GetVariable(Unit, usage.Variable, AccessMode.WRITE);
 		var source = usage.Reference ?? throw new ApplicationException("Variable reference was not loaded");
 
-		// The variable value must be saved so it must be relocated to the destination
-		var move = new MoveInstruction(Unit, destination, source);
-		move.Type = MoveType.RELOCATE;
+      // The variable value must be saved so it must be relocated to the destination
+      var move = new MoveInstruction(Unit, destination, source)
+      {
+         Type = MoveType.RELOCATE
+      };
 
-		Unit.Append(move);
+      Unit.Append(move);
 	}
 
 	public override void OnBuild()
@@ -165,10 +167,12 @@ public class CacheVariablesInstruction : Instruction
 			var destination = new Result(new RegisterHandle(register));
 			var source = usage.Reference!;
 
-			var move = new MoveInstruction(Unit, destination, source);
-			move.Type = MoveType.RELOCATE;
+         var move = new MoveInstruction(Unit, destination, source)
+         {
+            Type = MoveType.RELOCATE
+         };
 
-			Unit.Append(move);
+         Unit.Append(move);
 		}
 
 		// Release the remaining variables

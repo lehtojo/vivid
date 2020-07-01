@@ -35,7 +35,7 @@ public class ResolverPhase : Phase
 			}
 		}
 		
-		if (errors.Count() == 0)
+		if (!errors.Any())
 		{
 			return string.Empty;
 		}

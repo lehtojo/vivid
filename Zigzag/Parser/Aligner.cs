@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-public class Aligner
+public static class Aligner
 {
 	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 2;
 	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 1;
@@ -14,14 +14,14 @@ public class Aligner
 		// Align types and subtypes
 		foreach (var type in context.Types.Values)
 		{
-			Aligner.Align(type);
+			Align(type);
 		}
 
 		// Align function variables in memory
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
 			// Align function parameters using global function offset
-			Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
 		}
 	}
 
@@ -60,7 +60,7 @@ public class Aligner
 		// Member functions:
 		foreach (var implementation in type.GetImplementedFunctions())
 		{
-			Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
 		}
 
 		// Constructors:
@@ -68,7 +68,7 @@ public class Aligner
 		{
 			foreach (var implementation in constructor.Implementations)
 			{
-				Aligner.Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+				Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
 			}
 		}
 
@@ -77,14 +77,14 @@ public class Aligner
 		{
 			foreach (var implementation in destructor.Implementations)
 			{
-				Aligner.Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+				Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
 			}
 		}
 
 		// Align subtypes
 		foreach (var subtype in type.Types.Values)
 		{
-			Aligner.Align(subtype);
+			Align(subtype);
 		}
 	}
 
@@ -112,17 +112,5 @@ public class Aligner
 				position += variable.Type!.ReferenceSize;
 			}
 		}
-
-		position = 0;
-
-		// Local variables:
-		/*foreach (var variable in function.Locals)
-		{
-			if (variable.Category == VariableCategory.LOCAL)
-			{
-				variable.Alignment = position;
-				position += variable.Type!.ReferenceSize;
-			}
-		}*/
 	}
 }

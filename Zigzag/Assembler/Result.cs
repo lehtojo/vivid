@@ -2,26 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-public enum JoinSettings
+public class Connection
 {
-	/// <summary>
-	/// Normal send and receive
-	/// </summary>
-	DEFAULT,
-	/// <summary>
-	/// Filters all the changes coming from the other system
-	/// </summary>
-	DISABLE_RECEIVE,
-	/// <summary>
-	/// Filters all the changes leaving to the other system
-	/// </summary>
-	DISABLE_SEND
-}
+	public Result Result { get; set; }
+	public bool IsSendingEnabled { get; set; }
 
-public struct Connection
-{
-	public Result Result;
-	public bool IsSendingEnabled;
+	public Connection(Result result)
+	{
+		Result = result;
+	}
 }
 
 public class Result
@@ -56,7 +45,7 @@ public class Result
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
-	private List<Connection> Connections = new List<Connection>();
+	private List<Connection> Connections { get; } = new List<Connection>();
 	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
 	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 
@@ -70,7 +59,7 @@ public class Result
 			return false;
 		}
 
-		return Metadata.Variables.Count() > 0 && Metadata.Variables.All(v => v.Variable.IsPredictable);
+		return Metadata.Variables.Any() && Metadata.Variables.All(v => v.Variable.IsPredictable);
 	}
 
 	public Result(Instruction instruction)
@@ -102,13 +91,13 @@ public class Result
 	{
 		Connections.AddRange(system
 			.Where(result => System.All(m => m != result))
-			.Select(result => new Connection() {
-				Result = result,
+			.Select(result => new Connection(result) {
 				IsSendingEnabled = true
 			})
 		);
 	}
 
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2245", Justification = "Assigning to the variable itself causes an update")]
 	private void Update()
 	{
 		// Update the value to the same because it sends an update wave which corrects all values across the system

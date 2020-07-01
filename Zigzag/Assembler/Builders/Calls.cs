@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 public static class Calls
 {
@@ -78,10 +79,12 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					var move = new MoveInstruction(unit, new Result(destination), this_pointer);
-					move.IsSafe = true;
+               var move = new MoveInstruction(unit, new Result(destination), this_pointer)
+               {
+                  IsSafe = true
+               };
 
-					instructions.Add(move);
+               instructions.Add(move);
 				}
 				else
 				{
@@ -112,10 +115,12 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					var move = new MoveInstruction(unit, new Result(destination), source);
-					move.IsSafe = true;
+               var move = new MoveInstruction(unit, new Result(destination), source)
+               {
+                  IsSafe = true
+               };
 
-					instructions.Add(move);
+               instructions.Add(move);
 				}
 				else
 				{
@@ -180,7 +185,7 @@ public static class Calls
 	{
 		if (parameters == null)
 		{
-			return new Node[0];
+			return Array.Empty<Node>();
 		}
 
 		var result = new List<Node>();

@@ -8,6 +8,8 @@ public class SubtractionInstruction : DualParameterInstruction
 	
 	public SubtractionInstruction(Unit unit, Result first, Result second, Format type, bool assigns) : base(unit, first, second)
 	{
+		Type = type;
+		
 		if (Assigns = assigns)
 		{
 			Result.Metadata = First.Metadata;

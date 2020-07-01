@@ -23,33 +23,31 @@ public class Size
 
 	public static Size FromBytes(int bytes)
 	{
-		switch (bytes)
-		{
-			case 1: return BYTE;
-			case 2: return WORD;
-			case 4: return DWORD;
-			case 8: return QWORD;
-			case 16: return OWORD;
-			case 32: return YWORD;
-
-			default: throw new ApplicationException("Invalid instruction parameter size given");
-		}
-	}
+      return bytes switch
+      {
+         1 => BYTE,
+         2 => WORD,
+         4 => DWORD,
+         8 => QWORD,
+         16 => OWORD,
+         32 => YWORD,
+         _ => throw new ApplicationException("Invalid instruction parameter size given"),
+      };
+   }
 
 	public static Size? TryGetFromBytes(int bytes)
 	{
-		switch (bytes)
-		{
-			case 1: return BYTE;
-			case 2: return WORD;
-			case 4: return DWORD;
-			case 8: return QWORD;
-			case 16: return OWORD;
-			case 32: return YWORD;
-
-			default: return null;
-		}
-	}
+      return bytes switch
+      {
+         1 => BYTE,
+         2 => WORD,
+         4 => DWORD,
+         8 => QWORD,
+         16 => OWORD,
+         32 => YWORD,
+         _ => null,
+      };
+   }
 
 	public static Size FromFormat(Format type)
 	{
@@ -75,16 +73,15 @@ public class Size
 
 	public Format ToFormat(bool unsigned = true)
 	{
-		switch (Bytes)
-		{
-			case 1: return unsigned ? Format.UINT8 : Format.INT8;
-			case 2: return unsigned ? Format.UINT16 : Format.INT16;
-			case 4: return unsigned ? Format.UINT32 : Format.INT32;
-			case 8: return unsigned ? Format.UINT64 : Format.INT64;
-
-			default: throw new ApplicationException("Couldn't convert size to number type");
-		}
-	}
+      return Bytes switch
+      {
+         1 => unsigned ? Format.UINT8 : Format.INT8,
+         2 => unsigned ? Format.UINT16 : Format.INT16,
+         4 => unsigned ? Format.UINT32 : Format.INT32,
+         8 => unsigned ? Format.UINT64 : Format.INT64,
+         _ => throw new ApplicationException("Couldn't convert size to number type"),
+      };
+   }
 
 	public override string ToString()
 	{

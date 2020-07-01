@@ -1,5 +1,19 @@
 using System.Collections.Generic;
 
+public class Option
+{
+	public Pattern Pattern { get; private set; }
+	private List<int> Optionals { get; set; }
+
+	public List<int> Missing => new List<int>(Optionals);
+
+	public Option(Pattern pattern, List<int> optionals)
+	{
+		Pattern = pattern;
+		Optionals = optionals;
+	}
+}
+
 public class Patterns
 {
 	public Dictionary<int, Patterns> Branches { get; private set; } = new Dictionary<int, Patterns>();
@@ -7,20 +21,6 @@ public class Patterns
 
 	public bool HasOptions => Options.Count > 0;
 	public bool HasBranches => Branches.Count > 0;
-
-	public class Option
-	{
-		public Pattern Pattern { get; private set; }
-		private List<int> Optionals { get; set; }
-
-		public List<int> Missing => new List<int>(Optionals);
-
-		public Option(Pattern pattern, List<int> optionals)
-		{
-			Pattern = pattern;
-			Optionals = optionals;
-		}
-	}
 
 	private Patterns ForceGetBranch(int branch)
 	{

@@ -32,4 +32,4 @@ ret
 
 section .data
 
-function_basic_data_field_assign_D0 dq 4609046909045748793
+function_basic_data_field_assign_D0 dq 4653933653213052928

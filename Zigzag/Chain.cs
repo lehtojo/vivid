@@ -25,14 +25,12 @@ public class Chain
 
 			try
 			{
-				var phase = Activator.CreateInstance(template) as Phase;
+            if (!(Activator.CreateInstance(template) is Phase phase))
+            {
+               throw new ApplicationException("Couldn't create the next phase");
+            }
 
-				if (phase == null)
-				{
-					throw new ApplicationException("Couldn't create the next phase");
-				}
-
-				phase.Multithread = multithreaded;
+            phase.Multithread = multithreaded;
 
 				var status = phase.Execute(bundle);
 
@@ -61,7 +59,6 @@ public class Chain
 				return false;
 			}
 		}
-
 
 		return true;
 	}

@@ -42,11 +42,13 @@ public abstract class LoadInstruction : Instruction
 				Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
 			}
 
-			var move = new MoveInstruction(Unit, Result, Source);
-			move.Type = MoveType.LOAD;
+         var move = new MoveInstruction(Unit, Result, Source)
+         {
+            Type = MoveType.LOAD
+         };
 
-			// Since the source is not where it should be, it must be moved to the result 
-			Unit.Append(move);
+         // Since the source is not where it should be, it must be moved to the result 
+         Unit.Append(move);
 		}
 	}
 

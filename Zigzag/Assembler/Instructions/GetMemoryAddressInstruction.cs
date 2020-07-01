@@ -14,9 +14,12 @@ public class GetMemoryAddressInstruction : Instruction
 		Offset = offset;
 		Stride = stride;
 
-		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
-		Result.Value.Format = format;
-		Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
+      Result.Value = new ComplexMemoryHandle(Start, Offset, Stride)
+      {
+         Format = format
+      };
+		
+      Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 
 		Source.Value = Result.Value;
 		Source.Metadata.Attach(new ComplexMemoryAddressAttribute());
@@ -29,11 +32,13 @@ public class GetMemoryAddressInstruction : Instruction
 
 		if (Mode != AccessMode.WRITE && !Result.Equals(Source))
 		{
-			var move = new MoveInstruction(Unit, Result, Source);
-			move.Type = MoveType.LOAD;
+         var move = new MoveInstruction(Unit, Result, Source)
+         {
+            Type = MoveType.LOAD
+         };
 
-			// Since the source is not where it should be, it must be moved to the result 
-			Unit.Append(move);
+         // Since the source is not where it should be, it must be moved to the result 
+         Unit.Append(move);
 		}
 	}
 

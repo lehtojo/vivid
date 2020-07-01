@@ -34,10 +34,12 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			Memory.ClearRegister(Unit, location.Register);
 
-			var move = new MoveInstruction(Unit, new Result(location), First);
-			move.Type = Assigns ? MoveType.RELOCATE : MoveType.COPY;
+         var move = new MoveInstruction(Unit, new Result(location), First)
+         {
+            Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
+         };
 
-			return move.Execute();
+         return move.Execute();
 		}
 
 		return First;

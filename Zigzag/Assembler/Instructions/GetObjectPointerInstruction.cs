@@ -17,9 +17,12 @@ public class GetObjectPointerInstruction : Instruction
 	{
 		// Lock the parameters (Maybe new type of lifetime which stores a result its dependent on)
 		Memory.Convert(Unit, Start, true, HandleType.CONSTANT, HandleType.REGISTER);
-		Result.Value = new MemoryHandle(Unit, Start, Offset);
-		Result.Value.Format = Variable.Type!.Format;
-	}
+		
+      Result.Value = new MemoryHandle(Unit, Start, Offset)
+      {
+         Format = Variable.Type!.Format
+      };
+   }
 
 	public override Result[] GetResultReferences()
 	{

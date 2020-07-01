@@ -15,9 +15,14 @@
 		Absolute = absolute;
 	}
 
+	public Position Add(Position other)
+	{
+		return new Position(Line + other.Line, Character + other.Character, Absolute + other.Absolute);
+	}
+
 	public static Position operator +(Position a, Position b)
 	{
-		return new Position(a.Line + b.Line, a.Character + b.Character, a.Absolute + b.Absolute);
+		return a.Add(b);
 	}
 
 	public Position NextLine()

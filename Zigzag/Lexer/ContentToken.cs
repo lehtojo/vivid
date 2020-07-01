@@ -45,7 +45,7 @@ public class ContentToken : Token
 
 		if (raw.Length != EMPTY)
 		{
-			var content = raw.Substring(1, raw.Length - 2);
+			var content = raw[1..^1];
 
 			var tokens = Lexer.GetTokens(content, position.Clone().NextCharacter());
 			var sections = FindSections(tokens);

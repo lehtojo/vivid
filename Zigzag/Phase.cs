@@ -9,7 +9,7 @@ using System.Text;
 /// </summary>
 public abstract class Phase
 {
-	private List<Task<Status>> Tasks = new List<Task<Status>>();
+	private List<Task<Status>> Tasks { get; } = new List<Task<Status>>();
 	public bool Multithread { get; set; }
 
 	public bool Failed => Tasks.Any(t => !t.IsCompleted || t.Result.IsProblematic);

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Singleton
+public static class Singleton
 {
 	/// <summary>
 	/// Tries to build identifier into a node
@@ -175,14 +175,14 @@ public class Singleton
 
 	public static Node GetUnresolved(Context environment, Token token)
 	{
-		switch (token.Type)
-		{
-			case TokenType.IDENTIFIER: return new UnresolvedIdentifier(token.To<IdentifierToken>().Value);
-			case TokenType.FUNCTION: 	
-			return new UnresolvedFunction(token.To<FunctionToken>().Name)
-				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment));
-		}
+      return token.Type switch
+      {
+         TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value),
 
-		throw new Exception($"Couldn't create unresolved token ({token.Type})");
-	}
+         TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name)
+				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
+
+         _ => throw new Exception($"Couldn't create unresolved token ({token.Type})"),
+      };
+   }
 }

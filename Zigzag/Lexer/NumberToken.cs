@@ -79,23 +79,20 @@ public class NumberToken : Token
 		{
 			// Calculate the value
 			var number_part = GetNumberPart(text).Replace(".", ",");
-			var value = double.Parse(number_part);
+			var value = double.Parse(number_part, CultureInfo.InvariantCulture);
 
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
 
-			var format = new NumberFormatInfo();
-			format.NumberDecimalSeparator = Lexer.DECIMAL_SEPARATOR.ToString();
-
-			/// TODO: Think about overriding the decimal type
-			Value = value;
+         /// TODO: Think about overriding the decimal type
+         Value = value;
 			NumberType = Format.DECIMAL;
 			Bits = Lexer.Size.Bytes * 8;
 		}
 		else
 		{
 			// Calculate the value
-			var value = long.Parse(GetNumberPart(text));
+			var value = long.Parse(GetNumberPart(text), CultureInfo.InvariantCulture);
 			
 			/// TODO: Detect too large exponent
 			value *= (long)Math.Pow(10, exponent);

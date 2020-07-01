@@ -4,7 +4,7 @@ public class CallInstruction : Instruction
 {
     public string Function { get; private set; }
     public CallingConvention Convention { get; private set; }
-    public Instruction[] ParameterInstructions { get; set; } = new Instruction[0];
+    public Instruction[] ParameterInstructions { get; set; } = Array.Empty<Instruction>();
 
     public CallInstruction(Unit unit, string function, CallingConvention convention) : base(unit)
     {
@@ -54,13 +54,14 @@ public class CallInstruction : Instruction
                 Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
             }
 
-            var move = new MoveInstruction(Unit, Result, new Result(source));
-            
-            // Configure the move so that this instruction's result is attached to the destination
-            move.Type = MoveType.LOAD;
+            var move = new MoveInstruction(Unit, Result, new Result(source))
+            {
+                // Configure the move so that this instruction's result is attached to the destination
+                Type = MoveType.LOAD
+            };
 
-            // The result is predefined so the value from the source handle must be moved to the predefined result
-            Unit.Append(move, true);
+         // The result is predefined so the value from the source handle must be moved to the predefined result
+         Unit.Append(move, true);
         }
     }
 

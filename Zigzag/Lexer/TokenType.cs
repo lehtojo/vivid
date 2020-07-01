@@ -1,4 +1,4 @@
-public class TokenType
+public static class TokenType
 {
 	public const int NONE = 0;
 	public const int CAST = 1;

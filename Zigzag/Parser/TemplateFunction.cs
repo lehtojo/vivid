@@ -28,7 +28,7 @@ public class TemplateFunction : Function
 
    private void InsertArguments(List<Token> tokens, Type[] arguments)
    {
-      for (var i = 0; i < tokens.Count(); i++)
+      for (var i = 0; i < tokens.Count; i++)
       {
          if (tokens[i].Type == TokenType.IDENTIFIER)
          {

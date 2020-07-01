@@ -12,7 +12,7 @@ public class StringNode : Node, IType, ICloneable
 
 	public string GetIdentifier(Unit? unit)
 	{
-		return Identifier ?? (Identifier = unit?.GetNextString() ?? throw new ApplicationException("String didn't have an identifier"));
+		return Identifier ??= unit?.GetNextString() ?? throw new ApplicationException("String didn't have an identifier");
 	}
 
 	public new Type? GetType()

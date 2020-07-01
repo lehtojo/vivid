@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 public class Sublist<T> : IList<T>
 {
@@ -20,7 +19,7 @@ public class Sublist<T> : IList<T>
 
 	public int Count => End - Start;
 
-	public bool IsReadOnly => throw new NotImplementedException();
+	public bool IsReadOnly => false;
 
 	public void Add(T item)
 	{
@@ -86,7 +85,7 @@ public class Sublist<T> : IList<T>
 	}
 }
 
-public class Parser
+public static class Parser
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
@@ -199,7 +198,7 @@ public class Parser
 				{
 					var candidate = tokens.Sublist(start, end + 1);
 
-					foreach (Patterns.Option option in patterns.Options)
+					foreach (var option in patterns.Options)
 					{
 						var pattern = option.Pattern;
 						var molded = Mold(option.Missing, candidate);
@@ -332,10 +331,12 @@ public class Parser
 					if (parameters.Type == ParenthesisType.PARENTHESIS)
 					{
 						var name = (IdentifierToken)current;
-						var function = new FunctionToken(name, parameters);
-						function.Position = name.Position;
+                  var function = new FunctionToken(name, parameters)
+                  {
+                     Position = name.Position
+                  };
 
-						tokens[i] = function;
+                  tokens[i] = function;
 						tokens.RemoveAt(i + 1);
 
 						i -= FUNCTION_LENGTH;
@@ -364,7 +365,7 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE, 
 			"allocate", 
 			Types.LINK, 
-			new Parameter() { Name = "bytes", Type = number }
+			new Parameter("bytes", number)
 		);
 		
 		var power = new Function
@@ -372,8 +373,8 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"integer_power",
 			number,
-			new Parameter() { Name = "a", Type = number },
-			new Parameter() { Name = "b", Type = number }
+			new Parameter("a", number),
+			new Parameter("b", number)
 		);
 
 		var system_print = new Function
@@ -381,8 +382,8 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"sys_print",
 			Types.UNKNOWN,
-			new Parameter() { Name = "address", Type = Types.LINK },
-			new Parameter() { Name = "count", Type = number }
+			new Parameter("address", Types.LINK),
+			new Parameter("count", number)
 		);
 
 		var system_read = new Function
@@ -390,8 +391,8 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"sys_read",
 			number,
-			new Parameter() { Name = "buffer", Type = Types.LINK },
-			new Parameter() { Name = "count", Type = number }
+			new Parameter("buffer", Types.LINK),
+			new Parameter("count", number)
 		);
 
 		var copy = new Function
@@ -399,9 +400,9 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"copy",
 			Types.UNKNOWN,
-			new Parameter() { Name = "source", Type = Types.LINK },
-			new Parameter() { Name = "bytes", Type = number },
-			new Parameter() { Name = "destination", Type = Types.LINK }
+			new Parameter("source", Types.LINK),
+			new Parameter("bytes", number),
+			new Parameter("destination", Types.LINK)
 		);
 
 		var offset_copy = new Function
@@ -409,10 +410,10 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"offset_copy",
 			Types.UNKNOWN,
-			new Parameter() { Name = "source", Type = Types.LINK },
-			new Parameter() { Name = "bytes", Type = number },
-			new Parameter() { Name = "destination", Type = Types.LINK },
-			new Parameter() { Name = "offset", Type = number }
+			new Parameter("source", Types.LINK),
+			new Parameter("bytes", number),
+			new Parameter("destination", Types.LINK),
+			new Parameter("offset", number)
 		);
 
 		var deallocate = new Function
@@ -420,8 +421,8 @@ public class Parser
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"deallocate",
 			Types.UNKNOWN,
-			new Parameter() { Name = "address", Type = Types.LINK },
-			new Parameter() { Name = "bytes", Type = number }
+			new Parameter("address", Types.LINK),
+			new Parameter("bytes", number)
 		);
 
 		context.Declare(allocate);

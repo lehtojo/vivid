@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 public class LexerPhase : Phase
 {
 	public override Status Execute(Bundle bundle)
 	{
-		string[] contents = bundle.Get("input_file_contents", new string[] { });
+		string[] contents = bundle.Get("input_file_contents", Array.Empty<string>());
 
 		if (contents.Length == 0)
 		{
