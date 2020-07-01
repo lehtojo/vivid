@@ -49,11 +49,7 @@ public class Result
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
-<<<<<<< HEAD
 	private List<Connection> Connections { get; } = new List<Connection>();
-=======
-	private List<Connection> Connections { get; set; } = new List<Connection>();
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
 	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
 	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
 

@@ -17,11 +17,7 @@ public class Handle
 	public HandleType Type { get; protected set; }
 	public bool IsSizeVisible { get; set; } = false;
 
-<<<<<<< HEAD
 	public Format Format { get; set; } = Assembler.Format;
-=======
-	public Format Format = Assembler.Format;
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
 
@@ -165,7 +161,6 @@ public class ConstantHandle : Handle
 	}
 
 	public void Convert(Format format)
-<<<<<<< HEAD
 	{
       Value = format switch
       {
@@ -178,20 +173,6 @@ public class ConstantHandle : Handle
          Format.UINT16 => System.Convert.ToUInt16(Value, CultureInfo.InvariantCulture),
          Format.UINT32 => System.Convert.ToUInt32(Value, CultureInfo.InvariantCulture),
          Format.UINT64 => System.Convert.ToUInt64(Value, CultureInfo.InvariantCulture),
-=======
-   {
-      Value = format switch
-      {
-         Format.DECIMAL => System.Convert.ToDouble(Value),
-         Format.INT8 => System.Convert.ToSByte(Value),
-         Format.INT16 => System.Convert.ToInt16(Value),
-         Format.INT32 => System.Convert.ToInt32(Value),
-         Format.INT64 => System.Convert.ToInt64(Value),
-         Format.UINT8 => System.Convert.ToByte(Value),
-         Format.UINT16 => System.Convert.ToUInt16(Value),
-         Format.UINT32 => System.Convert.ToUInt32(Value),
-         Format.UINT64 => System.Convert.ToUInt64(Value),
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
          _ => throw new ApplicationException("Unsupported format encountered while converting a handle"),
       };
    }
@@ -564,11 +545,7 @@ public class CalculationHandle : Handle
 		
 		if (Multiplier > 1)
 		{
-<<<<<<< HEAD
 			result += '*' + Multiplier.ToString(CultureInfo.InvariantCulture);
-=======
-			result += '*' + Multiplier.ToString();
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
 		}
 
 		if (Addition != null)

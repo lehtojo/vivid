@@ -11,11 +11,7 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-<<<<<<< HEAD
       private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\Tests\\";
-=======
-      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Documents\\Intuitive\\Zigzag\\Tests\\";
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
       private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
 
@@ -72,11 +68,7 @@ namespace Zigzag.Unit
       
       
 
-<<<<<<< HEAD
       private static bool Compile(string output, params string[] source_files)
-=======
-      private bool Compile(string output, params string[] source_files)
->>>>>>> c478d12fca99d7c9cab4649550abbda9c3a2bba6
       {
          // Configure the flow of the compiler
          var chain = new Chain
