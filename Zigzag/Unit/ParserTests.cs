@@ -64,7 +64,7 @@ namespace Zigzag.Unit
 
          public Configuration Type(string name)
          {
-            new Type(Context, name, AccessModifier.PUBLIC);
+            _ = new Type(Context, name, AccessModifier.PUBLIC);
             return this;
          }
 

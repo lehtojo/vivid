@@ -144,6 +144,6 @@ public static class ArithmeticOperators
 
 	public static void GetDivisionConstants(int divider, int bits)
 	{
-		
+		throw new NotImplementedException("Constant division optimization not implemented yet");
 	}
 }

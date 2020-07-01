@@ -78,7 +78,7 @@ public class NumberToken : Token
 		if (IsDecimal(text))
 		{
 			// Calculate the value
-			var number_part = GetNumberPart(text).Replace(".", ",");
+			var number_part = GetNumberPart(text);
 			var value = double.Parse(number_part, CultureInfo.InvariantCulture);
 
 			/// TODO: Detect too large exponent

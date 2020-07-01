@@ -36,7 +36,7 @@ public class Variable
 
 	public static void Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
-		new Variable(context, type, category, name, modifiers, declare);
+		_ = new Variable(context, type, category, name, modifiers, declare);
 	}
 
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)

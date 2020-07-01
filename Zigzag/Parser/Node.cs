@@ -289,14 +289,14 @@ public class Node
 
 		if (i == 0)
 		{
-			return new Node[0];
+			return Array.Empty<Node>();
 		}
 		
 		if (i == count)
 		{
 			// This scenario means that one of the nodes is parent of the other
 			/// TODO: Remove after this function is proven to work (Identical return)
-			return new Node[0];
+			return Array.Empty<Node>();
 		}
 
 		return new [] { x[i], y[i] };

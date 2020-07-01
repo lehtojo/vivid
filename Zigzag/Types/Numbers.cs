@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 public static class Numbers
 {
@@ -40,7 +41,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) + Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) + Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x + (long) y;
@@ -56,7 +57,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) - Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) - Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x - (long) y;
@@ -72,7 +73,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) * Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) * Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x * (long) y;
@@ -88,7 +89,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x) / Convert.ToDouble(y);
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) / Convert.ToDouble(y, CultureInfo.InvariantCulture);
 		}
 
 		return (long) x / (long) y;
