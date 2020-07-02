@@ -60,10 +60,6 @@ public static class ArithmeticOperators
 		{
 			return BuildAssignOperator(unit, node);
 		}
-		if (Equals(operation, Operators.COLON))
-		{
-			return Arrays.BuildOffset(unit, node, AccessMode.READ);
-		}
 
 		throw new ArgumentException("Node not implemented yet");
 	}

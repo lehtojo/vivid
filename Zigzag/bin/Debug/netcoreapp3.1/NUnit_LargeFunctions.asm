@@ -22,17 +22,12 @@ export function_g
 function_g:
 sub rsp, 56
 lea r8, [rcx+1]
-mov r9, rcx
-sar r9, 1
 sal rcx, 2
-lea r10, [rdx+1]
-mov r11, rdx
-sal r11, 1
-sar rdx, 2
-mov qword [rsp+40], rdx
-mov rdx, r9
-mov r9, r10
-mov qword [rsp+32], r11
+lea r9, [rdx+1]
+sal rdx, 1
+mov qword [rsp+32], rdx
+xor rdx, rdx
+mov qword [rsp+40], 0
 xchg r8, rcx
 call function_f
 add rsp, 56

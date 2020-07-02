@@ -1,6 +1,6 @@
 using System;
 
-public class UnresolvedIdentifier : Node, IResolvable
+public class UnresolvedIdentifier : Node, IResolvable, IType
 {
 	public string Value { get; private set; }
 
@@ -28,6 +28,11 @@ public class UnresolvedIdentifier : Node, IResolvable
 	public Node? Resolve(Context context)
 	{
 		return GetResolvedNode(context);
+	}
+
+	public new Type? GetType()
+	{
+		return Types.UNKNOWN;
 	}
 
 	public override NodeType GetNodeType()

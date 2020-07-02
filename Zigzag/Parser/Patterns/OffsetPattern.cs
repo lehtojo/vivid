@@ -2,7 +2,7 @@
 
 public class OffsetPattern : Pattern
 {
-	private const int PRIORITY = 18;
+	private const int PRIORITY = 19;
 
 	private const int OBJECT = 0;
 	private const int INDICES = 1;
@@ -35,6 +35,6 @@ public class OffsetPattern : Pattern
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var indices = Singleton.Parse(context, tokens[INDICES]);
 
-		return new OperatorNode(Operators.COLON).SetOperands(source, indices);
+		return new OffsetNode(source, indices);
 	}
 }

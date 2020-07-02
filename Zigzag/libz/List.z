@@ -1,5 +1,5 @@
 List { T } {
-	private elements: num
+	private elements: link
 	private capacity: num
 	private position: num
 
@@ -8,19 +8,19 @@ List { T } {
 			count = 1
 		}
 
-		elements = num[count]
+		elements = allocate(count * T.size)
 		capacity = count
 		position = 0
 	}
 
 	init() {
-		elements = num[1]
+		elements = allocate(T.size)
 		capacity = 1
 		position = 0
 	}
 
 	private grow() {
-		memory = num[capacity * 2]
+		memory = allocate(capacity * 2 * T.size)
 		copy(elements, capacity, memory)
 		deallocate(elements, capacity)
 
@@ -33,26 +33,25 @@ List { T } {
 			grow()
 		}
 
-		elements[position] = element
+		elements[position * T.size] = element
 		position += 1
 	}
 
 	take() {
 		position -= 1
-		element = elements[position]
-		=> element as T
+		=> elements[position * T.size] as T
 	}
 	
 	set(i: num, value: T) {
-	    elements[i] = value
+	    elements[i * T.size] = value
 	}
 
 	get(i: num) {
-		=> elements[i] as T
+		=> elements[i * T.size] as T
 	}
 	
-	assign_plus(other: List(T)) {
-	    
+	assign_plus(element: T) {
+		add(element)
 	}
 
 	size() {

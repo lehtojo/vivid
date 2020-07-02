@@ -214,6 +214,7 @@ public class VariableMemoryHandle : StackMemoryHandle
 	{
 		Variable = variable;
 	}
+	
 	public override string ToString() 
 	{
 		if (Variable.Alignment == null)

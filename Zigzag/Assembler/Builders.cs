@@ -19,6 +19,11 @@ public static class Builders
 				return ArithmeticOperators.Build(unit, (OperatorNode)node);
 			}
 
+			case NodeType.OFFSET_NODE:
+			{
+				return Arrays.BuildOffset(unit, (OffsetNode)node, AccessMode.READ);
+			}
+
 			case NodeType.LINK_NODE:
 			{
 				return Links.Build(unit, (LinkNode)node);
@@ -46,7 +51,9 @@ public static class Builders
 
 			case NodeType.CAST_NODE:
 			{
-				return Build(unit, node.First!);
+				var result = Build(unit, node.First!);
+				result.Format = node.GetType().Format;
+				return result;
 			}
 
 			case NodeType.NEGATE_NODE:

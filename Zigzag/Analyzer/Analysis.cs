@@ -630,7 +630,19 @@ public static class Analysis
         {
             if (child.Is(NodeType.OPERATOR_NODE))
             {
-                operators.Add(child.To<OperatorNode>());
+                var operation = child.To<OperatorNode>();
+                
+                if (operation.Operator.Type == OperatorType.ACTION ||
+                    operation.Operator.Type == OperatorType.INDEPENDENT ||
+                    operation.Operator.Type == OperatorType.LOGIC)
+                {
+                    operators.AddRange(FindTopLevelOperators(operation.Left));
+                    operators.AddRange(FindTopLevelOperators(operation.Right));
+                }
+                else
+                {
+                    operators.Add(operation);
+                }
             }
             else
             {
@@ -649,7 +661,7 @@ public static class Analysis
     /// <param name="node">Node tree to analyze</param>
     private static void Analyze(Context context, Node node)
     {
-        AssignVariableDefinitions(context);
+        /*AssignVariableDefinitions(context);
 
         var expressions = new List<Node>();
 
@@ -668,19 +680,20 @@ public static class Analysis
             
             // Replace the value with the simplified version
             expression.Replace(simplified);
-        }
+        }*/
 
-        /*var assigns = node.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && 
-                                        Equals(n.To<OperatorNode>().Operator, Operators.ASSIGN) || n.Is(NodeType.RETURN_NODE));
+        //var assigns = node.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && 
+        //                                Equals(n.To<OperatorNode>().Operator, Operators.ASSIGN) || n.Is(NodeType.RETURN_NODE));
+        var expressions = FindTopLevelOperators(node);
 
-        foreach (var assign in assigns)
+        foreach (var assign in expressions)
         {
-            var components = CollectComponents(assign.Last!);
+            var components = CollectComponents(assign);
             var simplified = Recreate(components);
             
             // Replace the value with the simplified version
-            assign.Last!.Replace(simplified);
-        }*/
+            assign.Replace(simplified);
+        }
     }
 
     public static void Analyze(Context context)

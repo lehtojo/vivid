@@ -4,6 +4,9 @@ using System.Linq;
 
 public class TemplateType : Type
 {
+   private const string TEMPLATE_ARGUMENT_SIZE_ACCESSOR = "size";
+   private const string TEMPLATE_ARGUMENT_NAME_ACCESSOR = "name";
+
    private const int NAME = 0;
 
    public List<string> TemplateArgumentNames { get; private set; }
@@ -43,7 +46,32 @@ public class TemplateType : Type
                continue;
             }
 
-            tokens[i].To<IdentifierToken>().Value = arguments[j].Name;
+            var type = arguments[j];
+
+            // Check if accessor pattern is possible (e.g T.size or T.name)
+            if (i + 2 < tokens.Count && tokens[i + 1].Type == TokenType.OPERATOR && tokens[i + 1].To<OperatorToken>().Operator == Operators.DOT && tokens[i + 2].Type == TokenType.IDENTIFIER)
+            {
+               switch (tokens[i + 2].To<IdentifierToken>().Value)
+               {
+                  case TEMPLATE_ARGUMENT_SIZE_ACCESSOR: 
+                  {
+                     tokens.RemoveRange(i, 3);
+                     tokens.Insert(i, new NumberToken(type.ReferenceSize));
+                     continue;
+                  }
+
+                  case TEMPLATE_ARGUMENT_NAME_ACCESSOR:
+                  {
+                     tokens.RemoveRange(i, 3);
+                     tokens.Insert(i, new StringToken(type.Name));
+                     continue;
+                  }
+
+                  default: break;
+               }
+            }
+
+            tokens[i].To<IdentifierToken>().Value = type.Name;
          }
          else if (tokens[i].Type == TokenType.CONTENT)
          {

@@ -2,10 +2,10 @@ using System;
 
 public static class Arrays
 {
-	public static Result BuildOffset(Unit unit, OperatorNode node, AccessMode mode)
+	public static Result BuildOffset(Unit unit, OffsetNode node, AccessMode mode)
 	{
-		var start = References.Get(unit, node.Left);
-		var offset = References.Get(unit, node.Right.First!);
+		var start = References.Get(unit, node.Start);
+		var offset = References.Get(unit, node.Offset.First!);
 
 		var type = node.GetType() ?? throw new ApplicationException("Couldn't get the memory stride type");
 		var stride = Equals(type, Types.LINK) ? 1 : type.ReferenceSize;

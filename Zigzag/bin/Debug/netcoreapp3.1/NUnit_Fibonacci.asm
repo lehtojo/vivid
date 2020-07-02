@@ -233,14 +233,13 @@ mov rdx, rsi
 mov r8, rax
 mov r12, rax
 call copy
-mov rcx, rbp
-sub rcx, rsi
-lea rdx, [rsi+1]
-mov r8, rdx
-mov rdx, rcx
-mov rcx, [rbx]
-mov r9, r8
+mov rcx, rsi
+imul rcx, -1
+lea rdx, [rbp+rcx]
+lea rcx, [rsi+1]
+mov r9, rcx
 mov r8, r12
+mov rcx, [rbx]
 call offset_copy
 mov byte [r12+rsi], dil
 add rbp, 1

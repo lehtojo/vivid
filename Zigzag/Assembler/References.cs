@@ -105,20 +105,19 @@ public static class References
 
 			case NodeType.CAST_NODE:
 			{
-				var cast = (CastNode)node;
-				return References.Get(unit, cast.First!, mode);
+				var result = Get(unit, node.To<CastNode>().First!, mode);
+				result.Format = node.GetType().Format;
+				return result;
 			}
 
 			case NodeType.OPERATOR_NODE:
 			{
-				var operation = (OperatorNode)node;
+				return Builders.Build(unit, (OperatorNode)node);
+			}
 
-				if (operation.Operator == Operators.COLON)
-				{
-					return Arrays.BuildOffset(unit, operation, mode);
-				}
-
-				return Builders.Build(unit, node);
+			case NodeType.OFFSET_NODE:
+			{
+				return Arrays.BuildOffset(unit, (OffsetNode)node, mode);
 			}
 
 			default:

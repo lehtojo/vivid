@@ -18,18 +18,12 @@ push r13
 push r14
 sub rsp, 48
 add rcx, 1
-mov rbx, rcx
-imul rbx, 10
-mov rax, rbx
-xor rdx, rdx
-mov r8, 3
-idiv r8
-add rax, 2
-mov rdx, rax
+lea rbx, [rcx*2+rcx]
+add rbx, 2
+mov rdx, rbx
 sal rdx, 3
 mov r8, rcx
 mov rcx, rdx
-mov rbx, rax
 mov rsi, r8
 call allocate
 mov rcx, rbx
@@ -58,12 +52,13 @@ xor r9, r9
 cmp r8, rbx
 jge function_pidigits_L5
 function_pidigits_L4:
-mov rcx, rbx
-sub rcx, r8
-sub rcx, 1
-mov r10, rcx
-sal r10, 1
-add r10, 1
+mov rcx, r8
+imul rcx, -1
+lea r10, [rbx+rcx]
+sub r10, 1
+mov rcx, r10
+sal rcx, 1
+add rcx, 1
 mov r11, [rdi+r8*8]
 add r11, r9
 mov qword [rdi+r8*8], r11
@@ -71,14 +66,14 @@ mov r11, rax
 mov rax, [rdi+r8*8]
 mov r12, rdx
 xor rdx, rdx
-idiv r10
+idiv rcx
 mov rdx, rax
 mov rax, [rdi+r8*8]
 mov r13, rdx
 xor rdx, rdx
-idiv r10
+idiv rcx
 mov qword [rbp+r8*8], rdx
-imul r13, rcx
+imul r13, r10
 add r8, 1
 cmp r8, rbx
 mov r9, r13

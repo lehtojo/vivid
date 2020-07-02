@@ -23,8 +23,8 @@ global function_reference_decoy_2
 export function_reference_decoy_2
 function_reference_decoy_2:
 sal rcx, 1
-mov rdx, 1
-sal rdx, 1
+mov rdx, 2
+sal rdx, 0
 add rcx, rdx
 mov rax, rcx
 ret

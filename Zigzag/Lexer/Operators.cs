@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public static class Operators
 {
-	public static readonly ClassicOperator COLON = new ClassicOperator(":", 1, false);
+	public static readonly IndependentOperator COLON = new IndependentOperator(":");
 
 	public static readonly ClassicOperator POWER = new ClassicOperator("^", 15);
 

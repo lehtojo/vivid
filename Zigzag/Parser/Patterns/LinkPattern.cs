@@ -36,7 +36,7 @@ public class LinkPattern : Pattern
 		if (tokens[LEFT].Type == TokenType.DYNAMIC)
 		{
 			var token = (DynamicToken)tokens[LEFT];
-			return (token.Node is IType);
+			return token.Node is IType;
 		}
 
 		return true;

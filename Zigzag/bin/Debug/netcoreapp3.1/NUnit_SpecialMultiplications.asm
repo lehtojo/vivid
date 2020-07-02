@@ -11,15 +11,10 @@ extern deallocate
 global function_special_multiplications
 export function_special_multiplications
 function_special_multiplications:
+imul rcx, 11
+imul rdx, 17
+add rcx, rdx
 mov rax, rcx
-sal rax, 1
-mov r8, rdx
-imul r8, 17
-add rax, r8
-lea r8, [rcx*8+rcx]
-add rax, r8
-sar rdx, 2
-add rax, rdx
 ret
 
 function_run:

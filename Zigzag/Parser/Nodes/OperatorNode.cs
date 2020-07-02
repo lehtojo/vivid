@@ -170,20 +170,6 @@ public class OperatorNode : Node, IType, IResolvable
 		return CreateOperatorFunctionCall(target, Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER, parameters);
 	}
 
-	private Node? TryResolveAsIndexedGetter(Type type)
-	{
-		// Determine if this node represents a setter
-		if (Parent != null && Parent.Is(NodeType.OPERATOR_NODE) &&
-		    Parent.To<OperatorNode>().Operator.Type == OperatorType.ACTION)
-		{
-			// Indexed accessor setter is handled elsewhere
-			return null;
-		}
-		
-		// Ensure that the type contains overload for an indexed accessor (getter)
-		return !type.IsLocalFunctionDeclared(Type.INDEXED_ACCESSOR_GETTER_IDENTIFIER) ? null : CreateOperatorFunctionCall(Left, Type.INDEXED_ACCESSOR_GETTER_IDENTIFIER, Right);
-	}
-
 	public virtual Node? Resolve(Context context)
 	{
 		// First resolve any problems in the other nodes
@@ -191,10 +177,14 @@ public class OperatorNode : Node, IType, IResolvable
 		Resolver.Resolve(context, Right);
 		
 		// Check if the left node represents an indexed accessor and if it's being assigned a value
-		if (Operator.Type == OperatorType.ACTION && Left.Is(NodeType.OPERATOR_NODE) &&
-		    Equals(Left.To<OperatorNode>().Operator, Operators.COLON))
+		if (Operator.Type == OperatorType.ACTION && Left.Is(NodeType.OFFSET_NODE))
 		{
-			return TryResolveAsIndexedSetter();
+			var result = TryResolveAsIndexedSetter();
+
+			if (result != null)
+			{
+				return result;
+			}
 		}
 		
 		var type = Left.TryGetType();
@@ -202,12 +192,6 @@ public class OperatorNode : Node, IType, IResolvable
 		if (Equals(type, Types.UNKNOWN))
 		{
 			return null;
-		}
-
-		// Check if this node represents an indexed accessor
-		if (Equals(Operator, Operators.COLON))
-		{
-			return TryResolveAsIndexedGetter(type);
 		}
 
 		if (!type.IsOperatorOverloaded(Operator)) return null;
