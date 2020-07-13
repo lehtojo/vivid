@@ -34,10 +34,21 @@ public class ConstructorPattern : Pattern
 		var body = tokens[BODY].To<ContentToken>();
 		var type = (Type)context;
 
-		var constructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
-		constructor.Parameters = head.GetParameterNames(constructor);
+		if (head.Name == Keywords.INIT.Identifier)
+		{
+			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
+			constructor.Parameters = head.GetParameterNames(constructor);
 		
-		type.AddConstructor(constructor);
+			type.AddConstructor(constructor);
+		}
+		else
+		{
+			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
+			constructor.Parameters = head.GetParameterNames(constructor);
+		
+			type.AddDestructor(constructor);
+		}
+		
 
 		return null;
 	}

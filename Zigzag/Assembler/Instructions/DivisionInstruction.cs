@@ -25,7 +25,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 	private Result CorrectDenominatorLocation()
 	{
-		var register = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.DENOMINATOR)) ?? throw new ApplicationException("Architecture didn't have denominator register");
+		var register = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NOMINATOR)) ?? throw new ApplicationException("Architecture didn't have denominator register");
 		var location = new RegisterHandle(register);
 
 		if (!First.Value.Equals(location))

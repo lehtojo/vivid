@@ -30,9 +30,9 @@ jmp function_fibonacci_L2
 function_fibonacci_L3:
 lea rax, [rbp+rdi]
 mov rcx, rdi
-mov rsi, rax
 mov rbp, rdi
 mov rdi, rax
+mov rsi, rax
 function_fibonacci_L2:
 mov rcx, rsi
 call function_to_string
@@ -65,15 +65,15 @@ push rdi
 push rbp
 sub rsp, 40
 mov rdx, rcx
-mov rcx, function_to_string_S0
+lea rcx, [rel function_to_string_S0]
 mov rbx, rdx
 call type_string_constructor
-mov rcx, function_to_string_S1
+lea rcx, [rel function_to_string_S1]
 mov rsi, rax
 call type_string_constructor
 test rbx, rbx
 jge function_to_string_L0
-mov rcx, function_to_string_S2
+lea rcx, [rel function_to_string_S2]
 call type_string_constructor
 neg rbx
 function_to_string_L0:
@@ -233,13 +233,14 @@ mov rdx, rsi
 mov r8, rax
 mov r12, rax
 call copy
-mov rcx, rsi
-imul rcx, -1
-lea rdx, [rbp+rcx]
-lea rcx, [rsi+1]
-mov r9, rcx
-mov r8, r12
+mov rcx, rbp
+sub rcx, rsi
+lea rdx, [rsi+1]
+mov r8, rdx
+mov rdx, rcx
 mov rcx, [rbx]
+mov r9, r8
+mov r8, r12
 call offset_copy
 mov byte [r12+rsi], dil
 add rbp, 1
@@ -260,15 +261,17 @@ ret
 
 type_string_function_length:
 xor rax, rax
-type_string_function_length_L0:
 mov r8, [rcx]
 movzx rdx, byte [r8+rax]
-test dl, dl
-jne type_string_function_length_L1
-ret
-type_string_function_length_L1:
+test rdx, rdx
+je type_string_function_length_L1
+type_string_function_length_L0:
 add rax, 1
-jmp type_string_function_length_L0
+mov r8, [rcx]
+movzx rdx, byte [r8+rax]
+test rdx, rdx
+jne type_string_function_length_L0
+type_string_function_length_L1:
 ret
 
 section .data

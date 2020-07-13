@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+
 public class LinkPattern : Pattern
 {
 	public const int PRIORITY = 19;
@@ -10,7 +11,7 @@ public class LinkPattern : Pattern
 	// ... [\n] . [\n] ...
 	public LinkPattern() : base
 	(
-		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.DYNAMIC,
+		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.CONTENT | TokenType.DYNAMIC,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,

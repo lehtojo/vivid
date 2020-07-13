@@ -39,15 +39,17 @@ public class Type : Context
 	public FunctionList Constructors { get; } = new FunctionList();
 	public FunctionList Destructors { get; } = new FunctionList();
 
+	public Node? Initialization { get; set; }
+
 	public void AddConstructor(Constructor constructor)
 	{
-		var first = (Constructor)Constructors.Overloads.First();
-
-		if (first.IsDefault)
+		if (!Constructors.Overloads.Any() || !((Constructor)Constructors.Overloads.First()).IsDefault)
 		{
-			Constructors.Overloads.Remove(first);
+			Constructors.Add(constructor);
+			return;
 		}
 
+		Constructors.Overloads.Remove(Constructors.Overloads.First());
 		Constructors.Add(constructor);
 	}
 
@@ -74,7 +76,7 @@ public class Type : Context
 		Prefix = "Type";
 		Modifiers = modifiers;
 		Supertypes = supertypes;
-
+		
 		Constructors.Add(Constructor.Empty(this));
 
 		Link(context);
@@ -105,7 +107,9 @@ public class Type : Context
 
 	public virtual int GetContentSize()
 	{
-		return Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
+		var local_content_size = Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
+
+		return Supertypes.Sum(s => s.ContentSize) + local_content_size;
 	}
 
 	public FunctionList GetOperatorFunction(Operator operation)
@@ -116,6 +120,40 @@ public class Type : Context
 	public bool IsOperatorOverloaded(Operator operation)
 	{
 		return OPERATOR_OVERLOAD_FUNCTIONS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
+	}
+
+	public int? GetSupertypeBaseOffset(Type type)
+	{
+		var position = 0;
+
+		if (type == this)
+		{
+			return position;
+		}
+
+		foreach (var supertype in Supertypes)
+		{
+			if (supertype == type)
+			{
+				return position;
+			}
+
+			var local_base_offset = supertype.GetSupertypeBaseOffset(type);
+
+			if (local_base_offset != null)
+			{
+				return position + local_base_offset;
+			}
+
+			position += supertype.ContentSize;
+		}
+
+		return null;
+	}
+
+	public bool IsTypeInherited(Type type)
+	{
+		return Supertypes.Any(s => s == type || s.IsTypeInherited(type));
 	}
 	
 	public bool IsSuperFunctionDeclared(string name)

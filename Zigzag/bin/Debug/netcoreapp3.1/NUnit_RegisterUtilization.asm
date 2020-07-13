@@ -11,9 +11,9 @@ extern deallocate
 global function_register_utilization
 export function_register_utilization
 function_register_utilization:
-mov rax, rcx
-sal rax, 1
+lea rax, [rcx+rcx]
 mov r8, rdx
+sal r8, 0
 imul r8, 7
 sub rax, r8
 mov r8, rcx

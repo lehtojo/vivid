@@ -43,7 +43,7 @@ List { T } {
 	}
 	
 	set(i: num, value: T) {
-	    elements[i * T.size] = value
+		elements[i * T.size] as T = value
 	}
 
 	get(i: num) {

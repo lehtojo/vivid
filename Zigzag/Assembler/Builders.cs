@@ -14,6 +14,11 @@ public static class Builders
 				return ArithmeticOperators.Build(unit, (IncrementNode)node);
 			}
 
+			case NodeType.DECREMENT_NODE:
+			{
+				return ArithmeticOperators.Build(unit, (DecrementNode)node);
+			}
+
 			case NodeType.OPERATOR_NODE:
 			{
 				return ArithmeticOperators.Build(unit, (OperatorNode)node);
@@ -51,9 +56,7 @@ public static class Builders
 
 			case NodeType.CAST_NODE:
 			{
-				var result = Build(unit, node.First!);
-				result.Format = node.GetType().Format;
-				return result;
+				return Casts.Build(unit, (CastNode)node);
 			}
 
 			case NodeType.NEGATE_NODE:
@@ -79,7 +82,7 @@ public static class Builders
 
 				while (iterator != null)
 				{
-					reference = Builders.Build(unit, iterator);
+					reference = Build(unit, iterator);
 					iterator = iterator.Next;
 				}
 

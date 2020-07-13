@@ -93,7 +93,7 @@ public static class Conditionals
    {
       Scope.PrepareConditionallyChangingConstants(unit, node);
 
-      unit.Append(new PrepareForConditionalExecutionInstruction(unit, node.GetAllBranches()));
+      unit.Append(new BranchInstruction(unit, node.GetAllBranches()));
 
       var end = new LabelInstruction(unit, unit.GetNextLabel());
       var result = Build(unit, node, end);

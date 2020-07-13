@@ -36,7 +36,7 @@ public static class Aligner
 		foreach (var variable in variables)
 		{
 			position -= variable.Type!.ReferenceSize;
-			variable.Alignment = position;
+			variable.LocalAlignment = position;
 		}
 
 		while (temporary_handles.Count > 0)
@@ -69,11 +69,8 @@ public static class Aligner
 		// Member variables:
 		foreach (var variable in type.Variables.Values)
 		{
-			if (variable.IsUsed)
-			{
-				variable.Alignment = position;
-				position += variable.Type!.ReferenceSize;
-			}
+			variable.LocalAlignment = position;
+			position += variable.Type!.ReferenceSize;
 		}
 
 		// Member functions:
@@ -119,7 +116,7 @@ public static class Aligner
 		// Align the this pointer if it exists
 		if (function.Variables.TryGetValue(Function.THIS_POINTER_IDENTIFIER, out Variable? this_pointer))
 		{
-			this_pointer.Alignment = position - Parser.Size.Bytes;
+			this_pointer.LocalAlignment = position - Parser.Size.Bytes;
 		}
 
 		// Parameters:
@@ -127,7 +124,7 @@ public static class Aligner
 		{
 			if (variable.Category == VariableCategory.PARAMETER)
 			{
-				variable.Alignment = position;
+				variable.LocalAlignment = position;
 				position += variable.Type!.ReferenceSize;
 			}
 		}

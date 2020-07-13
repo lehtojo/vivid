@@ -15,23 +15,25 @@ public static class References
 		{
 			case VariableCategory.PARAMETER:
 			{
-				handle = new VariableMemoryHandle(unit, variable);
+				handle = new StackVariableHandle(unit, variable);
 				break;
 			}
 
 			case VariableCategory.LOCAL:
 			{
-				handle = new VariableMemoryHandle(unit, variable);
+				handle = new StackVariableHandle(unit, variable);
 				break;
 			}
 
 			case VariableCategory.MEMBER:
 			{
+				var parent = (Type)variable.Context;
+
 				handle = new MemoryHandle
 				(
 					unit, 
 					self ?? throw new ArgumentException("Member variable didn't have its base pointer"), 
-					variable.Alignment ?? throw new ApplicationException("Member variable wasn't aligned")
+					variable.GetAlignment(parent) ?? throw new ApplicationException("Member variable wasn't aligned")
 				);
 				
 				break;
@@ -45,8 +47,6 @@ public static class References
 
 			default: throw new NotImplementedException("Unrecognized variable category");
 		}
-
-		// handle.Format = variable.Type!.Format;
 
 		return handle;
 	}
@@ -81,7 +81,7 @@ public static class References
 
 	public static Result GetString(Unit unit, StringNode node)
 	{
-		return new Result(new ConstantHandle(node.GetIdentifier(unit)), Assembler.Size.ToFormat());
+		return new Result(new DataSectionHandle(node.GetIdentifier(unit), true), Assembler.Size.ToFormat());
 	}
 
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
@@ -105,9 +105,7 @@ public static class References
 
 			case NodeType.CAST_NODE:
 			{
-				var result = Get(unit, node.To<CastNode>().First!, mode);
-				result.Format = node.GetType().Format;
-				return result;
+				return Casts.Build(unit, (CastNode)node);
 			}
 
 			case NodeType.OPERATOR_NODE:

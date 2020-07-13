@@ -1,12 +1,34 @@
+Array { T } {
+	private data: link
+	count: num
+    
+	init(count: num) {
+		this.data = allocate(count * T.size)
+		this.count = count
+	}
+    
+	set(i: num, value: T) {
+		data[i * T.size] as T = value
+	}
+    
+	get(i: num) {
+		=> data[i * T.size] as T
+	}
+    
+	deinit() {
+		deallocate(data, count * T.size)
+	}
+}
+
 pidigits(digits) {   
 	++digits
 
 	l = digits * 10 / 3 + 2
 	
-	x = large[l]
-	r = large[l]
+	x = Array(large, l)
+	r = Array(large, l)
 
-	pi = large[digits]
+	pi = Array(large, digits)
 
 	j = 0
 
@@ -42,13 +64,13 @@ pidigits(digits) {
 		}
 	}
 
-	result = allocate(digits * 8)
+	result = Array(u8, digits * 8)
 
 	c = 0
 	i = digits - 1
 
 	loop (i >= 0) {
-		pi[i] += c
+		pi[i] = pi[i] + c
 		c = pi[i] / 10
 
 		result[i] = 48 + pi[i] % 10
@@ -56,7 +78,7 @@ pidigits(digits) {
 		i -= 1
 	}
 	
-	=> result
+	=> result.data
 }
 
 run() {

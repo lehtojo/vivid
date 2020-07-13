@@ -4,20 +4,37 @@ using System.Collections.Generic;
 public class TypeNode : Node, IType
 {
 	public Type Type { get; private set; }
+	public bool IsDefinition { get; private set; } = false;
+
 	private List<Token> Body { get; set; }
 
-	public TypeNode(Type type) : this(type, new List<Token>()) { }
+	public TypeNode(Type type)
+	{
+		Type = type;
+		Body = new List<Token>();
+	}
 
 	public TypeNode(Type type, List<Token> body)
 	{
 		Type = type;
 		Body = body;
+		IsDefinition = true;
 	}
 
 	public void Parse()
 	{
 		Parser.Parse(this, Type, Body);
 		Body.Clear();
+
+		// Find all expressions which represent type initialization
+		var expressions = FindChildren(n => !n.Is(NodeType.FUNCTION_DEFINITION_NODE) && !n.Is(NodeType.VARIABLE_NODE));
+
+		// Pack all expressions under an initialization node
+		var initialization = new Node();
+		expressions.ForEach(e => initialization.Add(e));
+
+		// Save the initialization for other constructors
+		Type.Initialization = initialization;
 	}
 
 	public new Type? GetType()
@@ -39,7 +56,7 @@ public class TypeNode : Node, IType
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Type.Name);
 		return hash.ToHashCode();

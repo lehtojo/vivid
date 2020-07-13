@@ -158,7 +158,7 @@ public class Unit
 
 		Registers = new List<Register>()
 		{
-			new Register(Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
+			new Register(Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.NOMINATOR),
 			new Register(Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
 			new Register(Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
 			new Register(Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
@@ -360,6 +360,9 @@ public class Unit
 		return register != null ? new RegisterHandle(register) : null;
 	}
 
+	/// <summary>
+	/// Moves the value of the specified register to memory
+	/// </summary>
 	public void Release(Register register)
 	{
 		var value = register.Handle;
@@ -572,17 +575,27 @@ public class Unit
 
 	public Register GetStackPointer()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture didn't have stack pointer register?");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture didn't have stack pointer register");
 	}
 
 	public Register GetStandardReturnRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have a standard return register?");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have a standard return register");
 	}
 
 	public Register GetDecimalReturnRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.DECIMAL_RETURN)) ?? throw new Exception("Architecture didn't have a decimal return register?");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.DECIMAL_RETURN)) ?? throw new Exception("Architecture didn't have a decimal return register");
+	}
+
+	public Register GetNominatorRegister()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NOMINATOR)) ?? throw new ApplicationException("Architecture didn't have a nominator register");
+	}
+
+	public Register GetRemainderRegister()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER)) ?? throw new ApplicationException("Architecture didn't have a remainder register");
 	}
 
 	public void Reset()
@@ -600,8 +613,8 @@ public class Unit
 			action();
 		}
 		catch (Exception e)
-		{
-			throw new ApplicationException($"ERROR: Unit execution failed: {e}");
+      {
+         throw new ApplicationException($"ERROR: Unit execution failed: {e}");
 		}
 
 		Phase = UnitPhase.READ_ONLY_MODE;
@@ -683,14 +696,6 @@ public class Unit
 		Phase = UnitPhase.READ_ONLY_MODE;
 	}
 
-	public void Cache(object constant, Result value)
-	{
-		var handles = GetConstantHandles(constant);
-		value.Lifetime.Start = Position;
-
-		handles.Add(value);
-	}
-
 	public List<Result> GetConstantHandles(object constant)
 	{
 		return Scope?.GetConstantHandles(constant) ?? throw new ApplicationException("Couldn't get constant reference list");
@@ -738,5 +743,13 @@ public class Unit
 				result.Use(i);
 			}
 		}
+	}
+
+	public override string ToString() 
+	{
+		var occupied_register = Registers.Where(r => r.Handle != null);
+		var description = string.Join(", ", occupied_register.Select(r => r.ToString() + ": " + r.GetDescription().ToLowerInvariant()));
+
+		return Function.ToString() + " | " + (string.IsNullOrEmpty(description) ? "ready" : description);
 	}
 }

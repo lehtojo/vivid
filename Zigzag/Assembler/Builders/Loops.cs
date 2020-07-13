@@ -132,7 +132,7 @@ public static class Loops
 
    private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
    {
-      var active_variables = Scope.GetAllActiveVariablesForScope(unit, loop, loop.BodyContext.Parent!, loop.BodyContext, loop.StepsContext);
+      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.BodyContext.Parent!, loop.BodyContext);
 
       var state = unit.GetState(unit.Position);
       var result = (Result?)null;
@@ -167,7 +167,7 @@ public static class Loops
 
    private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
    {
-      var active_variables = Scope.GetAllActiveVariablesForScope(unit, loop, loop.BodyContext.Parent!, loop.BodyContext, loop.StepsContext);
+      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.BodyContext.Parent!, loop.BodyContext);
 
       var state = unit.GetState(unit.Position);
       var result = (Result?)null;
@@ -240,7 +240,7 @@ public static class Loops
       CacheLoopVariables(unit, node);
 
       Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
-      unit.Append(new PrepareForConditionalExecutionInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+      unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
 
       // Build the loop body
       var result = BuildForeverLoopBody(unit, node, new LabelInstruction(unit, start));
@@ -274,8 +274,8 @@ public static class Loops
       // Try to cache loop variables
       CacheLoopVariables(unit, node);
 
-      Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
-      unit.Append(new PrepareForConditionalExecutionInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+      Scope.PrepareConditionallyChangingConstants(unit, node, node.BodyContext);
+      unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
 
       if (node.Condition is OperatorNode start_condition)
       {

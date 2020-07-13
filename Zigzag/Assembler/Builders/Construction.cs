@@ -6,14 +6,14 @@ public static class Construction
 	{
 		var metadata = (Constructor?)node.GetConstructor()?.Metadata ?? throw new ApplicationException("Constructor didn't hold any metadata");
 
-		if (metadata.IsDefault)
+		if (metadata.IsEmpty)
 		{
 			if (node.Type.ContentSize == 0)
 			{
 				throw new NotImplementedException("No implementation for empty objects found");
 			}
 
-			return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Format.INT32, (long)node.Type.ContentSize));
+			return Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, (long)node.Type.ContentSize));
 		}
 		else
 		{

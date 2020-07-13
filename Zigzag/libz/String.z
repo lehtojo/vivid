@@ -1,9 +1,9 @@
-to_string(n) {
-	number = string('')
-	sign = string('')
+to_string(n: num) {
+	number = String('')
+	sign = String('')
 
 	if n < 0 {
-		sign = string('-')
+		sign = String('-')
 		n = -n
 	}
 
@@ -19,7 +19,7 @@ to_string(n) {
 	}
 }
 
-to_number(text) {
+to_number(text: String) {
 	length = text.length()
 
 	if length == 0 {
@@ -45,7 +45,7 @@ to_number(text) {
 	=> n * sign
 }
 
-length_of(text) {
+length_of(text: link) {
 	i = 0
 
 	loop() {
@@ -54,14 +54,14 @@ length_of(text) {
 	}
 }
 
-string {
-	text
+String {
+	private text: link
 
-	init(source) {
+	init(source: link) {
 		text = source
 	}
 
-	combine(other) {
+	combine(other: String) {
 		a = length()
 		b = other.length() + 1
 
@@ -70,10 +70,10 @@ string {
 		copy(text, a, memory)
 		offset_copy(other.text, b, memory, a)
 
-		=> string(memory)
+		=> String(memory)
 	}
 
-	append(character) {
+	append(character: u8) {
 		length = length()
 
 		# Allocate memory for new string
@@ -86,10 +86,10 @@ string {
 		memory[length] = character
 		memory[length + 1] = 0
 
-		=> string(memory)
+		=> String(memory)
 	}
 
-	insert(index, character) {
+	insert(index: num, character: u8) {
 		# Calculate the current string length
 		length = length()
 
@@ -106,7 +106,19 @@ string {
 		memory[length + 1] = 0
 
 		# Create a new string from the buffer
-		=> string(memory)
+		=> String(memory)
+	}
+
+	plus(other: String) {
+		=> combine(other)
+	}
+
+	get(i: num) {
+		=> text[i] as u8
+	}
+
+	set(i: num, value: u8) {
+		text[i] = value
 	}
 	
 	data() {
@@ -115,9 +127,9 @@ string {
 
 	length() {
 		i = 0
-		loop() {
-			if text[i] == 0 { => i }
-			++i
-		}
+		
+		loop(text[i] != 0) { ++i }
+
+		=> i
 	}
 }

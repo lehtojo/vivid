@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Text;
 
 namespace Zigzag.Unit
 {
@@ -27,8 +28,7 @@ namespace Zigzag.Unit
       [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_basic_call_evacuation_with_memory(Int64 a, Int64 b);
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_for_loop(Int64 start, Int64 count);
+      
 
       [DllImport("NUnit_BasicDataFieldAssign", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern void function_basic_data_field_assign(ref BasicDataType target);
@@ -66,8 +66,6 @@ namespace Zigzag.Unit
       [DllImport("NUnit_LargeFunctions", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
       private static extern Int64 function_g(Int64 a, Int64 b);
       
-      
-
       private static bool Compile(string output, params string[] source_files)
       {
          // Configure the flow of the compiler
@@ -291,6 +289,24 @@ namespace Zigzag.Unit
          Assert.AreEqual(777, result);
       }
 
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_basic_for_loop(Int64 start, Int64 count);
+
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_nested_for_loops([MarshalAs(UnmanagedType.LPArray)] byte[] destination, Int64 width);
+
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_conditional_loop(Int64 start);
+      
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_conditional_action_loop(Int64 start);
+
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_normal_for_loop(Int64 start, Int64 count);
+
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_normal_for_loop_with_stop(Int64 start, Int64 count);
+
       [TestCase]
       public void Assembler_BasicForLoop()
       {
@@ -300,6 +316,23 @@ namespace Zigzag.Unit
          }
 
          Assert.AreEqual(100, function_basic_for_loop(70, 5));
+
+         Assert.AreEqual(10, function_conditional_loop(3));
+         Assert.AreEqual(1344, function_conditional_action_loop(42));
+         Assert.AreEqual(3169, function_normal_for_loop(3141, 8));
+
+         Assert.AreEqual(220, function_normal_for_loop_with_stop(10, 20));
+         Assert.AreEqual(3, function_normal_for_loop_with_stop(-3, 3));
+         Assert.AreEqual(10, function_normal_for_loop_with_stop(10, -1));
+         Assert.AreEqual(-1, function_normal_for_loop_with_stop(0, 999));
+
+         var expected = new byte[] { 100, 0, 100, 0, 0, 0, 100, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 100, 0, 0, 0, 100, 0, 100 };
+
+         var actual = new byte[27];
+         var w = function_nested_for_loops(actual, 3);
+
+         Assert.AreEqual(expected, actual);
+         Assert.AreEqual(13, w);
       }
 
       [TestCase]
@@ -590,6 +623,140 @@ namespace Zigzag.Unit
          Assert.AreEqual(7, function_logical_operators_1(0, 7));
          Assert.AreEqual(1, function_logical_operators_1(1, 1));
          Assert.AreEqual(0, function_logical_operators_1(3, 3));
+      }
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct Apple
+      {
+         public long Weight;
+         public double Price;
+      }
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct Car
+      {
+         public double Price;
+         public long Weight;
+         public IntPtr Brand;
+      }
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct String
+      {
+         public IntPtr Data;
+
+         public static String From(IntPtr data)
+         {
+            return (String?)Marshal.PtrToStructure(data, typeof(String)) ?? throw new ApplicationException("Native code returned an invalid string object");
+         }
+
+         public String(string text)
+         {
+            Data = Marshal.AllocHGlobal(text.Length + 1);
+            Marshal.Copy(Encoding.UTF8.GetBytes(text), 0, Data, text.Length);
+            Marshal.WriteByte(Data, text.Length, 0);
+         }
+
+         public void Assert(string expected)
+         {
+            var expected_bytes = Encoding.UTF8.GetBytes(expected);
+            var actual_bytes = new byte[expected_bytes.Length];
+            Marshal.Copy(Data, actual_bytes, 0, actual_bytes.Length);
+
+            NUnit.Framework.Assert.AreEqual(expected_bytes, actual_bytes);
+            NUnit.Framework.Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
+         }
+      }
+
+      [DllImport("NUnit_ObjectCreation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern IntPtr function_create_apple();
+
+      [DllImport("NUnit_ObjectCreation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern IntPtr function_create_car(Double price);
+
+      [TestCase]
+      public void Assembler_ObjectCreation()
+      {
+         if (!Compile("ObjectCreation", "ObjectCreation.z", LIBZ + "String.z", LIBZ + "Console.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         var apple = (Apple)Marshal.PtrToStructure(function_create_apple(), typeof(Apple))!;
+
+         Assert.AreEqual(100, apple.Weight);
+         Assert.AreEqual(0.1, apple.Price);
+
+         var car = (Car)Marshal.PtrToStructure(function_create_car(20000), typeof(Car))!;
+
+         Assert.AreEqual(2000000, car.Weight);
+         Assert.AreEqual(20000, car.Price);
+
+         var brand = (String)Marshal.PtrToStructure(car.Brand, typeof(String))!;
+
+         brand.Assert("Flash");
+      }
+
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern IntPtr function_create_pack();
+
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern IntPtr function_set_product(IntPtr pack, Int64 index, IntPtr name, Int64 value, byte currency);
+      
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern IntPtr function_get_product_name(IntPtr pack, Int64 index);
+
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern void function_enchant_product(IntPtr pack, Int64 index);
+
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern bool function_is_product_enchanted(IntPtr pack, Int64 index);
+
+      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Double function_get_product_price(IntPtr pack, Int64 index, byte currency);
+
+      [TestCase]
+      public void Assembler_Templates()
+      {
+         if (!Compile("Templates", "Templates.z", LIBZ + "String.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         var pack = function_create_pack();
+
+         var car = new String("Car");
+         var banana = new String("Banana");
+         var lawnmower = new String("Lawnmower");
+
+         const int EUROS = 0;
+         const int DOLLARS = 1;
+
+         function_set_product(pack, 0, car.Data, 700000, EUROS);
+         function_set_product(pack, 2, lawnmower.Data, 40000, DOLLARS);
+         function_set_product(pack, 1, banana.Data, 100, DOLLARS);
+
+         String.From(function_get_product_name(pack, 0)).Assert("Car");
+         String.From(function_get_product_name(pack, 1)).Assert("Banana");
+         String.From(function_get_product_name(pack, 2)).Assert("Lawnmower");
+
+         function_enchant_product(pack, 0);
+         function_enchant_product(pack, 1);
+
+         Assert.IsTrue(function_is_product_enchanted(pack, 0));
+         Assert.IsTrue(function_is_product_enchanted(pack, 1));
+         Assert.IsFalse(function_is_product_enchanted(pack, 2));
+
+         String.From(function_get_product_name(pack, 0)).Assert("iCar");
+         String.From(function_get_product_name(pack, 1)).Assert("iBanana");
+
+         Assert.AreEqual(700000.0, function_get_product_price(pack, 0, EUROS));
+         Assert.AreEqual(100.0 * 0.8, function_get_product_price(pack, 1, EUROS));
+         Assert.AreEqual(40000.0 * 0.8, function_get_product_price(pack, 2, EUROS));
+
+         Assert.AreEqual(700000.0 * 1.25, function_get_product_price(pack, 0, DOLLARS));
+         Assert.AreEqual(100.0, function_get_product_price(pack, 1, DOLLARS));
+         Assert.AreEqual(40000.0, function_get_product_price(pack, 2, DOLLARS));
       }
    }
 }

@@ -76,7 +76,8 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					instructions.Add(new MoveInstruction(unit, new Result(destination, this_pointer.Format), this_pointer)
+					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
+					instructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), this_pointer)
 					{
 						IsSafe = true
 					});
@@ -101,7 +102,8 @@ public static class Calls
 				{
 					var destination = new RegisterHandle(register);
 
-					instructions.Add(new MoveInstruction(unit, new Result(destination, source.Format), source)
+					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
+					instructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Size.ToFormat(source.Format.IsUnsigned())), source)
 					{
 						IsSafe = true
 					});

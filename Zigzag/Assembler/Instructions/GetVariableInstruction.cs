@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 
 public class GetVariableInstruction : LoadInstruction
 {
 	public Result? Self { get; private set; }
 	public Variable Variable { get; private set; }
+	private Result Current { get; set; }
 
 	public GetVariableInstruction(Unit unit, Result? self, Variable variable, AccessMode mode) : base(unit, mode)
 	{
@@ -16,7 +18,7 @@ public class GetVariableInstruction : LoadInstruction
 
 	public override void OnSimulate()
 	{
-		var current = Unit.GetCurrentVariableHandle(Variable);
+		/*var current = Unit.GetCurrentVariableHandle(Variable);
 
 		if (current != null && !current.Equals(Source))
 		{
@@ -26,18 +28,28 @@ public class GetVariableInstruction : LoadInstruction
 			}
 
 			Source.Join(current);
+		}*/
+
+		var current = Unit.GetCurrentVariableHandle(Variable);
+
+		if (current == null)
+		{
+			return;
 		}
+
+		Current = current;
+		Result.Join(Current);
 	}
 
 	public override void OnBuild()
 	{
 		OnSimulate();
-		base.OnBuild();
+		//base.OnBuild();
 
-		if (Mode == AccessMode.WRITE && !Variable.IsPredictable)
+		/*if (Mode == AccessMode.WRITE && !Variable.IsPredictable)
 		{
 			Result.Value = Source.Value;
-		}
+		}*/
 	}
 	
 	public override InstructionType GetInstructionType()
@@ -47,13 +59,18 @@ public class GetVariableInstruction : LoadInstruction
 
 	public override Result[] GetResultReferences()
 	{
+		var references = new List<Result>() { Result, Source };
+
 		if (Self != null)
 		{
-			return new Result[] { Result, Source, Self };
+			references.Add(Self);
 		}
-		else
+
+		if (Current != null)
 		{
-			return new Result[] { Result, Source };
+			references.Add(Current);
 		}
+
+		return references.ToArray();
 	}
 }

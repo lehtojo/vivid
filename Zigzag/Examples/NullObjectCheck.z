@@ -20,8 +20,8 @@ A {
 f(primary) {
 	if primary != none and primary.other != none {
 		primary.other.dummy += 2
-        primary.other.dummy -= 2
-        => primary.other.sum(1, 2)
+		primary.other.dummy -= 2
+		=> primary.other.sum(1, 2)
 	}
 	
 	=> 0

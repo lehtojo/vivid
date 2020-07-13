@@ -20,8 +20,6 @@ public static class Keywords
 	public static readonly Keyword RETURN = new FlowKeyword("return");
 	public static readonly Keyword STATIC = new AccessModifierKeyword("static", AccessModifier.STATIC);
 	public static readonly Keyword STOP = new FlowKeyword("stop");
-	public static readonly Keyword THIS = new Keyword("this");
-	public static readonly Keyword TYPE = new Keyword("type");
 
 	private static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
 
@@ -45,8 +43,6 @@ public static class Keywords
 		Values.Add(RETURN.Identifier, RETURN);
 		Values.Add(STATIC.Identifier, STATIC);
 		Values.Add(STOP.Identifier, STOP);
-		Values.Add(THIS.Identifier, THIS);
-		Values.Add(TYPE.Identifier, TYPE);
 	}
 
 	public static bool Exists(string name)

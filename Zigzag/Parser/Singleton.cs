@@ -46,7 +46,7 @@ public static class Singleton
 				var template_type = (TemplateType)type;
 				functions = template_type[parameters.ToArray()].GetConstructors();
 
-				parameters = parameters.Take(parameters.Count - template_type.TemplateArgumentNames.Count).ToList();
+				parameters = parameters.Skip(template_type.TemplateArgumentNames.Count).ToList();
 			}
 			else
 			{

@@ -7,7 +7,7 @@ public class ReturnInstruction : Instruction
 	private const string RETURN = "ret";
 
 	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
-	private Result ReturnRegisterHandle => new Result(new RegisterHandle(ReturnRegister), ReturnType?.Format ?? throw new ApplicationException("Tried to get a return register for a function which doesn't return"));
+	private Handle ReturnRegisterHandle => new RegisterHandle(ReturnRegister);
 
 	public Result? Object { get; private set; }
 	public Type? ReturnType { get; private set; }
@@ -34,7 +34,7 @@ public class ReturnInstruction : Instruction
 		// Ensure that if there's a value to return it's in a return register
 		if (Object != null && !IsObjectInReturnRegister())
 		{
-			Unit.Append(new MoveInstruction(Unit, ReturnRegisterHandle, Object));
+			Unit.Append(new MoveInstruction(Unit, new Result(ReturnRegisterHandle, ReturnRegister.IsMediaRegister ? Format.DECIMAL : Assembler.Format), Object));
 		}
 	}
 

@@ -7,6 +7,11 @@ public static class ArithmeticOperators
 		return BuildIncrementOperation(unit, node);
 	}
 
+	public static Result Build(Unit unit, DecrementNode node)
+	{
+		return BuildDecrementOperation(unit, node);
+	}
+
 	public static Result Build(Unit unit, OperatorNode node)
 	{
 		/// TODO: Create a register preference system dependent on the situation
@@ -42,15 +47,11 @@ public static class ArithmeticOperators
 		}
 		if (Equals(operation, Operators.ASSIGN_MULTIPLY))
 		{
-			Console.WriteLine("Warning: Assign multiplication is incomplete at the current state");
-
-			// return BuildMultiplicationOperator(unit, node, true);
+			return BuildMultiplicationOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_DIVIDE))
 		{
-			Console.WriteLine("Warning: Assign division is incomplete at the current state");
-
-			// return BuildDivisionOperator(unit, false, node, true);
+			return BuildDivisionOperator(unit, false, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_MODULUS))
 		{
@@ -89,6 +90,16 @@ public static class ArithmeticOperators
 		return new AdditionInstruction(unit, left, right, number_type, true).Execute();
 	}
 
+	private static Result BuildDecrementOperation(Unit unit, DecrementNode decrement)
+	{   
+		var left = References.Get(unit, decrement.Object, AccessMode.WRITE);
+		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L));
+		
+		var number_type = decrement.Object.GetType()!.To<Number>().Type;
+
+		return new SubtractionInstruction(unit, left, right, number_type, true).Execute();
+	}
+
 	private static Result BuildSubtractionOperator(Unit unit, OperatorNode operation, bool assigns = false)
 	{
 		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
@@ -99,6 +110,14 @@ public static class ArithmeticOperators
 		return new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
 	}
 
+	/// <summary>
+	/// Returns whether the node represents a object located in memory
+	private static bool IsComplexDestination(Node node)
+	{
+		return node.Is(NodeType.VARIABLE_NODE) && !node.To<VariableNode>().Variable.IsPredictable ||
+					node.Is(NodeType.LINK_NODE) || node.Is(NodeType.OFFSET_NODE);
+	}
+
 	private static Result BuildMultiplicationOperator(Unit unit, OperatorNode operation, bool assigns = false)
 	{
 		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
@@ -106,7 +125,14 @@ public static class ArithmeticOperators
 		
 		var number_type = operation.GetType()!.To<Number>().Type;
 
-		return new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
+		var result = new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
+
+		if (IsComplexDestination(operation.Left) && assigns)
+		{
+			return new MoveInstruction(unit, left, result).Execute();
+		}
+
+		return result;
 	}
 
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
@@ -116,7 +142,14 @@ public static class ArithmeticOperators
 		
 		var number_type = operation.GetType()!.To<Number>().Type;
 
-		return new DivisionInstruction(unit, modulus, left, right, number_type, assigns).Execute();
+		var result = new DivisionInstruction(unit, modulus, left, right, number_type, assigns).Execute();
+
+		if (IsComplexDestination(operation.Left) && assigns)
+		{
+			return new MoveInstruction(unit, left, result).Execute();
+		}
+
+		return result;
 	}
 
 	private static Result BuildAssignOperator(Unit unit, OperatorNode node) 

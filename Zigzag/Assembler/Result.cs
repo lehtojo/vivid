@@ -118,6 +118,7 @@ public class Result
 	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsAnyRegister => _Value.Type == HandleType.REGISTER || _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
+	public bool IsDataSectionHandle => _Value is DataSectionHandle;
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
 
 	public bool IsReleasable()

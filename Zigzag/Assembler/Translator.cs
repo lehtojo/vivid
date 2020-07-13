@@ -17,8 +17,8 @@ public static class Translator
 	private static List<Variable> GetAllSavedLocalVariables(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is VariableMemoryHandle v && v.Variable.IsLocal)
-			.Select(h => h.To<VariableMemoryHandle>().Variable)
+			.Where(h => h is StackVariableHandle v && v.Variable.IsLocal)
+			.Select(h => h.To<StackVariableHandle>().Variable)
 			.Distinct()
 			.ToList();
 	}

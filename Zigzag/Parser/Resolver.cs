@@ -28,6 +28,11 @@ public static class Resolver
 		{
 			ResolveVariables(type);
 			ResolveContext(type);
+
+			if (type.Initialization != null)
+			{
+				Resolve(type, type.Initialization);
+			}
 		}
 
 		var implementations = context.GetFunctionImplementations().ToList();

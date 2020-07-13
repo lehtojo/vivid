@@ -91,14 +91,21 @@ public class ConstantDataSectionHandle : DataSectionHandle
 public class DataSectionHandle : Handle
 {
 	public string Identifier { get; set; }
+	public bool Address { get; set; } = false;
 
-	public DataSectionHandle(string identifier) : base(HandleType.MEMORY)
+	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY)
 	{
 		Identifier = identifier;
+		Address = address;
 	}
 
 	public override string ToString()
 	{
+		if (Address)
+		{
+			return Identifier;
+		}
+
 		if (Assembler.IsTargetX64)
 		{
 			return IsSizeVisible ? $"{Size} [rel {Identifier}]" : $"[rel {Identifier}]";
@@ -109,7 +116,7 @@ public class DataSectionHandle : Handle
 
 	public override Handle Finalize()
 	{
-		return (Handle)this.MemberwiseClone();
+		return (Handle)MemberwiseClone();
 	}
 
 	public override bool Equals(object? obj)
@@ -206,35 +213,40 @@ public class ConstantHandle : Handle
 	}
 }
 
-public class VariableMemoryHandle : StackMemoryHandle
+public class StackVariableHandle : StackMemoryHandle
 {
 	public Variable Variable { get; private set; }
 
-	public VariableMemoryHandle(Unit unit, Variable variable) : base(unit, variable.Alignment ?? 0)
+	public StackVariableHandle(Unit unit, Variable variable) : base(unit, variable.LocalAlignment ?? 0)
 	{
 		Variable = variable;
+
+		if (!Variable.IsPredictable)
+		{
+			throw new ArgumentException("Tried to create stack variable handle for a variable which isn't stored in the stack");
+		}
 	}
 	
 	public override string ToString() 
 	{
-		if (Variable.Alignment == null)
+		if (Variable.LocalAlignment == null)
 		{
 			return $"[{Variable.Name}]";
 		}
 
-		Offset = (int)Variable.Alignment;
+		Offset = (int)Variable.LocalAlignment;
 
 		return base.ToString();
 	}
 
 	public override Handle Finalize()
 	{
-		return (Handle)this.MemberwiseClone();
+		return (Handle)MemberwiseClone();
 	}
 
 	public override bool Equals(object? obj)
 	{
-		return obj is VariableMemoryHandle handle &&
+		return obj is StackVariableHandle handle &&
 			   base.Equals(obj) &&
 			   EqualityComparer<Variable>.Default.Equals(Variable, handle.Variable);
 	}
@@ -468,7 +480,12 @@ public class ComplexMemoryHandle : Handle
 
 	public override Result[] GetRegisterDependentResults()
 	{
-		return new Result[] { Start, Offset };
+		if (!Offset.IsConstant)
+		{
+			return new Result[] { Start, Offset };
+		}
+
+		return new Result[] { Start };
 	}
 
 	public override Handle Finalize() 
@@ -546,17 +563,17 @@ public class CalculationHandle : Handle
 		
 		if (Multiplier > 1)
 		{
-			result += '*' + Multiplier.ToString(CultureInfo.InvariantCulture);
+			result += "*" + Multiplier.ToString(CultureInfo.InvariantCulture);
 		}
 
 		if (Addition != null)
 		{
-			result += '+' + Addition.ToString();
+			result += "+" + Addition.ToString();
 		}
 
 		if (Constant != 0)
 		{
-			result += '+' + Constant;
+			result += "+" + Constant;
 		}
 
 		return '[' + result + ']';

@@ -160,7 +160,7 @@ public static class Oracle
 			var state = states.Pop()!;
 
 			// Try to find other states that share the same references with the current state
-			var linked_variables = states.Where(s => s != state && s.Reference.Equals(state.Reference)).ToList();
+			var linked_variables = states.Where(s => s.Reference.Equals(state.Reference)).ToList();
 
 			if (linked_variables.Any())
 			{
@@ -180,16 +180,8 @@ public static class Oracle
 
 	private static void SeparateEditedVariablesInGroup(Unit unit, VariableGroup group, Node[] roots)
 	{
-		var edited_variables = new List<Variable>();
-
-		foreach (var variable in group)
-		{
-			// Check if the variable is edited inside of any of the roots
-			if (roots.Any(root => variable.IsEditedInside(root)))
-			{
-				edited_variables.Add(variable);
-			}
-		}
+		// Find all variables which are edited inside of any of the roots
+		var edited_variables = group.Where(v => roots.Any(r => v.IsEditedInside(r))).ToList();
 
 		if (edited_variables.Count == 0)
 		{
@@ -204,7 +196,7 @@ public static class Oracle
          // Duplicate the shared value and give it to the edited variable
          var duplicate = new DuplicateInstruction(unit, shared_value)
          {
-            Description = "Separate " + variable.Name + " from variable group { " + string.Join(", ", group.Select(v => v.Name)) + " }"
+            Description = "Separate " + variable.Name + " from variables " + string.Join(", ", group.Select(v => v.Name))
          };
 
          var duplication = duplicate.Execute();
@@ -218,15 +210,17 @@ public static class Oracle
 
 	private static void SimulateLinkage(Unit unit, Instruction instruction)
 	{
-		if (instruction.Type == InstructionType.PREPARE_FOR_CONDITIONAL_EXECUTION)
+		if (instruction.Type == InstructionType.BRANCH)
 		{
-			var roots = instruction.To<PrepareForConditionalExecutionInstruction>().Roots;
+			var branch_instruction = instruction.To<BranchInstruction>();
+			var branches = branch_instruction.Branches;
+
 			var linked_variable_groups = GetAllLinkedVariables(unit);
 
 			// Add all variable groups to the separation list which are affected inside any of the roots
 			foreach (var linked_variable_group in linked_variable_groups)
 			{
-				SeparateEditedVariablesInGroup(unit, linked_variable_group, roots);
+				SeparateEditedVariablesInGroup(unit, linked_variable_group, branches);
 			}
 		}
 	}
@@ -317,6 +311,7 @@ public static class Oracle
 	public static void SimulateRegisterUsage(Unit unit)
 	{
 		var calls = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
+		var divisions = unit.Instructions.FindAll(i => i.Type == InstructionType.DIVISION);
 
 		// Try to redirect call parameters that follow x64 calling conventions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
@@ -347,10 +342,19 @@ public static class Oracle
 			}
 		});
 
+		var nominator_register = unit.GetNominatorRegister();
+		var remainder_register = unit.GetRemainderRegister();
+
 		// Redirect values to non-volatile register if they intersect with functions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
 		{
 			var result = instruction.Result;
+
+			// Decimal values should not be redirected since they are usually in media registers
+			if (result.Format.IsDecimal())
+			{
+				return;
+			}
 
 			var intersections = calls.FindAll(c => result.Lifetime.IsOnlyActive(c.Position));
 
@@ -358,6 +362,15 @@ public static class Oracle
 				(!result.IsStandardRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
 			{
 				instruction.Direct(new DirectToNonVolatileRegister(intersections.ToArray()));
+			}
+
+			intersections = divisions.FindAll(i => result.Lifetime.IsOnlyActive(i.Position));
+
+			if (intersections.Count > 0)
+			{
+				var last = intersections.OrderByDescending(i => i.Position).First();
+
+				instruction.Direct(new AvoidRegisters(last, new Register[] { nominator_register, remainder_register }));
 			}
 			/*var result = instruction.Result;
 

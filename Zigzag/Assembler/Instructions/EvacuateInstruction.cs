@@ -36,11 +36,6 @@ public class EvacuateInstruction : Instruction
 			}
 			else
 			{
-				if (!source.IsReleasable)
-				{
-					throw new ApplicationException("Register evacuation failed because releasing a non-variable value to memory is not implemented");
-				}
-
 				Unit.Release(source);
 				return;
 			}

@@ -5,7 +5,8 @@ public static class Analyzer
 {
 	private static bool IsEdited(VariableNode reference)
 	{
-		return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION || (reference.Parent?.Is(NodeType.INCREMENT_NODE) ?? false);
+		return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION && operation.Left == reference || 
+			(reference.Parent?.Is(NodeType.INCREMENT_NODE) ?? false);
 	}
 
 	private static void AnalyzeVariableUsages(Context context)

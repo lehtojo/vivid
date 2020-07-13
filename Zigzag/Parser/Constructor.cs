@@ -3,6 +3,7 @@ using System.Collections.Generic;
 public class Constructor : Function
 {
 	public bool IsDefault { get; private set; }
+	public bool IsEmpty => IsDefault && (GetTypeParent()!.Initialization?.IsEmpty ?? true);
 
 	public static Constructor Empty(Context context)
 	{

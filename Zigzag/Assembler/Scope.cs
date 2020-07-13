@@ -27,12 +27,28 @@ public sealed class Scope : IDisposable
    /// <summary>
    /// Returns all variables in the given node tree that are not declared in the given local context
    /// </summary>
-   private static IEnumerable<Variable> GetAllNonLocalVariables(Node root, params Context[] local_contexts)
+   private static IEnumerable<Variable> GetAllNonLocalVariables(Node[] roots, params Context[] local_contexts)
    {
-      return root.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
+      return roots.SelectMany(r => r.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
                .Select(n => n.To<VariableNode>().Variable)
-               .Where(v => v.IsPredictable && IsNonLocalVariable(v, local_contexts))
+               .Where(v => v.IsPredictable && IsNonLocalVariable(v, local_contexts)))
                .Distinct();
+   }
+
+   /// <summary>
+   /// Retrieves all variables that are visible to the specified context and are inside the current function
+   /// </summary>
+   private static List<Variable> GetAllContextVariables(Context? current)
+   {
+      var variables = new List<Variable>();
+
+      while (current != null && !current.IsType)
+      {
+         variables.AddRange(current.Variables.Values);
+         current = current.Parent;
+      }
+
+      return variables;
    }
 
    /// <summary>
@@ -40,7 +56,7 @@ public sealed class Scope : IDisposable
    /// </summary>
    private static IEnumerable<Variable> GetAllActiveContextVariables(Unit unit, Context context)
    {
-      return context.Variables.Values.Where(v => unit.Instructions.Exists(i =>
+      return GetAllContextVariables(context).Where(v => unit.Instructions.Exists(i =>
          (i is GetVariableInstruction x && x.Variable == v) ||
          (i is RequireVariablesInstruction r && r.Variables.Contains(v))
       ));
@@ -49,10 +65,21 @@ public sealed class Scope : IDisposable
    /// </summary>
    /// Returns all variables that the scope must take care of
    /// </summary>
+   public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node[] roots, Context current_context, params Context[] scope_contexts)
+   {
+      return GetAllActiveContextVariables(unit, current_context)
+            .Concat(GetAllNonLocalVariables(roots, scope_contexts))
+            .Concat(unit.Scope!.ActiveVariables)
+            .Distinct();
+   }
+
+   /// </summary>
+   /// Returns all variables that the scope must take care of
+   /// </summary>
    public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node root, Context current_context, params Context[] scope_contexts)
    {
       return GetAllActiveContextVariables(unit, current_context)
-            .Concat(GetAllNonLocalVariables(root, scope_contexts))
+            .Concat(GetAllNonLocalVariables(new Node[] { root }, scope_contexts))
             .Concat(unit.Scope!.ActiveVariables)
             .Distinct();
    }
@@ -70,12 +97,15 @@ public sealed class Scope : IDisposable
    public static void PrepareConditionallyChangingConstants(Unit unit, Node root, params Context[] local_contexts)
    {
       // Find all variables inside the root node which are edited
-      var edited_variables = GetAllNonLocalVariables(root, local_contexts).Where(v => v.IsEditedInside(root));
+      var edited_variables = GetAllNonLocalVariables(new Node[] { root }, local_contexts).Where(v => v.IsEditedInside(root));
 
       // All edited variables that are constants must be moved to registers or into memory
       foreach (var variable in edited_variables)
       {
-         unit.Append(new LoadOnlyIfConstantInstruction(unit, variable));
+         unit.Append(new LoadOnlyIfConstantInstruction(unit, variable)
+         {
+            Description = $"Loads the variable '{variable.Name}' into a register or memory if it's a constant"
+         });
       }
    }
 
@@ -88,7 +118,7 @@ public sealed class Scope : IDisposable
       while (iterator != null)
       {
          // Find all variables inside the root node which are edited
-         edited_variables.AddRange(GetAllNonLocalVariables(iterator, context).Where(v => v.IsEditedInside(iterator)));
+         edited_variables.AddRange(GetAllNonLocalVariables(new Node[] { iterator }, context).Where(v => v.IsEditedInside(iterator)));
 
          if (iterator.Is(NodeType.ELSE_IF_NODE))
          {
@@ -416,7 +446,7 @@ public sealed class Scope : IDisposable
             if (!Finalizers.Contains(variable))
             {
                // The current variable is an active one so it must stay protected during the whole scope lifetime
-               References.GetVariable(Unit, variable, AccessMode.READ).Instruction!.Description = "Keep variable active"; ;
+               References.GetVariable(Unit, variable, AccessMode.READ).Instruction!.Description = "Keep variable active";
 
                Finalizers.Add(variable);
             }

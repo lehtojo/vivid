@@ -1,24 +1,26 @@
 using System;
+using System.Linq;
 
-public class PrepareForConditionalExecutionInstruction : Instruction
+public class BranchInstruction : Instruction
 {
-   public Node[] Roots { get; private set; }
-
-   public PrepareForConditionalExecutionInstruction(Unit unit, Node[] roots) : base(unit)
+   public Node[] Branches { get; private set; }
+   
+   public BranchInstruction(Unit unit, Node[] branches) : base(unit)
    {
-      Roots = roots;
+      Branches = branches;
+      Description = "Prepares variables for branching";
    }
 
    public override void OnBuild() {}
 
    public override Result? GetDestinationDependency()
    {
-      throw new InvalidOperationException("Tried to redirect Prepare-For-Conditional-Execution-Instruction");
+      throw new InvalidOperationException("Tried to redirect Branch-Instruction");
    }
 
    public override InstructionType GetInstructionType()
    {
-      return InstructionType.PREPARE_FOR_CONDITIONAL_EXECUTION;
+      return InstructionType.BRANCH;
    }
 
    public override Result[] GetResultReferences()

@@ -12,9 +12,120 @@ export basic_for_loop(start, count) {
     => result
 }
 
+export forever_loop() {
+    result = 0
+
+    loop {
+        ++result
+    }
+
+    => result
+}
+
+export conditional_loop(i: num) {
+    loop (i < 10) {
+        ++i
+    }
+
+    => i
+}
+
+export conditional_action_loop(i: num) {
+    loop (i < 1000, i *= 2) {}
+    => i
+}
+
+export normal_for_loop(start: num, count: num) {
+    result = start
+
+    loop (i = 0, i < count, ++i) {
+        result += i
+    }
+
+    => result
+}
+
+export normal_for_loop_with_stop(start: num, count: num) {
+    result = start
+
+    loop (i = 0, i <= count, ++i) {
+        
+        if (i > 100) {
+            result = -1
+            stop
+        }
+
+        result += i
+    }
+
+    => result
+}
+
+export normal_for_loop_with_continue(start: num, count: num) {
+    result = start
+
+    loop (i = 0, i < count, ++i) {
+        
+        if (i % 2 == 0) {
+            result += 1
+            continue
+        }
+
+        result += i
+    }
+
+    => result
+}
+
+export nested_for_loops(memory: link, width: num) {
+    w = 0
+
+    loop (z = 0, z < width, ++z) {
+        loop (y = 0, y < width, ++y) {
+            if (y == 0) {
+                ++w
+            }
+
+            loop (x = 0, x < width, ++x) {
+                if x % 2 == 0 and y % 2 == 0 and z % 2 == 0 {
+                    memory[z * width * width + y * width + x] = 100
+                }
+                else {
+                    memory[z * width * width + y * width + x] = 0
+                }
+
+                if (x == 0) {
+                    ++w
+                }
+            }
+        }
+
+        if (z == 0) {
+            ++w
+        }
+    }
+
+    => w
+}
+
+import large_function()
+
+export normal_for_loop_with_memory_evacuation(start: num, count: num) {
+    loop (i = start, i < count, ++i) {
+        large_function()
+    }
+}
+
 run() {
 	=> 1
     
     # Dummy for type resolvation
-    basic_for_loop(1, 1)
+    basic_for_loop(0, 0)
+    forever_loop()
+    conditional_loop(0)
+    conditional_action_loop(0)
+    normal_for_loop(0, 0)
+    normal_for_loop_with_stop(0, 0)
+    nested_for_loops(0 as link, 0)
+    normal_for_loop_with_memory_evacuation(0, 0)
 }

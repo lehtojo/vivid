@@ -21,7 +21,7 @@ public class FunctionImplementation : Context
 	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum() +
 									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum());
 	
-	public Node? Node { get; private set; }
+	public Node? Node { get; set; }
 
 	public List<Node> References { get; } = new List<Node>();
 
@@ -78,8 +78,8 @@ public class FunctionImplementation : Context
 	/// <summary>
 	/// Returns the header of the function.
 	/// Examples:
-	/// Name(Type, Type, ...) [-> Result]
-	/// f(number, number) -> number
+	/// Name(Type, Type, ...) [: Result]
+	/// f(number, number): number
 	/// g(A, B) -> C
 	/// h() -> A
 	/// i()
@@ -106,7 +106,7 @@ public class FunctionImplementation : Context
 
 		if (ReturnType != null)
 		{
-			header += $") -> {ReturnType.Name}";
+			header += $"): {ReturnType.Name}";
 		}
 		else
 		{
@@ -114,6 +114,11 @@ public class FunctionImplementation : Context
 		}
 
 		return header;
+	}
+
+	public override string ToString()
+	{
+		return GetHeader();
 	}
 
 	public override bool IsLocalVariableDeclared(string name)

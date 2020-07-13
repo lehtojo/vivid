@@ -77,7 +77,9 @@ public class OffsetNode : Node, IType, IResolvable
 
 	public new Type? GetType()
 	{
-		return Start.TryGetType();
+		var type = Start.TryGetType();
+		
+		return type == Types.LINK ? type : Types.UNKNOWN;
 	}
 
 	public override NodeType GetNodeType()

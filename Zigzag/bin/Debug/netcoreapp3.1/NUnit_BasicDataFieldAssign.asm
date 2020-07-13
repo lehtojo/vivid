@@ -25,7 +25,7 @@ sub rsp, 40
 mov rax, 1
 add rsp, 40
 ret
-mov ecx, 23
+mov rcx, 23
 call allocate
 mov rcx, rax
 call function_basic_data_field_assign

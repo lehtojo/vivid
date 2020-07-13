@@ -17,10 +17,10 @@ public class LoopPattern : Pattern
 	// (i = 0, i < 10, i++)
 	public const int FOR_LOOP = 3;
 
-	// loop (...) [\n] (...)
+	// loop [(...)] [\n] (...)
 	public LoopPattern() : base
 	(
-		TokenType.KEYWORD, TokenType.CONTENT, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.KEYWORD, TokenType.CONTENT | TokenType.OPTIONAL, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -84,10 +84,17 @@ public class LoopPattern : Pattern
 		var body_context = new Context();
 		var steps_context = new Context();
 
-		body_context.Link(environment);
 		steps_context.Link(environment);
+		body_context.Link(steps_context);
 
-		var steps = GetSteps(steps_context, tokens[STEPS].To<ContentToken>());
+		var steps_token = tokens[STEPS];
+
+		Node? steps = null;
+
+		if (steps_token.Type != TokenType.NONE)
+		{
+			steps = GetSteps(steps_context, steps_token.To<ContentToken>());
+		}
 
 		var token = tokens[BODY].To<ContentToken>();
 		var body = Parser.Parse(body_context, token.GetTokens(), 0, 20);

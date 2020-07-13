@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -18,7 +17,7 @@ public class Variable
 	
 	public Context Context { get; set; }
 
-	public int? Alignment { get; set; }
+	public int? LocalAlignment { get; set; }
 
 	public List<Node> References { get; private set; } = new List<Node>();
 	public List<Node> Edits { get; private set; } = new List<Node>();
@@ -64,9 +63,35 @@ public class Variable
 		return Edits.Any(e => e.FindParent(p => p == node) != null);
 	}
 
+	public int? GetAlignment(Type parent)
+	{
+		if (Context == parent)
+		{
+			var local_alignment = LocalAlignment ?? throw new ApplicationException($"Variable '{Name}' was not aligned yet");
+
+			return parent.Supertypes.Sum(s => s.ContentSize) + local_alignment;
+		}
+
+		var position = 0;
+
+		foreach (var supertype in parent.Supertypes)
+		{
+			var local_alignment = GetAlignment(supertype);
+
+			if (local_alignment != null)
+			{
+				return position + local_alignment;
+			}
+
+			position += supertype.ContentSize;
+		}
+
+		return null;
+	}
+
 	public override string ToString()
 	{
-		return $"{Name}: {(Type?.Name ?? "?")}";
+		return $"{Name}: {Type?.Name ?? "?"}";
 	}
 
 	public override bool Equals(object? obj)

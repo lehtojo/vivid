@@ -1,5 +1,7 @@
 public class CastNode : Node, IType, IResolvable
 {
+	public Node Object => First!;
+	
 	public CastNode(Node target, Node type)
 	{
 		Add(target);
@@ -8,12 +10,7 @@ public class CastNode : Node, IType, IResolvable
 
 	public new Type? GetType()
 	{
-		if (Last is IType type)
-		{
-			return type.GetType();
-		}
-
-		return Types.UNKNOWN;
+		return Last?.TryGetType();
 	}
 
 	private static void Resolve(Context context, Node node)

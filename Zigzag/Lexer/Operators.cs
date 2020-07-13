@@ -25,18 +25,23 @@ public static class Operators
 	public static readonly ComparisonOperator NOT_EQUALS = new ComparisonOperator("!=", 8);
 
 	public static readonly ClassicOperator BITWISE_AND = new ClassicOperator("&", 7);
-	public static readonly ClassicOperator BITWISE_XOR = new ClassicOperator("xor", 6);
+	public static readonly ClassicOperator BITWISE_XOR = new ClassicOperator("¤", 6);
 	public static readonly ClassicOperator BITWISE_OR = new ClassicOperator("|", 5);
+
 	public static readonly LogicOperator AND = new LogicOperator("and", 4);
 	public static readonly LogicOperator OR = new LogicOperator("or", 3);
 
 	public static readonly ActionOperator ASSIGN = new ActionOperator("=", null, 1);
-	public static readonly ActionOperator ASSIGN_POWER = new ActionOperator("^=", Operators.POWER, 1);
-	public static readonly ActionOperator ASSIGN_ADD = new ActionOperator("+=", Operators.ADD, 1);
-	public static readonly ActionOperator ASSIGN_SUBTRACT = new ActionOperator("-=", Operators.SUBTRACT, 1);
-	public static readonly ActionOperator ASSIGN_MULTIPLY = new ActionOperator("*=", Operators.MULTIPLY, 1);
-	public static readonly ActionOperator ASSIGN_DIVIDE = new ActionOperator("/=", Operators.DIVIDE, 1);
-	public static readonly ActionOperator ASSIGN_MODULUS = new ActionOperator("%=", Operators.MODULUS, 1);
+	public static readonly ActionOperator ASSIGN_POWER = new ActionOperator("^=", POWER, 1);
+	public static readonly ActionOperator ASSIGN_ADD = new ActionOperator("+=", ADD, 1);
+	public static readonly ActionOperator ASSIGN_SUBTRACT = new ActionOperator("-=", SUBTRACT, 1);
+	public static readonly ActionOperator ASSIGN_MULTIPLY = new ActionOperator("*=", MULTIPLY, 1);
+	public static readonly ActionOperator ASSIGN_DIVIDE = new ActionOperator("/=", DIVIDE, 1);
+	public static readonly ActionOperator ASSIGN_MODULUS = new ActionOperator("%=", MODULUS, 1);
+
+	public static readonly ActionOperator ASSIGN_AND = new ActionOperator("&=", BITWISE_AND, 1);
+	public static readonly ActionOperator ASSIGN_XOR = new ActionOperator("¤=", BITWISE_XOR, 1);
+	public static readonly ActionOperator ASSIGN_OR = new ActionOperator("|=", BITWISE_OR, 1);
 
 	public static readonly IndependentOperator COMMA = new IndependentOperator(",");
 	public static readonly IndependentOperator DOT = new IndependentOperator(".");

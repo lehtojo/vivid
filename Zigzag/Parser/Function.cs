@@ -138,6 +138,11 @@ public class Function : Context
 		return IsImported ? Name : base.GetFullname();
 	}
 
+	public override string ToString()
+	{
+		return (IsImported ? "import" : string.Empty) + Name + $"({string.Join(", ", Parameters)})";
+	}
+
 	public override bool Equals(object? obj)
 	{
 		return obj is Function function &&

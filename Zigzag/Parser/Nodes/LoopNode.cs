@@ -25,9 +25,13 @@ public class LoopNode : Node, IResolvable
 
 	public Node? Resolve(Context context)
 	{
-		Resolver.Resolve(StepsContext, Initialization);
-		Resolver.Resolve(StepsContext, Condition);
-		Resolver.Resolve(StepsContext, Action);
+		if (!IsForeverLoop)
+		{
+			Resolver.Resolve(StepsContext, Initialization);
+			Resolver.Resolve(StepsContext, Condition);
+			Resolver.Resolve(StepsContext, Action);
+		}
+
 		Resolver.Resolve(BodyContext, Body);
 
 		return null;

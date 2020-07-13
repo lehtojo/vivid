@@ -4,7 +4,7 @@ public class RestoreStateInstruction : Instruction
 {
 	public SaveStateInstruction Save { get; private set; }
 
-	public RestoreStateInstruction(Unit unit, SaveStateInstruction save) : base(unit)
+	public  RestoreStateInstruction(Unit unit, SaveStateInstruction save) : base(unit)
 	{
 		Save = save;
 	}

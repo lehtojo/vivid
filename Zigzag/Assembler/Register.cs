@@ -8,7 +8,7 @@ public static class RegisterFlag
 	public const int RETURN = 4;
 	public const int BASE_POINTER = 8;
 	public const int STACK_POINTER = 16;
-	public const int DENOMINATOR = 32;
+	public const int NOMINATOR = 32;
 	public const int REMAINDER = 64;
 	public const int MEDIA = 128;
 	public const int DECIMAL_RETURN = 256;
@@ -47,6 +47,16 @@ public class Register
 		Width = width;
 		Partitions = partitions;
 		Flags = Flag.Combine(flags);
+	}
+
+	public string GetDescription()
+	{
+		if (_Value == null)
+		{
+			return "Empty";
+		}
+
+		return _Value.Metadata.ToString() ?? "Value";
 	}
 
 	public bool IsHandleCopy()

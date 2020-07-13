@@ -203,12 +203,14 @@ public abstract class Instruction
 		var destination = (Handle?)null;
 		var source = (Handle?)null;
 
+		// Determine the destination and the source
 		for (var i = 0; i < Parameters.Count; i++)
 		{
 			var parameter = Parameters[i];
 
 			if (parameter.IsDestination)
 			{
+				// There should not be multiple destinations
 				if (destination != null)
 				{
 					throw new ApplicationException("Instruction parameters had multiple destinations");
@@ -218,6 +220,7 @@ public abstract class Instruction
 			}
 			else if (parameter.IsSource)
 			{
+				// There should not be multiple sources
 				if (source != null)
 				{
 					throw new ApplicationException("Instruction parameters had multiple sources");
@@ -229,9 +232,9 @@ public abstract class Instruction
 
 		if (destination != null)
 		{
-			if (destination is RegisterHandle handle)
+			if (destination.Is(HandleType.REGISTER) || destination.Is(HandleType.MEDIA_REGISTER))
 			{
-				var register = handle.Register;
+				var register = destination.To<RegisterHandle>().Register;
 				var attached = false;
 
 				// Search for values to attach to the destination register
@@ -240,6 +243,7 @@ public abstract class Instruction
 					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
 					{
 						register.Handle = parameter.Result;
+						parameter.Result.Format = destination.Format;
 						attached = true;
 						break;
 					}
@@ -249,6 +253,7 @@ public abstract class Instruction
 				if (!attached)
 				{
 					register.Handle = Result;
+					Result.Format = destination.Format;
 				}
 			}
 
@@ -258,15 +263,16 @@ public abstract class Instruction
 				if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
 				{
 					parameter.Result.Value = destination;
+					parameter.Result.Format = destination.Format;
 				}
 			}
 		}
 
 		if (source != null)
 		{
-			if (source is RegisterHandle handle)
+			if (source.Is(HandleType.REGISTER) || source.Is(HandleType.MEDIA_REGISTER))
 			{
-				var register = handle.Register;
+				var register = source.To<RegisterHandle>().Register;
 
 				// Search for values to attach to the source register
 				foreach (var parameter in Parameters)
@@ -274,6 +280,7 @@ public abstract class Instruction
 					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
 					{
 						register.Handle = parameter.Result;
+						parameter.Result.Format = source.Format;
 						break;
 					}
 				}
@@ -285,6 +292,7 @@ public abstract class Instruction
 				if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
 				{
 					parameter.Result.Value = source;
+					parameter.Result.Format = source.Format;
 				}
 			}
 		}

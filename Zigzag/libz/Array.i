@@ -26,7 +26,7 @@ Array { T } {
     set(i: num, value: T) {
         require(i >= 0 and i < count)
         
-        data[i * T.size] = value
+        data[i * T.size] as T = value
     }
     
     get(i: num) {
@@ -55,7 +55,7 @@ Sheet { T } {
     
     set(x: num, y: num, value: T) {
         require(x >= 0 and x < width and y >= 0 and y <= height)
-        data[(y * width + x) * T.size] = value
+        data[(y * width + x) * T.size] as T = value
     }
     
     get(x: num, y: num) {
@@ -85,7 +85,7 @@ Box { T } {
         
     set(x: num, y: num, z: num, value: T) {
         require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth)
-        data[(z * width * height + y * width + x) * T.size] = value
+        data[(z * width * height + y * width + x) * T.size] as T = value
     }
         
     get(x: num, y: num, z: num) {
@@ -125,7 +125,7 @@ Storage { T } {
             stride *= dimensions[i]
         }
         
-        data[position * T.size] = value
+        data[position * T.size] as T = value
     }
     
     get(components: num...) {

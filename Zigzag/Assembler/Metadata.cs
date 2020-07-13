@@ -27,6 +27,11 @@ public class MetadataAttribute
 	{
 		return false;
 	}
+
+	public override string? ToString()
+	{
+		return null;
+	}
 }
 
 public class Metadata
@@ -108,6 +113,11 @@ public class Metadata
 	{
 		return HashCode.Combine(Attributes);
 	}
+
+	public override string? ToString()
+	{
+		return Primary?.ToString();
+	}
 }
 
 public class VariableAttribute : MetadataAttribute
@@ -128,6 +138,11 @@ public class VariableAttribute : MetadataAttribute
 	{
 		return other is VariableAttribute attribute && attribute.Variable == Variable;
 	}
+
+	public override string? ToString()
+	{
+		return Variable.Name;
+	}
 }
 
 public class ConstantAttribute : MetadataAttribute
@@ -143,9 +158,19 @@ public class ConstantAttribute : MetadataAttribute
 	{
 		return other is ConstantAttribute;
 	}
+
+	public override string? ToString()
+	{
+		return Constant.ToString();
+	}
 }
 
 public class ComplexMemoryAddressAttribute : MetadataAttribute
 {
 	public ComplexMemoryAddressAttribute() : base(AttributeType.COMPLEX_MEMORY_ADDRESS) {}
+
+	public override string? ToString()
+	{
+		return "Address";
+	}
 }

@@ -35,7 +35,7 @@ public class AdditionInstruction : DualParameterInstruction
 		// Handle decimal addition separately
 		if (Result.Format.IsDecimal())
 		{
-			var instruction = Assembler.Size.Bits == 32 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
+			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
 			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS : ParameterFlag.NONE);
 
 			Build(

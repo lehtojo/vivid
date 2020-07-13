@@ -51,8 +51,13 @@ public static class Assembler
         var builder = new StringBuilder();
         var constants = new List<ConstantDataSectionHandle>();
 
-        foreach (var implementation in function.Implementations.Where(implementation => implementation.Node != null && !implementation.IsEmpty))
+        foreach (var implementation in function.Implementations)
         {
+            if (implementation.IsEmpty && (!function.IsConstructor || ((Constructor)function).IsEmpty))
+            {
+                continue;
+            }
+
             // Export this function if necessary
             if (function.IsExported)
             {
@@ -187,9 +192,9 @@ public static class Assembler
         return builder.ToString();
     }
 
-    private static IEnumerable<StringNode> GetFunctionStringNodes(FunctionImplementation implementation)
+    private static IEnumerable<StringNode> GetStringNodes(Node root)
     {
-        return implementation.Node?.FindAll(n => n is StringNode).Select(n => (StringNode) n) ?? new List<StringNode>();
+        return root.FindAll(n => n is StringNode).Select(n => (StringNode) n) ?? new List<StringNode>();
     }
 
     private static IEnumerable<StringNode> GetStringNodes(Context context)
@@ -198,12 +203,17 @@ public static class Assembler
 
         foreach (var implementation in context.GetImplementedFunctions())
         {
-            nodes.AddRange(GetFunctionStringNodes(implementation));
+            nodes.AddRange(GetStringNodes(implementation.Node!));
         }
 
         foreach (var type in context.Types.Values)
         {
             nodes.AddRange(GetStringNodes(type));
+
+            if (type.Initialization != null) 
+            {
+                nodes.AddRange(GetStringNodes(type.Initialization));
+            }
         }
 
         return nodes;

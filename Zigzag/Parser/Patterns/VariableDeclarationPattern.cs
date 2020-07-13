@@ -74,10 +74,10 @@ public class VariableDeclarationPattern : Pattern
             case TokenType.IDENTIFIER:
             {
                 var type_name = tokens[TYPE].To<IdentifierToken>().Value;
-                type = context.GetType(type_name) ?? throw Errors.Get(tokens[TYPE].Position,
-                    $"Couldn't resolve variable type '{type_name}'");
+                type = context.GetType(type_name) ?? new UnresolvedType(context, type_name);
                 break;
             }
+            
             case TokenType.FUNCTION:
             {
                 var function = tokens[TYPE].To<FunctionToken>();

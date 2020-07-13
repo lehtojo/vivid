@@ -18,6 +18,11 @@ public static class Constructors
 		allocation.Metadata.Attach(new VariableAttribute(unit.Self));
 
 		unit.Append(new SetVariableInstruction(unit, unit.Self, allocation));
+
+		if (type.Initialization != null) 
+		{
+			Builders.Build(unit, type.Initialization);
+		}
 	}
 
 	public static void CreateFooter(Unit unit, Type type)

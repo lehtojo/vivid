@@ -8,142 +8,73 @@ extern copy
 extern offset_copy
 extern deallocate
 
+function_change_capacity:
+sub rsp, 40
+mov qword [rcx+24], 10
+lea rcx, [rcx+16]
+call type_counter_function_use
+add rsp, 40
+ret
+
 function_run:
 push rbx
-push rsi
-sub rsp, 40
-call type_list_item_constructor
-mov rcx, 10
-mov rdx, 1
+sub rsp, 48
+call type_contenttoken_constructor
+mov qword [rax], 0
+lea rcx, [rel function_run_S0]
 mov rbx, rax
-call type_item_constructor
+call type_string_constructor
+mov qword [rbx+8], rax
+mov qword [rbx+24], 1
+lea rcx, [rbx+16]
+call type_counter_function_use
 mov rcx, rbx
-mov rdx, rax
-mov rsi, rax
-call type_list_item_function_add
+call type_token_function_get_type
 mov rcx, rbx
-mov rdx, rsi
-call type_list_item_function_assign_plus
-mov rcx, rbx
-xor rdx, rdx
-call type_list_item_function_get
-mov rcx, rax
-mov rdx, 2
-call type_item_function_add
-mov rcx, rbx
-mov rdx, 1
-call type_list_item_function_get
-mov rcx, rax
-mov rdx, 8
-call type_item_function_assign_plus
-add rsp, 40
-pop rsi
+call function_change_capacity
+add rsp, 48
 pop rbx
 ret
 
-type_item_constructor:
-push rbx
-push rsi
-sub rsp, 40
-mov r8, rcx
-mov rcx, 16
-mov rbx, rdx
-mov rsi, r8
-call allocate
-mov qword [rax], rsi
-mov qword [rax+8], rbx
-add rsp, 40
-pop rsi
-pop rbx
+type_token_function_get_type:
+mov rax, [rcx]
 ret
 
-type_item_function_add:
-add qword [rcx], rdx
-add qword [rcx+8], rdx
+type_counter_function_use:
+add qword [rcx], 1
 ret
 
-type_item_function_assign_plus:
-sub rsp, 40
-call type_item_function_add
-add rsp, 40
-ret
-
-type_list_item_constructor:
+type_contenttoken_constructor:
 push rbx
 sub rsp, 48
-mov rcx, 24
+mov rcx, 32
 call allocate
-mov rcx, 8
+mov qword [rax+24], 0
+mov qword [rax], 1
+lea rcx, [rel type_contenttoken_constructor_S0]
 mov rbx, rax
-call allocate
-mov qword [rbx], rax
-mov qword [rbx+8], 1
-mov qword [rbx+16], 0
+call type_string_constructor
+mov qword [rbx+8], rax
+mov qword [rbx], 0
+mov qword [rbx+24], 0
 mov rax, rbx
 add rsp, 48
 pop rbx
 ret
 
-type_list_item_function_grow:
+type_string_constructor:
 push rbx
-push rsi
-sub rsp, 40
-mov rax, [rcx+8]
-sal rax, 4
+sub rsp, 48
 mov rdx, rcx
-mov rcx, rax
+mov rcx, 8
 mov rbx, rdx
 call allocate
-mov rcx, [rbx]
-mov rdx, [rbx+8]
-mov r8, rax
-mov rsi, rax
-call copy
-mov rcx, [rbx]
-mov rdx, [rbx+8]
-call deallocate
-mov qword [rbx], rsi
-mov rax, [rbx+8]
-sal rax, 1
-mov qword [rbx+8], rax
-add rsp, 40
-pop rsi
+mov qword [rax], rbx
+add rsp, 48
 pop rbx
-ret
-
-type_list_item_function_add:
-push rbx
-push rsi
-sub rsp, 40
-mov rax, [rcx+16]
-cmp rax, [rcx+8]
-jne type_list_item_function_add_L0
-mov rbx, rcx
-mov rsi, rdx
-call type_list_item_function_grow
-mov rdx, rsi
-mov rcx, rbx
-type_list_item_function_add_L0:
-mov rax, [rcx+16]
-sal rax, 3
-mov r8, [rcx]
-mov byte [r8+rax], dl
-add qword [rcx+16], 1
-add rsp, 40
-pop rsi
-pop rbx
-ret
-
-type_list_item_function_get:
-sal rdx, 3
-mov r8, [rcx]
-mov rax, [r8+rdx]
-ret
-
-type_list_item_function_assign_plus:
-sub rsp, 40
-call type_list_item_function_add
-add rsp, 40
 ret
 
 section .data
+
+function_run_S0 db 'Content Token', 0
+type_contenttoken_constructor_S0 db 'Content', 0

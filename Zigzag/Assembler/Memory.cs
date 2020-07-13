@@ -131,7 +131,7 @@ public static class Memory
 	/// </summary>
 	public static void ClearRegister(Unit unit, Register target)
 	{
-		if (target.IsAvailable(unit.Position))
+		if (target.IsAvailable(unit.Position + 1))
 		{
 			return;
 		}

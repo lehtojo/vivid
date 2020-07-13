@@ -9,6 +9,8 @@ public class SetVariableInstruction : Instruction
    {
       Variable = variable;
       Value = value;
+      Description = $"Updates the value of the variable '{variable.Name}'";
+
       Result.Format = Value.Format;
    }
 

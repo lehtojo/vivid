@@ -68,7 +68,7 @@ public class ResolverPhase : Phase
 	{
 		var builder = new StringBuilder();
 
-		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUsed && variable.IsUnresolved))
+		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUnresolved))
 		{
 			if (variable.Context.IsType)
 			{
@@ -150,7 +150,7 @@ public class ResolverPhase : Phase
 		Analyzer.Analyze(context);
 		
 		// Apply analysis to the functions
-		Analysis.Analyze(context);
+		//Analysis.Analyze(context);
 
 		return Status.OK;
 	}

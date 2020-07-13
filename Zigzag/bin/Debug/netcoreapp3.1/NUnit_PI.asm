@@ -16,145 +16,188 @@ push rbp
 push r12
 push r13
 push r14
-sub rsp, 48
+push r15
+sub rsp, 88
 add rcx, 1
-lea rbx, [rcx*2+rcx]
-add rbx, 2
-mov rdx, rbx
-sal rdx, 3
-mov r8, rcx
-mov rcx, rdx
-mov rsi, r8
-call allocate
+mov rbx, rcx
+imul rbx, 10
+mov rax, rbx
+xor rdx, rdx
+mov r8, 3
+idiv r8
+add rax, 2
+mov rdx, rcx
+mov rcx, rax
+mov rbx, rax
+mov rsi, rdx
+call type_array_large_constructor
 mov rcx, rbx
-sal rcx, 3
 mov rdi, rax
-call allocate
+call type_array_large_constructor
 mov rcx, rsi
-sal rcx, 3
 mov rbp, rax
-call allocate
-xor rcx, rcx
-cmp rcx, rbx
+call type_array_large_constructor
+xor r12, r12
+cmp r12, rbx
 jge function_pidigits_L1
 function_pidigits_L0:
-mov qword [rdi+rcx*8], 20
-add rcx, 1
-cmp rcx, rbx
+mov rcx, rdi
+mov rdx, r12
+mov r8, 20
+mov r13, rax
+call type_array_large_function_set
+add r12, 1
+cmp r12, rbx
+mov rax, r13
 jl function_pidigits_L0
 function_pidigits_L1:
-xor rdx, rdx
-cmp rdx, rsi
+xor r13, r13
+mov r14, rax
+cmp r13, rsi
 jge function_pidigits_L3
 function_pidigits_L2:
-xor r8, r8
-xor r9, r9
-cmp r8, rbx
+xor r12, r12
+xor r15, r15
+cmp r12, rbx
 jge function_pidigits_L5
 function_pidigits_L4:
-mov rcx, r8
-imul rcx, -1
-lea r10, [rbx+rcx]
-sub r10, 1
-mov rcx, r10
-sal rcx, 1
-add rcx, 1
-mov r11, [rdi+r8*8]
-add r11, r9
-mov qword [rdi+r8*8], r11
-mov r11, rax
-mov rax, [rdi+r8*8]
-mov r12, rdx
-xor rdx, rdx
-idiv rcx
-mov rdx, rax
-mov rax, [rdi+r8*8]
-mov r13, rdx
-xor rdx, rdx
-idiv rcx
-mov qword [rbp+r8*8], rdx
-imul r13, r10
-add r8, 1
-cmp r8, rbx
-mov r9, r13
-mov rax, r11
+mov rcx, rbx
+sub rcx, r12
+sub rcx, 1
+mov rdx, rcx
+sal rdx, 1
+add rdx, 1
+mov r8, rcx
+mov rcx, rdi
+mov r9, rdx
 mov rdx, r12
+mov qword [rsp+80], r8
+mov qword [rsp+72], r9
+call type_array_large_function_get
+add rax, r15
+mov rcx, rdi
+mov rdx, r12
+mov r8, rax
+call type_array_large_function_set
+mov rcx, rdi
+mov rdx, r12
+call type_array_large_function_get
+xor rdx, rdx
+mov rcx, [rsp+72]
+idiv rcx
+mov rdx, rcx
+mov rcx, rdi
+mov r8, rdx
+mov rdx, r12
+mov qword [rsp+64], rax
+mov qword [rsp+72], r8
+call type_array_large_function_get
+xor rdx, rdx
+idiv qword [rsp+72]
+mov rcx, rbp
+mov r8, rdx
+mov rdx, r12
+call type_array_large_function_set
+mov rcx, [rsp+64]
+imul rcx, [rsp+80]
+add r12, 1
+cmp r12, rbx
+mov r15, rcx
 jl function_pidigits_L4
 function_pidigits_L5:
 mov rcx, rbx
 sub rcx, 1
-mov r10, rax
-mov rax, [rdi+rcx*8]
-mov r11, rdx
+mov rdx, rcx
+mov rcx, rdi
+call type_array_large_function_get
 xor rdx, rdx
-mov r12, 10
-idiv r12
-mov qword [r10+r11*8], rax
+mov rcx, 10
+idiv rcx
+mov rcx, r14
+mov rdx, r13
+mov r8, rax
+call type_array_large_function_set
 mov rcx, rbx
 sub rcx, 1
 mov rdx, rbx
 sub rdx, 1
-mov rax, [rdi+rdx*8]
-mov r12, rdx
+mov r8, rcx
+mov rcx, rdi
+mov qword [rsp+48], r8
+call type_array_large_function_get
 xor rdx, rdx
-mov r13, 10
-idiv r13
-mov qword [rbp+rcx*8], rdx
-xor r14, r14
-cmp r14, rbx
+mov rcx, 10
+idiv rcx
+mov rcx, rbp
+mov r8, rdx
+mov rdx, [rsp+48]
+call type_array_large_function_set
+xor r12, r12
+cmp r12, rbx
 jge function_pidigits_L7
 function_pidigits_L6:
-mov rcx, [rbp+r14*8]
-imul rcx, 10
-mov qword [rdi+r14*8], rcx
-add r14, 1
-cmp r14, rbx
+mov rcx, rbp
+mov rdx, r12
+call type_array_large_function_get
+imul rax, 10
+mov rcx, rdi
+mov rdx, r12
+mov r8, rax
+call type_array_large_function_set
+add r12, 1
+cmp r12, rbx
 jl function_pidigits_L6
 function_pidigits_L7:
-add r11, 1
-cmp r11, rsi
-mov rax, r10
-mov rcx, r14
-mov rdx, r11
+add r13, 1
+cmp r13, rsi
 jl function_pidigits_L2
 function_pidigits_L3:
-mov r8, rsi
-sal r8, 3
-mov r9, rcx
-mov rcx, r8
-mov r12, rax
-mov r13, rdx
-mov r14, r9
-call allocate
+mov rcx, rsi
+sal rcx, 3
+call type_array_u8_constructor
 mov rcx, rsi
 sub rcx, 1
-xor rdx, rdx
-test rcx, rcx
+mov r13, rcx
+xor r15, r15
+mov qword [rsp+56], rbx
+mov rbx, rax
+test r13, r13
 jl function_pidigits_L9
 function_pidigits_L8:
-add qword [r12+rcx*8], rdx
-mov rdx, rax
-mov rax, [r12+rcx*8]
-mov r8, rdx
+mov rcx, r14
+mov rdx, r13
+call type_array_large_function_get
+add rax, r15
+mov rcx, r14
+mov rdx, r13
+mov r8, rax
+call type_array_large_function_set
+mov rcx, r14
+mov rdx, r13
+call type_array_large_function_get
 xor rdx, rdx
-mov r9, 10
-idiv r9
-mov rdx, rax
-mov rax, [r12+rcx*8]
-mov r9, rdx
+mov rcx, 10
+idiv rcx
+mov rcx, r14
+mov rdx, r13
+mov r15, rax
+call type_array_large_function_get
 xor rdx, rdx
-mov r10, 10
-idiv r10
-mov r10, 48
-add r10, rdx
-mov byte [r8+rcx], r10b
-sub rcx, 1
-test rcx, rcx
-mov rax, r8
-mov rdx, r9
+mov rcx, 10
+idiv rcx
+mov rcx, 48
+add rcx, rdx
+mov r8, rcx
+mov rdx, r13
+mov rcx, rbx
+call type_array_u8_function_set
+sub r13, 1
+test r13, r13
 jge function_pidigits_L8
 function_pidigits_L9:
-add rsp, 48
+mov rax, [rbx]
+add rsp, 88
+pop r15
 pop r14
 pop r13
 pop r12
@@ -178,7 +221,7 @@ function_length_of:
 xor rax, rax
 function_length_of_L0:
 movzx rdx, byte [rcx+rax]
-test dl, dl
+test rdx, rdx
 jne function_length_of_L1
 ret
 function_length_of_L1:
@@ -196,6 +239,62 @@ mov rdx, rax
 call sys_print
 add rsp, 48
 pop rbx
+ret
+
+type_array_large_constructor:
+push rbx
+push rsi
+sub rsp, 40
+mov rdx, rcx
+mov rcx, 16
+mov rbx, rdx
+call allocate
+mov rcx, rbx
+sal rcx, 3
+mov rsi, rax
+call allocate
+mov qword [rsi], rax
+mov rax, rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+type_array_large_function_set:
+sal rdx, 3
+mov rax, [rcx]
+mov qword [rax+rdx], r8
+ret
+
+type_array_large_function_get:
+sal rdx, 3
+mov r8, [rcx]
+mov rax, [r8+rdx]
+ret
+
+type_array_u8_constructor:
+push rbx
+push rsi
+sub rsp, 40
+mov rdx, rcx
+mov rcx, 16
+mov rbx, rdx
+call allocate
+mov rcx, rbx
+sal rcx, 0
+mov rsi, rax
+call allocate
+mov qword [rsi], rax
+mov rax, rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+type_array_u8_function_set:
+sal rdx, 0
+mov rax, [rcx]
+mov byte [rax+rdx], r8b
 ret
 
 section .data

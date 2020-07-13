@@ -33,22 +33,7 @@ public abstract class LoadInstruction : Instruction
 		}
 	}
 
-	public override void OnBuild()
-	{
-		if (Mode != AccessMode.WRITE && IsRedirected)
-		{
-			if (Result.IsStandardRegister)
-			{
-				Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
-			}
-
-			// Since the source is not where it should be, it must be moved to the result 
-			Unit.Append(new MoveInstruction(Unit, Result, Source)
-			{
-				Type = MoveType.LOAD
-			});
-		}
-	}
+	public override void OnBuild() {}
 
 	public override Result? GetDestinationDependency()
 	{

@@ -5,11 +5,6 @@ public class DuplicateInstruction : DualParameterInstruction
 
 	public override void OnBuild()
 	{
-		if (Result.IsEmpty)
-		{
-			Result.Value = new RegisterHandle(Unit.GetNextRegister());
-		}
-
 		Unit.Append(new MoveInstruction(Unit, Result, Second)
 		{
 			Type = MoveType.LOAD,

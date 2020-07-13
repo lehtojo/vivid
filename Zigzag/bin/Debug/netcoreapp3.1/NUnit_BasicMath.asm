@@ -15,14 +15,11 @@ mov rax, rcx
 imul rax, r8
 add rax, rcx
 add rax, r8
-mov r9, rdx
-imul r9, rcx
-imul r9, r8
 imul rdx, rcx
-sal rdx, 0
-add r9, rdx
-imul r9, 100
-add rax, r9
+add r8, 1
+imul rdx, r8
+imul rdx, 100
+add rax, rdx
 ret
 
 global function_addition
@@ -35,8 +32,7 @@ ret
 global function_subtraction
 export function_subtraction
 function_subtraction:
-imul rdx, -1
-add rcx, rdx
+sub rcx, rdx
 mov rax, rcx
 ret
 
@@ -59,29 +55,36 @@ ret
 global function_addition_with_constant
 export function_addition_with_constant
 function_addition_with_constant:
-mov rax, 20
+mov rax, 10
 add rax, rcx
+add rax, 10
 ret
 
 global function_subtraction_with_constant
 export function_subtraction_with_constant
 function_subtraction_with_constant:
-mov rax, -20
+mov rax, -10
 add rax, rcx
+sub rax, 10
 ret
 
 global function_multiplication_with_constant
 export function_multiplication_with_constant
 function_multiplication_with_constant:
-imul rcx, 100
-mov rax, rcx
+mov rax, 10
+imul rax, rcx
+imul rax, 10
 ret
 
 global function_division_with_constant
 export function_division_with_constant
 function_division_with_constant:
-imul rcx, 10
-mov rax, rcx
+mov rax, 100
+xor rdx, rdx
+idiv rcx
+xor rdx, rdx
+mov rcx, 10
+idiv rcx
 ret
 
 function_run:

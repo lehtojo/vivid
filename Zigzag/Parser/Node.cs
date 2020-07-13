@@ -13,9 +13,17 @@ public class Node
 	public Node? First { get; protected set; }
 	public Node? Last { get; protected set; }
 
+	public bool IsEmpty => First == null;
+
 	public bool Is(NodeType type)
 	{
 		return GetNodeType() == type;
+	}
+
+	public bool Is(params NodeType[] types)
+	{
+		var actual = GetNodeType();
+		return types.Any(type => actual == type);
 	}
 
 	public T To<T>() where T : Node
@@ -99,6 +107,24 @@ public class Node
 
 			var result = iterator.FindAll(filter);
 			nodes.AddRange(result);
+
+			iterator = iterator.Next;
+		}
+
+		return nodes;
+	}
+
+	public List<Node> FindChildren(Predicate<Node> filter)
+	{
+		var nodes = new List<Node>();
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (filter(iterator))
+			{
+				nodes.Add(iterator);
+			}
 
 			iterator = iterator.Next;
 		}

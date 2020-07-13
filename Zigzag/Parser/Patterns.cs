@@ -90,7 +90,8 @@ public class Patterns
 		Add(new FunctionPattern());
 		Add(new IfPattern());
 		Add(new ImportPattern());
-		Add(new IncrementPattern());
+		Add(new InheritancePattern());
+		Add(new PreIncrementAndDecrementPattern());
 		Add(new LinkPattern());
 		Add(new LoopControlPattern());
 		Add(new LoopPattern());
