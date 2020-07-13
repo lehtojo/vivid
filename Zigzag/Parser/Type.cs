@@ -285,4 +285,9 @@ public class Type : Context
 		hash.Add(Destructors);
 		return hash.ToHashCode();
 	}
+
+	public override string ToString() 
+	{
+		return Name;
+	}
 }

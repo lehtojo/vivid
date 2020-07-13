@@ -45,6 +45,7 @@
 			//"args": [ "${workspaceFolder}/Examples/OperatorOverload.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/TypeMemberVariableInitialization.z", "${workspaceFolder}/libz/String.z", "--asm", "--time", "-st" ],
 			"args": [ "${workspaceFolder}/Examples/Inheritance.z", "${workspaceFolder}/libz/String.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/BitwiseOperations.z", "--asm", "--time", "-st" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

@@ -1,6 +1,8 @@
 public enum InstructionType
 {
 	ADDITION,
+	BITWISE,
+	BRANCH,
 	CACHE_VARIABLES,
 	CALL,
 	COMPARE,
@@ -21,7 +23,6 @@ public enum InstructionType
 	MOVE,
 	MULTIPLICATION,
 	NEGATE,
-	BRANCH,
 	PSEUDO_COMPARE,
 	PUSH,
 	REQUIRE_VARIABLES,
@@ -33,6 +34,5 @@ public enum InstructionType
 	STACK_MEMORY,
 	SUBTRACT,
 	SYMMETRY_START,
-	SYMMETRY_END,
-	XOR
+	SYMMETRY_END
 }

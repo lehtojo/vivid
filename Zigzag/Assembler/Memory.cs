@@ -185,11 +185,10 @@ public static class Memory
 		}
 
 		var handle = new RegisterHandle(register);
-		var instruction = new XorInstruction(unit, new Result(handle, register.Format), new Result(handle, register.Format))
-		{
-			IsSafe = false,
-			Description = "Sets the value of the destination to zero"
-		};
+
+		var instruction = BitwiseInstruction.Xor(unit, new Result(handle, register.Format), new Result(handle, register.Format), register.Format);
+		instruction.IsSafe = false;
+		instruction.Description = "Sets the value of the destination to zero";
 
 		unit.Append(instruction);
 	}

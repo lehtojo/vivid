@@ -6,62 +6,6 @@ using VariableGroup = System.Collections.Generic.List<Variable>;
 
 public static class Oracle
 {
-	/*private static void DifferentiateDependencies(Unit unit, Result result)
-	{
-		// Get all variable dependencies
-		var dependencies = result.Metadata.Secondary
-			.Where(a => a.Type == AttributeType.VARIABLE)
-			.Select(a => (VariableAttribute)a);
-
-		// Ensure there is dependencies
-		if (dependencies.Any())
-		{
-			return;
-		}
-
-		var primary_variable = (VariableAttribute)result.Metadata.Primary!;
-		var secondary_variables = dependencies.Select(d => d.Variable);
-
-      // Duplicate the current result and share it between the dependencies
-      var duplicate = new DuplicateInstruction(unit, result)
-      {
-         Description = "Separate " + primary_variable.Variable.Name + " from its dependencies { " + string.Join(", ", secondary_variables.Select(v => v.Name)) + " }"
-      };
-
-      var duplication = duplicate.Execute();
-
-		foreach (var dependency in dependencies)
-		{
-			// Redirect the dependency to use the result of the duplication
-			//unit.Cache(dependency.Variable, duplication, true);
-			unit.Append(new SetVariableInstruction(unit, dependency.Variable, duplication));
-
-			duplication.Metadata.Attach(new VariableAttribute(dependency.Variable));
-		}
-
-		// Attach the primary attribute since it's still valid
-		duplication.Metadata.Attach(result.Metadata.Primary!);
-	}
-
-	public static void DifferentiateTarget(Unit unit, Result result, Variable target)
-	{
-		// Duplicate the result and give it to the target
-		var duplication = new DuplicateInstruction(unit, result).Execute();
-
-		// Redirect the dependency to the target
-		unit.Append(new SetVariableInstruction(unit, target, duplication));
-		//unit.Cache(target, duplicate, true);
-
-		duplication.Metadata.Attach(new VariableAttribute(target));
-	}
-	
-	private static bool IsPropertyOf(Variable expected, Result result)
-	{
-		return result.Metadata.Primary is VariableAttribute attribute && attribute.Variable == expected;
-	}
-	
-	*/
-
 	/// <summary>
 	/// Resolves all write dependencies in the given result
 	/// </summary>
@@ -372,47 +316,6 @@ public static class Oracle
 
 				instruction.Direct(new AvoidRegisters(last, new Register[] { nominator_register, remainder_register }));
 			}
-			/*var result = instruction.Result;
-
-			Result? dependency;
-
-			try
-			{
-				dependency = instruction.GetDestinationDependency();
-			}
-			catch
-         {
-				dependency = null;
-			}
-
-			if (dependency != null && !dependency.IsEmpty)
-			{
-				result.Value = dependency.Value;
-			}
-
-			// Decimal values should not be redirected since they are usually in media registers
-			if (result.Format.IsDecimal())
-			{
-				return;
-			}
-
-			if (calls.Any(f => result.Lifetime.IsOnlyActive(f.Position)) && 
-				(!result.IsStandardRegister || result.Value.To<RegisterHandle>().Register.IsVolatile))
-			{         
-				// Get the instruction range that the redirection would affect
-				var start = instruction.GetRedirectionRoot().Position;
-				var end = instruction.Result.Lifetime.End;
-
-				// Try to get the next non-volatile register which is available in the specified range
-				var register = unit.GetNextNonVolatileRegister(start, end);
-
-				// Check if any register satisfied the range condition
-				if (register != null)
-				{
-					instruction.Redirect(new RegisterHandle(register));
-					register.Handle = result;
-				}
-			}*/
 		});
 	}
 

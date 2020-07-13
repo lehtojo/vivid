@@ -43,7 +43,7 @@ public static class Lexer
 	/// <returns>True if the character is a operator, otherwise false</returns>
 	private static bool IsOperator(char c)
 	{
-		return c >= 33 && c <= 47 && c != COMMENT && c != STRING || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126;
+		return c >= 33 && c <= 47 && c != COMMENT && c != STRING || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126 || c == '¤';
 	}
 
 	/// <summary>

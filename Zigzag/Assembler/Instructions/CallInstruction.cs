@@ -14,6 +14,8 @@ public class CallInstruction : Instruction
       Function = function;
       Convention = convention;
       Result.Format = return_type?.Format ?? Assembler.Format;
+
+      Description = "Calls function " + Function;
    }
 
    /// <summary>

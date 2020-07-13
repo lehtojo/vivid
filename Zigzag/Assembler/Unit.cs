@@ -2,65 +2,6 @@ using System.Collections.Generic;
 using System.Text;
 using System;
 using System.Linq;
-using System.Globalization;
-
-public class Lifetime
-{
-	public int Start { get; set; } = -1;
-	public int End { get; set; } = -1;
-
-	public void Reset()
-	{
-		Start = -1;
-		End = -1;
-	}
-	
-	/// <summary>
-	/// Returns whether this lifetime is active, that is, whether the lifetime has started but not ended from the specified instruction position's perspective
-	/// </summary>
-	public bool IsActive(int position)
-	{
-		return position >= Start && (End == -1 || position <= End);
-	}
-
-	/// <summary>
-	/// Returns true, if the lifetime is active and is not starting or ending at the specified instruction position, otherwise false
-	/// </summary>
-	public bool IsOnlyActive(int position)
-	{
-		return IsActive(position) && Start != position && End != position;
-	}
-
-	public bool IsIntersecting(int start, int end)
-	{
-		var s1 = Start == -1 ? int.MinValue : Start;
-		var e1 = End == -1 ? int.MaxValue : End;
-
-		var s2 = start == -1 ? int.MinValue : start;
-		var e2 = end == -1 ? int.MaxValue : end;
-
-		return s1 < e2 && e1 > s2;
-	}
-
-	public Lifetime Clone()
-	{
-		return new Lifetime()
-		{
-			Start = Start,
-			End = End
-		};
-	}
-
-	public override string ToString()
-	{
-		if (Start == -1 && End == -1)
-		{
-			return "static";
-		}
-
-		return (Start == -1 ? string.Empty : Start.ToString(CultureInfo.InvariantCulture)) + ".." + (End == -1 ? string.Empty : End.ToString(CultureInfo.InvariantCulture));
-	}
-}
 
 public enum UnitPhase
 {
@@ -97,6 +38,20 @@ public class VariableState
 	}
 }
 
+/// <summary>
+/// Keeps track of labels, strings and constants by generating an index for every requester
+/// </summary>
+class ResourceIndexer
+{
+	private int _Label = 0;
+	private int _String = 0;
+	private int _Constant = 0;
+
+	public int Label => _Label++;
+	public int String => _String++;
+	public int Constant => _Constant++;
+}
+
 public class Unit
 {
 	public FunctionImplementation Function { get; private set; }
@@ -113,10 +68,7 @@ public class Unit
 	public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
 
-	private int LabelIndex { get; set; }
-	private int StringIndex { get; set; }
-	private int ConstantIndex { get; set; }
-
+	private ResourceIndexer Indexer { get; set; } = new ResourceIndexer();
 	public Variable? Self { get; }
 
 	private Instruction? Anchor { get; set; }
@@ -406,12 +358,12 @@ public class Unit
 
 	public Label GetNextLabel()
 	{
-		return new Label(Function.Metadata!.GetFullname() + $"_L{LabelIndex++}");
+		return new Label(Function.Metadata!.GetFullname() + $"_L{Indexer.Label}");
 	}
 
 	public string GetNextString()
 	{
-		return Function.Metadata!.GetFullname() + $"_S{StringIndex++}";
+		return Function.Metadata!.GetFullname() + $"_S{Indexer.String}";
 	}
 
 	public string GetNextConstantIdentifier(object constant)
@@ -421,7 +373,7 @@ public class Unit
 			return identifier;
 		}
 
-		identifier = Function.Metadata!.GetFullname() + $"_C{ConstantIndex++}";
+		identifier = Function.Metadata!.GetFullname() + $"_C{Indexer.Constant}";
 
 		Constants.Add(constant, identifier);
 		return identifier;
