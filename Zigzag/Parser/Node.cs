@@ -5,7 +5,7 @@ using System.Linq;
 public class Node
 {
 	public Node? Parent { get; private set; }
-	public IEnumerable<Node> Path => Parent != null ? new List<Node> { Parent }.Concat(Parent.Path) : new List<Node>(); 
+	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>()); 
 
 	public Node? Previous { get; private set; }
 	public Node? Next { get; private set; }
@@ -337,6 +337,11 @@ public class Node
 	{
 		var positions = GetNodesUnderSharedParent(other, this);
 
+		if (positions.Length == 0)
+		{
+			throw new ApplicationException("Tried to resolve whether a node is before another but they didn't have a shared parent");
+		}
+
 		// If the given node is before the given position node, the target node can be found be iterating backwards
 		var iterator = (Node?)positions[1];
 		var target = positions[0];
@@ -358,6 +363,21 @@ public class Node
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Returns whether this node is under the specified node
+	/// </summary>
+	public bool IsUnder(Node node)
+	{
+		var iterator = Parent;
+
+		while (iterator != node && iterator != null)
+		{
+			iterator = iterator.Parent;
+		}
+
+		return iterator == node;
 	}
 
 	public virtual NodeType GetNodeType()

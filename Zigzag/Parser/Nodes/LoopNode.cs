@@ -1,4 +1,4 @@
-public class LoopNode : Node, IResolvable
+public class LoopNode : Node, IResolvable, IContext
 {	
 	public Context StepsContext { get; private set; }
 	public Context BodyContext { get; private set; }
@@ -46,4 +46,9 @@ public class LoopNode : Node, IResolvable
 	{
 		return NodeType.LOOP_NODE;
 	}
+
+   public Context GetContext()
+   {
+		return BodyContext;
+   }
 }

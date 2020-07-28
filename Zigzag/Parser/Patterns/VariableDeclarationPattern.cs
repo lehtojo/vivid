@@ -16,9 +16,7 @@ public class VariableDeclarationPattern : Pattern
     public VariableDeclarationPattern() : base
     (
         TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.IDENTIFIER | TokenType.DYNAMIC | TokenType.FUNCTION
-    )
-    {
-    }
+    ) {}
 
     public override int GetPriority(List<Token> tokens)
     {

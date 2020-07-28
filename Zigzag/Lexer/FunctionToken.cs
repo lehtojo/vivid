@@ -80,6 +80,48 @@ public class FunctionToken : Token
 		return names;
 	}
 
+	/// <summary>
+	/// Returns the parameters
+	/// </summary>
+	/// <returns>List of parameter names</returns>
+	public List<Parameter> GetParameters(Context function_context)
+	{
+		var parameters = new List<Parameter>();
+
+		if (Parameters.IsEmpty)
+		{
+			return parameters;
+		}
+
+		ParameterTree = GetParsedParameters(function_context);
+
+		var parameter = ParameterTree.First;
+
+		while (parameter != null)
+		{
+			if (parameter is VariableNode node)
+			{
+				parameters.Add(new Parameter(node.Variable.Name, node.Variable.Type));
+			}
+			else if (parameter is OperatorNode assign && assign.Operator == Operators.ASSIGN)
+			{
+				throw new NotImplementedException("Parameter default values aren't supported yet");
+			}
+			else if (parameter is UnresolvedIdentifier name)
+			{
+				parameters.Add(new Parameter(name.Value));
+			}
+			else
+			{
+				throw new NotImplementedException("Unknown parameter syntax");
+			}
+
+			parameter = parameter.Next;
+		}
+
+		return parameters;
+	}
+
 	public override bool Equals(object? obj)
 	{
 		return obj is FunctionToken token &&

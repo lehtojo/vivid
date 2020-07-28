@@ -82,9 +82,11 @@ function_division_with_constant:
 mov rax, 100
 xor rdx, rdx
 idiv rcx
-xor rdx, rdx
-mov rcx, 10
-idiv rcx
+mov rcx, 1844674407370955162
+mul rcx
+mov rax, rdx
+sar rax, 63
+add rax, rdx
 ret
 
 function_run:

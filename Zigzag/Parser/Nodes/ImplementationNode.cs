@@ -1,4 +1,4 @@
-﻿public class ImplementationNode : Node
+﻿public class ImplementationNode : Node, IContext
 {
 	public FunctionImplementation Implementation { get; private set; }
 
@@ -11,4 +11,9 @@
 	{
 		return NodeType.IMPLEMENTATION_NODE;
 	}
+
+   public Context GetContext()
+   {
+		return Implementation;
+   }
 }

@@ -10,7 +10,7 @@ public enum CallingConvention
 
 public class FunctionImplementation : Context
 {
-	public Function? Metadata { get; set; }
+	public Function Metadata { get; set; }
 	public CallingConvention Convention { get; set; } = CallingConvention.X64;
 
 	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsThisPointer && v.Category == VariableCategory.PARAMETER).ToList();
@@ -32,14 +32,22 @@ public class FunctionImplementation : Context
 	public bool IsEmpty => Node == null || Node.First == null;
 
 	public bool IsConstructor => Metadata is Constructor;
+	public bool IsStatic => Flag.Has(Metadata!.Modifiers, AccessModifier.STATIC);
 	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, AccessModifier.RESPONSIBLE);
 	
 	/// <summary>
 	/// Optionally links this function to some context
 	/// </summary>
 	/// <param name="context">Context to link into</param>
-	public FunctionImplementation(Context? context = null)
+	public FunctionImplementation(Function metadata, Context? context = null)
 	{
+		Metadata = metadata;
+
+		// Copy the name properties
+		Prefix = Metadata.Prefix;
+		Postfix = Metadata.Postfix;
+		Name = Metadata.Name;
+		
 		if (context != null)
 		{
 			Link(context);
@@ -65,7 +73,7 @@ public class FunctionImplementation : Context
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public void Implement(List<Token> blueprint)
 	{
-		if (Metadata != null && Metadata.IsMember)
+		if (Metadata.IsMember)
 		{
 			var type = Metadata.GetTypeParent();
 			Declare(type, VariableCategory.PARAMETER, Function.THIS_POINTER_IDENTIFIER);
@@ -87,11 +95,6 @@ public class FunctionImplementation : Context
 	/// <returns>Header of the function</returns>
 	public string GetHeader()
 	{
-		if (Metadata == null)
-		{
-			throw new ApplicationException("Couldn't get the function header since the metadata was missing");
-		}
-
 		var header = Metadata.Name + '(';
 
 		foreach (var type in ParameterTypes)

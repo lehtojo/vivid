@@ -189,6 +189,63 @@ ret
 type_price_function_convert_L2:
 ret
 
+type_pack_product_price_function_get:
+test rdx, rdx
+jne type_pack_product_price_function_get_L1
+mov rax, [rcx]
+ret
+jmp type_pack_product_price_function_get_L0
+type_pack_product_price_function_get_L1:
+cmp rdx, 1
+jne type_pack_product_price_function_get_L3
+mov rax, [rcx+8]
+ret
+jmp type_pack_product_price_function_get_L0
+type_pack_product_price_function_get_L3:
+cmp rdx, 2
+jne type_pack_product_price_function_get_L5
+mov rax, [rcx+16]
+ret
+jmp type_pack_product_price_function_get_L0
+type_pack_product_price_function_get_L5:
+xor rax, rax
+ret
+type_pack_product_price_function_get_L0:
+ret
+
+type_pack_product_price_function_set:
+test rdx, rdx
+jne type_pack_product_price_function_set_L1
+mov qword [rcx], r8
+jmp type_pack_product_price_function_set_L0
+type_pack_product_price_function_set_L1:
+cmp rdx, 1
+jne type_pack_product_price_function_set_L3
+mov qword [rcx+8], r8
+jmp type_pack_product_price_function_set_L0
+type_pack_product_price_function_set_L3:
+cmp rdx, 2
+jne type_pack_product_price_function_set_L0
+mov qword [rcx+16], r8
+type_pack_product_price_function_set_L0:
+ret
+
+type_pair_product_price_constructor:
+push rbx
+push rsi
+sub rsp, 40
+mov r8, rcx
+mov rcx, 16
+mov rbx, rdx
+mov rsi, r8
+call allocate
+mov qword [rax], rsi
+mov qword [rax+8], rbx
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
 type_string_constructor:
 push rbx
 sub rsp, 48
@@ -260,63 +317,6 @@ movzx rdx, byte [r8+rax]
 test rdx, rdx
 jne type_string_function_length_L0
 type_string_function_length_L1:
-ret
-
-type_pack_product_price_function_get:
-test rdx, rdx
-jne type_pack_product_price_function_get_L1
-mov rax, [rcx]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L1:
-cmp rdx, 1
-jne type_pack_product_price_function_get_L3
-mov rax, [rcx+8]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L3:
-cmp rdx, 2
-jne type_pack_product_price_function_get_L5
-mov rax, [rcx+16]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L5:
-xor rax, rax
-ret
-type_pack_product_price_function_get_L0:
-ret
-
-type_pack_product_price_function_set:
-test rdx, rdx
-jne type_pack_product_price_function_set_L1
-mov qword [rcx], r8
-jmp type_pack_product_price_function_set_L0
-type_pack_product_price_function_set_L1:
-cmp rdx, 1
-jne type_pack_product_price_function_set_L3
-mov qword [rcx+8], r8
-jmp type_pack_product_price_function_set_L0
-type_pack_product_price_function_set_L3:
-cmp rdx, 2
-jne type_pack_product_price_function_set_L0
-mov qword [rcx+16], r8
-type_pack_product_price_function_set_L0:
-ret
-
-type_pair_product_price_constructor:
-push rbx
-push rsi
-sub rsp, 40
-mov r8, rcx
-mov rcx, 16
-mov rbx, rdx
-mov rsi, r8
-call allocate
-mov qword [rax], rsi
-mov qword [rax+8], rbx
-add rsp, 40
-pop rsi
-pop rbx
 ret
 
 section .data

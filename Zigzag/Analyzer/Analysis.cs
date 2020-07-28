@@ -265,25 +265,36 @@ public static class Analysis
                 }
 
                 var node = GetOrderedVariable(variable_component.Variable, variable_component.Order);
+                bool is_multiplier_negative;
 
                 // When the multiplier is exactly one (double), the multiplier can be ignored, meaning the inaccuracy of the comparison is expected
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
-                if (variable_component.Multiplier is double b && b != 1.0)
+                if (variable_component.Multiplier is double b && Math.Abs(b) != 1.0)
                 {
-                    node = new OperatorNode(Operators.MULTIPLY).SetOperands(
-                        node, 
-                        new NumberNode(Format.DECIMAL, b)
-                    );
+                    is_multiplier_negative = b < 0.0;
+
+                    if (Math.Abs(b) != 1.0)
+                    {
+                        node = new OperatorNode(Operators.MULTIPLY).SetOperands(
+                            node, 
+                            new NumberNode(Format.DECIMAL, Math.Abs(b))
+                        );
+                    }
                 }
-                else if ((long) variable_component.Multiplier != 1L)
+                else 
                 {
-                    node = new OperatorNode(Operators.MULTIPLY).SetOperands(
-                        node,
-                        new NumberNode(Assembler.Format, (long) variable_component.Multiplier)
-                    );
+                    is_multiplier_negative = (long)variable_component.Multiplier < 0;
+
+                    if (Math.Abs((long)variable_component.Multiplier) != 1L)
+                    {
+                        node = new OperatorNode(Operators.MULTIPLY).SetOperands(
+                            node,
+                            new NumberNode(Assembler.Format, Math.Abs((long)variable_component.Multiplier))
+                        );
+                    }   
                 }
             
-                result = new OperatorNode(Operators.ADD).SetOperands(result, node);
+                result = new OperatorNode(is_multiplier_negative ? Operators.SUBTRACT : Operators.ADD).SetOperands(result, node);
             }
 
             if (component is ComplexComponent complex_component)
@@ -312,7 +323,7 @@ public static class Analysis
         
         var result = (Node)new VariableNode(variable);
 
-        for (var i = 1; i < (int)Math.Abs(order); i++)
+        for (var i = 1; i < Math.Abs(order); i++)
         {
             result = new OperatorNode(Operators.MULTIPLY).SetOperands(result, new VariableNode(variable));
         }
@@ -587,16 +598,20 @@ public static class Analysis
         foreach (var variable in context.Variables.Values)
         {
             var reads = variable.Reads;
-            var edits = variable.Edits;
+            var edits = new List<Node>(variable.Edits);
 
             while (edits.Count > 0)
             {
-                var edit = edits.First().Parent!;
+                var edit = edits.First().FindParent(p => p.Is(NodeType.OPERATOR_NODE));
 
-                if (!edit.Is(NodeType.OPERATOR_NODE) || edit.To<OperatorNode>().Operator != Operators.ASSIGN)
+                if (edit == null || edit.To<OperatorNode>().Operator != Operators.ASSIGN)
                 {
+                    edits.RemoveAt(0);
                     continue;
                 }
+
+                // Get the node under which the edit is valid
+                var scope = edit.FindParent(p => p is IContext) ?? throw new ApplicationException("Analysis executed outside of a context");
                 
                 // Simplify the value of the edit
                 var components = CollectComponents(edit.Last!);
@@ -606,9 +621,8 @@ public static class Analysis
                 var next_edit = edits.Count > 1 ? edits[1] : null;
                 
                 // Find all usages of the new value before the next edit
-                var usages = reads.TakeWhile(r => next_edit == null || r.IsBefore(next_edit)).ToArray();
-                
-                // Replace the usages with the simplified value
+                var usages = reads.TakeWhile(r => (next_edit == null || r.IsBefore(next_edit)) && r.IsUnder(scope)).ToArray();
+
                 usages.ForEach(u => u.Replace(simplified));
                 
                 // Remove the replaced usages
@@ -661,7 +675,7 @@ public static class Analysis
     /// <param name="node">Node tree to analyze</param>
     private static void Analyze(Context context, Node node)
     {
-        /*AssignVariableDefinitions(context);
+        AssignVariableDefinitions(context);
 
         var expressions = new List<Node>();
 
@@ -670,6 +684,10 @@ public static class Analysis
             if (operation.Operator.Type == OperatorType.ACTION)
             {
                 expressions.Add(operation.Last!);
+            }
+            else
+            {
+                expressions.Add(operation);
             }
         }
         
@@ -680,9 +698,9 @@ public static class Analysis
             
             // Replace the value with the simplified version
             expression.Replace(simplified);
-        }*/
+        }
 
-        //var assigns = node.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && 
+        /*//var assigns = node.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && 
         //                                Equals(n.To<OperatorNode>().Operator, Operators.ASSIGN) || n.Is(NodeType.RETURN_NODE));
         var expressions = FindTopLevelOperators(node);
 
@@ -693,7 +711,7 @@ public static class Analysis
             
             // Replace the value with the simplified version
             assign.Replace(simplified);
-        }
+        }*/
     }
 
     public static void Analyze(Context context)

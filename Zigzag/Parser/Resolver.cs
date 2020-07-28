@@ -35,6 +35,23 @@ public static class Resolver
 			}
 		}
 
+		// Resolve parameter types
+		foreach (var function in context.Functions.Values.SelectMany(f => f.Overloads))
+		{
+			foreach (var parameter in function.Parameters)
+			{
+				if (parameter.Type != null && parameter.Type.IsUnresolved)
+				{
+					var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
+
+					if (!Equals(type, Types.UNKNOWN))
+					{
+						parameter.Type = type;
+					}
+				}
+			}
+		}
+
 		var implementations = context.GetFunctionImplementations().ToList();
 
 		foreach (var implementation in implementations)
@@ -56,6 +73,9 @@ public static class Resolver
 			{
 				ResolveTree(implementation, implementation.Node!);
 			}
+
+			// Resolve short functions
+			ResolveContext(implementation);
 		}
 	}
 

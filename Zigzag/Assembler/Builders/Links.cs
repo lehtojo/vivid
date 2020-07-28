@@ -2,10 +2,17 @@ using System;
 
 public static class Links
 {
-	private static Result GetMemberFunctionCall(Unit unit, FunctionNode function, Result self, Type self_type)
+	private static Result GetMemberFunctionCall(Unit unit, FunctionNode function, Node self_node, Type self_type)
 	{
+		// Static functions can't access any instance data
+		if (function.Function.IsStatic)
+		{
+			return Calls.Build(unit, function);
+		}
+
 		// Retrieve the context where the function is defined
 		var function_context = function.Function.Metadata!.GetTypeParent()!;
+		var self = References.Get(unit, self_node);
 
 		// If the function is not defined inside the type of the self pointer, it means it must have been defined in its supertypes, therefore casting is needed
 		if (function_context != self_type)
@@ -18,7 +25,6 @@ public static class Links
 
 	public static Result Build(Unit unit, LinkNode node)
 	{
-		var self = References.Get(unit, node.Object);
 		var self_type = node.Object.GetType();
 
 		return node.Member switch
@@ -26,11 +32,11 @@ public static class Links
 			VariableNode member when member.Variable.Category == VariableCategory.GLOBAL => References.GetVariable(unit,
 				member.Variable, AccessMode.READ),
 			
-			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, self,
+			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, References.Get(unit, node.Object),
 					member.Variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable wasn't aligned"))
 				.Execute(),
 			
-			FunctionNode function => GetMemberFunctionCall(unit, function, self, self_type),
+			FunctionNode function => GetMemberFunctionCall(unit, function, node.Object, self_type),
 			
 			_ => throw new NotImplementedException("Unsupported member node")
 		};

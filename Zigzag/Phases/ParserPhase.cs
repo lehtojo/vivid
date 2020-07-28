@@ -120,11 +120,14 @@ public class ParserPhase : Phase
 			root.Merge(parse.Node);
 		}
 
+		// Preprocess the 'hull' of the code before creating functions
+		Preprocessor.Evaluate(context, root);
+
 		var function = context.GetFunction("run");
 
 		if (function == null)
 		{
-			return Status.Error("Couldn't find function 'run'");
+			return Status.Error("Couldn't the entry function 'run'");
 		}
 
 		function.Overloads[0].Implement(new List<Type>());

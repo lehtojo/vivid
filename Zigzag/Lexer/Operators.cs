@@ -43,6 +43,8 @@ public static class Operators
 	public static readonly ActionOperator ASSIGN_XOR = new ActionOperator("¤=", BITWISE_XOR, 1);
 	public static readonly ActionOperator ASSIGN_OR = new ActionOperator("|=", BITWISE_OR, 1);
 
+	public static readonly IndependentOperator EXCLAMATION = new IndependentOperator("!");
+
 	public static readonly IndependentOperator COMMA = new IndependentOperator(",");
 	public static readonly IndependentOperator DOT = new IndependentOperator(".");
 
@@ -56,9 +58,9 @@ public static class Operators
 
 	private static readonly Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
 
-	private static void Add(Operator @operator)
+	private static void Add(Operator operation)
 	{
-		Map.Add(@operator.Identifier, @operator);
+		Map.Add(operation.Identifier, operation);
 	}
 
 	static Operators()
@@ -88,6 +90,7 @@ public static class Operators
 		Add(ASSIGN_SUBTRACT);
 		Add(ASSIGN_MULTIPLY);
 		Add(ASSIGN_DIVIDE);
+		Add(EXCLAMATION);
 		Add(COMMA);
 		Add(DOT);
 		Add(INCREMENT);

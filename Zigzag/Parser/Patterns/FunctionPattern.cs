@@ -39,7 +39,7 @@ class FunctionPattern : Pattern
 		var body = tokens[BODY].To<ContentToken>();
 
 		var function = new Function(context, modifiers, header.Name , body.GetTokens());
-		function.Parameters = header.GetParameterNames(function);
+		function.Parameters = header.GetParameters(function);
 		
 		context.Declare(function);
 

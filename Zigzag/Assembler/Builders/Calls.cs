@@ -40,7 +40,7 @@ public static class Calls
 
 	private static bool IsThisPointerRequired(FunctionImplementation current, FunctionImplementation other)
 	{
-		return !other.IsConstructor && current.IsMember && other.IsMember && Equals(current.GetTypeParent(), other.GetTypeParent());
+		return !other.IsStatic && !other.IsConstructor && current.IsMember && other.IsMember && Equals(current.GetTypeParent(), other.GetTypeParent());
 	}
 	
 	/// <summary>

@@ -6,16 +6,14 @@ public class ElseIfPattern : Pattern
 
 	public const int FORMER = 0;
 	public const int ELSE = 2;
-	public const int IF = 3;
-	public const int CONDITION = 4;
-	public const int BODY = 6;
+	public const int CONDITION = 3;
+	public const int BODY = 5;
 
-	// $if [\n] else if $bool [\n] (...) 
+	// $if [\n] else $bool [\n] (...) 
 	public ElseIfPattern() : base
 	(
 		TokenType.DYNAMIC, 
 		TokenType.END | TokenType.OPTIONAL, 
-		TokenType.KEYWORD,
 		TokenType.KEYWORD,
 		TokenType.DYNAMIC, 
 		TokenType.END | TokenType.OPTIONAL, 
@@ -29,11 +27,10 @@ public class ElseIfPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		var previous = (DynamicToken)tokens[FORMER].To<DynamicToken>();
+		var previous = tokens[FORMER].To<DynamicToken>();
 		
 		if (previous.Node.GetNodeType() != NodeType.IF_NODE ||
-			tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE ||
-			tokens[IF].To<KeywordToken>().Keyword != Keywords.IF)
+			tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
 		{
 			return false;
 		}

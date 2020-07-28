@@ -6,16 +6,17 @@ using System.Linq;
 public class Context
 {
 	public string Name { get; protected set; } = string.Empty;
-	public string Prefix { get; protected set; } = string.Empty;
-	public string Postfix { get; protected set; } = string.Empty;
+	public string Prefix { get; set; } = string.Empty;
+	public string Postfix { get; set; } = string.Empty;
 
 	public Context? Parent { get; set; }
 	public List<Context> Subcontexts { get; private set; } = new List<Context>();
 
 	public bool IsGlobal => GetTypeParent() == null;
-	public bool IsMember => !IsGlobal;
+	public bool IsMember => GetTypeParent() != null;
 	public bool IsType => this is Type;
 	public bool IsFunction => this is FunctionImplementation;
+
 	public bool IsInsideFunction => IsFunction || GetFunctionParent() != null;
 	public bool IsInsideType => IsType || GetTypeParent() != null;
 
@@ -23,6 +24,8 @@ public class Context
 	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
 	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
 	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
+
+	private int Lambdas { get; set; } = 0;
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
@@ -379,6 +382,11 @@ public class Context
 		return Functions.Values
 			.SelectMany(f => f.Overloads)
 			.SelectMany(f => f.Implementations);
+	}
+
+	public int GetNextLambda()
+	{
+		return Lambdas++;
 	}
 
 	public void Destroy()

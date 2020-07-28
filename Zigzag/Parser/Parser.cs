@@ -49,12 +49,12 @@ public class Sublist<T> : IList<T>
 
     public IEnumerator<T> GetEnumerator()
     {
-        return Parent.GetRange(Start, End).GetEnumerator();
+        return Parent.GetRange(Start, End - Start).GetEnumerator();
     }
 
     public int IndexOf(T item)
     {
-        return Parent.GetRange(Start, End).IndexOf(item);
+        return Parent.GetRange(Start, End - Start).IndexOf(item);
     }
 
     public void Insert(int index, T item)
@@ -93,13 +93,13 @@ public static class Parser
 
     public const int MAX_PRIORITY = 23;
     public const int MEMBERS = 19;
-    public const int MIN_PRIORITY = 1;
+    public const int MIN_PRIORITY = 0;
     private const int FUNCTION_LENGTH = 2;
 
     private class Instance
     {
         public Pattern Pattern { get; private set; }
-        private IList<Token> Tokens { get; set; }
+        public IList<Token> Tokens { get; private set; }
         public List<Token> Molded { get; private set; }
 
         public Instance(Pattern pattern, IList<Token> tokens, List<Token> molded)
@@ -119,6 +119,11 @@ public static class Parser
             {
                 Tokens.RemoveAt(start);
             }
+        }
+
+        public int GetStart(List<Token> tokens)
+        {
+            return tokens.IndexOf(Tokens.First());
         }
 
         private int GetAbsolutePosition(int virtual_position)
@@ -170,9 +175,9 @@ public static class Parser
     /// <param name="tokens">Tokens to scan through</param>
     /// <param name="priority">Pattern priority used for filtering</param>
     /// <returns>Success: Next important pattern in tokens, Failure null</returns>
-    private static Instance? Next(Context context, List<Token> tokens, int priority)
+    private static Instance? Next(Context context, List<Token> tokens, int priority, List<System.Type> whitelist, int start = 0)
     {
-        for (var start = 0; start < tokens.Count; start++)
+        for (; start < tokens.Count; start++)
         {
             // Start from the root
             var patterns = Patterns.Root;
@@ -203,6 +208,13 @@ public static class Parser
                     foreach (var option in patterns.Options)
                     {
                         var pattern = option.Pattern;
+                        
+                        // Skip this candidate if it's blacklisted
+                        if (whitelist.Any() && !whitelist.Exists(i => i == pattern.GetType()))
+                        {
+                            continue;
+                        }
+
                         var molded = Mold(option.Missing, candidate);
 
                         if (pattern.GetPriority(molded) == priority && pattern.Passes(context, molded))
@@ -237,6 +249,76 @@ public static class Parser
         return node;
     }
 
+    private class Consumption
+    {
+        public DynamicToken Token { get; set; }
+        public int Count { get; set; }
+
+        public Consumption(DynamicToken token, int count)
+        {
+            Token = token;
+            Count = count;
+        }
+    }
+
+    private static List<Token> Consume(Context context, List<Token> tokens, int min, int max, List<System.Type> whitelist, int start)
+    {
+        var result = new List<Token>();
+        var clone = new List<Token>(tokens);
+
+        var consumption = new List<Consumption>();
+
+        for (var priority = max; priority >= min;)
+        {
+            var instance = Next(context, clone, priority, whitelist, start);
+
+            if (instance == null)
+            {
+                priority--;
+                continue;
+            }
+
+            // Build the pattern into a node
+            var pattern = instance.Pattern;
+            var node = pattern.Build(context, instance.Molded);
+
+            if (node != null)
+            {
+                // Calculate how many tokens the pattern holds inside
+                var count = instance.Tokens
+                    .Sum(t => consumption.FirstOrDefault(i => i.Token == t)?.Count ?? 1);
+
+                // Replace the pattern with a dynamic token
+                var token = new DynamicToken(node);
+                consumption.Add(new Consumption(token, count));
+
+                instance.Replace(token);
+            }
+            else
+            {
+                Console.WriteLine("Warning: Consumption encountered unverified state");
+                instance.Remove();
+            }
+        }
+
+        if (clone[start].Type == TokenType.DYNAMIC)
+        {
+            var count = consumption.Find(i => i.Token == clone[start].To<DynamicToken>())?.Count ?? 1;
+            
+            var consumed = tokens.GetRange(start, count);
+            tokens.RemoveRange(start, count);
+
+            return consumed;
+        }
+        else
+        {
+            var consumed = new List<Token> { tokens[start] };
+            tokens.RemoveAt(start);
+
+            return consumed;
+        }
+    }
+
     /// <summary>
     /// Parses tokens into a node tree and attaches it to the parent node. 
     /// Parsing is done by looking for prioritized patterns which are filtered using the min and max priority parameters.
@@ -249,18 +331,41 @@ public static class Parser
     public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY,
         int max = MAX_PRIORITY)
     {
+        RemoveLineEndingDuplications(tokens);
         CreateFunctionCalls(tokens);
+
+        var blacklist = new List<System.Type>();
 
         for (var priority = max; priority >= min; priority--)
         {
             Instance? instance;
 
             // Find all patterns with the current priority
-            while ((instance = Next(context, tokens, priority)) != null)
+            while ((instance = Next(context, tokens, priority, blacklist)) != null)
             {
                 // Build the pattern into a node
                 var pattern = instance.Pattern;
-                var node = pattern.Build(context, instance.Molded);
+
+                Node? node;
+
+                if (pattern is ConsumingPattern consumer)
+                {
+                    var state = new ConsumptionState();
+                    node = consumer.Build(context, instance.Molded, state);
+
+                    if (state.IsConsuming)
+                    {
+                        var start = tokens.IndexOf(instance.Tokens.First()) + instance.Tokens.Count;
+                        var consumed = Consume(context, tokens, min, priority, state.Whitelist, start);
+                        
+                        state.Status = ConsumptionStatus.CONSUMED;
+                        node = consumer.Build(context, instance.Molded.Concat(consumed).ToList(), state);
+                    }
+                }
+                else
+                {
+                    node = pattern.Build(context, instance.Molded);
+                }
 
                 if (node != null)
                 {
@@ -323,6 +428,23 @@ public static class Parser
             }
 
             i--;
+        }
+    }
+
+    /// <summary>
+    /// Removes all line ending duplications
+    /// </summary>
+    private static void RemoveLineEndingDuplications(List<Token> tokens)
+    {
+        for (var i = 0; i < tokens.Count - 1;)
+        {
+            if (tokens[i].Type != TokenType.END || tokens[i + 1].Type != TokenType.END)
+            {
+                i++;
+                continue;
+            }
+
+            tokens.RemoveAt(i);
         }
     }
 

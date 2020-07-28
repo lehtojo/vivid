@@ -13,8 +13,11 @@ public static class Analyzer
 	{
 		foreach (var variable in context.Variables.Values)
 		{
+			variable.Edits.Clear();
+			variable.Reads.Clear();
+
 			foreach (var reference in variable.References)
-			{
+			{		
 				if (IsEdited((VariableNode)reference))
 				{
 					variable.Edits.Add(reference);
@@ -41,7 +44,8 @@ public static class Analyzer
 	{
 		foreach (var type in context.Types.Values)
 		{
-			foreach (var variable in type.Variables.Values.Where(variable => Flag.Has(variable.Modifiers, AccessModifier.STATIC)))
+			foreach (var variable in type.Variables.Values
+				.Where(variable => Flag.Has(variable.Modifiers, AccessModifier.STATIC)))
 			{
 				// Static variables should be treated like global variables
 				variable.Category = VariableCategory.GLOBAL;
@@ -88,6 +92,9 @@ public static class Analyzer
 			{
 				throw new Exception($"Invalid value assignment for constant '{constant.Name}'");
 			}
+
+			// Now all the readonly references are replaced with the constant's value
+			constant.Reads.Clear();
 		}
 
 		foreach (var subcontext in context.Subcontexts)

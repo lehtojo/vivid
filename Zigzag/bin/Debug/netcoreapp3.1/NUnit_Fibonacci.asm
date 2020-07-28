@@ -85,9 +85,11 @@ mov rcx, 10
 idiv rcx
 mov rax, rbx
 mov rcx, rdx
-xor rdx, rdx
-mov r8, 10
-idiv r8
+mov r8, 1844674407370955162
+mul r8
+mov rbx, rdx
+sar rbx, 63
+add rbx, rdx
 mov rdx, 48
 add rdx, rcx
 mov r8, rcx
@@ -95,7 +97,6 @@ mov rcx, rsi
 mov r9, r8
 mov r8, rdx
 xor rdx, rdx
-mov rbx, rax
 mov rsi, r9
 call type_string_function_insert
 test rbx, rbx

@@ -18,9 +18,9 @@ public class Function : Context
 {
 	public const string THIS_POINTER_IDENTIFIER = "this";
 
-	public int Modifiers { get; }
+	public int Modifiers { get; set; }
 
-	public List<string> Parameters { get; set; } = new List<string>();
+	public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 	public List<Token> Blueprint { get; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
@@ -58,13 +58,12 @@ public class Function : Context
 		Modifiers = modifiers;
 		Name = name;
 		Prefix = "Function";
-		Parameters = parameters.Select(p => p.Name).ToList();
+		Parameters = parameters.ToList();
 		Blueprint = new List<Token>();
 
-		var implementation = new FunctionImplementation();
+		var implementation = new FunctionImplementation(this);
 		implementation.SetParameters(parameters.ToList());
 		implementation.ReturnType = result;
-		implementation.Metadata = this;
 
 		Implementations.Add(implementation);
 
@@ -79,12 +78,11 @@ public class Function : Context
 	public FunctionImplementation Implement(IEnumerable<Type> types)
 	{
 		// Pack parameters with names and types
-		var parameters = Parameters.Zip(types, (name, type) => new Parameter(name, type)).ToList();
+		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();
 
 		// Create a function implementation
-		var implementation = new FunctionImplementation(Parent);
+		var implementation = new FunctionImplementation(this, Parent);
 		implementation.SetParameters(parameters);
-		implementation.Metadata = this;
 
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)
@@ -105,7 +103,25 @@ public class Function : Context
 	/// </summary>
 	public virtual bool Passes(List<Type> parameters)
 	{
-		return parameters.Count == Parameters.Count;
+		if (parameters.Count != Parameters.Count)
+		{
+			return false;
+		}
+
+		for (var i = 0; i < Parameters.Count; i++)
+		{
+			if (Parameters[i].Type == null)
+			{
+				continue;
+			}
+
+			if (Resolver.GetSharedType(Parameters[i].Type, parameters[i]) == null)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -152,7 +168,7 @@ public class Function : Context
 			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, function.Types) &&
 			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, function.Labels) &&
 			   Modifiers == function.Modifiers &&
-			   EqualityComparer<List<string>>.Default.Equals(Parameters, function.Parameters) &&
+			   EqualityComparer<List<Parameter>>.Default.Equals(Parameters, function.Parameters) &&
 			   EqualityComparer<List<FunctionImplementation>>.Default.Equals(Implementations, function.Implementations);
 	}
 

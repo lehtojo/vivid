@@ -27,7 +27,7 @@ public sealed class Scope : IDisposable
    /// <summary>
    /// Returns all variables in the given node tree that are not declared in the given local context
    /// </summary>
-   private static IEnumerable<Variable> GetAllNonLocalVariables(Node[] roots, params Context[] local_contexts)
+   public static IEnumerable<Variable> GetAllNonLocalVariables(Node[] roots, params Context[] local_contexts)
    {
       return roots.SelectMany(r => r.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
                .Select(n => n.To<VariableNode>().Variable)

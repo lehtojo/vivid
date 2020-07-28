@@ -2,12 +2,14 @@
 
 public class ConstructorPattern : Pattern
 {
+	private const string DESTRUCTOR_IDENTIFIER = "deinit";
+
 	public const int PRIORITY = 21;
 
 	private const int HEAD = 0;
 	private const int BODY = 2;
 
-	// init (...) [\n] {...}
+	// init/deinit (...) [\n] {...}
 	public ConstructorPattern() : base
 	(
 	   TokenType.FUNCTION,
@@ -25,7 +27,7 @@ public class ConstructorPattern : Pattern
 		var head = tokens[HEAD].To<FunctionToken>();
 		var type = context.GetTypeParent();
 
-		return type != null && head.Name == Keywords.INIT.Identifier;
+		return type != null && (head.Name == Keywords.INIT.Identifier || head.Name == DESTRUCTOR_IDENTIFIER);
 	}
 
 	public override Node? Build(Context context, List<Token> tokens)
@@ -37,19 +39,20 @@ public class ConstructorPattern : Pattern
 		if (head.Name == Keywords.INIT.Identifier)
 		{
 			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
-			constructor.Parameters = head.GetParameterNames(constructor);
-		
+			constructor.Parameters = head.GetParameters(constructor);
+
 			type.AddConstructor(constructor);
+		
+			return new FunctionDefinitionNode(constructor);
 		}
 		else
 		{
-			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
-			constructor.Parameters = head.GetParameterNames(constructor);
+			var destructor = new Constructor(context, AccessModifier.PUBLIC, body.GetTokens());
+			destructor.Parameters = head.GetParameters(destructor);
 		
-			type.AddDestructor(constructor);
-		}
-		
+			type.AddDestructor(destructor);
 
-		return null;
+			return new FunctionDefinitionNode(destructor);
+		}
 	}
 }

@@ -26,7 +26,7 @@ public class Type : Context
 	public const string IDENTIFIER_PREFIX = "type_";
 
 	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
-	public int Modifiers { get; }
+	public int Modifiers { get; set; }
 
 	public bool IsUnresolved => this is IResolvable;
 	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
@@ -107,7 +107,9 @@ public class Type : Context
 
 	public virtual int GetContentSize()
 	{
-		var local_content_size = Variables.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
+		var local_content_size = Variables
+			.Where(v => !v.Value.IsStatic)
+			.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
 
 		return Supertypes.Sum(s => s.ContentSize) + local_content_size;
 	}

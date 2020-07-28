@@ -2,10 +2,10 @@
 
 class ReturnPattern : Pattern
 {
-	public const int PRIORITY = 1;
+	public const int PRIORITY = 0;
 
 	public const int RETURN = 0;
-	public const int SOURCE = 1;
+	public const int VALUE = 1;
 
 	// => ...
 	public ReturnPattern() : base
@@ -25,8 +25,8 @@ class ReturnPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var token = tokens[SOURCE];
-		var source = Singleton.Parse(context, token);
+		var token = tokens[VALUE];
+		var value = Singleton.Parse(context, token);
 
 		var function = context.GetFunctionParent();
 
@@ -44,6 +44,6 @@ class ReturnPattern : Pattern
 			function.ReturnType = Types.LINK;
 		}
 
-		return new ReturnNode(source);
+		return new ReturnNode(value);
 	}
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class IfNode : Node, IResolvable
+public class IfNode : Node, IResolvable, IContext
 {
 	public Context Context { get; set; }
 	public Node? Successor { get; private set; }
@@ -60,6 +60,11 @@ public class IfNode : Node, IResolvable
 		Resolver.Resolve(context, Condition);
 		Resolver.Resolve(Context, Body);
 
+		if (Successor != null)
+		{
+			Resolver.Resolve(context, Successor);
+		}
+
 		return null;
 	}
 
@@ -72,4 +77,9 @@ public class IfNode : Node, IResolvable
 	{
 		return NodeType.IF_NODE;
 	}
+
+   public Context GetContext()
+   {
+		return Context;
+   }
 }

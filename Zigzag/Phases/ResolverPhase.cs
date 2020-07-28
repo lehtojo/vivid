@@ -94,6 +94,12 @@ public class ResolverPhase : Phase
 		foreach (var implementation in context.GetFunctionImplementations())
 		{
 			var report = GetFunctionReport(implementation);
+			var subreport = GetReport(implementation);
+
+			if (subreport.Length > 0)
+			{
+				report += "\n" + subreport;
+			}
 
 			if (report.Length > 0)
 			{

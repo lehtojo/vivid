@@ -254,7 +254,7 @@ public static class Lexer
 		if (i != -1)
 		{
 			var length = i - start.Absolute;
-			return new Position(start.Line, start.Character + length, i).NextLine();
+			return new Position(start.Line, start.Character + length, i);
 		}
 		else
 		{

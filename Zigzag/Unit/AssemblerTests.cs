@@ -758,5 +758,62 @@ namespace Zigzag.Unit
          Assert.AreEqual(100.0, function_get_product_price(pack, 1, DOLLARS));
          Assert.AreEqual(40000.0, function_get_product_price(pack, 2, DOLLARS));
       }
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_bitwise_and(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_bitwise_xor(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_bitwise_or(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_synthetic_and(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_synthetic_xor(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+      private static extern Int64 function_synthetic_or(byte a, byte b);
+
+      [TestCase]
+      public void Assembler_BitwiseOperations()
+      {
+         if (!Compile("BitwiseOperations", "BitwiseOperations.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(1, function_bitwise_and(1, 1));
+         Assert.AreEqual(0, function_bitwise_and(1, 0));
+         Assert.AreEqual(0, function_bitwise_and(0, 1));
+         Assert.AreEqual(0, function_bitwise_and(0, 0));
+
+         Assert.AreEqual(0, function_bitwise_xor(1, 1));
+         Assert.AreEqual(1, function_bitwise_xor(1, 0));
+         Assert.AreEqual(1, function_bitwise_xor(0, 1));
+         Assert.AreEqual(0, function_bitwise_xor(0, 0));
+
+         Assert.AreEqual(1, function_bitwise_or(1, 1));
+         Assert.AreEqual(1, function_bitwise_or(1, 0));
+         Assert.AreEqual(1, function_bitwise_or(0, 1));
+         Assert.AreEqual(0, function_bitwise_or(0, 0));
+
+         Assert.AreEqual(1, function_synthetic_and(1, 1));
+         Assert.AreEqual(0, function_synthetic_and(1, 0));
+         Assert.AreEqual(0, function_synthetic_and(0, 1));
+         Assert.AreEqual(0, function_synthetic_and(0, 0));
+
+         Assert.AreEqual(0, function_synthetic_xor(1, 1));
+         Assert.AreEqual(1, function_synthetic_xor(1, 0));
+         Assert.AreEqual(1, function_synthetic_xor(0, 1));
+         Assert.AreEqual(0, function_synthetic_xor(0, 0));
+
+         Assert.AreEqual(1, function_synthetic_or(1, 1));
+         Assert.AreEqual(1, function_synthetic_or(1, 0));
+         Assert.AreEqual(1, function_synthetic_or(0, 1));
+         Assert.AreEqual(0, function_synthetic_or(0, 0));
+      }
    }
 }

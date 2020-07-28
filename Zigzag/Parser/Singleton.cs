@@ -19,11 +19,6 @@ public static class Singleton
 		{
 			return new TypeNode(context.GetType(id.Value)!);
 		}
-		else if (context.IsType)
-		{
-			var variable = new Variable(context, Types.UNKNOWN, VariableCategory.MEMBER, id.Value, AccessModifier.PUBLIC);
-			return new VariableNode(variable);
-		}
 		else
 		{
 			return new UnresolvedIdentifier(id.Value);

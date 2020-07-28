@@ -29,6 +29,11 @@ public static class Builders
 				return Arrays.BuildOffset(unit, (OffsetNode)node, AccessMode.READ);
 			}
 
+			case NodeType.LAMBDA_NODE:
+			{
+				return Lambdas.Build(unit, (LambdaNode)node);
+			}
+
 			case NodeType.LINK_NODE:
 			{
 				return Links.Build(unit, (LinkNode)node);
@@ -57,6 +62,11 @@ public static class Builders
 			case NodeType.CAST_NODE:
 			{
 				return Casts.Build(unit, (CastNode)node);
+			}
+
+			case NodeType.NOT_NODE:
+			{
+				return ArithmeticOperators.BuildNot(unit, (NotNode)node);
 			}
 
 			case NodeType.NEGATE_NODE:

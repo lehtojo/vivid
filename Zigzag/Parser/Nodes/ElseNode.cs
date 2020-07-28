@@ -1,4 +1,4 @@
-public class ElseNode : Node, IResolvable
+public class ElseNode : Node, IResolvable, IContext
 {
 	public Context Context { get; set; }
 	public Node Body => First!;
@@ -25,4 +25,9 @@ public class ElseNode : Node, IResolvable
 	{
 		return NodeType.ELSE_NODE;
 	}
+
+   public Context GetContext()
+   {
+		return Context;
+   }
 }

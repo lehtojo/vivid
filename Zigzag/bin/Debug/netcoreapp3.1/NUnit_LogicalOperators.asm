@@ -11,7 +11,7 @@ extern deallocate
 global function_single_boolean
 export function_single_boolean
 function_single_boolean:
-cmp rcx, 1
+cmp cl, 1
 jne function_single_boolean_L1
 xor rax, rax
 ret
@@ -25,13 +25,13 @@ ret
 global function_two_booleans
 export function_two_booleans
 function_two_booleans:
-cmp rcx, 1
+cmp cl, 1
 jne function_two_booleans_L1
 mov rax, 1
 ret
 jmp function_two_booleans_L0
 function_two_booleans_L1:
-cmp rdx, 1
+cmp dl, 1
 jne function_two_booleans_L3
 mov rax, 2
 ret
@@ -46,59 +46,57 @@ global function_nested_if_statements
 export function_nested_if_statements
 function_nested_if_statements:
 cmp rcx, 1
-jne function_nested_if_statements_L1
+jne function_nested_if_statements_L0
 cmp rdx, 2
-jne function_nested_if_statements_L4
+jne function_nested_if_statements_L2
 cmp r8, 3
-jne function_nested_if_statements_L7
+jne function_nested_if_statements_L5
 mov rax, 1
 ret
-jmp function_nested_if_statements_L6
-function_nested_if_statements_L7:
+jmp function_nested_if_statements_L4
+function_nested_if_statements_L5:
 cmp r8, 4
-jne function_nested_if_statements_L6
+jne function_nested_if_statements_L4
 mov rax, 1
 ret
-function_nested_if_statements_L6:
-jmp function_nested_if_statements_L3
 function_nested_if_statements_L4:
+function_nested_if_statements_L2:
 test rdx, rdx
-jne function_nested_if_statements_L3
+jne function_nested_if_statements_L8
 cmp r8, 1
-jne function_nested_if_statements_L12
-mov rax, 1
-ret
-jmp function_nested_if_statements_L11
-function_nested_if_statements_L12:
-cmp r8, -1
 jne function_nested_if_statements_L11
 mov rax, 1
 ret
+jmp function_nested_if_statements_L10
 function_nested_if_statements_L11:
-function_nested_if_statements_L3:
-xor rax, rax
-ret
-jmp function_nested_if_statements_L0
-function_nested_if_statements_L1:
-cmp rcx, 2
-jne function_nested_if_statements_L0
-cmp rdx, 4
-jne function_nested_if_statements_L17
-cmp r8, 8
-jne function_nested_if_statements_L20
+mov r9, -1
+cmp r8, r9
+jne function_nested_if_statements_L10
 mov rax, 1
 ret
-jmp function_nested_if_statements_L19
-function_nested_if_statements_L20:
-cmp r8, 6
+function_nested_if_statements_L10:
+function_nested_if_statements_L8:
+xor rax, rax
+ret
+function_nested_if_statements_L0:
+cmp rcx, 2
+jne function_nested_if_statements_L14
+cmp rdx, 4
+jne function_nested_if_statements_L16
+cmp r8, 8
 jne function_nested_if_statements_L19
 mov rax, 1
 ret
+jmp function_nested_if_statements_L18
 function_nested_if_statements_L19:
-jmp function_nested_if_statements_L16
-function_nested_if_statements_L17:
+cmp r8, 6
+jne function_nested_if_statements_L18
+mov rax, 1
+ret
+function_nested_if_statements_L18:
+function_nested_if_statements_L16:
 cmp rdx, 3
-jne function_nested_if_statements_L16
+jne function_nested_if_statements_L22
 cmp r8, 4
 jne function_nested_if_statements_L25
 mov rax, 1
@@ -110,19 +108,19 @@ jne function_nested_if_statements_L24
 mov rax, 1
 ret
 function_nested_if_statements_L24:
-function_nested_if_statements_L16:
+function_nested_if_statements_L22:
 xor rax, rax
 ret
-function_nested_if_statements_L0:
+function_nested_if_statements_L14:
 xor rax, rax
 ret
 
 global function_logical_and_in_if_statement
 export function_logical_and_in_if_statement
 function_logical_and_in_if_statement:
-cmp rcx, 1
+cmp cl, 1
 jne function_logical_and_in_if_statement_L0
-cmp rdx, 1
+cmp dl, 1
 jne function_logical_and_in_if_statement_L0
 mov rax, 10
 ret
@@ -133,9 +131,9 @@ ret
 global function_logical_or_in_if_statement
 export function_logical_or_in_if_statement
 function_logical_or_in_if_statement:
-cmp rcx, 1
+cmp cl, 1
 je function_logical_or_in_if_statement_L1
-cmp rdx, 1
+cmp dl, 1
 jne function_logical_or_in_if_statement_L0
 function_logical_or_in_if_statement_L1:
 mov rax, 10
@@ -147,65 +145,65 @@ ret
 global function_nested_logical_statements
 export function_nested_logical_statements
 function_nested_logical_statements:
-cmp rcx, 1
+cmp cl, 1
 jne function_nested_logical_statements_L1
-cmp rdx, 1
+cmp dl, 1
 jne function_nested_logical_statements_L1
-cmp r8, 1
+cmp r8b, 1
 jne function_nested_logical_statements_L1
-cmp r9, 1
+cmp r9b, 1
 jne function_nested_logical_statements_L1
 mov rax, 1
 ret
 jmp function_nested_logical_statements_L0
 function_nested_logical_statements_L1:
-cmp rcx, 1
+cmp cl, 1
 je function_nested_logical_statements_L8
-cmp rdx, 1
+cmp dl, 1
 jne function_nested_logical_statements_L6
 function_nested_logical_statements_L8:
-cmp r8, 1
+cmp r8b, 1
 jne function_nested_logical_statements_L6
-cmp r9, 1
+cmp r9b, 1
 jne function_nested_logical_statements_L6
 mov rax, 2
 ret
 jmp function_nested_logical_statements_L0
 function_nested_logical_statements_L6:
-cmp rcx, 1
+cmp cl, 1
 jne function_nested_logical_statements_L11
-cmp rdx, 1
+cmp dl, 1
 jne function_nested_logical_statements_L11
-cmp r8, 1
+cmp r8b, 1
 je function_nested_logical_statements_L12
-cmp r9, 1
+cmp r9b, 1
 jne function_nested_logical_statements_L11
 function_nested_logical_statements_L12:
 mov rax, 3
 ret
 jmp function_nested_logical_statements_L0
 function_nested_logical_statements_L11:
-cmp rcx, 1
+cmp cl, 1
 jne function_nested_logical_statements_L18
-cmp rdx, 1
+cmp dl, 1
 je function_nested_logical_statements_L17
 function_nested_logical_statements_L18:
-cmp r8, 1
+cmp r8b, 1
 jne function_nested_logical_statements_L16
-cmp r9, 1
+cmp r9b, 1
 jne function_nested_logical_statements_L16
 function_nested_logical_statements_L17:
 mov rax, 4
 ret
 jmp function_nested_logical_statements_L0
 function_nested_logical_statements_L16:
-cmp rcx, 1
+cmp cl, 1
 je function_nested_logical_statements_L22
-cmp rdx, 1
+cmp dl, 1
 je function_nested_logical_statements_L22
-cmp r8, 1
+cmp r8b, 1
 je function_nested_logical_statements_L22
-cmp r9, 1
+cmp r9b, 1
 jne function_nested_logical_statements_L21
 function_nested_logical_statements_L22:
 mov rax, 5

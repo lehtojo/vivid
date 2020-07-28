@@ -22,13 +22,14 @@ add rcx, 1
 mov rbx, rcx
 imul rbx, 10
 mov rax, rbx
-xor rdx, rdx
-mov r8, 3
-idiv r8
-add rax, 2
+mov r8, 6148914691236517206
+mul r8
+mov rbx, rdx
+sar rbx, 63
+add rbx, rdx
+add rbx, 2
 mov rdx, rcx
-mov rcx, rax
-mov rbx, rax
+mov rcx, rbx
 mov rsi, rdx
 call type_array_large_constructor
 mov rcx, rbx
@@ -110,12 +111,14 @@ sub rcx, 1
 mov rdx, rcx
 mov rcx, rdi
 call type_array_large_function_get
-xor rdx, rdx
-mov rcx, 10
-idiv rcx
-mov rcx, r14
+mov rcx, 1844674407370955162
+mul rcx
+mov rcx, rdx
+sar rcx, 63
+add rcx, rdx
+mov r8, rcx
 mov rdx, r13
-mov r8, rax
+mov rcx, r14
 call type_array_large_function_set
 mov rcx, rbx
 sub rcx, 1
@@ -175,12 +178,13 @@ call type_array_large_function_set
 mov rcx, r14
 mov rdx, r13
 call type_array_large_function_get
-xor rdx, rdx
-mov rcx, 10
-idiv rcx
+mov rcx, 1844674407370955162
+mul rcx
+mov r15, rdx
+sar r15, 63
+add r15, rdx
 mov rcx, r14
 mov rdx, r13
-mov r15, rax
 call type_array_large_function_get
 xor rdx, rdx
 mov rcx, 10
@@ -254,6 +258,7 @@ sal rcx, 3
 mov rsi, rax
 call allocate
 mov qword [rsi], rax
+mov qword [rsi+8], rbx
 mov rax, rsi
 add rsp, 40
 pop rsi
@@ -285,6 +290,7 @@ sal rcx, 0
 mov rsi, rax
 call allocate
 mov qword [rsi], rax
+mov qword [rsi+8], rbx
 mov rax, rsi
 add rsp, 40
 pop rsi

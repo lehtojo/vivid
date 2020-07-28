@@ -6,8 +6,8 @@ Array { T } {
 
    count: num
 
-   init(c: num) {
-      count = c
+   init(count: num) {
+      this.count = count
       data = T[count]
    }
 
@@ -16,12 +16,8 @@ Array { T } {
 }
 
 Node {
-   value: decimal
+   value: decimal = 0.0
    connections: Connection Array
-
-   init() {
-      value = 0.0
-   }
 
    connect(layer: Layer) {
       connections = Connection Array(layer.size)
@@ -32,7 +28,7 @@ Node {
    }
 
    signal() {
-      loop connection : connections {
+      loop connection in connections {
          connection.send(value)
       }
    }
@@ -42,8 +38,8 @@ Connection {
    private receiver: Node
    open weight: dec
 
-   init(r: Node) {
-      receiver = r
+   init(receiver: Node) {
+      this.receiver = receiver
       weight = random()
    }
 
@@ -56,19 +52,19 @@ Layer {
    size: num
    nodes: Node Array
 
-   init(s: num) {
-      size = s
+   init(size: num) {
+      this.size = size
       nodes = Node Array(size)
    }
 
    connect(other: Layer) {
-      loop node : nodes {
+      loop node in nodes {
          node.connect(other)
       }
    }
 
    signal() {
-      loop node : nodes {
+      loop node in nodes {
          node.signal()
       }
    }
@@ -107,7 +103,7 @@ Network {
          first[i].value = input[i]
       }
 
-      loop layer : layers {
+      loop layer in layers {
          layer.signal()
       }
 

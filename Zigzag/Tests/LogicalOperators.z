@@ -14,7 +14,7 @@ export two_booleans(a: bool, b: bool) {
     if a == true {
         => 1
     }
-    else if b == true {
+    else b == true {
         => 2
     }
     else {
@@ -28,7 +28,7 @@ export nested_if_statements(x: num, y: num, z: num) {
             if z == 3 {
                 => true
             }
-            else if z == 4 {
+            else z == 4 {
                 => true
             }
         }
@@ -36,7 +36,7 @@ export nested_if_statements(x: num, y: num, z: num) {
             if z == 1 {
                 => true
             }
-            else if z == -1 {
+            else z == -1 {
                 => true
             }
         }
@@ -48,7 +48,7 @@ export nested_if_statements(x: num, y: num, z: num) {
             if z == 8 {
                 => true
             }
-            else if z == 6 {
+            else z == 6 {
                 => true
             }
         }
@@ -56,7 +56,7 @@ export nested_if_statements(x: num, y: num, z: num) {
             if z == 4 {
                 => true
             }
-            else if z == 5 {
+            else z == 5 {
                 => true
             }
         }
@@ -87,16 +87,16 @@ export nested_logical_statements(a: bool, b: bool, c: bool, d: bool) {
     if (a == true and b == true) and (c == true and d == true) {
         => 1
     }
-    else if (a == true or b == true) and (c == true and d == true) {
+    else (a == true or b == true) and (c == true and d == true) {
         => 2
     }
-    else if (a == true and b == true) and (c == true or d == true) {
+    else (a == true and b == true) and (c == true or d == true) {
         => 3
     }
-    else if (a == true and b == true) or (c == true and d == true) {
+    else (a == true and b == true) or (c == true and d == true) {
         => 4
     }
-    else if (a == true or b == true) or (c == true or d == true) {
+    else (a == true or b == true) or (c == true or d == true) {
         => 5
     }
     else {
@@ -108,7 +108,7 @@ export logical_operators_1(a: num, b: num) {
    if a > b or a == 0 {
       => b
    }
-   else if a == b and b == 1 {
+   else a == b and b == 1 {
       => a
    }
    else {
@@ -120,7 +120,7 @@ export logical_operators_2(a: num, b: num, c: num) {
    if (a > b and a > c) or c > b {
       => 1
    }
-   else if (a <= b or b >= c) and (c == 1 or a == 1) {
+   else (a <= b or b >= c) and (c == 1 or a == 1) {
       => 0
    }
    else {
@@ -152,11 +152,11 @@ run() {
    logical_operators_1(1, 1)
    logical_operators_2(1, 1, 1)
    logical_operators_3(1, 1)
-   single_boolean(true)
-   two_booleans(true, true)
+   single_boolean(true as bool)
+   two_booleans(true as bool, true as bool)
    nested_if_statements(0, 0, 0)
-   logical_and_in_if_statement(true, true)
-   logical_or_in_if_statement(true, true)
-   nested_logical_statements(true, true, true, true)
+   logical_and_in_if_statement(true as bool, true as bool)
+   logical_or_in_if_statement(true as bool, true as bool)
+   nested_logical_statements(true as bool, true as bool, true as bool, true as bool)
    => 1
 }

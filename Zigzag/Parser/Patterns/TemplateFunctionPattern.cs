@@ -5,16 +5,14 @@ public class TemplateFunctionPattern : Pattern
 {
 	public const int PRIORITY = 23;
 
-	public const int MODIFIERS = 0;
-	public const int NAME = 1;
-	public const int TEMPLATE_ARGUMENTS = 2;
-	public const int PARAMETERS = 3;
-	public const int BODY = 5;
+	public const int NAME = 0;
+	public const int TEMPLATE_ARGUMENTS = 1;
+	public const int PARAMETERS = 2;
+	public const int BODY = 4;
 
-	// [modifiers] a-z { Type 1, Type 2 ... Type n } () [\n] {...}
+	// a-z { Type 1, Type 2 ... Type n } () [\n] {...}
 	public TemplateFunctionPattern() : base
 	(
-		TokenType.KEYWORD | TokenType.OPTIONAL, 
 		TokenType.IDENTIFIER, 
 		TokenType.CONTENT, 
 		TokenType.CONTENT, 
@@ -29,11 +27,6 @@ public class TemplateFunctionPattern : Pattern
 
 	public override bool Passes(Context context, List<Token> tokens)
 	{
-		if (tokens[MODIFIERS].Type != TokenType.NONE && !(tokens[MODIFIERS]?.To<KeywordToken>().Keyword is AccessModifierKeyword))
-		{
-			return false;
-		}
-
 		return tokens[TEMPLATE_ARGUMENTS].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS && 
                tokens[PARAMETERS].To<ContentToken>().Type == ParenthesisType.PARENTHESIS && 
                tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
@@ -66,7 +59,6 @@ public class TemplateFunctionPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		var modifiers = tokens[MODIFIERS];
 		var name = tokens[NAME].To<IdentifierToken>();
 		var template_argument_names = GetTemplateArgumentNames(tokens);
 		var parameters = tokens[PARAMETERS].To<ContentToken>();
@@ -74,13 +66,8 @@ public class TemplateFunctionPattern : Pattern
 		
 		var blueprint = new List<Token>() { new FunctionToken(name, parameters), body };
 
-		if (modifiers.Type != TokenType.NONE)
-		{
-			blueprint.Insert(0, modifiers);
-		}
-
 		var template_function = new TemplateFunction(context, AccessModifier.PUBLIC, name.Value, blueprint, template_argument_names);
-		template_function.Parameters = blueprint.First().To<FunctionToken>().GetParameterNames(template_function);
+		template_function.Parameters = blueprint.First().To<FunctionToken>().GetParameters(template_function);
 		context.Declare(template_function);
 
 		return new FunctionDefinitionNode(template_function);

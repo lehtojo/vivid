@@ -2,7 +2,7 @@ using System;
 
 public class ReturnNode : InstructionNode, IResolvable
 {
-	private Status CurrentStatus = Status.OK;
+	private Status CurrentStatus = Status.Error("Return type was not resolved");
 
 	public Node Value => First!;
 
@@ -28,6 +28,7 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		if (node == null)
 		{
+			CurrentStatus = Status.OK;
 			return null;
 		}
 
@@ -64,6 +65,7 @@ public class ReturnNode : InstructionNode, IResolvable
 			CurrentStatus = Status.OK;
 		}
 
+		CurrentStatus = Status.OK;
 		return null;
 	}
 

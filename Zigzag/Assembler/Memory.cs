@@ -131,7 +131,7 @@ public static class Memory
 	/// </summary>
 	public static void ClearRegister(Unit unit, Register target)
 	{
-		if (target.IsAvailable(unit.Position + 1))
+		if (target.IsAvailable(unit.Position))
 		{
 			return;
 		}
@@ -187,7 +187,6 @@ public static class Memory
 		var handle = new RegisterHandle(register);
 
 		var instruction = BitwiseInstruction.Xor(unit, new Result(handle, register.Format), new Result(handle, register.Format), register.Format);
-		instruction.IsSafe = false;
 		instruction.Description = "Sets the value of the destination to zero";
 
 		unit.Append(instruction);

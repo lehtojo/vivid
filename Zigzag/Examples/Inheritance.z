@@ -1,4 +1,6 @@
 Token {
+   private:
+
    type: num
    text: String
 

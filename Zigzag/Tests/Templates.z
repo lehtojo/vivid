@@ -24,14 +24,14 @@ Pack {A, B} {
       if i == 0 {
          => first
       }
-      else if i == 1 {
+      else i == 1 {
          => second
       }
-      else if i == 2 {
+      else i == 2 {
          => third
       }
       else {
-         => none
+         => none as first
       }
    }
 
@@ -39,10 +39,10 @@ Pack {A, B} {
       if i == 0 {
          first = value
       }
-      else if i == 1 {
+      else i == 1 {
          second = value
       }
-      else if i == 2 {
+      else i == 2 {
          third = value
       }
    }
@@ -86,7 +86,7 @@ export create_pack() {
    => Pack(Product, Price)
 }
 
-export set_product(pack: Pack, i: num, name: link, value: num, currency: tiny) {
+export set_product(pack: Pack(Product, Price), i: num, name: link, value: num, currency: tiny) {
    product = Product()
    product.name = String(name)
 
@@ -97,19 +97,19 @@ export set_product(pack: Pack, i: num, name: link, value: num, currency: tiny) {
    pack[i] = Pair(Product, Price, product, price)
 }
 
-export get_product_name(pack: Pack, i: num) {
+export get_product_name(pack: Pack(Product, Price), i: num) {
    => pack[i].first.name
 }
 
-export enchant_product(pack: Pack, i: num) {
+export enchant_product(pack: Pack(Product, Price), i: num) {
    pack[i].first.enchant()
 }
 
-export is_product_enchanted(pack: Pack, i: num) {
+export is_product_enchanted(pack: Pack(Product, Price), i: num) {
    => pack[i].first.is_enchanted()
 }
 
-export get_product_price(pack: Pack, i: num, currency: tiny) {
+export get_product_price(pack: Pack(Product, Price), i: num, currency: tiny) {
    => pack[i].second.convert(currency)
 }
 

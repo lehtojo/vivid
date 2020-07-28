@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-public class InlineNode : Node, IType
+public class InlineNode : Node, IType, IContext
 {
 	public FunctionImplementation Implementation { get; private set; }
 
@@ -70,4 +70,9 @@ public class InlineNode : Node, IType
 		hash.Add(End);
 		return hash.ToHashCode();
 	}
+
+   public Context GetContext()
+   {
+		return Implementation;
+   }
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class TypeNode : Node, IType
+public class TypeNode : Node, IType, IContext
 {
 	public Type Type { get; private set; }
 	public bool IsDefinition { get; private set; } = false;
@@ -61,4 +61,9 @@ public class TypeNode : Node, IType
 		hash.Add(Type.Name);
 		return hash.ToHashCode();
 	}
+
+   public Context GetContext()
+   {
+		return Type;
+   }
 }
