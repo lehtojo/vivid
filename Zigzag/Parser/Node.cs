@@ -380,6 +380,23 @@ public class Node
 		return iterator == node;
 	}
 
+	public Node Clone()
+	{
+		var result = (Node)MemberwiseClone();
+		result.First = null;
+		result.Last = null;
+		
+		var iterator = First;
+		
+		while (iterator != null)
+		{
+			result.Add(iterator.Clone());
+			iterator = iterator.Next;
+		}
+
+		return result;
+	}
+
 	public virtual NodeType GetNodeType()
 	{
 		return NodeType.NORMAL;

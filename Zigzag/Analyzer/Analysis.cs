@@ -592,47 +592,144 @@ public static class Analysis
         return definition.Right.Find(n =>
             !(n.Is(NodeType.NUMBER_NODE) || n.Is(NodeType.VARIABLE_NODE) && n.To<VariableNode>().Variable.IsParameter)) == null;
     }
-    
-    private static void AssignVariableDefinitions(Context context)
+
+    private static List<Node> GetReferences(Node root, Variable variable)
     {
+        return root.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
+            .Where(v => v.To<VariableNode>().Variable == variable)
+            .ToList();
+    }
+
+    private static List<Node> GetEdits(List<Node> references)
+    {
+        return references
+            .Where(v => Analyzer.IsEdited(v.To<VariableNode>())).ToList();
+    }
+
+    private static Node AssignVariable(Node node, Variable variable)
+    {
+        var root = node.Clone();
+
+        var reads = GetReferences(root, variable);
+        var edits = GetEdits(reads);
+
+        reads.RemoveAll(r => edits.Contains(r));
+
+        while (edits.Count > 0)
+        {
+            var edit = edits.First().FindParent(p => p.Is(NodeType.OPERATOR_NODE, NodeType.INCREMENT_NODE, NodeType.DECREMENT_NODE));
+
+            if (edit == null || edit.To<OperatorNode>().Operator != Operators.ASSIGN)
+            {
+                edits.RemoveAt(0);
+                continue;
+            }
+
+            // Get the node under which the edit is valid
+            var scope = edit.FindParent(p => p is IContext) ?? throw new ApplicationException("Analysis executed outside of a context");
+                
+            // Simplify the value of the edit
+            var components = CollectComponents(edit.Last!);
+            var simplified = Recreate(components);
+
+            // Try to get the next edit of the variable
+            var next_edit = edits.Count > 1 ? edits[1] : null;
+                
+            // Find all usages of the new value before the next edit
+            var usages = reads.TakeWhile(r => (next_edit == null || r.IsBefore(next_edit)) && r.IsUnder(scope)).ToArray();
+
+            usages.ForEach(u => u.Replace(simplified));
+                
+            // Remove the replaced usages
+            usages.ForEach(u => reads.Remove(u));
+            edits.RemoveAt(0);
+
+            // Since this edit is assigned to its usages, it can be removed
+            edit.Remove();
+        }
+
+        return root;
+    }
+
+    private static long GetCost(Node node)
+    {
+        var result = 0L;
+        var iterator = node.First;
+
+        while (iterator != null)
+        {
+            if (iterator.Is(NodeType.OPERATOR_NODE))
+            {
+                var operation = iterator.To<OperatorNode>().Operator;
+
+                if (operation == Operators.ADD || operation == Operators.SUBTRACT)
+                {
+                    result++;
+                }
+                else if (operation == Operators.MULTIPLY)
+                {
+                    result += 5;
+                }
+                else if (operation == Operators.DIVIDE)
+                {
+                    result += 70;
+                }
+            }
+
+            result += GetCost(iterator);
+
+            iterator = iterator.Next;
+        }
+
+        return result;
+    }
+
+    private static Node Optimize(Node node, Context context)
+    {
+        var minimum_cost_snapshot = node;
+        var minimum_cost = GetCost(node);
+
+        var root = node;
+
         foreach (var variable in context.Variables.Values)
         {
-            var reads = variable.Reads;
-            var edits = new List<Node>(variable.Edits);
+            // Assign the definitions of the current variable
+            root = AssignVariable(root, variable);
 
-            while (edits.Count > 0)
+            // Now, since the variable is now assigned, try to simplify the code
+            var expressions = new List<Node>();
+
+            foreach (var operation in FindTopLevelOperators(root))
             {
-                var edit = edits.First().FindParent(p => p.Is(NodeType.OPERATOR_NODE));
-
-                if (edit == null || edit.To<OperatorNode>().Operator != Operators.ASSIGN)
+                if (operation.Operator.Type == OperatorType.ACTION)
                 {
-                    edits.RemoveAt(0);
-                    continue;
+                    expressions.Add(operation.Last!);
                 }
+                else
+                {
+                    expressions.Add(operation);
+                }
+            }
 
-                // Get the node under which the edit is valid
-                var scope = edit.FindParent(p => p is IContext) ?? throw new ApplicationException("Analysis executed outside of a context");
-                
-                // Simplify the value of the edit
-                var components = CollectComponents(edit.Last!);
+            foreach (var expression in expressions)
+            {
+                var components = CollectComponents(expression);
                 var simplified = Recreate(components);
+            
+                // Replace the value with the simplified version
+                expression.Replace(simplified);
+            }
 
-                // Try to get the next edit of the variable
-                var next_edit = edits.Count > 1 ? edits[1] : null;
-                
-                // Find all usages of the new value before the next edit
-                var usages = reads.TakeWhile(r => (next_edit == null || r.IsBefore(next_edit)) && r.IsUnder(scope)).ToArray();
+            var cost = GetCost(root);
 
-                usages.ForEach(u => u.Replace(simplified));
-                
-                // Remove the replaced usages
-                usages.ForEach(u => reads.Remove(u));
-                edits.RemoveAt(0);
-
-                // Since this edit is assigned to its usages, it can be removed
-                edit.Remove();
+            if (cost < minimum_cost)
+            {
+                minimum_cost_snapshot = root;
+                minimum_cost = cost;
             }
         }
+
+        return minimum_cost_snapshot;
     }
     
     private static List<OperatorNode> FindTopLevelOperators(Node node)
@@ -669,51 +766,6 @@ public static class Analysis
         return operators;
     }
     
-    /// <summary>
-    /// Analyzes the specified node tree
-    /// </summary>
-    /// <param name="node">Node tree to analyze</param>
-    private static void Analyze(Context context, Node node)
-    {
-        AssignVariableDefinitions(context);
-
-        var expressions = new List<Node>();
-
-        foreach (var operation in FindTopLevelOperators(node))
-        {
-            if (operation.Operator.Type == OperatorType.ACTION)
-            {
-                expressions.Add(operation.Last!);
-            }
-            else
-            {
-                expressions.Add(operation);
-            }
-        }
-        
-        foreach (var expression in expressions)
-        {
-            var components = CollectComponents(expression);
-            var simplified = Recreate(components);
-            
-            // Replace the value with the simplified version
-            expression.Replace(simplified);
-        }
-
-        /*//var assigns = node.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && 
-        //                                Equals(n.To<OperatorNode>().Operator, Operators.ASSIGN) || n.Is(NodeType.RETURN_NODE));
-        var expressions = FindTopLevelOperators(node);
-
-        foreach (var assign in expressions)
-        {
-            var components = CollectComponents(assign);
-            var simplified = Recreate(components);
-            
-            // Replace the value with the simplified version
-            assign.Replace(simplified);
-        }*/
-    }
-
     public static void Analyze(Context context)
     {
         foreach (var type in context.Types.Values)
@@ -723,7 +775,7 @@ public static class Analysis
         
         foreach (var implementation in context.GetImplementedFunctions())
         {
-            Analyze(implementation, implementation.Node!);
+            implementation.Node = Optimize(implementation.Node!, implementation);
         }
     }
 }

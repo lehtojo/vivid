@@ -156,7 +156,7 @@ public class ResolverPhase : Phase
 		Analyzer.Analyze(context);
 		
 		// Apply analysis to the functions
-		//Analysis.Analyze(context);
+		Analysis.Analyze(context);
 
 		return Status.OK;
 	}
