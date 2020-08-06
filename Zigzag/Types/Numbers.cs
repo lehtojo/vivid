@@ -64,7 +64,7 @@ public static class Numbers
 	}
 	
 	/// <summary>
-	/// Subtracts the two operands together
+	/// Multiplies the two operands together
 	/// </summary>
 	/// <param name="x">First long or double operand</param>
 	/// <param name="y">Second long or double operand</param>
@@ -80,7 +80,7 @@ public static class Numbers
 	}
 	
 	/// <summary>
-	/// Subtracts the two operands together
+	/// Divides the two operands together
 	/// </summary>
 	/// <param name="x">First long or double operand</param>
 	/// <param name="y">Second long or double operand</param>
@@ -96,10 +96,50 @@ public static class Numbers
 	}
 
 	/// <summary>
+	/// Divides the two operands together and returns the remainder
+	/// </summary>
+	/// <param name="x">First long or double operand</param>
+	/// <param name="y">Second long or double operand</param>
+	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
+	public static object Remainder(object x, object y)
+	{
+		if (x is double || y is double)
+		{
+			return Convert.ToDouble(x, CultureInfo.InvariantCulture) % Convert.ToDouble(y, CultureInfo.InvariantCulture);
+		}
+
+		return (long) x % (long) y;
+	}
+
+	/// <summary>
 	/// Returns the absolute value of the specified number
 	/// </summary>
 	public static object Abs(object x)
 	{
 		return x is long a ? Math.Abs(a) : Math.Abs((double) x);
+	}
+
+	/// <summary>
+	/// Negates the specified number
+	/// </summary>
+	public static object Negate(object x)
+	{
+		return x is long a ? -a : -(double)x;
+	}
+
+	/// <summary>
+	/// Returns whether the specified number is exactly zero
+	/// </summary>
+	public static bool IsZero(object x)
+	{
+		return x is long a ? a == 0 : (double)x == 0.0;
+	}
+
+	/// <summary>
+	/// Returns whether the specified number equals exactly the specified value
+	/// </summary>
+	public static bool Equals(object x, long value)
+	{
+		return x is long a ? a == value : (double)x == value;
 	}
 }

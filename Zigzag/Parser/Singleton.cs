@@ -87,10 +87,21 @@ public static class Singleton
 
 			return node;
 		}
-		else
+		else if (primary.IsVariableDeclared(info.Name))
 		{
-			return new UnresolvedFunction(info.Name).SetParameters(parameters);
+			var variable = primary.GetVariable(info.Name)!;
+
+			if (variable.Type is LambdaType)
+			{
+				var call = new LambdaCallNode(parameters);
+
+				return environment == primary
+					? (Node)new LinkNode(new VariableNode(variable), call)
+					: (Node)call;
+			}
 		}
+
+		return new UnresolvedFunction(info.Name).SetParameters(parameters);
 	}
 
 	/// <summary>

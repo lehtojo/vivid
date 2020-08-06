@@ -23,6 +23,15 @@ public static class Links
 		return Calls.Build(unit, self, function);
 	}
 
+	private static Result GetLambdaCall(Unit unit, LambdaCallNode function, Node self_node, Type self_type)
+	{
+		// Retrieve the context where the function is defined
+		var self = References.Get(unit, self_node);
+		var lambda_type = self_type.To<LambdaType>();
+
+		return Calls.Build(unit, self, CallingConvention.X64, lambda_type.ReturnType, function.Parameters);
+	}
+
 	public static Result Build(Unit unit, LinkNode node)
 	{
 		var self_type = node.Object.GetType();
@@ -37,6 +46,8 @@ public static class Links
 				.Execute(),
 			
 			FunctionNode function => GetMemberFunctionCall(unit, function, node.Object, self_type),
+
+			LambdaCallNode lambda => GetLambdaCall(unit, lambda, node.Object, self_type),
 			
 			_ => throw new NotImplementedException("Unsupported member node")
 		};

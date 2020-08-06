@@ -152,11 +152,11 @@ public class ResolverPhase : Phase
 		// Align variables in memory
 		Aligner.Align(context);
 
+		// Apply analysis to the functions
+		//Analysis.Analyze(context);
+
 		// Analyze the output
 		Analyzer.Analyze(context);
-		
-		// Apply analysis to the functions
-		Analysis.Analyze(context);
 
 		return Status.OK;
 	}

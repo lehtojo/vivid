@@ -4,7 +4,7 @@ using System.Linq;
 
 public class Node
 {
-	public Node? Parent { get; private set; }
+	public Node? Parent { get; set; }
 	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>()); 
 
 	public Node? Previous { get; private set; }
@@ -342,7 +342,7 @@ public class Node
 			throw new ApplicationException("Tried to resolve whether a node is before another but they didn't have a shared parent");
 		}
 
-		// If the given node is before the given position node, the target node can be found be iterating backwards
+		// If this node is after the specified position node (other), the position node can be found by iterating backwards
 		var iterator = (Node?)positions[1];
 		var target = positions[0];
 
@@ -356,13 +356,13 @@ public class Node
 		{
 			if (iterator == target)
 			{
-				return true;
+				return false;
 			}
 
 			iterator = iterator.Previous;
 		}
 
-		return false;
+		return true;
 	}
 
 	/// <summary>

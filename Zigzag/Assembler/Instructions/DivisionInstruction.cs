@@ -136,11 +136,7 @@ public class DivisionInstruction : DualParameterInstruction
 
    private ConstantDivision? TryGetConstantDivision()
    {
-      if (First.IsConstant)
-      {
-         return new ConstantDivision(Second, First);
-      }
-      else if (Second.IsConstant)
+      if (Second.IsConstant)
       {
          return new ConstantDivision(First, Second);
       }

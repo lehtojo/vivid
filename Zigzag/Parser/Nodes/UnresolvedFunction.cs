@@ -50,9 +50,23 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
         // Try to find a suitable function by name and parameter types
         var function = Singleton.GetFunctionByName(context, Name, types);
-
+        	
         if (function == null)
         {
+            if (context.IsVariableDeclared(Name))
+		    {
+			    var variable = context.GetVariable(Name)!;
+
+			    if (variable.Type is LambdaType)
+			    {
+                    var call = new LambdaCallNode(this);
+
+				    return environment == context
+					    ? (Node)new LinkNode(new VariableNode(variable), call)
+					    : (Node)call;
+			    }
+		    }
+
             return null;
         }
 

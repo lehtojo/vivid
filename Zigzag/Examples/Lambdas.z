@@ -1,4 +1,16 @@
+#f(x: (i: num): bool) {
+#   => x(7)
+#}
+
 run() {
    x = 3
-   a: num => a + x - 1
+   y = a: num => a + x - 1
+   y(10)
+   
+   #if y(i => i < 10) {
+   #   x = 7
+   #}
+   #else {
+   #   x = -1
+   #}
 }

@@ -9,24 +9,63 @@ public static class Analyzer
 			(reference.Parent?.Is(NodeType.INCREMENT_NODE) ?? false);
 	}
 
+	private static void ResetVariableUsages(Context context)
+	{
+		foreach (var implementation in context.GetImplementedFunctions())
+		{
+			implementation.Node!
+				.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
+				.Select(n => n.To<VariableNode>().Variable)
+				.Where(v => !v.IsConstant)
+				.Distinct()
+				.ForEach(v => v.References.Clear());
+		}
+
+		foreach (var subcontext in context.Subcontexts)
+		{
+			ResetVariableUsages(subcontext);
+		}
+
+		foreach (var type in context.Types.Values)
+		{
+			ResetVariableUsages(type);
+		}
+	}
+
 	private static void AnalyzeVariableUsages(Context context)
 	{
+		// Update all constants in the current context
 		foreach (var variable in context.Variables.Values)
 		{
-			variable.Edits.Clear();
-			variable.Reads.Clear();
-
-			foreach (var reference in variable.References)
-			{		
-				if (IsEdited((VariableNode)reference))
+			if (variable.IsConstant && variable.References.Any() && !variable.Edits.Any() && !variable.Reads.Any())
+			{
+				foreach (var reference in variable.References)
 				{
-					variable.Edits.Add(reference);
-				}
-				else
-				{
-					variable.Reads.Add(reference);
+					if (IsEdited(reference.To<VariableNode>())) {
+						variable.Edits.Add(reference);
+					}
+					else {
+						variable.Reads.Add(reference);
+					}
 				}
 			}
+		}
+
+		foreach (var implementation in context.GetImplementedFunctions())
+		{
+			implementation.Node!
+				.FindAll(n => n.Is(NodeType.VARIABLE_NODE))
+				.Select(n => n.To<VariableNode>())
+				.ForEach(n => {
+					n.Variable.References.Add(n);
+
+					if (IsEdited(n)) {
+						n.Variable.Edits.Add(n);
+					}
+					else {
+						n.Variable.Reads.Add(n);
+					}
+				});
 		}
 
 		foreach (var subcontext in context.Subcontexts)
@@ -110,6 +149,7 @@ public static class Analyzer
 
 	public static void Analyze(Context context)
 	{
+		ResetVariableUsages(context);
 		AnalyzeVariableUsages(context);
 		ConfigureStaticVariables(context);
 		ApplyConstants(context);

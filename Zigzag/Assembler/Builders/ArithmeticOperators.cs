@@ -241,9 +241,9 @@ public static class ArithmeticOperators
       return result + 1;
    }
 
-   private static Result BuildConstantDivision(Unit unit, Node dividend, long divisor)
+   private static Result BuildConstantDivision(Unit unit, Node dividend, long divisor, bool assigns = false)
    {
-		var first = References.Get(unit, dividend, AccessMode.READ);
+		var first = References.Get(unit, dividend, assigns ? AccessMode.WRITE : AccessMode.READ);
 
 		// Multiply the variable with the divisor's reciprocal
 		var reciprocal = new ConstantHandle(GetDivisorReciprocal(divisor));
@@ -254,6 +254,12 @@ public static class ArithmeticOperators
 
 		// Fix the division by adding the offset to the multiplication
 		var addition = new AdditionInstruction(unit, offset, multiplication, multiplication.Format, false).Execute();
+
+      // Assign the result if needed
+      if (IsComplexDestination(dividend) && assigns)
+      {
+         return new MoveInstruction(unit, first, addition).Execute();
+      }
 
 		return addition;
    }

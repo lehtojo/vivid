@@ -54,11 +54,13 @@ public static class AssemblerExtensions
 		return format == Format.DECIMAL;
 	}
 
-	public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)
+	public static IEnumerable<T> ForEach<T>(this IEnumerable<T> collection, Action<T> action)
 	{
 		foreach (var item in collection)
 		{
 			action(item);
 		}
+
+		return collection;
 	}
 }

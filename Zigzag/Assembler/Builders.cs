@@ -84,6 +84,13 @@ public static class Builders
 				return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
 			}
 
+			case NodeType.ELSE_IF_NODE:
+			case NodeType.ELSE_NODE:
+			{
+				// Skip else-statements since they are already built
+				return new Result();
+			}
+
 			default:
 			{
 				var iterator = node.First;

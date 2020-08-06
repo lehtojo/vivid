@@ -77,7 +77,7 @@ public static class Conditionals
             var recovery = new SaveStateInstruction(unit);
             unit.Append(recovery);
 
-            var result = BuildBody(unit, else_node.Context, node);
+            var result = BuildBody(unit, else_node.Context, else_node.Body);
 
             // Recover the previous state
             unit.Append(new RestoreStateInstruction(unit, recovery));
@@ -93,7 +93,7 @@ public static class Conditionals
    {
       Scope.PrepareConditionallyChangingConstants(unit, node);
 
-      unit.Append(new BranchInstruction(unit, node.GetAllBranches()));
+      unit.Append(new BranchInstruction(unit, node.GetBranches().ToArray()));
 
       var end = new LabelInstruction(unit, unit.GetNextLabel());
       var result = Build(unit, node, end);
@@ -250,8 +250,8 @@ public static class Conditionals
       {
          return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
       }
-      
-      throw new ApplicationException("Comparing to zero in conditional statements is not yet automatic");
+
+      return BuildCondition(unit, new OperatorNode(Operators.NOT_EQUALS).SetOperands(condition, new NumberNode(Assembler.Format, 0L)), success, failure);
    }
 
    private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)

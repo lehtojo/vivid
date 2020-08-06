@@ -4,18 +4,27 @@ using System.Collections.Generic;
 
 public class CallInstruction : Instruction
 {
-   public string Function { get; }
+   public Result Function { get; }
    public CallingConvention Convention { get; }
    public List<Instruction> ParameterInstructions { get; set; } = new List<Instruction>();
    private bool IsParameterInstructionListExtracted => IsBuilt;
 
    public CallInstruction(Unit unit, string function, CallingConvention convention, Type? return_type) : base(unit)
    {
-      Function = function;
+      Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
       Convention = convention;
       Result.Format = return_type?.Format ?? Assembler.Format;
 
       Description = "Calls function " + Function;
+   }
+
+   public CallInstruction(Unit unit, Result function, CallingConvention convention, Type? return_type) : base(unit)
+   {
+      Function = function;
+      Convention = convention;
+      Result.Format = return_type?.Format ?? Assembler.Format;
+
+      Description = "Calls the function handle";
    }
 
    /// <summary>
@@ -45,7 +54,14 @@ public class CallInstruction : Instruction
       // Validate evacuation since it's very important to be correct
       ValidateEvacuation();
 
-      Build($"call {Function}");
+      Build(
+         "call", 
+         new InstructionParameter(
+            Function,
+            ParameterFlag.NONE,
+            HandleType.MEMORY
+         )
+      );
 
       // After a call all volatile registers might be changed
       Unit.VolatileRegisters.ForEach(r => r.Reset());
@@ -96,9 +112,9 @@ public class CallInstruction : Instruction
           return ParameterInstructions
               .Where(i => i.Type == InstructionType.MOVE)
               .Select(i => i.To<DualParameterInstruction>().Second)
-              .Concat(new Result[] { Result }).ToArray();
+              .Concat(new Result[] { Result, Function }).ToArray();
       }
 
-      return new [] { Result };
+      return new [] { Result, Function };
    }
 }

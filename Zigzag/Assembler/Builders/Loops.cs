@@ -240,7 +240,7 @@ public static class Loops
       CacheLoopVariables(unit, node);
 
       Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
-      unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+      unit.Append(new BranchInstruction(unit, new Node[] { node.Body }));
 
       // Build the loop body
       var result = BuildForeverLoopBody(unit, node, new LabelInstruction(unit, start));

@@ -4,7 +4,8 @@ using System.Collections.Generic;
 public class IfNode : Node, IResolvable, IContext
 {
 	public Context Context { get; set; }
-	public Node? Successor { get; private set; }
+	public Node? Successor => (Next?.Is(NodeType.ELSE_IF_NODE, NodeType.ELSE_NODE) ?? false) ? Next : null;
+	public Node? Predecessor => (Is(NodeType.ELSE_IF_NODE) && (Previous?.Is(NodeType.IF_NODE, NodeType.ELSE_IF_NODE) ?? false)) ? Previous : null;
 
 	public Node Condition => First!;
 	public Node Body => Last!;
@@ -17,42 +18,47 @@ public class IfNode : Node, IResolvable, IContext
 		Add(body);
 	}
 
-	public void AddSuccessor(Node successor)
+	public List<Node> GetSuccessors()
 	{
-		if (Successor == null)
+		var successors = new List<Node>();
+		var iterator = Successor;
+
+		while (iterator != null)
 		{
-			Successor = successor;
-			Insert(Last!, Successor);
+			if (iterator.Is(NodeType.ELSE_IF_NODE))
+			{
+				successors.Add(iterator);
+				iterator = iterator.To<ElseIfNode>().Successor;
+			}
+			else
+			{
+				successors.Add(iterator);
+				break;
+			}
 		}
-		else if (Successor is IfNode node)
-		{
-			node.AddSuccessor(successor);
-		}
-		else
-		{
-			throw new Exception("Couldn't add successor to a (else) if node");
-		}
+
+		return successors;
 	}
 
-	public Node[] GetAllBranches()
+	public List<Node> GetBranches()
 	{
 		var branches = new List<Node>() { Body };
 
 		if (Successor == null)
 		{
-			return branches.ToArray();
+			return branches;
 		}
 		
 		if (Successor.Is(NodeType.ELSE_IF_NODE))
 		{
-			branches.AddRange(Successor.To<ElseIfNode>().GetAllBranches());
+			branches.AddRange(Successor.To<ElseIfNode>().GetBranches());
 		}
 		else
 		{
 			branches.Add(Successor);
 		}
 		
-		return branches.ToArray();
+		return branches;
 	}
 
 	public Node? Resolve(Context context)

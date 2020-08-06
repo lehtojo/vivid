@@ -45,6 +45,11 @@ public abstract class Component
     {
         return left.Divide(right);
     }
+
+    public virtual Component Clone()
+    {
+        return (Component)MemberwiseClone();
+    }
 }
 
 public class NumberComponent : Component
@@ -54,6 +59,11 @@ public class NumberComponent : Component
     public NumberComponent(object value)
     {
         Value = value;
+
+        if (!(Value is long || Value is double))
+        {
+            throw new ArgumentException("Invalid value passed for number component");
+        }
     }
 
     public override void Negate()
@@ -95,6 +105,7 @@ public class NumberComponent : Component
             NumberComponent number_component => new NumberComponent(Numbers.Multiply(Value, number_component.Value)),
             VariableComponent variable_component => new VariableComponent(variable_component.Variable, 
                 Numbers.Multiply(Value, variable_component.Multiplier)),
+            ComplexVariableProduct product => product * this,
             _ => null
         };
     }
@@ -105,7 +116,7 @@ public class NumberComponent : Component
         {
             NumberComponent number_component => new NumberComponent(Numbers.Divide(Value, number_component.Value)),
             VariableComponent variable_component => new VariableComponent(variable_component.Variable, 
-                Numbers.Divide(Value, variable_component.Multiplier)),
+                Numbers.Divide(Value, variable_component.Multiplier), -variable_component.Order),
             _ => null
         };
     }
@@ -123,8 +134,8 @@ public class NumberComponent : Component
 
 public class VariableComponent : Component
 {
-    public object Multiplier { get; private set;  }
-    public int Order { get; }
+    public object Multiplier { get; set;  }
+    public int Order { get; set; }
     public Variable Variable { get; }
 
     public VariableComponent(Variable variable, object? multiplier = null, int order = 1)
@@ -148,9 +159,16 @@ public class VariableComponent : Component
     
     public override Component? Add(Component other)
     {
-        if (other is VariableComponent variable_component && Equals(Variable, variable_component.Variable) && Equals(Order, variable_component.Order))
+        if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
         {
-            return new VariableComponent(Variable, Numbers.Add(Multiplier, variable_component.Multiplier));
+            var multiplier = Numbers.Add(Multiplier, x.Multiplier);
+
+            if (Numbers.IsZero(multiplier))
+            {
+                return new NumberComponent(0L);
+            }
+
+            return new VariableComponent(Variable, multiplier);
         }
 
         return null;
@@ -158,9 +176,16 @@ public class VariableComponent : Component
     
     public override Component? Subtract(Component other)
     {
-        if (other is VariableComponent variable_component && Equals(Variable, variable_component.Variable) && Equals(Order, variable_component.Order))
+        if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
         {
-            return new VariableComponent(Variable, Numbers.Subtract(Multiplier, variable_component.Multiplier));
+            var multiplier = Numbers.Subtract(Multiplier, x.Multiplier);
+
+            if (Numbers.IsZero(multiplier))
+            {
+                return new NumberComponent(0L);
+            }
+
+            return new VariableComponent(Variable, multiplier);
         }
 
         return null;
@@ -168,13 +193,35 @@ public class VariableComponent : Component
     
     public override Component? Multiply(Component other)
     {
-        return other switch
+        if (other is VariableComponent variable_component)
         {
-            VariableComponent variable_component when Equals(Variable, variable_component.Variable) =>
-            new VariableComponent(Variable, Numbers.Multiply(Multiplier, variable_component.Multiplier), Order + variable_component.Order),
-            NumberComponent number_component => new VariableComponent(Variable, Numbers.Multiply(Multiplier, number_component.Value), Order),
-            _ => null
-        };
+            if (Equals(Variable, variable_component.Variable))
+            {
+                return new VariableComponent(
+                    Variable, 
+                    Numbers.Multiply(Multiplier, variable_component.Multiplier), 
+                    Order + variable_component.Order
+                );
+            }
+
+            var coefficient = Numbers.Multiply(Multiplier, variable_component.Multiplier);
+            Multiplier = 1L;
+            variable_component.Multiplier = 1L;
+
+            return new ComplexVariableProduct(coefficient, new List<VariableComponent> { this, variable_component });
+        }
+
+        if (other is NumberComponent number_component)
+        {
+            return new VariableComponent(Variable, Numbers.Multiply(Multiplier, number_component.Value), Order);
+        }
+
+        if (other is ComplexVariableProduct product)
+        {
+            return product * this;
+        }
+
+        return null;
     }
     
     public override Component? Divide(Component other)
@@ -192,9 +239,15 @@ public class VariableComponent : Component
             return new VariableComponent(Variable, multiplier, order);
         }
 
-        if (other is NumberComponent number_component)
+        if (other is NumberComponent number)
         {
-            return new VariableComponent(Variable, Numbers.Divide(Multiplier, number_component.Value), Order);
+            // If neither one of the two multipliers is a decimal number, the dividend must be divisible by the divisor
+            if (Multiplier is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Multiplier, number.Value)))
+            {
+                return null;
+            }
+
+            return new VariableComponent(Variable, Numbers.Divide(Multiplier, number.Value), Order);
         }
 
         return null;
@@ -211,9 +264,165 @@ public class VariableComponent : Component
     }
 }
 
+public class ComplexVariableProduct : Component
+{
+    public object Coefficient { get; set; } = 0L;
+    public List<VariableComponent> Variables { get; private set; } = new List<VariableComponent>();
+
+    public ComplexVariableProduct(object coefficient, List<VariableComponent> variables)
+    {
+        Coefficient = coefficient;
+        Variables = variables;
+    }
+
+    public override void Negate()
+    {
+        Coefficient = Numbers.Negate(Coefficient);
+    }
+
+    private bool Equals(Component other)
+    {
+        if (!(other is ComplexVariableProduct product) || Variables.Count != product.Variables.Count)
+        {
+            return false;
+        }
+
+        foreach (var x in Variables)
+        {
+            if (!product.Variables.Exists(v => v.Variable == x.Variable && v.Order == x.Order))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public override Component? Add(Component other)
+    {
+        if (!Equals(other))
+        {
+            return null;
+        }
+
+        var clone = (ComplexVariableProduct)Clone();
+        clone.Coefficient = Numbers.Add(Coefficient, ((ComplexVariableProduct)other).Coefficient);
+
+        return clone;
+    }
+
+    public override Component? Subtract(Component other)
+    {
+        if (!Equals(other))
+        {
+            return null;
+        }
+
+        var clone = (ComplexVariableProduct)Clone();
+        clone.Coefficient = Numbers.Subtract(Coefficient, ((ComplexVariableProduct)other).Coefficient);
+
+        return clone;
+    }
+
+    public override Component? Multiply(Component other)
+    {
+        switch (other)
+        {
+            case NumberComponent number:
+            {
+                var coefficient = Numbers.Multiply(Coefficient, number.Value);
+
+                if (Numbers.IsZero(coefficient))
+                {
+                    return new NumberComponent(0L);
+                }
+
+                var clone = (ComplexVariableProduct)Clone();
+                clone.Coefficient = coefficient;
+
+                return clone;
+            }
+
+            case VariableComponent x:
+            {
+                var coefficient = Numbers.Multiply(Coefficient, x.Multiplier);
+
+                var clone = (ComplexVariableProduct)Clone();
+                clone.Coefficient = coefficient;
+
+                var a = clone.Variables.Find(v => v.Variable == x.Variable);
+
+                if (a != null)
+                {
+                    a.Order += x.Order;
+
+                    if (a.Order == 0)
+                    {
+                        Variables.Remove(a);
+                    }
+                }
+                else
+                {
+                    x = (VariableComponent)x.Clone();
+                    x.Multiplier = 1L;
+
+                    clone.Variables.Add(x);
+                }
+
+                return clone;
+            }
+
+            case ComplexVariableProduct product:
+            {
+                var coefficient = Numbers.Multiply(Coefficient, product.Coefficient);
+
+                var clone = (ComplexVariableProduct)Clone();
+                clone.Coefficient = coefficient;
+
+                foreach (var x in product.Variables)
+                {
+                    clone = (ComplexVariableProduct)clone.Multiply(x)!;
+                }
+                
+                return this;
+            }
+
+            default: return null;
+        }
+    }
+
+    public override Component? Divide(Component other)
+    {
+        if (other is NumberComponent number)
+        {
+            if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))
+            {
+                return null;
+            }
+
+            var coefficient = Numbers.Divide(Coefficient, number.Value);
+
+            var clone = (ComplexVariableProduct)Clone();
+            clone.Coefficient = coefficient;
+
+            return clone;
+        }
+
+        return null;
+    }
+
+    public override Component Clone()
+    {
+        var clone = (ComplexVariableProduct)MemberwiseClone();
+        clone.Variables = Variables.Select(v => (VariableComponent)v.Clone()).ToList();
+
+        return clone;
+    }
+}
+
 public class ComplexComponent : Component
 {
-    public Node Node { get; }
+    public Node Node { get; private set; }
     public bool IsNegative { get; private set; }
 
     public override void Negate()
@@ -224,6 +433,14 @@ public class ComplexComponent : Component
     public ComplexComponent(Node node)
     {
         Node = node;
+    }
+
+    public override Component Clone()
+    {
+        var clone = (ComplexComponent)MemberwiseClone();
+        clone.Node = Node.Clone();
+
+        return clone;
     }
 }
 
@@ -244,7 +461,7 @@ public static class Analysis
             
             if (component is NumberComponent number_component)
             {
-                if (Equals(number_component.Value, 0L) || Equals(number_component.Value, 0.0))
+                if (Numbers.IsZero(number_component.Value))
                 {
                     continue;
                 }
@@ -259,7 +476,7 @@ public static class Analysis
             if (component is VariableComponent variable_component)
             {
                 // When the multiplier is exactly zero (double), the variable can be ignored, meaning the inaccuracy of the comparison is expected
-                if (Equals(variable_component.Multiplier, 0L) || Equals(variable_component.Multiplier, 0.0))
+                if (Numbers.IsZero(variable_component.Multiplier))
                 {
                     continue;
                 }
@@ -303,6 +520,22 @@ public static class Analysis
                     result,
                     complex_component.Node
                 );
+            }
+
+            if (component is ComplexVariableProduct product)
+            {
+                var is_negative = product.Coefficient is long a && a < 0L || product.Coefficient is double b && b < 0.0;
+
+                if (is_negative)
+                {
+                    product.Negate();
+                }
+
+                var other = Recreate(product);
+
+                result = is_negative 
+                    ? new OperatorNode(Operators.SUBTRACT).SetOperands(result, other) 
+                    : new OperatorNode(Operators.ADD).SetOperands(result, other);
             }
         }
 
@@ -370,12 +603,30 @@ public static class Analysis
                 return new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Format.DECIMAL, 1.0));
             }
             
-            return (long) variable_component.Multiplier != 1L ? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, variable_component.Multiplier)) : result;
+            return !Numbers.Equals(variable_component.Multiplier, 1L) ? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, variable_component.Multiplier)) : result;
         }
 
         if (component is ComplexComponent complex_component)
         {
             return complex_component.IsNegative ? new NegateNode(complex_component.Node) : complex_component.Node;
+        }
+
+        if (component is ComplexVariableProduct product)
+        {
+            var result = GetOrderedVariable(product.Variables.First().Variable, product.Variables.First().Order);
+
+            for (var i = 1; i < product.Variables.Count; i++)
+            {
+                var variable = product.Variables[i];
+
+                result = new OperatorNode(Operators.MULTIPLY)
+                    .SetOperands(result, GetOrderedVariable(variable.Variable, variable.Order));
+            }
+
+            return !Numbers.Equals(product.Coefficient, 1L) 
+                ? new OperatorNode(Operators.MULTIPLY)
+                    .SetOperands(result, new NumberNode(Assembler.Format, product.Coefficient)) 
+                : result;
         }
         
         throw new NotImplementedException("Unsupported component encountered while recreating");
@@ -589,8 +840,7 @@ public static class Analysis
     /// <returns>True if the definition is primitive, otherwise false</returns>
     private static bool IsPrimitiveDefinition(OperatorNode definition)
     {
-        return definition.Right.Find(n =>
-            !(n.Is(NodeType.NUMBER_NODE) || n.Is(NodeType.VARIABLE_NODE) && n.To<VariableNode>().Variable.IsParameter)) == null;
+        return definition.Find(n => !(n.Is(NodeType.NUMBER_NODE) || n.Is(NodeType.VARIABLE_NODE) && n.To<VariableNode>().Variable.IsParameter)) == null;
     }
 
     private static List<Node> GetReferences(Node root, Variable variable)
@@ -606,49 +856,429 @@ public static class Analysis
             .Where(v => Analyzer.IsEdited(v.To<VariableNode>())).ToList();
     }
 
+    private static Node? GetBranch(Node node)
+    {
+        return node.FindParent(p => p.Is(NodeType.LOOP_NODE, NodeType.IF_NODE, NodeType.ELSE_IF_NODE, NodeType.ELSE_NODE));
+    }
+
+    public static List<Node> GetBlacklist(Node node)
+    {
+        var blacklist = new List<Node>();
+        var branch = node;
+
+        while ((branch = GetBranch(branch!)) != null)
+        {
+            if (branch is IfNode x)
+            {
+                blacklist.AddRange(x.GetBranches().Where(b => b != branch));
+            }
+            else if (branch is ElseIfNode y)
+            {
+                blacklist.AddRange(y.GetRoot().GetBranches().Where(b => b != branch));
+            }
+            else if (branch is ElseNode z)
+            {
+                blacklist.AddRange(z.GetRoot().GetBranches().Where(b => b != branch));
+            }
+        }
+
+        return blacklist;
+    }
+
+    private static List<Edit> GetPastEdits(Node node, IEnumerable<Edit> edits)
+    {
+        // Get a blacklist which describes which sections of the node tree have not been executed in the past
+        var blacklist = GetBlacklist(node);
+
+        return edits.Reverse()
+            .SkipWhile(e => !e.Node.IsBefore(node))
+            .Where(e => !blacklist.Any(i => e.Node.IsUnder(i)))
+            .ToList();
+    }
+
+    private class Edit
+    {
+        public Node Node { get; set; }
+        public List<Node> Dependencies { get; private set; } = new List<Node>();
+        public bool Required => Dependencies.Any();
+
+        public Edit(Node node)
+        {
+            Node = node;
+        }
+
+        public void AddDependency(Node dependency)
+        {
+            if (!Dependencies.Contains(dependency))
+            {
+                Dependencies.Add(dependency);
+            }
+        }
+
+        public void RemoveDependency(Node dependency)
+        {
+            if (!Dependencies.Remove(dependency))
+            {
+                throw new ApplicationException("Tried to remove edit depedency but it was not registered");
+            }
+        }
+
+        public Node GetRoot()
+        {
+            return Node.FindParent(p => p.Is(NodeType.INCREMENT_NODE, NodeType.DECREMENT_NODE) || 
+                p.Is(NodeType.OPERATOR_NODE) && p.To<OperatorNode>().Operator.Type == OperatorType.ACTION)
+                ?? throw new ApplicationException("Couldn't find the root of a edit");
+        }
+    }
+
+    /// <summary>
+    /// Toggles all edits which are encountered in the specified node tree and returns whether the edits are bypassable
+    /// </summary>
+    /// <returns>
+    /// Returns whether the specified node tree is executable without encountering the specified edits
+    /// </returns>
+    private static bool Toggle(Node node, Node dependency, List<Edit> edits)
+    {
+        var edit = edits.Find(e => e.Node == node);
+
+        if (edit != null)
+        {
+            edit.AddDependency(dependency);
+            return false;
+        }
+
+        // If the specified node tree doesn't contain any of the edits, it must be penetrable
+        if (node.Find(n => edits.Any(e => e.Node == n)) == null)
+        {
+            return true;
+        }
+
+        if (node.Is(NodeType.IF_NODE))
+        {
+            var branches = node.To<IfNode>().GetBranches();
+            edits.Where(e => branches.Any(b => e.Node.IsUnder(b))).ForEach(e => e.AddDependency(dependency));
+        }
+        else if (node.Is(NodeType.LOOP_NODE))
+        {
+            if (node.To<LoopNode>().IsForeverLoop && !Toggle(node.To<LoopNode>().Body, dependency, edits))
+            {
+                return false;
+            }
+            else
+            {
+                // Register all the edits inside the loop
+                edits.Where(e => e.Node.IsUnder(node)).ForEach(e => e.AddDependency(dependency));
+
+                // If the initialization contains an edit, it means it's not bypassable
+                if (!Toggle(node.To<LoopNode>().Initialization, dependency, edits))
+                {
+                    return false;
+                }
+            }
+        }
+        else if (!node.Is(NodeType.ELSE_IF_NODE, NodeType.ELSE_NODE))
+        {
+            var iterator = node.Last;
+
+            while (iterator != null)
+            {
+                if (!Toggle(iterator, dependency, edits))
+                {
+                    return false;
+                }
+
+                iterator = iterator.Previous;
+            }
+        }
+
+        return true;
+    }
+
+    private static void ToggleRelevantEdits(Node node, Node dependency, List<Edit> edits)
+    {
+        var iterator = (Node?)node;
+
+        while (iterator != null)
+        {
+            if (!Toggle(iterator, dependency, edits))
+            {
+                return;
+            }
+
+            if (iterator.Previous == null)
+            {
+                if (iterator.Parent == null)
+                {
+                    return;
+                }
+
+                iterator = iterator.Parent!;
+
+                switch (iterator.GetNodeType())
+                {
+                    case NodeType.LOOP_NODE:
+                    {
+                        // All edits which are inside the current loop are needed by the specified node
+                        edits.Where(e => e.Node.IsUnder(iterator)).ForEach(e => e.AddDependency(dependency));
+
+                        iterator = iterator.Previous;
+                        break;
+                    }
+
+                    case NodeType.IF_NODE:
+                    {
+                        iterator = iterator.Previous;
+                        break;
+                    }
+
+                    case NodeType.ELSE_IF_NODE:
+                    {
+                        iterator = iterator.To<ElseIfNode>().GetRoot().Previous;
+                        break;
+                    }
+
+                    case NodeType.ELSE_NODE:
+                    {
+                        iterator = iterator.To<ElseNode>().GetRoot().Previous;
+                        break;
+                    }
+
+                    case NodeType.IMPLEMENTATION_NODE:
+                    {
+                        return;
+                    }
+
+                    default: break;
+                }
+            }
+            else
+            {
+                iterator = iterator.Previous;
+            }
+        }
+    }
+
+    private static bool IsBranched(Node read, Node edit)
+    {
+        var x = read.FindParent(p => p is IContext && !(p.Is(NodeType.LOOP_NODE) && p.To<LoopNode>().IsForeverLoop)) ?? throw new ApplicationException("Analysis executed outside of a context");
+        var y = edit.FindParent(p => p is IContext && !(p.Is(NodeType.LOOP_NODE) && p.To<LoopNode>().IsForeverLoop)) ?? throw new ApplicationException("Analysis executed outside of a context");
+
+        return x != y && !x.IsUnder(y);
+    }
+
+    private static bool IsAssignable(Node read, Edit edit, List<Edit> edits)
+    {
+        var root = edit.GetRoot();
+
+        if (!root!.Is(NodeType.OPERATOR_NODE) || root!.To<OperatorNode>().Operator != Operators.ASSIGN)
+        {
+            /// TODO: Assignment value is possible to calculate here sometimes
+            return false;
+        }
+
+        if (!IsPrimitiveDefinition(root.To<OperatorNode>()) || IsBranched(read, edit.Node))
+        {
+            return false;
+        }
+
+        var loop = read.FindParent(p => p.Is(NodeType.LOOP_NODE));
+
+        return !(loop != null && !edit.Node.IsUnder(loop) && edits.Where(e => e != edit).Any(e => e.Node.IsUnder(loop)));
+    }
+
     private static Node AssignVariable(Node node, Variable variable)
     {
         var root = node.Clone();
 
         var reads = GetReferences(root, variable);
-        var edits = GetEdits(reads);
+        var edits = GetEdits(reads).Select(e => new Edit(e)).ToList();
 
-        reads.RemoveAll(r => edits.Contains(r));
+        reads.RemoveAll(r => edits.Any(e => e.Node == r));
 
-        while (edits.Count > 0)
+        foreach (var read in reads)
         {
-            var edit = edits.First().FindParent(p => p.Is(NodeType.OPERATOR_NODE, NodeType.INCREMENT_NODE, NodeType.DECREMENT_NODE));
+            // Filter all edits which don't concern the current reference
+            var past_edits = GetPastEdits(read, edits);
 
-            if (edit == null || edit.To<OperatorNode>().Operator != Operators.ASSIGN)
+            // Register all of the past edits which are needed by the current reference
+            ToggleRelevantEdits(read, read, past_edits);
+
+            // Retrieve the latest edit which concerns the current reference
+            var edit = past_edits.FirstOrDefault();
+
+            if (edit != null && IsAssignable(read, edit, edits))
             {
-                edits.RemoveAt(0);
-                continue;
+                var assignment = edit.GetRoot();
+
+                edit.RemoveDependency(read);
+
+                var components = CollectComponents(assignment.Last!);
+                var simplified = Recreate(components);
+
+                read.Replace(simplified);
             }
-
-            // Get the node under which the edit is valid
-            var scope = edit.FindParent(p => p is IContext) ?? throw new ApplicationException("Analysis executed outside of a context");
-                
-            // Simplify the value of the edit
-            var components = CollectComponents(edit.Last!);
-            var simplified = Recreate(components);
-
-            // Try to get the next edit of the variable
-            var next_edit = edits.Count > 1 ? edits[1] : null;
-                
-            // Find all usages of the new value before the next edit
-            var usages = reads.TakeWhile(r => (next_edit == null || r.IsBefore(next_edit)) && r.IsUnder(scope)).ToArray();
-
-            usages.ForEach(u => u.Replace(simplified));
-                
-            // Remove the replaced usages
-            usages.ForEach(u => reads.Remove(u));
-            edits.RemoveAt(0);
-
-            // Since this edit is assigned to its usages, it can be removed
-            edit.Remove();
         }
 
+        // Remove all edits which are not needed or have been assigned completely
+        edits.Where(e => !e.Required).ForEach(e => e.GetRoot().Remove());
+
         return root;
+    }
+
+    private static void OptimizeComparisons(Node root)
+    {
+        var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
+
+        foreach (var comparison in comparisons)
+        {
+            var left = CollectComponents(comparison.First!);
+            var right = CollectComponents(comparison.Last!);
+
+            var i = 0;
+            var j = 0;
+
+            while (left.Any() && right.Any() && i < left.Count)
+            {
+                if (j >= right.Count)
+                {
+                    i++;
+                    j = 0;
+                    continue;
+                }
+
+                var x = left[i];
+                var y = right[j];
+
+                if (x is ComplexComponent)
+                {
+                    i++;
+                    j = 0;
+                    continue;
+                }
+                else if (y is ComplexComponent)
+                {
+                    j++;
+                    continue;
+                }
+
+                var s = x - y;
+
+                if (s != null)
+                {
+                    left.RemoveAt(i);
+                    right.RemoveAt(j);
+
+                    left.Insert(i, s);
+
+                    j = 0;
+                }
+                else
+                {
+                    j++;
+                }
+            }
+
+            if (!left.Any())
+            {
+                left.Add(new NumberComponent(0L));
+            }
+
+            if (!right.Any())
+            {
+                right.Add(new NumberComponent(0L));
+            }
+
+            left = Simplify(left);
+            right = Simplify(right);
+
+            comparison.First!.Replace(Recreate(left));
+            comparison.Last!.Replace(Recreate(right));
+
+            var evaluation = Preprocessor.TryEvaluateOperator(comparison.To<OperatorNode>());
+
+            if (evaluation != null)
+            {
+                comparison.Replace(new NumberNode(Parser.Size.ToFormat(), (bool)evaluation ? 1L : 0L));
+            }
+        }
+    }
+
+    private static void UnwrapStatements(Node root)
+    {
+        var iterator = root.First;
+
+        while (iterator != null)
+        {
+            if (iterator.Is(NodeType.IF_NODE))
+            {
+                var statement = iterator.To<IfNode>();
+
+                if (statement.Condition.Is(NodeType.NUMBER_NODE))
+                {
+                    var successors = statement.GetSuccessors();
+
+                    if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
+                    {
+                        // Disconnect all the successors
+                        successors.ForEach(s => s.Remove());
+
+                        // Replace the conditional statement with the body
+                        statement.Replace(statement.Body);
+                    }
+                    else
+                    {
+                        if (statement.Successor == null)
+                        {
+                            iterator = statement.Next;
+                            statement.Remove();
+                            continue;
+                        }
+
+                        if (statement.Successor.Is(NodeType.ELSE_NODE))
+                        {
+                            iterator = statement.Next;
+
+                            // Replace the conditional statement with the body of the successor
+                            statement.Replace(statement.Successor.To<ElseNode>().Body);
+                            continue;
+                        }
+
+                        var successor = statement.Successor.To<ElseIfNode>();
+
+                        var replacement = new IfNode(successor.Context, successor.Condition, successor.Body);
+                        iterator = replacement;
+
+                        statement.Replace(replacement);
+                    }
+                }
+            }
+            else if (iterator.Is(NodeType.LOOP_NODE))
+            {
+                var statement = iterator.To<LoopNode>();
+
+                if (!statement.IsForeverLoop && statement.Condition.Is(NodeType.NUMBER_NODE))
+                {
+                    if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
+                    {
+                        statement.Parent!.Insert(statement, statement.Initialization);
+
+                        var replacement = new LoopNode(statement.StepsContext, statement.BodyContext, null, statement.Body);
+                        statement.Parent!.Insert(statement, replacement);
+
+                        iterator = replacement.Next;
+                    }
+                    else
+                    {
+                        statement.Replace(statement.Initialization);
+                        iterator = statement.Initialization;
+                    }
+
+                    continue;
+                }
+            }
+
+            iterator = iterator.Next;
+        }
     }
 
     private static long GetCost(Node node)
@@ -674,6 +1304,10 @@ public static class Analysis
                 {
                     result += 70;
                 }
+                else if (operation.Type == OperatorType.COMPARISON)
+                {
+                    result++;
+                }
             }
 
             result += GetCost(iterator);
@@ -684,22 +1318,31 @@ public static class Analysis
         return result;
     }
 
+    /// <summary>
+    /// Tries to optimize the specified node tree which is described by the specified context
+    /// </summary>
     private static Node Optimize(Node node, Context context)
     {
         var minimum_cost_snapshot = node;
         var minimum_cost = GetCost(node);
 
-        var root = node;
+        var snapshot = node;
 
         foreach (var variable in context.Variables.Values)
         {
             // Assign the definitions of the current variable
-            root = AssignVariable(root, variable);
+            snapshot = AssignVariable(snapshot, variable);
 
-            // Now, since the variable is now assigned, try to simplify the code
+            // Try to optimize all comparisons found in the current snapshot
+            OptimizeComparisons(snapshot);
+
+            // Try to unwrap conditional statements whose outcome have been resolved
+            UnwrapStatements(snapshot);
+
+            // Now, since the variable is assigned, try to simplify the code
             var expressions = new List<Node>();
 
-            foreach (var operation in FindTopLevelOperators(root))
+            foreach (var operation in FindTopLevelOperators(snapshot))
             {
                 if (operation.Operator.Type == OperatorType.ACTION)
                 {
@@ -720,11 +1363,13 @@ public static class Analysis
                 expression.Replace(simplified);
             }
 
-            var cost = GetCost(root);
+            // Calculate the complexity of the current snapshot
+            var cost = GetCost(snapshot);
 
             if (cost < minimum_cost)
             {
-                minimum_cost_snapshot = root;
+                // Since the current snapshot is less complex it should be used
+                minimum_cost_snapshot = snapshot;
                 minimum_cost = cost;
             }
         }
@@ -732,8 +1377,16 @@ public static class Analysis
         return minimum_cost_snapshot;
     }
     
+    /// <summary>
+    /// Returns all operator nodes which are first encounter when decending from the specified node
+    /// </summary>
     private static List<OperatorNode> FindTopLevelOperators(Node node)
     {
+        if (node.Is(NodeType.OPERATOR_NODE) && node.To<OperatorNode>().Operator.Type == OperatorType.CLASSIC)
+        {
+            return new List<OperatorNode> { (OperatorNode)node };
+        }
+
         var operators = new List<OperatorNode>();
         var child = node.First;
 
@@ -743,9 +1396,7 @@ public static class Analysis
             {
                 var operation = child.To<OperatorNode>();
                 
-                if (operation.Operator.Type == OperatorType.ACTION ||
-                    operation.Operator.Type == OperatorType.INDEPENDENT ||
-                    operation.Operator.Type == OperatorType.LOGIC)
+                if (operation.Operator.Type != OperatorType.CLASSIC)
                 {
                     operators.AddRange(FindTopLevelOperators(operation.Left));
                     operators.AddRange(FindTopLevelOperators(operation.Right));

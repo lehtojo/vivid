@@ -38,16 +38,12 @@ public class ElsePattern : Pattern
 
 	public override Node? Build(Context environment, List<Token> tokens)
 	{
-		var former = tokens[FORMER].To<DynamicToken>().Node.To<IfNode>();
 		var body = tokens[BODY].To<ContentToken>();
 
 		var context = new Context();
 		context.Link(environment);
 
-		var node = new ElseNode(context, Parser.Parse(context, body.GetTokens()));
-		former.AddSuccessor(node);
-
-		return null;
+		return new ElseNode(context, Parser.Parse(context, body.GetTokens()));
 	}
 
 	public override int GetStart()

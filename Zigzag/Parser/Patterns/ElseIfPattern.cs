@@ -29,7 +29,7 @@ public class ElseIfPattern : Pattern
 	{
 		var previous = tokens[FORMER].To<DynamicToken>();
 		
-		if (previous.Node.GetNodeType() != NodeType.IF_NODE ||
+		if (!previous.Node.Is(NodeType.IF_NODE, NodeType.ELSE_IF_NODE) ||
 			tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
 		{
 			return false;
@@ -41,17 +41,13 @@ public class ElseIfPattern : Pattern
 
 	public override Node? Build(Context environment, List<Token> tokens)
 	{
-		var former = tokens[FORMER].To<DynamicToken>().Node.To<IfNode>();
 		var condition = tokens[CONDITION].To<DynamicToken>();
 		var body = tokens[BODY].To<ContentToken>();
 
 		var context = new Context();
 		context.Link(environment);
 
-		var node = new ElseIfNode(context, condition.Node, Parser.Parse(context, body.GetTokens()));
-		former.AddSuccessor(node);
-
-		return null;
+		return new ElseIfNode(context, condition.Node, Parser.Parse(context, body.GetTokens()));
 	}
 
 	public override int GetStart()
