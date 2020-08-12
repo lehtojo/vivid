@@ -23,7 +23,7 @@ public class OperatorPattern : Pattern
 		return tokens[OPERATOR].To<OperatorToken>().Operator.Priority;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		return true;
 	}

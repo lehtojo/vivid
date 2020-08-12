@@ -18,9 +18,9 @@ class ReturnPattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[RETURN].To<OperatorToken>().Operator == Operators.RETURN;
+		return tokens[RETURN].To<OperatorToken>().Operator == Operators.IMPLICATION;
 	}
 
 	public override Node Build(Context context, List<Token> tokens)

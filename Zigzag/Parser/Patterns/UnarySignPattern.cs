@@ -18,7 +18,7 @@ public class UnarySignPattern : Pattern
 		TokenType.OBJECT
 	) {}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var sign = tokens[SIGN].To<OperatorToken>().Operator;
 		return (sign == Operators.ADD || sign == Operators.SUBTRACT) && (tokens[OPERATOR].Type != TokenType.NONE || tokens[SIGN].IsFirst);

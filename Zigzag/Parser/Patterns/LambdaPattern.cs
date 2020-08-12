@@ -16,32 +16,25 @@ public class LambdaPattern : ConsumingPattern
    // y: System => y.start()
    // (z) => { if z > 0 { => 1 } else => -1 }
    public LambdaPattern() : base(
-      TokenType.CONTENT | TokenType.IDENTIFIER | TokenType.DYNAMIC,
+      TokenType.CONTENT | TokenType.IDENTIFIER,
       TokenType.OPERATOR,
       TokenType.END | TokenType.OPTIONAL,
       TokenType.CONTENT | TokenType.OPTIONAL
    ) {}
 
-   public override bool Passes(Context context, List<Token> tokens)
+   public override bool Passes(Context context, PatternState state, List<Token> tokens)
    {
-      if (tokens[OPERATOR].To<OperatorToken>().Operator != Operators.RETURN)
+      if (!tokens[OPERATOR].Is(Operators.IMPLICATION))
       {
          return false;
       }
 
-      if (tokens[PARAMETERS].Type == TokenType.DYNAMIC && tokens[PARAMETERS].To<DynamicToken>().Node.Is(NodeType.VARIABLE_NODE) ||
-            tokens[PARAMETERS].Type == TokenType.IDENTIFIER)
+      if (tokens[BODY].Is(TokenType.CONTENT) && !tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
       {
-         // Examples:
-         // x => x * x
-         // y: System => y.start()
-
-         // Since this is a short lambda, there can not be curly brackets
-         return tokens[BODY].Type == TokenType.NONE;
+         return false;
       }
 
-      return tokens[BODY].Type == TokenType.CONTENT && 
-               tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
+      return true;
    }
 
    private static ContentToken GetParameterTokens(List<Token> tokens)

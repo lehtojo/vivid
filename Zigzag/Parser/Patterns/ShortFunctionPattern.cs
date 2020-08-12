@@ -24,9 +24,9 @@ public class ShortFunctionPattern : ConsumingPattern
 		return tokens[CURLY_BRACKETS].Type == TokenType.CONTENT && tokens[CURLY_BRACKETS].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.RETURN;
+		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.IMPLICATION;
 	}
 
 	public override Node Build(Context context, List<Token> tokens, ConsumptionState state)

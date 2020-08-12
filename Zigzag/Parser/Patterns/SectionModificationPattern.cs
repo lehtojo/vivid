@@ -15,7 +15,7 @@ public class SectionModificationPattern : Pattern
 		TokenType.DYNAMIC
 	) {}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		if (!tokens[SECTION].To<DynamicToken>().Node.Is(NodeType.SECTION_NODE))
 		{

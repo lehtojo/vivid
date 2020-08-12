@@ -23,7 +23,7 @@ public class ElsePattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
 		{

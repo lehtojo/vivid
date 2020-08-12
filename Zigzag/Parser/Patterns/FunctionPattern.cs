@@ -22,7 +22,7 @@ class FunctionPattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		return tokens[MODIFIERS].Type == TokenType.NONE || tokens[MODIFIERS]?.To<KeywordToken>().Keyword is AccessModifierKeyword;
 	}

@@ -15,7 +15,7 @@ public class SpecificModificationPattern : Pattern
 		TokenType.DYNAMIC
 	) {}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var modifier = tokens[MODIFIER].To<KeywordToken>();
 

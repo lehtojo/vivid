@@ -1,21 +1,28 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class VariableDeclarationPattern : Pattern
 {
     public const int PRIORITY = 19;
+    private const int LAMBDA_MIN_TOKEN_COUNT = 5;
 
     public const int NAME = 0;
     public const int OPERATOR = 1;
     public const int TYPE = 2;
 
+    public const int LAMBDA_TYPE_PARAMETERS = 2;
+    public const int LAMBDA_TYPE_IMPLICATION = 3;
+    public const int LAMBDA_TYPE_RETURN_TYPE = 4;
+
     // Examples:
     // views: num
     // apples: num[]
     // players: List(Player)
+    // predicate: (num) => bool
     public VariableDeclarationPattern() : base
     (
-        TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.IDENTIFIER | TokenType.DYNAMIC | TokenType.FUNCTION
+        TokenType.IDENTIFIER, TokenType.OPERATOR
     ) {}
 
     public override int GetPriority(List<Token> tokens)
@@ -23,9 +30,34 @@ public class VariableDeclarationPattern : Pattern
         return PRIORITY;
     }
 
-    public override bool Passes(Context context, List<Token> tokens)
+    public override bool Passes(Context context, PatternState state, List<Token> tokens)
     {
-        return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.COLON;
+        if (!tokens[OPERATOR].Is(Operators.COLON))
+        {
+            return false;
+        }
+
+        // Examples:
+        // (num) => bool
+        if (TryConsume(state, out List<Token> consumed, TokenType.CONTENT, TokenType.OPERATOR, TokenType.IDENTIFIER))
+        {
+            if (!consumed.First().Is(ParenthesisType.PARENTHESIS))
+            {
+                return false;
+            }
+
+            // Ensure the consumed operator is the implication operator
+            return consumed[1].Is(Operators.IMPLICATION);
+        }
+
+        // Examples:
+        // views: num
+        return TryConsume(state, out _, TokenType.IDENTIFIER | TokenType.FUNCTION);
+    }
+
+    private static bool IsTypeLambda(List<Token> tokens)
+    {
+        return tokens.Count >= LAMBDA_MIN_TOKEN_COUNT && tokens[LAMBDA_TYPE_IMPLICATION].Is(Operators.IMPLICATION);
     }
 
     private static TemplateType? TryGetTemplateType(Context environment, string name, Node parameters)
@@ -50,18 +82,46 @@ public class VariableDeclarationPattern : Pattern
         return variant;
     }
 
-    public override Node Build(Context context, List<Token> tokens)
+    private static Type ResolveType(Context context, List<Token> tokens)
     {
-        var name = tokens[NAME].To<IdentifierToken>();
-
-        if (context.IsLocalVariableDeclared(name.Value))
+        if (IsTypeLambda(tokens))
         {
-            throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
-        }
+            var parameters = tokens[LAMBDA_TYPE_PARAMETERS].Type == TokenType.CONTENT 
+                ? tokens[LAMBDA_TYPE_PARAMETERS].To<ContentToken>()
+                : new ContentToken(tokens[LAMBDA_TYPE_PARAMETERS]);
 
-        if (name.Value == Function.SELF_POINTER_IDENTIFIER || name.Value == Lambda.SELF_POINTER_IDENTIFIER)
-        {
-            throw Errors.Get(name.Position, $"Cannot declare variable called '{name.Value}' since the name is reserved");
+            var parameter_types = new List<Type>();
+
+            for (var i = 0; i < parameters.SectionCount; i++)
+            {
+                if (parameters.GetTokens(i).Count != 1)
+                {
+                    throw Errors.Get(tokens[LAMBDA_TYPE_PARAMETERS].Position, "Parameters of the short function could not be resolved");
+                }
+
+                var parameter_type = parameters.GetTokens(i).First();
+
+                if (!parameter_type.Is(TokenType.IDENTIFIER))
+                {
+                    throw Errors.Get(tokens[LAMBDA_TYPE_PARAMETERS].Position, "Parameters of the short function could not be resolved");
+                }
+
+                parameter_types.Add(
+                    context.GetType(parameter_type.To<IdentifierToken>().Value) ?? 
+                    new UnresolvedType(context, parameter_type.To<IdentifierToken>().Value)
+                );
+            }
+
+            var return_type_name = tokens[LAMBDA_TYPE_RETURN_TYPE].To<IdentifierToken>().Value;
+            var return_type = (Type?)null;
+
+            // Underscore here indicates no return type
+            if (return_type_name != "_")
+            {
+                return_type = context.GetType(return_type_name) ?? new UnresolvedType(context, return_type_name);
+            }
+
+            return new LambdaType(parameter_types!, return_type);
         }
 
         Type? type;
@@ -96,6 +156,25 @@ public class VariableDeclarationPattern : Pattern
             default:
                 throw new ApplicationException("Unsupported variable declaration syntax");
         }
+
+        return type;
+    }
+
+    public override Node Build(Context context, List<Token> tokens)
+    {
+        var name = tokens[NAME].To<IdentifierToken>();
+
+        if (context.IsLocalVariableDeclared(name.Value))
+        {
+            throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
+        }
+
+        if (name.Value == Function.SELF_POINTER_IDENTIFIER || name.Value == Lambda.SELF_POINTER_IDENTIFIER)
+        {
+            throw Errors.Get(name.Position, $"Cannot declare variable called '{name.Value}' since the name is reserved");
+        }
+
+        var type = ResolveType(context, tokens);
 
         var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
         var is_constant = !context.IsInsideFunction && !context.IsInsideType;

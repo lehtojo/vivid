@@ -14,7 +14,7 @@ public class ModifierSectionPattern : Pattern
 		TokenType.OPERATOR
 	) {}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
       return tokens[MODIFIER].To<KeywordToken>().Keyword.Type == KeywordType.ACCESS_MODIFIER &&
                tokens[COLON].To<OperatorToken>().Operator == Operators.COLON;

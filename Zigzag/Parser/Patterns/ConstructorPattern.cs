@@ -22,7 +22,7 @@ public class ConstructorPattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var head = tokens[HEAD].To<FunctionToken>();
 		var type = context.GetTypeParent();

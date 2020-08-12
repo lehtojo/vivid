@@ -20,7 +20,7 @@ public class TemplateTypePattern : Pattern
 		return PRIORITY;
 	}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		return tokens[TEMPLATE_ARGUMENTS].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS && 
                tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;

@@ -13,7 +13,12 @@ public class LambdaNode : Node, IResolvable, IType
 
 	public new Type? GetType()
 	{
-		return new LambdaType(Lambda.Parameters.Select(p => p.Type).ToList(), Types.UNKNOWN);
+		if (Lambda.Implementations.Any())
+		{
+			return new LambdaType(Lambda.Parameters.Select(p => p.Type).ToList(), Lambda.Implementation.ReturnType);
+		}
+		
+		return null;
 	}
 
 	public override NodeType GetNodeType()

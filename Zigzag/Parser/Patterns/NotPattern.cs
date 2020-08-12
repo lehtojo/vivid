@@ -14,7 +14,7 @@ public class NotPattern : Pattern
 		TokenType.OBJECT
 	) {}
 
-	public override bool Passes(Context context, List<Token> tokens)
+	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
       return tokens[NOT].To<OperatorToken>().Operator == Operators.EXCLAMATION;
 	}

@@ -34,6 +34,11 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 		return Status.Error($"Couldn't resolve identifier '{Value}'");
 	}
 
+	public override string ToString()
+	{
+		return "?";
+	}
+
 	public override bool Equals(object? obj)
 	{
 		return obj is UnresolvedIdentifier identifier &&
