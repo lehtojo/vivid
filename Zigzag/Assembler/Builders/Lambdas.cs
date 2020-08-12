@@ -10,18 +10,13 @@ public static class Lambdas
          throw new ApplicationException("Missing implementation for lambda");
       }
 
-      var implementation = node.Lambda.Implementations.First();
+      var implementation = node.Lambda.Implementation;
       var root = implementation.Node ?? throw new ApplicationException("Missing implementation for lambda");
 
-      var captured_variables = Scope.GetAllNonLocalVariables(new Node[] { root }, implementation).ToList();
-      var captured_member_variables = captured_variables.Where(v => v.IsMember).ToList();
-
-      // Remove all member variables since they all share the same memory address which will be taken into account later
-      captured_member_variables.ForEach(v => captured_variables.Remove(v));
+      var captured_variables = implementation.Captures;
 
       // Required memory is equal to memory required to store all the captured non-member variables, the function pointer and optionally the this pointer whose sizes are depedent on the chosen platform
-      var required_memory = (long)captured_variables.Sum(v => v.Type!.ReferenceSize) + 
-         (captured_member_variables.Count > 0 ? 2 : 1) * Assembler.Size.Bytes;
+      var required_memory = (long)captured_variables.Sum(v => v.Type!.ReferenceSize) + Assembler.Size.Bytes;
 
       // Allocate a memory structure which stores the lambda
       var lambda = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, required_memory));
@@ -34,21 +29,10 @@ public static class Lambdas
 
       var position = Assembler.Size.Bytes;
 
-      // Should the current this pointer be captured as well?
-      if (captured_member_variables.Any())
-      {
-         var source = References.GetVariable(unit, unit.Self!, AccessMode.READ);
-         var destination = new Result(new MemoryHandle(unit, lambda, position), Assembler.Format);
-
-         unit.Append(new MoveInstruction(unit, destination, source));
-
-         position += Assembler.Size.Bytes;
-      }
-
       // Store each captured variable
       foreach (var captured_variable in captured_variables)
       {
-         var source = References.GetVariable(unit, captured_variable, AccessMode.READ);
+         var source = References.GetVariable(unit, captured_variable.Captured, AccessMode.READ);
          var destination = new Result(new MemoryHandle(unit, lambda, position), Assembler.Format);
 
          unit.Append(new MoveInstruction(unit, destination, source));

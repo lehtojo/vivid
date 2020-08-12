@@ -111,12 +111,24 @@ public static class Aligner
 	/// <param name="offset">Base offset to apply to all variables</param>
 	private static void Align(FunctionImplementation function, int offset)
 	{
+		if (function is LambdaImplementation lambda)
+		{
+			lambda.Seal();
+		}
+		
+		// Align all lambdas
+		Align(function);
+
 		var position = offset * Parser.Size.Bytes;
 
 		// Align the this pointer if it exists
-		if (function.Variables.TryGetValue(Function.THIS_POINTER_IDENTIFIER, out Variable? this_pointer))
+		if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
 		{
-			this_pointer.LocalAlignment = position - Parser.Size.Bytes;
+			x.LocalAlignment = position - Parser.Size.Bytes;
+		}
+		else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
+		{
+			y.LocalAlignment = position - Parser.Size.Bytes;
 		}
 
 		// Parameters:

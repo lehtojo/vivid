@@ -86,11 +86,7 @@ public class Unit
 	public Unit(FunctionImplementation function)
 	{
 		Function = function;
-
-		if (function.Metadata?.IsMember ?? false)
-		{
-			Self = function.GetVariable(global::Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("Member function didn't have this pointer");
-		}
+		Self = Function.GetSelfPointer();
 
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
 

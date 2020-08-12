@@ -1,16 +1,41 @@
-#f(x: (i: num): bool) {
-#   => x(7)
-#}
+f(x: (num) => bool) {
+   => x(7)
+}
 
 run() {
    x = 3
    y = a: num => a + x - 1
    y(10)
+
+   worker = Worker(12)
    
-   #if y(i => i < 10) {
-   #   x = 7
-   #}
-   #else {
-   #   x = -1
-   #}
+   if y(i => i < 10) {
+      x = 7
+   }
+   else {
+      x = -1
+   }
+}
+
+Worker {
+   task: (num) => num
+   i: num
+   value: num
+
+   init(value) {
+      this.value = value
+
+      w = value * 2
+
+      task = (i: num) => {
+         if this.value == i and w == 10 {
+            => 1
+         }
+         else {
+            => 0
+         }
+      }
+
+      task(w)
+   }
 }

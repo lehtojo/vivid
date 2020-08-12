@@ -13,7 +13,7 @@ public class Variable
 	public bool IsConstant => Flag.Has(Modifiers, AccessModifier.CONSTANT);
 	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
 	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
-	public bool IsThisPointer => Name == Function.THIS_POINTER_IDENTIFIER;
+	public bool IsSelfPointer => Context.GetSelfPointer() == this;
 	
 	public Context Context { get; set; }
 
@@ -28,15 +28,16 @@ public class Variable
 	public bool IsUsed => References.Count > 1;
 
 	public bool IsUnresolved => Type == Types.UNKNOWN || Type is IResolvable;
+	public bool IsResolved => !IsUnresolved;
 	
 	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 
-	public static void Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
+	public static Variable Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
-		_ = new Variable(context, type, category, name, modifiers, declare);
+		return new Variable(context, type, category, name, modifiers, declare);
 	}
 
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)

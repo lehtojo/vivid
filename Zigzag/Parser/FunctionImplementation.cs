@@ -13,8 +13,10 @@ public class FunctionImplementation : Context
 	public Function Metadata { get; set; }
 	public CallingConvention Convention { get; set; } = CallingConvention.X64;
 
-	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsThisPointer && v.Category == VariableCategory.PARAMETER).ToList();
-	public List<Type> ParameterTypes => Parameters.Where(p => !p.IsThisPointer).Select(p => p.Type!).ToList();
+	public Variable? Self { get; protected set; }
+
+	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsSelfPointer && v.Category == VariableCategory.PARAMETER).ToList();
+	public List<Type> ParameterTypes => Parameters.Where(p => !p.IsSelfPointer).Select(p => p.Type!).ToList();
 	
 	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
 										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
@@ -71,16 +73,21 @@ public class FunctionImplementation : Context
 	/// Implements the function using the given blueprint
 	/// </summary>
 	/// <param name="blueprint">Tokens from which to implement the function</param>
-	public void Implement(List<Token> blueprint)
+	public virtual void Implement(List<Token> blueprint)
 	{
 		if (Metadata.IsMember)
 		{
-			var type = Metadata.GetTypeParent();
-			Declare(type, VariableCategory.PARAMETER, Function.THIS_POINTER_IDENTIFIER);
+			Self = new Variable(
+				this, 
+				Metadata.GetTypeParent(), 
+				VariableCategory.PARAMETER, 
+				Function.SELF_POINTER_IDENTIFIER, 
+				AccessModifier.PUBLIC
+			);
 		}
 
 		Node = new ImplementationNode(this);
-		Parser.Parse(Node, this, blueprint, 0, 19);
+		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MEMBERS);
 	}
 
 	/// <summary>
@@ -142,6 +149,11 @@ public class FunctionImplementation : Context
 		}
 
 		return base.GetVariable(name);
+	}
+
+	public override Variable? GetSelfPointer()
+	{
+		return Self;
 	}
 
 	public override bool Equals(object? obj)

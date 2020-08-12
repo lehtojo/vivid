@@ -149,6 +149,28 @@ public class Node
 		return count;
 	}
 
+	public void Insert(Node node)
+	{
+		if (Parent == null)
+		{
+			throw new ApplicationException("Tried to insert node but the operating node did not have parent");
+		}
+
+		Parent.Insert(this, node);
+	}
+
+	public void InsertChildren(Node children)
+	{
+		var iterator = children.First;
+
+		while (iterator != null)
+		{
+			var next = iterator.Next;
+			Insert(iterator);
+			iterator = next;
+		}
+	}
+
 	public void Insert(Node position, Node child)
 	{
 		if (position == First)
@@ -275,6 +297,25 @@ public class Node
 		node.Parent = Parent;
 		node.Previous = Previous;
 		node.Next = Next;
+	}
+
+	public bool ReplaceWithChildren(Node children)
+	{
+		if (Parent == null)
+		{
+			throw new ApplicationException("Tried to replace a node with children nodes but the target node did not have a parent node");
+		}
+
+		var iterator = children.First;
+
+		while (iterator != null)
+		{
+			var next = iterator.Next;
+			Parent.Insert(this, iterator);
+			iterator = next;
+		}
+
+		return Remove();
 	}
 
 	public void Merge(Node node)

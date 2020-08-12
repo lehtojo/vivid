@@ -30,9 +30,9 @@ class AssignPattern : Pattern
 
 		if (!context.IsVariableDeclared(destination.Value))
 		{
-			if (destination.Value == Function.THIS_POINTER_IDENTIFIER)
+			if (destination.Value == Function.SELF_POINTER_IDENTIFIER || destination.Value == Lambda.SELF_POINTER_IDENTIFIER)
 			{
-				throw Errors.Get(destination.Position, $"Cannot declare variable called '{Function.THIS_POINTER_IDENTIFIER}' since the name is reserved");
+				throw Errors.Get(destination.Position, $"Cannot declare variable called '{destination.Value}' since the name is reserved");
 			}
 
 			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;

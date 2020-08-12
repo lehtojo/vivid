@@ -50,6 +50,20 @@ Lexer {
 
 inline assert(x) => if !x => fail
 
+generate(chunks: List<Chunk>) {
+	loop chunk in chunks expect 1s {
+		chunk.generate()
+		lend chunks
+	}
+}
+
+bake(chunks: List<Chunk>) {
+	loop chunk in chunks expect 1s {
+		chunk.create()
+		lend chunks
+	}
+}
+
 f() {
 	async loop (i = 0, i < 10, i++) {
 		println(i)

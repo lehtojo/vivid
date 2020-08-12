@@ -1,5 +1,3 @@
-using System;
-
 public class UnresolvedType : Type, IResolvable
 {
 	private IResolvable Resolvable { get; }
@@ -16,11 +14,9 @@ public class UnresolvedType : Type, IResolvable
 
 	public Node? Resolve(Context context)
 	{
-		var resolved = Resolvable.Resolve(context);
-
-		if (resolved is IType type)
+		if (Resolvable.Resolve(context) is IType resolved && resolved.GetType() != null)
 		{
-			return new TypeNode(type.GetType() ?? throw new ApplicationException("Resolved type didn't contain type"));
+			return new TypeNode(resolved.GetType()!);
 		}
 
 		return null;

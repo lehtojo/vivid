@@ -8,20 +8,32 @@ public static class Singleton
 	/// Tries to build identifier into a node
 	/// </summary>
 	/// <param name="context">Context to use for linking indentifier</param>
-	/// <param name="id">Identifier to link</param>
-	public static Node GetIdentifier(Context context, IdentifierToken id)
+	/// <param name="identifier">Identifier to link</param>
+	public static Node GetIdentifier(Context context, IdentifierToken identifier, bool is_link = false)
 	{
-		if (context.IsVariableDeclared(id.Value))
+		if (context.IsVariableDeclared(identifier.Value))
 		{
-			return new VariableNode(context.GetVariable(id.Value)!);
+			var variable = context.GetVariable(identifier.Value)!;
+
+			if (variable.IsMember && !is_link)
+			{
+				var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+				
+				return new LinkNode(
+					new VariableNode(self), 
+					new VariableNode(variable)
+				);
+			}
+
+			return new VariableNode(variable);
 		}
-		else if (context.IsTypeDeclared(id.Value))
+		else if (context.IsTypeDeclared(identifier.Value))
 		{
-			return new TypeNode(context.GetType(id.Value)!);
+			return new TypeNode(context.GetType(identifier.Value)!);
 		}
 		else
 		{
-			return new UnresolvedIdentifier(id.Value);
+			return new UnresolvedIdentifier(identifier.Value);
 		}
 	}
 
@@ -147,7 +159,7 @@ public static class Singleton
 		{
 			case TokenType.IDENTIFIER:
 			{
-				return GetIdentifier(primary, (IdentifierToken)token);
+				return GetIdentifier(primary, (IdentifierToken)token, environment != primary);
 			}
 
 			case TokenType.FUNCTION:

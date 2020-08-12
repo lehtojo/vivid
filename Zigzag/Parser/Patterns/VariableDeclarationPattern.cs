@@ -54,15 +54,14 @@ public class VariableDeclarationPattern : Pattern
     {
         var name = tokens[NAME].To<IdentifierToken>();
 
-        if (context.IsVariableDeclared(name.Value))
+        if (context.IsLocalVariableDeclared(name.Value))
         {
             throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
         }
 
-        if (name.Value == Function.THIS_POINTER_IDENTIFIER)
+        if (name.Value == Function.SELF_POINTER_IDENTIFIER || name.Value == Lambda.SELF_POINTER_IDENTIFIER)
         {
-            throw Errors.Get(name.Position,
-                $"Cannot declare variable called '{Function.THIS_POINTER_IDENTIFIER}' since the name is reserved");
+            throw Errors.Get(name.Position, $"Cannot declare variable called '{name.Value}' since the name is reserved");
         }
 
         Type? type;

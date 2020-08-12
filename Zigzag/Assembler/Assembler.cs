@@ -53,6 +53,12 @@ public static class Assembler
 
         foreach (var implementation in function.Implementations)
         {
+            // Build all lambdas defined in the current implementation
+            builder.Append(GetText(implementation, out List<ConstantDataSectionHandle> lambda_constants));
+            builder.Append(SEPARATOR);
+
+            constants.AddRange(lambda_constants);
+            
             if (implementation.IsEmpty && (!function.IsConstructor || ((Constructor)function).IsEmpty))
             {
                 continue;
@@ -87,8 +93,7 @@ public static class Assembler
 
                 if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
                 {
-                    variables.Add(unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ??
-                                  throw new ApplicationException("This pointer was missing in member function"));
+                    variables.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
                 }
 
                 unit.Append(new RequireVariablesInstruction(unit, variables));
@@ -142,10 +147,10 @@ public static class Assembler
         var builder = new StringBuilder();
 
         constants = new List<ConstantDataSectionHandle>();
-
-        foreach (var overload in from function in context.Functions.Values from overload in function.Overloads where !overload.IsImported select overload)
+        
+        foreach (var function in context.Functions.Values.SelectMany(l => l.Overloads).Where(f => !f.IsImported))
         {
-            builder.Append(GetText(overload, out List<ConstantDataSectionHandle> function_constants));
+            builder.Append(GetText(function, out List<ConstantDataSectionHandle> function_constants));
             builder.Append(SEPARATOR);
 
             constants.AddRange(function_constants);
@@ -153,9 +158,9 @@ public static class Assembler
 
         foreach (var type in context.Types.Values)
         {
-            foreach (var overload in type.Constructors.Overloads)
+            foreach (var constructor in type.Constructors.Overloads)
             {
-                builder.Append(GetText(overload, out List<ConstantDataSectionHandle> constructor_constants));
+                builder.Append(GetText(constructor, out List<ConstantDataSectionHandle> constructor_constants));
                 builder.Append(SEPARATOR);
 
                 constants.AddRange(constructor_constants);

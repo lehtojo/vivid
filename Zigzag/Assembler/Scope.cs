@@ -337,15 +337,15 @@ public sealed class Scope : IDisposable
 
          var register = (Register?)null;
 
-         if (unit.Function.IsMember && !unit.Function.IsConstructor)
+         if ((unit.Function.IsMember || unit.Function.IsLambda) && !unit.Function.IsConstructor)
          {
-            var this_pointer = unit.Function.GetVariable(Function.THIS_POINTER_IDENTIFIER) ?? throw new ApplicationException("This pointer was missing");
+            var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 
             register = standard_parameter_registers.Pop();
 
             if (register != null)
             {
-               register.Handle = SetOrCreateTransitionHandle(this_pointer, new RegisterHandle(register));
+               register.Handle = SetOrCreateTransitionHandle(self, new RegisterHandle(register));
             }
             else
             {

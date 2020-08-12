@@ -4,9 +4,9 @@ public class LambdaNode : Node, IResolvable, IType
 {
 	private Status Status { get; set; } = Status.Error("Couldn't resolve parameter types of the short function");
 
-   public Function Lambda { get; private set; }
+   public Lambda Lambda { get; private set; }
 
-	public LambdaNode(Function lambda)
+	public LambdaNode(Lambda lambda)
 	{
       Lambda = lambda;
 	}
@@ -23,6 +23,12 @@ public class LambdaNode : Node, IResolvable, IType
 
    public Node? Resolve(Context context)
    {
+		if (Lambda.Implementations.Any())
+		{
+			Status = Status.OK;
+			return null;
+		}
+
 		// Try to resolve all parameter types
 		foreach (var parameter in Lambda.Parameters)
 		{
@@ -49,7 +55,6 @@ public class LambdaNode : Node, IResolvable, IType
 		}
 
 		Status = Status.OK;
-
 		Lambda.Implement(Lambda.Parameters.Select(p => p.Type!));
 
 		return null;

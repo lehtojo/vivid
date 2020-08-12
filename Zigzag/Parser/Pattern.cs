@@ -53,7 +53,7 @@ public class ConsumptionState
 
 		if (_Whitelist.Exists(p => !p.IsSubclassOf(typeof(Pattern))))
 		{
-			throw new ArgumentException("Tried to blacklist a non-pattern type");
+			throw new ArgumentException("Tried to whitelist a non-pattern type");
 		}
 	}
 }

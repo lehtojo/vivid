@@ -14,6 +14,7 @@ public class Context
 
 	public bool IsGlobal => GetTypeParent() == null;
 	public bool IsMember => GetTypeParent() != null;
+	public bool IsLambda => this is LambdaImplementation;
 	public bool IsType => this is Type;
 	public bool IsFunction => this is FunctionImplementation;
 
@@ -347,6 +348,11 @@ public class Context
 		{
 			return null;
 		}
+	}
+
+	public virtual Variable? GetSelfPointer()
+	{
+		return Parent?.GetSelfPointer();
 	}
 
 	public Type? GetTypeParent()

@@ -124,7 +124,7 @@ public class Result
 	public bool IsReleasable()
 	{
 		// Prevent releasing this pointer
-		if (Metadata.IsPrimarilyVariable && Metadata.Primary!.To<VariableAttribute>().Variable.IsThisPointer)
+		if (Metadata.IsPrimarilyVariable && Metadata.Primary!.To<VariableAttribute>().Variable.IsSelfPointer)
 		{
 			return false;
 		}

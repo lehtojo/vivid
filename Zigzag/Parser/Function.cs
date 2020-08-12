@@ -16,7 +16,7 @@ public class Parameter
 
 public class Function : Context
 {
-	public const string THIS_POINTER_IDENTIFIER = "this";
+	public const string SELF_POINTER_IDENTIFIER = "this";
 
 	public int Modifiers { get; set; }
 
@@ -75,7 +75,7 @@ public class Function : Context
 	/// </summary>
 	/// <param name="types">Parameter types</param>
 	/// <returns>Function implementation</returns>
-	public FunctionImplementation Implement(IEnumerable<Type> types)
+	public virtual FunctionImplementation Implement(IEnumerable<Type> types)
 	{
 		// Pack parameters with names and types
 		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();

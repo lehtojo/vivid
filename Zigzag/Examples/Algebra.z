@@ -228,6 +228,22 @@ precomputation_3(a) {
     }
 }
 
+loop_unwrap_1(a) {
+    loop (i = 0, i < 10, ++i) {
+        a = i
+    }
+
+    => a
+}
+
+boopbop(x: bool) {
+    if !x {
+        => 1
+    }
+
+    => 0
+}
+
 # a^2 * x^2 + ax + 1 => ax * (ax + 1) + 1 => s = ax \ s * (s + 1) + 1
 polynomial(a, x) {
     => a * a * x * x + a * x + 1
@@ -259,4 +275,7 @@ run() {
     precomputation_1(1)
     precomputation_2(1)
     precomputation_3(1)
+
+    loop_unwrap_1(1)
+    boopbop(1 as bool)
 }

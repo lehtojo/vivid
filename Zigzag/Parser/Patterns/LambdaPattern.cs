@@ -14,7 +14,7 @@ public class LambdaPattern : ConsumingPattern
    // (a: num, b) => a + b - 10
    // x => x * x
    // y: System => y.start()
-   // (z) { if z > 0 { => 1 } else => -1 }
+   // (z) => { if z > 0 { => 1 } else => -1 }
    public LambdaPattern() : base(
       TokenType.CONTENT | TokenType.IDENTIFIER | TokenType.DYNAMIC,
       TokenType.OPERATOR,
@@ -98,17 +98,12 @@ public class LambdaPattern : ConsumingPattern
          GetParameterTokens(tokens)
       );
 
-      var lambda = new Function(
+      var lambda = new Lambda(
          context,
          AccessModifier.PUBLIC,
          name,
          body
-
-      ) { Prefix = "Lambda" };
-
-      // Lambdas usually capture variables from the parent context
-      lambda.Link(lambda.Parent!);
-      context.Declare(lambda);
+      );
 
       lambda.Parameters = function.GetParameters(lambda);
 

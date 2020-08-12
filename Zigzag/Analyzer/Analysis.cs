@@ -834,13 +834,12 @@ public static class Analysis
     }
     
     /// <summary>
-    /// Returns whether the definition's value (right side) only consists of numbers or parameters
+    /// Returns whether the specified node is primitive that is whether it contains only operators, numbers, parameter- or local variables
     /// </summary>
-    /// <param name="definition">Variable definition (assign-operator)</param>
     /// <returns>True if the definition is primitive, otherwise false</returns>
-    private static bool IsPrimitiveDefinition(OperatorNode definition)
+    private static bool IsPrimitive(Node node)
     {
-        return definition.Find(n => !(n.Is(NodeType.NUMBER_NODE) || n.Is(NodeType.VARIABLE_NODE) && n.To<VariableNode>().Variable.IsParameter)) == null;
+        return node.Find(n => !(n.Is(NodeType.NUMBER_NODE) || n.Is(NodeType.OPERATOR_NODE) || n.Is(NodeType.VARIABLE_NODE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
     }
 
     private static List<Node> GetReferences(Node root, Variable variable)
@@ -944,7 +943,11 @@ public static class Analysis
         if (edit != null)
         {
             edit.AddDependency(dependency);
-            return false;
+
+            if (edit.Node.Is(Operators.ASSIGN))
+            {
+                return false;
+            }
         }
 
         // If the specified node tree doesn't contain any of the edits, it must be penetrable
@@ -994,22 +997,23 @@ public static class Analysis
         return true;
     }
 
-    private static void ToggleRelevantEdits(Node node, Node dependency, List<Edit> edits)
+    private static Edit? ToggleRelevantEdits(Node node, Node dependency, List<Edit> edits)
     {
         var iterator = (Node?)node;
+        var past = GetPastEdits(node, edits);
 
         while (iterator != null)
         {
-            if (!Toggle(iterator, dependency, edits))
+            if (!Toggle(iterator, dependency, past))
             {
-                return;
+                return past.FirstOrDefault();
             }
 
             if (iterator.Previous == null)
             {
                 if (iterator.Parent == null)
                 {
-                    return;
+                    return past.FirstOrDefault();
                 }
 
                 iterator = iterator.Parent!;
@@ -1018,6 +1022,8 @@ public static class Analysis
                 {
                     case NodeType.LOOP_NODE:
                     {
+                        //Toggle(iterator, dependency, edits);
+
                         // All edits which are inside the current loop are needed by the specified node
                         edits.Where(e => e.Node.IsUnder(iterator)).ForEach(e => e.AddDependency(dependency));
 
@@ -1045,7 +1051,7 @@ public static class Analysis
 
                     case NodeType.IMPLEMENTATION_NODE:
                     {
-                        return;
+                        return past.FirstOrDefault();
                     }
 
                     default: break;
@@ -1056,6 +1062,8 @@ public static class Analysis
                 iterator = iterator.Previous;
             }
         }
+
+        return past.FirstOrDefault();
     }
 
     private static bool IsBranched(Node read, Node edit)
@@ -1076,14 +1084,24 @@ public static class Analysis
             return false;
         }
 
-        if (!IsPrimitiveDefinition(root.To<OperatorNode>()) || IsBranched(read, edit.Node))
+        if (!IsPrimitive(root) || IsBranched(read, edit.Node))
         {
             return false;
         }
 
         var loop = read.FindParent(p => p.Is(NodeType.LOOP_NODE));
 
-        return !(loop != null && !edit.Node.IsUnder(loop) && edits.Where(e => e != edit).Any(e => e.Node.IsUnder(loop)));
+        if (loop == null)
+        {
+            return true;
+        }
+
+        if (!loop.To<LoopNode>().IsForeverLoop && read.IsUnder(loop.To<LoopNode>().Condition))
+        {
+            return false;
+        }
+
+        return !(!edit.Node.IsUnder(loop) && edits.Where(e => e != edit).Any(e => e.Node.IsUnder(loop)));
     }
 
     private static Node AssignVariable(Node node, Variable variable)
@@ -1097,14 +1115,9 @@ public static class Analysis
 
         foreach (var read in reads)
         {
-            // Filter all edits which don't concern the current reference
-            var past_edits = GetPastEdits(read, edits);
-
             // Register all of the past edits which are needed by the current reference
-            ToggleRelevantEdits(read, read, past_edits);
-
             // Retrieve the latest edit which concerns the current reference
-            var edit = past_edits.FirstOrDefault();
+            var edit = ToggleRelevantEdits(read, read, edits);
 
             if (edit != null && IsAssignable(read, edit, edits))
             {
@@ -1125,9 +1138,10 @@ public static class Analysis
         return root;
     }
 
-    private static void OptimizeComparisons(Node root)
+    private static bool OptimizeComparisons(Node root)
     {
         var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR_NODE) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
+        var precomputed = false;
 
         foreach (var comparison in comparisons)
         {
@@ -1193,19 +1207,23 @@ public static class Analysis
 
             comparison.First!.Replace(Recreate(left));
             comparison.Last!.Replace(Recreate(right));
-
+        
             var evaluation = Preprocessor.TryEvaluateOperator(comparison.To<OperatorNode>());
 
             if (evaluation != null)
             {
                 comparison.Replace(new NumberNode(Parser.Size.ToFormat(), (bool)evaluation ? 1L : 0L));
+                precomputed = true;
             }
         }
+
+        return precomputed;
     }
 
-    private static void UnwrapStatements(Node root)
+    private static bool UnwrapStatements(Node root)
     {
         var iterator = root.First;
+        var unwrapped = false;
 
         while (iterator != null)
         {
@@ -1222,8 +1240,12 @@ public static class Analysis
                         // Disconnect all the successors
                         successors.ForEach(s => s.Remove());
 
+                        iterator = statement.Next;
+
                         // Replace the conditional statement with the body
-                        statement.Replace(statement.Body);
+                        statement.ReplaceWithChildren(statement.Body);
+
+                        unwrapped = true;
                     }
                     else
                     {
@@ -1236,10 +1258,12 @@ public static class Analysis
 
                         if (statement.Successor.Is(NodeType.ELSE_NODE))
                         {
-                            iterator = statement.Next;
+                            iterator = statement.Successor.Next;
 
                             // Replace the conditional statement with the body of the successor
-                            statement.Replace(statement.Successor.To<ElseNode>().Body);
+                            statement.ReplaceWithChildren(statement.Successor.To<ElseNode>().Body);
+
+                            unwrapped = true;
                             continue;
                         }
 
@@ -1248,16 +1272,34 @@ public static class Analysis
                         var replacement = new IfNode(successor.Context, successor.Condition, successor.Body);
                         iterator = replacement;
 
+                        successor.Remove();
+
                         statement.Replace(replacement);
+
+                        unwrapped = true;
                     }
+
+                    continue;
                 }
             }
             else if (iterator.Is(NodeType.LOOP_NODE))
             {
                 var statement = iterator.To<LoopNode>();
 
-                if (!statement.IsForeverLoop && statement.Condition.Is(NodeType.NUMBER_NODE))
+                if (!statement.IsForeverLoop)
                 {
+                    if (!statement.Condition.Is(NodeType.NUMBER_NODE))
+                    {
+                        iterator = statement.Next;
+
+                        if (TryUnwrapLoop(statement))
+                        {
+                            unwrapped = true;
+                        }
+
+                        continue;
+                    }
+
                     if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
                     {
                         statement.Parent!.Insert(statement, statement.Initialization);
@@ -1273,12 +1315,268 @@ public static class Analysis
                         iterator = statement.Initialization;
                     }
 
+                    unwrapped = true;
                     continue;
                 }
             }
 
             iterator = iterator.Next;
         }
+
+        return unwrapped;
+    }
+
+    private class LoopUnwrapDescriptor
+    {
+        public Variable Iterator { get; set; }
+        public long Steps { get; set; }
+        public List<Component> Start { get; set; }
+        public List<Component> Step { get; set; }
+
+        public LoopUnwrapDescriptor(Variable iterator, long steps, List<Component> start, List<Component> step)
+        {
+            Iterator = iterator;
+            Steps = steps;
+            Start = start;
+            Step = step;
+        }
+    }
+
+    private static LoopUnwrapDescriptor? TryGetLoopUnwrapDescriptor(LoopNode loop)
+    {
+        // First, ensure that the condition contains a comparison operator and that it's primitive.
+        // Examples:
+        // i < 10
+        // i == 0
+        // 0 < 10 * a + 10 - x
+        var condition = loop.Condition;
+        
+        if (condition.Is(NodeType.NORMAL) || 
+            !condition.Is(NodeType.OPERATOR_NODE) || 
+            condition.To<OperatorNode>().Operator.Type != OperatorType.COMPARISON ||
+            !IsPrimitive(condition))
+        {
+            return null;
+        }
+
+        // Ensure that the initialization is empty or it contains a definition of an integer variable
+        var initialization = loop.Initialization;
+
+        if (initialization.Is(NodeType.NORMAL))
+        {
+            Console.WriteLine("Analysis encountered an empty loop initialization which canceled the attempt of unwrapping the loop");
+            return null;
+        }
+        
+        if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE_NODE))
+        {
+            return null;
+        }
+
+        // Make sure the variable is predictable and it's an integer
+        var variable = initialization.First!.To<VariableNode>().Variable;
+
+        if (!variable.IsPredictable || 
+            !(initialization.First.To<VariableNode>().Variable.Type is Number) ||
+            !initialization.Last!.Is(NodeType.NUMBER_NODE))
+        {
+            return null;
+        }
+
+        var start_value = initialization.Last.To<NumberNode>().Value;
+
+        var action = loop.Action;
+
+        if (action.Is(NodeType.NORMAL))
+        {
+            return null;
+        }
+
+        var step_value = new List<Component>();
+
+        if (action.Is(NodeType.INCREMENT_NODE))
+        {
+            var statement = action.To<IncrementNode>();
+
+            if (!statement.Object.Is(variable))
+            {
+                return null;
+            }
+
+            step_value.Add(new NumberComponent(1L));
+        }
+        else if (action.Is(NodeType.DECREMENT_NODE))
+        {
+            var statement = action.To<IncrementNode>();
+
+            if (!statement.Object.Is(variable))
+            {
+                return null;
+            }
+
+            step_value.Add(new NumberComponent(-1L));
+        }
+        else if (action.Is(NodeType.OPERATOR_NODE))
+        {
+            var statement = action.To<OperatorNode>();
+            
+            if (!statement.Left.Is(variable))
+            {
+                return null;
+            }
+
+            if (statement.Operator == Operators.ASSIGN_ADD)
+            {
+                step_value = CollectComponents(statement.Right);
+            }
+            else if (statement.Operator == Operators.ASSIGN_SUBTRACT)
+            {
+                step_value = Negate(CollectComponents(statement.Right));
+            }
+            else
+            {
+                return null;
+            }
+        }
+        else
+        {
+            return null;
+        }
+        
+        // Try to rewrite the condition so that the initialized variable is on the left side of the comparison
+        // Example:
+        // 0 < 10 * a + 10 - x => x < 10 * a + 10
+        var left = CollectComponents(condition.First!);
+
+        // Abort the optimization if the comparison contains complex variable components
+        // Examples (x is the iterator variable):
+        // x^2 < 10
+        // x < ax + 10
+        if (left.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
+            c is ComplexVariableProduct y && y.Variables.Exists(i => i.Variable == variable)))
+        {
+            return null;
+        }
+
+        var right = CollectComponents(condition.Last!);
+
+        if (right.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
+            c is ComplexVariableProduct y && y.Variables.Exists(i => i.Variable == variable)))
+        {
+            return null;
+        }
+
+        // Ensure that the condition contains atleast one initialization variable
+        if (!left.Concat(right).Any(c => c is VariableComponent x && x.Variable == variable))
+        {
+            return null;
+        }
+
+        // Move all other than initialization variables to the right hand side
+        for (var i = left.Count - 1; i >= 0; i--)
+        {
+            var x = left[i];
+
+            if (x is VariableComponent a && a.Variable == variable)
+            {
+                continue;
+            }
+
+            x.Negate();
+
+            right.Add(x);
+            left.RemoveAt(i);
+        }
+
+        // Move all initialization variables to the left hand side
+        for (var i = right.Count - 1; i >= 0; i--)
+        {
+            var x = right[i];
+
+            if (!(x is VariableComponent a) || a.Variable != variable)
+            {
+                continue;
+            }
+
+            x.Negate();
+            
+            left.Add(x);
+            right.RemoveAt(i);
+        }
+        
+        // Substract the starting value from the right hand side of the condition
+        var range = SimplifySubtraction(right, new List<Component> { new NumberComponent(start_value) });
+        var result = SimplifyDivision(range, step_value);
+
+        if (result != null)
+        {
+            if (result.Count != 1)
+            {
+                return null;
+            }
+
+            if (result.First() is NumberComponent steps)
+            {
+                if (steps.Value is double)
+                {
+                    Console.WriteLine("Loop can not be unwrapped since the amount of steps is expressed in decimals?");
+                    return null;
+                }
+
+                return new LoopUnwrapDescriptor(variable, (long)steps.Value, new List<Component> { new NumberComponent(start_value) }, step_value);
+            }
+
+            // If the amount of steps is not a constant, it means the length of the loop varies, therefore the loop can not be unwrapped
+            return null;
+        }
+
+        Console.WriteLine("Encountered possible complex loop increment value division, please implement");
+        return null;
+    }
+
+    public static bool TryUnwrapLoop(LoopNode loop)
+    {
+        var descriptor = TryGetLoopUnwrapDescriptor(loop);
+
+        if (descriptor == null)
+        {
+            return false;
+        }
+
+        loop.Insert(loop.Initialization);
+
+        for (var i = 0; i < descriptor.Steps; i++)
+        {
+            loop.InsertChildren(loop.Body.Clone());
+            loop.Insert(loop.Action.Clone());
+        }
+
+        loop.Remove();
+        return true;
+    }
+
+    private static bool RemoveUnreachableStatements(Node root)
+    {
+        var return_statements = root.FindAll(n => n.Is(NodeType.RETURN_NODE));
+        var removed = false;
+
+        for (var i = return_statements.Count - 1; i >= 0; i--)
+        {
+            var return_statement = return_statements[i];
+
+            // Remove all statements which are after the return statement in its scope
+            var iterator = return_statement.Parent!.Last;
+
+            while (iterator != return_statement)
+            {
+                var previous = iterator!.Previous;
+                iterator.Remove();
+                iterator = previous;
+                removed = true;
+            }
+        }
+        
+        return removed;
     }
 
     private static long GetCost(Node node)
@@ -1321,23 +1619,37 @@ public static class Analysis
     /// <summary>
     /// Tries to optimize the specified node tree which is described by the specified context
     /// </summary>
-    private static Node Optimize(Node node, Context context)
+    private static Node Optimize(Node node, FunctionImplementation context)
     {
         var minimum_cost_snapshot = node;
         var minimum_cost = GetCost(node);
 
         var snapshot = node;
 
-        foreach (var variable in context.Variables.Values)
+        Start:
+
+        foreach (var variable in context.Locals.Concat(context.Parameters))
         {
             // Assign the definitions of the current variable
             snapshot = AssignVariable(snapshot, variable);
 
             // Try to optimize all comparisons found in the current snapshot
-            OptimizeComparisons(snapshot);
+            if (OptimizeComparisons(snapshot))
+            {
+                goto Start;
+            }
 
             // Try to unwrap conditional statements whose outcome have been resolved
-            UnwrapStatements(snapshot);
+            if (UnwrapStatements(snapshot))
+            {
+                goto Start;
+            }
+
+            // Removes all statements which are not reachable
+            if (RemoveUnreachableStatements(snapshot))
+            {
+                goto Start;
+            }
 
             // Now, since the variable is assigned, try to simplify the code
             var expressions = new List<Node>();

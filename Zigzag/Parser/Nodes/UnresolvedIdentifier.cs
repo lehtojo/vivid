@@ -11,18 +11,7 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 
 	public Node? GetResolvedNode(Context context)
 	{
-		if (context.IsTypeDeclared(Value))
-		{
-			return new TypeNode(context.GetType(Value)!);
-		}
-		else if (context.IsVariableDeclared(Value))
-		{
-			return new VariableNode(context.GetVariable(Value)!);
-		}
-		else
-		{
-			return null;
-		}
+		return Singleton.GetIdentifier(context, new IdentifierToken(Value), Parent?.Is(NodeType.LINK_NODE) ?? false);
 	}
 
 	public Node? Resolve(Context context)
