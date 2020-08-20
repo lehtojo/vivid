@@ -10,8 +10,6 @@ public class Lambda : Function
    
    public Lambda(Context context, int modifiers, string name, List<Token> body) : base(context, modifiers, name, body)
    {
-      Prefix = "Lambda";
-
       // Lambdas usually capture variables from the parent context
       Link(context ?? throw new ApplicationException("Tried to define a short function outside a context"));
 
@@ -34,8 +32,7 @@ public class Lambda : Function
 		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();
 
 		// Create a function implementation
-		var implementation = new LambdaImplementation(this, Parent);
-		implementation.SetParameters(parameters);
+		var implementation = new LambdaImplementation(this, parameters, null, Parent);
 
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)
@@ -50,7 +47,7 @@ public class Lambda : Function
 
 		return implementation;
 	}
-   
+
    public List<Variable> GetCapturedVariables()
    {
       return Implementation.Node!

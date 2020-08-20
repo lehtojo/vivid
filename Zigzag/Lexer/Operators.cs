@@ -66,37 +66,52 @@ public static class Operators
 	static Operators()
 	{
 		Add(POWER);
+
 		Add(MULTIPLY);
 		Add(DIVIDE);
 		Add(MODULUS);
 		Add(ADD);
 		Add(SUBTRACT);
+
 		Add(SHIFT_LEFT);
 		Add(SHIFT_RIGHT);
+
 		Add(GREATER_THAN.SetCounterpart(LESS_OR_EQUAL));
 		Add(GREATER_OR_EQUAL.SetCounterpart(LESS_THAN));
 		Add(LESS_THAN.SetCounterpart(GREATER_OR_EQUAL));
 		Add(LESS_OR_EQUAL.SetCounterpart(GREATER_THAN));
 		Add(EQUALS.SetCounterpart(NOT_EQUALS));
 		Add(NOT_EQUALS.SetCounterpart(EQUALS));
+
 		Add(BITWISE_AND);
 		Add(BITWISE_XOR);
 		Add(BITWISE_OR);
+
 		Add(AND);
 		Add(OR);
+
 		Add(ASSIGN);
 		Add(ASSIGN_POWER);
 		Add(ASSIGN_ADD);
 		Add(ASSIGN_SUBTRACT);
 		Add(ASSIGN_MULTIPLY);
 		Add(ASSIGN_DIVIDE);
+		Add(ASSIGN_MODULUS);
+
+		Add(ASSIGN_AND);
+		Add(ASSIGN_XOR);
+		Add(ASSIGN_OR);
+
 		Add(EXCLAMATION);
 		Add(COMMA);
 		Add(DOT);
+
 		Add(INCREMENT);
 		Add(DECREMENT);
+
 		Add(CAST);
 		Add(IMPLICATION);
+		
 		Add(COLON);
 		Add(END);
 	}

@@ -88,7 +88,7 @@ export reference_decoy_5(z) {
 	=> a + b + c + d + e + f + g + h + i + j
 }
 
-run() {
+init() {
 	=> 1
 	reference_decoy_1(10)
 	reference_decoy_2(10)

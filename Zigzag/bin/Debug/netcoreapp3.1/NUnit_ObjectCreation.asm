@@ -1,81 +1,82 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_create_apple
-export function_create_apple
-function_create_apple:
-sub rsp, 40
-call type_apple_constructor
-add rsp, 40
+extern _V8allocatex_rPh
+
+global _V12create_applev_rP5Apple
+_V12create_applev_rP5Apple:
+sub rsp, 8
+call _VN5Apple4initEv_rPh
+add rsp, 8
 ret
 
-global function_create_car
-export function_create_car
-function_create_car:
-sub rsp, 40
-call type_car_constructor
-add rsp, 40
+global _V10create_card_rP3Car
+_V10create_card_rP3Car:
+sub rsp, 8
+movsd xmm1, xmm0
+cvtsd2si rcx, xmm1
+cvtsi2sd xmm0, rcx
+call _VN3Car4initEd_rPh
+add rsp, 8
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-call function_create_apple
-movsd xmm0, qword [rel function_run_C0]
-call function_create_car
+call _V12create_applev_rP5Apple
+movsd xmm0, qword [rel _V4initv_rx_C0]
+call _V10create_card_rP3Car
 ret
 
-type_apple_constructor:
-sub rsp, 40
-mov rcx, 16
-call allocate
+_VN5Apple4initEv_rPh:
+sub rsp, 8
+mov rdi, 16
+call _V8allocatex_rPh
 mov qword [rax], 100
-movsd xmm0, qword [rel type_apple_constructor_C0]
+movsd xmm0, qword [rel _VN5Apple4initEv_rPh_C0]
 movsd qword [rax+8], xmm0
-add rsp, 40
+add rsp, 8
 ret
 
-type_car_constructor:
+_VN3Car4initEd_rPh:
 push rbx
-sub rsp, 48
-mov rcx, 24
-movsd qword [rsp+64], xmm0
-call allocate
+sub rsp, 16
+mov rdi, 24
+movsd qword [rsp+8], xmm0
+call _V8allocatex_rPh
 mov qword [rax+8], 2000000
-lea rcx, [rel type_car_constructor_S0]
+lea rdi, [rel _VN3Car4initEd_rPh_S0]
 mov rbx, rax
-call type_string_constructor
+call _VN6String4initEPh_rS0_
 mov qword [rbx+16], rax
-movsd xmm0, qword [rsp+64]
+movsd xmm0, qword [rsp+8]
 movsd qword [rbx], xmm0
 mov rax, rbx
-add rsp, 48
+add rsp, 16
 pop rbx
 ret
 
-type_string_constructor:
+_VN6String4initEPh_rS0_:
 push rbx
-sub rsp, 48
-mov rdx, rcx
-mov rcx, 8
-mov rbx, rdx
-call allocate
+sub rsp, 16
+mov rcx, rdi
+mov rdi, 8
+mov rbx, rcx
+call _V8allocatex_rPh
 mov qword [rax], rbx
-add rsp, 48
+add rsp, 16
 pop rbx
 ret
 
 section .data
 
-type_car_constructor_S0 db 'Flash', 0
-function_run_C0 dq 0.0
-type_apple_constructor_C0 dq 0.1
+_VN3Car4initEd_rPh_S0 db 'Flash', 0
+_V4initv_rx_C0 dq 0.0
+_VN5Apple4initEv_rPh_C0 dq 0.1

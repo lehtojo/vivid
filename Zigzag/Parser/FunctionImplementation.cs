@@ -36,31 +36,56 @@ public class FunctionImplementation : Context
 	public bool IsConstructor => Metadata is Constructor;
 	public bool IsStatic => Flag.Has(Metadata!.Modifiers, AccessModifier.STATIC);
 	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, AccessModifier.RESPONSIBLE);
+
+	protected override void OnMangle(Mangle mangle)
+	{
+		mangle += Name.Length.ToString() + Name;
+
+		if (IsMember)
+		{
+			mangle += 'E';
+		}
+
+		mangle += Parameters.Select(p => p.Type!);
+
+		if (!Parameters.Any())
+		{
+			mangle += 'v';
+		}
+
+		if (ReturnType != null)
+		{
+			mangle += "_r";
+			mangle += ReturnType!;
+		}
+	}
 	
 	/// <summary>
 	/// Optionally links this function to some context
 	/// </summary>
 	/// <param name="context">Context to link into</param>
-	public FunctionImplementation(Function metadata, Context? context = null)
+	public FunctionImplementation(Function metadata, List<Parameter> parameters, Type? return_type = null, Context? context = null)
 	{
 		Metadata = metadata;
+		ReturnType = return_type;
 
 		// Copy the name properties
 		Prefix = Metadata.Prefix;
-		Postfix = Metadata.Postfix;
 		Name = Metadata.Name;
 		
 		if (context != null)
 		{
 			Link(context);
 		}
+
+		SetParameters(parameters);
 	}
 
 	/// <summary>
 	/// Sets the function parameters
 	/// </summary>
 	/// <param name="parameters">Parameters packed with name and type</param>
-	public void SetParameters(List<Parameter> parameters)
+	private void SetParameters(List<Parameter> parameters)
 	{
 		foreach (var properties in parameters)
 		{
@@ -100,30 +125,31 @@ public class FunctionImplementation : Context
 	/// i()
 	/// </summary>
 	/// <returns>Header of the function</returns>
-	public string GetHeader()
+	public virtual string GetHeader()
 	{
-		var header = Metadata.Name + '(';
+		var prefix = string.Empty;
+		var iterator = Parent;
 
-		foreach (var type in ParameterTypes)
+		while (iterator != null)
 		{
-			header += $"{type.Name}, ";
+			if (iterator is FunctionImplementation x)
+			{
+				prefix = x.Name + '.' + prefix;
+			}
+			else if (iterator is Type y)
+			{
+				prefix = y.Name + '.' + prefix;
+			}
+			else
+			{
+				break;
+			}
+			
+			iterator = iterator.Parent;
 		}
 
-		if (ParameterTypes.Count > 0)
-		{
-			header = header[0..^2];
-		}
-
-		if (ReturnType != null)
-		{
-			header += $"): {ReturnType.Name}";
-		}
-		else
-		{
-			header += ')';
-		}
-
-		return header;
+		return prefix + $"{Metadata.Name}({string.Join(", ", ParameterTypes.Select(p => p.Name).ToArray())}) => " + 
+			(ReturnType == null ? "_" : ReturnType.ToString());
 	}
 
 	public override string ToString()

@@ -6,8 +6,8 @@ extern ReadConsoleA
 
 ; rcx: Address
 ; rdx: Length
-global sys_print
-sys_print:
+global _V14internal_printPhx
+_V14internal_printPhx:
 push rbx
 push rsi
 
@@ -37,8 +37,8 @@ ret
 
 ; rcx: Buffer
 ; rdx: Length
-global sys_read
-sys_read:
+global _V13internal_readPhx_rx
+_V13internal_readPhx_rx:
 push rbx
 push rsi
 

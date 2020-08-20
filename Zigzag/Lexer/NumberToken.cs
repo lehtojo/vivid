@@ -43,7 +43,9 @@ public class NumberToken : Token
 			}
 		}
 
-		if (int.TryParse(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToString(), out int result))
+		var size = new string(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToArray());
+
+		if (int.TryParse(size, out int result))
 		{
 			bits = result;
 		}
@@ -99,7 +101,7 @@ public class NumberToken : Token
 
 			// Get the format of the number
 			GetType(text, out int bits, out bool unsigned);
-
+			
 			Value = value;
 			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new ApplicationException($"Invalid number format: '{text}'");
 			Bits = bits;

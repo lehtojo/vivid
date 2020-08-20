@@ -195,7 +195,7 @@ public static class Memory
 	/// <summary>
 	/// Tries to apply the hint
 	/// </summary>
-	private static Register? Consider(Unit unit, Hint hint, bool media_register)
+	public static Register? Consider(Unit unit, Hint hint, bool media_register)
 	{
 		if (hint is DirectToNonVolatileRegister)
 		{
@@ -205,12 +205,16 @@ public static class Memory
 		else if (hint is DirectToReturnRegister x)
 		{
 			// Try to direct towards the next return register
-			return x.GetClosestReturnInstrution(unit.Position).ReturnRegister;
+			return x.GetClosestReturnInstruction(unit.Position).ReturnRegister;
 		}
 		else if (hint is AvoidRegisters y)
 		{
 			// Try to filter the specified registers
 			return media_register ? unit.GetNextMediaRegisterWithoutReleasing(y.Registers) : unit.GetNextRegisterWithoutReleasing(y.Registers);
+		}
+		else if (hint is DirectToRegister z)
+		{
+			return z.Register.IsAvailable(unit.Position) ? z.Register : null;
 		}
 
 		return null;
@@ -278,6 +282,45 @@ public static class Memory
 	}
 
 	/// <summary>
+	/// Moves the given result to a register considering the specified hints
+	/// </summary>
+	public static Result Convert(Unit unit, Result result, Format format, Hint? hint = null)
+	{
+		if (result.IsMediaRegister)
+		{
+			return result;
+		}
+
+		if (!result.IsStandardRegister)
+		{
+			throw new InvalidOperationException("Tried to convert format but the result was not in a register");
+		}
+
+		Register? register = null;
+
+		// Try to use the specified hint
+		if (hint != null)
+		{
+			register = Consider(unit, hint, false);
+		}
+
+		// If the hint did not produce any register, the register of the result can be used
+		if (register == null)
+		{
+			register = result.Value.To<RegisterHandle>().Register;
+		}
+
+		var destination = new Result(new RegisterHandle(register), format);
+
+		return new MoveInstruction(unit, destination, result)
+		{
+			Description = "Converts the format of the source operand",
+			Type = MoveType.RELOCATE
+
+		}.Execute();
+	}
+
+	/// <summary>
 	/// Moves the given result to an available register
 	/// </summary>
 	public static void GetRegisterFor(Unit unit, Result value, bool media_register)
@@ -300,7 +343,7 @@ public static class Memory
 			}
 		}
 
-		throw new ArgumentException("Couldn't convert reference to the requested format");
+		throw new ArgumentException("Could not convert reference to the requested format");
 	}
 
 	private static Result? TryConvert(Unit unit, Result result, HandleType type, bool protect, Hint? recommendation)

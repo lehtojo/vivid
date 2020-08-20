@@ -79,7 +79,7 @@ public class Size
          2 => unsigned ? Format.UINT16 : Format.INT16,
          4 => unsigned ? Format.UINT32 : Format.INT32,
          8 => unsigned ? Format.UINT64 : Format.INT64,
-         _ => throw new ApplicationException("Couldn't convert size to number type"),
+         _ => throw new ApplicationException("Could not convert size to number type"),
       };
    }
 

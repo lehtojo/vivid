@@ -10,9 +10,9 @@ public class OperatorToken : Token
 		Operator = Operators.Get(identifier);
 	}
 
-	public OperatorToken(Operator @operator) : base(TokenType.OPERATOR)
+	public OperatorToken(Operator operation) : base(TokenType.OPERATOR)
 	{
-		Operator = @operator;
+		Operator = operation;
 	}
 
 	public override bool Equals(object? obj)

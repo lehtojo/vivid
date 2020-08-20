@@ -1,87 +1,77 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_basic_math
-export function_basic_math
-function_basic_math:
-mov rax, rcx
-imul rax, r8
-add rax, rcx
-add rax, r8
-imul rdx, rcx
-add r8, 1
-imul rdx, r8
-imul rdx, 100
+extern _V8allocatex_rPh
+
+global _V10basic_mathxxx_rx
+_V10basic_mathxxx_rx:
+mov rax, rdi
+imul rax, rdx
+add rax, rdi
 add rax, rdx
+imul rsi, rdi
+add rdx, 1
+imul rsi, rdx
+imul rsi, 100
+add rax, rsi
 ret
 
-global function_addition
-export function_addition
-function_addition:
-add rcx, rdx
-mov rax, rcx
+global _V8additionxx_rx
+_V8additionxx_rx:
+add rdi, rsi
+mov rax, rdi
 ret
 
-global function_subtraction
-export function_subtraction
-function_subtraction:
-sub rcx, rdx
-mov rax, rcx
+global _V11subtractionxx_rx
+_V11subtractionxx_rx:
+sub rdi, rsi
+mov rax, rdi
 ret
 
-global function_multiplication
-export function_multiplication
-function_multiplication:
-imul rcx, rdx
-mov rax, rcx
+global _V14multiplicationxx_rx
+_V14multiplicationxx_rx:
+imul rdi, rsi
+mov rax, rdi
 ret
 
-global function_division
-export function_division
-function_division:
-mov rax, rcx
-mov r8, rdx
+global _V8divisionxx_rx
+_V8divisionxx_rx:
+mov rax, rdi
 xor rdx, rdx
-idiv r8
+idiv rsi
 ret
 
-global function_addition_with_constant
-export function_addition_with_constant
-function_addition_with_constant:
+global _V22addition_with_constantx_rx
+_V22addition_with_constantx_rx:
 mov rax, 10
-add rax, rcx
+add rax, rdi
 add rax, 10
 ret
 
-global function_subtraction_with_constant
-export function_subtraction_with_constant
-function_subtraction_with_constant:
+global _V25subtraction_with_constantx_rx
+_V25subtraction_with_constantx_rx:
 mov rax, -10
-add rax, rcx
+add rax, rdi
 sub rax, 10
 ret
 
-global function_multiplication_with_constant
-export function_multiplication_with_constant
-function_multiplication_with_constant:
+global _V28multiplication_with_constantx_rx
+_V28multiplication_with_constantx_rx:
 mov rax, 10
-imul rax, rcx
+imul rax, rdi
 imul rax, 10
 ret
 
-global function_division_with_constant
-export function_division_with_constant
-function_division_with_constant:
+global _V22division_with_constantx_rx
+_V22division_with_constantx_rx:
 mov rax, 100
 xor rdx, rdx
-idiv rcx
+idiv rdi
 mov rcx, 1844674407370955162
 mul rcx
 mov rax, rdx
@@ -89,35 +79,33 @@ sar rax, 63
 add rax, rdx
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-xor rcx, rcx
-xor rdx, rdx
-call function_addition
-xor rcx, rcx
-xor rdx, rdx
-call function_subtraction
-xor rcx, rcx
-xor rdx, rdx
-call function_multiplication
-mov rcx, 1
-mov rdx, 1
-call function_division
-xor rcx, rcx
-call function_addition_with_constant
-xor rcx, rcx
-call function_subtraction_with_constant
-xor rcx, rcx
-call function_multiplication_with_constant
-xor rcx, rcx
-call function_division_with_constant
-mov rcx, 1
-mov rdx, 2
-mov r8, 3
-call function_basic_math
+xor rdi, rdi
+xor rsi, rsi
+call _V8additionxx_rx
+xor rdi, rdi
+xor rsi, rsi
+call _V11subtractionxx_rx
+xor rdi, rdi
+xor rsi, rsi
+call _V14multiplicationxx_rx
+mov rdi, 1
+mov rsi, 1
+call _V8divisionxx_rx
+xor rdi, rdi
+call _V22addition_with_constantx_rx
+xor rdi, rdi
+call _V25subtraction_with_constantx_rx
+xor rdi, rdi
+call _V28multiplication_with_constantx_rx
+xor rdi, rdi
+call _V22division_with_constantx_rx
+mov rdi, 1
+mov rsi, 2
+mov rdx, 3
+call _V10basic_mathxxx_rx
 ret
-
-section .data

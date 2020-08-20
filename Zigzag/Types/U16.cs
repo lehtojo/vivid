@@ -2,7 +2,15 @@ public class U16 : Number
 {
 	private const int BYTES = 2;
 
-	public U16() : base(Format.UINT16, 16, true, "u16") { }
+	public U16() : base(Format.UINT16, 16, true, "u16") 
+	{ 
+		Identifier = "t";
+	}
+
+	public override void AddDefinition(Mangle mangle)
+	{
+		mangle.Value += "t";
+	}
 
 	public override int GetReferenceSize()
 	{

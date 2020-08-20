@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.IO;
 
 public class ConfigurationPhase : Phase
 {
 	public const string EXTENSION = ".z";
+	public const string FUTURE_EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "z";
 
 	private List<string> Libraries { get; set; } = new List<string>();
@@ -14,7 +16,7 @@ public class ConfigurationPhase : Phase
 	{
 		foreach (var item in folder.GetFiles())
 		{
-			if (item.Extension == EXTENSION)
+			if (item.Extension == EXTENSION || item.Extension == FUTURE_EXTENSION)
 			{
 				Files.Add(item.FullName);
 			}
@@ -86,7 +88,7 @@ public class ConfigurationPhase : Phase
 
 				if (!Directory.Exists(folder))
 				{
-					return Status.Error("Couldn't find folder '{0}'", folder);
+					return Status.Error("Could not find folder '{0}'", folder);
 				}
 
 				Collect(bundle, new DirectoryInfo(folder), true);
@@ -193,7 +195,7 @@ public class ConfigurationPhase : Phase
 	{
 		if (!bundle.Contains("arguments"))
 		{
-			return Status.Error("Couldn't configure settings");
+			return Status.Error("Could not configure settings");
 		}
 
 		var arguments = bundle.Get<string[]>("arguments");
@@ -218,7 +220,7 @@ public class ConfigurationPhase : Phase
 
 				if (file.Exists)
 				{
-					if (file.Extension == EXTENSION)
+					if (file.Extension == EXTENSION || file.Extension == FUTURE_EXTENSION)
 					{
 						Files.Add(file.FullName);
 						continue;
@@ -240,6 +242,8 @@ public class ConfigurationPhase : Phase
 				return Status.Error("Invalid source file/folder '{0}'", element);
 			}
 		}
+
+		Assembler.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
 
 		bundle.Put("input_files", Files.ToArray());
 		bundle.Put("libraries", Libraries.ToArray());

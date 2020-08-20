@@ -23,12 +23,10 @@ public class Type : Context
 		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
 	}
 
-	public const string IDENTIFIER_PREFIX = "type_";
-
-	public string Identifier => IDENTIFIER_PREFIX + Name + "_";
+	public string Identifier { get; set; }
 	public int Modifiers { get; set; }
 
-	public bool IsUnresolved => this is IResolvable;
+	public bool IsUnresolved => !IsResolved();
 	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
 
 	public Format Format => GetFormat();
@@ -40,6 +38,8 @@ public class Type : Context
 	public FunctionList Destructors { get; } = new FunctionList();
 
 	public Node? Initialization { get; set; }
+
+	public Action<Mangle> OnAddDefinition { get; set; }
 
 	public void AddConstructor(Constructor constructor)
 	{
@@ -73,9 +73,11 @@ public class Type : Context
 	public Type(Context context, string name, int modifiers, List<Type> supertypes)
 	{
 		Name = name;
-		Prefix = "Type";
+		Identifier = Name;
+		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 		Supertypes = supertypes;
+		OnAddDefinition = OnAddDefaultDefinition;
 		
 		Constructors.Add(Constructor.Empty(this));
 
@@ -86,18 +88,27 @@ public class Type : Context
 	public Type(string name, int modifiers)
 	{
 		Name = name;
-		Prefix = "Type";
+		Identifier = Name;
+		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
+		OnAddDefinition = OnAddDefaultDefinition;
 
 		Constructors.Add(Constructor.Empty(this));
 	}
 
 	public Type(Context context)
 	{
-		Prefix = "Type";
+		Prefix = "N";
+		Identifier = Name;
+		OnAddDefinition = OnAddDefaultDefinition;
 
 		Link(context);
 		Constructors.Add(Constructor.Empty(this));
+	}
+
+	public virtual bool IsResolved()
+	{
+		return true;
 	}
 
 	public virtual int GetReferenceSize()
@@ -116,7 +127,7 @@ public class Type : Context
 
 	public FunctionList GetOperatorFunction(Operator operation)
 	{
-		return GetFunction(OPERATOR_OVERLOAD_FUNCTIONS[operation]) ?? throw new InvalidOperationException($"Couldn't find operator function '{OPERATOR_OVERLOAD_FUNCTIONS[operation]}'");
+		return GetFunction(OPERATOR_OVERLOAD_FUNCTIONS[operation]) ?? throw new InvalidOperationException($"Could not find operator function '{OPERATOR_OVERLOAD_FUNCTIONS[operation]}'");
 	}
 
 	public bool IsOperatorOverloaded(Operator operation)
@@ -166,6 +177,11 @@ public class Type : Context
 	public bool IsSuperVariableDeclared(string name)
 	{
 		return Supertypes.Any(t => t.IsLocalVariableDeclared(name));
+	}
+
+	public bool IsSuperTypeDeclared(Type supertype)
+	{
+		return Supertypes.Contains(supertype) || Supertypes.Any(t => t.IsSuperTypeDeclared(supertype));
 	}
 
 	public FunctionList? GetSuperFunction(string name)
@@ -242,7 +258,29 @@ public class Type : Context
 
 	public T To<T>() where T : Type
 	{
-		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Type' to '{typeof(T).Name}'");
+		return (T)this ?? throw new ApplicationException($"Could not convert 'Type' to '{typeof(T).Name}'");
+	}
+
+	protected override void OnMangle(Mangle mangle)
+	{
+		mangle += 'N';
+		mangle.Add(this);
+	}
+
+	/// <summary>
+	/// Appends a definition of this type to the specified mangled identifier using the default method
+	/// </summary>
+	private void OnAddDefaultDefinition(Mangle mangle)
+	{
+		mangle += Name.Length.ToString() + Name;
+	}
+
+	/// <summary>
+	/// Appends a definition of this type to the specified mangled identifier
+	/// </summary>
+	public virtual void AddDefinition(Mangle mangle)
+	{
+		OnAddDefinition(mangle);
 	}
 
 	public override bool Equals(object? obj)
@@ -255,7 +293,6 @@ public class Type : Context
 			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, type.Functions) &&
 			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, type.Types) &&
 			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, type.Labels) &&
-			   Identifier == type.Identifier &&
 			   Modifiers == type.Modifiers &&
 			   IsUnresolved == type.IsUnresolved &&
 			   Format == type.Format &&
@@ -276,7 +313,6 @@ public class Type : Context
 		hash.Add(Functions);
 		hash.Add(Types);
 		hash.Add(Labels);
-		hash.Add(Identifier);
 		hash.Add(Modifiers);
 		hash.Add(IsUnresolved);
 		hash.Add(Format);

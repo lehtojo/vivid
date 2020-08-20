@@ -92,7 +92,7 @@ public class TemplateType : Type
 
       // Copy the blueprint and insert the specified arguments to their places
       var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
-      blueprint[NAME].To<IdentifierToken>().Value = Name + '_' + string.Join('_', arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name));
+      blueprint[NAME].To<IdentifierToken>().Value = Name + '(' + string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name)) + ')';
 
       InsertArguments(blueprint, arguments);
 
@@ -109,6 +109,16 @@ public class TemplateType : Type
 
       // Register the new variant
       var variant = result.To<TypeNode>().Type;
+      variant.Identifier = Name;
+      variant.OnAddDefinition = mangle => 
+      {
+         mangle.Add(this);
+
+         mangle += 'I';
+         mangle += arguments.Take(TemplateArgumentNames.Count);
+         mangle += 'E';
+      };
+
       Variants.Add(identifier, variant);
 
       return variant;

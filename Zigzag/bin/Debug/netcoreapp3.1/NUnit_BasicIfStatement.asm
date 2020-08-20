@@ -1,35 +1,32 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_basic_if_statement
-export function_basic_if_statement
-function_basic_if_statement:
-cmp rcx, rdx
-jl function_basic_if_statement_L1
-mov rax, rcx
+extern _V8allocatex_rPh
+
+global _V18basic_if_statementxx_rx
+_V18basic_if_statementxx_rx:
+cmp rdi, rsi
+jl _V18basic_if_statementxx_rx_L1
+mov rax, rdi
 ret
-jmp function_basic_if_statement_L0
-function_basic_if_statement_L1:
-mov rax, rdx
+jmp _V18basic_if_statementxx_rx_L0
+_V18basic_if_statementxx_rx_L1:
+mov rax, rsi
 ret
-function_basic_if_statement_L0:
+_V18basic_if_statementxx_rx_L0:
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-mov rcx, 1
-mov rdx, 2
-call function_basic_if_statement
+mov rdi, 1
+mov rsi, 2
+call _V18basic_if_statementxx_rx
 ret
-
-section .data

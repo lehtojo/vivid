@@ -1,81 +1,77 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
-extern large_function
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_basic_call_evacuation
-export function_basic_call_evacuation
-function_basic_call_evacuation:
-push rbx
-push rsi
-push rdi
-sub rsp, 48
-mov rbx, rcx
-imul rbx, rdx
-add rbx, 10
-mov rsi, rcx
-mov rdi, rdx
-call large_function
-add rsi, rdi
-add rsi, rbx
-mov rax, rsi
-add rsp, 48
-pop rdi
-pop rsi
-pop rbx
-ret
+extern _V8allocatex_rPh
+extern _V14large_functionv
 
-global function_basic_call_evacuation_with_memory
-export function_basic_call_evacuation_with_memory
-function_basic_call_evacuation_with_memory:
+global _V21basic_call_evacuationxx_rx
+_V21basic_call_evacuationxx_rx:
 push rbx
-push rsi
-push rdi
 push rbp
 push r12
-sub rsp, 48
-mov rbx, rcx
-imul rbx, rdx
+sub rsp, 16
+mov rbx, rdi
+imul rbx, rsi
 add rbx, 10
-mov rsi, rcx
-imul rsi, rdx
-add rsi, 10
-mov rdi, rcx
-imul rdi, rdx
-add rdi, 10
-mov rbp, rcx
-mov r12, rdx
-call large_function
-add rbp, r12
-add rbp, rbx
-add rbp, rsi
-add rbp, rdi
-mov rax, rbp
-add rsp, 48
+mov rbp, rsi
+mov r12, rdi
+call _V14large_functionv
+add r12, rbp
+add r12, rbx
+mov rax, r12
+add rsp, 16
 pop r12
 pop rbp
-pop rdi
-pop rsi
 pop rbx
 ret
 
-function_run:
-sub rsp, 40
-mov rax, 1
-add rsp, 40
-ret
-mov rcx, 1
-mov rdx, 1
-call function_basic_call_evacuation
-mov rcx, 1
-mov rdx, 1
-call function_basic_call_evacuation_with_memory
+global _V33basic_call_evacuation_with_memoryxx_rx
+_V33basic_call_evacuation_with_memoryxx_rx:
+push rbx
+push rbp
+push r12
+push r13
+push r14
+sub rsp, 16
+mov rbx, rdi
+imul rbx, rsi
+add rbx, 10
+mov rbp, rdi
+imul rbp, rsi
+add rbp, 10
+mov r12, rdi
+imul r12, rsi
+add r12, 10
+mov r13, rsi
+mov r14, rdi
+call _V14large_functionv
+add r14, r13
+add r14, rbx
+add r14, rbp
+add r14, r12
+mov rax, r14
+add rsp, 16
+pop r14
+pop r13
+pop r12
+pop rbp
+pop rbx
 ret
 
-section .data
+_V4initv_rx:
+sub rsp, 8
+mov rax, 1
+add rsp, 8
+ret
+mov rdi, 1
+mov rsi, 1
+call _V21basic_call_evacuationxx_rx
+mov rdi, 1
+mov rsi, 1
+call _V33basic_call_evacuation_with_memoryxx_rx
+ret

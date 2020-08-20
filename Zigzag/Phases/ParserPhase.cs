@@ -123,11 +123,11 @@ public class ParserPhase : Phase
 		// Preprocess the 'hull' of the code before creating functions
 		Preprocessor.Evaluate(context, root);
 
-		var function = context.GetFunction("run");
+		var function = context.GetFunction(Keywords.INIT.Identifier);
 
 		if (function == null)
 		{
-			return Status.Error("Couldn't the entry function 'run'");
+			return Status.Error($"Could not the entry function '{Keywords.INIT.Identifier}'");
 		}
 
 		function.Overloads[0].Implement(new List<Type>());

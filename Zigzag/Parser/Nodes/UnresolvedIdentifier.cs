@@ -31,7 +31,7 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 
 	public Status GetStatus()
 	{
-		return Status.Error($"Couldn't resolve identifier '{Value}'");
+		return Status.Error($"Could not resolve identifier '{Value}'");
 	}
 
 	public override string ToString()

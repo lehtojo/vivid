@@ -25,7 +25,7 @@ public static:
    }
 }
 
-run() {
+init() {
    car = Car()
    car.cost = 7000
    car.weight = 2000

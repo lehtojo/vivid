@@ -1,87 +1,106 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_bitwise_and
-export function_bitwise_and
-function_bitwise_and:
-and rcx, rdx
-mov rax, rcx
+extern _V8allocatex_rPh
+
+global _V11bitwise_andcc_rc
+_V11bitwise_andcc_rc:
+and rdi, rsi
+mov rax, rdi
 ret
 
-global function_bitwise_xor
-export function_bitwise_xor
-function_bitwise_xor:
-xor rcx, rdx
-mov rax, rcx
+global _V11bitwise_xorcc_rc
+_V11bitwise_xorcc_rc:
+xor rdi, rsi
+mov rax, rdi
 ret
 
-global function_bitwise_or
-export function_bitwise_or
-function_bitwise_or:
-or rcx, rdx
-mov rax, rcx
+global _V10bitwise_orcc_rc
+_V10bitwise_orcc_rc:
+or rdi, rsi
+mov rax, rdi
 ret
 
-global function_synthetic_and
-export function_synthetic_and
-function_synthetic_and:
-mov rax, rcx
-xor rax, rdx
+global _V13synthetic_andcc_rc
+_V13synthetic_andcc_rc:
+mov rax, rdi
+xor rax, rsi
 not rax
-or rcx, rdx
-not rcx
-xor rax, rcx
+or rdi, rsi
+not rdi
+xor rax, rdi
 ret
 
-global function_synthetic_xor
-export function_synthetic_xor
-function_synthetic_xor:
-mov rax, rcx
-or rax, rdx
-and rcx, rdx
-not rcx
-and rax, rcx
+global _V13synthetic_xorcc_rc
+_V13synthetic_xorcc_rc:
+mov rax, rdi
+or rax, rsi
+and rdi, rsi
+not rdi
+and rax, rdi
 ret
 
-global function_synthetic_or
-export function_synthetic_or
-function_synthetic_or:
-mov rax, rcx
-xor rax, rdx
-and rcx, rdx
-xor rax, rcx
+global _V12synthetic_orcc_rc
+_V12synthetic_orcc_rc:
+mov rax, rdi
+xor rax, rsi
+and rdi, rsi
+xor rax, rdi
 ret
 
-function_run:
-sub rsp, 40
+global _V18assign_bitwise_andx_rx
+_V18assign_bitwise_andx_rx:
+mov rcx, rdi
+sar rcx, 1
+and rdi, rcx
+mov rax, rdi
+ret
+
+global _V18assign_bitwise_xorx_rx
+_V18assign_bitwise_xorx_rx:
+xor rdi, 1
+mov rax, rdi
+ret
+
+global _V17assign_bitwise_orxx_rx
+_V17assign_bitwise_orxx_rx:
+or rdi, rsi
+mov rax, rdi
+ret
+
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-xor rcx, rcx
-xor rdx, rdx
-call function_bitwise_and
-xor rcx, rcx
-xor rdx, rdx
-call function_bitwise_xor
-xor rcx, rcx
-xor rdx, rdx
-call function_bitwise_or
-xor rcx, rcx
-xor rdx, rdx
-call function_synthetic_and
-xor rcx, rcx
-xor rdx, rdx
-call function_synthetic_xor
-xor rcx, rcx
-xor rdx, rdx
-call function_synthetic_or
+xor rdi, rdi
+xor rsi, rsi
+call _V11bitwise_andcc_rc
+xor rdi, rdi
+xor rsi, rsi
+call _V11bitwise_xorcc_rc
+xor rdi, rdi
+xor rsi, rsi
+call _V10bitwise_orcc_rc
+xor rdi, rdi
+xor rsi, rsi
+call _V13synthetic_andcc_rc
+xor rdi, rdi
+xor rsi, rsi
+call _V13synthetic_xorcc_rc
+xor rdi, rdi
+xor rsi, rsi
+call _V12synthetic_orcc_rc
+xor rdi, rdi
+call _V18assign_bitwise_andx_rx
+xor rdi, rdi
+call _V18assign_bitwise_xorx_rx
+xor rdi, rdi
+xor rsi, rsi
+call _V17assign_bitwise_orxx_rx
 ret
-
-section .data

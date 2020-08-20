@@ -116,7 +116,7 @@ export normal_for_loop_with_memory_evacuation(start: num, count: num) {
     }
 }
 
-run() {
+init() {
 	=> 1
     
     # Dummy for type resolvation

@@ -28,14 +28,7 @@ public class GetMemoryAddressInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		if (Mode != AccessMode.WRITE && !Result.Equals(Source))
-		{
-			// Since the source is not where it should be, it must be moved to the result 
-			Unit.Append(new MoveInstruction(Unit, Result, Source)
-			{
-				Type = MoveType.LOAD
-			});
-		}
+		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 	}
 
 	public override Result[] GetResultReferences()

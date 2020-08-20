@@ -12,6 +12,11 @@ public class UnresolvedType : Type, IResolvable
 		Resolvable = resolvable;
 	}
 
+	public override bool IsResolved()
+	{
+		return false;
+	}
+
 	public Node? Resolve(Context context)
 	{
 		if (Resolvable.Resolve(context) is IType resolved && resolved.GetType() != null)

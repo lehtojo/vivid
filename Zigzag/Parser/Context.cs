@@ -1,10 +1,167 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+
+public class Mangle
+{
+	public const string LANGUAGE_TAG = "_V";
+
+	private class Definition
+	{
+		public Type Type { get; }
+		public int Index { get; }
+		public int Pointers { get; }
+
+		private string? Hexadecimal { get; set; }
+
+		public Definition(Type type, int index, int pointers)
+		{
+			Type = type;
+			Index = index;
+			Pointers = pointers;
+		}
+
+		private const string Table = "0123456789ABCDEF";
+
+		public override string ToString()
+		{
+			if (Hexadecimal == null)
+			{
+				var n = Index - 1;
+				
+				Hexadecimal = n == 0 ? "0" : string.Empty;
+
+				while (n > 0)
+				{
+					var a = n / 16;
+					var r = n - a * 16;
+					n = a;
+
+					Hexadecimal = Table[r] + Hexadecimal;
+				}
+			}
+
+			return Index == 0 ? "S_" : $"S{Hexadecimal}_";
+		}
+	}
+
+	private List<Definition> Definitions { get; set; } = new List<Definition>();
+	public string Value { get; set; } = string.Empty;
+
+	public Mangle(Mangle? from)
+	{
+		if (from != null)
+		{
+			Definitions = new List<Definition>(from.Definitions);
+			Value = from.Value;
+		}
+		else
+		{
+			Value = LANGUAGE_TAG;
+		}
+	}
+
+	public static Mangle operator +(Mangle mangle, string text)
+	{
+		mangle.Value += text;
+		return mangle;
+	}
+
+	public static Mangle operator +(Mangle mangle, char character)
+	{
+		mangle.Value += character;
+		return mangle;
+	}
+
+	public static Mangle operator+(Mangle mangle, IEnumerable<Type> types)
+	{
+		mangle.Add(types);
+		return mangle;
+	}
+
+	public static Mangle operator+(Mangle mangle, Type type)
+	{
+		mangle.Add(new List<Type> { type });
+		return mangle;
+	}
+
+	private void Push(Definition last, int delta)
+	{
+		for (var i = 0; i < delta; i++)
+		{
+			Definitions.Add(new Definition(last.Type, Definitions.Count, last.Pointers + i + 1));
+			Value += 'P';
+		}
+
+		Value += last.ToString();
+	}
+
+	public void Add(Type type, int pointers = 0)
+	{
+		if (pointers == 0 && Types.IsPrimitive(type))
+		{
+			type.AddDefinition(this);
+			return;
+		}
+
+		var i = -1;
+
+		for (var j = 0; j < Definitions.Count; j++)
+		{
+			var t = Definitions[j];
+
+			if (t.Type == type && t.Pointers <= pointers)
+			{
+				i = j;
+			}
+		}
+
+		if (i == -1)
+		{
+			for (var j = 0; j < pointers; j++)
+			{
+				Value += 'P';
+			}
+
+			type.AddDefinition(this);
+
+			if (!Types.IsPrimitive(type) && type != Types.LINK)
+			{
+				Definitions.Add(new Definition(type, Definitions.Count, 0));
+			}
+
+			for (var j = 0; j < pointers; j++)
+			{
+				Definitions.Add(new Definition(type, Definitions.Count, j + 1));
+			}
+
+			return;
+		}
+
+		var d = pointers - i;
+
+		if (d <= 0)
+		{
+			Value += Definitions[i].ToString();
+			return;
+		}
+
+		Push(Definitions[i], d);
+	}
+
+	public void Add(IEnumerable<Type> types)
+	{
+		foreach (var type in types)
+		{
+			Add(type, Types.IsPrimitive(type) ? 0 : 1);
+		}
+	}
+}
 
 public class Context
 {
+	private Mangle? Mangled { get; set; }
+
 	public string Name { get; protected set; } = string.Empty;
 	public string Prefix { get; set; } = string.Empty;
 	public string Postfix { get; set; } = string.Empty;
@@ -27,6 +184,7 @@ public class Context
 	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
 	private int Lambdas { get; set; } = 0;
+	private int Hiddens { get; set; } = 0;
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
@@ -37,25 +195,34 @@ public class Context
 	}
 
 	/// <summary>
-	/// Returns the global name of the context
+	/// Appends the current context to the specified mangled name
 	/// </summary>
-	/// <returns>Global name of the context</returns>
-	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
-	public virtual string GetFullname()
+	protected virtual void OnMangle(Mangle mangle) {}
+
+	/// <summary>
+	/// Generates a mangled name for this context
+	/// </summary>
+	private void Mangle()
 	{
-		var parent = Parent?.GetFullname() ?? string.Empty;
-		parent = string.IsNullOrEmpty(parent) ? parent : parent + '_';
+		if (Mangled != null)
+		{
+			return;
+		}
 
-		var prefix = Prefix.ToLowerInvariant();
-		prefix = string.IsNullOrEmpty(prefix) ? string.Empty : prefix;
+		Parent?.Mangle();
+		Mangled = new Mangle(Parent?.Mangled);
 
-		var name = Name.ToLowerInvariant();
-		name = string.IsNullOrEmpty(name) ? name : '_' + name;
+		OnMangle(Mangled);
+	}
 
-		var postfix = Postfix.ToLowerInvariant();
-		postfix = string.IsNullOrEmpty(postfix) ? postfix : '_' + postfix;
+	/// <summary>
+	/// Returns a mangled name corresponding this context
+	/// </summary>
+	public string GetFullname()
+	{
+		Mangle();
 
-		return parent + prefix + name + postfix;
+		return Mangled!.Value;
 	}
 
 	/// <summary>
@@ -212,6 +379,14 @@ public class Context
 
 		// When a variable is created this way it is automatically declared into this context
 		Variable.Create(this, type, category, name, AccessModifier.PUBLIC);
+	}
+
+	/// <summary>
+	/// Declares a hidden variable with the specified type
+	/// </summary>
+	public Variable DeclareHidden(Type type)
+	{
+		return Variable.Create(this, type, VariableCategory.LOCAL, $".{Hiddens++}", AccessModifier.PUBLIC);
 	}
 
 	/// <summary>

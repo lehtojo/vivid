@@ -24,6 +24,12 @@ public class ConstructorPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
+		// Constructors and destructors must be inside a type
+		if (context.GetTypeParent() == null)
+		{
+			return false;
+		}
+
 		var head = tokens[HEAD].To<FunctionToken>();
 		var type = context.GetTypeParent();
 

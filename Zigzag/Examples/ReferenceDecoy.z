@@ -10,7 +10,7 @@ write_decoy(num) {
 	=> num + num + a * 2
 }
 
-run() {
+init() {
 	square(7)
 	write_decoy(7)
 }

@@ -1,326 +1,334 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_create_pack
-export function_create_pack
-function_create_pack:
-sub rsp, 40
-mov rcx, 24
-call allocate
-add rsp, 40
+extern _V8allocatex_rPh
+extern _V4copyPhxPS_
+extern _V11offset_copyPhxPS_x
+
+global _V11create_packv_rP4PackIP7ProductP5PriceE
+_V11create_packv_rP4PackIP7ProductP5PriceE:
+sub rsp, 8
+mov rdi, 24
+call _V8allocatex_rPh
+add rsp, 8
 ret
 
-global function_set_product
-export function_set_product
-function_set_product:
+global _V11set_productP4PackIP7ProductP5PriceExPhxc
+_V11set_productP4PackIP7ProductP5PriceExPhxc:
 push rbx
-push rsi
-push rdi
 push rbp
-sub rsp, 40
-mov rax, rcx
-mov rcx, 8
+push r12
+push r13
+push r14
+sub rsp, 16
+mov rax, rdi
+mov rdi, 8
 mov rbx, rax
-mov rsi, rdx
-mov rdi, r8
-mov rbp, r9
-call allocate
-mov rcx, rdi
-mov rdi, rax
-call type_string_constructor
-mov qword [rdi], rax
-mov rcx, 9
-call allocate
+mov rbp, rcx
+mov r12, rdx
+mov r13, rsi
+mov r14, r8
+call _V8allocatex_rPh
+mov rdi, r12
+mov r12, rax
+call _VN6String4initEPh_rS0_
+mov qword [r12], rax
+mov rdi, 9
+call _V8allocatex_rPh
 mov qword [rax], rbp
-movsx rbp, byte [rsp+112]
-mov byte [rax+8], bpl
-mov rcx, rdi
+mov byte [rax+8], r14b
+mov rdi, r12
+mov rsi, rax
+call _VN4PairIP7ProductP5PriceE4initES1_S3__rPh
+mov rdi, rbx
+mov rsi, r13
 mov rdx, rax
-call type_pair_product_price_constructor
-mov rcx, rbx
-mov rdx, rsi
-mov r8, rax
-call type_pack_product_price_function_set
-add rsp, 40
+call _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E
+add rsp, 16
+pop r14
+pop r13
+pop r12
 pop rbp
-pop rdi
-pop rsi
 pop rbx
 ret
 
-global function_get_product_name
-export function_get_product_name
-function_get_product_name:
-sub rsp, 40
-call type_pack_product_price_function_get
-mov rcx, [rax]
-mov rax, [rcx]
-add rsp, 40
-ret
-
-global function_enchant_product
-export function_enchant_product
-function_enchant_product:
-sub rsp, 40
-call type_pack_product_price_function_get
-mov rcx, [rax]
-call type_product_function_enchant
-add rsp, 40
-ret
-
-global function_is_product_enchanted
-export function_is_product_enchanted
-function_is_product_enchanted:
-sub rsp, 40
-call type_pack_product_price_function_get
-mov rcx, [rax]
-call type_product_function_is_enchanted
-add rsp, 40
-ret
-
-global function_get_product_price
-export function_get_product_price
-function_get_product_price:
-push rbx
-sub rsp, 48
-mov rbx, r8
-call type_pack_product_price_function_get
-mov rcx, [rax+8]
-mov rdx, rbx
-call type_price_function_convert
-add rsp, 48
-pop rbx
-ret
-
-function_run:
-push rbx
-sub rsp, 48
-mov rax, 1
-add rsp, 48
-pop rbx
-ret
-call function_create_pack
-mov rcx, rax
-xor rdx, rdx
-xor r8, r8
-xor r9, r9
-mov byte [rsp+32], 0
-mov rbx, rax
-call function_set_product
-mov rcx, rbx
-xor rdx, rdx
-call function_get_product_name
-mov rcx, rbx
-xor rdx, rdx
-call function_enchant_product
-mov rcx, rbx
-xor rdx, rdx
-call function_is_product_enchanted
-mov rcx, rbx
-xor rdx, rdx
-xor r8, r8
-call function_get_product_price
-pop rbx
-ret
-
-type_product_function_enchant:
-push rbx
-sub rsp, 48
-mov rax, rcx
-lea rcx, [rel type_product_function_enchant_S0]
-mov rbx, rax
-call type_string_constructor
-mov rcx, rax
-mov rdx, [rbx]
-call type_string_function_plus
-mov qword [rbx], rax
-add rsp, 48
-pop rbx
-ret
-
-type_product_function_is_enchanted:
-push rbx
-sub rsp, 48
-mov rdx, rcx
-mov rcx, [rdx]
-mov r8, rdx
-xor rdx, rdx
-mov rbx, r8
-call type_string_function_get
-cmp al, 105
-mov rcx, rbx
-jne type_product_function_is_enchanted_L0
-mov rax, 1
-add rsp, 48
-pop rbx
-ret
-type_product_function_is_enchanted_L0:
-xor rax, rax
-add rsp, 48
-pop rbx
-ret
-
-type_price_function_convert:
-movsx r8, byte [rcx+8]
-cmp r8, rdx
-jne type_price_function_convert_L0
-cvtsi2sd xmm0, qword [rcx]
-ret
-type_price_function_convert_L0:
-test rdx, rdx
-jne type_price_function_convert_L3
-cvtsi2sd xmm0, qword [rcx]
-movsd xmm1, qword [rel type_price_function_convert_C0]
-mulsd xmm0, xmm1
-ret
-jmp type_price_function_convert_L2
-type_price_function_convert_L3:
-cvtsi2sd xmm0, qword [rcx]
-movsd xmm1, qword [rel type_price_function_convert_C1]
-mulsd xmm0, xmm1
-ret
-type_price_function_convert_L2:
-ret
-
-type_pack_product_price_function_get:
-test rdx, rdx
-jne type_pack_product_price_function_get_L1
-mov rax, [rcx]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L1:
-cmp rdx, 1
-jne type_pack_product_price_function_get_L3
-mov rax, [rcx+8]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L3:
-cmp rdx, 2
-jne type_pack_product_price_function_get_L5
-mov rax, [rcx+16]
-ret
-jmp type_pack_product_price_function_get_L0
-type_pack_product_price_function_get_L5:
-xor rax, rax
-ret
-type_pack_product_price_function_get_L0:
-ret
-
-type_pack_product_price_function_set:
-test rdx, rdx
-jne type_pack_product_price_function_set_L1
-mov qword [rcx], r8
-jmp type_pack_product_price_function_set_L0
-type_pack_product_price_function_set_L1:
-cmp rdx, 1
-jne type_pack_product_price_function_set_L3
-mov qword [rcx+8], r8
-jmp type_pack_product_price_function_set_L0
-type_pack_product_price_function_set_L3:
-cmp rdx, 2
-jne type_pack_product_price_function_set_L0
-mov qword [rcx+16], r8
-type_pack_product_price_function_set_L0:
-ret
-
-type_pair_product_price_constructor:
-push rbx
-push rsi
-sub rsp, 40
-mov r8, rcx
-mov rcx, 16
-mov rbx, rdx
-mov rsi, r8
-call allocate
-mov qword [rax], rsi
-mov qword [rax+8], rbx
-add rsp, 40
-pop rsi
-pop rbx
-ret
-
-type_string_constructor:
-push rbx
-sub rsp, 48
-mov rdx, rcx
-mov rcx, 8
-mov rbx, rdx
-call allocate
-mov qword [rax], rbx
-add rsp, 48
-pop rbx
-ret
-
-type_string_function_combine:
-push rbx
-push rsi
-push rdi
-push rbp
-sub rsp, 40
-mov rbx, rcx
-mov rsi, rdx
-call type_string_function_length
+global _V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String
+_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String:
+sub rsp, 8
 mov rcx, rsi
-mov rdi, rax
-call type_string_function_length
-add rax, 1
-lea rcx, [rdi+rax]
-mov rbp, rax
-call allocate
-mov rcx, [rbx]
-mov rdx, rdi
-mov r8, rax
-mov rbx, rax
-call copy
-mov rcx, [rsi]
-mov rdx, rbp
-mov r8, rbx
-mov r9, rdi
-call offset_copy
-mov rcx, rbx
-call type_string_constructor
-add rsp, 40
-pop rbp
-pop rdi
-pop rsi
+mov rsi, rcx
+call _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E
+mov rcx, [rax]
+mov rax, [rcx]
+add rsp, 8
+ret
+
+global _V15enchant_productP4PackIP7ProductP5PriceEx
+_V15enchant_productP4PackIP7ProductP5PriceEx:
+sub rsp, 8
+mov rax, rsi
+mov rsi, rax
+call _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E
+mov rdi, [rax]
+call _VN7Product7enchantEv
+add rsp, 8
+ret
+
+global _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx
+_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx:
+sub rsp, 8
+mov rcx, rsi
+mov rsi, rcx
+call _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E
+mov rdi, [rax]
+call _VN7Product12is_enchantedEv_rx
+add rsp, 8
+ret
+
+global _V17get_product_priceP4PackIP7ProductP5PriceExc_rd
+_V17get_product_priceP4PackIP7ProductP5PriceExc_rd:
+push rbx
+sub rsp, 16
+mov rcx, rsi
+mov rsi, rcx
+mov rbx, rdx
+call _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E
+mov rdi, [rax+8]
+mov rsi, rbx
+call _VN5Price7convertEc_rd
+add rsp, 16
 pop rbx
 ret
 
-type_string_function_plus:
-sub rsp, 40
-call type_string_function_combine
-add rsp, 40
+_V4initv_rx:
+push rbx
+sub rsp, 16
+mov rax, 1
+add rsp, 16
+pop rbx
+ret
+call _V11create_packv_rP4PackIP7ProductP5PriceE
+mov rdi, rax
+xor rsi, rsi
+xor rdx, rdx
+xor rcx, rcx
+xor r8, r8
+mov rbx, rax
+call _V11set_productP4PackIP7ProductP5PriceExPhxc
+mov rdi, rbx
+xor rsi, rsi
+call _V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String
+mov rdi, rbx
+xor rsi, rsi
+call _V15enchant_productP4PackIP7ProductP5PriceEx
+mov rdi, rbx
+xor rsi, rsi
+call _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx
+mov rdi, rbx
+xor rsi, rsi
+xor rdx, rdx
+call _V17get_product_priceP4PackIP7ProductP5PriceExc_rd
+pop rbx
 ret
 
-type_string_function_get:
-mov r8, [rcx]
-movzx rax, byte [r8+rdx]
+_VN7Product7enchantEv:
+push rbx
+sub rsp, 16
+mov rax, rdi
+lea rdi, [rel _VN7Product7enchantEv_S0]
+mov rbx, rax
+call _VN6String4initEPh_rS0_
+mov rdi, rax
+mov rsi, [rbx]
+call _VN6String4plusEPS__rS0_
+mov qword [rbx], rax
+add rsp, 16
+pop rbx
 ret
 
-type_string_function_length:
+_VN7Product12is_enchantedEv_rx:
+push rbx
+sub rsp, 16
+mov rcx, rdi
+mov rdi, [rcx]
+xor rsi, rsi
+mov rbx, rcx
+call _VN6String3getEx_rh
+movzx rax, al
+cmp rax, 105
+mov rdi, rbx
+jne _VN7Product12is_enchantedEv_rx_L0
+mov rax, 1
+add rsp, 16
+pop rbx
+ret
+_VN7Product12is_enchantedEv_rx_L0:
 xor rax, rax
-mov r8, [rcx]
-movzx rdx, byte [r8+rax]
-test rdx, rdx
-je type_string_function_length_L1
-type_string_function_length_L0:
+add rsp, 16
+pop rbx
+ret
+
+_VN5Price7convertEc_rd:
+movsx rcx, byte [rdi+8]
+movsx rsi, sil
+cmp rcx, rsi
+jne _VN5Price7convertEc_rd_L0
+cvtsi2sd xmm0, qword [rdi]
+ret
+_VN5Price7convertEc_rd_L0:
+movsx rsi, sil
+test rsi, rsi
+jne _VN5Price7convertEc_rd_L3
+cvtsi2sd xmm0, qword [rdi]
+movsd xmm1, qword [rel _VN5Price7convertEc_rd_C0]
+mulsd xmm0, xmm1
+ret
+jmp _VN5Price7convertEc_rd_L2
+_VN5Price7convertEc_rd_L3:
+cvtsi2sd xmm0, qword [rdi]
+movsd xmm1, qword [rel _VN5Price7convertEc_rd_C1]
+mulsd xmm0, xmm1
+ret
+_VN5Price7convertEc_rd_L2:
+ret
+
+_VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E:
+test rsi, rsi
+jne _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L1
+mov rax, [rdi]
+ret
+jmp _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L0
+_VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L1:
+cmp rsi, 1
+jne _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L3
+mov rax, [rdi+8]
+ret
+jmp _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L0
+_VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L3:
+cmp rsi, 2
+jne _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L5
+mov rax, [rdi+16]
+ret
+jmp _VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L0
+_VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L5:
+xor rax, rax
+ret
+_VN4PackIP7ProductP5PriceE3getEx_rP4PairIS1_S3_E_L0:
+ret
+
+_VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E:
+test rsi, rsi
+jne _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L1
+mov qword [rdi], rdx
+jmp _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L0
+_VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L1:
+cmp rsi, 1
+jne _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L3
+mov qword [rdi+8], rdx
+jmp _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L0
+_VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L3:
+cmp rsi, 2
+jne _VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L0
+mov qword [rdi+16], rdx
+_VN4PackIP7ProductP5PriceE3setExP4PairIS1_S3_E_L0:
+ret
+
+_VN4PairIP7ProductP5PriceE4initES1_S3__rPh:
+push rbx
+push rbp
+sub rsp, 8
+mov rcx, rdi
+mov rdi, 16
+mov rbx, rcx
+mov rbp, rsi
+call _V8allocatex_rPh
+mov qword [rax], rbx
+mov qword [rax+8], rbp
+add rsp, 8
+pop rbp
+pop rbx
+ret
+
+_VN6String4initEPh_rS0_:
+push rbx
+sub rsp, 16
+mov rcx, rdi
+mov rdi, 8
+mov rbx, rcx
+call _V8allocatex_rPh
+mov qword [rax], rbx
+add rsp, 16
+pop rbx
+ret
+
+_VN6String7combineEPS__rS0_:
+push rbx
+push rbp
+push r12
+push r13
+sub rsp, 8
+mov rbx, rsi
+mov rbp, rdi
+call _VN6String6lengthEv_rx
+mov rdi, rbx
+mov r12, rax
+call _VN6String6lengthEv_rx
 add rax, 1
-mov r8, [rcx]
-movzx rdx, byte [r8+rax]
-test rdx, rdx
-jne type_string_function_length_L0
-type_string_function_length_L1:
+lea rdi, [r12+rax]
+mov r13, rax
+call _V8allocatex_rPh
+mov rdi, [rbp]
+mov rsi, r12
+mov rdx, rax
+mov rbp, rax
+call _V4copyPhxPS_
+mov rdi, [rbx]
+mov rsi, r13
+mov rdx, rbp
+mov rcx, r12
+call _V11offset_copyPhxPS_x
+mov rdi, rbp
+call _VN6String4initEPh_rS0_
+add rsp, 8
+pop r13
+pop r12
+pop rbp
+pop rbx
+ret
+
+_VN6String4plusEPS__rS0_:
+sub rsp, 8
+call _VN6String7combineEPS__rS0_
+add rsp, 8
+ret
+
+_VN6String3getEx_rh:
+mov rcx, [rdi]
+movzx rax, byte [rcx+rsi]
+ret
+
+_VN6String6lengthEv_rx:
+xor rax, rax
+mov rdx, [rdi]
+movzx rcx, byte [rdx+rax]
+test rcx, rcx
+je _VN6String6lengthEv_rx_L1
+_VN6String6lengthEv_rx_L0:
+add rax, 1
+mov rdx, [rdi]
+movzx rcx, byte [rdx+rax]
+test rcx, rcx
+jne _VN6String6lengthEv_rx_L0
+_VN6String6lengthEv_rx_L1:
 ret
 
 section .data
 
-type_product_function_enchant_S0 db 'i', 0
-type_price_function_convert_C0 dq 0.8
-type_price_function_convert_C1 dq 1.25
+_VN7Product7enchantEv_S0 db 'i', 0
+_VN5Price7convertEc_rd_C0 dq 0.8
+_VN5Price7convertEc_rd_C1 dq 1.25

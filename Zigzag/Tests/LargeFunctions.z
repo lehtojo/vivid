@@ -8,7 +8,7 @@ export g(a: num, b: num) {
    => f(a + 1, a / 2, a * 4, b + 1, b * 2, b / 4)
 }
 
-run() {
+init() {
    g(1, 1)
    => 1
 }

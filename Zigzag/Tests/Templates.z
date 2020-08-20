@@ -113,7 +113,7 @@ export get_product_price(pack: Pack(Product, Price), i: num, currency: tiny) {
    => pack[i].second.convert(currency)
 }
 
-run() {
+init() {
    => true
 
    pack = create_pack()

@@ -17,7 +17,7 @@ public static class Translator
 	private static List<Variable> GetAllSavedLocalVariables(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is StackVariableHandle v && v.Variable.IsLocal)
+			.Where(h => h is StackVariableHandle v && v.Variable.IsPredictable && v.Variable.LocalAlignment == null)
 			.Select(h => h.To<StackVariableHandle>().Variable)
 			.Distinct()
 			.ToList();

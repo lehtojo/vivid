@@ -8,7 +8,7 @@ decimal_array_test(a, b, c) {
     => array[(b + 7) as num] + c
 }
 
-run() {
+init() {
     a = 100.0
     b = 700.0
     c = basic_calculation(a, b)

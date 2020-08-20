@@ -20,14 +20,16 @@ public static class Assembler
 
     private const string TEXT_SECTION = "section .text";
 
+    public const string ENTRY_FUNCTION_ASSEMBLY_NAME = "function_init";
+
     private const string LINUX_TEXT_SECTION_HEADER = "global _start" + "\n" +
                                                      "_start:" + "\n" +
-                                                     "call function_run" + "\n" +
+                                                     "call {0}" + "\n" +
                                                      "mov rax, 60" + "\n" +
                                                      "xor rdi, rdi" + "\n" +
                                                      "syscall" + SEPARATOR;
 
-    private const string WINDOWS_TEXT_SECTION_HEADER = "global function_run";
+    private const string WINDOWS_TEXT_SECTION_HEADER = "global {0}";
 
     private const string DATA_SECTION = "section .data";
     private const string SEPARATOR = "\n\n";
@@ -36,9 +38,23 @@ public static class Assembler
     {
         var builder = new StringBuilder();
 
-        foreach (var overload in from function in context.Functions.Values from overload in function.Overloads where overload.IsImported select overload)
+        foreach (var function in context.Functions.Values.SelectMany(l => l.Overloads))
         {
-            builder.AppendLine($"extern {overload.GetFullname()}");
+            if (!function.IsImported)
+            {
+                continue;
+            }
+
+            foreach (var implementation in function.Implementations)
+            {
+                if (!implementation.References.Any() && function != AllocationFunction)
+                {
+                    continue;
+                }
+
+                builder.AppendLine($"extern {implementation.GetFullname()}");
+            }
+            
         }
 
         builder.Append(SEPARATOR);
@@ -67,16 +83,16 @@ public static class Assembler
             // Export this function if necessary
             if (function.IsExported)
             {
-                builder.AppendLine($"global {function.GetFullname()}");
-
+                builder.AppendLine($"global {implementation.GetFullname()}");
+                
                 if (IsTargetWindows)
                 {
-                    builder.AppendLine($"export {function.GetFullname()}");
+                    builder.AppendLine($"export {implementation.GetFullname()}");
                 }
             }
 
             // Append the function label
-            builder.AppendLine(function.GetFullname() + ':');
+            builder.AppendLine(implementation.GetFullname() + ':');
 
             var unit = new Unit(implementation);
 
@@ -84,7 +100,7 @@ public static class Assembler
             {
                 // Create the most outer scope where all instructions will be placed
                 using var scope = new Scope(unit);
-
+                
                 // Initialize this function
                 unit.Append(new InitializeInstruction(unit));
 
@@ -101,7 +117,7 @@ public static class Assembler
                 if (function is Constructor a)
                 {
                     Constructors.CreateHeader(unit, a.GetTypeParent() ??
-                        throw new ApplicationException("Couldn't get constructor owner type"));
+                        throw new ApplicationException("Could not get constructor owner type"));
                 }
 
                 Builders.Build(unit, implementation.Node!);
@@ -109,7 +125,7 @@ public static class Assembler
                 if (function is Constructor b)
                 {
                     Constructors.CreateFooter(unit, b.GetTypeParent() ??
-                        throw new ApplicationException("Couldn't get constructor owner type"));
+                        throw new ApplicationException("Could not get constructor owner type"));
                 }
             });
 
@@ -278,16 +294,25 @@ public static class Assembler
         var builder = new StringBuilder();
 
         builder.AppendLine(TEXT_SECTION);
-        builder.AppendLine(IsTargetWindows ? WINDOWS_TEXT_SECTION_HEADER : LINUX_TEXT_SECTION_HEADER);
+
+        var entry = context.GetFunction(Keywords.INIT.Identifier)!.Overloads.First().Implementations.First();
+        var header = IsTargetWindows ? WINDOWS_TEXT_SECTION_HEADER : LINUX_TEXT_SECTION_HEADER;
+
+        builder.AppendLine(string.Format(header, entry.GetFullname()));
+
         builder.Append(GetExternalFunctions(context));
         builder.Append(GetText(context, out List<ConstantDataSectionHandle> constants));
         builder.Append(SEPARATOR);
 
-        builder.AppendLine(DATA_SECTION);
-        builder.Append(GetData(context));
-        builder.Append(GetConstantData(constants));
-        builder.Append(SEPARATOR);
+        var data = GetData(context) + GetConstantData(constants);
 
+        if (Regex.IsMatch(data, "[a-zA-z0-9]"))
+        {
+            builder.AppendLine(DATA_SECTION);
+            builder.Append(data);
+            builder.Append(SEPARATOR);
+        }
+        
         return Regex.Replace(builder.Replace("\r\n", "\n").ToString(), "\n{3,}", "\n\n");
     }
 }

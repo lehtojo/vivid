@@ -23,7 +23,7 @@ public static class Lambdas
 
       // Store the function pointer first
       var function_pointer_location = new Result(new MemoryHandle(unit, lambda, 0), Assembler.Format);
-      var function_pointer = new Result(new DataSectionHandle(node.Lambda.GetFullname(), true), Assembler.Format);
+      var function_pointer = new Result(new DataSectionHandle(node.Lambda.Implementation.GetFullname(), true), Assembler.Format);
 
       unit.Append(new MoveInstruction(unit, function_pointer_location, function_pointer));
 

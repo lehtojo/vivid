@@ -7,8 +7,19 @@ public static class References
 		return new ConstantHandle(value);
 	}
 
-	public static Handle CreateVariableHandle(Unit unit, Result? self, Variable variable)
+	public static Handle CreateVariableHandle(Unit unit, Variable variable)
 	{
+		return CreateVariableHandle(unit, null, null, variable);
+	}
+
+	public static Handle CreateVariableHandle(Unit unit, Result? self, Type? self_type, Variable variable)
+	{
+		// The self pointer must always come with its type
+		if (self != null && self_type == null)
+		{
+			throw new InvalidOperationException("Tried to create variable handle which used a self pointer without its type");
+		}
+
       Handle? handle;
 
       switch (variable.Category)
@@ -27,13 +38,11 @@ public static class References
 
 			case VariableCategory.MEMBER:
 			{
-				var parent = (Type)variable.Context;
-
 				handle = new MemoryHandle
 				(
 					unit, 
 					self ?? throw new ArgumentException("Member variable didn't have its base pointer"), 
-					variable.GetAlignment(parent) ?? throw new ApplicationException("Member variable wasn't aligned")
+					variable.GetAlignment(self_type!) ?? throw new ApplicationException("Member variable wasn't aligned")
 				);
 				
 				break;
@@ -59,13 +68,15 @@ public static class References
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
 		Result? self = null;
+		Type? self_type = null;
 
 		if (variable.Category == VariableCategory.MEMBER)
 		{
-			self = new GetVariableInstruction(unit, null, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
+			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
+			self_type = unit.Self.Type!;
 		}
 
-		var handle = new GetVariableInstruction(unit, self, variable, mode).Execute();
+		var handle = new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 		handle.Metadata.Attach(new VariableAttribute(variable));
 
 		return handle;

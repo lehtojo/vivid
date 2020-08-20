@@ -30,7 +30,7 @@ f(holder, a, b) {
     => a
 }
 
-run() {
+init() {
     holder = Holder()
     => f(holder, 7, 10) - 7
 }

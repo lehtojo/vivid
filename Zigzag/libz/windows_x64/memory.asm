@@ -4,8 +4,8 @@ extern VirtualAlloc
 extern VirtualFree
 
 ; rcx: Bytes
-global allocate:function
-allocate:
+global _V8allocatex_rPh:function
+_V8allocatex_rPh:
 
 mov rdx, rcx ; Bytes
 xor rcx, rcx ; lpAddress
@@ -18,8 +18,8 @@ add rsp, 40
 
 ret
 
-global deallocate:function
-deallocate:
+global _V10deallocatePhx:function
+_V10deallocatePhx:
 
 ; rcx = lpAddress
 xor rdx, rdx ; dwSize
@@ -34,8 +34,8 @@ ret
 ; rcx: Source
 ; rdx: Count
 ; r8: Destination
-global copy:function
-copy:
+global _V4copyPhxPS_:function
+_V4copyPhxPS_:
 push rdi
 push rsi
 
@@ -53,8 +53,8 @@ ret
 ; rdx: Count
 ; r8: Destination
 ; r9: Offset
-global offset_copy:function
-offset_copy:
+global _V11offset_copyPhxPS_x:function
+_V11offset_copyPhxPS_x:
 push rdi
 push rsi
 
@@ -71,8 +71,8 @@ ret
 
 ; rcx: Destination
 ; rdx: Count
-global zero:function
-zero:
+global _V4zeroPhx:function
+_V4zeroPhx:
 push rdi
 
 mov rdi, rcx ; rdi = Destination
@@ -87,8 +87,8 @@ ret
 ; rcx: Destination
 ; rdx: Count
 ; r8: Value
-global fill:function
-fill:
+global _V4fillPhxxx:function
+_V4fillPhxxx:
 push rdi
 
 mov rdi, rcx ; rdi = Destination

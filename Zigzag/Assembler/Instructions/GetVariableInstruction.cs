@@ -3,17 +3,21 @@ using System.Collections.Generic;
 public class GetVariableInstruction : LoadInstruction
 {
 	public Result? Self { get; private set; }
+	public Type? SelfType { get; private set; }
 	public Variable Variable { get; private set; }
 	private Result Current { get; set; }
 
-	public GetVariableInstruction(Unit unit, Result? self, Variable variable, AccessMode mode) : base(unit, mode)
+	public GetVariableInstruction(Unit unit, Variable variable, AccessMode mode) : this(unit, null, null, variable, mode) {}
+
+	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable, AccessMode mode) : base(unit, mode)
 	{
 		Self = self;
+		SelfType = self_type;
 		Variable = variable;
 		Description = $"Get the current handle of variable '{variable.Name}' with { (mode == AccessMode.WRITE ? "write" : "read") } access";
 		Result.Format = variable.Type!.Format;
 
-		Configure(References.CreateVariableHandle(unit, Self, variable));
+		Configure(References.CreateVariableHandle(unit, Self, self_type, variable));
 	}
 
 	public override void OnSimulate()

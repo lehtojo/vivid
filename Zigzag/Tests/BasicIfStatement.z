@@ -58,7 +58,7 @@ export if_statement_not_equals(a, b) {
 	=> false
 }
 
-run() {
+init() {
 	=> 1
 	
 	basic_if_statement(1, 2)

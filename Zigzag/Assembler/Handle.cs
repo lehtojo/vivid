@@ -568,7 +568,7 @@ public class CalculationHandle : Handle
    {
       if ((Multiplicand.Value.Type != HandleType.REGISTER && Multiplicand.Value.Type != HandleType.CONSTANT) ||
           (Addition != null && (Addition.Value.Type != HandleType.REGISTER && Addition.Value.Type != HandleType.CONSTANT)) ||
-            Multiplier <= 0 || Constant < 0)
+            Multiplier <= 0)
       {
          throw new ApplicationException("Detected an invalid calculation handle");
       }
@@ -592,7 +592,7 @@ public class CalculationHandle : Handle
 
       if (Constant != 0)
       {
-         result += "+" + Constant;
+         result += (Constant > 0 ? "+" : "") + Constant;
       }
 
       return '[' + result + ']';

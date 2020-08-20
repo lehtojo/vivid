@@ -53,7 +53,7 @@ memcpy(source, destination, count) {
     }
 }
 
-run() {
+init() {
 
     source = allocate(256)
 	destination = allocate(256)

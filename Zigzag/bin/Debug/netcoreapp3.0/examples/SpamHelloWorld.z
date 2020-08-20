@@ -1,4 +1,4 @@
-run() {
+init() {
     i = 0
     loop (i = 0, i < 10, ++i) {
         println('Hello World!')

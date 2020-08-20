@@ -20,7 +20,7 @@ public class MetadataAttribute
 
 	public T To<T>() where T : MetadataAttribute
 	{
-		return this as T ?? throw new ApplicationException($"Couldn't convert 'MetadataAttribute' to '{typeof(T).Name}'");
+		return this as T ?? throw new ApplicationException($"Could not convert 'MetadataAttribute' to '{typeof(T).Name}'");
 	}
 
 	public virtual bool Contradicts(MetadataAttribute other)

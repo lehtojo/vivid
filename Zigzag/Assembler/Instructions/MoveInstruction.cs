@@ -48,7 +48,7 @@ public class MoveInstruction : DualParameterInstruction
    }
 
    public bool IsSafe { get; set; } = false;
-   public bool IsRedundant => First.Value.Equals(Second.Value);
+   public bool IsRedundant => First.Value.Equals(Second.Value) && First.Format == Second.Format;
 
    public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format)
    {
@@ -529,12 +529,18 @@ public class MoveInstruction : DualParameterInstruction
       }
 
       // Return if no conversion is needed
-      if (Source!.Value!.Size == Destination!.Value!.Size)
+      if (Source!.Value!.Size.Bytes == Destination!.Value!.Size.Bytes || Source.Value.Is(HandleType.CONSTANT))
       {
          return;
       }
 
       // NOTE: Now the destination parameter must be a register
+
+      if (Source.Value.Size.Bytes > Destination.Value.Size.Bytes)
+      {
+         Source.Value.Format = Destination.Value.Format;
+         return;
+      }  
 
       // In 32-bit mode there's only one conversion instruction type needed
       if (Assembler.IsTargetX86)

@@ -6,8 +6,25 @@ public class LambdaImplementation : FunctionImplementation
    public List<CapturedVariable> Captures { get; private set; } = new List<CapturedVariable>();
    public Type? Type { get; private set; }
 
-   public LambdaImplementation(Lambda metadata, Context? context = null) : base(metadata, context) {}
+   public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type = null, Context? context = null) 
+      : base(metadata, parameters, return_type, context) 
+   {
+      Prefix = "_";
+      Postfix = "_" + Postfix;
+   }
    
+   protected override void OnMangle(Mangle mangle)
+	{
+		mangle += $"_{Name}_";
+      mangle += Parameters.Select(p => p.Type!);
+
+      if (ReturnType != null)
+      {
+         mangle += "_r";
+         mangle += ReturnType;
+      }
+	}
+
    public void Seal()
    {
       if (Type == null || Type.Variables.Any())

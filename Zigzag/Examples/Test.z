@@ -93,7 +93,7 @@ Socket {
 
 import sleep(seconds: u32)
 
-run() {
+init() {
    socket = Socket()
 
    loop (socket.connect_to('192.168.43.112', 7777) == false) {}

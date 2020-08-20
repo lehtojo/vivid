@@ -1,4 +1,4 @@
-run() {
+init() {
 	i = 1000
 
 	alkuluvut = num[i]

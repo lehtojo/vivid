@@ -29,6 +29,6 @@ loop_feature_test(count) {
     => result
 }
 
-run() {
+init() {
     loop_feature_test(10)
 }

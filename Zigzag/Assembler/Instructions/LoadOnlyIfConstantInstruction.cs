@@ -21,15 +21,23 @@ public class LoadOnlyIfConstantInstruction : Instruction
 
       if (!handle.IsConstant) return;
       
-      // Decide the destination if it isn't predefined
-      if (Result.IsEmpty)
-      {
-         var register = handle.Format.IsDecimal() ? Unit.GetNextMediaRegisterWithoutReleasing() 
-                                                   : Unit.GetNextRegisterWithoutReleasing();
+      var recommendation = handle.GetRecommendation(Unit);
+      var media_register = handle.Format.IsDecimal();
 
-         Result.Value = register == null ? References.CreateVariableHandle(Unit, null, Variable) 
-                                          : new RegisterHandle(register);
+      Register? register = null;
+
+      if (recommendation != null)
+      {
+         register = Memory.Consider(Unit, recommendation, media_register);
       }
+
+      if (register == null)
+      {
+         register = media_register ? Unit.GetNextMediaRegisterWithoutReleasing()
+            : Unit.GetNextRegisterWithoutReleasing();
+      }
+
+      Result.Value = register == null ? References.CreateVariableHandle(Unit, Variable) : new RegisterHandle(register);
 
       Unit.Append(new MoveInstruction(Unit, Result, handle)
       {

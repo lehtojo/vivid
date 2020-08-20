@@ -148,7 +148,7 @@ export logical_operators_3(a: num, b: num) {
    }
 }
 
-run() {
+init() {
    logical_operators_1(1, 1)
    logical_operators_2(1, 1, 1)
    logical_operators_3(1, 1)

@@ -16,12 +16,11 @@ public class ResolverPhase : Phase
 
 		if (implementation.IsMember)
 		{
-			var type = implementation.GetTypeParent()!;
-			builder.Append($"Member function '{implementation.GetHeader()}' of type '{type.Name}':\n");
+			builder.Append($"Function {implementation.GetHeader()}:\n");
 		}
 		else
 		{
-			builder.Append($"Global function '{implementation.GetHeader()}':\n");
+			builder.Append($"Function {implementation.GetHeader()}:\n");
 		}
 		
 		var errors = new List<Status>();
@@ -29,7 +28,7 @@ public class ResolverPhase : Phase
 		if (implementation.ReturnType?.IsUnresolved ?? false)
 		{
 			errors.Add(
-				Status.Error("Couldn't resolve the return type")
+				Status.Error("Could not resolve the return type")
 			);
 		}
 
@@ -48,7 +47,7 @@ public class ResolverPhase : Phase
 		errors.AddRange(
 			implementation.Variables.Values
 				.Where(v => v.IsUnresolved)
-				.Select(v => Status.Error($"Couldn't resolve type of local variable '{v.Name}'"))
+				.Select(v => Status.Error($"Could not resolve type of local variable '{v.Name}'"))
 		);
 		
 		if (!errors.Any())
@@ -73,16 +72,11 @@ public class ResolverPhase : Phase
 			if (variable.Context.IsType)
 			{
 				var type = (Type)variable.Context;
-				builder.Append($"ERROR: Couldn't resolve type of member variable '{variable.Name}' of type '{type.Name}'");
+				builder.Append($"ERROR: Could not resolve type of member variable '{variable.Name}' of type '{type.Name}'");
 			}
-			else if (variable.Context.IsGlobal)
+			else if (variable.Context.Parent == null)
 			{
-				builder.Append($"ERROR: Couldn't resolve type of global variable '{variable.Name}'");
-			}
-			else
-			{
-				var function = variable.Context.GetFunctionParent() ?? throw new ApplicationException("Couldn't get the function");
-				builder.Append($"ERROR: Couldn't resolve type of local variable '{variable.Name}' of function '{function.GetHeader()}'");
+				builder.Append($"ERROR: Could not resolve type of global variable '{variable.Name}'");
 			}
 		}
 

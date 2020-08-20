@@ -26,7 +26,7 @@ export divide_by_seven(a: num) {
    => a / 7
 }
 
-run() {
+init() {
    divide_by_two(4)
    divide_by_four(40)
    divide_by_eight(64)

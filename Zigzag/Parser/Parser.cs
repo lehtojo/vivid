@@ -566,7 +566,7 @@ public static class Parser
         var context = new Context();
         Types.Inject(context);
 
-        var number = context.GetType("num") ?? throw new ApplicationException("Couldn't find type 'num'");
+        var number = context.GetType("num") ?? throw new ApplicationException("Could not find type 'num'");
 
         var allocate = new Function
         (
@@ -574,33 +574,6 @@ public static class Parser
             "allocate",
             Types.LINK,
             new Parameter("bytes", number)
-        );
-
-        var power = new Function
-        (
-            AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
-            "integer_power",
-            number,
-            new Parameter("a", number),
-            new Parameter("b", number)
-        );
-
-        var system_print = new Function
-        (
-            AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
-            "sys_print",
-            Types.UNKNOWN,
-            new Parameter("address", Types.LINK),
-            new Parameter("count", number)
-        );
-
-        var system_read = new Function
-        (
-            AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
-            "sys_read",
-            number,
-            new Parameter("buffer", Types.LINK),
-            new Parameter("count", number)
         );
 
         var copy = new Function
@@ -634,9 +607,6 @@ public static class Parser
         );
 
         context.Declare(allocate);
-        context.Declare(power);
-        context.Declare(system_print);
-        context.Declare(system_read);
         context.Declare(copy);
         context.Declare(offset_copy);
         context.Declare(deallocate);

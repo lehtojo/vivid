@@ -93,14 +93,11 @@ public static class Builders
 
 			default:
 			{
-				var iterator = node.First;
-
 				Result? reference = null;
 
-				while (iterator != null)
+				foreach (var iterator in node)
 				{
 					reference = Build(unit, iterator);
-					iterator = iterator.Next;
 				}
 
 				return reference ?? new Result();

@@ -32,7 +32,7 @@ public class FilePhase : Phase
 				}
 				catch
 				{
-					return Status.Error("Couldn't load file '{0}'", file);
+					return Status.Error("Could not load file '{0}'", file);
 				}
 
 				return Status.OK;

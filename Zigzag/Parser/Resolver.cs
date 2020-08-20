@@ -127,21 +127,21 @@ public static class Resolver
 	/// Returns the shared type between the types
 	/// </summary>
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
-	public static Type? GetSharedType(Type? a, Type? b)
+	public static Type? GetSharedType(Type? expected, Type? actual)
 	{
-		if (Equals(a, b))
+		if (Equals(expected, actual))
 		{
-			return a;
+			return expected;
 		}
 		
-		if (a == Types.UNKNOWN || b == Types.UNKNOWN)
+		if (expected == Types.UNKNOWN || actual == Types.UNKNOWN)
 		{
 			return Types.UNKNOWN;
 		}
 
-		if (a is Number x && b is Number y)
+		if (expected is Number x && actual is Number y)
 		{
-			if (a is Decimal || b is Decimal)
+			if (expected is Decimal || actual is Decimal)
 			{
 				return Types.DECIMAL;
 			}
@@ -149,15 +149,7 @@ public static class Resolver
 			return GetSharedNumber(x, y);
 		}
 
-		foreach (Type type in a.Supertypes)
-		{
-			if (b.Supertypes.Contains(type))
-			{
-				return type;
-			}
-		}
-
-		return Types.UNKNOWN;
+		return actual.IsSuperTypeDeclared(expected) ? expected : Types.UNKNOWN;
 	}
 
 	 /// <summary>

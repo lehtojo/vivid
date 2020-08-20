@@ -34,7 +34,7 @@ public class InheritancePattern : Pattern
 		var inheritant = tokens[INHERITANT].To<DynamicToken>().Node.To<TypeNode>().Type;
 		var inheritor = tokens[INHERITOR].To<DynamicToken>().Node.To<TypeNode>().Type;
 
-		inheritor.Supertypes.Add(inheritant);
+		inheritor.Supertypes.Insert(0, inheritant);
 	
 		return tokens[INHERITOR].To<DynamicToken>().Node;
 	}

@@ -21,7 +21,7 @@ export create_car(price: decimal) {
    => Car(price)
 }
 
-run() {
+init() {
    => 1
 
    create_apple()

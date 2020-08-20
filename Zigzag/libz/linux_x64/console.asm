@@ -2,8 +2,8 @@ section .text
 
 ; rdi: Text
 ; rsi: Length
-global sys_print
-sys_print:
+global _V14internal_printPhx:function hidden
+_V14internal_printPhx:
 mov rdx, rsi
 mov rsi, rdi
 mov rdi, 1
@@ -13,8 +13,8 @@ ret
 
 ; rdi: Buffer
 ; rsi: Length
-global sys_read
-sys_read:
+global _V13internal_readPhx_rx:function hidden
+_V13internal_readPhx_rx:
 mov rdx, rsi
 mov rsi, rdi
 xor rdi, rdi

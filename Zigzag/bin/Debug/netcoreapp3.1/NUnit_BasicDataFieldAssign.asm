@@ -1,36 +1,35 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_basic_data_field_assign
-export function_basic_data_field_assign
-function_basic_data_field_assign:
-mov dword [rcx], 314159265
-mov byte [rcx+4], 64
-movsd xmm0, qword [rel function_basic_data_field_assign_C0]
-movsd qword [rcx+5], xmm0
+extern _V8allocatex_rPh
+
+global _V23basic_data_field_assignP13BasicDataType
+_V23basic_data_field_assignP13BasicDataType:
+mov dword [rdi], 314159265
+mov byte [rdi+4], 64
+movsd xmm0, qword [rel _V23basic_data_field_assignP13BasicDataType_C0]
+movsd qword [rdi+5], xmm0
 mov rax, -2718281828459045
-mov qword [rcx+13], rax
-mov word [rcx+21], 12345
+mov qword [rdi+13], rax
+mov word [rdi+21], 12345
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-mov rcx, 23
-call allocate
-mov rcx, rax
-call function_basic_data_field_assign
+mov rdi, 23
+call _V8allocatex_rPh
+mov rdi, rax
+call _V23basic_data_field_assignP13BasicDataType
 ret
 
 section .data
 
-function_basic_data_field_assign_C0 dq 1.414
+_V23basic_data_field_assignP13BasicDataType_C0 dq 1.414

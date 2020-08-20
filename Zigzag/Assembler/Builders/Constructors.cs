@@ -11,7 +11,7 @@ public static class Constructors
 
 		if (unit.Self == null)
 		{
-			throw new ApplicationException("Couldn't create constructor header since this pointer was missing");
+			throw new ApplicationException("Could not create constructor header since this pointer was missing");
 		}
 
 		var allocation = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, (long)type.ContentSize));

@@ -1,12 +1,10 @@
-run() {
-	i = 0
+init() {
 	loop (i = 0, i < 10, ++i) {
 		println('Hello World!')
 	}
 
-	hello_world = string('Hello World!')
+	hello_world = String('Hello World!')
 
-	i = 0
 	loop (i = 0, i < 10, ++i) {
 		printsln(hello_world)
 	}

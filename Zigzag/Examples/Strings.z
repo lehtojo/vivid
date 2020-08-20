@@ -2,7 +2,7 @@ Holder {
    i: num
 }
 
-run() {
+init() {
    hello = string('Hello ')
    world = string('world!')
 

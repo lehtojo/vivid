@@ -59,7 +59,7 @@ pidigits(digits) {
     => result
 }
 
-run() {
+init() {
     pi = pidigits(10000)
     print(pi)
 }

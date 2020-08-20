@@ -1,8 +1,68 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Node
+public class NodeEnumerator : IEnumerator, IEnumerator<Node>
+{
+	private Node? Position { get; set; }
+	private Node? Next { get; set; }
+
+	public NodeEnumerator(Node root)
+	{
+		Position = null;
+		Next = root.First;
+	}
+
+	public bool MoveNext()
+	{
+		if (Next == null)
+		{
+			return false;
+		}
+
+		Position = Next;
+		Next = Position.Next;
+		return true;
+	}
+
+	public void Reset()
+	{
+		if (Position == null)
+		{
+			return;
+		}
+
+		while (Position.Previous != null)
+		{
+			Position = Position.Previous;
+		}
+
+		Next = Position;
+		Position = null;
+	}
+
+	public void Dispose()
+	{
+		Position = null;
+		Next = null;
+	}
+
+	public Node Current
+	{
+		get => Position ?? throw new InvalidOperationException("Node enumerator out of bounds");
+	}
+
+	object IEnumerator.Current
+	{
+		get
+		{
+			return Position!;
+		}
+	}
+}
+
+public class Node : IEnumerable, IEnumerable<Node>
 {
 	public Node? Parent { get; set; }
 	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>()); 
@@ -28,12 +88,12 @@ public class Node
 
 	public T To<T>() where T : Node
 	{
-		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Node' to '{typeof(T).Name}'");
+		return (T)this ?? throw new ApplicationException($"Could not convert 'Node' to '{typeof(T).Name}'");
 	}
 
 	public new Type GetType()
 	{
-		return (this as IType)?.GetType() ?? throw new ApplicationException($"Couldn't get type from {Enum.GetName(typeof(NodeType), GetNodeType())}");
+		return (this as IType)?.GetType() ?? throw new ApplicationException($"Could not get type from {Enum.GetName(typeof(NodeType), GetNodeType())}");
 	}
 
 	public Type? TryGetType()
@@ -441,6 +501,21 @@ public class Node
 	public virtual NodeType GetNodeType()
 	{
 		return NodeType.NORMAL;
+	}
+
+	IEnumerator IEnumerable.GetEnumerator()
+	{
+		return (IEnumerator) GetEnumerator();
+	}
+
+	IEnumerator<Node> IEnumerable<Node>.GetEnumerator()
+	{
+		return (IEnumerator<Node>) GetEnumerator();
+	}
+
+	public NodeEnumerator GetEnumerator()
+	{
+		return new NodeEnumerator(this);
 	}
 
 	public override bool Equals(object? obj)

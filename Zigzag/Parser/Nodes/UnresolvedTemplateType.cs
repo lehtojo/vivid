@@ -1,7 +1,7 @@
 ﻿public class UnresolvedTemplateType : Node, IResolvable
 {
     private TemplateType TemplateType { get; }
-    private Status Status { get; set; } = Status.Error("Couldn't solve template type arguments");
+    private Status Status { get; set; } = Status.Error("Could not solve template type arguments");
     
     public UnresolvedTemplateType(TemplateType template_type, Node parameters)
     {

@@ -42,7 +42,7 @@ change_capacity(token: Token) {
    (token as ContentToken).use()
 }
 
-run() {
+init() {
    content = ContentToken()
    content.type = 0
    content.text = String('Content Token')

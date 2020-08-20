@@ -27,7 +27,7 @@ public class Chain
             {
                 if (!(Activator.CreateInstance(template) is Phase phase))
                 {
-                    throw new ApplicationException("Couldn't create the next phase");
+                    throw new ApplicationException("Could not create the next phase");
                 }
 
                 phase.Multithread = multithreaded;

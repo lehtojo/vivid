@@ -15,7 +15,7 @@ public class EvacuateInstruction : Instruction
 		Unit.VolatileRegisters.ForEach(source => 
 		{
 			// Skip values which aren't needed after the call instruction
-			if (source.IsAvailable(Perspective.Position)) 
+			if (source.IsAvailable(Perspective.Position + 1)) 
 			{
 				return;
 			}

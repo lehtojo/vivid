@@ -54,7 +54,7 @@ to{T}(input) {
    => input as T
 }
 
-run() {
+init() {
    factory = Factory(Apple)
    apple = factory.create()
 

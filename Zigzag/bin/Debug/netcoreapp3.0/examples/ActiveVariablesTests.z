@@ -34,6 +34,6 @@ test(p1, p2) {
     => a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s + t + u + v + w + x + y
 }
 
-run() {
+init() {
     test(1, 2)
 }

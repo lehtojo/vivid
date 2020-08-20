@@ -7,7 +7,7 @@ copy(source, destination) {
     }
 }
 
-run() {
+init() {
     source = allocate(1024)
     destination = allocate(1024)
     copy(source, destination)

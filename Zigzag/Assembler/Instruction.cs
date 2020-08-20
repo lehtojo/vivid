@@ -31,6 +31,7 @@ public class InstructionParameter
 	public bool IsDestination => Flag.Has(Flags, ParameterFlag.DESTINATION);
 	public bool IsSource => Flag.Has(Flags, ParameterFlag.SOURCE);
 	public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
+	public bool IsWriteDestination => IsDestination && Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
 
 	public bool IsRegister => Value?.Type == HandleType.REGISTER;
 	public bool IsMediaRegister => Value is RegisterHandle handle && handle.Register.IsMediaRegister;
@@ -122,7 +123,7 @@ public abstract class Instruction
 
 	public T To<T>() where T : Instruction
 	{
-		return (T)this ?? throw new ApplicationException($"Couldn't convert 'Instruction' to '{typeof(T).Name}'");
+		return (T)this ?? throw new ApplicationException($"Could not convert 'Instruction' to '{typeof(T).Name}'");
 	}
 
 	private Result Convert(InstructionParameter parameter)
@@ -177,9 +178,11 @@ public abstract class Instruction
 			}
 
 			// If the parameter size doesn't match the required size, it can be converted by moving it to register
-			if (parameter.IsMemoryAddress && parameter.RequiredSize != Size.NONE && parameter.Result.Size != parameter.RequiredSize)
+			// Imporant: The parameter shall not be converted if it represents a destination memory address which is being written to
+			if (!(parameter.IsMemoryAddress && parameter.IsWriteDestination) && parameter.RequiredSize != Size.NONE && parameter.Result.Size != parameter.RequiredSize)
 			{
-				Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
+				Memory.Convert(Unit, parameter.Result, parameter.RequiredSize.ToFormat(), recommendation);
+				//Memory.MoveToRegister(Unit, parameter.Result, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
 			}
 
 			// If the current parameter is the destination and it is needed later, then it must me copied to another register

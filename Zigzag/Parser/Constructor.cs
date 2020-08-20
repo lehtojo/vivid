@@ -10,9 +10,8 @@ public class Constructor : Function
 		return new Constructor(context, AccessModifier.PUBLIC, new List<Token>(), true);
 	}
 
-	public Constructor(Context context, int modifiers, List<Token> blueprint, bool is_default = false) : base(context, modifiers, string.Empty, blueprint)
+	public Constructor(Context context, int modifiers, List<Token> blueprint, bool is_default = false) : base(context, modifiers, "init", blueprint)
 	{
 		IsDefault = is_default;
-		Prefix = "Constructor";
 	}
 }

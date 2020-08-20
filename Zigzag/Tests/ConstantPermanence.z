@@ -8,7 +8,7 @@ export constant_permanence_and_array_copy(source, destination) {
 	}
 }
 
-run() {
+init() {
 	=> 1
 
    # Dummy for type resolvation

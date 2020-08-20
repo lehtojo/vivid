@@ -18,7 +18,7 @@ export conditionally_changing_constant_with_loop_statement(a, b) {
     => b * constant
 }
 
-run() {
+init() {
 	=> 1
     
     # Dummy for type resolvation

@@ -64,7 +64,7 @@ public static class Oracle
 			}
 			else
 			{
-				v.Configure(References.CreateVariableHandle(unit, v.Self, v.Variable), new VariableAttribute(v.Variable));
+				v.Configure(References.CreateVariableHandle(unit, v.Self, v.SelfType, v.Variable), new VariableAttribute(v.Variable));
 
 				if (v.Mode != AccessMode.WRITE && v.Variable.IsPredictable)
 				{		
@@ -80,7 +80,7 @@ public static class Oracle
 
 				if (handle == null)
 				{
-					throw new ApplicationException("Couldn't get the current handle of a variable for a Require-Variables-Instruction");
+					throw new ApplicationException("Could not get the current handle of a variable for a Require-Variables-Instruction");
 				}
 
 				r.References.Add(handle);
@@ -93,7 +93,7 @@ public static class Oracle
 		var states = unit.Scope!.Variables.Keys.Select(variable => new VariableLoad 
 		(
 			variable,
-			unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get variable handle while analyzing linked variables")
+			unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Could not get variable handle while analyzing linked variables")
 		
 		)).ToList();
 
@@ -133,7 +133,7 @@ public static class Oracle
 		}
 
 		// Get the shared value in the variable group
-		var shared_value = unit.GetCurrentVariableHandle(group.First()) ?? throw new ApplicationException("Couldn't get current handle of a variable while separating a linked variable group");
+		var shared_value = unit.GetCurrentVariableHandle(group.First()) ?? throw new ApplicationException("Could not get current handle of a variable while separating a linked variable group");
 
 		foreach (var variable in edited_variables)
 		{
@@ -217,23 +217,19 @@ public static class Oracle
 		}
 	}
 
-	private static void TryRedirect(Instruction instruction, Register register, IEnumerable<Instruction> calls)
+	private static void TryRedirect(Instruction objective, Instruction instruction, Register register, IEnumerable<Instruction> calls)
 	{
 		// Get the instruction area that the redirection would affect
 		var start = instruction.GetRedirectionRoot().Position;
 		var end = instruction.Result.Lifetime.End; // NOTE: If any problems arise with weird register overwrites, it may be due to this (previously: unit.Position)
 		
-		// Check if the register is available
-		if (register.Handle == null || !register.Handle.Lifetime.IsIntersecting(start, end))
+		// If the register is volatile, there must not be any function calls in the calculated instruction range since they would corrupt the register
+		if (register.IsVolatile && calls.Any(c => c.Position >= start && c.Position < end))
 		{
-			// If the register is volatile, there must not be any function calls in the calculated instruction range since they would corrupt the register
-			if (register.IsVolatile && calls.Any(c => c.Position >= start && c.Position <= end))
-			{
-				return;
-			}
-
-			instruction.Redirect(new RegisterHandle(register));
+			return;
 		}
+
+		instruction.Direct(new DirectToRegister(objective, register));
 	}
 
 	private static void ConnectReturnStatements(Unit unit)
@@ -270,7 +266,7 @@ public static class Oracle
 						
 						if (source != null && move.First.IsStandardRegister)
 						{
-							TryRedirect(source, move.First.Value.To<RegisterHandle>().Register, calls);
+							TryRedirect(call, source, move.First.Value.To<RegisterHandle>().Register, calls);
 						}
 					}
 				}

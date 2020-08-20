@@ -56,8 +56,7 @@ public class SingleParameterInstruction : Instruction
 			new InstructionParameter(
 				Target,
 				ParameterFlag.DESTINATION,
-				HandleType.REGISTER,
-				HandleType.MEMORY
+				HandleType.REGISTER
 			)
 		);
 	}

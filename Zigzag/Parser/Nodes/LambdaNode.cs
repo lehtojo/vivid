@@ -2,7 +2,7 @@ using System.Linq;
 
 public class LambdaNode : Node, IResolvable, IType
 {
-	private Status Status { get; set; } = Status.Error("Couldn't resolve parameter types of the short function");
+	private Status Status { get; set; } = Status.Error("Could not resolve parameter types of the short function");
 
    public Lambda Lambda { get; private set; }
 
@@ -17,8 +17,8 @@ public class LambdaNode : Node, IResolvable, IType
 		{
 			return new LambdaType(Lambda.Parameters.Select(p => p.Type).ToList(), Lambda.Implementation.ReturnType);
 		}
-		
-		return null;
+
+		return new LambdaType(Lambda.Parameters.Select(p => p.Type).ToList(), null);
 	}
 
 	public override NodeType GetNodeType()

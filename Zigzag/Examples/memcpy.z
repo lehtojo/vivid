@@ -6,6 +6,6 @@ memcpy(destination, source, count) {
    }
 }
 
-run() {
+init() {
    memcpy(0, 0, 100)
 }

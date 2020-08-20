@@ -5,7 +5,7 @@ export simple_math(a, b, c) {
     => a
 }
 
-run() {
+init() {
     # Dummy for type resolving
     simple_math(1, 2, 3)
 }

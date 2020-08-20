@@ -14,7 +14,7 @@ export basic_data_field_assign(target: BasicDataType) {
     target.Small = 12345
 }
 
-run() {
+init() {
 	=> 1
     
     # Dummy for type resolvation

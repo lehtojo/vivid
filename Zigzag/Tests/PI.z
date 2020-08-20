@@ -81,7 +81,7 @@ pidigits(digits) {
 	=> result.data
 }
 
-run() {
+init() {
 	pi = pidigits(3141)
 	print(pi)
 	=> 0

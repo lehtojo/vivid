@@ -1,38 +1,35 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_constant_permanence_and_array_copy
-export function_constant_permanence_and_array_copy
-function_constant_permanence_and_array_copy:
+extern _V8allocatex_rPh
+
+global _V34constant_permanence_and_array_copyPhPS_
+_V34constant_permanence_and_array_copyPhPS_:
 xor rax, rax
 cmp rax, 10
-jge function_constant_permanence_and_array_copy_L1
-function_constant_permanence_and_array_copy_L0:
-lea r8, [3+rax]
-lea r9, [3+rax]
-movzx r10, byte [rcx+r9]
-mov byte [rdx+r8], r10b
+jge _V34constant_permanence_and_array_copyPhPS__L1
+_V34constant_permanence_and_array_copyPhPS__L0:
+lea rcx, [3+rax]
+lea rdx, [3+rax]
+movzx r8, byte [rdi+rdx]
+mov byte [rsi+rcx], r8b
 add rax, 1
 cmp rax, 10
-jl function_constant_permanence_and_array_copy_L0
-function_constant_permanence_and_array_copy_L1:
+jl _V34constant_permanence_and_array_copyPhPS__L0
+_V34constant_permanence_and_array_copyPhPS__L1:
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-xor rcx, rcx
-xor rdx, rdx
-call function_constant_permanence_and_array_copy
+xor rdi, rdi
+xor rsi, rsi
+call _V34constant_permanence_and_array_copyPhPS_
 ret
-
-section .data

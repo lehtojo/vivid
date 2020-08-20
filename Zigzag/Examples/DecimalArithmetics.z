@@ -30,7 +30,7 @@ g(i: decimal) {
 	=> array
 }
 
-run() {
+init() {
 	a = 100.0
 	b = 700.0
 	

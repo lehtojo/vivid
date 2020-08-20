@@ -47,7 +47,7 @@ false = 0
 true = 1
 none = 0
 
-run() {
+init() {
     if glfwInit() == false {
         => 1
     }

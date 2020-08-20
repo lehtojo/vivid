@@ -4,8 +4,8 @@ extern _GetStdHandle@4
 extern _WriteConsoleA@20
 extern _ReadConsoleA@20
 
-global function_sys_print
-function_sys_print:
+global function_internal_print
+function_internal_print:
 
 ; esp+16: len
 ; esp+12: buf
@@ -27,8 +27,8 @@ ret
 
 ; ebp+8: length
 ; ebp+4: buffer
-global function_sys_read
-function_sys_read:
+global function_internal_read
+function_internal_read:
 
 push -10 ; STD_INPUT_HANDLE
 call _GetStdHandle@4

@@ -926,7 +926,7 @@ public static class Analysis
         {
             return Node.FindParent(p => p.Is(NodeType.INCREMENT_NODE, NodeType.DECREMENT_NODE) || 
                 p.Is(NodeType.OPERATOR_NODE) && p.To<OperatorNode>().Operator.Type == OperatorType.ACTION)
-                ?? throw new ApplicationException("Couldn't find the root of a edit");
+                ?? throw new ApplicationException("Could not find the root of a edit");
         }
     }
 

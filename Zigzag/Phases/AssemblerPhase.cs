@@ -22,7 +22,7 @@ public class AssemblerPhase : Phase
 
    private const string WINDOWS_LINKER_SUBSYSTEM = "/subsystem:console";
    private const string WINDOWS_LINKER_DEFAULT_LIB = "/nodefaultlib";
-   private const string WINDOWS_LINKER_ENTRY = "/entry:function_run";
+   private const string WINDOWS_LINKER_ENTRY = "/entry:" + Assembler.ENTRY_FUNCTION_ASSEMBLY_NAME;
    private const string WINDOWS_LINKER_DEBUG = "/debug";
    private const string WINDOWS_LARGE_ADDRESS_UNAWARE = "/largeaddressaware:no";
 
@@ -42,6 +42,19 @@ public class AssemblerPhase : Phase
    private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
    private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
    private static string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
+
+	/// <summary>
+	/// Returns whether the specified program is installed
+	/// </summary>
+   private static bool Linux_IsInstalled(string program)
+   {
+		// Execute the 'which' command to check whether the specified program exists
+		var process = Process.Start("which", program);
+		process.WaitForExit();
+
+		// Which-command exits with code 0 when the specified program exists
+		return process.ExitCode == 0;
+   }
 
    /// <symmary>
    /// Runs the specified executable with the given arguments
@@ -81,6 +94,11 @@ public class AssemblerPhase : Phase
       }
       catch
       {
+			if (!Linux_IsInstalled(executable))
+			{
+				return Status.Error("Is the yasm-assembler installed?");
+			}
+
          return Status.Error(ERROR);
       }
    }
@@ -118,7 +136,7 @@ public class AssemblerPhase : Phase
          }
          catch
          {
-            Console.WriteLine("Warning: Couldn't remove generated assembly file");
+            Console.WriteLine("Warning: Could not remove generated assembly file");
          }
       }
 
@@ -181,7 +199,7 @@ public class AssemblerPhase : Phase
       }
       catch
       {
-         Console.WriteLine("Warning: Couldn't remove generated object file");
+         Console.WriteLine("Warning: Could not remove generated object file");
       }
 
       return result;
@@ -235,7 +253,7 @@ public class AssemblerPhase : Phase
       }
       catch
       {
-         Console.WriteLine("Warning: Couldn't remove generated object file");
+         Console.WriteLine("Warning: Could not remove generated object file");
       }
 
       return result;
@@ -259,7 +277,6 @@ public class AssemblerPhase : Phase
 
       try
       {
-         Assembler.Target = IsLinux ? OSPlatform.Linux : OSPlatform.Windows;
          assembly = Assembler.Assemble(context).TrimEnd();
       }
       catch (Exception e)
@@ -273,7 +290,7 @@ public class AssemblerPhase : Phase
       }
       catch
       {
-         return Status.Error("Couldn't move generated assembly into a file");
+         return Status.Error("Could not move generated assembly into a file");
       }
 
       Status status;

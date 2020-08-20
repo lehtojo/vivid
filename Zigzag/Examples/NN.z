@@ -135,7 +135,7 @@ Network {
    }
 }
 
-run() {
+init() {
    network = Network(10, 16, 16, 4)
 
    input = Array(decimal, 6)

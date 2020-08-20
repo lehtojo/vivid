@@ -3,7 +3,7 @@ negate(x) {
    => x
 }
 
-run() {
+init() {
    a = -7
    b = negate(a)
    c = negate(-a)

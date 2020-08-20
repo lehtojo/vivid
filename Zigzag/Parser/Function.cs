@@ -41,7 +41,7 @@ public class Function : Context
 	{
 		Parent = context;
 		Name = name;
-		Prefix = "Function";
+		Prefix = Name.Length.ToString();
 		Modifiers = modifiers;
 		Blueprint = blueprint;
 	}
@@ -57,14 +57,11 @@ public class Function : Context
 	{
 		Modifiers = modifiers;
 		Name = name;
-		Prefix = "Function";
+		Prefix = Name.Length.ToString();
 		Parameters = parameters.ToList();
 		Blueprint = new List<Token>();
 
-		var implementation = new FunctionImplementation(this);
-		implementation.SetParameters(parameters.ToList());
-		implementation.ReturnType = result;
-
+		var implementation = new FunctionImplementation(this, parameters.ToList(), result);
 		Implementations.Add(implementation);
 
 		implementation.Implement(Blueprint);
@@ -81,8 +78,7 @@ public class Function : Context
 		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();
 
 		// Create a function implementation
-		var implementation = new FunctionImplementation(this, Parent);
-		implementation.SetParameters(parameters);
+		var implementation = new FunctionImplementation(this, parameters, null, Parent);
 
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)
@@ -139,19 +135,20 @@ public class Function : Context
 	/// <param name="parameter">Parameter types used in filtering</param>
 	public virtual FunctionImplementation? Get(List<Type> parameters)
 	{
-		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(parameters));
+		var types = Parameters.Zip(parameters).Select(i => i.First.Type != null ? i.First.Type : i.Second).ToList();
+		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(types));
 
 		if (implementation != null || IsImported)
 		{
 			return implementation;
 		}
 		
-		return Parameters.Count != parameters.Count ? null : Implement(parameters);
+		return Parameters.Count != parameters.Count ? null : Implement(types);
 	}
 
-	public override string GetFullname()
+	protected override void OnMangle(Mangle mangle)
 	{
-		return IsImported ? Name : base.GetFullname();
+		mangle += Name.Length.ToString() + Name;
 	}
 
 	public override string ToString()

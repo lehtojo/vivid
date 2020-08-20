@@ -14,7 +14,7 @@ export basic_call_evacuation_with_memory(a, b) {
     => a + b + c + d + e
 }
 
-run() {
+init() {
 	=> 1
     
     # Dummy for type resolvation

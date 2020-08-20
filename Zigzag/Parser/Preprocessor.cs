@@ -171,9 +171,7 @@ public static class Preprocessor
 
    private static void EvaluateNode(Context context, Node root)
    {
-      var iterator = root.First;
-
-      while (iterator != null)
+      foreach (var iterator in root)
       {
          if (iterator.Is(NodeType.IF_NODE))
          {
@@ -185,8 +183,6 @@ public static class Preprocessor
                context.Merge(result);
             }
          }
-
-         iterator = iterator.Next;
       }
    }
 

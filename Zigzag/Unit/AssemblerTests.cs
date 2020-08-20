@@ -12,59 +12,101 @@ namespace Zigzag.Unit
    [TestFixture]
    class AssemblerTests
    {
-      private const string INCLUDE_PATH = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\Tests\\";
-      private const string LIBZ = "C:\\Users\\Lehto\\Intuitive\\Zigzag\\libz\\";
       private const string Prefix = "NUnit_";
+      private const string LIBV = "libz";
+      private const string TESTS = "Tests";
 
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_math(Int64 a, Int64 b, Int64 c);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V10basic_mathxxx_rx(Int64 a, Int64 b, Int64 c);
 
-      [DllImport("NUnit_BasicIfStatement", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_if_statement(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicIfStatement", ExactSpelling = true)]
+      private static extern Int64 _V18basic_if_statementxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_call_evacuation(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true)]
+      private static extern Int64 _V21basic_call_evacuationxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_call_evacuation_with_memory(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicCallEvacuation", ExactSpelling = true)]
+      private static extern Int64 _V33basic_call_evacuation_with_memoryxx_rx(Int64 a, Int64 b);
 
-      
+      [DllImport("NUnit_BasicDataFieldAssign", ExactSpelling = true)]
+      private static extern void _V23basic_data_field_assignP13BasicDataType(ref BasicDataType target);
 
-      [DllImport("NUnit_BasicDataFieldAssign", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern void function_basic_data_field_assign(ref BasicDataType target);
+      [DllImport("NUnit_ConditionallyChangingConstant", ExactSpelling = true)]
+      private static extern Int64 _V49conditionally_changing_constant_with_if_statementxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_ConditionallyChangingConstant", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_conditionally_changing_constant_with_if_statement(Int64 a, Int64 b);
+      [DllImport("NUnit_ConditionallyChangingConstant", ExactSpelling = true)]
+      private static extern Int64 _V51conditionally_changing_constant_with_loop_statementxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_ConditionallyChangingConstant", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_conditionally_changing_constant_with_loop_statement(Int64 a, Int64 b);
+      [DllImport("NUnit_ConstantPermanence", ExactSpelling = true)]
+      private static extern void _V34constant_permanence_and_array_copyPhPS_([MarshalAs(UnmanagedType.LPArray)] byte[] source, [MarshalAs(UnmanagedType.LPArray)] byte[] destination);
 
-      [DllImport("NUnit_ConstantPermanence", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern void function_constant_permanence_and_array_copy([MarshalAs(UnmanagedType.LPArray)] byte[] source, [MarshalAs(UnmanagedType.LPArray)] byte[] destination);
+      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true)]
+      private static extern Int64 _V17reference_decoy_1x_rx(Int64 b);
 
-      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_reference_decoy_1(Int64 b);
+      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true)]
+      private static extern Int64 _V17reference_decoy_2x_rx(Int64 b);
 
-      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_reference_decoy_2(Int64 b);
+      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true)]
+      private static extern Int64 _V17reference_decoy_3x_rx(Int64 b);
 
-      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_reference_decoy_3(Int64 b);
+      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true)]
+      private static extern Int64 _V17reference_decoy_4x_rx(Int64 b);
 
-      [DllImport("NUnit_ReferenceDecoys", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_reference_decoy_4(Int64 b);
+      [DllImport("NUnit_Stack", ExactSpelling = true)]
+      private static extern Int64 _V12multi_returnxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_Stack", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_multi_return(Int64 a, Int64 b);
+      [DllImport("NUnit_RegisterUtilization", ExactSpelling = true)]
+      private static extern Int64 _V20register_utilizationxxxxxxx_rx(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e, Int64 f, Int64 g);
 
-      [DllImport("NUnit_RegisterUtilization", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_register_utilization(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e);
+      [DllImport("NUnit_SpecialMultiplications", ExactSpelling = true)]
+      private static extern Int64 _V23special_multiplicationsxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_SpecialMultiplications", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_special_multiplications(Int64 a, Int64 b);
+      [DllImport("NUnit_LargeFunctions", ExactSpelling = true)]
+      private static extern Int64 _V1gxx_rx(Int64 a, Int64 b);
 
-      [DllImport("NUnit_LargeFunctions", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_g(Int64 a, Int64 b);
+      private static string GetExecutablePostfix()
+      {
+         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty;
+      }
+
+      private static char GetSeparator()
+      {
+         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? '\\' : '/';
+      }
+
+      private static string GetProjectRoot()
+      {
+         var current = Directory.GetCurrentDirectory();
+         var separator = GetSeparator();
+
+         // The current directory should be in one of the following forms (Examples):
+         // X:\...\$PROJECT_ROOT\bin\Debug\netcoreapp3.1
+         // /home/.../$PROJECT_ROOT/bin/Debug/netcore3.1
+         for (var i = 0; i < 3; i++)
+         {
+            var x = current.LastIndexOf(separator);
+
+            if (x == -1)
+            {
+               throw new ApplicationException("Could not find project root folder");
+            }
+
+            current = current[0..x];
+         }
+
+         return current;
+      }
+
+      private static string GetProjectFolder(params string[] path)
+      {
+         return GetProjectRoot() + GetSeparator() + string.Join(GetSeparator(), path);
+      }
+
+      private static string GetProjectFile(string file, params string[] path)
+      {
+         var separator = GetSeparator();
+         return GetProjectRoot() + separator + string.Join(separator, path) + separator + file;
+      }
       
       private static bool Compile(string output, params string[] source_files)
       {
@@ -79,7 +121,7 @@ namespace Zigzag.Unit
              typeof(AssemblerPhase)
          );
 
-         var files = source_files.Select(f => Path.IsPathRooted(f) ? f : INCLUDE_PATH + f).ToArray();
+         var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 
          // Pack the program arguments in the chain
          var bundle = new Bundle();
@@ -102,7 +144,7 @@ namespace Zigzag.Unit
              typeof(AssemblerPhase)
          );
 
-         var files = source_files.Select(f => Path.IsPathRooted(f) ? f : INCLUDE_PATH + f).ToArray();
+         var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 
          // Pack the program arguments in the chain
          var bundle = new Bundle();
@@ -116,7 +158,7 @@ namespace Zigzag.Unit
       {
          var configuration = new ProcessStartInfo()
          {
-            FileName = Prefix + name + ".exe",
+            FileName = Prefix + name + GetExecutablePostfix(),
             WorkingDirectory = Environment.CurrentDirectory,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
@@ -191,22 +233,22 @@ namespace Zigzag.Unit
          }
       }
 
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_addition(Int64 a, Int64 b);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_subtraction(Int64 a, Int64 b);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_multiplication(Int64 a, Int64 b);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_division(Int64 a, Int64 b);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_addition_with_constant(Int64 a);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_subtraction_with_constant(Int64 a);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_multiplication_with_constant(Int64 a);
-      [DllImport("NUnit_BasicMath", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_division_with_constant(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V8additionxx_rx(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V11subtractionxx_rx(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V14multiplicationxx_rx(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V8divisionxx_rx(Int64 a, Int64 b);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V22addition_with_constantx_rx(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V25subtraction_with_constantx_rx(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V28multiplication_with_constantx_rx(Int64 a);
+      [DllImport("NUnit_BasicMath", ExactSpelling = true)]
+      private static extern Int64 _V22division_with_constantx_rx(Int64 a);
 
       [TestCase]
       public void Assembler_BasicMath()
@@ -216,39 +258,39 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         var result = function_basic_math(6, 7, 9);
+         var result = _V10basic_mathxxx_rx(6, 7, 9);
 
          Assert.AreEqual(42069, result);
 
-         Assert.AreEqual(3, function_addition(1, 2));
-         Assert.AreEqual(-90, function_subtraction(10, 100));
-         Assert.AreEqual(49, function_multiplication(7, 7));
-         Assert.AreEqual(7, function_division(42, 6));
+         Assert.AreEqual(3, _V8additionxx_rx(1, 2));
+         Assert.AreEqual(-90, _V11subtractionxx_rx(10, 100));
+         Assert.AreEqual(49, _V14multiplicationxx_rx(7, 7));
+         Assert.AreEqual(7, _V8divisionxx_rx(42, 6));
 
-         Assert.AreEqual(64, function_addition_with_constant(44));
-         Assert.AreEqual(-1, function_subtraction_with_constant(19));
-         Assert.AreEqual(1300, function_multiplication_with_constant(13));
-         Assert.AreEqual(1, function_division_with_constant(10));
+         Assert.AreEqual(64, _V22addition_with_constantx_rx(44));
+         Assert.AreEqual(-1, _V25subtraction_with_constantx_rx(19));
+         Assert.AreEqual(1300, _V28multiplication_with_constantx_rx(13));
+         Assert.AreEqual(1, _V22division_with_constantx_rx(10));
       }
 
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_addition(Double a, Double b);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_subtraction(Double a, Double b);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_multiplication(Double a, Double b);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_division(Double a, Double b);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_addition_with_constant(Double a);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_subtraction_with_constant(Double a);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_multiplication_with_constant(Double a);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_division_with_constant(Double a);
-      [DllImport("NUnit_Decimals", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_decimal_operator_order(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V16decimal_additiondd_rd(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V19decimal_subtractiondd_rd(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V22decimal_multiplicationdd_rd(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V16decimal_divisiondd_rd(Double a, Double b);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V30decimal_addition_with_constantd_rd(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V33decimal_subtraction_with_constantd_rd(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V36decimal_multiplication_with_constantd_rd(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V30decimal_division_with_constantd_rd(Double a);
+      [DllImport("NUnit_Decimals", ExactSpelling = true)]
+      private static extern Double _V22decimal_operator_orderdd_rd(Double a, Double b);
 
       [TestCase]
       public void Assembler_DecimalArithmetics()
@@ -258,17 +300,17 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(3.141 + 2.718, function_decimal_addition(3.141, 2.718));
-         Assert.AreEqual(3.141 - 2.718, function_decimal_subtraction(3.141, 2.718));
-         Assert.AreEqual(3.141 * 2.718, function_decimal_multiplication(3.141, 2.718));
-         Assert.AreEqual(3.141 / 2.718, function_decimal_division(3.141, 2.718));
+         Assert.AreEqual(3.141 + 2.718, _V16decimal_additiondd_rd(3.141, 2.718));
+         Assert.AreEqual(3.141 - 2.718, _V19decimal_subtractiondd_rd(3.141, 2.718));
+         Assert.AreEqual(3.141 * 2.718, _V22decimal_multiplicationdd_rd(3.141, 2.718));
+         Assert.AreEqual(3.141 / 2.718, _V16decimal_divisiondd_rd(3.141, 2.718));
 
-         Assert.AreEqual(1.414 + 4.474 + 1.414, function_decimal_addition_with_constant(4.474));
-         Assert.AreEqual(-1.414 + 3.363 - 1.414, function_decimal_subtraction_with_constant(3.363));
-         Assert.AreEqual(1.414 * 2.252 * 1.414, function_decimal_multiplication_with_constant(2.252));
-         Assert.AreEqual(2.0 / 1.414 / 1.414, function_decimal_division_with_constant(1.414));
+         Assert.AreEqual(1.414 + 4.474 + 1.414, _V30decimal_addition_with_constantd_rd(4.474));
+         Assert.AreEqual(-1.414 + 3.363 - 1.414, _V33decimal_subtraction_with_constantd_rd(3.363));
+         Assert.AreEqual(1.414 * 2.252 * 1.414, _V36decimal_multiplication_with_constantd_rd(2.252));
+         Assert.AreEqual(2.0 / 1.414 / 1.414, _V30decimal_division_with_constantd_rd(1.414));
 
-         Assert.AreEqual(9.870 + 7.389 * 9.870 - 7.389 / 9.870, function_decimal_operator_order(9.870, 7.389));
+         Assert.AreEqual(9.870 + 7.389 * 9.870 - 7.389 / 9.870, _V22decimal_operator_orderdd_rd(9.870, 7.389));
       }
 
       [TestCase]
@@ -279,33 +321,33 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         var result = function_basic_if_statement(100, 999);
+         var result = _V18basic_if_statementxx_rx(100, 999);
          Assert.AreEqual(999, result);
 
-         result = function_basic_if_statement(1, -1);
+         result = _V18basic_if_statementxx_rx(1, -1);
          Assert.AreEqual(1, result);
 
-         result = function_basic_if_statement(777, 777);
+         result = _V18basic_if_statementxx_rx(777, 777);
          Assert.AreEqual(777, result);
       }
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_basic_for_loop(Int64 start, Int64 count);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V14basic_for_loopxx_rx(Int64 start, Int64 count);
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_nested_for_loops([MarshalAs(UnmanagedType.LPArray)] byte[] destination, Int64 width);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V16nested_for_loopsPhx_rx([MarshalAs(UnmanagedType.LPArray)] byte[] destination, Int64 width);
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_conditional_loop(Int64 start);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V16conditional_loopx_rx(Int64 start);
       
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_conditional_action_loop(Int64 start);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V23conditional_action_loopx_rx(Int64 start);
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_normal_for_loop(Int64 start, Int64 count);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V15normal_for_loopxx_rx(Int64 start, Int64 count);
 
-      [DllImport("NUnit_BasicForLoop", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_normal_for_loop_with_stop(Int64 start, Int64 count);
+      [DllImport("NUnit_BasicForLoop", ExactSpelling = true)]
+      private static extern Int64 _V25normal_for_loop_with_stopxx_rx(Int64 start, Int64 count);
 
       [TestCase]
       public void Assembler_BasicForLoop()
@@ -315,21 +357,21 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(100, function_basic_for_loop(70, 5));
+         Assert.AreEqual(100, _V14basic_for_loopxx_rx(70, 5));
 
-         Assert.AreEqual(10, function_conditional_loop(3));
-         Assert.AreEqual(1344, function_conditional_action_loop(42));
-         Assert.AreEqual(3169, function_normal_for_loop(3141, 8));
+         Assert.AreEqual(10, _V16conditional_loopx_rx(3));
+         Assert.AreEqual(1344, _V23conditional_action_loopx_rx(42));
+         Assert.AreEqual(3169, _V15normal_for_loopxx_rx(3141, 8));
 
-         Assert.AreEqual(220, function_normal_for_loop_with_stop(10, 20));
-         Assert.AreEqual(3, function_normal_for_loop_with_stop(-3, 3));
-         Assert.AreEqual(10, function_normal_for_loop_with_stop(10, -1));
-         Assert.AreEqual(-1, function_normal_for_loop_with_stop(0, 999));
+         Assert.AreEqual(220, _V25normal_for_loop_with_stopxx_rx(10, 20));
+         Assert.AreEqual(3, _V25normal_for_loop_with_stopxx_rx(-3, 3));
+         Assert.AreEqual(10, _V25normal_for_loop_with_stopxx_rx(10, -1));
+         Assert.AreEqual(-1, _V25normal_for_loop_with_stopxx_rx(0, 999));
 
          var expected = new byte[] { 100, 0, 100, 0, 0, 0, 100, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 100, 0, 0, 0, 100, 0, 100 };
 
          var actual = new byte[27];
-         var w = function_nested_for_loops(actual, 3);
+         var w = _V16nested_for_loopsPhx_rx(actual, 3);
 
          Assert.AreEqual(expected, actual);
          Assert.AreEqual(13, w);
@@ -343,7 +385,7 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(570, function_basic_call_evacuation(10, 50));
+         Assert.AreEqual(570, _V21basic_call_evacuationxx_rx(10, 50));
       }
 
       [StructLayout(LayoutKind.Explicit)]
@@ -365,7 +407,7 @@ namespace Zigzag.Unit
          }
 
          var target = new BasicDataType();
-         function_basic_data_field_assign(ref target);
+         _V23basic_data_field_assignP13BasicDataType(ref target);
 
          Assert.AreEqual(64, target.Tiny);
          Assert.AreEqual(12345, target.Small);
@@ -382,16 +424,16 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         var result = function_conditionally_changing_constant_with_if_statement(10, 20);
+         var result = _V49conditionally_changing_constant_with_if_statementxx_rx(10, 20);
          Assert.AreEqual(17, result);
 
-         result = function_conditionally_changing_constant_with_if_statement(10, 0);
+         result = _V49conditionally_changing_constant_with_if_statementxx_rx(10, 0);
          Assert.AreEqual(10 * 2, result);
 
-         result = function_conditionally_changing_constant_with_loop_statement(3, 2);
+         result = _V51conditionally_changing_constant_with_loop_statementxx_rx(3, 2);
          Assert.AreEqual(2 * 100, result);
 
-         result = function_conditionally_changing_constant_with_loop_statement(2, 5);
+         result = _V51conditionally_changing_constant_with_loop_statementxx_rx(2, 5);
          Assert.AreEqual(5 * 103, result);
       }
 
@@ -406,7 +448,7 @@ namespace Zigzag.Unit
          var source = new byte[] { 1, 3, 5, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 37 };
          var destination = new byte[14];
 
-         function_constant_permanence_and_array_copy(source, destination);
+         _V34constant_permanence_and_array_copyPhPS_(source, destination);
 
          // Check whether the array copy with offset succeeded
          Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
@@ -425,10 +467,10 @@ namespace Zigzag.Unit
          }
 
          var b = 42;
-         Assert.AreEqual(2 * b + 1, function_reference_decoy_1(b));
-         Assert.AreEqual(2 * b + 2, function_reference_decoy_2(b));
-         Assert.AreEqual(5, function_reference_decoy_3(b));
-         Assert.AreEqual(4 * b + 75, function_reference_decoy_4(b));
+         Assert.AreEqual(2 * b + 1, _V17reference_decoy_1x_rx(b));
+         Assert.AreEqual(2 * b + 2, _V17reference_decoy_2x_rx(b));
+         Assert.AreEqual(5, _V17reference_decoy_3x_rx(b));
+         Assert.AreEqual(4 * b + 75, _V17reference_decoy_4x_rx(b));
 
          // Make sure there aren't any stack memory operations since they aren't needed
          AssertNoMemoryAddress(LoadAssemblyOutput("ReferenceDecoys"));
@@ -437,13 +479,13 @@ namespace Zigzag.Unit
       [TestCase]
       public void Assembler_PI()
       {
-         if (!CompileExecutable("PI", "PI.z", LIBZ + "String.z", LIBZ + "Console.z"))
+         if (!CompileExecutable("PI", "PI.z", GetProjectFile("String.z", LIBV), GetProjectFile("Console.z", LIBV)))
          {
             Assert.Fail("Failed to compile");
          }
 
          string actual = Execute("PI");
-         string expected = File.ReadAllText(INCLUDE_PATH + "Digits.txt");
+         string expected = File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
 
          Assert.AreEqual(expected, actual);
       }
@@ -451,13 +493,13 @@ namespace Zigzag.Unit
       [TestCase]
       public void Assembler_Fibonacci()
       {
-         if (!CompileExecutable("Fibonacci", "Fibonacci.z", LIBZ + "String.z", LIBZ + "Console.z"))
+         if (!CompileExecutable("Fibonacci", "Fibonacci.z", GetProjectFile("String.z", LIBV), GetProjectFile("Console.z", LIBV)))
          {
             Assert.Fail("Failed to compile");
          }
 
          string actual = Execute("Fibonacci");
-         string expected = File.ReadAllText(INCLUDE_PATH + "Fibonacci_Output.txt").Replace("\r\n", "\n");
+         string expected = File.ReadAllText(GetProjectFile("Fibonacci_Output.txt", TESTS)).Replace("\r\n", "\n");
 
          Assert.AreEqual(expected, actual);
       }
@@ -470,9 +512,9 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(1, function_multi_return(7, 1));
-         Assert.AreEqual(0, function_multi_return(-1, -1));
-         Assert.AreEqual(-1, function_multi_return(5, 20));
+         Assert.AreEqual(1, _V12multi_returnxx_rx(7, 1));
+         Assert.AreEqual(0, _V12multi_returnxx_rx(-1, -1));
+         Assert.AreEqual(-1, _V12multi_returnxx_rx(5, 20));
 
          var assembly = LoadAssemblyOutput("Stack");
          var j = 0;
@@ -497,7 +539,7 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(-10799508, function_register_utilization(90, 7, 1, 1, 1));
+         Assert.AreEqual(-10799508, _V20register_utilizationxxxxxxx_rx(90, 7, 1, 1, 1, 1, 1));
 
          // Ensure the assembly output has only two memory addresses since otherwise the compiler wouldn't be utilizing registers as much as it should
          Assert.AreEqual(2, GetMemoryAddressCount(LoadAssemblyOutput("RegisterUtilization")));
@@ -511,7 +553,7 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(1802, function_special_multiplications(7, 100));
+         Assert.AreEqual(1802, _V23special_multiplicationsxx_rx(7, 100));
 
          var assembly = LoadAssemblyOutput("SpecialMultiplications");
          Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
@@ -528,29 +570,29 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(197, function_g(26, 16));
+         Assert.AreEqual(197, _V1gxx_rx(26, 16));
       }
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_logical_operators_1(Int64 a, Int64 b);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern Int64 _V19logical_operators_1xx_rx(Int64 a, Int64 b);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern bool function_single_boolean(bool b);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern bool _V14single_booleanb_rx(bool b);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_two_booleans(bool a, bool b);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern Int64 _V12two_booleansbb_rx(bool a, bool b);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern bool function_nested_if_statements(Int64 a, Int64 b, Int64 c);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern bool _V20nested_if_statementsxxx_rx(Int64 a, Int64 b, Int64 c);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_logical_and_in_if_statement(bool a, bool b);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern Int64 _V27logical_and_in_if_statementbb_rx(bool a, bool b);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_logical_or_in_if_statement(bool a, bool b);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern Int64 _V26logical_or_in_if_statementbb_rx(bool a, bool b);
       
-      [DllImport("NUnit_LogicalOperators", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_nested_logical_statements(bool a, bool b, bool c, bool d);
+      [DllImport("NUnit_LogicalOperators", ExactSpelling = true)]
+      private static extern Int64 _V25nested_logical_statementsbbbb_rx(bool a, bool b, bool c, bool d);
       
       [TestCase]
       public void Assembler_LogicalOperators()
@@ -561,68 +603,68 @@ namespace Zigzag.Unit
          }
          
          // Single boolean as input
-         Assert.IsFalse(function_single_boolean(true));
-         Assert.IsTrue(function_single_boolean(false));
+         Assert.IsFalse(_V14single_booleanb_rx(true));
+         Assert.IsTrue(_V14single_booleanb_rx(false));
          
          // Two booleans as input
-         Assert.AreEqual(1, function_two_booleans(true, false));
-         Assert.AreEqual(2, function_two_booleans(false, true));
-         Assert.AreEqual(3, function_two_booleans(false, false));
+         Assert.AreEqual(1, _V12two_booleansbb_rx(true, false));
+         Assert.AreEqual(2, _V12two_booleansbb_rx(false, true));
+         Assert.AreEqual(3, _V12two_booleansbb_rx(false, false));
          
          // Nested if-statement:
          
          // All correct inputs
-         Assert.IsTrue(function_nested_if_statements(1, 2, 3));
-         Assert.IsTrue(function_nested_if_statements(1, 2, 4));
-         Assert.IsTrue(function_nested_if_statements(1, 0, 1));
-         Assert.IsTrue(function_nested_if_statements(1, 0, -1));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 2, 3));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 2, 4));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 0, 1));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 0, -1));
          
-         Assert.IsTrue(function_nested_if_statements(2, 4, 8));
-         Assert.IsTrue(function_nested_if_statements(2, 4, 6));
-         Assert.IsTrue(function_nested_if_statements(2, 3, 4));
-         Assert.IsTrue(function_nested_if_statements(2, 3, 5));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 4, 8));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 4, 6));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 3, 4));
+         Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 3, 5));
 
          // Most of the paths for returning false
-         Assert.IsFalse(function_nested_if_statements(0, 0, 0));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(0, 0, 0));
          
-         Assert.IsFalse(function_nested_if_statements(1, 1, 1));
-         Assert.IsFalse(function_nested_if_statements(1, 2, 5));
-         Assert.IsFalse(function_nested_if_statements(1, 0, 0));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 1, 1));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 2, 5));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 0, 0));
          
-         Assert.IsFalse(function_nested_if_statements(2, 0, 0));
-         Assert.IsFalse(function_nested_if_statements(2, 4, 7));
-         Assert.IsFalse(function_nested_if_statements(2, 3, 6));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 0, 0));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 4, 7));
+         Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 3, 6));
          
          // Logical and
-         Assert.AreEqual(10, function_logical_and_in_if_statement(true, true));
-         Assert.AreEqual(0, function_logical_and_in_if_statement(true, false));
-         Assert.AreEqual(0, function_logical_and_in_if_statement(false, true));
-         Assert.AreEqual(0, function_logical_and_in_if_statement(false, false));
+         Assert.AreEqual(10, _V27logical_and_in_if_statementbb_rx(true, true));
+         Assert.AreEqual(0, _V27logical_and_in_if_statementbb_rx(true, false));
+         Assert.AreEqual(0, _V27logical_and_in_if_statementbb_rx(false, true));
+         Assert.AreEqual(0, _V27logical_and_in_if_statementbb_rx(false, false));
          
          // Logical or
-         Assert.AreEqual(10, function_logical_or_in_if_statement(true, true));
-         Assert.AreEqual(10, function_logical_or_in_if_statement(true, false));
-         Assert.AreEqual(10, function_logical_or_in_if_statement(false, true));
-         Assert.AreEqual(0, function_logical_or_in_if_statement(false, false));
+         Assert.AreEqual(10, _V26logical_or_in_if_statementbb_rx(true, true));
+         Assert.AreEqual(10, _V26logical_or_in_if_statementbb_rx(true, false));
+         Assert.AreEqual(10, _V26logical_or_in_if_statementbb_rx(false, true));
+         Assert.AreEqual(0, _V26logical_or_in_if_statementbb_rx(false, false));
          
          // Nested logical statements
-         Assert.AreEqual(1, function_nested_logical_statements(true, true, true, true));
-         Assert.AreEqual(2, function_nested_logical_statements(false, true, true, true));
-         Assert.AreEqual(2, function_nested_logical_statements(true, false, true, true));
-         Assert.AreEqual(3, function_nested_logical_statements(true, true, false, true));
-         Assert.AreEqual(3, function_nested_logical_statements(true, true, true, false));
-         Assert.AreEqual(4, function_nested_logical_statements(true, true, false, false));
-         Assert.AreEqual(4, function_nested_logical_statements(false, false, true, true));
-         Assert.AreEqual(5, function_nested_logical_statements(true, false, false, false));
-         Assert.AreEqual(5, function_nested_logical_statements(false, true, false, false));
-         Assert.AreEqual(5, function_nested_logical_statements(false, false, true, false));
-         Assert.AreEqual(5, function_nested_logical_statements(false, false, false, true));
-         Assert.AreEqual(6, function_nested_logical_statements(false, false, false, false));
+         Assert.AreEqual(1, _V25nested_logical_statementsbbbb_rx(true, true, true, true));
+         Assert.AreEqual(2, _V25nested_logical_statementsbbbb_rx(false, true, true, true));
+         Assert.AreEqual(2, _V25nested_logical_statementsbbbb_rx(true, false, true, true));
+         Assert.AreEqual(3, _V25nested_logical_statementsbbbb_rx(true, true, false, true));
+         Assert.AreEqual(3, _V25nested_logical_statementsbbbb_rx(true, true, true, false));
+         Assert.AreEqual(4, _V25nested_logical_statementsbbbb_rx(true, true, false, false));
+         Assert.AreEqual(4, _V25nested_logical_statementsbbbb_rx(false, false, true, true));
+         Assert.AreEqual(5, _V25nested_logical_statementsbbbb_rx(true, false, false, false));
+         Assert.AreEqual(5, _V25nested_logical_statementsbbbb_rx(false, true, false, false));
+         Assert.AreEqual(5, _V25nested_logical_statementsbbbb_rx(false, false, true, false));
+         Assert.AreEqual(5, _V25nested_logical_statementsbbbb_rx(false, false, false, true));
+         Assert.AreEqual(6, _V25nested_logical_statementsbbbb_rx(false, false, false, false));
          
-         Assert.AreEqual(5, function_logical_operators_1(10, 5));
-         Assert.AreEqual(7, function_logical_operators_1(0, 7));
-         Assert.AreEqual(1, function_logical_operators_1(1, 1));
-         Assert.AreEqual(0, function_logical_operators_1(3, 3));
+         Assert.AreEqual(5, _V19logical_operators_1xx_rx(10, 5));
+         Assert.AreEqual(7, _V19logical_operators_1xx_rx(0, 7));
+         Assert.AreEqual(1, _V19logical_operators_1xx_rx(1, 1));
+         Assert.AreEqual(0, _V19logical_operators_1xx_rx(3, 3));
       }
 
       [StructLayout(LayoutKind.Sequential)]
@@ -668,26 +710,26 @@ namespace Zigzag.Unit
          }
       }
 
-      [DllImport("NUnit_ObjectCreation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern IntPtr function_create_apple();
+      [DllImport("NUnit_ObjectCreation", ExactSpelling = true)]
+      private static extern IntPtr _V12create_applev_rP5Apple();
 
-      [DllImport("NUnit_ObjectCreation", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern IntPtr function_create_car(Double price);
+      [DllImport("NUnit_ObjectCreation", ExactSpelling = true)]
+      private static extern IntPtr _V10create_card_rP3Car(Double price);
 
       [TestCase]
       public void Assembler_ObjectCreation()
       {
-         if (!Compile("ObjectCreation", "ObjectCreation.z", LIBZ + "String.z", LIBZ + "Console.z"))
+         if (!Compile("ObjectCreation", "ObjectCreation.z", GetProjectFile("String.z", LIBV), GetProjectFile("Console.z", LIBV)))
          {
             Assert.Fail("Failed to compile");
          }
 
-         var apple = (Apple)Marshal.PtrToStructure(function_create_apple(), typeof(Apple))!;
+         var apple = (Apple)Marshal.PtrToStructure(_V12create_applev_rP5Apple(), typeof(Apple))!;
 
          Assert.AreEqual(100, apple.Weight);
          Assert.AreEqual(0.1, apple.Price);
 
-         var car = (Car)Marshal.PtrToStructure(function_create_car(20000), typeof(Car))!;
+         var car = (Car)Marshal.PtrToStructure(_V10create_card_rP3Car(20000), typeof(Car))!;
 
          Assert.AreEqual(2000000, car.Weight);
          Assert.AreEqual(20000, car.Price);
@@ -697,33 +739,33 @@ namespace Zigzag.Unit
          brand.Assert("Flash");
       }
 
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern IntPtr function_create_pack();
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern IntPtr _V11create_packv_rP4PackIP7ProductP5PriceE();
 
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern IntPtr function_set_product(IntPtr pack, Int64 index, IntPtr name, Int64 value, byte currency);
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern IntPtr _V11set_productP4PackIP7ProductP5PriceExPhxc(IntPtr pack, Int64 index, IntPtr name, Int64 value, byte currency);
       
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern IntPtr function_get_product_name(IntPtr pack, Int64 index);
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern IntPtr _V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(IntPtr pack, Int64 index);
 
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern void function_enchant_product(IntPtr pack, Int64 index);
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern void _V15enchant_productP4PackIP7ProductP5PriceEx(IntPtr pack, Int64 index);
 
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern bool function_is_product_enchanted(IntPtr pack, Int64 index);
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern bool _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(IntPtr pack, Int64 index);
 
-      [DllImport("NUnit_Templates", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Double function_get_product_price(IntPtr pack, Int64 index, byte currency);
+      [DllImport("NUnit_Templates", ExactSpelling = true)]
+      private static extern Double _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(IntPtr pack, Int64 index, byte currency);
 
       [TestCase]
       public void Assembler_Templates()
       {
-         if (!Compile("Templates", "Templates.z", LIBZ + "String.z"))
+         if (!Compile("Templates", "Templates.z", GetProjectFile("String.z", LIBV)))
          {
             Assert.Fail("Failed to compile");
          }
 
-         var pack = function_create_pack();
+         var pack = _V11create_packv_rP4PackIP7ProductP5PriceE();
 
          var car = new String("Car");
          var banana = new String("Banana");
@@ -732,50 +774,60 @@ namespace Zigzag.Unit
          const int EUROS = 0;
          const int DOLLARS = 1;
 
-         function_set_product(pack, 0, car.Data, 700000, EUROS);
-         function_set_product(pack, 2, lawnmower.Data, 40000, DOLLARS);
-         function_set_product(pack, 1, banana.Data, 100, DOLLARS);
+         // fsetproduct_a_tproduct_a_tprice_tpack_tlarge_tlink_ttiny
+         _V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 0, car.Data, 700000, EUROS);
+         _V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 2, lawnmower.Data, 40000, DOLLARS);
+         _V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 1, banana.Data, 100, DOLLARS);
 
-         String.From(function_get_product_name(pack, 0)).Assert("Car");
-         String.From(function_get_product_name(pack, 1)).Assert("Banana");
-         String.From(function_get_product_name(pack, 2)).Assert("Lawnmower");
+         String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("Car");
+         String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("Banana");
+         String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 2)).Assert("Lawnmower");
 
-         function_enchant_product(pack, 0);
-         function_enchant_product(pack, 1);
+         _V15enchant_productP4PackIP7ProductP5PriceEx(pack, 0);
+         _V15enchant_productP4PackIP7ProductP5PriceEx(pack, 1);
 
-         Assert.IsTrue(function_is_product_enchanted(pack, 0));
-         Assert.IsTrue(function_is_product_enchanted(pack, 1));
-         Assert.IsFalse(function_is_product_enchanted(pack, 2));
+         Assert.IsTrue(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 0));
+         Assert.IsTrue(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 1));
+         Assert.IsFalse(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 2));
 
-         String.From(function_get_product_name(pack, 0)).Assert("iCar");
-         String.From(function_get_product_name(pack, 1)).Assert("iBanana");
+         String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("iCar");
+         String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("iBanana");
 
-         Assert.AreEqual(700000.0, function_get_product_price(pack, 0, EUROS));
-         Assert.AreEqual(100.0 * 0.8, function_get_product_price(pack, 1, EUROS));
-         Assert.AreEqual(40000.0 * 0.8, function_get_product_price(pack, 2, EUROS));
+         Assert.AreEqual(700000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, EUROS));
+         Assert.AreEqual(100.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, EUROS));
+         Assert.AreEqual(40000.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, EUROS));
 
-         Assert.AreEqual(700000.0 * 1.25, function_get_product_price(pack, 0, DOLLARS));
-         Assert.AreEqual(100.0, function_get_product_price(pack, 1, DOLLARS));
-         Assert.AreEqual(40000.0, function_get_product_price(pack, 2, DOLLARS));
+         Assert.AreEqual(700000.0 * 1.25, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, DOLLARS));
+         Assert.AreEqual(100.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, DOLLARS));
+         Assert.AreEqual(40000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, DOLLARS));
       }
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_bitwise_and(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V11bitwise_andcc_rc(byte a, byte b);
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_bitwise_xor(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V11bitwise_xorcc_rc(byte a, byte b);
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_bitwise_or(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V10bitwise_orcc_rc(byte a, byte b);
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_synthetic_and(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V13synthetic_andcc_rc(byte a, byte b);
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_synthetic_xor(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V13synthetic_xorcc_rc(byte a, byte b);
 
-      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-      private static extern Int64 function_synthetic_or(byte a, byte b);
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V12synthetic_orcc_rc(byte a, byte b);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V18assign_bitwise_andx_rx(long a);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V18assign_bitwise_xorx_rx(long a);
+
+      [DllImport("NUnit_BitwiseOperations", ExactSpelling = true)]
+      private static extern Int64 _V17assign_bitwise_orxx_rx(long a, long b);
 
       [TestCase]
       public void Assembler_BitwiseOperations()
@@ -785,35 +837,180 @@ namespace Zigzag.Unit
             Assert.Fail("Failed to compile");
          }
 
-         Assert.AreEqual(1, function_bitwise_and(1, 1));
-         Assert.AreEqual(0, function_bitwise_and(1, 0));
-         Assert.AreEqual(0, function_bitwise_and(0, 1));
-         Assert.AreEqual(0, function_bitwise_and(0, 0));
+         Assert.AreEqual(1, _V11bitwise_andcc_rc(1, 1));
+         Assert.AreEqual(0, _V11bitwise_andcc_rc(1, 0));
+         Assert.AreEqual(0, _V11bitwise_andcc_rc(0, 1));
+         Assert.AreEqual(0, _V11bitwise_andcc_rc(0, 0));
 
-         Assert.AreEqual(0, function_bitwise_xor(1, 1));
-         Assert.AreEqual(1, function_bitwise_xor(1, 0));
-         Assert.AreEqual(1, function_bitwise_xor(0, 1));
-         Assert.AreEqual(0, function_bitwise_xor(0, 0));
+         Assert.AreEqual(0, _V11bitwise_xorcc_rc(1, 1));
+         Assert.AreEqual(1, _V11bitwise_xorcc_rc(1, 0));
+         Assert.AreEqual(1, _V11bitwise_xorcc_rc(0, 1));
+         Assert.AreEqual(0, _V11bitwise_xorcc_rc(0, 0));
 
-         Assert.AreEqual(1, function_bitwise_or(1, 1));
-         Assert.AreEqual(1, function_bitwise_or(1, 0));
-         Assert.AreEqual(1, function_bitwise_or(0, 1));
-         Assert.AreEqual(0, function_bitwise_or(0, 0));
+         Assert.AreEqual(1, _V10bitwise_orcc_rc(1, 1));
+         Assert.AreEqual(1, _V10bitwise_orcc_rc(1, 0));
+         Assert.AreEqual(1, _V10bitwise_orcc_rc(0, 1));
+         Assert.AreEqual(0, _V10bitwise_orcc_rc(0, 0));
 
-         Assert.AreEqual(1, function_synthetic_and(1, 1));
-         Assert.AreEqual(0, function_synthetic_and(1, 0));
-         Assert.AreEqual(0, function_synthetic_and(0, 1));
-         Assert.AreEqual(0, function_synthetic_and(0, 0));
+         Assert.AreEqual(1, _V13synthetic_andcc_rc(1, 1));
+         Assert.AreEqual(0, _V13synthetic_andcc_rc(1, 0));
+         Assert.AreEqual(0, _V13synthetic_andcc_rc(0, 1));
+         Assert.AreEqual(0, _V13synthetic_andcc_rc(0, 0));
 
-         Assert.AreEqual(0, function_synthetic_xor(1, 1));
-         Assert.AreEqual(1, function_synthetic_xor(1, 0));
-         Assert.AreEqual(1, function_synthetic_xor(0, 1));
-         Assert.AreEqual(0, function_synthetic_xor(0, 0));
+         Assert.AreEqual(0, _V13synthetic_xorcc_rc(1, 1));
+         Assert.AreEqual(1, _V13synthetic_xorcc_rc(1, 0));
+         Assert.AreEqual(1, _V13synthetic_xorcc_rc(0, 1));
+         Assert.AreEqual(0, _V13synthetic_xorcc_rc(0, 0));
 
-         Assert.AreEqual(1, function_synthetic_or(1, 1));
-         Assert.AreEqual(1, function_synthetic_or(1, 0));
-         Assert.AreEqual(1, function_synthetic_or(0, 1));
-         Assert.AreEqual(0, function_synthetic_or(0, 0));
+         Assert.AreEqual(1, _V12synthetic_orcc_rc(1, 1));
+         Assert.AreEqual(1, _V12synthetic_orcc_rc(1, 0));
+         Assert.AreEqual(1, _V12synthetic_orcc_rc(0, 1));
+         Assert.AreEqual(0, _V12synthetic_orcc_rc(0, 0));
+
+         // 111 & 011 = 11
+         Assert.AreEqual(3, _V18assign_bitwise_andx_rx(7));
+
+         // 10101 ¤ 00001 = 10100
+         Assert.AreEqual(20, _V18assign_bitwise_xorx_rx(21));
+
+         // 10101 ¤ 00001 = 10100
+         Assert.AreEqual(96, _V17assign_bitwise_orxx_rx(32, 64));
+
+      }
+
+      [StructLayout(LayoutKind.Explicit)]
+      struct Animal
+      {
+         [FieldOffset(0)] public short energy;
+         [FieldOffset(2)] public byte hunger;
+      }
+
+      [StructLayout(LayoutKind.Explicit)]
+      struct Fish
+      {
+         [FieldOffset(0)] public short speed;
+         [FieldOffset(2)] public short velocity;
+         [FieldOffset(4)] public short weight;
+      }
+
+      [StructLayout(LayoutKind.Explicit)]
+      struct Salmon
+      {
+         [FieldOffset(0)] public short energy;
+         [FieldOffset(2)] public byte hunger;
+         [FieldOffset(3)] public short speed;
+         [FieldOffset(5)] public short velocity;
+         [FieldOffset(7)] public short weight;
+         [FieldOffset(9)] public bool is_hiding;
+      }
+
+      private static Salmon GetSalmon(IntPtr pointer)
+      {
+         return Marshal.PtrToStructure<Salmon>(pointer);
+      }
+
+      private static IntPtr GetFishPointer(IntPtr salmon)
+      {
+         return salmon + 3;
+      }
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10get_animalv_rP6Animal();
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V8get_fishv_rP4Fish();
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10get_salmonv_rP6Salmon();
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V12animal_movesP6Animal(IntPtr address);
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10fish_movesP4Fish(IntPtr address);
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10fish_swimsP6Animal(IntPtr address);
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10fish_stopsP6Animal(IntPtr address);
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V10fish_hidesP6Salmon(IntPtr address);
+
+      [DllImport("NUnit_Inheritance", ExactSpelling = true)]
+      private static extern IntPtr _V17fish_stops_hidingP6Salmon(IntPtr address);
+
+      [TestCase]
+      public void Assembler_Inheritance()
+      {
+         if (!Compile("Inheritance", "Inheritance.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         var animal = Marshal.PtrToStructure<Animal>(_V10get_animalv_rP6Animal());
+         Assert.AreEqual(100, animal.energy);
+         Assert.AreEqual(0, animal.hunger);
+
+         var fish = Marshal.PtrToStructure<Fish>(_V8get_fishv_rP4Fish());
+         Assert.AreEqual(1, fish.speed);
+         Assert.AreEqual(0, fish.velocity);
+         Assert.AreEqual(1500, fish.weight);
+
+         var salmon_pointer = _V10get_salmonv_rP6Salmon();
+         var salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(false, salmon.is_hiding);
+         Assert.AreEqual(5000, salmon.weight);
+
+         _V12animal_movesP6Animal(salmon_pointer);
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(-1, salmon.energy);
+         Assert.AreEqual(1, salmon.hunger);
+
+         _V10fish_movesP4Fish(GetFishPointer(salmon_pointer));
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(5, salmon.velocity);
+         Assert.AreEqual(-2, salmon.energy);
+         Assert.AreEqual(2, salmon.hunger);
+
+         _V10fish_swimsP6Animal(salmon_pointer);
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(5, salmon.velocity);
+         Assert.AreEqual(-3, salmon.energy);
+         Assert.AreEqual(3, salmon.hunger);
+
+         _V10fish_stopsP6Animal(salmon_pointer);
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(0, salmon.velocity);
+
+         _V10fish_hidesP6Salmon(salmon_pointer);
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(0, salmon.velocity);
+         Assert.AreEqual(-4, salmon.energy);
+         Assert.AreEqual(4, salmon.hunger);
+         Assert.AreEqual(true, salmon.is_hiding);
+
+         // The fish should not move since it's hiding
+         _V10fish_movesP4Fish(GetFishPointer(salmon_pointer));
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(0, salmon.velocity);
+         Assert.AreEqual(-4, salmon.energy);
+         Assert.AreEqual(4, salmon.hunger);
+         Assert.AreEqual(true, salmon.is_hiding);
+
+         _V17fish_stops_hidingP6Salmon(salmon_pointer);
+         salmon = GetSalmon(salmon_pointer);
+         Assert.AreEqual(5, salmon.speed);
+         Assert.AreEqual(5, salmon.velocity);
+         Assert.AreEqual(-6, salmon.energy);
+         Assert.AreEqual(6, salmon.hunger);
+         Assert.AreEqual(false, salmon.is_hiding);
       }
    }
 }

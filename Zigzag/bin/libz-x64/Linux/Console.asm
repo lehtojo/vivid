@@ -1,11 +1,11 @@
 section .text
 
-global function_sys_print
-function_sys_print:
+global function_internal_print
+function_internal_print:
 push rdi
 push rsi
 push rbx
-mov rax, 0x01 ; System call: sys_write
+mov rax, 0x01 ; System call: internal_write
 mov rdi, 1 ; Output mode
 mov rsi, [rsp+32] ; Parameter: Text
 mov rdx, [rsp+40] ; Parameter: Length
@@ -17,12 +17,12 @@ pop rsi
 pop rdi
 ret 16
 
-global function_sys_read
-function_sys_read:
+global function_internal_read
+function_internal_read:
 push rdi
 push rsi
 push rbx
-mov rax, 0 ; System call: sys_read
+mov rax, 0 ; System call: internal_read
 mov rdi, 0 ; Input mode
 mov rsi, [rsp+32] ; Parameter: Buffer
 mov rdx, [rsp+40] ; Parameter: Length

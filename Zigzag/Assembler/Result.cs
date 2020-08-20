@@ -42,7 +42,7 @@ public class DirectToReturnRegister : Hint
 		Objectives.Add(objective);
 	}
 
-	public ReturnInstruction GetClosestReturnInstrution(int perspective)
+	public ReturnInstruction GetClosestReturnInstruction(int perspective)
 	{
 		return Objectives.Where(r => r.Position > perspective).OrderBy(r => r.Position - perspective).First();
 	}
@@ -50,6 +50,23 @@ public class DirectToReturnRegister : Hint
    public bool IsRelevant(int perspective)
    {
 		return Objectives.Any(c => c.Position > perspective);
+   }
+}
+
+public class DirectToRegister : Hint
+{
+	public Instruction Objective { get; }
+	public Register Register { get; }
+
+	public DirectToRegister(Instruction objective, Register register)
+	{
+		Objective = objective;
+		Register = register;
+	}
+
+	public bool IsRelevant(int perspective)
+   {
+		return Objective.Position > perspective;
    }
 }
 
@@ -185,6 +202,10 @@ public class Result
 		else if (Hints.Exists(h => h is AvoidRegisters))
 		{
 			return Hints.Find(h => h is AvoidRegisters);
+		}
+		else if (Hints.Exists(h => h is DirectToRegister))
+		{
+			return Hints.Find(h => h is DirectToRegister);
 		}
 
 		return null;

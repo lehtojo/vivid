@@ -188,7 +188,7 @@ public static class Singleton
 			}
 		}
 
-		throw new NotImplementedException("Couldn't parse the node");
+		throw new NotImplementedException("Could not parse the node");
 	}
 
 	public static Node GetUnresolved(Context environment, Token token)
@@ -200,7 +200,7 @@ public static class Singleton
          TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name)
 				.SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
 
-         _ => throw new Exception($"Couldn't create unresolved token ({token.Type})"),
+         _ => throw new Exception($"Could not create unresolved token ({token.Type})"),
       };
    }
 }

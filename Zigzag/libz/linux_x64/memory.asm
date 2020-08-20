@@ -1,8 +1,8 @@
 [section .text]
 
 ; rdi: Length
-global allocate
-allocate:
+global _V8allocatex_rPh:function hidden
+_V8allocatex_rPh:
 ;   System call parameters
 ;
 ;   off_t offset,
@@ -28,8 +28,8 @@ ret
 
 ; rdi: Address
 ; rsi: Length
-global deallocate
-deallocate:
+global _V10deallocatePhx:function hidden
+_V10deallocatePhx:
 
 mov rax, 11 ; munmap
 syscall
@@ -39,8 +39,8 @@ ret
 ; rdi: Source
 ; rsi: Count
 ; rdx: Destination
-global copy
-copy:
+global _V4copyPhxPS_:function hidden
+_V4copyPhxPS_:
 
 xchg rdi, rdx ; rdi = Destination, rdx = Source
 mov rcx, rsi ; rcx = Count
@@ -53,11 +53,11 @@ ret
 ; rdi: Source
 ; rsi: Count
 ; rdx: Destination
-; r10: Offset
-global offset_copy
-offset_copy:
+; rcx: Offset
+global _V11offset_copyPhxPS_x:function hidden
+_V11offset_copyPhxPS_x:
 
-add rdx, r10 ; Apply offset
+add rdx, rcx ; Apply offset
 
 xchg rdi, rdx ; rdi = Destination, rdx = Source
 mov rcx, rsi ; rcx = Count
@@ -69,7 +69,7 @@ ret
 
 ; rdi: Destination
 ; rsi: Count
-global zero
+global _V4zeroPhx:function hidden
 zero:
 
 mov rcx, rsi ; rcx = Count
@@ -82,7 +82,7 @@ ret
 ; rdi: Destination
 ; rsi: Count
 ; rdx: Value
-global fill
+global _V4fillPhxxx:function hidden
 fill:
 
 mov rcx, rsi ; rcx = Count
@@ -91,3 +91,10 @@ mov rax, rdx ; rax = Value
 rep stosb
 
 ret
+
+; rdi: code
+global _V4exitx:function hidden
+_V4exitx:
+mov rax, 60
+syscall
+jmp _V4exitx

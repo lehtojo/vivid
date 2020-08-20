@@ -17,7 +17,7 @@ Item {
    }
 }
 
-run() {
+init() {
    list = List(Item)
    
    item = Item(10, 1)

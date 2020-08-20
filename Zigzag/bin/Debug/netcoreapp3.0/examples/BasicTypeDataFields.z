@@ -14,7 +14,7 @@ Player {
     }
 }
 
-run() {
+init() {
     player = Player(100, 7, 999999999)
     => player.get_score()
 }

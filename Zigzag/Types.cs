@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public static class Types
 {
@@ -19,6 +20,11 @@ public static class Types
 
 	public static readonly Decimal DECIMAL = new Decimal();
 
+	public static bool IsPrimitive(Type type)
+	{
+		return type is Number || type is Bool;
+	}
+
 	public static void Inject(Context context)
 	{
 		context.Declare(BOOL);
@@ -27,10 +33,10 @@ public static class Types
 		context.Declare(SMALL);
 		context.Declare(NORMAL);
 		context.Declare(LARGE);
+		context.Declare(U8);
+		context.Declare(U16);
 		context.Declare(U32);
 		context.Declare(U64);
-		context.Declare(U16);
-		context.Declare(U8);
 		context.Declare(DECIMAL);
 
 		switch (Parser.Size.Bytes)
@@ -40,7 +46,7 @@ public static class Types
 			case 4: { context.DeclareTypeAlias("num", NORMAL); break; }
 			case 8: { context.DeclareTypeAlias("num", LARGE); break; }
 
-			default: throw new ApplicationException("Couldn't declare alias type 'num'");
+			default: throw new ApplicationException("Could not declare alias type 'num'");
 		}
 
 		context.DeclareTypeAlias("byte", U8);

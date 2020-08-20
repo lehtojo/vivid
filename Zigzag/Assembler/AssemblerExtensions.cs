@@ -41,7 +41,7 @@ public static class AssemblerExtensions
 	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
 	public static string ToString(this Size size)
 	{
-		return (Enum.GetName(typeof(Size), size) ?? throw new ApplicationException("Couldn't get identifier for instruction parameter size")).ToLowerInvariant();
+		return (Enum.GetName(typeof(Size), size) ?? throw new ApplicationException("Could not get identifier for instruction parameter size")).ToLowerInvariant();
 	}
 
 	public static bool IsVisible(this Size size)

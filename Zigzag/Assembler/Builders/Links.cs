@@ -2,7 +2,7 @@ using System;
 
 public static class Links
 {
-	private static Result GetMemberFunctionCall(Unit unit, FunctionNode function, Node self_node, Type self_type)
+	public static Result GetMemberFunctionCall(Unit unit, FunctionNode function, Node self_node, Type self_type)
 	{
 		// Static functions can't access any instance data
 		if (function.Function.IsStatic)
@@ -29,7 +29,7 @@ public static class Links
 		var self = References.Get(unit, self_node);
 		var lambda_type = self_type.To<LambdaType>();
 
-		return Calls.Build(unit, self, CallingConvention.X64, lambda_type.ReturnType, function.Parameters);
+		return Calls.Build(unit, self, CallingConvention.X64, lambda_type.ReturnType, function.Parameters, lambda_type.Parameters!);
 	}
 
 	public static Result Build(Unit unit, LinkNode node)

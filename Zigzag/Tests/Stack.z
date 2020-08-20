@@ -14,7 +14,7 @@ export multi_return(a: num, b: num) {
    }
 }
 
-run() {
+init() {
    multi_return(10, 0)
    => 1
 }

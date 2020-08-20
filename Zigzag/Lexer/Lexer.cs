@@ -238,7 +238,7 @@ public static class Lexer
 			}
 		}
 
-		throw Errors.Get(start, "Couldn't find closing parenthesis");
+		throw Errors.Get(start, "Could not find closing parenthesis");
 	}
 
 	/// <summary>
@@ -276,7 +276,7 @@ public static class Lexer
 
 		if (i == -1 || j != -1 && j < i)
 		{
-			throw Errors.Get(start, "Couldn't find the end of the string");
+			throw Errors.Get(start, "Could not find the end of the string");
 		}
 
 		var length = i - start.Absolute;
@@ -408,11 +408,11 @@ public static class Lexer
       {
          AreaType.TEXT => ParseTextToken(area.Text),
          AreaType.NUMBER => new NumberToken(area.Text),
-         AreaType.OPERATOR => new OperatorToken(area.Text),
+         AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw Errors.Get(anchor, $"Unknown operator '{area.Text}'")),
          AreaType.CONTENT => new ContentToken(area.Text, anchor += area.Start),
          AreaType.END => new Token(TokenType.END),
          AreaType.STRING => new StringToken(area.Text),
-         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unrecognized token '{0}'", area.Text))),
+         _ => throw Errors.Get(anchor += area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unknown token '{0}'", area.Text))),
       };
    }
 	

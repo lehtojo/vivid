@@ -20,7 +20,7 @@ fibonacci(iterations) {
 	}
 }
 
-run() {
+init() {
    fibonacci(10)
    => 0
 }

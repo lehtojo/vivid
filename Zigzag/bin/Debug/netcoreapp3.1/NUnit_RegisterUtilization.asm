@@ -1,41 +1,40 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_register_utilization
-export function_register_utilization
-function_register_utilization:
-lea rax, [rcx+rcx]
-mov r8, rdx
-sal r8, 0
-imul r8, 7
-sub rax, r8
-mov r8, rcx
-imul r8, rax
-imul r8, rdx
-sub rcx, r8
-mov rdx, [rsp+40]
-add rcx, rdx
-imul rax, rcx
-add rax, rdx
+extern _V8allocatex_rPh
+
+global _V20register_utilizationxxxxxxx_rx
+_V20register_utilizationxxxxxxx_rx:
+lea rax, [rdi+rdi]
+mov rcx, rsi
+sal rcx, 0
+imul rcx, 7
+sub rax, rcx
+mov rcx, rdi
+imul rcx, rax
+imul rcx, rsi
+sub rdi, rcx
+mov rcx, [rsp+8]
+add rdi, rcx
+imul rax, rdi
+add rax, rcx
 ret
 
-function_run:
-sub rsp, 40
-mov rcx, 1
+_V4initv_rx:
+sub rsp, 8
+mov rdi, 1
+mov rsi, 1
 mov rdx, 1
+mov rcx, 1
 mov r8, 1
 mov r9, 1
-mov qword [rsp+32], 1
-call function_register_utilization
+mov qword [rsp], 1
+call _V20register_utilizationxxxxxxx_rx
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-
-section .data

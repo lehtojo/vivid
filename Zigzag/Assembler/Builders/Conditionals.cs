@@ -251,7 +251,12 @@ public static class Conditionals
          return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
       }
 
-      return BuildCondition(unit, new OperatorNode(Operators.NOT_EQUALS).SetOperands(condition, new NumberNode(Assembler.Format, 0L)), success, failure);
+      var replacement = new OperatorNode(Operators.NOT_EQUALS);
+      condition.Replace(replacement);
+
+      replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L));
+
+      return BuildCondition(unit, replacement, success, failure);
    }
 
    private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)

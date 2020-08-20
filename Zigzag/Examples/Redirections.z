@@ -1,13 +1,11 @@
-sum(a, b) {
-	=> a + b
+g(a, b, c, d) {
+	=> a + b + c + d
 }
 
-parameter_redirection(a, b) {
-	c = sum(a + 1, b - 1)
-	d = 7 + a * b * c
-	=> sum(d, c)
+f(a) {
+	g(a - 1, a + 1, 0, a)
 }
 
-run() {
-	parameter_redirection(1, 2)
+init() {
+	f(1)
 }

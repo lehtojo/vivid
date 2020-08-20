@@ -2,7 +2,7 @@ Holder {
 	public static Text = 'Banana'
 }
 
-run() {
+init() {
 	Holder.Text = 'Banana'
 	=> Holder.Text[0] -> num
 }

@@ -44,7 +44,7 @@ export division_with_constant(a) {
 	=> 100 / a / 10
 }
 
-run() {
+init() {
 	=> 1
 	addition(0, 0)
 	subtraction(0, 0)

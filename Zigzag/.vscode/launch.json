@@ -10,7 +10,7 @@
 
 			//"args": [ "${workspaceFolder}/Examples/SpamHelloWorld.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st"],
 			//"args": [ "${workspaceFolder}/Examples/StaticVariable.z", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/ConstantPermanence.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Tests/ConstantPermanence.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/BasicTypeDataFields.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/TheBully.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/NullObjectCheck.z", "--asm", "--time", "-st" ],
@@ -50,7 +50,11 @@
 			//"args": [ "${workspaceFolder}/Examples/Algebra.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Preprocessing.z", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/ModifierSections.z", "${workspaceFolder}/libz/String.z", "--asm", "--time", "-st" ],
-			"args": [ "${workspaceFolder}/Examples/Lambdas.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Square.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Tests/ObjectCreation.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Tests/Templates.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/Console.z", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Lambdas.z", "--asm", "--time", "-st" ],
+			"args": [ "${workspaceFolder}/Examples/Arrays.z", "${workspaceFolder}/libz/Array.v", "${workspaceFolder}/libz/Console.z", "${workspaceFolder}/libz/String.z", "${workspaceFolder}/libz/External.v", "--asm", "--time", "-st" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

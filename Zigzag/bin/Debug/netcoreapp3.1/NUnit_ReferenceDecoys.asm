@@ -1,153 +1,144 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
-extern large_function
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_reference_decoy_1
-export function_reference_decoy_1
-function_reference_decoy_1:
-mov rdx, rcx
-mov rdx, 1
-add rdx, rcx
-add rcx, rdx
-mov rax, rcx
+extern _V8allocatex_rPh
+extern _V14large_functionv
+
+global _V17reference_decoy_1x_rx
+_V17reference_decoy_1x_rx:
+mov rcx, rdi
+mov rcx, 1
+add rcx, rdi
+add rdi, rcx
+mov rax, rdi
 ret
 
-global function_reference_decoy_2
-export function_reference_decoy_2
-function_reference_decoy_2:
+global _V17reference_decoy_2x_rx
+_V17reference_decoy_2x_rx:
+sal rdi, 1
+mov rcx, 1
 sal rcx, 1
-mov rdx, 1
-sal rdx, 1
-add rcx, rdx
-mov rax, rcx
+add rdi, rcx
+mov rax, rdi
 ret
 
-global function_reference_decoy_3
-export function_reference_decoy_3
-function_reference_decoy_3:
+global _V17reference_decoy_3x_rx
+_V17reference_decoy_3x_rx:
 xor rax, rax
-mov rdx, rcx
-mov r8, rcx
-mov r9, rax
-cmp r9, 3
-jge function_reference_decoy_3_L1
-function_reference_decoy_3_L0:
-lea rcx, [r9+1]
-mov rdx, r9
+mov rcx, rdi
+mov rdx, rdi
+mov rsi, rax
+cmp rsi, 3
+jge _V17reference_decoy_3x_rx_L1
+_V17reference_decoy_3x_rx_L0:
+lea rcx, [rsi+1]
+mov rdx, rsi
 add rdx, 1
 cmp rdx, 3
-mov r8, rcx
-xchg r9, rdx
-jl function_reference_decoy_3_L0
-function_reference_decoy_3_L1:
-add rdx, r8
-mov rax, rdx
+mov r8, rdi
+mov rdi, rcx
+mov rcx, rsi
+mov rsi, rdx
+jl _V17reference_decoy_3x_rx_L0
+_V17reference_decoy_3x_rx_L1:
+add rcx, rdi
+mov rax, rcx
 ret
 
-global function_reference_decoy_4
-export function_reference_decoy_4
-function_reference_decoy_4:
+global _V17reference_decoy_4x_rx
+_V17reference_decoy_4x_rx:
 xor rax, rax
-mov rdx, rcx
-mov r8, rcx
-mov r9, rcx
-mov r10, rcx
+mov rcx, rdi
+mov rdx, rdi
+mov rsi, rdi
+mov r8, rdi
 cmp rax, 5
-jge function_reference_decoy_4_L1
-function_reference_decoy_4_L0:
-add rdx, 1
-add r8, 2
-add r9, 4
-add r10, 8
+jge _V17reference_decoy_4x_rx_L1
+_V17reference_decoy_4x_rx_L0:
+add rcx, 1
+add rdx, 2
+add rsi, 4
+add r8, 8
 add rax, 1
 cmp rax, 5
-jl function_reference_decoy_4_L0
-function_reference_decoy_4_L1:
-add rdx, r8
-add rdx, r9
-add rdx, r10
-mov rax, rdx
+jl _V17reference_decoy_4x_rx_L0
+_V17reference_decoy_4x_rx_L1:
+add rcx, rdx
+add rcx, rsi
+add rcx, r8
+mov rax, rcx
 ret
 
-global function_reference_decoy_5
-export function_reference_decoy_5
-function_reference_decoy_5:
+global _V17reference_decoy_5x_rx
+_V17reference_decoy_5x_rx:
 push rbx
-push rsi
-push rdi
 push rbp
 push r12
-sub rsp, 48
-mov rbx, rcx
-call large_function
+sub rsp, 16
+mov rbx, rdi
+call _V14large_functionv
 xor rax, rax
 mov rcx, rbx
 mov rdx, rbx
+mov rsi, rbx
+mov rdi, rbx
 mov r8, rbx
 mov r9, rbx
 mov r10, rbx
 mov r11, rbx
-mov rsi, rbx
-mov rdi, rbx
 mov rbp, rbx
 mov r12, rbx
 cmp rax, 5
-jge function_reference_decoy_5_L1
-function_reference_decoy_5_L0:
+jge _V17reference_decoy_5x_rx_L1
+_V17reference_decoy_5x_rx_L0:
 add rcx, 1
 add rdx, 2
-add r8, 3
-add r9, 4
-add r10, 5
-add r11, 6
-add rsi, 7
-add rdi, 8
+add rsi, 3
+add rdi, 4
+add r8, 5
+add r9, 6
+add r10, 7
+add r11, 8
 add rbp, 9
 add r12, 10
 add rax, 1
 cmp rax, 5
-jl function_reference_decoy_5_L0
-function_reference_decoy_5_L1:
+jl _V17reference_decoy_5x_rx_L0
+_V17reference_decoy_5x_rx_L1:
 add rcx, rdx
+add rcx, rsi
+add rcx, rdi
 add rcx, r8
 add rcx, r9
 add rcx, r10
 add rcx, r11
-add rcx, rsi
-add rcx, rdi
 add rcx, rbp
 add rcx, r12
 mov rax, rcx
-add rsp, 48
+add rsp, 16
 pop r12
 pop rbp
-pop rdi
-pop rsi
 pop rbx
 ret
 
-function_run:
-sub rsp, 40
+_V4initv_rx:
+sub rsp, 8
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-mov rcx, 10
-call function_reference_decoy_1
-mov rcx, 10
-call function_reference_decoy_2
-mov rcx, 10
-call function_reference_decoy_3
-mov rcx, 10
-call function_reference_decoy_4
-mov rcx, 10
-call function_reference_decoy_5
+mov rdi, 10
+call _V17reference_decoy_1x_rx
+mov rdi, 10
+call _V17reference_decoy_2x_rx
+mov rdi, 10
+call _V17reference_decoy_3x_rx
+mov rdi, 10
+call _V17reference_decoy_4x_rx
+mov rdi, 10
+call _V17reference_decoy_5x_rx
 ret
-
-section .data

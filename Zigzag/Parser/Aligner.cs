@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Linq;
+using System;
 
 public static class Aligner
 {
@@ -119,26 +121,69 @@ public static class Aligner
 		// Align all lambdas
 		Align(function);
 
-		var position = offset * Parser.Size.Bytes;
-
-		// Align the this pointer if it exists
-		if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 		{
-			x.LocalAlignment = position - Parser.Size.Bytes;
-		}
-		else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
-		{
-			y.LocalAlignment = position - Parser.Size.Bytes;
-		}
-
-		// Parameters:
-		foreach (var variable in function.Parameters)
-		{
-			if (variable.Category == VariableCategory.PARAMETER)
+			var standard_register_count = Calls.GetStandardParameterRegisters().Count();
+			var media_register_count = Calls.GetMaxMediaRegisterParameters();
+			
+			if (standard_register_count == 0)
 			{
-				variable.LocalAlignment = position;
-				position += variable.Type!.ReferenceSize;
+				throw new ApplicationException("There were no standard registers reserved for parameter passage");
+			}
+
+			// The self pointer uses one standard register
+			if (function.Variables.ContainsKey(Function.SELF_POINTER_IDENTIFIER) || function.Variables.ContainsKey(Lambda.SELF_POINTER_IDENTIFIER))
+			{
+				standard_register_count--;
+			}
+
+			var position = Parser.Size.Bytes;
+
+			foreach (var parameter in function.Parameters)
+			{
+				if (!parameter.IsParameter) // Redundant check?
+				{
+					continue;
+				}
+
+				if (parameter.Type == Types.DECIMAL && media_register_count-- > 0 ||
+						parameter.Type != Types.DECIMAL && standard_register_count-- > 0)
+				{
+					continue;
+				}
+
+				if (parameter.Name == "g")
+				{
+					Console.WriteLine(position);
+				}
+
+				parameter.LocalAlignment = position;
+				position += parameter.Type!.ReferenceSize;
 			}
 		}
+		else
+		{
+			var position = offset * Parser.Size.Bytes;
+
+			// Align the this pointer if it exists
+			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
+			{
+				x.LocalAlignment = position - Parser.Size.Bytes;
+			}
+			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
+			{
+				y.LocalAlignment = position - Parser.Size.Bytes;
+			}
+
+			// Parameters:
+			foreach (var variable in function.Parameters)
+			{
+				if (variable.Category == VariableCategory.PARAMETER)
+				{
+					variable.LocalAlignment = position;
+					position += variable.Type!.ReferenceSize;
+				}
+			}
+		}	
 	}
 }

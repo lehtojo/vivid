@@ -31,9 +31,8 @@ public static class Loops
    private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node root, params Context[] local_contexts)
    {
       var variables = new Dictionary<Variable, int>();
-      var iterator = root.First;
 
-      while (iterator != null)
+      foreach (var iterator in root)
       {
          if (iterator is VariableNode node && IsNonLocalVariable(node.Variable, local_contexts))
          {
@@ -58,8 +57,6 @@ public static class Loops
                variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
             }
          }
-
-         iterator = iterator.Next;
       }
 
       return variables;

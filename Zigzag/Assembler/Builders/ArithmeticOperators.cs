@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 
 public static class ArithmeticOperators
 {
@@ -78,6 +77,10 @@ public static class ArithmeticOperators
       if (Equals(operation, Operators.ASSIGN_AND) || Equals(operation, Operators.ASSIGN_XOR) || Equals(operation, Operators.ASSIGN_OR))
       {
          return BuildBitwiseOperator(unit, node, true);
+      }
+      if (operation.Type == OperatorType.COMPARISON || operation.Type == OperatorType.LOGIC)
+      {
+         return BuildBooleanValue(unit, node);
       }
 
       throw new ArgumentException("Node not implemented yet");
@@ -195,16 +198,16 @@ public static class ArithmeticOperators
       var right = References.Get(unit, operation.Right);
 
       var number_type = operation.GetType()!.To<Number>().Type;
-
-      if (operation.Operator == Operators.BITWISE_AND)
+      
+      if (operation.Is(Operators.BITWISE_AND) || operation.Is(Operators.ASSIGN_AND))
       {
          return BitwiseInstruction.And(unit, left, right, number_type, assigns).Execute();
       }
-      if (operation.Operator == Operators.BITWISE_XOR)
+      if (operation.Is(Operators.BITWISE_XOR) || operation.Is(Operators.ASSIGN_XOR))
       {
          return BitwiseInstruction.Xor(unit, left, right, number_type, assigns).Execute();
       }
-      if (operation.Operator == Operators.BITWISE_OR)
+      if (operation.Is(Operators.BITWISE_OR) || operation.Is(Operators.ASSIGN_OR))
       {
          return BitwiseInstruction.Or(unit, left, right, number_type, assigns).Execute();
       }
@@ -262,5 +265,51 @@ public static class ArithmeticOperators
       }
 
 		return addition;
+   }
+
+   private static Result BuildBooleanValue(Unit unit, OperatorNode operation)
+   {
+      // Declare a hidden variable which represents the result
+      var destination = unit.Function.DeclareHidden(Types.BOOL);
+
+      // Initialize the result with value 'false'
+      var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+         new VariableNode(destination),
+         new NumberNode(Assembler.Format, 0L)
+      );
+
+      destination.Edits.Add(initialization);
+
+      Builders.Build(unit, initialization);
+
+      // Replace the operation with the result
+      var replacement = new VariableNode(destination);
+      operation.Replace(replacement);
+
+      destination.Reads.Add(replacement);
+
+      var context = new Context();
+      context.Link(unit.Function);
+
+      // The destination is edited inside the following statement
+      var edit = new OperatorNode(Operators.ASSIGN).SetOperands(
+         new VariableNode(destination),
+         new NumberNode(Assembler.Format, 1L)
+      );
+
+      destination.Edits.Add(edit);
+
+      // Create a conditional statement which sets the value of the destination variable to true if the condition is true
+      var statement = new IfNode(
+         context, 
+         operation,
+         edit
+      );
+
+      // Build the conditional statement
+      Conditionals.Start(unit, statement);
+
+      // Finally, return the value of the destination variable
+      return new GetVariableInstruction(unit, destination, AccessMode.READ).Execute();
    }
 }

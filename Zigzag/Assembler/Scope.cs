@@ -229,7 +229,9 @@ public sealed class Scope : IDisposable
       }
       else
       {
-         transition_handle = new Result(handle, variable.Type!.Format);
+         var format = handle.Is(HandleType.REGISTER) ? Assembler.Format : variable.Type!.Format;
+
+         transition_handle = new Result(handle, format);
          transition_handle.Metadata.Attach(new VariableAttribute(variable));
 
          TransitionHandles.Add(variable, transition_handle);
@@ -373,7 +375,7 @@ public sealed class Scope : IDisposable
             }
             else
             {
-               SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, null, parameter));
+               SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, parameter));
             }
          }
       }

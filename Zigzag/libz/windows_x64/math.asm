@@ -1,5 +1,5 @@
-global internal_integer_power
-internal_integer_power:
+global _V22internal_integer_powerxx_rx
+_V22internal_integer_powerxx_rx:
 ; rcx: base
 ; rdx: exponent
 mov qword [rsp+8], rcx
@@ -24,8 +24,8 @@ fistp qword [rsp+8] ; Load and pop base^exponent from the FPU-stack
 mov rax, qword [rsp+8] ; Load the result (base^exponent)
 ret
 
-global integer_decimal_power
-integer_decimal_power:
+global _V22internal_decimal_powerxx_rx
+_V22internal_decimal_powerxx_rx:
 ; rcx: base
 ; rdx: exponent
 movsd qword [rsp+8], xmm0
@@ -50,8 +50,8 @@ fstp qword [rsp+8] ; Load and pop base^exponent from the FPU-stack
 movsd xmm0, qword [rsp+8] ; Load the result (base^exponent)
 ret
 
-global internal_cos
-internal_cos:
+global _V12internal_cosd_rd
+_V12internal_cosd_rd:
 movsd qword [rsp+8], xmm0
 fld qword [rsp+8]
 fcos
@@ -59,8 +59,8 @@ fstp qword [rsp+8]
 movsd xmm0, qword [rsp+8]
 ret
 
-global internal_sin
-internal_sin:
+global _V12internal_sind_rd
+_V12internal_sind_rd:
 movsd qword [rsp+8], xmm0
 fld qword [rsp+8]
 fsin

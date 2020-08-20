@@ -1,0 +1,7 @@
+init() {
+	a = Array(num, 10)
+	b = Array(decimal, 7)
+
+	a[7] = 10
+	b[10] = 7.0
+}

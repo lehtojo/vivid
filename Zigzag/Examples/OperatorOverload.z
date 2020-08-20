@@ -48,7 +48,7 @@ power_of_two(a) {
     => a * a
 }
 
-run() {
+init() {
     first_box = Apples()
     second_box = Apples(10)
 

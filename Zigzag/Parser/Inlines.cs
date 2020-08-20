@@ -9,7 +9,7 @@ public static class Inlines
 
 		if (node == null)
 		{
-			throw new ApplicationException("Couldn't find the implementation node of a function");
+			throw new ApplicationException("Could not find the implementation node of a function");
 		}
 
 		var context = node.Implementation;

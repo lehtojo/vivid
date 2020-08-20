@@ -34,7 +34,7 @@ export decimal_division_with_constant(a: decimal) {
 	=> 2.0 / a / 1.414
 }
 
-run() {
+init() {
 	=> 1
 	decimal_addition(0.0, 0.0)
 	decimal_subtraction(0.0, 0.0)

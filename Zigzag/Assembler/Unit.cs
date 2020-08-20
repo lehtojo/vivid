@@ -325,7 +325,7 @@ public class Unit
 			// Get all the variables that this value represents
 			foreach (var attribute in value.Metadata.Variables)
 			{
-				var destination = new Result(References.CreateVariableHandle(this, null, attribute.Variable), attribute.Variable.Type!.Format);
+				var destination = new Result(References.CreateVariableHandle(this, attribute.Variable), attribute.Variable.Type!.Format);
 
 				var move = new MoveInstruction(this, destination, value)
 				{
@@ -354,12 +354,12 @@ public class Unit
 
 	public Label GetNextLabel()
 	{
-		return new Label(Function.Metadata!.GetFullname() + $"_L{Indexer.Label}");
+		return new Label(Function.GetFullname() + $"_L{Indexer.Label}");
 	}
 
 	public string GetNextString()
 	{
-		return Function.Metadata!.GetFullname() + $"_S{Indexer.String}";
+		return Function.GetFullname() + $"_S{Indexer.String}";
 	}
 
 	public string GetNextConstantIdentifier(object constant)
@@ -369,7 +369,7 @@ public class Unit
 			return identifier;
 		}
 
-		identifier = Function.Metadata!.GetFullname() + $"_C{Indexer.Constant}";
+		identifier = Function.GetFullname() + $"_C{Indexer.Constant}";
 
 		Constants.Add(constant, identifier);
 		return identifier;
@@ -479,7 +479,7 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Couldn't find an available media register");
+		throw new NotImplementedException("Could not find an available media register");
 	}
 
 	/// <summary>
@@ -646,7 +646,7 @@ public class Unit
 
 	public List<Result> GetConstantHandles(object constant)
 	{
-		return Scope?.GetConstantHandles(constant) ?? throw new ApplicationException("Couldn't get constant reference list");
+		return Scope?.GetConstantHandles(constant) ?? throw new ApplicationException("Could not get constant reference list");
 	}
 
 	public Result? GetCurrentVariableHandle(Variable variable)

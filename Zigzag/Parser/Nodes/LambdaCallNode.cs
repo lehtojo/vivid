@@ -12,12 +12,14 @@ public class LambdaCallNode : Node, IType
 
    public new Type? GetType()
    {
-      return Object switch
+      var lambda = Object switch
       {
          VariableNode variable => (LambdaType?)variable.GetType(),
          LinkNode link => (LambdaType?)link.GetType(),
          _ => throw new ApplicationException("Invalid lambda call node configuration")
       };
+
+      return lambda?.ReturnType;
    }
 
    public LambdaCallNode SetParameters(Node parameters)

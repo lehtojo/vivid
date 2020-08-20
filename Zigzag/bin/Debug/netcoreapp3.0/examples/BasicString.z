@@ -5,6 +5,6 @@ square(num) {
     a.insert(1, 'e')
 }
 
-run() {
+init() {
     square(7)
 }

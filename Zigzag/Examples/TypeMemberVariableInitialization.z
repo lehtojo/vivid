@@ -12,6 +12,6 @@ Holder {
    }
 }
 
-run() {
+init() {
    holder = Holder()
 }

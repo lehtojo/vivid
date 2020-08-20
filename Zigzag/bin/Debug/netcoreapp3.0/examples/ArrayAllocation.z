@@ -13,7 +13,7 @@ copy_array(source, destination, length) {
     }
 }
 
-run() {
+init() {
     test(1, 2)
 
     source1 = num[10]

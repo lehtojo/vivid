@@ -249,7 +249,7 @@ polynomial(a, x) {
     => a * a * x * x + a * x + 1
 }
 
-run() {
+init() {
     g(10)
     z(10)
     h(1, 1, 1)

@@ -4,14 +4,14 @@ public static class Casts
 {
    public static Result Cast(Result result, Type from, Type to)
    {
-      if (from == to)
+      if (from == to || from is Number || to is Number)
       {
          return result;
       }
 
       if (from.IsTypeInherited(to)) // Determine whether the cast is a down cast
       {
-         var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Couldn't calculate base offset of a super type while building down cast");
+         var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not calculate base offset of a super type while building down cast");
          
          if (base_offset == 0)
          {
@@ -25,7 +25,7 @@ public static class Casts
 
       if (to.IsTypeInherited(from)) // Determine whether the cast is a up cast
       {
-         var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Couldn't calculate base offset of a super type while building up cast");
+         var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not calculate base offset of a super type while building up cast");
          
          if (base_offset == 0)
          {

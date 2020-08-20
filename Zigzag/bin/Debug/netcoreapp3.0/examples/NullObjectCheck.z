@@ -27,7 +27,7 @@ f(primary) {
     => 0
 }
 
-run() {
+init() {
     a = A(B())
     f(a)
 }

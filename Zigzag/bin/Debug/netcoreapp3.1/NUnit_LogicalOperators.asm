@@ -1,361 +1,377 @@
 section .text
-global function_run
-extern allocate
-extern integer_power
-extern sys_print
-extern sys_read
-extern copy
-extern offset_copy
-extern deallocate
+global _start
+_start:
+call _V4initv_rx
+mov rax, 60
+xor rdi, rdi
+syscall
 
-global function_single_boolean
-export function_single_boolean
-function_single_boolean:
-cmp cl, 1
-jne function_single_boolean_L1
+extern _V8allocatex_rPh
+
+global _V14single_booleanb_rx
+_V14single_booleanb_rx:
+movzx rdi, dil
+cmp rdi, 1
+jne _V14single_booleanb_rx_L1
 xor rax, rax
 ret
-jmp function_single_boolean_L0
-function_single_boolean_L1:
+jmp _V14single_booleanb_rx_L0
+_V14single_booleanb_rx_L1:
 mov rax, 1
 ret
-function_single_boolean_L0:
+_V14single_booleanb_rx_L0:
 ret
 
-global function_two_booleans
-export function_two_booleans
-function_two_booleans:
-cmp cl, 1
-jne function_two_booleans_L1
+global _V12two_booleansbb_rx
+_V12two_booleansbb_rx:
+movzx rdi, dil
+cmp rdi, 1
+jne _V12two_booleansbb_rx_L1
 mov rax, 1
 ret
-jmp function_two_booleans_L0
-function_two_booleans_L1:
-cmp dl, 1
-jne function_two_booleans_L3
+jmp _V12two_booleansbb_rx_L0
+_V12two_booleansbb_rx_L1:
+movzx rsi, sil
+cmp rsi, 1
+jne _V12two_booleansbb_rx_L3
 mov rax, 2
 ret
-jmp function_two_booleans_L0
-function_two_booleans_L3:
+jmp _V12two_booleansbb_rx_L0
+_V12two_booleansbb_rx_L3:
 mov rax, 3
 ret
-function_two_booleans_L0:
+_V12two_booleansbb_rx_L0:
 ret
 
-global function_nested_if_statements
-export function_nested_if_statements
-function_nested_if_statements:
-cmp rcx, 1
-jne function_nested_if_statements_L0
-cmp rdx, 2
-jne function_nested_if_statements_L2
-cmp r8, 3
-jne function_nested_if_statements_L5
-mov rax, 1
-ret
-jmp function_nested_if_statements_L4
-function_nested_if_statements_L5:
-cmp r8, 4
-jne function_nested_if_statements_L4
-mov rax, 1
-ret
-function_nested_if_statements_L4:
-function_nested_if_statements_L2:
-test rdx, rdx
-jne function_nested_if_statements_L8
-cmp r8, 1
-jne function_nested_if_statements_L11
-mov rax, 1
-ret
-jmp function_nested_if_statements_L10
-function_nested_if_statements_L11:
-mov r9, -1
-cmp r8, r9
-jne function_nested_if_statements_L10
-mov rax, 1
-ret
-function_nested_if_statements_L10:
-function_nested_if_statements_L8:
-xor rax, rax
-ret
-function_nested_if_statements_L0:
-cmp rcx, 2
-jne function_nested_if_statements_L14
-cmp rdx, 4
-jne function_nested_if_statements_L16
-cmp r8, 8
-jne function_nested_if_statements_L19
-mov rax, 1
-ret
-jmp function_nested_if_statements_L18
-function_nested_if_statements_L19:
-cmp r8, 6
-jne function_nested_if_statements_L18
-mov rax, 1
-ret
-function_nested_if_statements_L18:
-function_nested_if_statements_L16:
+global _V20nested_if_statementsxxx_rx
+_V20nested_if_statementsxxx_rx:
+cmp rdi, 1
+jne _V20nested_if_statementsxxx_rx_L0
+cmp rsi, 2
+jne _V20nested_if_statementsxxx_rx_L2
 cmp rdx, 3
-jne function_nested_if_statements_L22
-cmp r8, 4
-jne function_nested_if_statements_L25
+jne _V20nested_if_statementsxxx_rx_L5
 mov rax, 1
 ret
-jmp function_nested_if_statements_L24
-function_nested_if_statements_L25:
-cmp r8, 5
-jne function_nested_if_statements_L24
+jmp _V20nested_if_statementsxxx_rx_L4
+_V20nested_if_statementsxxx_rx_L5:
+cmp rdx, 4
+jne _V20nested_if_statementsxxx_rx_L4
 mov rax, 1
 ret
-function_nested_if_statements_L24:
-function_nested_if_statements_L22:
+_V20nested_if_statementsxxx_rx_L4:
+_V20nested_if_statementsxxx_rx_L2:
+test rsi, rsi
+jne _V20nested_if_statementsxxx_rx_L8
+cmp rdx, 1
+jne _V20nested_if_statementsxxx_rx_L11
+mov rax, 1
+ret
+jmp _V20nested_if_statementsxxx_rx_L10
+_V20nested_if_statementsxxx_rx_L11:
+mov rcx, -1
+cmp rdx, rcx
+jne _V20nested_if_statementsxxx_rx_L10
+mov rax, 1
+ret
+_V20nested_if_statementsxxx_rx_L10:
+_V20nested_if_statementsxxx_rx_L8:
 xor rax, rax
 ret
-function_nested_if_statements_L14:
+_V20nested_if_statementsxxx_rx_L0:
+cmp rdi, 2
+jne _V20nested_if_statementsxxx_rx_L14
+cmp rsi, 4
+jne _V20nested_if_statementsxxx_rx_L16
+cmp rdx, 8
+jne _V20nested_if_statementsxxx_rx_L19
+mov rax, 1
+ret
+jmp _V20nested_if_statementsxxx_rx_L18
+_V20nested_if_statementsxxx_rx_L19:
+cmp rdx, 6
+jne _V20nested_if_statementsxxx_rx_L18
+mov rax, 1
+ret
+_V20nested_if_statementsxxx_rx_L18:
+_V20nested_if_statementsxxx_rx_L16:
+cmp rsi, 3
+jne _V20nested_if_statementsxxx_rx_L22
+cmp rdx, 4
+jne _V20nested_if_statementsxxx_rx_L25
+mov rax, 1
+ret
+jmp _V20nested_if_statementsxxx_rx_L24
+_V20nested_if_statementsxxx_rx_L25:
+cmp rdx, 5
+jne _V20nested_if_statementsxxx_rx_L24
+mov rax, 1
+ret
+_V20nested_if_statementsxxx_rx_L24:
+_V20nested_if_statementsxxx_rx_L22:
+xor rax, rax
+ret
+_V20nested_if_statementsxxx_rx_L14:
 xor rax, rax
 ret
 
-global function_logical_and_in_if_statement
-export function_logical_and_in_if_statement
-function_logical_and_in_if_statement:
-cmp cl, 1
-jne function_logical_and_in_if_statement_L0
-cmp dl, 1
-jne function_logical_and_in_if_statement_L0
+global _V27logical_and_in_if_statementbb_rx
+_V27logical_and_in_if_statementbb_rx:
+movzx rdi, dil
+cmp rdi, 1
+jne _V27logical_and_in_if_statementbb_rx_L0
+movzx rsi, sil
+cmp rsi, 1
+jne _V27logical_and_in_if_statementbb_rx_L0
 mov rax, 10
 ret
-function_logical_and_in_if_statement_L0:
+_V27logical_and_in_if_statementbb_rx_L0:
 xor rax, rax
 ret
 
-global function_logical_or_in_if_statement
-export function_logical_or_in_if_statement
-function_logical_or_in_if_statement:
-cmp cl, 1
-je function_logical_or_in_if_statement_L1
-cmp dl, 1
-jne function_logical_or_in_if_statement_L0
-function_logical_or_in_if_statement_L1:
+global _V26logical_or_in_if_statementbb_rx
+_V26logical_or_in_if_statementbb_rx:
+movzx rdi, dil
+cmp rdi, 1
+je _V26logical_or_in_if_statementbb_rx_L1
+movzx rsi, sil
+cmp rsi, 1
+jne _V26logical_or_in_if_statementbb_rx_L0
+_V26logical_or_in_if_statementbb_rx_L1:
 mov rax, 10
 ret
-function_logical_or_in_if_statement_L0:
+_V26logical_or_in_if_statementbb_rx_L0:
 xor rax, rax
 ret
 
-global function_nested_logical_statements
-export function_nested_logical_statements
-function_nested_logical_statements:
-cmp cl, 1
-jne function_nested_logical_statements_L1
-cmp dl, 1
-jne function_nested_logical_statements_L1
-cmp r8b, 1
-jne function_nested_logical_statements_L1
-cmp r9b, 1
-jne function_nested_logical_statements_L1
+global _V25nested_logical_statementsbbbb_rx
+_V25nested_logical_statementsbbbb_rx:
+movzx rdi, dil
+cmp rdi, 1
+jne _V25nested_logical_statementsbbbb_rx_L1
+movzx rsi, sil
+cmp rsi, 1
+jne _V25nested_logical_statementsbbbb_rx_L1
+movzx rdx, dl
+cmp rdx, 1
+jne _V25nested_logical_statementsbbbb_rx_L1
+movzx rcx, cl
+cmp rcx, 1
+jne _V25nested_logical_statementsbbbb_rx_L1
 mov rax, 1
 ret
-jmp function_nested_logical_statements_L0
-function_nested_logical_statements_L1:
-cmp cl, 1
-je function_nested_logical_statements_L8
-cmp dl, 1
-jne function_nested_logical_statements_L6
-function_nested_logical_statements_L8:
-cmp r8b, 1
-jne function_nested_logical_statements_L6
-cmp r9b, 1
-jne function_nested_logical_statements_L6
+jmp _V25nested_logical_statementsbbbb_rx_L0
+_V25nested_logical_statementsbbbb_rx_L1:
+movzx rdi, dil
+cmp rdi, 1
+je _V25nested_logical_statementsbbbb_rx_L8
+movzx rsi, sil
+cmp rsi, 1
+jne _V25nested_logical_statementsbbbb_rx_L6
+_V25nested_logical_statementsbbbb_rx_L8:
+movzx rdx, dl
+cmp rdx, 1
+jne _V25nested_logical_statementsbbbb_rx_L6
+movzx rcx, cl
+cmp rcx, 1
+jne _V25nested_logical_statementsbbbb_rx_L6
 mov rax, 2
 ret
-jmp function_nested_logical_statements_L0
-function_nested_logical_statements_L6:
-cmp cl, 1
-jne function_nested_logical_statements_L11
-cmp dl, 1
-jne function_nested_logical_statements_L11
-cmp r8b, 1
-je function_nested_logical_statements_L12
-cmp r9b, 1
-jne function_nested_logical_statements_L11
-function_nested_logical_statements_L12:
+jmp _V25nested_logical_statementsbbbb_rx_L0
+_V25nested_logical_statementsbbbb_rx_L6:
+movzx rdi, dil
+cmp rdi, 1
+jne _V25nested_logical_statementsbbbb_rx_L11
+movzx rsi, sil
+cmp rsi, 1
+jne _V25nested_logical_statementsbbbb_rx_L11
+movzx rdx, dl
+cmp rdx, 1
+je _V25nested_logical_statementsbbbb_rx_L12
+movzx rcx, cl
+cmp rcx, 1
+jne _V25nested_logical_statementsbbbb_rx_L11
+_V25nested_logical_statementsbbbb_rx_L12:
 mov rax, 3
 ret
-jmp function_nested_logical_statements_L0
-function_nested_logical_statements_L11:
-cmp cl, 1
-jne function_nested_logical_statements_L18
-cmp dl, 1
-je function_nested_logical_statements_L17
-function_nested_logical_statements_L18:
-cmp r8b, 1
-jne function_nested_logical_statements_L16
-cmp r9b, 1
-jne function_nested_logical_statements_L16
-function_nested_logical_statements_L17:
+jmp _V25nested_logical_statementsbbbb_rx_L0
+_V25nested_logical_statementsbbbb_rx_L11:
+movzx rdi, dil
+cmp rdi, 1
+jne _V25nested_logical_statementsbbbb_rx_L18
+movzx rsi, sil
+cmp rsi, 1
+je _V25nested_logical_statementsbbbb_rx_L17
+_V25nested_logical_statementsbbbb_rx_L18:
+movzx rdx, dl
+cmp rdx, 1
+jne _V25nested_logical_statementsbbbb_rx_L16
+movzx rcx, cl
+cmp rcx, 1
+jne _V25nested_logical_statementsbbbb_rx_L16
+_V25nested_logical_statementsbbbb_rx_L17:
 mov rax, 4
 ret
-jmp function_nested_logical_statements_L0
-function_nested_logical_statements_L16:
-cmp cl, 1
-je function_nested_logical_statements_L22
-cmp dl, 1
-je function_nested_logical_statements_L22
-cmp r8b, 1
-je function_nested_logical_statements_L22
-cmp r9b, 1
-jne function_nested_logical_statements_L21
-function_nested_logical_statements_L22:
+jmp _V25nested_logical_statementsbbbb_rx_L0
+_V25nested_logical_statementsbbbb_rx_L16:
+movzx rdi, dil
+cmp rdi, 1
+je _V25nested_logical_statementsbbbb_rx_L22
+movzx rsi, sil
+cmp rsi, 1
+je _V25nested_logical_statementsbbbb_rx_L22
+movzx rdx, dl
+cmp rdx, 1
+je _V25nested_logical_statementsbbbb_rx_L22
+movzx rcx, cl
+cmp rcx, 1
+jne _V25nested_logical_statementsbbbb_rx_L21
+_V25nested_logical_statementsbbbb_rx_L22:
 mov rax, 5
 ret
-jmp function_nested_logical_statements_L0
-function_nested_logical_statements_L21:
+jmp _V25nested_logical_statementsbbbb_rx_L0
+_V25nested_logical_statementsbbbb_rx_L21:
 mov rax, 6
 ret
-function_nested_logical_statements_L0:
+_V25nested_logical_statementsbbbb_rx_L0:
 ret
 
-global function_logical_operators_1
-export function_logical_operators_1
-function_logical_operators_1:
-cmp rcx, rdx
-jg function_logical_operators_1_L2
-test rcx, rcx
-jne function_logical_operators_1_L1
-function_logical_operators_1_L2:
-mov rax, rdx
+global _V19logical_operators_1xx_rx
+_V19logical_operators_1xx_rx:
+cmp rdi, rsi
+jg _V19logical_operators_1xx_rx_L2
+test rdi, rdi
+jne _V19logical_operators_1xx_rx_L1
+_V19logical_operators_1xx_rx_L2:
+mov rax, rsi
 ret
-jmp function_logical_operators_1_L0
-function_logical_operators_1_L1:
-cmp rcx, rdx
-jne function_logical_operators_1_L4
-cmp rdx, 1
-jne function_logical_operators_1_L4
-mov rax, rcx
+jmp _V19logical_operators_1xx_rx_L0
+_V19logical_operators_1xx_rx_L1:
+cmp rdi, rsi
+jne _V19logical_operators_1xx_rx_L4
+cmp rsi, 1
+jne _V19logical_operators_1xx_rx_L4
+mov rax, rdi
 ret
-jmp function_logical_operators_1_L0
-function_logical_operators_1_L4:
+jmp _V19logical_operators_1xx_rx_L0
+_V19logical_operators_1xx_rx_L4:
 xor rax, rax
 ret
-function_logical_operators_1_L0:
+_V19logical_operators_1xx_rx_L0:
 ret
 
-global function_logical_operators_2
-export function_logical_operators_2
-function_logical_operators_2:
-cmp rcx, rdx
-jle function_logical_operators_2_L3
-cmp rcx, r8
-jg function_logical_operators_2_L2
-function_logical_operators_2_L3:
-cmp r8, rdx
-jle function_logical_operators_2_L1
-function_logical_operators_2_L2:
+global _V19logical_operators_2xxx_rx
+_V19logical_operators_2xxx_rx:
+cmp rdi, rsi
+jle _V19logical_operators_2xxx_rx_L3
+cmp rdi, rdx
+jg _V19logical_operators_2xxx_rx_L2
+_V19logical_operators_2xxx_rx_L3:
+cmp rdx, rsi
+jle _V19logical_operators_2xxx_rx_L1
+_V19logical_operators_2xxx_rx_L2:
 mov rax, 1
 ret
-jmp function_logical_operators_2_L0
-function_logical_operators_2_L1:
-cmp rcx, rdx
-jle function_logical_operators_2_L7
-cmp rdx, r8
-jl function_logical_operators_2_L5
-function_logical_operators_2_L7:
-cmp r8, 1
-je function_logical_operators_2_L6
-cmp rcx, 1
-jne function_logical_operators_2_L5
-function_logical_operators_2_L6:
+jmp _V19logical_operators_2xxx_rx_L0
+_V19logical_operators_2xxx_rx_L1:
+cmp rdi, rsi
+jle _V19logical_operators_2xxx_rx_L7
+cmp rsi, rdx
+jl _V19logical_operators_2xxx_rx_L5
+_V19logical_operators_2xxx_rx_L7:
+cmp rdx, 1
+je _V19logical_operators_2xxx_rx_L6
+cmp rdi, 1
+jne _V19logical_operators_2xxx_rx_L5
+_V19logical_operators_2xxx_rx_L6:
 xor rax, rax
 ret
-jmp function_logical_operators_2_L0
-function_logical_operators_2_L5:
+jmp _V19logical_operators_2xxx_rx_L0
+_V19logical_operators_2xxx_rx_L5:
 mov rax, -1
 ret
-function_logical_operators_2_L0:
+_V19logical_operators_2xxx_rx_L0:
 ret
 
-function_f:
-cmp rcx, 7
-jne function_f_L1
+_V1fx_rx:
+cmp rdi, 7
+jne _V1fx_rx_L1
 mov rax, 1
 ret
-jmp function_f_L0
-function_f_L1:
+jmp _V1fx_rx_L0
+_V1fx_rx_L1:
 xor rax, rax
 ret
-function_f_L0:
+_V1fx_rx_L0:
 ret
 
-global function_logical_operators_3
-export function_logical_operators_3
-function_logical_operators_3:
+global _V19logical_operators_3xx_rx
+_V19logical_operators_3xx_rx:
 push rbx
-push rsi
-sub rsp, 40
-cmp rcx, 10
-jg function_logical_operators_3_L3
-mov rbx, rcx
-mov rsi, rdx
-call function_f
+push rbp
+sub rsp, 8
+cmp rdi, 10
+jg _V19logical_operators_3xx_rx_L3
+mov rbx, rsi
+mov rbp, rdi
+call _V1fx_rx
 cmp rax, 1
-mov rcx, rbx
-mov rdx, rsi
-jne function_logical_operators_3_L1
-function_logical_operators_3_L3:
-cmp rcx, rdx
-jle function_logical_operators_3_L1
+mov rdi, rbp
+mov rsi, rbx
+jne _V19logical_operators_3xx_rx_L1
+_V19logical_operators_3xx_rx_L3:
+cmp rdi, rsi
+jle _V19logical_operators_3xx_rx_L1
 xor rax, rax
-add rsp, 40
-pop rsi
+add rsp, 8
+pop rbp
 pop rbx
 ret
-jmp function_logical_operators_3_L0
-function_logical_operators_3_L1:
+jmp _V19logical_operators_3xx_rx_L0
+_V19logical_operators_3xx_rx_L1:
 mov rax, 1
-add rsp, 40
-pop rsi
+add rsp, 8
+pop rbp
 pop rbx
 ret
-function_logical_operators_3_L0:
-add rsp, 40
-pop rsi
+_V19logical_operators_3xx_rx_L0:
+add rsp, 8
+pop rbp
 pop rbx
 ret
 
-function_run:
-sub rsp, 40
-mov rcx, 1
+_V4initv_rx:
+sub rsp, 8
+mov rdi, 1
+mov rsi, 1
+call _V19logical_operators_1xx_rx
+mov rdi, 1
+mov rsi, 1
 mov rdx, 1
-call function_logical_operators_1
-mov rcx, 1
-mov rdx, 1
-mov r8, 1
-call function_logical_operators_2
-mov rcx, 1
-mov rdx, 1
-call function_logical_operators_3
-mov rcx, 1
-call function_single_boolean
-mov rcx, 1
-mov rdx, 1
-call function_two_booleans
-xor rcx, rcx
+call _V19logical_operators_2xxx_rx
+mov rdi, 1
+mov rsi, 1
+call _V19logical_operators_3xx_rx
+mov rdi, 1
+call _V14single_booleanb_rx
+mov rdi, 1
+mov rsi, 1
+call _V12two_booleansbb_rx
+xor rdi, rdi
+xor rsi, rsi
 xor rdx, rdx
-xor r8, r8
-call function_nested_if_statements
-mov rcx, 1
+call _V20nested_if_statementsxxx_rx
+mov rdi, 1
+mov rsi, 1
+call _V27logical_and_in_if_statementbb_rx
+mov rdi, 1
+mov rsi, 1
+call _V26logical_or_in_if_statementbb_rx
+mov rdi, 1
+mov rsi, 1
 mov rdx, 1
-call function_logical_and_in_if_statement
 mov rcx, 1
-mov rdx, 1
-call function_logical_or_in_if_statement
-mov rcx, 1
-mov rdx, 1
-mov r8, 1
-mov r9, 1
-call function_nested_logical_statements
+call _V25nested_logical_statementsbbbb_rx
 mov rax, 1
-add rsp, 40
+add rsp, 8
 ret
-
-section .data

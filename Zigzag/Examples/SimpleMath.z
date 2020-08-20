@@ -13,7 +13,7 @@ export basic_if(a, b) {
 	}
 }
 
-run() {
+init() {
 	# Dummy for type resolving
 	simple_math(1, 2, 3)
 	basic_if(1, 2)

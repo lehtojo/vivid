@@ -42,7 +42,7 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		if (type == Types.UNKNOWN)
 		{
-			CurrentStatus = Status.Error("Couldn't resolve return type");
+			CurrentStatus = Status.Error("Could not resolve return type");
 			return null;
 		}
 

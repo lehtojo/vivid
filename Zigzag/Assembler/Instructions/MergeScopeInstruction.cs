@@ -22,7 +22,7 @@ public class MergeScopeInstruction : Instruction
 
 		foreach (var variable in Scope!.ActiveVariables)
 		{
-			var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Couldn't get the current handle for an active variable");
+			var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Could not get the current handle for an active variable");
 
 			// Copy the destination value to prevent any relocation leaks
 			var destination = new Result(GetDestinationHandle(variable).Value, variable.Type!.Format);
