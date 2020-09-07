@@ -7,6 +7,11 @@ public class SetVariableInstruction : Instruction
 
    public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit)
    {
+      if (!variable.IsPredictable)
+      {
+         throw new ArgumentException("Tried to use Set-Variable-Instruction to update the value of an unpredictable variable");
+      }
+
       Variable = variable;
       Value = value;
       Description = $"Updates the value of the variable '{variable.Name}'";
@@ -33,6 +38,6 @@ public class SetVariableInstruction : Instruction
 
    public override Result[] GetResultReferences()
    {
-      return new Result[] { Result, Value };
+      return new[] { Result, Value };
    }
 }

@@ -15,13 +15,32 @@ public class FunctionImplementation : Context
 
 	public Variable? Self { get; protected set; }
 
-	public List<Variable> Parameters => Variables.Values.Where(v => !v.IsSelfPointer && v.Category == VariableCategory.PARAMETER).ToList();
-	public List<Type> ParameterTypes => Parameters.Where(p => !p.IsSelfPointer).Select(p => p.Type!).ToList();
+	public List<Variable> Parameters => Variables.Values
+		.Where(v => !v.IsSelfPointer && v.Category == VariableCategory.PARAMETER)
+		.ToList();
+
+	public List<Type> ParameterTypes => Parameters
+		.Where(p => !p.IsSelfPointer)
+		.Select(p => p.Type!)
+		.ToList();
 	
-	public List<Variable> Locals => base.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
-										.Concat(Subcontexts.SelectMany(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL))).ToList();
-	public int LocalMemorySize => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum() +
-									Subcontexts.Sum(c => c.Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Select(v => v.Type!.ReferenceSize).Sum());
+	public List<Variable> Locals => base.Variables.Values
+		.Where(v => v.Category == VariableCategory.LOCAL)
+		.Concat(Subcontexts
+			.SelectMany(c => c.Variables.Values
+			.Where(v => v.Category == VariableCategory.LOCAL
+		)))
+		.ToList();
+
+	public int LocalMemorySize => Variables.Values
+		.Where(v => v.Category == VariableCategory.LOCAL)
+		.Select(v => v.Type!.ReferenceSize)
+		.Sum() + Subcontexts
+		.Sum(c => c.Variables.Values
+			.Where(v => v.Category == VariableCategory.LOCAL)
+			.Select(v => v.Type!.ReferenceSize)
+			.Sum()
+		);
 	
 	public Node? Node { get; set; }
 
@@ -30,7 +49,7 @@ public class FunctionImplementation : Context
 	public Type? ReturnType { get; set; }
 	public bool Returns => ReturnType != null;
 
-	public bool IsInline => References.Count == 1 && false;
+	public bool IsInlined { get; set; } = false;
 	public bool IsEmpty => Node == null || Node.First == null;
 
 	public bool IsConstructor => Metadata is Constructor;

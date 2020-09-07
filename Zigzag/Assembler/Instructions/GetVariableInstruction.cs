@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public class GetVariableInstruction : LoadInstruction
 {
@@ -22,18 +23,6 @@ public class GetVariableInstruction : LoadInstruction
 
 	public override void OnSimulate()
 	{
-		/*var current = Unit.GetCurrentVariableHandle(Variable);
-
-		if (current != null && !current.Equals(Source))
-		{
-			if (!IsRedirected)
-			{
-				Result.Join(current);
-			}
-
-			Source.Join(current);
-		}*/
-
 		var current = Unit.GetCurrentVariableHandle(Variable);
 
 		if (current == null)
@@ -48,12 +37,6 @@ public class GetVariableInstruction : LoadInstruction
 	public override void OnBuild()
 	{
 		OnSimulate();
-		//base.OnBuild();
-
-		/*if (Mode == AccessMode.WRITE && !Variable.IsPredictable)
-		{
-			Result.Value = Source.Value;
-		}*/
 	}
 	
 	public override InstructionType GetInstructionType()

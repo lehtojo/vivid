@@ -54,12 +54,13 @@ public sealed class Scope : IDisposable
    /// <summary>
    /// Returns all variables in the given context that are used before the current instruction position
    /// </summary>
-   private static IEnumerable<Variable> GetAllActiveContextVariables(Unit unit, Context context)
+   private static IEnumerable<Variable> GetAllActiveContextVariables(Unit unit, Context context, Node[] roots)
    {
       return GetAllContextVariables(context).Where(v => unit.Instructions.Exists(i =>
          (i is GetVariableInstruction x && x.Variable == v) ||
          (i is RequireVariablesInstruction r && r.Variables.Contains(v))
       ));
+      //.Where(v => v.References.Any(reference => roots.Any(root => !reference.IsBefore(root))));
    }
 
    /// </summary>
@@ -67,7 +68,7 @@ public sealed class Scope : IDisposable
    /// </summary>
    public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node[] roots, Context current_context, params Context[] scope_contexts)
    {
-      return GetAllActiveContextVariables(unit, current_context)
+      return GetAllActiveContextVariables(unit, current_context, roots)
             .Concat(GetAllNonLocalVariables(roots, scope_contexts))
             .Concat(unit.Scope!.ActiveVariables)
             .Distinct();
@@ -78,13 +79,13 @@ public sealed class Scope : IDisposable
    /// </summary>
    public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node root, Context current_context, params Context[] scope_contexts)
    {
-      return GetAllActiveContextVariables(unit, current_context)
-            .Concat(GetAllNonLocalVariables(new Node[] { root }, scope_contexts))
+      return GetAllActiveContextVariables(unit, current_context, new[] { root })
+            .Concat(GetAllNonLocalVariables(new[] { root }, scope_contexts))
             .Concat(unit.Scope!.ActiveVariables)
             .Distinct();
    }
 
-   /// </summary>
+   /*/ </summary>
    /// Returns all variables that the scope must take care of
    /// </summary>
    public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Context current_context)
@@ -92,7 +93,7 @@ public sealed class Scope : IDisposable
       return GetAllActiveContextVariables(unit, current_context)
             .Concat(unit.Scope!.ActiveVariables)
             .Distinct();
-   }
+   }*/
 
    public static void PrepareConditionallyChangingConstants(Unit unit, Node root, params Context[] local_contexts)
    {
@@ -159,7 +160,7 @@ public sealed class Scope : IDisposable
 
    public List<Variable> ActiveVariables { get; } = new List<Variable>();
    public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
-   public Dictionary<Variable, Result> TransitionHandles { get; } = new Dictionary<Variable, Result>();
+   public Dictionary<Variable, Result> Transferers { get; } = new Dictionary<Variable, Result>();
 
    public Dictionary<object, List<Result>> Constants { get; } = new Dictionary<object, List<Result>>();
 
@@ -223,24 +224,42 @@ public sealed class Scope : IDisposable
    /// </summary>
    private Result SetOrCreateTransitionHandle(Variable variable, Handle handle)
    {
-      if (TransitionHandles.TryGetValue(variable, out Result? transition_handle))
+      if (!variable.IsPredictable)
       {
-         transition_handle.Value = handle;
+         throw new InvalidOperationException("Tried to create transition handle for an unpredictable variable");
+      }
+
+      if (!(handle.Is(HandleType.NONE) || handle.Is(HandleType.REGISTER) || handle.Is(HandleType.CONSTANT) || handle is StackVariableHandle || handle is StackMemoryHandle))
+      {
+         throw new NotSupportedException("Could not create a transition handle since the source handle could not be cloned");
+      }
+
+      handle = handle.Finalize();
+      
+      if (Transferers.TryGetValue(variable, out Result? transferer))
+      {
+         transferer.Value = handle;
       }
       else
       {
          var format = handle.Is(HandleType.REGISTER) ? Assembler.Format : variable.Type!.Format;
 
-         transition_handle = new Result(handle, format);
-         transition_handle.Metadata.Attach(new VariableAttribute(variable));
+         transferer = new Result(handle, format);
+         transferer.Metadata.Attach(new VariableAttribute(variable));
 
-         TransitionHandles.Add(variable, transition_handle);
+         Transferers.Add(variable, transferer);
       }
 
       // Update the current handle to the variable
-      Variables[variable] = transition_handle;
+      Variables[variable] = transferer;
 
-      return transition_handle;
+      // If the transferer is a register, the transferer value must be attached there
+      if (transferer.Value is RegisterHandle value)
+      {
+         value.Register.Handle = transferer;
+      }
+
+      return transferer;
    }
 
    /// <summary>
@@ -260,21 +279,24 @@ public sealed class Scope : IDisposable
          Outer = unit.Scope;
       }
 
-      // Detect new variables to load
+      // Detect if there are new variables to load
       if (Loads.Count != ActiveVariables.Count)
       {
+         // Add all the missing variable loads
          foreach (var variable in ActiveVariables)
          {
-            if (!Loads.Exists(l => l.Variable == variable))
+            // Skip variables which are already loaded
+            if (Loads.Exists(l => l.Variable == variable))
             {
-               var reference = References.GetVariable(Unit, variable, AccessMode.READ);
-               var instruction = reference.Instruction!;
-               var load = new VariableLoad(variable, reference);
-
-               instruction.Description = "Keep variable active until the scope";
-
-               Loads.Add(load);
+               continue;
             }
+
+            var handle = References.GetVariable(Unit, variable, AccessMode.READ);
+            var instruction = handle.Instruction!;
+
+            instruction.Description = $"Transfers the current handle of variable '{variable.Name}' to the upcoming scope";
+
+            Loads.Add(new VariableLoad(variable, handle));
          }
       }
 
@@ -303,8 +325,18 @@ public sealed class Scope : IDisposable
             }
          }
 
+         // Get all the register which hold any active variable
+         var blacklist = Variables.Values.Where(i => i.Value.Is(HandleType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
+         var registers = Unit.NonReservedRegisters.Where(r => !blacklist.Contains(r));
+
+         // All register which don't hold active variables must be reset since they would disturb the execution of the scope
+         foreach (var register in registers)
+         {
+            register.Reset();
+         }
+
          // Since a new scope has begun the current register variables must be reconnected
-         foreach (var register in Unit.NonReservedRegisters)
+         /*foreach (var register in Unit.NonReservedRegisters)
          {
             if (ContainsPredictableVariable(register, out Variable? variable))
             {
@@ -313,8 +345,6 @@ public sealed class Scope : IDisposable
                {
                   if (!Variables.ContainsKey(variable!))
                   {
-                     // Since the variable in the register is unknown it must not continue to the scope
-                     register.Reset();
                      continue;
                   }
 
@@ -329,7 +359,7 @@ public sealed class Scope : IDisposable
                   register.Reset();
                }
             }
-         }
+         }*/
       }
       else if (unit.Function.Convention == CallingConvention.X64)
       {

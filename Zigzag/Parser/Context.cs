@@ -185,6 +185,7 @@ public class Context
 
 	private int Lambdas { get; set; } = 0;
 	private int Hiddens { get; set; } = 0;
+	private int Sections { get; set; } = 0;
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
@@ -509,20 +510,9 @@ public class Context
 		}
 	}
 
-	public virtual Label? GetLabel(string name)
+	public virtual Label GetLabel()
 	{
-		if (Labels.ContainsKey(name))
-		{
-			return Labels[name];
-		}
-		else if (Parent != null)
-		{
-			return Parent.GetLabel(name);
-		}
-		else
-		{
-			return null;
-		}
+		return new Label(GetFullname() + "_I" + Sections++);
 	}
 
 	public virtual Variable? GetSelfPointer()

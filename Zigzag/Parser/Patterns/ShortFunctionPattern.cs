@@ -5,13 +5,13 @@ public class ShortFunctionPattern : ConsumingPattern
 	public const int PRIORITY = 20;
 
 	public const int HEADER = 0;
-	public const int OPERATOR = 2;
-	public const int CURLY_BRACKETS = 3;
+	public const int OPERATOR = 1;
+	public const int CURLY_BRACKETS = 2;
 
-	// a-z (...) [\n] => ...
+	// a-z (...) => ...
 	public ShortFunctionPattern() : base
 	(
-		TokenType.FUNCTION, TokenType.END | TokenType.OPTIONAL, TokenType.OPERATOR, TokenType.CONTENT | TokenType.OPTIONAL
+		TokenType.FUNCTION, TokenType.OPERATOR, TokenType.CONTENT | TokenType.OPTIONAL
 	) { }
 
 	public override int GetPriority(List<Token> tokens)

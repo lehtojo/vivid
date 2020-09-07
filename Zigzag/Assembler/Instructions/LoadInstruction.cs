@@ -42,6 +42,6 @@ public abstract class LoadInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, Source };
+		return new[] { Result, Source };
 	}
 }

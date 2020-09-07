@@ -21,7 +21,7 @@ public class ConfigurationPhase : Phase
 				Files.Add(item.FullName);
 			}
 		}
-
+     
 		if (recursive)
 		{
 			foreach (var item in folder.GetDirectories())

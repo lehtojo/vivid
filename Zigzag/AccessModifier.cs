@@ -10,4 +10,5 @@ public static class AccessModifier
 	public const int GLOBAL = 128;
 	public const int CONSTANT = 256;
 	public const int TEMPLATE_TYPE = 512;
+	public const int OUTLINE = 1024;
 }

@@ -24,7 +24,7 @@ public class Register
 	public Result? Handle 
 	{ 
 		get => _Value;
-		set { _Value = value; IsUsed = true; }
+	 	set { _Value = value; IsUsed = true; }
 	}
 
 	public string this[Size size]
@@ -47,6 +47,17 @@ public class Register
 		Width = width;
 		Partitions = partitions;
 		Flags = Flag.Combine(flags);
+	}
+
+	public void Attach(Result value)
+	{
+		if (Handle != null)
+		{
+			Handle.Value = new Handle();
+		}
+
+		Handle = value;
+		value.Value = new RegisterHandle(this);
 	}
 
 	public string GetDescription()

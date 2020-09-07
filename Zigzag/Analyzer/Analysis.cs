@@ -80,6 +80,15 @@ public class NumberComponent : Component
 
     public override Component? Add(Component other)
     {
+        if (Numbers.IsZero(this))
+        {
+            return other.Clone();
+        }
+        else if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+
         if (other is NumberComponent number_component)
         {
             return new NumberComponent(Numbers.Add(Value, number_component.Value));
@@ -90,6 +99,18 @@ public class NumberComponent : Component
 
     public override Component? Subtract(Component other)
     {
+        if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+        else if (Numbers.IsZero(Value))
+        {
+            var clone = Clone();
+            clone.Negate();
+            
+            return clone;
+        }
+
         if (other is NumberComponent number_component)
         {
             return new NumberComponent(Numbers.Subtract(Value, number_component.Value));
@@ -100,6 +121,19 @@ public class NumberComponent : Component
 
     public override Component? Multiply(Component other)
     {
+        if (Numbers.IsZero(this) || Numbers.IsZero(other))
+        {
+            return new NumberComponent(0L);
+        }
+        else if (Numbers.IsOne(this))
+        {
+            return other.Clone();
+        }
+        else if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+        
         return other switch
         {
             NumberComponent number_component => new NumberComponent(Numbers.Multiply(Value, number_component.Value)),
@@ -112,6 +146,11 @@ public class NumberComponent : Component
     
     public override Component? Divide(Component other)
     {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+
         return other switch
         {
             NumberComponent number_component => new NumberComponent(Numbers.Divide(Value, number_component.Value)),
@@ -159,6 +198,11 @@ public class VariableComponent : Component
     
     public override Component? Add(Component other)
     {
+        if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+
         if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
         {
             var multiplier = Numbers.Add(Multiplier, x.Multiplier);
@@ -176,6 +220,11 @@ public class VariableComponent : Component
     
     public override Component? Subtract(Component other)
     {
+        if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+
         if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
         {
             var multiplier = Numbers.Subtract(Multiplier, x.Multiplier);
@@ -193,6 +242,15 @@ public class VariableComponent : Component
     
     public override Component? Multiply(Component other)
     {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+        else if (Numbers.IsZero(other))
+        {
+            return new NumberComponent(0L);
+        }
+
         if (other is VariableComponent variable_component)
         {
             if (Equals(Variable, variable_component.Variable))
@@ -226,6 +284,11 @@ public class VariableComponent : Component
     
     public override Component? Divide(Component other)
     {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+
         if (other is VariableComponent variable_component && Equals(Variable, variable_component.Variable))
         {
             var order = Order - variable_component.Order;
@@ -300,6 +363,11 @@ public class ComplexVariableProduct : Component
 
     public override Component? Add(Component other)
     {
+        if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+
         if (!Equals(other))
         {
             return null;
@@ -313,6 +381,11 @@ public class ComplexVariableProduct : Component
 
     public override Component? Subtract(Component other)
     {
+        if (Numbers.IsZero(other))
+        {
+            return Clone();
+        }
+
         if (!Equals(other))
         {
             return null;
@@ -326,6 +399,15 @@ public class ComplexVariableProduct : Component
 
     public override Component? Multiply(Component other)
     {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+        else if (Numbers.IsZero(other))
+        {
+            return new NumberComponent(0L);
+        }
+
         switch (other)
         {
             case NumberComponent number:
@@ -393,6 +475,11 @@ public class ComplexVariableProduct : Component
 
     public override Component? Divide(Component other)
     {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+
         if (other is NumberComponent number)
         {
             if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))
@@ -435,6 +522,36 @@ public class ComplexComponent : Component
         Node = node;
     }
 
+    public override Component? Add(Component other)
+    {
+        return Numbers.IsZero(other) ? Clone() : null;
+    }
+
+    public override Component? Subtract(Component other)
+    {
+        return Numbers.IsZero(other) ? Clone() : null;
+    }
+
+    public override Component? Multiply(Component other)
+    {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+
+        return Numbers.IsZero(other) ? new NumberComponent(0L) : null;
+    }
+
+    public override Component? Divide(Component other)
+    {
+        if (Numbers.IsOne(other))
+        {
+            return Clone();
+        }
+
+        return null;
+    }
+
     public override Component Clone()
     {
         var clone = (ComplexComponent)MemberwiseClone();
@@ -469,7 +586,8 @@ public static class Analysis
                 var is_negative = number_component.Value is long a && a < 0L || number_component.Value is double b && b < 0.0;
                 var number = new NumberNode(number_component.Value is long ? Assembler.Format : Format.DECIMAL, number_component.Value);
 
-                result = is_negative ? new OperatorNode(Operators.SUBTRACT).SetOperands(result, number.Negate()) 
+                result = is_negative
+                    ? new OperatorNode(Operators.SUBTRACT).SetOperands(result, number.Negate()) 
                     : new OperatorNode(Operators.ADD).SetOperands(result, number);
             }
 
@@ -486,7 +604,7 @@ public static class Analysis
 
                 // When the multiplier is exactly one (double), the multiplier can be ignored, meaning the inaccuracy of the comparison is expected
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
-                if (variable_component.Multiplier is double b && Math.Abs(b) != 1.0)
+                if (variable_component.Multiplier is double b)
                 {
                     is_multiplier_negative = b < 0.0;
 
@@ -583,7 +701,6 @@ public static class Analysis
         if (component is VariableComponent variable_component)
         {
             // When the multiplier is exactly zero (double), the variable can be ignored, meaning the inaccuracy of the comparison is expected
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (variable_component.Multiplier is double a && a == 0.0)
             {
                 return new NumberNode(Format.DECIMAL, 0.0);
@@ -597,18 +714,28 @@ public static class Analysis
             var result = GetOrderedVariable(variable_component.Variable, variable_component.Order);
 
             // When the multiplier is exactly one (double), the multiplier can be ignored, meaning the inaccuracy of the comparison is expected
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (variable_component.Multiplier is double b && b != 1.0)
+            if (variable_component.Multiplier is double b)
             {
-                return new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Format.DECIMAL, 1.0));
+                if (b == 1.0)
+                {
+                    return result;
+                }
+
+                return new OperatorNode(Operators.MULTIPLY)
+                    .SetOperands(result, new NumberNode(Format.DECIMAL, 1.0));
             }
             
-            return !Numbers.Equals(variable_component.Multiplier, 1L) ? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, variable_component.Multiplier)) : result;
+            return !Numbers.IsOne(variable_component.Multiplier)
+                ? new OperatorNode(Operators.MULTIPLY)
+                    .SetOperands(result, new NumberNode(Assembler.Format, variable_component.Multiplier)) 
+                : result;
         }
 
         if (component is ComplexComponent complex_component)
         {
-            return complex_component.IsNegative ? new NegateNode(complex_component.Node) : complex_component.Node;
+            return complex_component.IsNegative 
+                ? new NegateNode(complex_component.Node) 
+                : complex_component.Node;
         }
 
         if (component is ComplexVariableProduct product)
@@ -869,15 +996,15 @@ public static class Analysis
         {
             if (branch is IfNode x)
             {
-                blacklist.AddRange(x.GetBranches().Where(b => b != branch));
+                blacklist.AddRange(x.GetBranches().Where(b => b != x.Body));
             }
             else if (branch is ElseIfNode y)
             {
-                blacklist.AddRange(y.GetRoot().GetBranches().Where(b => b != branch));
+                blacklist.AddRange(y.GetRoot().GetBranches().Where(b => b != y.Body));
             }
             else if (branch is ElseNode z)
             {
-                blacklist.AddRange(z.GetRoot().GetBranches().Where(b => b != branch));
+                blacklist.AddRange(z.GetRoot().GetBranches().Where(b => b != z.Body));
             }
         }
 
@@ -1104,9 +1231,9 @@ public static class Analysis
         return !(!edit.Node.IsUnder(loop) && edits.Where(e => e != edit).Any(e => e.Node.IsUnder(loop)));
     }
 
-    private static Node AssignVariable(Node node, Variable variable)
+    private static Node AssignVariable(Node node, Variable variable, bool clone = true)
     {
-        var root = node.Clone();
+        var root = clone ? node.Clone() : node;
 
         var reads = GetReferences(root, variable);
         var edits = GetEdits(reads).Select(e => new Edit(e)).ToList();
@@ -1269,7 +1396,10 @@ public static class Analysis
 
                         var successor = statement.Successor.To<ElseIfNode>();
 
-                        var replacement = new IfNode(successor.Context, successor.Condition, successor.Body);
+                        // Create a conditional statement identical to the successor but as an if-statement
+                        var replacement = new IfNode(successor.Context);
+                        successor.ForEach(i => replacement.Add(i));
+
                         iterator = replacement;
 
                         successor.Remove();
@@ -1304,7 +1434,7 @@ public static class Analysis
                     {
                         statement.Parent!.Insert(statement, statement.Initialization);
 
-                        var replacement = new LoopNode(statement.StepsContext, statement.BodyContext, null, statement.Body);
+                        var replacement = new LoopNode(statement.Context, null, statement.Body);
                         statement.Parent!.Insert(statement, replacement);
 
                         iterator = replacement.Next;
@@ -1349,10 +1479,16 @@ public static class Analysis
         // i < 10
         // i == 0
         // 0 < 10 * a + 10 - x
+
+        // Ensure there is only one condition present
         var condition = loop.Condition;
         
-        if (condition.Is(NodeType.NORMAL) || 
-            !condition.Is(NodeType.OPERATOR_NODE) || 
+        if (loop.GetConditionInitialization().Any())
+        {
+            return null;
+        }
+     
+        if (!condition.Is(NodeType.OPERATOR_NODE) || 
             condition.To<OperatorNode>().Operator.Type != OperatorType.COMPARISON ||
             !IsPrimitive(condition))
         {
@@ -1362,11 +1498,13 @@ public static class Analysis
         // Ensure that the initialization is empty or it contains a definition of an integer variable
         var initialization = loop.Initialization;
 
-        if (initialization.Is(NodeType.NORMAL))
+        if (initialization.IsEmpty || initialization.First != initialization.Last)
         {
             Console.WriteLine("Analysis encountered an empty loop initialization which canceled the attempt of unwrapping the loop");
             return null;
         }
+
+        initialization = initialization.First!;
         
         if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE_NODE))
         {
@@ -1385,12 +1523,15 @@ public static class Analysis
 
         var start_value = initialization.Last.To<NumberNode>().Value;
 
+        // Ensure there is only one action present
         var action = loop.Action;
 
-        if (action.Is(NodeType.NORMAL))
+        if (action.IsEmpty || action.First != action.Last)
         {
             return null;
         }
+
+        action = action.First!;
 
         var step_value = new List<Component>();
 
@@ -1537,6 +1678,7 @@ public static class Analysis
     public static bool TryUnwrapLoop(LoopNode loop)
     {
         var descriptor = TryGetLoopUnwrapDescriptor(loop);
+        var root = loop.Parent!;
 
         if (descriptor == null)
         {
@@ -1545,14 +1687,81 @@ public static class Analysis
 
         loop.Insert(loop.Initialization);
 
+        var action = TryGetAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
+
         for (var i = 0; i < descriptor.Steps; i++)
         {
             loop.InsertChildren(loop.Body.Clone());
-            loop.Insert(loop.Action.Clone());
+            loop.Insert(action.Clone());
         }
 
         loop.Remove();
+
+        AssignVariable(root, descriptor.Iterator, false);
         return true;
+    }
+
+    private static Node? TryGetAsAssignOperation(Node edit)
+    {
+        if (edit.Parent!.Is(NodeType.OPERATOR_NODE))
+        {
+            return null;
+        }
+
+        switch (edit)
+        {
+            case IncrementNode increment: {
+
+                var destination = increment.Object.Clone().To<VariableNode>();
+
+                return new OperatorNode(Operators.ASSIGN).SetOperands(
+                    destination,
+                    new OperatorNode(Operators.ADD).SetOperands(
+                        destination.Clone(),
+                        new NumberNode(destination.Variable.Type!.Format, 1L)
+                    )
+                );
+            }
+
+            case DecrementNode decrement: {
+
+                var destination = decrement.Object.Clone().To<VariableNode>();
+
+                return new OperatorNode(Operators.ASSIGN).SetOperands(
+                    destination,
+                    new OperatorNode(Operators.SUBTRACT).SetOperands(
+                        destination.Clone(),
+                        new NumberNode(destination.Variable.Type!.Format, 1L)
+                    )
+                );
+            }
+
+            case OperatorNode operation: {
+                
+                if (operation.Operator.Type != OperatorType.ACTION)
+                {
+                    return null;
+                }
+
+                var destination = operation.Left.Clone().To<VariableNode>();
+                var type = ((ActionOperator)operation.Operator).Operator;
+
+                if (type == null)
+                {
+                    return null;
+                }
+
+                return new OperatorNode(Operators.ASSIGN).SetOperands(
+                    destination,
+                    new OperatorNode(type).SetOperands(
+                        destination.Clone(),
+                        edit.Last!.Clone()
+                    )
+                );
+            }
+        }
+
+        return null;
     }
 
     private static bool RemoveUnreachableStatements(Node root)

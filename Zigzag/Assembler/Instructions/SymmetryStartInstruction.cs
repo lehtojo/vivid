@@ -35,6 +35,6 @@ public class SymmetryStartInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result };
+		return new[] { Result };
 	}
 }

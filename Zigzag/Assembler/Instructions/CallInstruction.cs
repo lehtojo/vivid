@@ -69,7 +69,7 @@ public class CallInstruction : Instruction
       // Returns value is always in the following handle
       var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
       var source = new RegisterHandle(register);
-
+      
       if (Result.IsEmpty)
       {
          // The result is not predefined so the result can just hold the standard return register

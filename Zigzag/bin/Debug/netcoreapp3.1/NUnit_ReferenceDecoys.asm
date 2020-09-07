@@ -40,13 +40,13 @@ lea rcx, [rsi+1]
 mov rdx, rsi
 add rdx, 1
 cmp rdx, 3
-mov r8, rdi
-mov rdi, rcx
-mov rcx, rsi
+mov r8, rsi
 mov rsi, rdx
+mov rdx, rcx
+mov rcx, r8
 jl _V17reference_decoy_3x_rx_L0
 _V17reference_decoy_3x_rx_L1:
-add rcx, rdi
+add rcx, rdx
 mov rax, rcx
 ret
 

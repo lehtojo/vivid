@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 public class ElseNode : Node, IResolvable, IContext
 {
 	public Node? Predecessor => (Previous?.Is(NodeType.IF_NODE, NodeType.ELSE_IF_NODE) ?? false) ? Previous : null;
@@ -40,6 +38,11 @@ public class ElseNode : Node, IResolvable, IContext
 	public override NodeType GetNodeType()
 	{
 		return NodeType.ELSE_NODE;
+	}
+
+	public void SetContext(Context context)
+	{
+		Context = context;
 	}
 
    public Context GetContext()

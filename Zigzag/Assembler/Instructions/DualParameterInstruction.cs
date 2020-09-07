@@ -14,6 +14,6 @@ public abstract class DualParameterInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, First, Second };
+		return new[] { Result, First, Second };
 	}
 }

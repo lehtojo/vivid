@@ -40,6 +40,9 @@ public static class Conditionals
       // Set the next label to be the end label if there's no successor since then there wont be any other comparisons
       var interphase = node.Successor == null ? end.Label : unit.GetNextLabel();
 
+      // Initialize the condition
+      node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
+      
       // Jump to the next label based on the comparison
       BuildCondition(unit, node.Context.Parent!, condition, interphase);
 

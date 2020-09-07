@@ -31,6 +31,6 @@ public class RestoreStateInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result };
+		return new[] { Result };
 	}
 }

@@ -15,6 +15,28 @@ public class TemplateType : Type
    private List<Token> Blueprint { get; set; }
    private Dictionary<string, Type> Variants { get; set; } = new Dictionary<string, Type>();
 
+   public static TemplateType? TryGetTemplateType(Context environment, string name, Node parameters)
+   {
+      if (!environment.IsTemplateTypeDeclared(name)) return null;
+
+      var template_type = (TemplateType) environment.GetType(name)!;
+
+      // Check if the template type has the same amount of arguments as this function has parameters
+      return template_type.TemplateArgumentCount == parameters.Count() ? template_type : null;
+   }
+
+   public static Type SolveTemplateTypeVariant(Context environment, TemplateType template_type, Node parameters)
+   {
+      var types = Resolver.GetTypes(parameters);
+
+      // Check if the type could be resolved
+      var variant = types == null
+         ? new UnresolvedType(environment, new UnresolvedTemplateType(template_type, parameters))
+         : template_type[types.ToArray()];
+
+      return variant;
+   }
+
    public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names) : base(context, name, modifiers)
    {
       Blueprint = blueprint;

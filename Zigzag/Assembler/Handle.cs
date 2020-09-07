@@ -362,8 +362,7 @@ public class StackMemoryHandle : MemoryHandle
 {
    public bool IsAbsolute { get; private set; }
 
-   public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base
-   (
+   public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(
       unit,
       new Result
       (
@@ -587,7 +586,14 @@ public class CalculationHandle : Handle
 
       if (Addition != null)
       {
-         result += "+" + Addition.ToString();
+         if (Addition.IsConstant && Numbers.IsNegative(Addition.Value.To<ConstantHandle>().Value))
+         {
+            result += Addition.ToString();
+         }
+         else
+         {
+            result += "+" + Addition.ToString();
+         }   
       }
 
       if (Constant != 0)

@@ -25,14 +25,12 @@ public class AdditionInstruction : DualParameterInstruction
 	{
 		if (Assigns && First.Metadata.IsPrimarilyVariable)
 		{
-      	Unit.Scope!.Variables[First.Metadata.Variable] = Result;
-			Result.Metadata.Attach(new VariableAttribute(First.Metadata.Variable));
+			Unit.Set(First.Metadata.Variable, Result);
 		}
 	}
 	
 	public override void OnBuild()
 	{
-		// Handle decimal addition separately
 		if (Result.Format.IsDecimal())
 		{
 			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
@@ -120,13 +118,6 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public override Result? GetDestinationDependency()
 	{
-		if (First.IsExpiring(Position))
-		{
-			return First;
-		}
-		else
-		{
-			return Result;
-		}
+		return (First.IsExpiring(Position) || Assigns) ? First : Result;
 	}
 }

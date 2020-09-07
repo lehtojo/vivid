@@ -50,8 +50,7 @@ public class BitwiseInstruction : DualParameterInstruction
 	{
 		if (Assigns && First.Metadata.IsPrimarilyVariable)
 		{
-      	Unit.Scope!.Variables[First.Metadata.Variable] = Result;
-			Result.Metadata.Attach(new VariableAttribute(First.Metadata.Variable));
+			Unit.Set(First.Metadata.Variable, Result);
 		}
 	}
 

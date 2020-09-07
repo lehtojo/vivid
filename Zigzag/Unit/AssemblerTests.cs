@@ -454,7 +454,6 @@ namespace Zigzag.Unit
          Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
 
          var assembly = LoadAssemblyOutput("ConstantPermanence");
-         Console.WriteLine(assembly);
          Assert.IsTrue(Regex.IsMatch(assembly, "\\[3\\+[a-z0-9]*\\]"));
       }
 
@@ -1011,6 +1010,44 @@ namespace Zigzag.Unit
          Assert.AreEqual(-6, salmon.energy);
          Assert.AreEqual(6, salmon.hunger);
          Assert.AreEqual(false, salmon.is_hiding);
+      }
+
+      [DllImport("NUnit_Scopes", ExactSpelling = true)]
+      private static extern Int64 _V27scopes_nested_if_statementsxxxxxxxx_rx(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e, Int64 f, Int64 g, Int64 h);
+
+      [DllImport("NUnit_Scopes", ExactSpelling = true)]
+      private static extern Int64 _V18scopes_single_loopxxxxxxxx_rx(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e, Int64 f, Int64 g, Int64 h);
+
+      [DllImport("NUnit_Scopes", ExactSpelling = true)]
+      private static extern Int64 _V19scopes_nested_loopsxxxxxxxx_rx(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e, Int64 f, Int64 g, Int64 h);
+
+      private Int64 GetExpectedReturnValue(Int64 a, Int64 b, Int64 c, Int64 d, Int64 e, Int64 f, Int64 g, Int64 h)
+      {
+         var x = 2 * a;
+         var y = 3 * b;
+         var z = 5 * c;
+
+         return (a + b + c + d + e + f + g + h) * x * y * z;
+      }
+
+      [TestCase]
+      public void Assembler_Scopes()
+      {
+         if (!Compile("Scopes", "Scopes.z"))
+         {
+            Assert.Fail("Failed to compile");
+         }
+
+         Assert.AreEqual(GetExpectedReturnValue(1, 2, 3, 4, 5, 6, 7, 8), _V27scopes_nested_if_statementsxxxxxxxx_rx(1, 2, 3, 4, 5, 6, 7, 8));
+         Assert.AreEqual(GetExpectedReturnValue(10, 20, -30, 40, 50, 60, 70, 80), _V27scopes_nested_if_statementsxxxxxxxx_rx(10, 20, -30, 40, 50, 60, 70, 80));
+         Assert.AreEqual(GetExpectedReturnValue(-2, 4, 6, 8, 10, 12, 14, 16), _V27scopes_nested_if_statementsxxxxxxxx_rx(-2, 4, 6, 8, 10, 12, 14, 16));
+         Assert.AreEqual(GetExpectedReturnValue(-20, 40, 60, -80, 100, 120, 140, 160), _V27scopes_nested_if_statementsxxxxxxxx_rx(-20, 40, 60, -80, 100, 120, 140, 160));
+         Assert.AreEqual(GetExpectedReturnValue(-3, -5, 9, 11, 13, 17, 19, 23), _V27scopes_nested_if_statementsxxxxxxxx_rx(-3, -5, 9, 11, 13, 17, 19, 23));
+         Assert.AreEqual(GetExpectedReturnValue(-30, -50, 90, 110, -130, 170, 190, 230), _V27scopes_nested_if_statementsxxxxxxxx_rx(-30, -50, 90, 110, -130, 170, 190, 230));
+
+         Assert.AreEqual(GetExpectedReturnValue(7, 8, 11, 16, 23, 32, 43, 56), _V18scopes_single_loopxxxxxxxx_rx(7, 8, 11, 16, 23, 32, 43, 56));
+         
+         Assert.AreEqual(GetExpectedReturnValue(7, 8, 11, 16, 23, 32, 43, 56), _V19scopes_nested_loopsxxxxxxxx_rx(7, 8, 11, 16, 23, 32, 43, 56));
       }
    }
 }

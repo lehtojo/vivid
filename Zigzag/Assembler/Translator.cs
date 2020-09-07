@@ -102,20 +102,20 @@ public static class Translator
 
 		if (metadata.IsConstructor)
 		{
-			Console.WriteLine("Constructor: " + metadata.GetTypeParent()!.Name);
+			//Console.WriteLine("Constructor: " + metadata.GetTypeParent()!.Name);
 		}
 		else 
 		{
-			Console.WriteLine("Function: " + metadata.Name);
+			//Console.WriteLine("Function: " + metadata.Name);
 		}
 
 		if (registers.Count == 0)
 		{
-			Console.WriteLine("Non-volatile registers were not used");
+			//Console.WriteLine("Non-volatile registers were not used");
 		}
 		else
 		{
-			registers.ForEach(r => Console.WriteLine(r[Assembler.Size]));
+			//registers.ForEach(r => Console.WriteLine(r[Assembler.Size]));
 		}
 
 		Console.WriteLine("\n");

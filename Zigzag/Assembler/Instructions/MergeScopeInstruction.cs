@@ -35,7 +35,8 @@ public class MergeScopeInstruction : Instruction
 
 			if (destination.IsConstant)
 			{
-				throw new ApplicationException("Constant value was not moved to register or released before entering scope");
+				//throw new ApplicationException("Constant value was not moved to register or released before entering scope");
+				continue;
 			}
 
 			moves.Add(new MoveInstruction(Unit, destination, source));
@@ -56,6 +57,6 @@ public class MergeScopeInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result };
+		return new[] { Result };
 	}
 }

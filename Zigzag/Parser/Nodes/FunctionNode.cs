@@ -6,8 +6,6 @@ public class FunctionNode : Node, IType
 	public FunctionImplementation Function { get; private set; }
 	public List<Token> Tokens { get; private set; }
 
-	public bool IsDefinition { get; private set; } = false;
-
 	public Node Parameters => this;
 	public Node Body => Last!;
 

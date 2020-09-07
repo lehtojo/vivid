@@ -12,7 +12,7 @@ public class LoadOnlyIfConstantInstruction : Instruction
 
    public override void OnBuild()
    {
-      var handle = Unit.GetCurrentVariableHandle(Variable);
+      var handle = new GetVariableInstruction(Unit, Variable, AccessMode.READ).Execute();
 
       if (handle == null)
       {
@@ -57,6 +57,6 @@ public class LoadOnlyIfConstantInstruction : Instruction
 
    public override Result[] GetResultReferences()
    {
-      return new Result[] { Result };
+      return new[] { Result };
    }
 }

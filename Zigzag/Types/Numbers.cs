@@ -128,11 +128,37 @@ public static class Numbers
 	}
 
 	/// <summary>
+	/// Returns whether the specified number is negative
+	/// </summary>
+	public static bool IsNegative(object x)
+	{
+		return x is long a ? a < 0 : (double)x < 0;
+	}
+
+	/// <summary>
 	/// Returns whether the specified number is exactly zero
 	/// </summary>
 	public static bool IsZero(object x)
 	{
+		if (x is Component c)
+		{
+			return c is NumberComponent n && IsZero(n.Value);
+		}
+
 		return x is long a ? a == 0 : (double)x == 0.0;
+	}
+
+	/// <summary>
+	/// Returns whether the specified number is exactly one
+	/// </summary>
+	public static bool IsOne(object x)
+	{
+		if (x is Component c)
+		{
+			return c is NumberComponent n && IsOne(n.Value);
+		}
+
+		return x is long a ? a == 1 : (double)x == 1.0;
 	}
 
 	/// <summary>

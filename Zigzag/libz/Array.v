@@ -1,12 +1,12 @@
 ﻿require(result: bool) {
-    if !result {
+    if result == 0 {
         println('Requirement failed')
         exit(1)
     }
 }
 
 require(result: bool, message: link) {
-    if !result {
+    if result == 0 {
         println(message)
         exit(1)
     }
@@ -24,13 +24,13 @@ Array { T } {
     }
     
     set(i: num, value: T) {
-        require(i >= 0 and i < count)
+        require(i >= 0 and i < count, 'Index out of bounds')
         
         data[i * T.size] as T = value
     }
     
     get(i: num) {
-        require(i >= 0 and i < count)
+        require(i >= 0 and i < count, 'Index out of bounds')
         
         => data[i * T.size] as T
     }
@@ -54,12 +54,12 @@ Sheet { T } {
     }
     
     set(x: num, y: num, value: T) {
-        require(x >= 0 and x < width and y >= 0 and y <= height)
+        require(x >= 0 and x < width and y >= 0 and y <= height, 'Index out of bounds')
         data[(y * width + x) * T.size] as T = value
     }
     
     get(x: num, y: num) {
-        require(x >= 0 and x < width and y >= 0 and y <= height)
+        require(x >= 0 and x < width and y >= 0 and y <= height, 'Index out of bounds')
         => data[(y * width + x) * T.size] as T
     }
     
@@ -84,12 +84,12 @@ Box { T } {
     }
         
     set(x: num, y: num, z: num, value: T) {
-        require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth)
+        require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth, 'Index out of bounds')
         data[(z * width * height + y * width + x) * T.size] as T = value
     }
         
     get(x: num, y: num, z: num) {
-        require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth)
+        require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth, 'Index out of bounds')
         => data[(z * width * height + y * width + x) * T.size] as T
     }
         

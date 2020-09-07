@@ -33,7 +33,7 @@ public class GetMemoryAddressInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, Start, Offset };
+		return new[] { Result, Start, Offset };
 	}
 
 	public override InstructionType GetInstructionType()

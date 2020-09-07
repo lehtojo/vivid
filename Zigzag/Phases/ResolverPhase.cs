@@ -142,12 +142,12 @@ public class ResolverPhase : Phase
 
 		// Build inline functions
 		Inlines.Build(context);
-
+		
 		// Align variables in memory
 		Aligner.Align(context);
 
 		// Apply analysis to the functions
-		//Analysis.Analyze(context);
+		Analysis.Analyze(context);
 
 		// Analyze the output
 		Analyzer.Analyze(context);

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class VariableNode : Node, IType
 {
-	public Variable Variable { get; private set; }
+	public Variable Variable { get; set; }
 
 	public VariableNode(Variable variable)
 	{

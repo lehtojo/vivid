@@ -42,6 +42,6 @@ public class PushInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, Value };
+		return new[] { Result, Value };
 	}
 }

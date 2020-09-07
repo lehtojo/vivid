@@ -13,7 +13,7 @@ public class UnarySignPattern : Pattern
 	/// a = -x
 	public UnarySignPattern() : base
 	(
-		TokenType.OPERATOR | TokenType.KEYWORD | TokenType.OPTIONAL,
+		TokenType.KEYWORD | TokenType.OPERATOR | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
 		TokenType.OBJECT
 	) {}
@@ -21,7 +21,7 @@ public class UnarySignPattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var sign = tokens[SIGN].To<OperatorToken>().Operator;
-		return (sign == Operators.ADD || sign == Operators.SUBTRACT) && (tokens[OPERATOR].Type != TokenType.NONE || tokens[SIGN].IsFirst);
+		return (sign == Operators.ADD || sign == Operators.SUBTRACT) && (!tokens[OPERATOR].Is(TokenType.NONE) || state.Start == 0);
 	}
 
 	public override Node? Build(Context context, List<Token> tokens)

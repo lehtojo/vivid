@@ -75,7 +75,7 @@ public static class Assembler
 
             constants.AddRange(lambda_constants);
             
-            if (implementation.IsEmpty && (!function.IsConstructor || ((Constructor)function).IsEmpty))
+            if (implementation.IsInlined || implementation.IsEmpty && (!function.IsConstructor || ((Constructor)function).IsEmpty))
             {
                 continue;
             }
@@ -131,25 +131,13 @@ public static class Assembler
 
             // Sprinkle a little intelligence into the output code
             Oracle.Channel(unit);
-
-            var previous = 0;
-            var current = unit.Instructions.Count;
-
-            do
-            {
-                previous = current;
-
-                Oracle.SimulateLifetimes(unit);
-
-                unit.Simulate(UnitPhase.BUILD_MODE, instruction => { instruction.Build(); });
-
-                current = unit.Instructions.Count;
-                    
-            } while (previous != current);
+            
+            Oracle.SimulateLifetimes(unit);
+            unit.Simulate(UnitPhase.BUILD_MODE, instruction => { instruction.Build(); });
 
             builder.Append(Translator.Translate(unit, out List<ConstantDataSectionHandle> constant_handles));
             builder.AppendLine();
-
+            
             constants.AddRange(constant_handles);
         }
 

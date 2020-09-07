@@ -23,17 +23,18 @@ public class VariableState
 
 	public void Restore(Unit unit)
 	{
-		if (Register.Handle != null)
+		var handle = unit.GetCurrentVariableHandle(Variable);
+
+		if (Register.Handle != null && !Register.Handle.Equals(handle))
 		{
-			throw new ApplicationException("During state restoration one of the registers was conflicted");
+			unit.Scope!.Variables.Remove(Variable);
+			return;
 		}
 
-		var current_handle = unit.GetCurrentVariableHandle(Variable);
-
-		if (current_handle != null)
+		if (handle != null)
 		{
-			Register.Handle = current_handle;
-			current_handle.Value = new RegisterHandle(Register);
+			Register.Handle = handle;
+			handle.Value = new RegisterHandle(Register);
 		}
 	}
 }
@@ -65,11 +66,11 @@ public class Unit
 	public List<Instruction> Instructions { get; } = new List<Instruction>();
 
 	private StringBuilder Builder { get; } = new StringBuilder();
-	public Dictionary<LoopNode, SymmetryStartInstruction> Loops { get; } = new Dictionary<LoopNode, SymmetryStartInstruction>();
+	public Dictionary<Guid, SymmetryStartInstruction> Loops { get; } = new Dictionary<Guid, SymmetryStartInstruction>();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
 
 	private ResourceIndexer Indexer { get; set; } = new ResourceIndexer();
-	public Variable? Self { get; }
+	public Variable? Self { get; set; }
 
 	private Instruction? Anchor { get; set; }
 	public int Position { get; private set; } = -1;
@@ -170,9 +171,9 @@ public class Unit
 	/// </summary>
 	public List<VariableState> GetState(int at)
 	{
-		return Registers
-			.FindAll(register => !register.IsAvailable(at) && (register.Handle?.Metadata.IsVariable ?? false))
-			.Select(register => new VariableState(register.Handle!.Metadata.Variables.First().Variable, register)).ToList();
+		return Scope!.Variables
+			.Where(v => v.Value.IsAnyRegister && !v.Value.Value.To<RegisterHandle>().Register.IsAvailable(at))
+			.Select(v => new VariableState(v.Key, v.Value.Value.To<RegisterHandle>().Register)).ToList();
 	}
 
 	public void Set(List<VariableState> state)
@@ -182,6 +183,17 @@ public class Unit
 
 		// Restore all the variables to their own registers
 		state.ForEach(s => s.Restore(this));
+	}
+
+	public void Set(Variable variable, Result value)
+	{
+		if (!variable.IsPredictable)
+		{
+			return;
+		}
+
+		Scope!.Variables[variable] = value;
+		value.Metadata.Attach(new VariableAttribute(variable));
 	}
 
 	public void Append(Instruction instruction, bool after = false)
@@ -261,7 +273,7 @@ public class Unit
 			instruction.Scope = Scope;
 		}
 
-		Reindex();	
+		Reindex();
 
 		if (Phase == UnitPhase.BUILD_MODE)
 		{
@@ -665,7 +677,7 @@ public class Unit
 		return Builder.ToString();
 	}
 
-	private void Reindex()
+	public void Reindex()
 	{
 		Position = 0;
 

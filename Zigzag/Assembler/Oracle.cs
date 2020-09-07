@@ -48,8 +48,7 @@ public static class Oracle
 
 	private static void SimulateLoads(Unit unit, Instruction instruction)
 	{
-		//#error Analyze if two variables share the same result, if so they are linked. If the two variables are linked, external and they are inside a conditional scope, they must be separated before the scope 
-		if (instruction is GetVariableInstruction v)
+		if (instruction is GetVariableInstruction v && v.Mode == AccessMode.WRITE)
 		{
 			var handle = unit.GetCurrentVariableHandle(v.Variable);
 
@@ -177,9 +176,11 @@ public static class Oracle
 			SimulateLinkage(unit, i);
 		});
 	}
-
+	
 	public static void SimulateLifetimes(Unit unit)
 	{
+		var start = DateTime.Now;
+
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
 		{
 			foreach (var result in instruction.GetAllUsedResults())
@@ -203,18 +204,13 @@ public static class Oracle
 		var start = instruction.GetRedirectionRoot().Position;
 		var end = instruction.Result.Lifetime.End; // NOTE: If any problems arise with weird register overwrites, it may be due to this (previously: unit.Position)
 		
-		// Check if the register is available
-		if (register.Handle == null || !register.Handle.Lifetime.IsIntersecting(start, end))
+		// If the register is volatile, there must not be any function calls in the calculated instruction range since they would corrupt the register
+		if (register.IsVolatile && calls.Any(c => c.Position >= start && c.Position < end))
 		{
-			// If the register is volatile, there must not be any function calls in the calculated instruction range since they would corrupt the register
-			if (register.IsVolatile && calls.Any(c => c.Result.Lifetime.IsIntersecting(start, end)))
-			{
-				return;
-			}
-
-			instruction.Direct(new DirectToReturnRegister(instruction));
-			//instruction.Redirect(new RegisterHandle(register));
+			return;
 		}
+
+		instruction.Direct(new DirectToReturnRegister(instruction));
 	}
 
 	private static void TryRedirect(Instruction objective, Instruction instruction, Register register, IEnumerable<Instruction> calls)

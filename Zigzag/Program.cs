@@ -4,8 +4,6 @@ public static class Program
 {
 	public static void Main(string[] arguments)
 	{
-		var start = DateTime.Now;
-
 		// Configure the flow of the compiler
 		var chain = new Chain
 		(
@@ -23,12 +21,5 @@ public static class Program
 
 		// Execute the chain
 		chain.Execute(bundle);
-
-		var end = DateTime.Now;
-
-		if (bundle.Contains("time"))
-		{
-			Console.WriteLine($"Time: {(int)(end - start).TotalMilliseconds} ms");
-		}
 	}
 }

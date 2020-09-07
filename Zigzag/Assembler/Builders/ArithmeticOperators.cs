@@ -136,16 +136,18 @@ public static class ArithmeticOperators
 
    private static Result BuildMultiplicationOperator(Unit unit, OperatorNode operation, bool assigns = false)
    {
-      var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
-      var right = References.Get(unit, operation.Right);
+      var is_destination_complex = IsComplexDestination(operation.Left);
+      var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
 
+      var left = References.Get(unit, operation.Left, access);
+      var right = References.Get(unit, operation.Right);
       var number_type = operation.GetType()!.To<Number>().Type;
 
       var result = new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
 
-      if (IsComplexDestination(operation.Left) && assigns)
+      if (is_destination_complex && assigns)
       {
-         return new MoveInstruction(unit, left, result).Execute();
+         return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
       }
 
       return result;
@@ -153,21 +155,23 @@ public static class ArithmeticOperators
 
    private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
    {
-      var number_type = operation.GetType()!.To<Number>().Type;
-
       if (!modulus && operation.Right.Is(NodeType.NUMBER_NODE) && operation.Right.To<NumberNode>().Value is long divisor && !IsPowerOfTwo(divisor))
       {
-         return BuildConstantDivision(unit, operation.Left, divisor);
+         return BuildConstantDivision(unit, operation.Left, divisor, assigns);
       }
+
+      var is_destination_complex = IsComplexDestination(operation.Left);
+      var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
       
       var right = References.Get(unit, operation.Right);
-      var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+      var left = References.Get(unit, operation.Left, access);
+      var number_type = operation.GetType()!.To<Number>().Type;
 
       var result = new DivisionInstruction(unit, modulus, left, right, number_type, assigns).Execute();
 
-      if (IsComplexDestination(operation.Left) && assigns)
+      if (is_destination_complex && assigns)
       {
-         return new MoveInstruction(unit, left, result).Execute();
+         return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
       }
 
       return result;
@@ -244,13 +248,17 @@ public static class ArithmeticOperators
       return result + 1;
    }
 
-   private static Result BuildConstantDivision(Unit unit, Node dividend, long divisor, bool assigns = false)
+   private static Result BuildConstantDivision(Unit unit, Node left, long divisor, bool assigns = false)
    {
-		var first = References.Get(unit, dividend, assigns ? AccessMode.WRITE : AccessMode.READ);
+      var is_destination_complex = IsComplexDestination(left);
+      var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
+
+      // Retrieve the dividend
+		var dividend = References.Get(unit, left, access);
 
 		// Multiply the variable with the divisor's reciprocal
 		var reciprocal = new ConstantHandle(GetDivisorReciprocal(divisor));
-		var multiplication = new LongMultiplicationInstruction(unit, first, new Result(reciprocal, Assembler.Format), Assembler.Format).Execute();
+		var multiplication = new LongMultiplicationInstruction(unit, dividend, new Result(reciprocal, Assembler.Format), Assembler.Format).Execute();
 
 		// The following offset fixes the result of the division when the result is negative by setting the offset's value to one if the result is negative, otherwise zero
 		var offset = BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle(63L), Assembler.Format), multiplication.Format).Execute();
@@ -259,9 +267,9 @@ public static class ArithmeticOperators
 		var addition = new AdditionInstruction(unit, offset, multiplication, multiplication.Format, false).Execute();
 
       // Assign the result if needed
-      if (IsComplexDestination(dividend) && assigns)
+      if (is_destination_complex && assigns)
       {
-         return new MoveInstruction(unit, first, addition).Execute();
+         return new MoveInstruction(unit, References.Get(unit, left, AccessMode.WRITE), addition).Execute();
       }
 
 		return addition;

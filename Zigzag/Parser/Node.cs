@@ -129,6 +129,11 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return filter(Parent) ? Parent : Parent.FindParent(filter);
 	}
 
+	public IContext FindContext()
+	{
+		return (IContext)FindParent(p => p is IContext)!;
+	}
+
 	public Node? Find(Predicate<Node> filter)
 	{
 		var iterator = First;
@@ -322,14 +327,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 			return;
 		}
 
-		var iterator = First;
-
-		while (iterator != null)
-		{
-			iterator.Parent = node;
-			iterator = iterator.Next;
-		}
-
 		if (Previous == null)
 		{
 			if (Parent != null)
@@ -401,7 +398,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 		Last = null;
 	}
 	
-	private static Node[] GetNodesUnderSharedParent(Node a, Node b)
+	private static Node[]? GetNodesUnderSharedParent(Node a, Node b)
 	{
 		var x = a.Path.Reverse().ToArray();
 		var y = b.Path.Reverse().ToArray();
@@ -423,7 +420,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 		{
 			// This scenario means that one of the nodes is parent of the other
 			/// TODO: Remove after this function is proven to work (Identical return)
-			return Array.Empty<Node>();
+			return null;
 		}
 
 		return new [] { x[i], y[i] };
@@ -437,6 +434,11 @@ public class Node : IEnumerable, IEnumerable<Node>
 	public bool IsBefore(Node other)
 	{
 		var positions = GetNodesUnderSharedParent(other, this);
+
+		if (positions == null)
+		{
+			return false;
+		}
 
 		if (positions.Length == 0)
 		{

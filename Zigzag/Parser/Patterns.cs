@@ -87,6 +87,7 @@ public class Patterns
 		Add(new ConstructorPattern());
 		Add(new ElseIfPattern());
 		Add(new ElsePattern());
+		Add(new ExtensionFunction());
 		Add(new FunctionPattern());
 		Add(new IfPattern());
 		Add(new ImportPattern());

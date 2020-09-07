@@ -51,6 +51,6 @@ public class SymmetryEndInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result }.Concat(Handles).ToArray();
+		return new[] { Result }.Concat(Handles).ToArray();
 	}
 }

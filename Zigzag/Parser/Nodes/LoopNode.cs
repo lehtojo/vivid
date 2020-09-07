@@ -1,19 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 public class LoopNode : Node, IResolvable, IContext
 {	
-	public Context StepsContext { get; private set; }
-	public Context BodyContext { get; private set; }
-	public Node Initialization => First!.First!;
-	public Node Condition => Initialization!.Next!;
-	public Node Action => First!.Last!;
-	public Node Body => Last!;
+	public Context Context { get; private set; }
+	
+	public Node Steps => First!;
+	public ContextNode Body => Last!.To<ContextNode>();
+
+	public Node Initialization => Steps.First!;
+	public Node Condition => Initialization!.Next!.Last!;
+	public Node Action => Steps.Last!;
+
 	public Label? Exit { get; set; } = null;
+	public Guid? Identifier { get; set; }
 
 	public bool IsForeverLoop => First == Last;
 
-	public LoopNode(Context steps_context, Context body_context, Node? steps, Node body)
+	public LoopNode(Context context, Node? steps, ContextNode body)
 	{
-		StepsContext = steps_context;
-		BodyContext = body_context;
+		Context = context;
 
 		if (steps != null)
 		{
@@ -23,16 +30,21 @@ public class LoopNode : Node, IResolvable, IContext
 		Add(body);
 	}
 
+	public IEnumerable<Node> GetConditionInitialization()
+	{
+		return Initialization.Next!.Where(i => i != Condition).ToArray();
+	}
+
 	public Node? Resolve(Context context)
 	{
 		if (!IsForeverLoop)
 		{
-			Resolver.Resolve(StepsContext, Initialization);
-			Resolver.Resolve(StepsContext, Condition);
-			Resolver.Resolve(StepsContext, Action);
+			Resolver.Resolve(Context, Initialization);
+			Resolver.Resolve(Context, Condition);
+			Resolver.Resolve(Context, Action);
 		}
 
-		Resolver.Resolve(BodyContext, Body);
+		Resolver.Resolve(Body.Context, Body);
 
 		return null;
 	}
@@ -47,8 +59,13 @@ public class LoopNode : Node, IResolvable, IContext
 		return NodeType.LOOP_NODE;
 	}
 
+	public void SetContext(Context context)
+	{
+		Context = context;
+	}
+
    public Context GetContext()
    {
-		return BodyContext;
+		return Context;
    }
 }

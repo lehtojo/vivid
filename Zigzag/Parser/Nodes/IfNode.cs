@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public class IfNode : Node, IResolvable, IContext
 {
@@ -6,15 +7,27 @@ public class IfNode : Node, IResolvable, IContext
 	public Node? Successor => (Next?.Is(NodeType.ELSE_IF_NODE, NodeType.ELSE_NODE) ?? false) ? Next : null;
 	public Node? Predecessor => (Is(NodeType.ELSE_IF_NODE) && (Previous?.Is(NodeType.IF_NODE, NodeType.ELSE_IF_NODE) ?? false)) ? Previous : null;
 
-	public Node Condition => First!;
+	public Node Condition => First!.Last!;
 	public Node Body => Last!;
 
 	public IfNode(Context context, Node condition, Node body)
 	{
 		Context = context;
 
-		Add(condition);
+		Add(new Node());
 		Add(body);
+
+		First!.Add(condition);
+	}
+
+	public IfNode(Context context)
+	{
+		Context = context;
+	}
+
+	public IEnumerable<Node> GetConditionInitialization()
+	{
+		return First!.Where(i => i != Condition).ToArray();
 	}
 
 	public List<Node> GetSuccessors()
@@ -54,7 +67,7 @@ public class IfNode : Node, IResolvable, IContext
 		}
 		else
 		{
-			branches.Add(Successor);
+			branches.Add(Successor.To<ElseNode>().Body);
 		}
 		
 		return branches;
@@ -81,6 +94,11 @@ public class IfNode : Node, IResolvable, IContext
 	public override NodeType GetNodeType()
 	{
 		return NodeType.IF_NODE;
+	}
+
+	public void SetContext(Context context)
+	{
+		Context = context;
 	}
 
    public Context GetContext()

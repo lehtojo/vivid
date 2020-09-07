@@ -22,6 +22,19 @@ public static class ParserExtensions
 		return token.Type == type;
 	}
 
+	public static bool Is(this Token token, params int[] types)
+	{
+		foreach (var type in types)
+		{
+			if (token.Type == type)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public static bool Is(this Token token, ParenthesisType type)
 	{
 		return token.Type == TokenType.CONTENT && token.To<ContentToken>().Type == type;

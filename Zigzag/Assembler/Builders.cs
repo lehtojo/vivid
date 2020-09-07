@@ -84,6 +84,11 @@ public static class Builders
 				return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
 			}
 
+			case NodeType.INLINE_NODE:
+			{
+				return Inline.Build(unit, (InlineNode)node);
+			}
+
 			case NodeType.ELSE_IF_NODE:
 			case NodeType.ELSE_NODE:
 			{

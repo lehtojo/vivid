@@ -16,5 +16,7 @@ public static class TokenType
 
 	public const int OBJECT = CAST | CONTENT | FUNCTION | IDENTIFIER | NUMBER | DYNAMIC | STRING;
 
+	public const int ANY = -1;
+
 	public const int COUNT = 12;
 }

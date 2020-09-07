@@ -80,6 +80,6 @@ public class ReturnInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return Object != null ? new Result[] { Result, Object } : new Result[] { Result };
+		return Object != null ? new[] { Result, Object } : new[] { Result };
 	}
 }

@@ -2,17 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-public class Connection
-{
-	public Result Result { get; set; }
-	public bool IsSendingEnabled { get; set; }
-
-	public Connection(Result result)
-	{
-		Result = result;
-	}
-}
-
 public interface Hint 
 {
 	bool IsRelevant(int perspective);
@@ -96,11 +85,7 @@ public class Result
 		get => _Metadata; 
 		set {
 			_Metadata = value;
-			Connections.ForEach(c => {
-				if (c.IsSendingEnabled) {
-					c.Result._Metadata = value;
-				}
-			});
+			Connections.ForEach(c => c._Metadata = value);
 		}
 	}
 
@@ -109,11 +94,7 @@ public class Result
 		get => _Value;
 		set {
 			_Value = value;
-			Connections.ForEach(c => {
-				if (c.IsSendingEnabled) {
-					c.Result._Value = value;
-				}
-			});
+			Connections.ForEach(c => c._Value = value);
 		}
 	}
 
@@ -125,9 +106,9 @@ public class Result
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
-	private List<Connection> Connections { get; } = new List<Connection>();
-	private IEnumerable<Result> System => Connections.Select(c => c.Result).Concat(new List<Result>{ this });
-	private IEnumerable<Result> Others => Connections.Select(c => c.Result);
+	private List<Result> Connections { get; } = new List<Result>();
+	private IEnumerable<Result> System => Connections.Concat(new List<Result>{ this });
+	private IEnumerable<Result> Others => Connections;
 
 	public bool IsCalculation => _Value.Type == HandleType.CALCULATION;
 	public bool IsConstant => _Value.Type == HandleType.CONSTANT;
@@ -135,6 +116,7 @@ public class Result
 	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsAnyRegister => _Value.Type == HandleType.REGISTER || _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
+	public bool IsStackVariable => _Value is StackVariableHandle;
 	public bool IsDataSectionHandle => _Value is DataSectionHandle;
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
 
@@ -224,12 +206,7 @@ public class Result
 	/// </summary>
 	private void Connect(IEnumerable<Result> system)
 	{
-		Connections.AddRange(system
-			.Where(result => System.All(m => m != result))
-			.Select(result => new Connection(result) {
-				IsSendingEnabled = true
-			})
-		);
+		Connections.AddRange(system.Where(result => System.All(m => m != result)));
 	}
 
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2245", Justification = "Assigning to the variable itself causes an update")]
@@ -253,7 +230,7 @@ public class Result
 	{
 		foreach (var member in Others)
 		{
-			var connection = member.Connections.FindIndex(c => c.Result == this);
+			var connection = member.Connections.FindIndex(c => c == this);
 
 			if (connection != -1)
 			{
@@ -309,11 +286,7 @@ public class Result
 		}
 
 		Value.Use(position);
-		Connections.ForEach(c => {
-			if (c.IsSendingEnabled) {
-				c.Result.Lifetime = Lifetime.Clone();
-			}
-		});
+		Connections.ForEach(c => c.Lifetime = Lifetime.Clone());
 	}
 
 	public void Set(Handle value, bool force = false)
@@ -331,7 +304,7 @@ public class Result
 
 	public override bool Equals(object? other)
 	{
-		return base.Equals(other) || other is Result result && result.Connections.Exists(c => c.Result == this);
+		return base.Equals(other) || other is Result result && result.Connections.Exists(c => c == this);
 	}
 
 	public override int GetHashCode()

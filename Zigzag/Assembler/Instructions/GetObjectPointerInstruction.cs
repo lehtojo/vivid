@@ -21,7 +21,7 @@ public class GetObjectPointerInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, Start };
+		return new[] { Result, Start };
 	}
 
 	public override InstructionType GetInstructionType()

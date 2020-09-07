@@ -62,6 +62,11 @@ public class TypeNode : Node, IType, IContext
 		return hash.ToHashCode();
 	}
 
+	public void SetContext(Context context)
+	{
+		throw new InvalidOperationException("Replacing context of a type node is not allowed");
+	}
+
    public Context GetContext()
    {
 		return Type;

@@ -39,7 +39,11 @@ public class LoopPattern : Pattern
 
 		for (var i = 0; i < content.SectionCount; i++)
 		{
-			Parser.Parse(steps, context, content.GetTokens(i));
+			// Parse the tokens of the step and add them under a normal node
+			var step = new Node();
+			Parser.Parse(step, context, content.GetTokens(i));
+
+			steps.Add(step);
 		}
 
 		if (content.IsEmpty)
@@ -97,8 +101,10 @@ public class LoopPattern : Pattern
 		}
 
 		var token = tokens[BODY].To<ContentToken>();
-		var body = Parser.Parse(body_context, token.GetTokens(), 0, 20);
 
-		return new LoopNode(steps_context, body_context, steps, body);
+		var body = new ContextNode(body_context);
+		Parser.Parse(body_context, token.GetTokens(), 0, 20).ForEach(n => body.Add(n));
+
+		return new LoopNode(steps_context, steps, body);
 	}
 }

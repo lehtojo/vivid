@@ -73,6 +73,6 @@ public class SingleParameterInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result, Target };
+		return new[] { Result, Target };
 	}
 }

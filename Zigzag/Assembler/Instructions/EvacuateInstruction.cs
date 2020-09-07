@@ -62,7 +62,7 @@ public class EvacuateInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new Result[] { Result };
+		return new[] { Result };
 	}
 
 	public override Result? GetDestinationDependency()

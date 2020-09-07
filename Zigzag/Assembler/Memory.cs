@@ -205,7 +205,9 @@ public static class Memory
 		else if (hint is DirectToReturnRegister x)
 		{
 			// Try to direct towards the next return register
-			return x.GetClosestReturnInstruction(unit.Position).ReturnRegister;
+			var register = x.GetClosestReturnInstruction(unit.Position).ReturnRegister;
+
+			return register.IsAvailable(unit.Position) ? register : null;
 		}
 		else if (hint is AvoidRegisters y)
 		{

@@ -73,7 +73,7 @@ public static class Loops
       {
          var exit = node.Loop.Exit ?? throw new NotImplementedException("Forever loops don't have exit labels yet");
 
-         var symmetry_start = unit.Loops[node.Loop] ?? throw new ApplicationException("Loop was not registered to unit");
+         var symmetry_start = unit.Loops[node.Loop.Identifier!.Value] ?? throw new ApplicationException("Loop was not registered to unit");
          var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
 
          // Restore the state after the body
@@ -96,7 +96,7 @@ public static class Loops
    private static List<VariableUsageInfo> GetAllVariableUsages(Unit unit, LoopNode node)
    {
       // Get all non-local variables in the loop and their number of usages
-      var variables = GetNonLocalVariableUsageCount(unit, node, node.StepsContext, node.BodyContext)
+      var variables = GetNonLocalVariableUsageCount(unit, node, node.Context, node.Body.Context)
                      .Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
 
       // Sort the variables based on their number of usages (most used variable first)
@@ -129,7 +129,7 @@ public static class Loops
 
    private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
    {
-      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.BodyContext.Parent!, loop.BodyContext);
+      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.Body.Context.Parent!, loop.Body.Context);
 
       var state = unit.GetState(unit.Position);
       var result = (Result?)null;
@@ -143,7 +143,8 @@ public static class Loops
          unit.Append(symmetry_start);
 
          // Register loop to the unit
-         unit.Loops.Add(loop, symmetry_start);
+         loop.Identifier = Guid.NewGuid();
+         unit.Loops.Add(loop.Identifier!.Value, symmetry_start);
 
          // Build the loop body
          result = Builders.Build(unit, loop.Body);
@@ -164,7 +165,7 @@ public static class Loops
 
    private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
    {
-      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.BodyContext.Parent!, loop.BodyContext);
+      var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.Body.Context.Parent!, loop.Body.Context);
 
       var state = unit.GetState(unit.Position);
       var result = (Result?)null;
@@ -178,7 +179,8 @@ public static class Loops
          unit.Append(symmetry_start);
 
          // Register loop to the unit
-         unit.Loops.Add(loop, symmetry_start);
+         loop.Identifier = Guid.NewGuid();
+         unit.Loops.Add(loop.Identifier!.Value, symmetry_start);
 
          // Build the loop body
          result = Builders.Build(unit, loop.Body);
@@ -188,6 +190,9 @@ public static class Loops
             // Build the loop action
             Builders.Build(unit, loop.Action);
          }
+
+         // Initialize the condition
+         loop.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
 
 			var conditional_jump = (Instruction?)null;
 
@@ -236,7 +241,7 @@ public static class Loops
       // Initialize the loop
       CacheLoopVariables(unit, node);
 
-      Scope.PrepareConditionallyChangingConstants(unit, node, node.StepsContext, node.BodyContext);
+      Scope.PrepareConditionallyChangingConstants(unit, node, node.Context, node.Body.Context);
       unit.Append(new BranchInstruction(unit, new Node[] { node.Body }));
 
       // Build the loop body
@@ -271,8 +276,11 @@ public static class Loops
       // Try to cache loop variables
       CacheLoopVariables(unit, node);
 
-      Scope.PrepareConditionallyChangingConstants(unit, node, node.BodyContext);
+      Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
       unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+      
+      // Initialize the condition
+      node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
 
       if (node.Condition is OperatorNode start_condition)
       {
