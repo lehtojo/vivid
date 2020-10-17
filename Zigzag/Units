@@ -1,2 +1,0 @@
-dotnet build
-dotnet vstest bin/Debug/netcoreapp3.1/Zigzag.dll

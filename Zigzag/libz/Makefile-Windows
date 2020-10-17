@@ -1,4 +1,0 @@
-all:
-	yasm -f win64 -g cv8 -o libz64.obj libz_x64_windows.asm
-	del ..\libz64.obj
-	move libz64.obj ..\

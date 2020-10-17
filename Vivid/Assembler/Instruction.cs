@@ -1,0 +1,568 @@
+using System.Linq;
+using System.Text;
+using System.Collections.Generic;
+using System;
+
+public static class ParameterFlag
+{
+	public const int NONE = 0;
+	public const int DESTINATION = 1;
+	public const int SOURCE = 2;
+	public const int WRITE_ACCESS = 4;
+	public const int ATTACH_TO_DESTINATION = 8;
+	public const int ATTACH_TO_SOURCE = 16;
+	public const int RELOCATE_TO_DESTINATION = 32;
+	public const int RELOCATE_TO_SOURCE = 64;
+	public const int HIDDEN = 128;
+	public const int ALLOW_64_BIT_CONSTANT = 256;
+	public const int NO_ATTACH = 512;
+}
+
+public class InstructionParameter
+{
+	public Result Result { get; set; }
+	public Handle? Value { get; set; } = null;
+	public Size Size { get; set; } = Size.NONE;
+	public HandleType[] Types { get; private set; }
+
+	public int Flags { get; private set; }
+
+	public bool IsHidden => Flag.Has(Flags, ParameterFlag.HIDDEN);
+	public bool IsDestination => Flag.Has(Flags, ParameterFlag.DESTINATION);
+	public bool IsSource => Flag.Has(Flags, ParameterFlag.SOURCE);
+	public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
+	public bool IsAttachable => !Flag.Has(Flags, ParameterFlag.NO_ATTACH);
+
+	public bool IsRegister => Value?.Type == HandleType.REGISTER;
+	public bool IsMediaRegister => Value is RegisterHandle handle && handle.Register.IsMediaRegister;
+	public bool IsMemoryAddress => Result.Value.Type == HandleType.MEMORY;
+
+	public bool IsConstantValid => Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
+
+	public bool IsValid => Types.Contains(Result.Value.Type) && (!Result.IsConstant || IsConstantValid);
+	public bool IsValueValid => Value != null && Types.Contains(Value.Type);
+
+	public InstructionParameter(Result handle, int flags, params HandleType[] types)
+	{
+		if (types == null || types.Length == 0)
+		{
+			throw new ArgumentException("Instruction parameter types must contain at least one option");
+		}
+
+		Flags = flags;
+		Result = handle;
+		Types = types;
+	}
+
+	/// <summary>
+	/// Returns all valid handle options that are lower in cost than the current one
+	/// </summary>
+	public HandleType[] GetLowerCostHandleOptions(HandleType current)
+	{
+		var index = Types.ToList().IndexOf(current);
+
+		if (index == -1)
+		{
+			throw new ArgumentException("Could not retrieve lower cost handle options since the current handle type was not valid");
+		}
+
+		// Return all handle types before the current handle's index (the handles at the top are lower in cost)
+		return Types.Take(index).ToArray();
+	}
+
+	/// <summary>
+	/// Controls whether the size of the handle should be visible
+	/// </summary>
+	public void SetSizeVisible(bool visible)
+	{
+		if (Value == null)
+		{
+			return;
+		}
+
+		Value.IsSizeVisible = visible;
+	}
+
+	public override string ToString()
+	{
+		return Result.Value.ToString();
+	}
+}
+
+public abstract class Instruction
+{
+	public Unit Unit { get; private set; }
+	public Scope? Scope { get; set; }
+	public Result Result { get; private set; }
+	public int Position { get; set; } = -1;
+	public InstructionType Type => GetInstructionType();
+
+	public string Description { get; set; } = string.Empty;
+	public string Operation { get; set; } = string.Empty;
+
+	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
+	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
+
+	public bool IsFutureUsageAnalyzed { get; set; } = true;
+	public bool IsBuilt { get; private set; } = false;
+
+	public Instruction(Unit unit)
+	{
+		Unit = unit;
+		Result = new Result(this);
+	}
+
+	public bool Is(InstructionType type)
+	{
+		return Type == type;
+	}
+
+	/// <summary>
+	/// Depending on the state of the unit, this instruction is executed or added to the execution chain
+	/// </summary>
+	public Result Execute()
+	{
+		Unit.Append(this);
+		return Result;
+	}
+
+	public T To<T>() where T : Instruction
+	{
+		return (T)this ?? throw new ApplicationException($"Could not convert 'Instruction' to '{typeof(T).Name}'");
+	}
+
+	private Result Convert(InstructionParameter parameter)
+	{
+		var protect = parameter.IsDestination && parameter.IsProtected;
+		var recommendation = parameter.IsDestination ? Result.GetRecommendation(Unit) : parameter.Result.GetRecommendation(Unit);
+
+		if (parameter.IsValid)
+		{
+			// Get the more preffered options for this parameter
+			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
+
+			if (options.Contains(HandleType.REGISTER))
+			{
+				// No need to worry about required size since registers are always in the right format
+				var cached = Unit.TryGetCached(parameter.Result);
+
+				if (cached != null)
+				{
+					return new Result(this, cached)
+					{
+						Format = parameter.Result.Format
+					};
+				}
+
+				// TODO: Analyze whether the value will be actually used as a register
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, recommendation);
+				}
+			}
+			else if (options.Contains(HandleType.MEDIA_REGISTER))
+			{
+				// No need to worry about required size since registers are always in the right format
+				var cached = Unit.TryGetCachedMediaRegister(parameter.Result);
+
+				if (cached != null)
+				{
+					return new Result(this, cached)
+					{
+						Format = parameter.Result.Format
+					};
+				}
+
+				/// TODO: Analyze whether the value will be actually used as a register
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, recommendation);
+				}
+			}
+
+			// If the parameter size doesn't match the required size, it can be converted by moving it to register
+			// NOTE: The parameter shall not be converted if it represents a destination memory address which is being written to
+			if (parameter.Size != Size.NONE && parameter.Result.Size != parameter.Size)
+			{
+				if (parameter.IsMemoryAddress && parameter.IsDestination)
+				{
+					throw new ApplicationException("Could not convert memory address to the required size since it was specified as a destination");
+				}
+
+				Memory.Convert(Unit, parameter.Result, parameter.Size, recommendation);
+			}
+
+			// If the current parameter is the destination and it is needed later, then it must me copied to another register
+			if (protect && parameter.Result.IsOnlyValid(Position))
+			{
+				/// TODO: All parameter that include media register type are not floating point numbers
+				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
+			}
+
+			return parameter.Result;
+		}
+
+		return Memory.Convert(Unit, parameter.Result, parameter.Size, parameter.Types, protect, recommendation);
+	}
+
+	/// <summary>
+	/// Simulates the interactions between the instruction parameters such as relocating the source to the destination
+	/// </summary>
+	private void SimulateParameterFlags()
+	{
+		var destination = (Handle?)null;
+		var source = (Handle?)null;
+
+		// Determine the destination and the source
+		for (var i = 0; i < Parameters.Count; i++)
+		{
+			var parameter = Parameters[i];
+
+			if (parameter.IsDestination && parameter.IsAttachable)
+			{
+				// There should not be multiple destinations
+				if (destination != null)
+				{
+					throw new ApplicationException("Instruction parameters had multiple destinations which is not allowed");
+				}
+
+				destination = parameter.Value;
+			}
+			else if (parameter.IsSource && parameter.IsAttachable)
+			{
+				// There should not be multiple sources
+				if (source != null)
+				{
+					throw new ApplicationException("Instruction parameters had multiple sources which is not allowed");
+				}
+
+				source = parameter.Value;
+			}
+		}
+
+		if (destination != null)
+		{
+			if (destination.Is(HandleType.REGISTER) || destination.Is(HandleType.MEDIA_REGISTER))
+			{
+				var register = destination.To<RegisterHandle>().Register;
+				var attached = false;
+
+				// Search for values to attach to the destination register
+				foreach (var parameter in Parameters)
+				{
+					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
+					{
+						register.Handle = parameter.Result;
+						parameter.Result.Format = destination.Format;
+						attached = true;
+						break;
+					}
+				}
+
+				// If no result was attachted to the destination, the default action should be taken
+				if (!attached)
+				{
+					register.Handle = Result;
+					Result.Format = destination.Format;
+				}
+			}
+
+			// Search for values to relocate to the destination
+			foreach (var parameter in Parameters)
+			{
+				if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
+				{
+					parameter.Result.Value = destination;
+					parameter.Result.Format = destination.Format;
+				}
+			}
+		}
+
+		if (source != null)
+		{
+			if (source.Is(HandleType.REGISTER) || source.Is(HandleType.MEDIA_REGISTER))
+			{
+				var register = source.To<RegisterHandle>().Register;
+
+				// Search for values to attach to the source register
+				foreach (var parameter in Parameters)
+				{
+					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
+					{
+						register.Handle = parameter.Result;
+						parameter.Result.Format = source.Format;
+						break;
+					}
+				}
+			}
+
+			// Search for values to relocate to the source
+			foreach (var parameter in Parameters)
+			{
+				if (Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
+				{
+					parameter.Result.Value = source;
+					parameter.Result.Format = source.Format;
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Builds the given operation without any processing
+	/// </summary>
+	public void Build(string operation)
+	{
+		Operation = operation;
+	}
+
+	/// <summary>
+	/// Builds the instruction with the given arguments but doesn't force the parameters to be the same size
+	/// </summary>
+	public void Build(string operation, params InstructionParameter[] parameters)
+	{
+		Build(operation, Size.NONE, parameters);
+	}
+
+	/// <summary>
+	/// Prepares the handle for use
+	/// </summary>
+	/// <returns>
+	/// Returns a list of register locks which must be active while the handle is in use
+	/// </returns>
+	private List<RegisterLock> ValidateHandle(Handle handle)
+	{
+		var results = handle.GetRegisterDependentResults();
+		var locks = new List<RegisterLock>();
+
+		foreach (var result in results)
+		{
+			if (!result.IsStandardRegister)
+			{
+				Memory.MoveToRegister(Unit, result, result.Size, false, result.GetRecommendation(Unit));
+			}
+
+			locks.Add(RegisterLock.Create(result));
+		}
+
+		return locks;
+	}
+
+	/// <summary>
+	/// Builds the instruction with the given arguments and forces the parameters to match the given size
+	/// </summary>
+	public void Build(string operation, Size size, params InstructionParameter[] parameters)
+	{
+		Parameters.Clear();
+
+		var locks = new List<RegisterLock>();
+
+		for (var i = 0; i < parameters.Length; i++)
+		{
+			// Convert the parameter into a valid format
+			var parameter = parameters[i];
+			parameter.Size = size == Size.NONE ? parameter.Result.Size : size;
+
+			// Convert the parameter to a valid format for this instruction
+			var result = Convert(parameter);
+
+			if (parameter.IsDestination)
+			{
+				// Set the result to be equal to the destination
+				Result.Value = result.Value;
+			}
+
+			// Prepare the handle for use
+			locks.AddRange(ValidateHandle(result.Value));
+
+			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
+			if (result.Value is RegisterHandle register_handle)
+			{
+				// Register locks have a destructor which releases the register so they are safe
+				locks.Add(new RegisterLock(register_handle.Register));
+			}
+
+			parameter.Result = result;
+			parameter.Value = result.Value.Finalize();
+			parameter.Value.Format = parameter.Result.Format;
+
+			Parameters.Add(parameter);
+		}
+
+		// Simulate the effects of the parameter flags
+		SimulateParameterFlags();
+
+		// Allow final touches to this instruction
+		Operation = operation;
+		OnPostBuild();
+
+		// Unlock the register locks since the instruction has been executed
+		locks.ForEach(l => ((IDisposable)l).Dispose());
+	}
+
+	public void Translate()
+	{
+		// Skip empty instructions
+		if (string.IsNullOrEmpty(Operation))
+		{
+			return;
+		}
+
+		foreach (var parameter in Parameters)
+		{
+			if (!parameter.IsValueValid || parameter.Value == null)
+			{
+				throw new ApplicationException("During translation one instruction parameter was in incorrect format");
+			}
+
+			if (parameter.IsDestination)
+			{
+				// Set the result to be equal to the destination
+				Result.Value = parameter.Value;
+			}
+		}
+
+		var result = new StringBuilder(Operation);
+
+		// Detect whether all parameter are meant to be the same size
+		if (Parameters.All(p => !p.IsMediaRegister) && Parameters.Select(p => p.Value!.Size).Distinct().Count() == 1)
+		{
+			// Try to find the first parameter which is actually visible
+			var visible = Parameters.Find(p => !p.IsHidden);
+
+			if (visible != null)
+			{
+				// Only one parameter is required to show its size
+				visible.SetSizeVisible(true);
+			}
+
+			// Hide other parameter's sizes for cleaner output
+			foreach (var parameter in Parameters.Skip(1))
+			{
+				if (parameter != visible)
+				{
+					parameter.SetSizeVisible(false);
+				}
+			}
+		}
+		else
+		{
+			// Each parameter must be configured to display their sizes
+			foreach (var parameter in Parameters)
+			{
+				parameter.SetSizeVisible(true);
+			}
+		}
+
+		foreach (var parameter in Parameters)
+		{
+			if (!parameter.IsHidden)
+			{
+				result.Append($" {parameter.Value},");
+			}
+		}
+
+		// Simulate the effects of the parameter flags
+		SimulateParameterFlags();
+
+		if (Parameters.Count > 0)
+		{
+			result.Remove(result.Length - 1, 1);
+		}
+
+		Unit.Write(result.ToString());
+	}
+
+	public abstract Result? GetDestinationDependency();
+
+	public virtual void OnSimulate() { }
+	public virtual void OnBuild() { }
+	public virtual void OnPostBuild() { }
+
+	public void Build()
+	{
+		if (IsBuilt)
+		{
+			foreach (var parameter in Parameters)
+			{
+				if (!parameter.IsValueValid || parameter.Value == null)
+				{
+					throw new ApplicationException("During translation one instruction parameter was in incorrect format");
+				}
+
+				if (parameter.IsDestination)
+				{
+					// Set the result to be equal to the destination
+					Result.Value = parameter.Value;
+				}
+			}
+
+			// Simulate the effects of the parameter flags
+			SimulateParameterFlags();
+		}
+		else
+		{
+			IsBuilt = true;
+			OnBuild();
+		}
+	}
+
+	public virtual int GetStackOffsetChange()
+	{
+		return 0;
+	}
+
+	public Instruction GetRedirectionRoot()
+	{
+		var instruction = this;
+
+		var previous = (Result?)null;
+		var dependency = GetDestinationDependency();
+
+		while (true)
+		{
+			if (dependency == null || dependency.Instruction == null || dependency == previous)
+			{
+				return instruction;
+			}
+
+			instruction = dependency.Instruction;
+
+			previous = dependency;
+			dependency = instruction.GetDestinationDependency();
+		}
+	}
+
+	public int Redirect(IHint hint)
+	{
+		Result.AddHint(hint);
+
+		var destination = GetDestinationDependency();
+		var previous = (Result?)null;
+
+		while (destination != null && destination != previous)
+		{
+			destination.AddHint(hint);
+
+			previous = destination;
+			destination = destination.Instruction?.GetDestinationDependency();
+		}
+
+		return previous?.Instruction?.Position ?? -1;
+	}
+
+	public abstract InstructionType GetInstructionType();
+	public abstract Result[] GetResultReferences();
+
+	public Result[] GetAllUsedResults()
+	{
+		return Parameters.Select(p => p.Result).Concat(GetResultReferences()).ToArray();
+	}
+
+	public override string ToString()
+	{
+		return string.IsNullOrEmpty(Description) ? GetType().Name : Description;
+	}
+}
