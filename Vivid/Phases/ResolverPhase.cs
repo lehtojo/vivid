@@ -25,27 +25,25 @@ public class ResolverPhase : Phase
 
 		var errors = new List<Status>();
 
-		if (implementation.ReturnType?.IsUnresolved ?? false)
+		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
 			errors.Add(Status.Error("Could not resolve return type"));
 		}
 
 		if (!Equals(implementation.Node, null))
 		{
-			errors.AddRange(
-				implementation.Node
-					.FindAll(n => n is IResolvable)
-					.Cast<IResolvable>()
-					.Select(r => r.GetStatus())
-					.Where(s => s.IsProblematic)
-					.ToList()
+			errors.AddRange(implementation.Node
+				.FindAll(n => n is IResolvable)
+				.Cast<IResolvable>()
+				.Select(r => r.GetStatus())
+				.Where(s => s.IsProblematic)
+				.ToList()
 			);
 		}
 
-		errors.AddRange(
-			implementation.Variables.Values
-				.Where(v => v.IsUnresolved)
-				.Select(v => Status.Error($"Could not resolve type of local variable '{v.Name}'"))
+		errors.AddRange(implementation.Variables.Values
+			.Where(v => v.IsUnresolved)
+			.Select(v => Status.Error($"Could not resolve type of local variable '{v.Name}'"))
 		);
 
 		if (!errors.Any())
@@ -63,43 +61,77 @@ public class ResolverPhase : Phase
 
 	private static string GetReport(Context context)
 	{
-		var builder = new StringBuilder();
+		var variables = new StringBuilder();
 
 		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUnresolved))
 		{
 			if (variable.Context.IsType)
 			{
-				var type = (Type)variable.Context;
-				builder.Append($"ERROR: Could not resolve type of member variable '{variable.Name}' of type '{type.Name}'");
+				variables.Append($"ERROR: Could not resolve type of member variable '{variable.Name}' of type '{(Type)variable.Context}'");
 			}
 			else if (variable.Context.Parent == null)
 			{
-				builder.Append($"ERROR: Could not resolve type of global variable '{variable.Name}'");
+				variables.Append($"ERROR: Could not resolve type of global variable '{variable.Name}'");
 			}
+
+			variables.AppendLine();
 		}
 
-		foreach (var report in context.Types.Values.Select(GetReport).Where(report => report.Length > 0))
+		var types = new StringBuilder();
+
+		foreach (var type in context.Types.Values)
 		{
-			builder.Append(report).Append("\n\n");
+			var report = GetReport(type);
+
+			if (string.IsNullOrEmpty(report))
+			{
+				continue;
+			}
+
+			types.Append(report);
+			types.AppendLine();
 		}
+
+		var functions = new StringBuilder();
 
 		foreach (var implementation in context.GetFunctionImplementations())
 		{
 			var report = GetFunctionReport(implementation);
 			var subreport = GetReport(implementation);
 
-			if (subreport.Length > 0)
+			if (!string.IsNullOrEmpty(report))
 			{
 				report += "\n" + subreport;
 			}
 
-			if (report.Length > 0)
+			if (!string.IsNullOrEmpty(report))
 			{
-				builder.Append(report).Append("\n\n");
+				if (functions.Length > 0)
+				{
+					functions.AppendLine();
+				}
+
+				functions.Append(report);
 			}
 		}
 
-		return builder.ToString();
+		var final = new StringBuilder(variables.ToString());
+
+		if (final.Length > 0)
+		{
+			final.AppendLine();
+		}
+
+		final.Append(types.ToString());
+
+		if (final.Length > 0)
+		{
+			final.AppendLine();
+		}
+
+		final.Append(functions.ToString());
+
+		return final.ToString();
 	}
 
 	public override Status Execute(Bundle bundle)

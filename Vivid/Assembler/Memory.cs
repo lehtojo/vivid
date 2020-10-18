@@ -97,7 +97,7 @@ public static class Memory
 		var locks = moves.Where(m => m.IsRedundant && m.First.IsStandardRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
 		var unlocks = locks.Select(l => LockStateInstruction.Unlock(unit, l.Register)).ToList();
 
-		registers = new List<Register>();
+		registers = locks.Select(i => i.Register).ToList();
 
 		// Now remove all redundant moves
 		moves.RemoveAll(m => m.IsRedundant);

@@ -2,7 +2,7 @@
   "profiles": {
     "Vivid": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\joona\\Downloads\\Donut.v C:\\Users\\joona\\vivid\\Vivid\\libv\\Console.v C:\\Users\\joona\\vivid\\Vivid\\libv\\String.v --asm --time --debug"
+      "commandLineArgs": "C:\\Users\\joona\\vivid\\Vivid\\Examples\\Donut.v C:\\Users\\joona\\vivid\\Vivid\\libv\\Console.v C:\\Users\\joona\\vivid\\Vivid\\libv\\String.v --asm --debug"
     }
   }
 }

@@ -199,8 +199,8 @@ push rbx
 push rsi
 push rdi
 sub rsp, 48
-mov rax, rcx
-mov rbx, rax
+mov r8, rcx
+mov rbx, r8
 mov rsi, rcx
 mov rdi, rdx
 cmp rbx, rdi

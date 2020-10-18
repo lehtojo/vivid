@@ -70,6 +70,11 @@ public class LambdaPattern : Pattern
 	public override Node? Build(Context context, List<Token> tokens)
 	{
 		var body = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
+		
+		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
+		{
+			body.Insert(0, new OperatorToken(Operators.IMPLICATION));
+		}
 
 		var name = context.GetNextLambda().ToString(CultureInfo.InvariantCulture);
 

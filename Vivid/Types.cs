@@ -5,6 +5,8 @@ public static class Types
 {
 	public const Type UNKNOWN = null;
 
+	public static readonly Type UNIT = new Type("_", AccessModifier.PUBLIC);
+
 	public static readonly Bool BOOL = new Bool();
 	public static readonly Link LINK = new Link();
 
@@ -27,6 +29,7 @@ public static class Types
 
 	public static void Inject(Context context)
 	{
+		context.Declare(UNIT);
 		context.Declare(BOOL);
 		context.Declare(LINK);
 		context.Declare(TINY);

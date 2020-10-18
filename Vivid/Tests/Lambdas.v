@@ -55,28 +55,26 @@ Animal Dog {
 		type = ANIMAL_DOG
 
 		action = (other: Animal) => {
-			distance = sqrt(pow(this.position.x - other.position.x, 2.0) + pow(this.position.y - other.position.y, 2.0))
-			direction = other.position - this.position
+			distance = sqrt(pow(position.x - other.position.x, 2.0) + pow(position.y - other.position.y, 2.0))
+			direction = other.position - position
 
 			if distance <= 1 and other.type == ANIMAL_CAT {
 				# Run away from the cat
 				direction.invert()
 				direction *= 10
 
-				this.bark()
-				this.bark()
+				bark()
+				bark()
 			}
 			else {
-				this.bark()
+				bark()
 			}
 
 			=> direction
 		}
 	}
 
-	bark() {
-		println('Bark')
-	}
+	bark() => println('Bark')
 }
 
 CAT_SPEED = 2
@@ -87,15 +85,53 @@ Animal Cat {
 		type = ANIMAL_CAT
 
 		action = (other: Animal) => {
-			this.meow()
+			meow()
 
-			=> (other.position - this.position) * CAT_SPEED
+			=> (other.position - position) * CAT_SPEED
 		}
 	}
 
-	meow() {
-		println('Meow')
-	}
+	meow() => println('Meow')
+}
+
+export create_default_action() {
+	=> () => println('Hi there!')
+}
+
+export execute_default_action(action: () => _) {
+	action()
+}
+
+export create_number_action() {
+	=> (n: num) => printsln(to_string(n))
+}
+
+export execute_number_action(action: (num) => _, number: num) {
+	action(number)
+}
+
+export create_sum_function() {
+	=> (a: num, b: num) => a + b
+}
+
+export execute_sum_function(function: (num, num) => num, a: num, b: num) {
+	=> function(a, b)
+}
+
+export create_capturing_function(x: tiny, y: small, z: normal, w: large, i: decimal) {
+	=> () => x + y + z + w + i
+}
+
+export execute_capturing_function(function: () => decimal) {
+	=> function()
+}
+
+export overloads(x: tiny) {
+	=> x * 2
+}
+
+export overloads(x: num) {
+	=> x - x
 }
 
 init() {
@@ -113,4 +149,23 @@ init() {
 
 	dog.interact(cat)
 	cat.interact(dog)
+
+	a = create_default_action()
+	execute_default_action(a)
+
+	b = create_number_action()
+	execute_number_action(b, -1)
+
+	c = create_sum_function()
+	x = execute_sum_function(c, 1, 2)
+
+	printsln(to_string(x))
+
+	d = create_capturing_function(1, 2, 3, 4, 5)
+	y = execute_capturing_function(d)
+
+	printsln(to_string_decimal(y))
+
+	overloads(1)
+	overloads(1 as tiny)
 }

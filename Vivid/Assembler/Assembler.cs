@@ -216,6 +216,7 @@ public static class Assembler
 
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
+			nodes.AddRange(GetStringNodes(implementation));
 			nodes.AddRange(GetStringNodes(implementation.Node!));
 		}
 

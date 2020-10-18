@@ -33,7 +33,7 @@ public static class Lambdas
 		foreach (var captured_variable in captured_variables)
 		{
 			var source = References.GetVariable(unit, captured_variable.Captured);
-			var destination = new Result(new MemoryHandle(unit, lambda, position), Assembler.Format);
+			var destination = new Result(new MemoryHandle(unit, lambda, position), captured_variable.Type!.Format);
 
 			unit.Append(new MoveInstruction(unit, destination, source));
 

@@ -56,7 +56,7 @@ public class ImportPattern : Pattern
 		var header = tokens[HEADER].To<FunctionToken>();
 		var parameter_names = header.GetParameterNames(function_context);
 		var parameter_types = header.ParameterTree!.Select(n => n is IType x ? x.GetType() : Types.UNKNOWN);
-		var return_type = Types.UNKNOWN;
+		var return_type = Types.UNIT;
 
 		if (tokens[RETURN_TYPE].Type != TokenType.NONE)
 		{

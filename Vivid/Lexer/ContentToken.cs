@@ -20,6 +20,12 @@ public class ContentToken : Token
 	public List<List<Token>> GetSections()
 	{
 		var sections = new List<List<Token>>();
+
+		if (IsEmpty)
+		{
+			return sections;
+		}
+
 		var section = new List<Token>();
 		
 		foreach (var token in Tokens)

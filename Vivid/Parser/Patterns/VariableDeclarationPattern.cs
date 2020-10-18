@@ -107,7 +107,7 @@ public class VariableDeclarationPattern : Pattern
 			}
 
 			var return_type_name = tokens[LAMBDA_TYPE_RETURN_TYPE].To<IdentifierToken>().Value;
-			var return_type = (Type?)null;
+			var return_type = Types.UNIT;
 
 			// Underscore here indicates no return type
 			if (return_type_name != "_")

@@ -267,8 +267,8 @@ ret
 
 _VN5ArrayIxE3setExx:
 sal rdx, 3
-mov rax, [rcx]
-mov qword [rax+rdx], r8
+mov rcx, [rcx]
+mov qword [rcx+rdx], r8
 ret
 
 _VN5ArrayIxE3getEx_rx:
@@ -296,6 +296,6 @@ pop rbx
 ret
 
 _VN5ArrayIhE3setExh:
-mov rax, [rcx]
-mov byte [rax+rdx], r8b
+mov rcx, [rcx]
+mov byte [rcx+rdx], r8b
 ret

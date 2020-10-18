@@ -13,7 +13,7 @@ public class Variable
 	public bool IsConstant => Flag.Has(Modifiers, AccessModifier.CONSTANT);
 	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
 	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
-	public bool IsSelfPointer => Context.GetSelfPointer() == this;
+	public bool IsSelfPointer { get; set; } = false;
 
 	public Context Context { get; set; }
 

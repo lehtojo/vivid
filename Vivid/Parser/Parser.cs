@@ -565,7 +565,7 @@ public static class Parser
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"copy",
-			Types.UNKNOWN,
+			Types.UNIT,
 			new Parameter("source", Types.LINK),
 			new Parameter("bytes", number),
 			new Parameter("destination", Types.LINK)
@@ -575,7 +575,7 @@ public static class Parser
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"offset_copy",
-			Types.UNKNOWN,
+			Types.UNIT,
 			new Parameter("source", Types.LINK),
 			new Parameter("bytes", number),
 			new Parameter("destination", Types.LINK),
@@ -586,7 +586,7 @@ public static class Parser
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"deallocate",
-			Types.UNKNOWN,
+			Types.UNIT,
 			new Parameter("address", Types.LINK),
 			new Parameter("bytes", number)
 		);

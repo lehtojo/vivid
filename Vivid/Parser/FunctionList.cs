@@ -9,18 +9,38 @@ public class FunctionList
 	public void Add(Function function)
 	{
 		var count = function.Parameters.Count;
+		var conflicts = Overloads.Where(i => i.Parameters.Count == count);
 
-		if (Overloads.Exists(o => o.Parameters.Count == count))
+		foreach (var conflict in conflicts)
 		{
-			throw new InvalidOperationException("Function overload with same amount of parameters already exists");
+			var pass = false;
+
+			for (var i = 0; i < count; i++)
+			{
+				var x = function.Parameters[i].Type;
+				var y = conflict.Parameters[i].Type;
+
+				if (x == null || y == null || x == y)
+				{
+					continue;
+				}
+
+				pass = true;
+				break;
+			}
+
+			if (!pass)
+			{
+				throw new InvalidOperationException("Function overload can be confused with another");
+			}
 		}
 
 		Overloads.Add(function);
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is FunctionList list &&
+		return other is FunctionList list &&
 			   EqualityComparer<List<Function>>.Default.Equals(Overloads, list.Overloads);
 	}
 
@@ -29,16 +49,47 @@ public class FunctionList
 		return HashCode.Combine(Overloads);
 	}
 
+	private static int GetCastCount(Function candidate, List<Type> parameters)
+	{
+		var casts = 0;
+
+		for (var i = 0; i < parameters.Count; i++)
+		{
+			if (candidate.Parameters[i].Type == null || candidate.Parameters[i].Type!.Equals(parameters[i]))
+			{
+				continue;
+			}
+
+			casts++;
+		}
+
+		return casts;
+	}
+
 	public FunctionImplementation? GetImplementation(List<Type> parameters, Type[] template_arguments)
 	{
 		if (template_arguments.Any())
 		{
-			return ((TemplateFunction?)Overloads.Find(i => i is TemplateFunction function && function.TemplateArgumentNames.Count == template_arguments.Length && function.Passes(parameters, template_arguments)
-			
-			))?.Get(parameters, template_arguments);
-		}
+			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateArgumentNames.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
 
-		return Overloads.Find(o => o.Passes(parameters))?.Get(parameters);
+			if (candidates.Count <= 1)
+			{
+				return candidates.FirstOrDefault()?.Get(parameters, template_arguments);
+			}
+
+			return candidates.OrderBy(i => GetCastCount(i, parameters)).First().Get(parameters, template_arguments);
+		}
+		else
+		{
+			var candidates = Overloads.FindAll(o => o.Passes(parameters));
+
+			if (candidates.Count <= 1)
+			{
+				return candidates.FirstOrDefault()?.Get(parameters);
+			}
+
+			return candidates.OrderBy(i => GetCastCount(i, parameters)).First().Get(parameters);
+		}
 	}
 
 	public FunctionImplementation? GetImplementation(List<Type> parameters)

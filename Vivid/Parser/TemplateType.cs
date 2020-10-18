@@ -142,9 +142,4 @@ public class TemplateType : Type
 
 		return TryGetVariant(arguments) ?? CreateVariant(arguments);
 	}
-
-	public Type this[Type[] arguments]
-	{
-		get => GetVariant(arguments);
-	}
 }

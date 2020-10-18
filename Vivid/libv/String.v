@@ -37,6 +37,8 @@ to_string_decimal(n: decimal) {
 	# Remove the integer part
 	n -= n as num
 
+	if n == 0 => result.combine(String(',0'))
+
 	# Append comma
 	result = result.append(`,`)
 

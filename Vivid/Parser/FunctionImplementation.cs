@@ -82,7 +82,7 @@ public class FunctionImplementation : Context
 			mangle += 'v';
 		}
 
-		if (ReturnType != null)
+		if (ReturnType != global::Types.UNIT)
 		{
 			mangle += "_r";
 			mangle += ReturnType!;
@@ -139,7 +139,8 @@ public class FunctionImplementation : Context
 				VariableCategory.PARAMETER,
 				Function.SELF_POINTER_IDENTIFIER,
 				AccessModifier.PUBLIC
-			);
+
+			) { IsSelfPointer = true };
 		}
 
 		Node = new ImplementationNode(this);
@@ -213,9 +214,9 @@ public class FunctionImplementation : Context
 		return Self;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is FunctionImplementation implementation &&
+		return other is FunctionImplementation implementation &&
 			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, implementation.Variables) &&
 			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, implementation.Functions) &&
 			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, implementation.Types) &&

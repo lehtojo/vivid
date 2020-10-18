@@ -41,9 +41,9 @@ global _V10fish_movesP4Fish
 export _V10fish_movesP4Fish
 _V10fish_movesP4Fish:
 sub rsp, 40
-lea rdx, [rcx-3]
-movsx rax, byte [rdx+9]
-test rax, rax
+lea r8, [rcx-3]
+movsx rdx, byte [r8+9]
+test rdx, rdx
 jne _V10fish_movesP4Fish_L0
 lea rdx, [rcx-3]
 call _VN4Fish4swimEP6Animal
@@ -56,8 +56,8 @@ export _V10fish_swimsP6Animal
 _V10fish_swimsP6Animal:
 sub rsp, 40
 mov rdx, rcx
-mov rax, rcx
-lea rcx, [rax+3]
+mov r8, rcx
+lea rcx, [r8+3]
 call _VN4Fish4swimEP6Animal
 add rsp, 40
 ret
@@ -66,8 +66,8 @@ global _V10fish_stopsP6Animal
 export _V10fish_stopsP6Animal
 _V10fish_stopsP6Animal:
 sub rsp, 40
-mov rax, rcx
-lea rcx, [rax+3]
+mov rdx, rcx
+lea rcx, [rdx+3]
 call _VN4Fish5floatEv
 add rsp, 40
 ret
@@ -134,8 +134,8 @@ sub rsp, 48
 mov rbx, rcx
 mov rcx, rdx
 call _VN6Animal4moveEv
-mov ax, [rbx]
-mov word [rbx+2], ax
+mov cx, [rbx]
+mov word [rbx+2], cx
 add rsp, 48
 pop rbx
 ret

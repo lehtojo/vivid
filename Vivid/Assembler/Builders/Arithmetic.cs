@@ -107,12 +107,22 @@ public static class Arithmetic
 
 	private static Result BuildAdditionOperator(Unit unit, OperatorNode operation, bool assigns = false)
 	{
-		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+		var is_destination_complex = IsComplexDestination(operation.Left) && operation.Left.GetType() == Types.DECIMAL;
+		var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
+
+		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
 
 		var number_type = operation.GetType()!.To<Number>().Type;
 
-		return new AdditionInstruction(unit, left, right, number_type, assigns).Execute();
+		var result = new AdditionInstruction(unit, left, right, number_type, assigns).Execute();
+
+		if (is_destination_complex && assigns)
+		{
+			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
+		}
+
+		return result;
 	}
 
 	private static Result BuildIncrementOperation(Unit unit, IncrementNode increment)
@@ -161,12 +171,22 @@ public static class Arithmetic
 
 	private static Result BuildSubtractionOperator(Unit unit, OperatorNode operation, bool assigns = false)
 	{
-		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
+		var is_destination_complex = IsComplexDestination(operation.Left) && operation.Left.GetType() == Types.DECIMAL;
+		var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
+
+		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
 
 		var number_type = operation.GetType()!.To<Number>().Type;
 
-		return new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
+		var result = new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
+
+		if (is_destination_complex && assigns)
+		{
+			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
+		}
+
+		return result;
 	}
 
 	/// <summary>

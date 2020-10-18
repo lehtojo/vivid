@@ -14,34 +14,30 @@ public class ReturnNode : InstructionNode, IResolvable
 		}
 	}
 
-	private static Type? GetReturnType(Node node)
-	{
-		if (node is IType type)
-		{
-			return type.GetType();
-		}
-
-		return Types.UNKNOWN;
-	}
-
 	public Node? Resolve(Context context)
 	{
 		// Returned object must be resolved first
 		var node = First;
 
+		// Find the parent function where the return value can be assigned
+		var function = context.GetFunctionParent() ?? throw new ApplicationException("Return statement was not inside a function");
+
 		if (node == null)
 		{
 			CurrentStatus = Status.OK;
+			function.ReturnType = Types.UNIT;
 			return null;
 		}
 
 		Resolver.Resolve(context, node);
 
-		// Find the parent function where the return value can be assigned
-		var function = context.GetFunctionParent() ?? throw new ApplicationException("Return statement was not inside a function");
+		if (node == null)
+		{
+			throw new ApplicationException("Return statement did not have a value to return");
+		}
 
 		var current = function.ReturnType;
-		var type = GetReturnType(node ?? throw new ApplicationException("Return statement did not have a value to return"));
+		var type = node?.TryGetType();
 
 		if (type == Types.UNKNOWN)
 		{
@@ -49,25 +45,31 @@ public class ReturnNode : InstructionNode, IResolvable
 			return null;
 		}
 
-		if (current != type)
+		// If the current return type is not registered, the type of the return value can be set as the current return type
+		if (current == Types.UNKNOWN)
 		{
-			var shared = (Type?)type;
-
-			if (current != Types.UNKNOWN)
-			{
-				shared = Resolver.GetSharedType(current, type);
-			}
-
-			if (shared == null)
-			{
-				CurrentStatus = Status.Error($"Type '{type.Name}' is not compatible with the current return type '{current?.Name ?? "none"}'");
-				return null;
-			}
-
 			function.ReturnType = type;
 			CurrentStatus = Status.OK;
+			return null;
 		}
 
+		if (current.Equals(type))
+		{
+			CurrentStatus = Status.OK;
+			return null;
+		}
+
+		// Try to find a supertype that both the current return type and the type of the return value inherit
+		var shared = Resolver.GetSharedType(current, type);
+
+		if (shared == null)
+		{
+			CurrentStatus = Status.Error($"Type '{type}' is not compatible with the current return type '{current?.ToString() ?? "none"}'");
+			return null;
+		}
+
+		// Update the return type to match the shared supertype
+		function.ReturnType = shared;
 		CurrentStatus = Status.OK;
 		return null;
 	}

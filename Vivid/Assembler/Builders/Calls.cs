@@ -121,7 +121,7 @@ public static class Calls
 				var source = References.Get(unit, parameter);
 				source = Casts.Cast(unit, source, parameter.GetType(), parameter_types[i]);
 
-				var is_decimal = Equals(parameter.GetType(), Types.DECIMAL);
+				var is_decimal = Equals(parameter_types[i], Types.DECIMAL);
 
 				// Determine the parameter register
 				register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
@@ -131,7 +131,7 @@ public static class Calls
 					var destination = new RegisterHandle(register);
 
 					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
-					var format = source.Format.IsDecimal() ? source.Format : Assembler.Size.ToFormat(source.Format.IsUnsigned());
+					var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
 
 					instructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
 					{
@@ -140,8 +140,10 @@ public static class Calls
 				}
 				else
 				{
+					var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
+
 					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					instructions.Add(new MoveInstruction(unit, new Result(stack_position.Finalize(), source.Format), source));
+					instructions.Add(new MoveInstruction(unit, destination, source));
 					stack_position.Offset += Size.FromFormat(source.Format).Bytes;
 				}
 			}

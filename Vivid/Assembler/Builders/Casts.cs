@@ -13,8 +13,7 @@ public static class Casts
 		{
 			if ((x == Types.DECIMAL && y != Types.DECIMAL) || (x != Types.DECIMAL && y == Types.DECIMAL))
 			{
-				unit.Append(new ConvertInstruction(unit, result, to != Types.DECIMAL));
-				return result;
+				return new ConvertInstruction(unit, result, to != Types.DECIMAL).Execute();
 			}
 
 			return result;

@@ -71,7 +71,7 @@ public static class Resolver
 			{
 				var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
 
-				if (!Equals(type, Types.UNKNOWN))
+				if (type != Types.UNKNOWN)
 				{
 					implementation.ReturnType = type;
 				}
@@ -79,6 +79,11 @@ public static class Resolver
 
 			if (implementation.Node != null)
 			{
+				if (!implementation.IsConstructor && !implementation.Metadata!.IsImported && implementation.Node.Find(i => i.Is(NodeType.RETURN)) == null)
+				{
+					implementation.ReturnType = Types.UNIT;
+				}
+
 				ResolveTree(implementation, implementation.Node!);
 			}
 

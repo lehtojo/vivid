@@ -25,16 +25,16 @@ jge _V9fibonaccix_L1
 _V9fibonaccix_L0:
 cmp rbx, 1
 jg _V9fibonaccix_L4
-mov rax, rbx
-mov rsi, rax
+mov rcx, rbx
+mov rsi, rcx
 jmp _V9fibonaccix_L3
 _V9fibonaccix_L4:
-lea rax, [rbp+rdi]
-mov rcx, rdi
-mov rdx, rax
-mov rbp, rcx
-mov rdi, rdx
-mov rsi, rax
+lea rcx, [rbp+rdi]
+mov rdx, rdi
+mov r8, rcx
+mov rbp, rdx
+mov rdi, r8
+mov rsi, rcx
 _V9fibonaccix_L3:
 mov rcx, rsi
 call _V9to_stringx_rP6String

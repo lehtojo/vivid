@@ -18,10 +18,10 @@ public class LambdaImplementation : FunctionImplementation
 		mangle += $"_{Name}_";
 		mangle += Parameters.Select(p => p.Type!);
 
-		if (ReturnType != null)
+		if (ReturnType != global::Types.UNIT)
 		{
 			mangle += "_r";
-			mangle += ReturnType;
+			mangle += ReturnType!;
 		}
 	}
 
@@ -32,7 +32,16 @@ public class LambdaImplementation : FunctionImplementation
 			return;
 		}
 
-		Type.Declare(global::Types.LINK, VariableCategory.MEMBER, ".function_pointer");
+		Self = new Variable(
+			this,
+			Type,
+			VariableCategory.PARAMETER,
+			Lambda.SELF_POINTER_IDENTIFIER,
+			AccessModifier.PUBLIC
+
+		) { IsSelfPointer = true };
+
+		Type.Declare(global::Types.LINK, VariableCategory.MEMBER, ".function");
 
 		// Change all captured variables into member variables so that they are retrieved using the self pointer of this lambda
 		Captures.ForEach(c => c.Category = VariableCategory.MEMBER);
@@ -83,16 +92,13 @@ public class LambdaImplementation : FunctionImplementation
 	public override void Implement(List<Token> blueprint)
 	{
 		Type = new Type(this, string.Empty, AccessModifier.PUBLIC);
-
-		Self = new Variable(
-			this,
-			Type,
-			VariableCategory.PARAMETER,
-			Lambda.SELF_POINTER_IDENTIFIER,
-			AccessModifier.PUBLIC
-		);
-
 		Node = new ImplementationNode(this);
+
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MEMBERS);
+	}
+
+	public override Variable? GetSelfPointer()
+	{
+		return Self ?? GetVariable(Function.SELF_POINTER_IDENTIFIER);
 	}
 }

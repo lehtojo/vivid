@@ -14,20 +14,20 @@ public class LambdaType : Type
 
 	public override bool IsResolved()
 	{
-		return Parameters.All(p => p != null && !p.IsUnresolved);
+		return true;
 	}
 
 	public override void AddDefinition(Mangle mangle)
 	{
 		mangle += 'F';
 
-		if (ReturnType == null)
+		if (ReturnType == global::Types.UNIT)
 		{
 			mangle += 'v';
 		}
 		else
 		{
-			mangle += ReturnType;
+			mangle += ReturnType!;
 		}
 
 		mangle += Parameters!;
@@ -49,7 +49,7 @@ public class LambdaType : Type
 			}
 		}
 
-		return Resolver.GetSharedType(ReturnType, type.ReturnType) != null;
+		return ReturnType == type.ReturnType || Resolver.GetSharedType(ReturnType, type.ReturnType) != null;
 	}
 
 	public override string ToString()
