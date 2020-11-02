@@ -2,66 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-public class VariableUsageInfo
-{
-	public Variable Variable { get; }
-	public Result? Reference { get; set; }
-	public int Usages { get; }
-
-	public VariableUsageInfo(Variable variable, int usages)
-	{
-		Variable = variable;
-		Usages = usages;
-	}
-}
-
 public static class Loops
 {
-	/// <summary>
-	/// Returns whether the given variable is a local variable
-	/// </summary>
-	private static bool IsNonLocalVariable(Variable variable, params Context[] local_contexts)
-	{
-		return !local_contexts.Any(local_context => variable.Context.IsInside(local_context));
-	}
-
-	/// <summary>
-	/// Analyzes how many times each variable in the given node tree is used and sorts the result as well
-	/// </summary>
-	private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node root, params Context[] local_contexts)
-	{
-		var variables = new Dictionary<Variable, int>();
-
-		foreach (var iterator in root)
-		{
-			if (iterator is VariableNode node && IsNonLocalVariable(node.Variable, local_contexts))
-			{
-				if (node.Variable.IsPredictable)
-				{
-					variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
-				}
-				else if (!node.Parent?.Is(NodeType.LINK) ?? false)
-				{
-					if (unit.Self == null)
-					{
-						throw new ApplicationException("Detected an use of the this pointer but it was missing");
-					}
-
-					variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
-				}
-			}
-			else
-			{
-				foreach (var usage in GetNonLocalVariableUsageCount(unit, iterator, local_contexts))
-				{
-					variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
-				}
-			}
-		}
-
-		return variables;
-	}
-
 	public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
 	{
 		if (node.Loop == null)
@@ -101,45 +43,8 @@ public static class Loops
 		}
 		else
 		{
-			throw new NotImplementedException("Loop control instruction not implemented yet");
+			throw new NotImplementedException("Unknown loop control instruction");
 		}
-	}
-
-	/// <summary>
-	/// Returns info about variable usage in the given loop
-	/// </summary>
-	private static List<VariableUsageInfo> GetAllVariableUsages(Unit unit, LoopNode node)
-	{
-		// Get all non-local variables in the loop and their number of usages
-		var variables = GetNonLocalVariableUsageCount(unit, node, node.Body.Context)
-					   .Select(i => new VariableUsageInfo(i.Key, i.Value)).ToList();
-
-		// Sort the variables based on their number of usages (most used variable first)
-		variables.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
-
-		return variables;
-	}
-
-	/// <summary>
-	/// Returns whether the given loop contains functions
-	/// </summary>
-	private static bool ContainsFunction(LoopNode node)
-	{
-		return node.Find(n => n.Is(NodeType.FUNCTION)) != null;
-	}
-
-	/// <summary>
-	/// Tries to move most used loop variables into registers
-	/// </summary>
-	private static void CacheLoopVariables(Unit unit, LoopNode node)
-	{
-		var variables = GetAllVariableUsages(unit, node);
-
-		// If the loop contains at least one function, the variables should be cached into non-volatile registers
-		// (Otherwise there would be a lot of register moves trying to save the cached variables)
-		var non_volatile_mode = ContainsFunction(node);
-
-		unit.Append(new CacheVariablesInstruction(unit, node, variables, non_volatile_mode));
 	}
 
 	private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
@@ -239,7 +144,7 @@ public static class Loops
 		unit.Append(recovery);
 
 		// Initialize the loop
-		CacheLoopVariables(unit, node);
+		Scope.Cache(unit, node);
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Context, node.Body.Context);
 		unit.Append(new BranchInstruction(unit, new Node[] { node.Body }));
@@ -285,7 +190,7 @@ public static class Loops
 		Builders.Build(unit, node.Initialization);
 
 		// Try to cache loop variables
-		CacheLoopVariables(unit, node);
+		Scope.Cache(unit, node);
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
 		unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
@@ -380,9 +285,9 @@ public static class Loops
 		// Append all the instructions to the unit
 		foreach (var instruction in instructions)
 		{
-			if (instruction.Is(InstructionType.PSEUDO_COMPARE))
+			if (instruction.Is(InstructionType.TEMPORARY_COMPARE))
 			{
-				instruction.To<PseudoCompareInstruction>().Append();
+				instruction.To<TemporaryCompareInstruction>().Append();
 			}
 			else
 			{
@@ -391,13 +296,13 @@ public static class Loops
 		}
 	}
 
-	private class PseudoCompareInstruction : TemporaryInstruction
+	private class TemporaryCompareInstruction : TemporaryInstruction
 	{
 		private Node Comparison { get; }
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public PseudoCompareInstruction(Unit unit, Node comparison) : base(unit)
+		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit)
 		{
 			Comparison = comparison;
 		}
@@ -435,7 +340,7 @@ public static class Loops
 
 		public override InstructionType GetInstructionType()
 		{
-			return InstructionType.PSEUDO_COMPARE;
+			return InstructionType.TEMPORARY_COMPARE;
 		}
 	}
 
@@ -475,7 +380,7 @@ public static class Loops
 
 		return new List<Instruction>
 		{
-			new PseudoCompareInstruction(unit, condition),
+			new TemporaryCompareInstruction(unit, condition),
 			new JumpInstruction(unit, (ComparisonOperator)condition.Operator, false, !unsigned, success),
 			new JumpInstruction(unit, failure)
 		};

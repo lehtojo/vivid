@@ -1,5 +1,5 @@
-import sqrt(x: decimal) => decimal
-import pow(x: decimal, y: decimal) => decimal
+import sqrt(x: decimal): decimal
+import pow(x: decimal, y: decimal): decimal
 
 ANIMAL_DOG = 0
 ANIMAL_CAT = 1
@@ -103,7 +103,7 @@ export execute_default_action(action: () => _) {
 }
 
 export create_number_action() {
-	=> (n: num) => printsln(to_string(n))
+	=> (n: num) => println(to_string(n))
 }
 
 export execute_number_action(action: (num) => _, number: num) {
@@ -126,12 +126,20 @@ export execute_capturing_function(function: () => decimal) {
 	=> function()
 }
 
-export overloads(x: tiny) {
-	=> x * 2
+export create_capturing_function_with_parameter(dog: Dog, cat: Cat) {
+	=> (n: decimal) => {
+		h = n / 2.0
+
+		dog.position = Vector(1, 1) * h
+		cat.position = Vector(1, 1) * -h
+
+		dog.interact(cat)
+		cat.interact(dog)
+	}
 }
 
-export overloads(x: num) {
-	=> x - x
+export execute_capturing_function_with_parameter(function: (decimal) => _, distance: decimal) {
+	function(distance)
 }
 
 init() {
@@ -159,13 +167,16 @@ init() {
 	c = create_sum_function()
 	x = execute_sum_function(c, 1, 2)
 
-	printsln(to_string(x))
+	println(x)
 
 	d = create_capturing_function(1, 2, 3, 4, 5)
 	y = execute_capturing_function(d)
 
-	printsln(to_string_decimal(y))
+	println(y)
 
-	overloads(1)
-	overloads(1 as tiny)
+	e = create_capturing_function_with_parameter(dog, cat)
+	execute_capturing_function_with_parameter(e, 1.414)
+	execute_capturing_function_with_parameter(e, -0.1)
+
+	=> 0
 }

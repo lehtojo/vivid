@@ -5,10 +5,46 @@ public class OffsetNode : Node, IType, IResolvable
 	public Node Start => First!;
 	public Node Offset => Last!;
 
+	public int? Stride { get; set; }
+	public Format? Format { get; set; }
+
+	public static OffsetNode CreateConstantOffset(Node start, long offset, int stride, Format format)
+	{
+		return new OffsetNode(start, new ContentNode { new NumberNode(Parser.Format, offset) })
+		{
+			Stride = stride,
+			Format = format
+		};
+	}
+
 	public OffsetNode(Node start, Node offset)
 	{
 		Add(start);
 		Add(offset);
+	}
+
+	public int GetStride()
+	{
+		if (Stride != null)
+		{
+			return (int)Stride;
+		}
+
+		var type = GetType() ?? throw new ApplicationException("Type of offset node could not be retrieved");
+
+		return Equals(type, Types.LINK) ? 1 : type.ReferenceSize;
+	}
+
+	public Format GetFormat()
+	{
+		if (Format != null)
+		{
+			return (Format)Format;
+		}
+
+		var type = GetType() ?? throw new ApplicationException("Type of offset node could not be retrieved");
+
+		return Equals(type, Types.LINK) ? global::Format.UINT8 : type.Format;
 	}
 
 	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node parameters)
@@ -20,13 +56,12 @@ public class OffsetNode : Node, IType, IResolvable
 		{
 			return new LinkNode(
 				target,
-				new UnresolvedFunction(function)
-					.SetParameters(parameters)
+				new UnresolvedFunction(function).SetParameters(parameters)
 			);
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ??
-								 throw new InvalidOperationException("Tried to create an operator function call but the function didn't exist");
+			throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
 
 		var operator_function = operator_functions.GetImplementation(parameter_types);
 
@@ -34,15 +69,13 @@ public class OffsetNode : Node, IType, IResolvable
 		{
 			return new LinkNode(
 				target,
-				new UnresolvedFunction(function)
-					.SetParameters(parameters)
+				new UnresolvedFunction(function).SetParameters(parameters)
 			);
 		}
 
 		return new LinkNode(
 			target,
-			new FunctionNode(operator_function)
-				.SetParameters(parameters)
+			new FunctionNode(operator_function).SetParameters(parameters)
 		);
 	}
 
@@ -79,7 +112,12 @@ public class OffsetNode : Node, IType, IResolvable
 	{
 		var type = Start.TryGetType();
 
-		return type == Types.LINK ? type : Types.UNKNOWN;
+		if (type == Types.LINK || type is CallDescriptorType)
+		{
+			return Types.LINK;
+		}
+
+		return Types.UNKNOWN;
 	}
 
 	public override NodeType GetNodeType()

@@ -251,9 +251,9 @@ public static class Calls
 		return result;
 	}
 
-	public static Result Build(Unit unit, Result self, CallingConvention convention, Type? return_type, Node parameters, List<Type> parameter_types)
+	public static Result Build(Unit unit, Result? self, Result function, CallingConvention convention, Type? return_type, Node parameters, List<Type> parameter_types)
 	{
-		var call = new CallInstruction(unit, new Result(new MemoryHandle(unit, self, 0), Assembler.Format), convention, return_type);
+		var call = new CallInstruction(unit, function, convention, return_type);
 
 		// Pass the parameters to the function and then execute it
 		var stack_parameter_count = PassParameters(unit, call, convention, self, true, CollectParameters(parameters), parameter_types);

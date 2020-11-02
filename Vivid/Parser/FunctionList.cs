@@ -66,6 +66,37 @@ public class FunctionList
 		return casts;
 	}
 
+	public Function? GetOverload(List<Type> parameters, Type[] template_arguments)
+	{
+		if (template_arguments.Any())
+		{
+			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateArgumentNames.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
+
+			if (candidates.Count <= 1)
+			{
+				return candidates.FirstOrDefault();
+			}
+
+			return candidates.OrderBy(i => GetCastCount(i, parameters)).First();
+		}
+		else
+		{
+			var candidates = Overloads.FindAll(o => o.Passes(parameters));
+
+			if (candidates.Count <= 1)
+			{
+				return candidates.FirstOrDefault();
+			}
+
+			return candidates.OrderBy(i => GetCastCount(i, parameters)).First();
+		}
+	}
+
+	public Function? GetOverload(List<Type> parameters)
+	{
+		return GetOverload(parameters, Array.Empty<Type>());
+	}
+
 	public FunctionImplementation? GetImplementation(List<Type> parameters, Type[] template_arguments)
 	{
 		if (template_arguments.Any())

@@ -94,7 +94,7 @@ public class Function : Context
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)
 		{
-			implementation.ReturnType = global::Types.LINK;
+			implementation.ReturnType = GetTypeParent() ?? throw new ApplicationException("Constructor missing type parent");
 		}
 
 		// Add the created implementation to the list
@@ -167,9 +167,9 @@ public class Function : Context
 		return (IsImported ? "import" : string.Empty) + Name + $"({string.Join(", ", Parameters)})";
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Function function &&
+		return other is Function function &&
 			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, function.Subcontexts) &&
 			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, function.Variables) &&
 			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, function.Functions) &&

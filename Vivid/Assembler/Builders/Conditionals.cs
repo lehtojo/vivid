@@ -75,7 +75,6 @@ public static class Conditionals
 
 		// Build the successor
 		return Build(unit, node.Successor, end);
-
 	}
 
 	private static Result Build(Unit unit, Node node, LabelInstruction end)
@@ -107,6 +106,10 @@ public static class Conditionals
 
 	public static Result Start(Unit unit, IfNode node)
 	{
+		var roots = node.GetBranches().ToArray();
+		var contexts = roots.Select(i => i is IfNode x ? x.Context : i.To<ElseNode>().Context).ToArray();
+		Scope.Cache(unit, roots, contexts);
+
 		Scope.PrepareConditionallyChangingConstants(unit, node);
 
 		unit.Append(new BranchInstruction(unit, node.GetBranches().ToArray()));
@@ -120,6 +123,10 @@ public static class Conditionals
 
 	public static void BuildCondition(Unit unit, Context current_context, Node condition, Label failure)
 	{
+		// Conditions sometimes edit variable so entering must be prepared
+		Scope.PrepareConditionallyChangingConstants(unit, condition);
+		unit.Append(new BranchInstruction(unit, new[] { condition }));
+
 		var success = unit.GetNextLabel();
 
 		var instructions = BuildCondition(unit, condition, success, failure);
@@ -186,7 +193,7 @@ public static class Conditionals
 		// Append all the instructions to the unit
 		foreach (var instruction in instructions)
 		{
-			if (instruction.Is(InstructionType.PSEUDO_COMPARE))
+			if (instruction.Is(InstructionType.TEMPORARY_COMPARE))
 			{
 				instruction.To<TemporaryCompareInstruction>().Append(current_context);
 			}
@@ -243,7 +250,7 @@ public static class Conditionals
 
 		public override InstructionType GetInstructionType()
 		{
-			return InstructionType.PSEUDO_COMPARE;
+			return InstructionType.TEMPORARY_COMPARE;
 		}
 	}
 

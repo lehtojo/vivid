@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace Zigzag.Unit
 {
@@ -452,11 +451,11 @@ namespace Zigzag.Unit
 		[StructLayout(LayoutKind.Explicit)]
 		public struct Holder
 		{
-			[FieldOffset(0)] public int Normal;
-			[FieldOffset(4)] public byte Tiny;
-			[FieldOffset(5)] public double Double;
-			[FieldOffset(13)] public long Large;
-			[FieldOffset(21)] public short Small;
+			[FieldOffset(8)] public int Normal;
+			[FieldOffset(12)] public byte Tiny;
+			[FieldOffset(13)] public double Double;
+			[FieldOffset(21)] public long Large;
+			[FieldOffset(29)] public short Small;
 		}
 
 		private static void Assignment_Test()
@@ -782,25 +781,25 @@ namespace Zigzag.Unit
 			LogicalOperators_Test();
 		}
 
-		[StructLayout(LayoutKind.Sequential)]
+		[StructLayout(LayoutKind.Explicit)]
 		public struct Apple
 		{
-			public long Weight;
-			public double Price;
+			[FieldOffset(8)] public long Weight;
+			[FieldOffset(16)] public double Price;
 		}
 
-		[StructLayout(LayoutKind.Sequential)]
+		[StructLayout(LayoutKind.Explicit)]
 		public struct Car
 		{
-			public double Price;
-			public long Weight;
-			public IntPtr Brand;
+			[FieldOffset(8)] public double Price;
+			[FieldOffset(16)] public long Weight;
+			[FieldOffset(24)] public IntPtr Brand;
 		}
 
-		[StructLayout(LayoutKind.Sequential)]
+		[StructLayout(LayoutKind.Explicit)]
 		public struct String
 		{
-			public IntPtr Data;
+			[FieldOffset(8)] public IntPtr Data;
 
 			public static String From(IntPtr data)
 			{
@@ -1010,27 +1009,27 @@ namespace Zigzag.Unit
 		[StructLayout(LayoutKind.Explicit)]
 		struct Animal
 		{
-			[FieldOffset(0)] public short energy;
-			[FieldOffset(2)] public byte hunger;
+			[FieldOffset(8)] public short energy;
+			[FieldOffset(10)] public byte hunger;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
 		struct Fish
 		{
-			[FieldOffset(0)] public short speed;
-			[FieldOffset(2)] public short velocity;
-			[FieldOffset(4)] public short weight;
+			[FieldOffset(8)] public short speed;
+			[FieldOffset(10)] public short velocity;
+			[FieldOffset(12)] public short weight;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
 		struct Salmon
 		{
-			[FieldOffset(0)] public short energy;
-			[FieldOffset(2)] public byte hunger;
-			[FieldOffset(3)] public short speed;
-			[FieldOffset(5)] public short velocity;
-			[FieldOffset(7)] public short weight;
-			[FieldOffset(9)] public bool is_hiding;
+			[FieldOffset(8)] public short energy;
+			[FieldOffset(10)] public byte hunger;
+			[FieldOffset(19)] public short speed;
+			[FieldOffset(21)] public short velocity;
+			[FieldOffset(23)] public short weight;
+			[FieldOffset(33)] public bool is_hiding;
 		}
 
 		private static Salmon GetSalmon(IntPtr pointer)
@@ -1040,7 +1039,7 @@ namespace Zigzag.Unit
 
 		private static IntPtr GetFishPointer(IntPtr salmon)
 		{
-			return salmon + 3;
+			return salmon + 11;
 		}
 
 		[DllImport("Unit_Inheritance", ExactSpelling = true)]
@@ -1188,6 +1187,69 @@ namespace Zigzag.Unit
 			}
 
 			Scopes_Test();
+		}
+
+		private static void Lambdas_Test()
+		{
+			string actual = Execute("Lambdas");
+			string expected = File.ReadAllText(GetProjectFile("Lambdas.txt", TESTS));
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		[TestCase]
+		public void Lambdas()
+		{
+			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Lambdas_Test();
+		}
+
+		private static void Virtuals_Test()
+		{
+			string actual = Execute("Virtuals");
+			string expected = File.ReadAllText(GetProjectFile("Virtuals.txt", TESTS));
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		[TestCase]
+		public void Virtuals()
+		{
+			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Virtuals_Test();
+		}
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V14numerical_whenx_rx(long x);
+
+		private static void Whens_Test()
+		{
+			Assert.AreEqual(49, _V14numerical_whenx_rx(7));
+			Assert.AreEqual(9, _V14numerical_whenx_rx(3));
+			Assert.AreEqual(-1, _V14numerical_whenx_rx(1));
+
+			Assert.AreEqual(42, _V14numerical_whenx_rx(42));
+			Assert.AreEqual(-100, _V14numerical_whenx_rx(-100));
+			Assert.AreEqual(0, _V14numerical_whenx_rx(0));
+		}
+
+		[TestCase]
+		public void Whens()
+		{
+			if (!Compile("Whens", new[] { "Whens.v" }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Whens_Test();
 		}
 	}
 }

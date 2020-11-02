@@ -2,6 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+public class TemplateTypeVariant
+{
+	public Type Type { get; private set; }
+	public Type[] Arguments { get; private set; }
+
+	public TemplateTypeVariant(Type type, Type[] arguments)
+	{
+		Type = type;
+		Arguments = arguments;
+	}
+}
+
 public class TemplateType : Type
 {
 	private const string TEMPLATE_ARGUMENT_SIZE_ACCESSOR = "size";
@@ -13,7 +25,7 @@ public class TemplateType : Type
 	public int TemplateArgumentCount => TemplateArgumentNames.Count;
 
 	private List<Token> Blueprint { get; set; }
-	private Dictionary<string, Type> Variants { get; set; } = new Dictionary<string, Type>();
+	private Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
 
 	public static TemplateType? TryGetTemplateType(Context environment, string name, Node parameters)
 	{
@@ -38,9 +50,9 @@ public class TemplateType : Type
 	{
 		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name));
 
-		if (Variants.TryGetValue(identifier, out Type? variant))
+		if (Variants.TryGetValue(identifier, out TemplateTypeVariant? variant))
 		{
-			return variant;
+			return variant.Type;
 		}
 
 		return null;
@@ -104,35 +116,29 @@ public class TemplateType : Type
 		InsertArguments(blueprint, arguments);
 
 		// Parse the new variant
-		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template type didn not have parent context"), blueprint).First;
+		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template type did not have parent context"), blueprint).First;
 
 		if (result == null || !result.Is(NodeType.TYPE))
 		{
-			throw new ApplicationException("Tried to parse a new variant from template type but the result wasn't a new type");
+			throw new ApplicationException("Tried to parse a new variant from template type but the result was not a new type");
 		}
+
+		// Register the new variant
+		var variant = result.To<TypeNode>().Type;
+		Variants.Add(identifier, new TemplateTypeVariant(variant, arguments));
 
 		// Parse the body of the type
 		result.To<TypeNode>().Parse();
 
-		// Register the new variant
-		var variant = result.To<TypeNode>().Type;
+		// Finally, add the inherited supertypes to the variant
 		variant.Supertypes.AddRange(Supertypes);
-		variant.Identifier = Name;
-
-		variant.OnAddDefinition = mangle =>
-		{
-			mangle.Add(this);
-
-			mangle += 'I';
-			mangle += arguments.Take(TemplateArgumentNames.Count);
-			mangle += 'E';
-		};
-
-		Variants.Add(identifier, variant);
-
+		
 		return variant;
 	}
 
+	/// <summary>
+	/// Returns a variant with the specified template arguments, creating it if necessary
+	/// </summary>
 	public Type GetVariant(Type[] arguments)
 	{
 		if (arguments.Length < TemplateArgumentNames.Count)
@@ -141,5 +147,21 @@ public class TemplateType : Type
 		}
 
 		return TryGetVariant(arguments) ?? CreateVariant(arguments);
+	}
+
+	/// <summary>
+	/// Returns the template arguments of the specified variant
+	/// </summary>
+	public Type[]? GetVariantArguments(Type variant)
+	{
+		foreach (var iterator in Variants.Values)
+		{
+			if (iterator.Type == variant)
+			{
+				return iterator.Arguments;
+			}
+		}
+
+		return null;
 	}
 }

@@ -141,16 +141,19 @@ push rdi
 push rbp
 sub rsp, 40
 mov rbx, rcx
-xor rsi, rsi
-mov rdi, rdx
-cmp rsi, rdi
+xor rax, rax
+cmp rax, rdx
 jge _V16linked_variablesxx_rx_L1
 _V16linked_variablesxx_rx_L0:
-mov rbp, rcx
+mov rsi, rax
+mov rdi, rcx
+mov rbp, rdx
 call _V14large_functionv
 add rsi, 1
-mov rcx, rbp
-cmp rsi, rdi
+mov rcx, rdi
+mov rax, rsi
+mov rdx, rbp
+cmp rax, rdx
 jl _V16linked_variablesxx_rx_L0
 _V16linked_variablesxx_rx_L1:
 add rbx, rcx
@@ -171,22 +174,28 @@ push rdi
 push rbp
 push r12
 sub rsp, 48
-xor rbx, rbx
-mov rsi, rdx
-mov rdi, rcx
-xor rbp, rbp
-cmp rbx, rsi
+xor rax, rax
+xor r8, r8
+cmp rax, rdx
 jge _V18linked_variables_2xx_rx_L1
 _V18linked_variables_2xx_rx_L0:
-mov r12, rdi
+mov rbx, rcx
+mov rsi, rax
+mov rdi, rcx
+mov rbp, rdx
+mov r12, r8
 call _V14large_functionv
-add rbp, r12
-add rbx, 1
-cmp rbx, rsi
+add r12, rbx
+add rsi, 1
+mov rcx, rdi
+mov r8, r12
+mov rax, rsi
+mov rdx, rbp
+cmp rax, rdx
 jl _V18linked_variables_2xx_rx_L0
 _V18linked_variables_2xx_rx_L1:
-add rbp, rdi
-mov rax, rbp
+add r8, rcx
+mov rax, r8
 add rsp, 48
 pop r12
 pop rbp

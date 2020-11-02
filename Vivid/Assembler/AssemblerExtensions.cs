@@ -2,22 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 
-public static class ListPopExtensionStructs
-{
-	public static T? Pop<T>(this List<T> source) where T : struct
-	{
-		if (source.Count == 0)
-		{
-			return null;
-		}
-
-		var element = source[0];
-		source.RemoveAt(0);
-
-		return element;
-	}
-}
-
 public static class AssemblerExtensions
 {
 	public static Format GetRegisterFormat(this Variable variable)

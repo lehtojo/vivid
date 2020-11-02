@@ -24,8 +24,7 @@ public static class Inlines
 				}
 
 				// Since inlining can create new function references, they must be searched
-				batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsConstructor &&
-					!f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, AccessModifier.OUTLINE));
+				batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, AccessModifier.OUTLINE));
 
 				// Stop if there are no function references
 				if (!batch.Any())
@@ -106,14 +105,13 @@ public static class Inlines
 
 		foreach (var local in implementation.Variables.Values)
 		{
-			if (local.IsSelfPointer)
+			if (local.IsSelfPointer && !implementation.IsConstructor)
 			{
 				continue;
 			}
 
 			var replacement = context.DeclareHidden(local.Type!);
-
-			var usages = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable == local && !i.To<VariableNode>().Variable.IsSelfPointer).Select(i => i.To<VariableNode>());
+			var usages = body.FindAll(i => i.Is(local)).Select(i => i.To<VariableNode>());
 
 			usages.ForEach(i => i.Variable = replacement);
 		}
@@ -136,7 +134,7 @@ public static class Inlines
 	/// Returns a node representing a position where the inlined body can be inserted
 	/// </summary>
 	/// <param name="reference">The call reference which should be inlined</param>
-	private static Node GetInlineInsertPosition(Node reference)
+	public static Node GetInlineInsertPosition(Node reference)
 	{
 		var iterator = reference.Parent!;
 		var position = reference;
@@ -176,10 +174,10 @@ public static class Inlines
 		var body = GetInlineBody(context, implementation, reference, out Node destination);
 		var position = GetInlineInsertPosition(reference);
 
-		if (implementation.ReturnType != null)
+		if (implementation.ReturnType != Types.UNIT)
 		{
 			// Declare a variable which contains the result of the inlined function
-			var result = context.DeclareHidden(implementation.ReturnType);
+			var result = context.DeclareHidden(implementation.ReturnType!);
 
 			// Find all return statements
 			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Select(i => i.To<ReturnNode>());

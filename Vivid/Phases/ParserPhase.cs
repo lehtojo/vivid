@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Parse
 {
@@ -17,36 +18,101 @@ public class ParserPhase : Phase
 {
 	private List<Exception> Errors { get; } = new List<Exception>();
 
-	private void ParseMembers(Node root)
+	private void ParseTypes(Node root)
 	{
-		var node = root.First;
-
-		while (node != null)
+		foreach (var node in root)
 		{
-			if (node.GetNodeType() == NodeType.TYPE)
+			if (!node.Is(NodeType.TYPE))
 			{
-				var type = (TypeNode)node;
-
-				Run(() =>
-				{
-					try
-					{
-						type.Parse();
-					}
-					catch (Exception e)
-					{
-						Errors.Add(e);
-					}
-
-					return Status.OK;
-				});
-
-				ParseMembers(type);
+				continue;
 			}
 
-			node = node.Next;
+			var type = (TypeNode)node;
+
+			Run(() =>
+			{
+				try
+				{
+					type.Parse();
+				}
+				catch (Exception e)
+				{
+					Errors.Add(e);
+				}
+
+				return Status.OK;
+			});
+
+			ParseTypes(type);
 		}
 	}
+
+	/// <summary>
+	/// Ensures that exported functions and virtual functions are implemented
+	/// </summary>
+	private static void ImplementRequiredFunctions(Context context)
+	{
+		foreach (var function in context.Functions.Values.SelectMany(i => i.Overloads).ToArray())
+		{
+			// Skip all functions which are not exported
+			if (!function.IsExported)
+			{
+				continue;
+			}
+
+			// Retrieve the types of all parameters
+			var types = function.Parameters.Select(i => i.Type).ToArray();
+
+			// If any of the parameters have a undefined type, it can not be implemented
+			if (types.Any(i => i == Types.UNKNOWN))
+			{
+				continue;
+			}
+
+			// Force implement the current exported function
+			function.Implement(types!);
+		}
+
+		// Implement all virtual function overloads
+		foreach (var type in context.Types.Values)
+		{
+			var virtual_functions = type.GetAllVirtualFunctions();
+
+			foreach (var virtual_function in virtual_functions)
+			{
+				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
+
+				if (overloads == null)
+				{
+					if (virtual_function.Parent != type)
+					{
+						// TODO: This should not be allowed since virtual functions should always be overloaded
+						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+					}
+
+					continue;
+				}
+
+				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
+
+				foreach (var overload in overloads)
+				{
+					var actual = overload.Parameters.Select(i => i.Type).ToList();
+
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
+					{
+						continue;
+					}
+
+					var implementation = overload.Get(expected!) ?? throw new ApplicationException("Could not implement virtual function");
+					implementation.VirtualFunction = virtual_function;
+					implementation.ReturnType = virtual_function.ReturnType;
+					break;
+				}
+			}
+		}
+	}
+
 	public override Status Execute(Bundle bundle)
 	{
 		if (!bundle.Contains("input_file_tokens"))
@@ -98,7 +164,7 @@ public class ParserPhase : Phase
 
 			Run(() =>
 			{
-				ParseMembers(parses[index].Node);
+				ParseTypes(parses[index].Node);
 				return Status.OK;
 			});
 		}
@@ -120,6 +186,9 @@ public class ParserPhase : Phase
 			root.Merge(parse.Node);
 		}
 
+		// Ensure exported and virtual functions are implemented
+		ImplementRequiredFunctions(context);
+
 		// Preprocess the 'hull' of the code before creating functions
 		Preprocessor.Evaluate(context, root);
 
@@ -130,7 +199,7 @@ public class ParserPhase : Phase
 			return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}'");
 		}
 
-		function.Overloads[0].Implement(new List<Type>());
+		function.Overloads.First().Implement(new List<Type>());
 
 		bundle.Put("parse", new Parse(context, root));
 

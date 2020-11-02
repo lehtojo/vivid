@@ -45,6 +45,7 @@ public class IfPattern : Pattern
 				typeof(CommandPattern),
 				typeof(LinkPattern),
 				typeof(NotPattern),
+				typeof(OffsetPattern),
 				typeof(OperatorPattern),
 				typeof(PreIncrementAndDecrementPattern),
 				typeof(PostIncrementAndDecrementPattern),

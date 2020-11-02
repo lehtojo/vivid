@@ -45,7 +45,7 @@ export _V8divisionxx_rx
 _V8divisionxx_rx:
 mov rax, rcx
 mov r8, rdx
-xor rdx, rdx
+cqo
 idiv r8
 ret
 
@@ -74,7 +74,7 @@ global _V22division_with_constantx_rx
 export _V22division_with_constantx_rx
 _V22division_with_constantx_rx:
 mov rax, 100
-xor rdx, rdx
+cqo
 idiv rcx
 mov rcx, 1844674407370955162
 mul rcx

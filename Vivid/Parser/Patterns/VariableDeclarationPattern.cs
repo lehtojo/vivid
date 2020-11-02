@@ -115,7 +115,7 @@ public class VariableDeclarationPattern : Pattern
 				return_type = context.GetType(return_type_name) ?? new UnresolvedType(context, return_type_name);
 			}
 
-			return new LambdaType(parameter_types!, return_type);
+			return new CallDescriptorType(parameter_types!, return_type);
 		}
 		else if (IsTemplateType(tokens))
 		{

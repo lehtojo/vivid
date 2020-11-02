@@ -14,6 +14,19 @@ public class VariableLoad
 	}
 }
 
+public class VariableUsageDescriptor
+{
+	public Variable Variable { get; }
+	public Result? Reference { get; set; }
+	public int Usages { get; }
+
+	public VariableUsageDescriptor(Variable variable, int usages)
+	{
+		Variable = variable;
+		Usages = usages;
+	}
+}
+
 public sealed class Scope : IDisposable
 {
 	/// <summary>
@@ -22,6 +35,100 @@ public sealed class Scope : IDisposable
 	private static bool IsNonLocalVariable(Variable variable, Context[] local_contexts)
 	{
 		return !local_contexts.Any(local_context => variable.Context.IsInside(local_context));
+	}
+
+	/// <summary>
+	/// Analyzes how many times each variable in the given node tree is used and sorts the result as well
+	/// </summary>
+	private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node root, params Context[] local_contexts)
+	{
+		var variables = new Dictionary<Variable, int>();
+
+		foreach (var iterator in root)
+		{
+			if (iterator is VariableNode node && IsNonLocalVariable(node.Variable, local_contexts))
+			{
+				if (node.Variable.IsPredictable)
+				{
+					variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
+				}
+				else if (!node.Parent?.Is(NodeType.LINK) ?? false)
+				{
+					if (unit.Self == null)
+					{
+						throw new ApplicationException("Detected an use of the this pointer but it was missing");
+					}
+
+					variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
+				}
+			}
+			else
+			{
+				foreach (var usage in GetNonLocalVariableUsageCount(unit, iterator, local_contexts))
+				{
+					variables[usage.Key] = variables.GetValueOrDefault(usage.Key, 0) + usage.Value;
+				}
+			}
+		}
+
+		return variables;
+	}
+
+	/// <summary>
+	/// Returns info about variable usage in the given loop
+	/// </summary>
+	private static List<VariableUsageDescriptor> GetAllVariableUsages(Unit unit, Node[] roots, Context[] contexts)
+	{
+		if (roots.Length != contexts.Length)
+		{
+			throw new ArgumentException("Each root must have a corresponding context");
+		}
+
+		var result = new Dictionary<Variable, int>();
+
+		for (var i = 0; i < roots.Length; i++)
+		{
+			// Get all non-local variables in the loop and their number of usages
+			foreach (var j in GetNonLocalVariableUsageCount(unit, roots[i], contexts[i]))
+			{
+				result[j.Key] = result.GetValueOrDefault(j.Key, 0) + j.Value;
+			}
+		}
+		
+		var descriptors = result.Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
+
+		// Sort the variables based on their number of usages (most used variable first)
+		descriptors.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
+
+		return descriptors;
+	}
+
+	/// <summary>
+	/// Tries to move most used loop variables into registers
+	/// </summary>
+	public static void Cache(Unit unit, LoopNode node)
+	{
+		var variables = GetAllVariableUsages(unit, new[] { node }, new[] { node.Body.Context });
+
+		// If the loop contains at least one function, the variables should be cached into non-volatile registers
+		// (Otherwise there would be a lot of register moves trying to save the cached variables)
+		var non_volatile_mode = node.Any(n => n.Is(NodeType.FUNCTION, NodeType.CALL));
+
+		unit.Append(new CacheVariablesInstruction(unit, new[] { node }, variables, non_volatile_mode));
+	}
+
+	/// <summary>
+	/// Tries to move most used loop variables into registers
+	/// </summary>
+	public static void Cache(Unit unit, Node[] roots, Context[] contexts)
+	{
+		var variables = GetAllVariableUsages(unit, roots, contexts);
+
+		// If the loop contains at least one function, the variables should be cached into non-volatile registers
+		// (Otherwise there would be a lot of register moves trying to save the cached variables)
+		var non_volatile_mode = roots.Any(i => i.Any(j => j.Is(NodeType.FUNCTION, NodeType.CALL)));
+
+		unit.Append(new CacheVariablesInstruction(unit, roots, variables, non_volatile_mode));
 	}
 
 	/// <summary>

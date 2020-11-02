@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class InheritancePattern : Pattern
 {
 	public const int INHERITANT = 0;
-	public const int INHERITOR = 1;
+	public const int INHERITOR = 2;
 
 	public const int PRIORITY = 1;
 
@@ -13,6 +13,7 @@ public class InheritancePattern : Pattern
 	public InheritancePattern() : base
 	(
 		TokenType.DYNAMIC | TokenType.IDENTIFIER,
+		TokenType.END | TokenType.OPTIONAL,
 		TokenType.DYNAMIC
 	)
 	{ }

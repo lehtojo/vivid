@@ -126,6 +126,7 @@ public class MoveInstruction : DualParameterInstruction
 				// Ensure the source value is in decimal format
 				Second.Value.To<ConstantHandle>().Convert(Format.DECIMAL);
 				Second.Value = new ConstantDataSectionHandle(Second.Value.To<ConstantHandle>());
+				Second.Format = Format.DECIMAL;
 
 				instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_MOVE : DOUBLE_PRECISION_MOVE;
 
@@ -186,6 +187,7 @@ public class MoveInstruction : DualParameterInstruction
 			{
 				// Ensure the source value is in integer format
 				Second.Value.To<ConstantHandle>().Convert(First.Format);
+				Second.Format = First.Format;
 
 				instruction = MOVE_INSTRUCTION;
 
@@ -247,6 +249,7 @@ public class MoveInstruction : DualParameterInstruction
 				{
 					// Convert the decimal value to the destination's integer format
 					Second.Value.To<ConstantHandle>().Convert(First.Format);
+					Second.Format = Assembler.Format;
 
 					Build(
 					   MOVE_INSTRUCTION,
@@ -297,7 +300,7 @@ public class MoveInstruction : DualParameterInstruction
 				if (is_source_constant)
 				{
 					// Convert the integer value to the destination's decimal format
-					Second.Value.To<ConstantHandle>().Convert(First.Format);
+					Second.Value.To<ConstantHandle>().Value = BitConverter.DoubleToInt64Bits((long)Second.Value.To<ConstantHandle>().Value);
 
 					Build(
 					   MOVE_INSTRUCTION,

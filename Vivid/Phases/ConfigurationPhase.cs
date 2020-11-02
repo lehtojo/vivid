@@ -51,9 +51,9 @@ public class ConfigurationPhase : Phase
 				var options = new Option[]
 				{
 					new Option() { Command = "-help / --help",                       Description = "Displays this information" },
-					new Option() { Command = "-r <folder> / --recursive <folder>",   Description = "Includes source files (.z) from the given folder and its subfolders"},
+					new Option() { Command = "-r <folder> / --recursive <folder>",   Description = "Includes source files (.v) from the given folder and its subfolders"},
 					new Option() { Command = "-d / --debug",                           Description = "Generates the output binary with debug info" },
-					new Option() { Command = "-o <filename> / --output <filename>", Description = "Sets the output filename (Default: z.asm, z.o, z, ...)" },
+					new Option() { Command = "-o <filename> / --output <filename>", Description = "Sets the output filename (Default: v.asm, v.o, z, ...)" },
 					new Option() { Command = "-l <library> / --library <library>",   Description = "Includes a library to the compilation process" },
 					new Option() { Command = "--asm",                                 Description = "Exports the generated assembly to a file" },
 					new Option() { Command = "--shared",                               Description = "Sets the output type to shared library (.dll or .so)" },
@@ -65,7 +65,7 @@ public class ConfigurationPhase : Phase
 
 				Console.WriteLine
 				(
-					"Usage: zz [options] <folders / files>" + "\n" +
+					"Usage: v [options] <folders / files>" + "\n" +
 					"Options:" + "\n" +
 					string.Join(null, options)
 				);

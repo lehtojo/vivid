@@ -41,7 +41,7 @@ public class NumberNode : Node, IType, ICloneable
 		return NodeType.NUMBER;
 	}
 
-	public object Clone()
+	public new object Clone()
 	{
 		return new NumberNode(Type, Value);
 	}

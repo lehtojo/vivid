@@ -42,4 +42,13 @@ public static class Lambdas
 
 		return lambda;
 	}
+
+	/*public static Result Build(Unit unit, CallNode node)
+	{
+		var self = References.Get(unit, node.Pointer);
+		var function_pointer = new Result(new MemoryHandle(unit, self, 0), Assembler.Format);
+		var descriptor = node.Descriptor;
+
+		return Calls.Build(unit, self, function_pointer, CallingConvention.X64, descriptor.ReturnType, node.Parameters, descriptor.Parameters!);
+	}*/
 }

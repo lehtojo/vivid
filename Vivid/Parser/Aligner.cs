@@ -137,7 +137,7 @@ public static class Aligner
 				standard_register_count--;
 			}
 
-			var position = Parser.Size.Bytes;
+			var position = Parser.Bytes;
 
 			foreach (var parameter in function.Parameters)
 			{
@@ -163,16 +163,16 @@ public static class Aligner
 		}
 		else
 		{
-			var position = offset * Parser.Size.Bytes;
+			var position = offset * Parser.Bytes;
 
 			// Align the this pointer if it exists
 			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
 			{
-				x.LocalAlignment = position - Parser.Size.Bytes;
+				x.LocalAlignment = position - Parser.Bytes;
 			}
 			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
 			{
-				y.LocalAlignment = position - Parser.Size.Bytes;
+				y.LocalAlignment = position - Parser.Bytes;
 			}
 
 			// Parameters:

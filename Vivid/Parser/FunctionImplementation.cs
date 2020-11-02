@@ -14,6 +14,7 @@ public class FunctionImplementation : Context
 	public Function Metadata { get; set; }
 	public CallingConvention Convention { get; set; } = CallingConvention.X64;
 
+	public VirtualFunction? VirtualFunction { get; set; }
 	public Variable? Self { get; protected set; }
 
 	public Type[] TemplateArguments { get; set; }
@@ -55,6 +56,7 @@ public class FunctionImplementation : Context
 	public bool IsInlined { get; set; } = false;
 	public bool IsEmpty => Node == null || Node.First == null;
 
+	public bool IsVirtual => Metadata is VirtualFunction;
 	public bool IsConstructor => Metadata is Constructor;
 	public bool IsStatic => Flag.Has(Metadata!.Modifiers, AccessModifier.STATIC);
 	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, AccessModifier.RESPONSIBLE);
@@ -85,7 +87,7 @@ public class FunctionImplementation : Context
 		if (ReturnType != global::Types.UNIT)
 		{
 			mangle += "_r";
-			mangle += ReturnType!;
+			mangle += ReturnType ?? throw new ApplicationException("Return type was not resolved and it was required to be mangled");
 		}
 	}
 

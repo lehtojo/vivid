@@ -9,7 +9,7 @@ global _V10get_animalv_rP6Animal
 export _V10get_animalv_rP6Animal
 _V10get_animalv_rP6Animal:
 sub rsp, 40
-call _VN6Animal4initEv_rPh
+call _VN6Animal4initEv_rPS_
 add rsp, 40
 ret
 
@@ -17,7 +17,7 @@ global _V8get_fishv_rP4Fish
 export _V8get_fishv_rP4Fish
 _V8get_fishv_rP4Fish:
 sub rsp, 40
-call _VN4Fish4initEv_rPh
+call _VN4Fish4initEv_rPS_
 add rsp, 40
 ret
 
@@ -25,7 +25,7 @@ global _V10get_salmonv_rP6Salmon
 export _V10get_salmonv_rP6Salmon
 _V10get_salmonv_rP6Salmon:
 sub rsp, 40
-call _VN6Salmon4initEv_rPh
+call _VN6Salmon4initEv_rPS_
 add rsp, 40
 ret
 
@@ -41,11 +41,11 @@ global _V10fish_movesP4Fish
 export _V10fish_movesP4Fish
 _V10fish_movesP4Fish:
 sub rsp, 40
-lea r8, [rcx-3]
-movsx rdx, byte [r8+9]
+lea r8, [rcx-11]
+movsx rdx, byte [r8+33]
 test rdx, rdx
 jne _V10fish_movesP4Fish_L0
-lea rdx, [rcx-3]
+lea rdx, [rcx-11]
 call _VN4Fish4swimEP6Animal
 _V10fish_movesP4Fish_L0:
 add rsp, 40
@@ -57,7 +57,7 @@ _V10fish_swimsP6Animal:
 sub rsp, 40
 mov rdx, rcx
 mov r8, rcx
-lea rcx, [r8+3]
+lea rcx, [r8+11]
 call _VN4Fish4swimEP6Animal
 add rsp, 40
 ret
@@ -67,7 +67,7 @@ export _V10fish_stopsP6Animal
 _V10fish_stopsP6Animal:
 sub rsp, 40
 mov rdx, rcx
-lea rcx, [rdx+3]
+lea rcx, [rdx+11]
 call _VN4Fish5floatEv
 add rsp, 40
 ret
@@ -78,7 +78,7 @@ _V10fish_hidesP6Salmon:
 push rbx
 sub rsp, 48
 mov rbx, rcx
-lea rcx, [rbx+3]
+lea rcx, [rbx+11]
 call _V10fish_movesP4Fish
 mov rcx, rbx
 call _VN6Salmon4hideEv
@@ -93,7 +93,7 @@ push rbx
 sub rsp, 48
 mov rbx, rcx
 call _VN6Salmon11stop_hidingEv
-lea rcx, [rbx+3]
+lea rcx, [rbx+11]
 mov rdx, rbx
 call _VN4Fish4swimEP6Animal
 add rsp, 48
@@ -104,27 +104,27 @@ _V4initv_rc:
 mov rax, 1
 ret
 
-_VN6Animal4initEv_rPh:
+_VN6Animal4initEv_rPS_:
 sub rsp, 40
-mov rcx, 3
+mov rcx, 11
 call _V8allocatex_rPh
-mov word [rax], 100
-mov byte [rax+2], 0
+mov byte [rax+10], 0
+mov word [rax+8], 100
 add rsp, 40
 ret
 
 _VN6Animal4moveEv:
-sub word [rcx], 1
-add byte [rcx+2], 1
+sub word [rcx+8], 1
+add byte [rcx+10], 1
 ret
 
-_VN4Fish4initEv_rPh:
+_VN4Fish4initEv_rPS_:
 sub rsp, 40
-mov rcx, 6
+mov rcx, 14
 call _V8allocatex_rPh
-mov word [rax], 1
-mov word [rax+2], 0
-mov word [rax+4], 1500
+mov word [rax+12], 1500
+mov word [rax+10], 0
+mov word [rax+8], 1
 add rsp, 40
 ret
 
@@ -134,23 +134,27 @@ sub rsp, 48
 mov rbx, rcx
 mov rcx, rdx
 call _VN6Animal4moveEv
-mov cx, [rbx]
-mov word [rbx+2], cx
+mov cx, [rbx+8]
+mov word [rbx+10], cx
 add rsp, 48
 pop rbx
 ret
 
 _VN4Fish5floatEv:
-mov word [rcx+2], 0
+mov word [rcx+10], 0
 ret
 
-_VN6Salmon4initEv_rPh:
+_VN6Salmon4initEv_rPS_:
 sub rsp, 40
-mov rcx, 10
+mov rcx, 34
 call _V8allocatex_rPh
-mov byte [rax+9], 0
-mov word [rax+3], 5
-mov word [rax+7], 5000
+lea rcx, [rel _VN6Salmon_configuration+16]
+mov qword [rax+11], rcx
+lea rcx, [rel _VN6Salmon_configuration+8]
+mov qword [rax], rcx
+mov byte [rax+33], 0
+mov word [rax+19], 5
+mov word [rax+23], 5000
 add rsp, 40
 ret
 
@@ -158,9 +162,9 @@ _VN6Salmon4hideEv:
 push rbx
 sub rsp, 48
 mov rbx, rcx
-lea rcx, [rbx+3]
+lea rcx, [rbx+11]
 call _VN4Fish5floatEv
-mov byte [rbx+9], 1
+mov byte [rbx+33], 1
 add rsp, 48
 pop rbx
 ret
@@ -170,21 +174,71 @@ push rbx
 sub rsp, 48
 mov rdx, rcx
 mov rbx, rcx
-lea rcx, [rbx+3]
+lea rcx, [rbx+11]
 call _VN4Fish4swimEP6Animal
-mov byte [rbx+9], 0
+mov byte [rbx+33], 0
 add rsp, 48
 pop rbx
 ret
 
-_VN11Salmon_Gang4initEx_rPh:
+_VN11Salmon_Gang4initEx_rPS_:
 push rbx
 sub rsp, 48
 mov rbx, rcx
-mov rcx, 8
+mov rcx, 16
 call _V8allocatex_rPh
-mov qword [rax], 1
-mov qword [rax], rbx
+mov qword [rax+8], 1
+mov qword [rax+8], rbx
 add rsp, 48
 pop rbx
 ret
+
+section .data
+
+_VN6Animal_configuration:
+dq _VN6Animal_descriptor
+
+_VN6Animal_descriptor:
+dq _VN6Animal_descriptor_0
+dd 11
+dd 0
+
+_VN6Animal_descriptor_0:
+db 'Animal', 0
+
+_VN4Fish_configuration:
+dq _VN4Fish_descriptor
+
+_VN4Fish_descriptor:
+dq _VN4Fish_descriptor_0
+dd 14
+dd 0
+
+_VN4Fish_descriptor_0:
+db 'Fish', 0
+
+_VN6Salmon_configuration:
+dq _VN6Salmon_descriptor
+dq _VN6Salmon_descriptor
+dq _VN6Salmon_descriptor
+
+_VN6Salmon_descriptor:
+dq _VN6Salmon_descriptor_0
+dd 34
+dd 2
+dq _VN6Animal_descriptor
+dq _VN4Fish_descriptor
+
+_VN6Salmon_descriptor_0:
+db 'Salmon', 0
+
+_VN11Salmon_Gang_configuration:
+dq _VN11Salmon_Gang_descriptor
+
+_VN11Salmon_Gang_descriptor:
+dq _VN11Salmon_Gang_descriptor_0
+dd 16
+dd 0
+
+_VN11Salmon_Gang_descriptor_0:
+db 'Salmon_Gang', 0

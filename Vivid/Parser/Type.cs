@@ -3,6 +3,56 @@ using System.Linq;
 using System;
 using System.Globalization;
 
+public class Table
+{
+	public string Name { get; private set; }
+	public bool IsBuilt { get; set; } = false;
+
+	public List<object> Items { get; private set; } = new List<object>();
+	public int Subtables { get; private set; } = 0;
+
+	public Table(string name)
+	{
+		Name = name;
+	}
+
+	public void Add(object item, bool inline = true)
+	{
+		if (inline)
+		{
+			Items.Add(item);
+			return;
+		}
+
+		var subtable = new Table(Name + $"_{Subtables++}");
+		subtable.Add(item);
+
+		Items.Add(subtable);
+	}
+}
+
+public class RuntimeConfiguration
+{
+	public const string CONFIGURATION_TABLE_POSTFIX = "_configuration";
+	public const string DESCRIPTOR_TABLE_POSTFIX = "_descriptor";
+
+	public Table Entry { get; private set; }
+	public Table Descriptor { get; private set; }
+
+	public Variable Variable { get; private set; }
+
+	public RuntimeConfiguration(Type type)
+	{
+		Variable = type.DeclareHidden(Types.LINK, VariableCategory.MEMBER);
+
+		Entry = new Table(type.GetFullname() + CONFIGURATION_TABLE_POSTFIX);
+		Descriptor = new Table(type.GetFullname() + DESCRIPTOR_TABLE_POSTFIX);
+
+		Entry.Add(Descriptor);
+		Descriptor.Add(type.Name, false);
+	}
+}
+
 public class Type : Context
 {
 	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
@@ -22,6 +72,7 @@ public class Type : Context
 		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
 		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
 		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
+		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.EQUALS, "equals");
 	}
 
 	public int Modifiers { get; set; }
@@ -33,11 +84,14 @@ public class Type : Context
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
 
+	public RuntimeConfiguration? Configuration { get; private set; }
+
 	public List<Type> Supertypes { get; } = new List<Type>();
+	public Dictionary<string, FunctionList> Virtuals { get; } = new Dictionary<string, FunctionList>();
 	public FunctionList Constructors { get; } = new FunctionList();
 	public FunctionList Destructors { get; } = new FunctionList();
 
-	public Node? Initialization { get; set; }
+	public OperatorNode[] Initialization { get; set; } = Array.Empty<OperatorNode>();
 
 	public Action<Mangle> OnAddDefinition { get; set; }
 
@@ -106,6 +160,16 @@ public class Type : Context
 		Constructors.Add(Constructor.Empty(this));
 	}
 
+	public void AddRuntimeConfiguration()
+	{
+		if (Configuration != null)
+		{
+			return;
+		}
+
+		Configuration = new RuntimeConfiguration(this);
+	}
+
 	public virtual bool IsResolved()
 	{
 		return true;
@@ -113,7 +177,7 @@ public class Type : Context
 
 	public virtual int GetReferenceSize()
 	{
-		return Parser.Size.Bytes;
+		return Parser.Bytes;
 	}
 
 	public virtual int GetContentSize()
@@ -214,6 +278,11 @@ public class Type : Context
 		return base.IsVariableDeclared(name) || IsSuperVariableDeclared(name);
 	}
 
+	public bool IsVirtualFunctionDeclared(string name)
+	{
+		return Virtuals.ContainsKey(name) || Supertypes.Any(i => i.IsVirtualFunctionDeclared(name));
+	}
+
 	public override FunctionList? GetFunction(string name)
 	{
 		if (base.IsLocalFunctionDeclared(name))
@@ -224,6 +293,50 @@ public class Type : Context
 		return IsSuperFunctionDeclared(name) ? GetSuperFunction(name) : base.GetFunction(name);
 	}
 
+	/// <summary>
+	/// Retrieves the virtual function list which corresponds the specified name
+	/// </summary>
+	public FunctionList? GetVirtualFunction(string name)
+	{
+		return Virtuals.ContainsKey(name) ? Virtuals[name] : Supertypes.Select(i => i.GetVirtualFunction(name)).FirstOrDefault(i => i != null);
+	}
+
+	/// <summary>
+	/// Returns all virtual function declarations contained in this type and its supertypes
+	/// </summary>
+	public List<VirtualFunction> GetAllVirtualFunctions()
+	{
+		return Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>().Concat(Supertypes.SelectMany(i => i.GetAllVirtualFunctions())).ToList();
+	}
+
+	/// <summary>
+	/// Returns all supertypes this type inherits
+	/// </summary>
+	public List<Type> GetAllSupertypes()
+	{
+		return Supertypes.Concat(Supertypes.SelectMany(i => i.GetAllSupertypes())).ToList();
+	}
+
+	/// <summary>
+	/// Finds the first configuration variable in the hierarchy of this type
+	/// </summary>
+	public Variable GetConfigurationVariable()
+	{
+		if (Supertypes.Any())
+		{
+			var supertype = Supertypes.First();
+
+			while (supertype.Supertypes.Any())
+			{
+				supertype = supertype.Supertypes.First();
+			}
+
+			return supertype.Configuration?.Variable ?? throw new ApplicationException("Could not get runtime configuration from an inherited supertype");
+		}
+
+		return Configuration?.Variable ?? throw new ApplicationException("Could not get runtime configuration");
+	}
+
 	public override Variable? GetVariable(string name)
 	{
 		if (base.IsLocalVariableDeclared(name))
@@ -232,6 +345,38 @@ public class Type : Context
 		}
 
 		return IsSuperVariableDeclared(name) ? GetSuperVariable(name) : base.GetVariable(name);
+	}
+
+	/// <summary>
+	/// Declares a virtual function into the context
+	/// </summary>
+	/// <param name="function">Function to declare</param>
+	public void Declare(VirtualFunction function)
+	{
+		FunctionList? entry;
+
+		if (Virtuals.ContainsKey(function.Name))
+		{
+			entry = GetVirtualFunction(function.Name);
+
+			if (entry == null)
+			{
+				throw new ApplicationException("Could not retrieve a virtual function list");
+			}
+		}
+		else
+		{
+			if (Supertypes.Any(i => i.IsVirtualFunctionDeclared(function.Name)))
+			{
+				throw new InvalidOperationException("Tried to declare a virtual function with a name which was taken by one of supertypes");
+			}
+
+			Virtuals.Add(function.Name, (entry = new FunctionList()));
+		}
+
+		function.Ordinal = Virtuals.Values.Sum(i => i.Overloads.Count);
+
+		entry.Add(function);
 	}
 
 	public override IEnumerable<FunctionImplementation> GetImplementedFunctions()
@@ -256,6 +401,11 @@ public class Type : Context
 		return Size.FromBytes(ReferenceSize).ToFormat();
 	}
 
+	public bool Is(Type other)
+	{
+		return this == other || Supertypes.Any(i => i.Is(other));
+	}
+
 	public T To<T>() where T : Type
 	{
 		return (T)this ?? throw new ApplicationException($"Could not convert 'Type' to '{typeof(T).Name}'");
@@ -267,12 +417,40 @@ public class Type : Context
 		mangle.Add(this);
 	}
 
+	private Type[] GetTemplateArguments(string name)
+	{
+		if (!(GetType(name) is TemplateType template_type))
+		{
+			throw new ApplicationException("The base class of a template type variant was not a template type");
+		}
+
+		return template_type.GetVariantArguments(this) ?? throw new ApplicationException("Could not retrieve the template arguments of a template type variant");
+	}
+
 	/// <summary>
 	/// Appends a definition of this type to the specified mangled identifier using the default method
 	/// </summary>
 	private void OnAddDefaultDefinition(Mangle mangle)
 	{
-		mangle += Name.Length.ToString(CultureInfo.InvariantCulture) + Name;
+		// Check if the name represents a template type
+		if (Name.EndsWith('>'))
+		{
+			// Determine the start of template arguments, meaning the text inside the brackets of the following example: Dictionary[<string, int>]
+			var template_arguments_start = Name.IndexOf('<');
+
+			// Get the template argument types
+			var name = Name[0..template_arguments_start];
+			var template_arguments = GetTemplateArguments(name);
+
+			mangle += name.Length.ToString(CultureInfo.InvariantCulture) + name;
+			mangle += 'I';
+			mangle += template_arguments;
+			mangle += 'E';
+		}
+		else
+		{
+			mangle += Name.Length.ToString(CultureInfo.InvariantCulture) + Name;
+		}
 	}
 
 	/// <summary>
@@ -283,9 +461,9 @@ public class Type : Context
 		OnAddDefinition(mangle);
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Type type &&
+		return other is Type type &&
 			   Name == type.Name &&
 			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, type.Subcontexts) &&
 			   IsFunction == type.IsFunction &&
@@ -296,8 +474,6 @@ public class Type : Context
 			   Modifiers == type.Modifiers &&
 			   IsUnresolved == type.IsUnresolved &&
 			   Format == type.Format &&
-			   ReferenceSize == type.ReferenceSize &&
-			   ContentSize == type.ContentSize &&
 			   EqualityComparer<List<Type>>.Default.Equals(Supertypes, type.Supertypes) &&
 			   EqualityComparer<FunctionList>.Default.Equals(Constructors, type.Constructors) &&
 			   EqualityComparer<FunctionList>.Default.Equals(Destructors, type.Destructors);
@@ -316,8 +492,6 @@ public class Type : Context
 		hash.Add(Modifiers);
 		hash.Add(IsUnresolved);
 		hash.Add(Format);
-		hash.Add(ReferenceSize);
-		hash.Add(ContentSize);
 		hash.Add(Supertypes);
 		hash.Add(Constructors);
 		hash.Add(Destructors);

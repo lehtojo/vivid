@@ -4,6 +4,21 @@ public static class Builders
 	{
 		switch (node.GetNodeType())
 		{
+			case NodeType.CALL:
+			{
+				var call = (CallNode)node;
+				var self = References.Get(unit, call.Self);
+
+				if (call.Descriptor.Self != null)
+				{
+					self = Casts.Cast(unit, self, call.Self.GetType(), call.Descriptor.Self);
+				}
+
+				var function_pointer = References.Get(unit, call.Pointer);
+
+				return Calls.Build(unit, self, function_pointer, CallingConvention.X64, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+			}
+
 			case NodeType.FUNCTION:
 			{
 				return Calls.Build(unit, (FunctionNode)node);
@@ -37,11 +52,6 @@ public static class Builders
 			case NodeType.LINK:
 			{
 				return Links.Build(unit, (LinkNode)node);
-			}
-
-			case NodeType.CONSTRUCTION:
-			{
-				return Construction.Build(unit, (ConstructionNode)node);
 			}
 
 			case NodeType.IF:
@@ -92,7 +102,7 @@ public static class Builders
 
 				foreach (var iterator in node)
 				{
-					reference = Build(unit, iterator);
+					reference = References.Get(unit, iterator);
 				}
 
 				return reference ?? new Result();

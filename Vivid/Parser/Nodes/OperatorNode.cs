@@ -93,10 +93,10 @@ public class OperatorNode : Node, IType, IResolvable
 		return NodeType.OPERATOR;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is OperatorNode node &&
-				base.Equals(obj) &&
+		return other is OperatorNode node &&
+				base.Equals(other) &&
 				EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
 	}
 

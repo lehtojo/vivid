@@ -54,7 +54,7 @@ public static class Singleton
 
 		if (context.IsTypeDeclared(name))
 		{
-			// NOTICE: There can not be template constructors (only template types)
+			// NOTE: There can not be template constructors (only template types)
 			var type = context.GetType(name)!;
 
 			if (template_arguments.Any())
@@ -113,7 +113,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return new ConstructionNode(node);
+				return node;
 			}
 
 			if (function.IsMember && !linked)
@@ -125,17 +125,23 @@ public static class Singleton
 
 			return node;
 		}
-		else if (primary.IsVariableDeclared(descriptor.Name))
+
+		if (!linked)
 		{
-			var variable = primary.GetVariable(descriptor.Name)!;
+			// Try to form a virtual function call
+			var result = Common.TryGetVirtualFunctionCall(environment, descriptor);
 
-			if (variable.Type is LambdaType)
+			if (result != null)
 			{
-				var call = new LambdaCallNode(parameters);
+				return result;
+			}
 
-				return environment == primary
-					? new LinkNode(new VariableNode(variable), call)
-					: (Node)call;
+			// Try to form a lambda function call
+			result = Common.TryGetLambdaCall(environment, descriptor);
+
+			if (result != null)
+			{
+				return result;
 			}
 		}
 
@@ -163,7 +169,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return new ConstructionNode(node);
+				return node;
 			}
 
 			if (function.IsMember && !linked)
@@ -176,7 +182,7 @@ public static class Singleton
 			return node;
 		}
 
-		// NOTICE: Template lambdas are not supported
+		// NOTE: Template lambdas are not supported
 		return new UnresolvedFunction(descriptor.Name, template_arguments).SetParameters(parameters);
 	}
 

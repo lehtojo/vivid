@@ -41,6 +41,7 @@ public class ElsePattern : Pattern
 				typeof(CommandPattern),
 				typeof(LinkPattern),
 				typeof(NotPattern),
+				typeof(OffsetPattern),
 				typeof(OperatorPattern),
 				typeof(PreIncrementAndDecrementPattern),
 				typeof(PostIncrementAndDecrementPattern),

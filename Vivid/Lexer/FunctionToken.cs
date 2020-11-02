@@ -38,14 +38,6 @@ public class FunctionToken : Token
 			ParameterTree = parameters;
 		}
 
-		/*ParameterTree = new Node();
-
-		for (int i = 0; i < Parameters.SectionCount; i++)
-		{
-			var tokens = Parameters.GetTokens(i);
-			Parser.Parse(ParameterTree, context, tokens);
-		}*/
-
 		return ParameterTree;
 	}
 
@@ -125,10 +117,10 @@ public class FunctionToken : Token
 		return parameters;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is FunctionToken token &&
-			   base.Equals(obj) &&
+		return other is FunctionToken token &&
+			   base.Equals(other) &&
 			   EqualityComparer<IdentifierToken>.Default.Equals(Identifier, token.Identifier) &&
 			   EqualityComparer<ContentToken>.Default.Equals(Parameters, token.Parameters) &&
 			   Name == token.Name;

@@ -1,13 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class LambdaType : Type
+public class CallDescriptorType : Type
 {
+	public Type? Self { get; private set; }
 	public List<Type?> Parameters { get; set; }
 	public Type? ReturnType { get; }
 
-	public LambdaType(List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
+	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
 	{
+		Parameters = parameters;
+		ReturnType = return_type;
+	}
+
+	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
+	{
+		Self = self;
 		Parameters = parameters;
 		ReturnType = return_type;
 	}
@@ -36,7 +44,7 @@ public class LambdaType : Type
 
 	public override bool Equals(object? other)
 	{
-		if (!(other is LambdaType type) || Parameters.Count != type.Parameters.Count)
+		if (!(other is CallDescriptorType type) || Parameters.Count != type.Parameters.Count)
 		{
 			return false;
 		}

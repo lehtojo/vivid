@@ -95,6 +95,34 @@ jle _V25normal_for_loop_with_stopxx_rx_L0
 _V25normal_for_loop_with_stopxx_rx_L1:
 ret
 
+global _V29normal_for_loop_with_continuexx_rx
+export _V29normal_for_loop_with_continuexx_rx
+_V29normal_for_loop_with_continuexx_rx:
+mov rax, rcx
+xor r8, r8
+cmp r8, rdx
+jge _V29normal_for_loop_with_continuexx_rx_L1
+_V29normal_for_loop_with_continuexx_rx_L0:
+mov r9, rax
+mov rax, r8
+mov r10, rdx
+cqo
+mov r11, 2
+idiv r11
+test rdx, rdx
+mov rdx, r10
+mov rax, r9
+jne _V29normal_for_loop_with_continuexx_rx_L3
+add rax, 1
+jmp _V29normal_for_loop_with_continuexx_rx_L0
+_V29normal_for_loop_with_continuexx_rx_L3:
+add rax, r8
+add r8, 1
+cmp r8, rdx
+jl _V29normal_for_loop_with_continuexx_rx_L0
+_V29normal_for_loop_with_continuexx_rx_L1:
+ret
+
 global _V16nested_for_loopsPhx_rx
 export _V16nested_for_loopsPhx_rx
 _V16nested_for_loopsPhx_rx:
@@ -121,7 +149,7 @@ _V16nested_for_loopsPhx_rx_L8:
 mov r11, rax
 mov rax, r10
 mov rbx, rdx
-xor rdx, rdx
+cqo
 mov rsi, 2
 idiv rsi
 test rdx, rdx
@@ -131,7 +159,7 @@ jne _V16nested_for_loopsPhx_rx_L12
 mov r11, rax
 mov rax, r9
 mov rbx, rdx
-xor rdx, rdx
+cqo
 mov rsi, 2
 idiv rsi
 test rdx, rdx
@@ -140,7 +168,7 @@ mov rdx, rbx
 jne _V16nested_for_loopsPhx_rx_L12
 mov r11, rax
 mov rbx, rdx
-xor rdx, rdx
+cqo
 mov rsi, 2
 idiv rsi
 test rdx, rdx
@@ -200,15 +228,18 @@ push rsi
 push rdi
 sub rsp, 48
 mov r8, rcx
-mov rbx, r8
-mov rsi, rcx
-mov rdi, rdx
-cmp rbx, rdi
+cmp r8, rdx
 jge _V38normal_for_loop_with_memory_evacuationxx_L1
 _V38normal_for_loop_with_memory_evacuationxx_L0:
+mov rbx, rcx
+mov rsi, rdx
+mov rdi, r8
 call _V14large_functionv
-add rbx, 1
-cmp rbx, rdi
+add rdi, 1
+mov r8, rdi
+mov rcx, rbx
+mov rdx, rsi
+cmp r8, rdx
 jl _V38normal_for_loop_with_memory_evacuationxx_L0
 _V38normal_for_loop_with_memory_evacuationxx_L1:
 add rsp, 48

@@ -98,6 +98,28 @@ public class LinkPattern : Pattern
 			right = Singleton.Parse(environment, primary, tokens[RIGHT]);
 		}
 
+		// Try to build the right node as a virtual function or lambda call
+		if (right is UnresolvedFunction function)
+		{
+			var types = function.Select(i => i.TryGetType()).ToList();
+
+			// Try to form a virtual function call
+			var result = Common.TryGetVirtualFunctionCall(left, primary, function.Name, function, types);
+
+			if (result != null)
+			{
+				return result;
+			}
+
+			// Try to form a lambda function call
+			result = Common.TryGetLambdaCall(primary, left, function.Name, function, types);
+
+			if (result != null)
+			{
+				return result;
+			}
+		}
+
 		return new LinkNode(left, right);
 	}
 }

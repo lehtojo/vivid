@@ -99,6 +99,7 @@ public class ConstantDataSectionHandle : DataSectionHandle
 public class DataSectionHandle : Handle
 {
 	public string Identifier { get; set; }
+	public long Offset { get; set; } = 0;
 	public bool Address { get; set; } = false;
 
 	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY)
@@ -107,11 +108,35 @@ public class DataSectionHandle : Handle
 		Address = address;
 	}
 
+	public DataSectionHandle(string identifier, long offset, bool address = false) : base(HandleType.MEMORY)
+	{
+		Identifier = identifier;
+		Offset = offset;
+		Address = address;
+	}
+
 	public override string ToString()
 	{
 		if (Address)
 		{
 			return Identifier;
+		}
+
+		if (Offset != 0)
+		{
+			var offset = Offset.ToString(CultureInfo.InvariantCulture);
+
+			if (Offset > 0)
+			{
+				offset = '+' + offset;
+			}
+
+			if (Assembler.IsTargetX64)
+			{
+				return IsSizeVisible ? $"{Size} [rel {Identifier}{offset}]" : $"[rel {Identifier}{offset}]";
+			}
+
+			return IsSizeVisible ? $"{Size} [{Identifier}{offset}]" : $"[{Identifier}{offset}]";
 		}
 
 		if (Assembler.IsTargetX64)
@@ -142,7 +167,7 @@ public class DataSectionHandle : Handle
 
 public class ConstantHandle : Handle
 {
-	public object Value { get; private set; }
+	public object Value { get; set; }
 	public int Bits => GetBits();
 
 	private int GetBits()

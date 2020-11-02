@@ -20,7 +20,7 @@ public class StringNode : Node, IType, ICloneable
 		return Types.LINK;
 	}
 
-	public object Clone()
+	public new object Clone()
 	{
 		return new StringNode(Text)
 		{
@@ -33,10 +33,10 @@ public class StringNode : Node, IType, ICloneable
 		return NodeType.STRING;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is StringNode node &&
-				base.Equals(obj) &&
+		return other is StringNode node &&
+				base.Equals(other) &&
 				Text == node.Text;
 	}
 

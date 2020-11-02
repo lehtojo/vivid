@@ -172,7 +172,7 @@ public class Unit
 	public List<VariableState> GetState(int at)
 	{
 		return Scope!.Variables
-			.Where(v => v.Value.IsAnyRegister && !v.Value.Value.To<RegisterHandle>().Register.IsAvailable(at))
+			.Where(v => v.Value.IsAnyRegister && v.Value.IsValid(at))
 			.Select(v => new VariableState(v.Key, v.Value.Value.To<RegisterHandle>().Register)).ToList();
 	}
 
@@ -538,27 +538,27 @@ public class Unit
 
 	public Register GetStackPointer()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture didn't have stack pointer register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture did not have stack pointer register");
 	}
 
 	public Register GetStandardReturnRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture didn't have a standard return register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture did not have a standard return register");
 	}
 
 	public Register GetDecimalReturnRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.DECIMAL_RETURN)) ?? throw new Exception("Architecture didn't have a decimal return register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.DECIMAL_RETURN)) ?? throw new Exception("Architecture did not have a decimal return register");
 	}
 
 	public Register GetNumeratorRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NUMERATOR)) ?? throw new ApplicationException("Architecture didn't have a nominator register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NUMERATOR)) ?? throw new ApplicationException("Architecture did not have a nominator register");
 	}
 
 	public Register GetRemainderRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER)) ?? throw new ApplicationException("Architecture didn't have a remainder register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER)) ?? throw new ApplicationException("Architecture did not have a remainder register");
 	}
 
 	public void Reset()

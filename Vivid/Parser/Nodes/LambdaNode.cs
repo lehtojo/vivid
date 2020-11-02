@@ -15,7 +15,7 @@ public class LambdaNode : Node, IResolvable, IType
 	{
 		if (Lambda.Implementations.Any() && Lambda.Implementation.ReturnType != null)
 		{
-			return new LambdaType(Lambda.Parameters.Select(p => p.Type).ToList(), Lambda.Implementation.ReturnType);
+			return new CallDescriptorType(Lambda.Parameters.Select(p => p.Type).ToList(), Lambda.Implementation.ReturnType);
 		}
 
 		return null;

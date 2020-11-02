@@ -9,11 +9,11 @@
 
 	public override int GetReferenceSize()
 	{
-		return Parser.Size.Bytes;
+		return Parser.Bytes;
 	}
 
 	public override int GetContentSize()
 	{
-		return Parser.Size.Bytes;
+		return Parser.Bytes;
 	}
 }

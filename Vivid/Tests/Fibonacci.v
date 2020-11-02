@@ -14,7 +14,7 @@ fibonacci(iterations) {
 			second = next
 		}
 
-		printsln(to_string(next))
+		println(to_string(next))
 
 		++i
 	}

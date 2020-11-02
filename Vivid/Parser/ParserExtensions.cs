@@ -44,4 +44,9 @@ public static class ParserExtensions
 	{
 		return token.Type == TokenType.OPERATOR && token.To<OperatorToken>().Operator == operation;
 	}
+
+	public static bool Is(this Token token, Keyword keyword)
+	{
+		return token.Type == TokenType.KEYWORD && token.To<KeywordToken>().Keyword == keyword;
+	}
 }

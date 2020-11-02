@@ -230,8 +230,9 @@ public static class Arithmetic
 		var right = References.Get(unit, operation.Right);
 		var left = References.Get(unit, operation.Left, access);
 		var number_type = operation.GetType()!.To<Number>().Type;
+		var is_unsigned = operation.Left.GetType() is Number number ? number.IsUnsigned : true;
 
-		var result = new DivisionInstruction(unit, modulus, left, right, number_type, assigns).Execute();
+		var result = new DivisionInstruction(unit, modulus, left, right, number_type, assigns, is_unsigned).Execute();
 
 		if (is_destination_complex && assigns)
 		{

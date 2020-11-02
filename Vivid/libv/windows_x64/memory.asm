@@ -3,10 +3,15 @@
 extern VirtualAlloc
 extern VirtualFree
 extern Sleep
+extern ExitProcess
 
 global _V5sleepx:function
 _V5sleepx:
 jmp Sleep
+
+global _V4exitx:function
+_V4exitx:
+jmp ExitProcess
 
 ; rcx: Bytes
 global _V8allocatex_rPh:function

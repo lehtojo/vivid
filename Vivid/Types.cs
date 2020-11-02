@@ -42,7 +42,7 @@ public static class Types
 		context.Declare(U64);
 		context.Declare(DECIMAL);
 
-		switch (Parser.Size.Bytes)
+		switch (Parser.Bytes)
 		{
 			case 1: { context.DeclareTypeAlias("num", TINY); break; }
 			case 2: { context.DeclareTypeAlias("num", SMALL); break; }

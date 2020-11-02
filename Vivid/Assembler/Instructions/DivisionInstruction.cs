@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 
 public class DivisionInstruction : DualParameterInstruction
 {
@@ -10,12 +9,14 @@ public class DivisionInstruction : DualParameterInstruction
 
 	private const string DIVIDE_BY_TWO_INSTRUCTION = "sar";
 
-	public bool IsModulus { get; private set; }
+	public bool Modulus { get; private set; }
 	public bool Assigns { get; private set; }
+	public bool Unsigned { get; private set; }
 
-	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
+	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns, bool unsigned) : base(unit, first, second, format)
 	{
-		IsModulus = modulus;
+		Modulus = modulus;
+		Unsigned = unsigned;
 
 		if (Assigns = assigns)
 		{
@@ -160,7 +161,7 @@ public class DivisionInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (!IsModulus)
+		if (!Modulus)
 		{
 			var division = TryGetConstantDivision();
 
@@ -191,12 +192,20 @@ public class DivisionInstruction : DualParameterInstruction
 		var numerator = CorrectNumeratorLocation();
 		var remainder = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!;
 
-		// Clear the remainder register
-		Memory.Zero(Unit, remainder);
+		if (Unsigned)
+		{
+			// Clear the remainder register
+			Memory.Zero(Unit, remainder);
+		}
+		else
+		{
+			Memory.ClearRegister(Unit, Unit.GetRemainderRegister());
+			Unit.Append(new ExtendNumeratorInstruction(Unit));
+		}
 
 		using (RegisterLock.Create(remainder))
 		{
-			if (IsModulus)
+			if (Modulus)
 			{
 				BuildModulus(numerator);
 			}

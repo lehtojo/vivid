@@ -387,9 +387,9 @@ public class Context
 	/// <summary>
 	/// Declares a hidden variable with the specified type
 	/// </summary>
-	public Variable DeclareHidden(Type type)
+	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, VariableCategory.LOCAL, $".{Hiddens++}_{Guid.NewGuid()}", AccessModifier.PUBLIC);
+		return Variable.Create(this, type, category, $".{Hiddens++}_{Guid.NewGuid()}", AccessModifier.PUBLIC);
 	}
 
 	/// <summary>

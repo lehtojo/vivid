@@ -8,13 +8,13 @@ extern _V8allocatex_rPh
 global _V49conditionally_changing_constant_with_if_statementxx_rx
 export _V49conditionally_changing_constant_with_if_statementxx_rx
 _V49conditionally_changing_constant_with_if_statementxx_rx:
-mov r8, 7
+mov rax, 7
 cmp rcx, rdx
 jle _V49conditionally_changing_constant_with_if_statementxx_rx_L0
 mov rdx, rcx
-mov r8, rdx
+mov rax, rdx
 _V49conditionally_changing_constant_with_if_statementxx_rx_L0:
-add rcx, r8
+add rcx, rax
 mov rax, rcx
 ret
 

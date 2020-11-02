@@ -6,72 +6,8 @@ using VariableGroup = System.Collections.Generic.List<Variable>;
 
 public static class Oracle
 {
-	/*/// <summary>
-	/// Resolves all write dependencies in the given result
-	/// </summary>
-	private static void Resolve(Unit unit, Result result, Variable variable)
-	{
-		var destination = (VariableAttribute?)result.Metadata.Primary;
-
-		if (destination == null)
-		{
-			return;
-		}
-
-		if (destination.Variable == variable)
-		{
-			var dependencies = GetAllDependencies(unit, result);
-
-			if (dependencies.Count() <= 1)
-			{
-				return;
-			}
-
-			var duplicate = new DuplicateInstruction(unit, result)
-			{
-				Description = "Separate variable " + variable.Name
-			};
-
-			var duplication = duplicate.Execute();
-
-			// Set the duplication result as a new value for the edited variable
-			unit.Append(new SetVariableInstruction(unit, variable, duplication));
-
-			duplication.Metadata.Attach(new VariableAttribute(variable));
-		}
-	}*/
-
-	/*private static IEnumerable<Variable> GetAllDependencies(Unit unit, Result result)
-	{
-		return unit.Scope!.Variables.Where(p => p.Value.Equals(result)).Select(p => p.Key);
-	}*/
-
 	private static void SimulateLoads(Unit unit, Instruction instruction)
 	{
-		/*if (instruction is GetVariableInstruction v && v.Mode == AccessMode.WRITE)
-		{
-			var handle = unit.GetCurrentVariableHandle(v.Variable);
-
-			if (handle != null)
-			{
-				if (v.Mode == AccessMode.WRITE)
-				{
-					Resolve(unit, handle, v.Variable);
-				}
-
-				v.Connect(handle);
-			}
-			else
-			{
-				v.Configure(References.CreateVariableHandle(unit, v.Self, v.SelfType, v.Variable), new VariableAttribute(v.Variable));
-
-				if (v.Mode != AccessMode.WRITE && v.Variable.IsPredictable)
-				{
-					unit.Append(new SetVariableInstruction(unit, v.Variable, v.Result));
-				}
-			}
-		}*/
-
 		if (instruction is RequireVariablesInstruction r)
 		{
 			foreach (var variable in r.Variables)
@@ -88,93 +24,11 @@ public static class Oracle
 		}
 	}
 
-	/*private static VariableGroup[] GetAllLinkedVariables(Unit unit)
-	{
-		var states = unit.Scope!.Variables.Keys.Select(variable => new VariableLoad
-		(
-			variable,
-			unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Could not get variable handle while analyzing linked variables")
-
-		)).ToList();
-
-		var groups = new List<VariableGroup>();
-
-		while (states.Count > 0)
-		{
-			var state = states.Pop()!;
-
-			// Try to find other states that share the same references with the current state
-			var linked_variables = states.Where(s => s.Reference.Equals(state.Reference)).ToList();
-
-			if (linked_variables.Any())
-			{
-				var group = linked_variables.Select(s => s.Variable).ToList();
-				group.Add(state.Variable);
-
-				// Add all the linked variables to the result list
-				groups.Add(group);
-
-				// Remove all the linked variables from the scan list since they won't match with other states anymore
-				linked_variables.ForEach(s => states.Remove(s));
-			}
-		}
-
-		return groups.ToArray();
-	}*/
-
-	/*private static void SeparateEditedVariablesInGroup(Unit unit, VariableGroup group, Node[] roots)
-	{
-		// Find all variables which are edited inside of any of the roots
-		var edited_variables = group.Where(v => roots.Any(r => v.IsEditedInside(r))).ToList();
-
-		if (edited_variables.Count == 0)
-		{
-			return;
-		}
-
-		// Get the shared value in the variable group
-		var shared_value = unit.GetCurrentVariableHandle(group.First()) ?? throw new ApplicationException("Could not get current handle of a variable while separating a linked variable group");
-
-		foreach (var variable in edited_variables)
-		{
-			// Duplicate the shared value and give it to the edited variable
-			var duplicate = new DuplicateInstruction(unit, shared_value)
-			{
-				Description = "Separate " + variable.Name + " from variables " + string.Join(", ", group.Select(v => v.Name))
-			};
-
-			var duplication = duplicate.Execute();
-
-			// Set the duplication result as a new value for the edited variable
-			unit.Append(new SetVariableInstruction(unit, variable, duplication));
-
-			duplication.Metadata.Attach(new VariableAttribute(variable));
-		}
-	}*/
-
-	/*private static void SimulateLinkage(Unit unit, Instruction instruction)
-	{
-		if (instruction.Type == InstructionType.BRANCH)
-		{
-			var branch_instruction = instruction.To<BranchInstruction>();
-			var branches = branch_instruction.Branches;
-
-			var linked_variable_groups = GetAllLinkedVariables(unit);
-
-			// Add all variable groups to the separation list which are affected inside any of the roots
-			foreach (var linked_variable_group in linked_variable_groups)
-			{
-				SeparateEditedVariablesInGroup(unit, linked_variable_group, branches);
-			}
-		}
-	}*/
-
 	private static void SimulateCaching(Unit unit)
 	{
 		unit.Simulate(UnitPhase.APPEND_MODE, i =>
 		{
 			SimulateLoads(unit, i);
-			//SimulateLinkage(unit, i);
 		});
 	}
 
@@ -279,7 +133,7 @@ public static class Oracle
 			}
 		});
 
-		var nominator_register = unit.GetNumeratorRegister();
+		var numerator_register = unit.GetNumeratorRegister();
 		var remainder_register = unit.GetRemainderRegister();
 
 		// Redirect values to non-volatile register if they intersect with functions
@@ -307,7 +161,7 @@ public static class Oracle
 			{
 				var last = intersections.OrderByDescending(i => i.Position).First();
 
-				instruction.Redirect(new AvoidRegisters(last, new Register[] { nominator_register, remainder_register }));
+				instruction.Redirect(new AvoidRegisters(last, new Register[] { numerator_register, remainder_register }));
 			}
 		});
 	}

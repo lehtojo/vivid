@@ -78,7 +78,7 @@ public class TemplateFunctionPattern : Pattern
 		var name = tokens[NAME].To<IdentifierToken>();
 
 		var template_argument_tokens = tokens.GetRange(TEMPLATE_ARGUMENTS_START, tokens.Count - TEMPLATE_ARGUMENTS_END - TEMPLATE_ARGUMENTS_START);
-		var template_argument_names = Common.GetTemplateArgumentNames(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
+		var template_argument_names = Common.GetTemplateParameterNames(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
 
 		var parameters = tokens[tokens.Count + PARAMETERS].To<ContentToken>();
 		var body = tokens.Last().To<ContentToken>();

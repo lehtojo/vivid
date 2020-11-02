@@ -4,14 +4,14 @@ using System.Collections.Generic;
 
 public class CacheVariablesInstruction : Instruction
 {
-	private List<VariableUsageInfo> Usages { get; }
-	private Node Body { get; }
+	private List<VariableUsageDescriptor> Usages { get; }
+	private Node[] Roots { get; }
 	private bool NonVolatileMode { get; }
 
-	public CacheVariablesInstruction(Unit unit, Node body, List<VariableUsageInfo> variables, bool non_volatile_mode) : base(unit)
+	public CacheVariablesInstruction(Unit unit, Node[] roots, List<VariableUsageDescriptor> variables, bool non_volatile_mode) : base(unit)
 	{
 		Usages = variables;
-		Body = body;
+		Roots = roots;
 		NonVolatileMode = non_volatile_mode;
 		Description = "Prepares the stored variables based on their usage";
 
@@ -37,7 +37,7 @@ public class CacheVariablesInstruction : Instruction
 			}
 
 			// There's no need to move variables to registers that aren't edited in the body and are constants
-			if (!usage.Variable.IsEditedInside(Body) && usage.Reference.IsConstant)
+			if (Roots.All(i => !usage.Variable.IsEditedInside(i)) && usage.Reference.IsConstant)
 			{
 				Usages.RemoveAt(i);
 			}
@@ -58,7 +58,7 @@ public class CacheVariablesInstruction : Instruction
 
 	private struct RegisterOccuptionInfo
 	{
-		public VariableUsageInfo Information;
+		public VariableUsageDescriptor Information;
 		public Register Register;
 	}
 
@@ -69,12 +69,12 @@ public class CacheVariablesInstruction : Instruction
 		private List<Register> AvailableMediaRegisters { get; set; }
 		private List<RegisterOccuptionInfo> OccupiedStandardRegisters { get; set; } = new List<RegisterOccuptionInfo>();
 		private List<RegisterOccuptionInfo> OccupiedMediaRegisters { get; set; } = new List<RegisterOccuptionInfo>();
-		public List<VariableUsageInfo> RemainingVariables { get; private set; } = new List<VariableUsageInfo>();
+		public List<VariableUsageDescriptor> RemainingVariables { get; private set; } = new List<VariableUsageDescriptor>();
 
 		/// <summary>
 		/// Occupies the specified register with the specified variable and stores its usage information
 		/// </summary>
-		private void Occupie(Register register, VariableUsageInfo usage)
+		private void Occupie(Register register, VariableUsageDescriptor usage)
 		{
 			if (register.IsMediaRegister)
 			{
@@ -88,7 +88,7 @@ public class CacheVariablesInstruction : Instruction
 			}
 		}
 
-		public State(Unit unit, List<VariableUsageInfo> usages, bool non_volatile_only)
+		public State(Unit unit, List<VariableUsageDescriptor> usages, bool non_volatile_only)
 		{
 			Unit = unit;
 
@@ -130,7 +130,7 @@ public class CacheVariablesInstruction : Instruction
 		/// <summary>
 		/// Moves the specified variable to memory
 		/// </summary>
-		public void Release(VariableUsageInfo usage)
+		public void Release(VariableUsageDescriptor usage)
 		{
 			if (!usage.Reference!.IsAnyRegister)
 			{
@@ -140,7 +140,7 @@ public class CacheVariablesInstruction : Instruction
 			Unit.Release(usage.Reference!.Value.To<RegisterHandle>().Register);
 		}
 
-		public Register? TryGetNextRegister(VariableUsageInfo usage)
+		public Register? TryGetNextRegister(VariableUsageDescriptor usage)
 		{
 			var use_media_register = usage.Reference!.Format.IsDecimal();
 			var registers = use_media_register ? AvailableMediaRegisters : AvailableStandardRegisters;

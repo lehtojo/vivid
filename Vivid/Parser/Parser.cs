@@ -67,7 +67,10 @@ public class Sublist<T> : IList<T>
 	{
 		var i = IndexOf(item);
 
-		if (i == -1) return false;
+		if (i == -1)
+		{
+			return false;
+		}
 
 		Parent.RemoveAt(i);
 		End--;
@@ -89,7 +92,11 @@ public class Sublist<T> : IList<T>
 
 public static class Parser
 {
+	public static FunctionImplementation? AllocationFunction { get; private set; }
+
 	public static Size Size { get; set; } = Size.QWORD;
+	public static Format Format => Size.ToFormat();
+	public static int Bytes => Size.Bytes;
 
 	public const int MAX_PRIORITY = 23;
 	public const int MEMBERS = 19;
@@ -560,6 +567,8 @@ public static class Parser
 			Types.LINK,
 			new Parameter("bytes", number)
 		);
+
+		AllocationFunction = allocate.Implementations.First();
 
 		var copy = new Function
 		(

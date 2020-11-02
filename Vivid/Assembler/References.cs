@@ -1,5 +1,11 @@
 using System;
 
+public enum AccessMode
+{
+	WRITE,
+	READ
+}
+
 public static class References
 {
 	public static Handle CreateConstantNumber(object value)
@@ -95,10 +101,27 @@ public static class References
 		return new Result(new DataSectionHandle(node.GetIdentifier(unit), true), Assembler.Format);
 	}
 
+	public static Result GetDataPointer(DataPointer node)
+	{
+		return node.Data switch
+		{
+			FunctionImplementation implementation => new Result(new DataSectionHandle(implementation.GetFullname(), node.Offset, true), Assembler.Format),
+
+			Table table => new Result(new DataSectionHandle(table.Name, node.Offset, true), Assembler.Format),
+
+			_ => throw new ApplicationException("Could not build data pointer")
+		};
+	}
+
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
 	{
 		switch (node.GetNodeType())
 		{
+			case NodeType.DATA_POINTER:
+			{
+				return GetDataPointer((DataPointer)node);
+			}
+
 			case NodeType.VARIABLE:
 			{
 				return GetVariable(unit, (VariableNode)node);

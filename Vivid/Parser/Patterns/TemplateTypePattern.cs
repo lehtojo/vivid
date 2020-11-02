@@ -70,7 +70,7 @@ public class TemplateTypePattern : Pattern
 		var body = tokens.Last().To<ContentToken>();
 
 		var template_argument_tokens = tokens.GetRange(TEMPLATE_ARGUMENTS_START, tokens.Count - TEMPLATE_ARGUMENTS_END - TEMPLATE_ARGUMENTS_START);
-		var template_argument_names = Common.GetTemplateArgumentNames(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
+		var template_argument_names = Common.GetTemplateParameterNames(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
 
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 

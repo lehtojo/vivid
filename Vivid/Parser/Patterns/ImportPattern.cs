@@ -10,7 +10,7 @@ public class ImportPattern : Pattern
 	private const int OPERATOR = 2;
 	private const int RETURN_TYPE = 3;
 
-	// import a-z (...) => Type
+	// import a-z (...): Type
 	// import a-z (...)
 	public ImportPattern() : base
 	(
@@ -42,7 +42,7 @@ public class ImportPattern : Pattern
 
 		if (tokens[OPERATOR].Type != TokenType.NONE && tokens[RETURN_TYPE].Type != TokenType.NONE)
 		{
-			return Equals(tokens[OPERATOR].To<OperatorToken>().Operator, Operators.IMPLICATION);
+			return Equals(tokens[OPERATOR].To<OperatorToken>().Operator, Operators.COLON);
 		}
 
 		return false;

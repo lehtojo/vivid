@@ -32,19 +32,23 @@ public static class Resolver
 	{
 		ResolveVariables(context);
 
-		foreach (var type in context.Types.Values)
+		var types = new List<Type>(context.Types.Values);
+
+		foreach (var type in types)
 		{
 			ResolveVariables(type);
 			ResolveContext(type);
 
-			if (type.Initialization != null)
+			foreach (var iterator in type.Initialization)
 			{
-				Resolve(type, type.Initialization);
+				Resolve(type, iterator);
 			}
 		}
 
+		var overloads = context.Functions.Values.SelectMany(f => f.Overloads).ToList();
+
 		// Resolve parameter types
-		foreach (var function in context.Functions.Values.SelectMany(f => f.Overloads))
+		foreach (var function in overloads)
 		{
 			foreach (var parameter in function.Parameters)
 			{
@@ -67,14 +71,21 @@ public static class Resolver
 			ResolveVariables(implementation);
 
 			// Check if the implementation has a return type and if it's unresolved
-			if (implementation.ReturnType?.IsUnresolved ?? false)
+			if (implementation.ReturnType != Types.UNKNOWN)
 			{
-				var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
-
-				if (type != Types.UNKNOWN)
+				if (implementation.ReturnType.IsUnresolved)
 				{
-					implementation.ReturnType = type;
+					var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
+
+					if (type != Types.UNKNOWN)
+					{
+						implementation.ReturnType = type;
+					}
 				}
+			}
+			else
+			{
+				ResolveReturnType(implementation);
 			}
 
 			if (implementation.Node != null)
@@ -324,5 +335,40 @@ public static class Resolver
 		{
 			ResolveVariables(subcontext);
 		}
+	}
+
+	/// <summary>
+	/// Tries to resolve the return type of the specified implementation based on its return statements
+	/// </summary>
+	private static void ResolveReturnType(FunctionImplementation implementation)
+	{
+		if (implementation.Node == null)
+		{
+			return;
+		}
+
+		var statements = implementation.Node.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>();
+
+		if (statements.Any(i => i.Value == null))
+		{
+			implementation.ReturnType = Types.UNIT;
+			return;
+		}
+
+		var types = statements.Select(i => i.Value!.TryGetType()).ToList();
+
+		if (types.Any(i => i == Types.UNKNOWN || i.IsUnresolved))
+		{
+			return;
+		}
+
+		var type = Resolver.GetSharedType(types!);
+
+		if (type == Types.UNKNOWN)
+		{
+			return;
+		}
+
+		implementation.ReturnType = type;
 	}
 }

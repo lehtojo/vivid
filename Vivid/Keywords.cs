@@ -9,6 +9,7 @@ public static class Keywords
 	public static readonly Keyword EXPORT = new AccessModifierKeyword("export", AccessModifier.GLOBAL);
 	public static readonly Keyword GOTO = new FlowKeyword("goto");
 	public static readonly Keyword IF = new FlowKeyword("if");
+	public static readonly Keyword IS = new FlowKeyword("is");
 	public static readonly Keyword INIT = new Keyword("init");
 	public static readonly Keyword IMPORT = new AccessModifierKeyword("import", AccessModifier.EXTERNAL);
 	public static readonly Keyword LOOP = new Keyword("loop");
@@ -21,6 +22,7 @@ public static class Keywords
 	public static readonly Keyword STATIC = new AccessModifierKeyword("static", AccessModifier.STATIC);
 	public static readonly Keyword STOP = new FlowKeyword("stop");
 	public static readonly Keyword OUTLINE = new AccessModifierKeyword("outline", AccessModifier.OUTLINE);
+	public static readonly Keyword WHEN = new FlowKeyword("when");
 
 	private static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
 
@@ -33,6 +35,7 @@ public static class Keywords
 		Values.Add(EXPORT.Identifier, EXPORT);
 		Values.Add(GOTO.Identifier, GOTO);
 		Values.Add(IF.Identifier, IF);
+		Values.Add(IS.Identifier, IS);
 		Values.Add(IMPORT.Identifier, IMPORT);
 		Values.Add(LOOP.Identifier, LOOP);
 		Values.Add(NEW.Identifier, NEW);
@@ -44,6 +47,7 @@ public static class Keywords
 		Values.Add(STATIC.Identifier, STATIC);
 		Values.Add(STOP.Identifier, STOP);
 		Values.Add(OUTLINE.Identifier, OUTLINE);
+		Values.Add(WHEN.Identifier, WHEN);
 	}
 
 	public static bool Exists(string name)

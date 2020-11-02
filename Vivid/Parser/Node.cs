@@ -101,24 +101,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return (this as IType ?? throw new InvalidOperationException("Tried to get type from a node which did not represent a typed object")).GetType();
 	}
 
-	public List<T> Select<T>(Func<Node, T> selector)
-	{
-		var result = new List<T>();
-		var iterator = First;
-
-		while (iterator != null)
-		{
-			result.Add(selector(iterator));
-
-			var subresult = iterator.Select(selector);
-			result.AddRange(subresult);
-
-			iterator = iterator.Next;
-		}
-
-		return result;
-	}
-
 	public Node? FindParent(Predicate<Node> filter)
 	{
 		if (Parent == null)
@@ -193,6 +175,25 @@ public class Node : IEnumerable, IEnumerable<Node>
 			nodes.AddRange(result);
 
 			iterator = iterator.Next;
+		}
+
+		return nodes;
+	}
+
+	public List<Node> FindTop(Predicate<Node> filter)
+	{
+		var nodes = new List<Node>();
+
+		foreach (var iterator in this)
+		{
+			if (filter(iterator))
+			{
+				nodes.Add(iterator);
+			}
+			else
+			{
+				nodes.AddRange(iterator.FindTop(filter));
+			}
 		}
 
 		return nodes;
@@ -587,9 +588,9 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return new NodeEnumerator(this);
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Node node &&
+		return other is Node node &&
 			   GetNodeType() == node.GetNodeType() &&
 			   EqualityComparer<Node?>.Default.Equals(Next, node.Next) &&
 			   EqualityComparer<Node?>.Default.Equals(First, node.First);

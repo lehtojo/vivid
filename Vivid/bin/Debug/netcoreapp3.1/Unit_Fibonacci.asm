@@ -15,33 +15,38 @@ push rdi
 push rbp
 push r12
 sub rsp, 48
-xor rbx, rbx
-xor rsi, rsi
-mov rdi, 1
-xor rbp, rbp
-mov r12, rcx
-cmp rbx, r12
+xor rax, rax
+xor rdx, rdx
+mov r8, 1
+xor r9, r9
+cmp rax, rcx
 jge _V9fibonaccix_L1
 _V9fibonaccix_L0:
-cmp rbx, 1
+cmp rax, 1
 jg _V9fibonaccix_L4
-mov rcx, rbx
-mov rsi, rcx
+mov rdx, rax
 jmp _V9fibonaccix_L3
 _V9fibonaccix_L4:
-lea rcx, [rbp+rdi]
-mov rdx, rdi
-mov r8, rcx
-mov rbp, rdx
-mov rdi, r8
-mov rsi, rcx
+lea rdx, [r9+r8]
+mov r9, r8
+mov r8, rdx
 _V9fibonaccix_L3:
-mov rcx, rsi
+mov rbx, rcx
+mov rcx, rdx
+mov rsi, rax
+mov rdi, rdx
+mov rbp, r8
+mov r12, r9
 call _V9to_stringx_rP6String
 mov rcx, rax
-call _V8printslnP6String
-add rbx, 1
-cmp rbx, r12
+call _V7printlnP6String
+add rsi, 1
+mov rax, rsi
+mov rcx, rbx
+mov rdx, rdi
+mov r9, r12
+mov r8, rbp
+cmp rax, rcx
 jl _V9fibonaccix_L0
 _V9fibonaccix_L1:
 add rsp, 48
@@ -68,21 +73,21 @@ push rbp
 sub rsp, 40
 mov rbx, rcx
 lea rcx, [rel _V9to_stringx_rP6String_S0]
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 lea rcx, [rel _V9to_stringx_rP6String_S1]
 mov rsi, rax
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 test rbx, rbx
 jge _V9to_stringx_rP6String_L0
 lea rcx, [rel _V9to_stringx_rP6String_S2]
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 neg rbx
 _V9to_stringx_rP6String_L0:
-mov rdi, rax
 _V9to_stringx_rP6String_L3:
 _V9to_stringx_rP6String_L2:
+mov rdi, rax
 mov rax, rbx
-xor rdx, rdx
+cqo
 mov rcx, 10
 idiv rcx
 mov rax, rbx
@@ -112,6 +117,7 @@ ret
 mov rax, rsi
 _V9to_stringx_rP6String_L5:
 mov rsi, rax
+mov rax, rdi
 jmp _V9to_stringx_rP6String_L2
 _V9to_stringx_rP6String_L4:
 add rsp, 40
@@ -121,7 +127,7 @@ pop rsi
 pop rbx
 ret
 
-_V8printslnP6String:
+_V7printlnP6String:
 push rbx
 sub rsp, 48
 mov rdx, 10
@@ -140,13 +146,13 @@ add rsp, 48
 pop rbx
 ret
 
-_VN6String4initEPh_rS0_:
+_VN6String4initEPh_rPS_:
 push rbx
 sub rsp, 48
 mov rbx, rcx
-mov rcx, 8
+mov rcx, 16
 call _V8allocatex_rPh
-mov qword [rax], rbx
+mov qword [rax+8], rbx
 add rsp, 48
 pop rbx
 ret
@@ -167,18 +173,18 @@ add rax, 1
 lea rcx, [rdi+rax]
 mov rbp, rax
 call _V8allocatex_rPh
-mov rcx, [rbx]
+mov rcx, [rbx+8]
 mov rdx, rdi
 mov r8, rax
 mov rbx, rax
 call _V4copyPhxPS_
-mov rcx, [rsi]
+mov rcx, [rsi+8]
 mov rdx, rbp
 mov r8, rbx
 mov r9, rdi
 call _V11offset_copyPhxPS_x
 mov rcx, rbx
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 add rsp, 40
 pop rbp
 pop rdi
@@ -197,7 +203,7 @@ call _VN6String6lengthEv_rx
 lea rcx, [rax+2]
 mov rdi, rax
 call _V8allocatex_rPh
-mov rcx, [rbx]
+mov rcx, [rbx+8]
 mov rdx, rdi
 mov r8, rax
 mov rbx, rax
@@ -206,7 +212,7 @@ mov byte [rbx+rdi], sil
 add rdi, 1
 mov byte [rbx+rdi], 0
 mov rcx, rbx
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 add rsp, 48
 pop rdi
 pop rsi
@@ -227,7 +233,7 @@ call _VN6String6lengthEv_rx
 lea rcx, [rax+2]
 mov rbp, rax
 call _V8allocatex_rPh
-mov rcx, [rbx]
+mov rcx, [rbx+8]
 mov rdx, rsi
 mov r8, rax
 mov r12, rax
@@ -236,14 +242,14 @@ mov rcx, rbp
 sub rcx, rsi
 lea r9, [rsi+1]
 mov rdx, rcx
-mov rcx, [rbx]
+mov rcx, [rbx+8]
 mov r8, r12
 call _V11offset_copyPhxPS_x
 mov byte [r12+rsi], dil
 add rbp, 1
 mov byte [r12+rbp], 0
 mov rcx, r12
-call _VN6String4initEPh_rS0_
+call _VN6String4initEPh_rPS_
 add rsp, 48
 pop r12
 pop rbp
@@ -253,18 +259,18 @@ pop rbx
 ret
 
 _VN6String4dataEv_rPh:
-mov rax, [rcx]
+mov rax, [rcx+8]
 ret
 
 _VN6String6lengthEv_rx:
 xor rax, rax
-mov r8, [rcx]
+mov r8, [rcx+8]
 movzx rdx, byte [r8+rax]
 test rdx, rdx
 je _VN6String6lengthEv_rx_L1
 _VN6String6lengthEv_rx_L0:
 add rax, 1
-mov r8, [rcx]
+mov r8, [rcx+8]
 movzx rdx, byte [r8+rax]
 test rdx, rdx
 jne _VN6String6lengthEv_rx_L0
@@ -272,6 +278,17 @@ _VN6String6lengthEv_rx_L1:
 ret
 
 section .data
+
+_VN6String_configuration:
+dq _VN6String_descriptor
+
+_VN6String_descriptor:
+dq _VN6String_descriptor_0
+dd 16
+dd 0
+
+_VN6String_descriptor_0:
+db 'String', 0
 
 align 16
 _V9to_stringx_rP6String_S0 db 0

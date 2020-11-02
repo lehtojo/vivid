@@ -9,17 +9,18 @@ public class GetObjectPointerInstruction : Instruction
 
 	public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset) : base(unit)
 	{
-		Result.Metadata.Attach(new VariableAttribute(variable));
-		Result.Format = variable.Type!.Format;
-
 		Variable = variable;
 		Start = start;
 		Offset = offset;
+
+		Result.Metadata.Attach(new VariableAttribute(Variable));
+		Result.Format = Variable.Type!.Format;
 	}
 
 	public override void OnBuild()
 	{
 		Result.Value = new MemoryHandle(Unit, Start, Offset);
+		Result.Format = Variable.Type!.Format;
 	}
 
 	public override Result[] GetResultReferences()

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System;
 
 class AssignPattern : Pattern
 {
@@ -29,6 +30,8 @@ class AssignPattern : Pattern
 	{
 		var destination = tokens[DESTINATION].To<IdentifierToken>();
 
+		Variable? variable;
+
 		if (!context.IsVariableDeclared(destination.Value))
 		{
 			if (destination.Value == Function.SELF_POINTER_IDENTIFIER || destination.Value == Lambda.SELF_POINTER_IDENTIFIER)
@@ -39,7 +42,7 @@ class AssignPattern : Pattern
 			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
 			var is_constant = !context.IsInsideFunction && !context.IsInsideType;
 
-			var variable = new Variable
+			variable = new Variable
 			(
 				context,
 				Types.UNKNOWN,
@@ -51,7 +54,19 @@ class AssignPattern : Pattern
 			return new VariableNode(variable);
 		}
 
-		return new VariableNode(context.GetVariable(destination.Value)!);
+		variable = context.GetVariable(destination.Value)!;
+
+		if (variable.IsMember)
+		{
+			var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+
+			return new LinkNode(
+				new VariableNode(self),
+				new VariableNode(variable)
+			);
+		}
+
+		return new VariableNode(variable);
 	}
 
 	public override int GetEnd()

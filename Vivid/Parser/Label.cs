@@ -19,9 +19,9 @@ public class Label
 		throw new InvalidOperationException("Use method 'GetName' instead of 'ToString' when interacting with labels");
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Label label &&
+		return other is Label label &&
 			   Name == label.Name;
 	}
 

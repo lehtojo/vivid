@@ -1,5 +1,5 @@
-import cos(x: decimal) => decimal
-import sin(x: decimal) => decimal
+import cos(x: decimal): decimal
+import sin(x: decimal): decimal
 import sleep(x: num)
 import fill(destination: link, count: num, value: num)
 

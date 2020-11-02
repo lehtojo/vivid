@@ -1,3 +1,4 @@
+###
 import large_function()
 
 f(x, y, z, w) {
@@ -88,6 +89,7 @@ init() {
         printsln(to_string_decimal(-2.14159))
     }
 }
+###
 
 ###
 init() {
@@ -112,3 +114,127 @@ init() {
     => f(1, 2, 3, 4)
 }
 ###
+
+import large_function()
+
+Dummy {
+    x: num
+
+    act_dummy()
+}
+
+Bummy {
+    y: num
+
+    init(y) {
+        this.y = y
+    }
+
+    act_bummy()
+}
+
+Dummy Bummy Object {
+    a: num
+    b: num
+    c: num = 7
+
+    x: num
+
+    init() {
+        Bummy(1)
+        a = 1
+        b = -1
+        large_function()
+    }
+
+    act_dummy() {
+        println('Yeeet')
+    }
+
+    act_bummy() {
+        println('Gimme money')
+    }
+
+    sum() => a + b
+}
+
+execute_dummy(dummy: Dummy) {
+    dummy.act_dummy()
+}
+
+execute_bummy(bummy: Bummy) {
+    bummy.act_bummy()
+}
+
+haha(c) {
+    => when(c) { 1 => c - 1, else => c + 1 } + 
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 } +
+        when(c) { 1 => c - 1, else => c + 1 }
+}
+
+init() {
+    object = Object()
+
+    a = TypeDescriptor(object as link)
+    b = TypeDescriptor(object as link)
+
+    if a == b {
+        println('They are the same!')
+    }
+
+    if object is Object x {
+        println('Woooa!')
+        x.a = 8
+        println(x.sum())
+    }
+
+    c = haha(10)
+
+    d = when(c) {
+        
+        10 => c * 2,
+        7 => { 
+            println('It\'s perfect')
+            c - 1
+        },
+        else => c * c
+
+    } + when(c - 1) {
+        1 => c,
+        else => c - 1
+    }
+
+    println(d)
+    
+    println(a.name())
+    println(a.size())
+
+    object.act_dummy()
+    object.act_bummy()
+
+    execute_dummy(object)
+    execute_bummy(object)
+
+    => object.sum()
+}

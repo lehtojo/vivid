@@ -11,7 +11,7 @@ public class IncrementNode : Node, IType
 		Post = post;
 	}
 
-	public Type? GetType()
+	public new Type? GetType()
 	{
 		return Object.TryGetType();
 	}

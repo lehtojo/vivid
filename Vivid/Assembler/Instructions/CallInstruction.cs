@@ -8,7 +8,7 @@ public class CallInstruction : Instruction
 
 	public Result Function { get; }
 	public CallingConvention Convention { get; }
-	public List<Instruction> ParameterInstructions { get; set;  } = new List<Instruction>();
+	public List<Instruction> ParameterInstructions { get; set; } = new List<Instruction>();
 
 	private bool IsParameterInstructionListExtracted => IsBuilt;
 

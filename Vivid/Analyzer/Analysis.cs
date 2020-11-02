@@ -1464,7 +1464,7 @@ public static class Analysis
 
 			if (evaluation != null)
 			{
-				comparison.Replace(new NumberNode(Parser.Size.ToFormat(), (bool)evaluation ? 1L : 0L));
+				comparison.Replace(new NumberNode(Parser.Format, (bool)evaluation ? 1L : 0L));
 				precomputed = true;
 			}
 		}
@@ -2137,7 +2137,6 @@ public static class Analysis
 
 			if (!parent.Is(
 				NodeType.CAST,
-				NodeType.CONSTRUCTION,
 				NodeType.DECREMENT,
 				NodeType.ELSE_IF,
 				NodeType.ELSE,
@@ -2209,7 +2208,6 @@ public static class Analysis
 	{
 		return value.Parent!.Is(
 			NodeType.CAST,
-			NodeType.CONSTRUCTION,
 			NodeType.CONTENT,
 			NodeType.DECREMENT,
 			NodeType.FUNCTION,
@@ -2307,6 +2305,244 @@ public static class Analysis
 		root.ForEach(RemoveRedundantParenthesis);
 	}
 
+	/// <summary>
+	/// Creates a condition which passes if the source has the same type as the specified type in runtime
+	/// </summary>
+	private static Node CreateTypeCondition(Node source, Type expected)
+	{
+		var type = source.GetType();
+	
+		if (type.Configuration == null || expected.Configuration == null)
+		{
+			// If the configuration of the type is not present, it means that the type can not be inherited
+			// Since the type can not be inherited, this means the result of the condition can be determined
+
+			return new NumberNode(Parser.Format, type == expected ? 1L : 0L);
+		}
+
+		var configuration = type.GetConfigurationVariable();
+		var start = new LinkNode(source, new VariableNode(configuration));
+
+		return new OperatorNode(Operators.EQUALS).SetOperands(
+			OffsetNode.CreateConstantOffset(start, 0, 1, Parser.Format),
+			new DataPointer(expected.Configuration.Descriptor)
+		);
+	}
+
+	/// <summary>
+	/// Rewrites is expressions so that they use logic that can be compiled
+	/// </summary>
+	private static void RewriteIsExpressions(Node root)
+	{
+		var expressions = root.FindAll(i => i.Is(NodeType.IS)).Cast<IsNode>().ToList();
+
+		for (var i = expressions.Count - 1; i >= 0; i--)
+		{
+			var expression = expressions[i];
+
+			if (expression.HasResultVariable)
+			{
+				continue;
+			}
+
+			expression.Replace(CreateTypeCondition(expression.Object, expression.Type));
+			expressions.RemoveAt(i);
+		}
+
+		foreach (var expression in expressions)
+		{
+			// Initialize the result variable
+			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(expression.Result),
+				new NumberNode(Parser.Format, 0L)
+			);
+
+			// The result variable must be initialized outside the condition
+			Inlines.GetInlineInsertPosition(expression).Insert(initialization);
+
+			// Get the context of the expression
+			var expression_context = expression.FindContext().GetContext().Parent!;
+
+			// Declare a variable which is used to store the inspected object
+			var object_type = expression.Object.GetType();
+			var object_variable = expression_context.DeclareHidden(object_type);
+
+			// Load the inspected object
+			var load = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(object_variable),
+				expression.Object
+			);
+
+			var assignment_context = new Context();
+			assignment_context.Link(expression_context);
+
+			// Create a condition which passes if the inspected object is the expected type
+			var condition = CreateTypeCondition(new VariableNode(object_variable), expression.Type);
+
+			// Create an assignment which assigns the inspected object to the result variable while casting it to the expected type
+			var assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(expression.Result),
+				new CastNode(new VariableNode(object_variable), new TypeNode(expression.Type))
+			);
+
+			var conditional_assignment = new IfNode(assignment_context, condition, assignment);
+
+			// Create a condition which represents the result of the is expression
+			var result_condition = new VariableNode(expression.Result);
+
+			// Replace the expression with the logic above
+			expression.Replace(new InlineNode() { load, conditional_assignment, result_condition });
+		}
+	}
+
+	/// <summary>
+	/// Adds logic for allocating the instance, registering virtual functions and initializing member variables to the constructors of the specified type
+	/// </summary>
+	private static void CompleteConstructors(Type type)
+	{
+		if (type.Configuration == null)
+		{
+			return;
+		}
+
+		var virtual_functions = type.GetAllVirtualFunctions();
+		var expressions = new List<OperatorNode>(type.Initialization);
+
+		if (type.Configuration != null)
+		{
+			// Complete the descriptor of the type
+			type.Configuration.Descriptor.Add(type.ContentSize);
+			type.Configuration.Descriptor.Add(type.Supertypes.Count);
+
+			type.Supertypes.ForEach(i => type.Configuration.Descriptor.Add(i.Configuration?.Descriptor ?? throw new ApplicationException("Missing runtime configuration from a supertype")));
+		}
+
+		var offset = Parser.Bytes;
+
+		foreach (var supertype in type.GetAllSupertypes())
+		{
+			// Begin a new section inside the configuration table
+			type.Configuration!.Entry.Add(type.Configuration.Descriptor);
+
+			if (supertype.Configuration == null)
+			{
+				throw new ApplicationException("Type inherited a type which did not have runtime configuration");
+			}
+
+			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(supertype.Configuration.Variable),
+				new DataPointer(type.Configuration.Entry, offset)
+			);
+
+			expressions.Add(initialization);
+
+			offset += Parser.Bytes;
+
+			foreach (var virtual_function in supertype.GetAllVirtualFunctions())
+			{
+				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
+
+				if (overloads == null)
+				{
+					if (virtual_function.Parent != type)
+					{
+						// TODO: This should not be allowed since virtual functions should always be overloaded
+						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+					}
+
+					continue;
+				}
+
+				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
+
+				FunctionImplementation? implementation = null;
+
+				foreach (var overload in overloads)
+				{
+					var actual = overload.Parameters.Select(i => i.Type).ToList();
+
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
+					{
+						continue;
+					}
+
+					implementation = overload.Get(expected!);
+					break;
+				}
+
+				if (implementation == null)
+				{
+					if (virtual_function.Parent != type)
+					{
+						// TODO: This should not be allowed since virtual functions should always be overloaded
+						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+					}
+
+					continue;
+				}
+
+				type.Configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
+				offset += Parser.Bytes;
+			}
+		}
+
+		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
+		{
+			var self = constructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer in a constructor");
+
+			var allocation_size = Math.Max(1L, type.ContentSize);
+			var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
+
+			var allocation = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(self),
+				new FunctionNode(Parser.AllocationFunction!).SetParameters(allocation_parameters)
+			);
+
+			expressions.Add(allocation);
+
+			foreach (var iterator in expressions)
+			{
+				var expression = iterator.Clone().To<OperatorNode>();
+				var members = expression.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsMember && !i.Parent!.Is(NodeType.LINK));
+
+				foreach (var member in members)
+				{
+					member.Replace(new LinkNode(new VariableNode(self), member.Clone()));
+				}
+
+				var position = constructor.Node!.First;
+
+				if (position == null)
+				{
+					constructor.Node!.Add(expression);
+				}
+				else
+				{
+					constructor.Node!.Insert(position, expression);
+				}
+			}
+
+			foreach (var return_statement in constructor.Node!.FindAll(i => i.Is(NodeType.RETURN)))
+			{
+				return_statement.Replace(new ReturnNode(new VariableNode(self)));
+			}
+
+			constructor.Node!.Add(new ReturnNode(new VariableNode(self)));
+		}
+	}
+
+	/// <summary>
+	/// Adds logic for allocating the instance, registering virtual functions and initializing member variables to the constructors of the specified type
+	/// </summary>
+	public static void Complete(Context context)
+	{
+		foreach (var type in context.Types.Values)
+		{
+			Complete((Context)type);
+			CompleteConstructors(type);
+		}
+	}
+
 	public static void Analyze(Context context)
 	{
 		foreach (var type in context.Types.Values)
@@ -2321,6 +2557,7 @@ public static class Analysis
 			RemoveCancellingNots(implementation.Node!);
 			OutlineBooleanValues(implementation.Node!);
 			RewriteDiscardedIncrements(implementation.Node!);
+			RewriteIsExpressions(implementation.Node!);
 
 			implementation.Node = Optimize(implementation.Node!, implementation);
 

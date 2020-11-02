@@ -91,6 +91,7 @@ public class Patterns
 		Add(new IfPattern());
 		Add(new ImportPattern());
 		Add(new InheritancePattern());
+		Add(new IsPattern());
 		Add(new LambdaPattern());
 		Add(new PostIncrementAndDecrementPattern());
 		Add(new PreIncrementAndDecrementPattern());
@@ -113,5 +114,7 @@ public class Patterns
 		Add(new TypePattern());
 		Add(new UnarySignPattern());
 		Add(new VariableDeclarationPattern());
+		Add(new VirtualFunctionPattern());
+		Add(new WhenPattern());
 	}
 }

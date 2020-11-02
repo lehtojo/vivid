@@ -170,6 +170,8 @@ public class ResolverPhase : Phase
 			return Status.Error("Compilation error");
 		}
 
+		Analysis.Complete(context);
+
 		// Build inline functions
 		//Inlines.Build(context);
 

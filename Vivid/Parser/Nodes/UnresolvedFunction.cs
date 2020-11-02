@@ -72,7 +72,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		var unresolved = parameters.Where(p => p.Type.IsUnresolved).ToArray();
 
 		// Ensure all the unresolved parameter types represent lambda types
-		if (!unresolved.All(p => p.Type is LambdaType && p.Node.Is(NodeType.LAMBDA)) ||
+		if (!unresolved.All(p => p.Type is CallDescriptorType && p.Node.Is(NodeType.LAMBDA)) ||
 			!environment.IsFunctionDeclared(Name))
 		{
 			return;
@@ -103,12 +103,12 @@ public class UnresolvedFunction : Node, IResolvable, IType
 				var actual = types[i];
 
 				// Skip all parameter types which don't represent lambda types
-				if (expected == null || !(actual is LambdaType))
+				if (expected == null || !(actual is CallDescriptorType))
 				{
 					continue;
 				}
 
-				if (!(expected is LambdaType))
+				if (!(expected is CallDescriptorType))
 				{
 					// Since the actual parameter type is lambda type and the expected is not, the current candidate can be removed
 					candidates.RemoveAt(c);
@@ -129,12 +129,12 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		for (var i = 0; i < expected_types.Length; i++)
 		{
 			// Skip all parameter types which don't represent lambda types
-			if (!(expected_types[i] is LambdaType expected))
+			if (!(expected_types[i] is CallDescriptorType expected))
 			{
 				continue;
 			}
 
-			var actual = (LambdaType)types[i];
+			var actual = (CallDescriptorType)types[i];
 
 			// Ensure the parameter types don't conflict
 			if (expected.Parameters.Count != actual.Parameters.Count ||
@@ -151,7 +151,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		}
 	}
 
-	public Node? Solve(Context environment, Context context)
+	public Node? Solve(Context environment, Context primary)
 	{
 		// Try to solve all the parameters
 		foreach (var parameter in this)
@@ -177,28 +177,30 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		}
 
 		// Try to find a suitable function by name and parameter types
-		var function = Singleton.GetFunctionByName(context, Name, types, TemplateArguments);
+		var function = Singleton.GetFunctionByName(primary, Name, types, TemplateArguments);
+
+		// First, ensure this function can be a virtual or a lambda call
+		if (function == null && primary == environment && !TemplateArguments.Any())
+		{
+			// Try to form a virtual function call
+			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
+
+			if (result != null)
+			{
+				return result;
+			}
+
+			// Try to form a lambda function call
+			result = Common.TryGetLambdaCall(environment, Name, this, types!);
+
+			if (result != null)
+			{
+				return result;
+			}
+		}
 
 		if (function == null)
 		{
-			// Try to solve this function as a lambda
-			if (TemplateArguments.Any() || !context.IsVariableDeclared(Name))
-			{
-				return null;
-			}
-
-			var variable = context.GetVariable(Name)!;
-
-			// Ensure the variable is a lambda
-			if (variable.Type is LambdaType)
-			{
-				var call = new LambdaCallNode(this);
-
-				return environment == context
-					? new LinkNode(new VariableNode(variable), call)
-					: (Node)call;
-			}
-
 			return null;
 		}
 
@@ -206,12 +208,12 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 		if (function.IsConstructor)
 		{
-			return new ConstructionNode(node);
+			return node;
 		}
 
 		// When the environment context is the same as the current context it means that this function is not part of a link
 		// When the function is a member function and the this function is not part of a link it means that the function needs the self pointer
-		if (function.IsMember && environment == context)
+		if (function.IsMember && environment == primary)
 		{
 			var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 

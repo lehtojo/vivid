@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class TypeNode : Node, IType, IContext
 {
@@ -23,18 +24,13 @@ public class TypeNode : Node, IType, IContext
 
 	public void Parse()
 	{
+		Type.AddRuntimeConfiguration();
+
 		Parser.Parse(this, Type, Body);
 		Body.Clear();
 
 		// Find all expressions which represent type initialization
-		var expressions = FindChildren(n => !n.Is(NodeType.FUNCTION_DEFINITION) && !n.Is(NodeType.VARIABLE));
-
-		// Pack all expressions under an initialization node
-		var initialization = new Node();
-		expressions.ForEach(e => initialization.Add(e));
-
-		// Save the initialization for other constructors
-		Type.Initialization = initialization;
+		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
 	}
 
 	public new Type? GetType()

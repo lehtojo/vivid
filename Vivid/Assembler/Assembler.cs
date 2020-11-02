@@ -55,7 +55,6 @@ public static class Assembler
 
 				builder.AppendLine($"extern {implementation.GetFullname()}");
 			}
-
 		}
 
 		builder.Append(SEPARATOR);
@@ -76,7 +75,7 @@ public static class Assembler
 
 			constants.AddRange(lambda_constants);
 
-			if (implementation.IsInlined || implementation.IsEmpty && (!function.IsConstructor || ((Constructor)function).IsEmpty))
+			if (implementation.IsInlined || implementation.IsEmpty)
 			{
 				continue;
 			}
@@ -92,15 +91,40 @@ public static class Assembler
 				}
 			}
 
-			// Append the function label
-			builder.AppendLine(implementation.GetFullname() + ':');
-
+			var fullname = implementation.GetFullname();
 			var unit = new Unit(implementation);
 
 			unit.Execute(UnitPhase.APPEND_MODE, () =>
 			{
 				// Create the most outer scope where all instructions will be placed
 				using var scope = new Scope(unit);
+
+				if (implementation.VirtualFunction != null)
+				{
+					unit.Append(new LabelInstruction(unit, new Label(fullname + "_v")));
+
+					var from = implementation.VirtualFunction.GetTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
+					var to = implementation.GetTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
+
+					// NOTE: The type 'from' must be one of the subtypes that type 'to' has
+					var alignment = to.GetSupertypeBaseOffset(from);
+
+					if (alignment == null || alignment < 0)
+					{
+						throw new ApplicationException("Could not add virtual function header");
+					}
+
+					if (alignment != 0)
+					{
+						var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"));
+						var offset = References.GetConstant(unit, new NumberNode(Format, (long)alignment));
+
+						// Convert the self pointer to the type 'to' by offsetting it
+						unit.Append(new SubtractionInstruction(unit, self, offset, Format, true));
+					}
+				}
+
+				unit.Append(new LabelInstruction(unit, new Label(fullname)));
 
 				// Initialize this function
 				unit.Append(new InitializeInstruction(unit));
@@ -115,19 +139,7 @@ public static class Assembler
 
 				unit.Append(new RequireVariablesInstruction(unit, variables));
 
-				if (function is Constructor a)
-				{
-					Constructors.CreateHeader(unit, a.GetTypeParent() ??
-						throw new ApplicationException("Could not get constructor owner type"));
-				}
-
 				Builders.Build(unit, implementation.Node!);
-
-				if (function is Constructor b)
-				{
-					Constructors.CreateFooter(unit, b.GetTypeParent() ??
-						throw new ApplicationException("Could not get constructor owner type"));
-				}
 			});
 
 			// Sprinkle a little intelligence into the output code
@@ -223,11 +235,6 @@ public static class Assembler
 		foreach (var type in context.Types.Values)
 		{
 			nodes.AddRange(GetStringNodes(type));
-
-			if (type.Initialization != null)
-			{
-				nodes.AddRange(GetStringNodes(type.Initialization));
-			}
 		}
 
 		return nodes;
@@ -300,6 +307,47 @@ public static class Assembler
 		return builder.Append('0').ToString();
 	}
 
+	private static void AppendTable(StringBuilder builder, Table table)
+	{
+		if (table.IsBuilt)
+		{
+			return;
+		}
+
+		table.IsBuilt = true;
+
+		builder.AppendLine(table.Name + ':');
+
+		var subtables = new List<Table>();
+
+		foreach (var item in table.Items)
+		{
+			var result = item switch
+			{
+				string a => $"{Size.BYTE.Allocator} '{a}', 0",
+				long b => $"{Size.QWORD.Allocator} {b}",
+				int c => $"{Size.DWORD.Allocator} {c}",
+				short d => $"{Size.WORD.Allocator} {d}",
+				byte e => $"{Size.BYTE.Allocator} {e}",
+				Table f => $"{Size.Allocator} {f.Name}",
+				Label g => $"{Size.Allocator} {g.GetName()}",
+				_ => throw new ApplicationException("Invalid table item")
+			};
+
+			builder.Append(result);
+			builder.AppendLine();
+
+			if (item is Table subtable && !subtable.IsBuilt)
+			{
+				subtables.Add(subtable);
+			}
+		}
+
+		builder.Append(SEPARATOR);
+
+		subtables.ForEach(i => AppendTable(builder, i));
+	}
+
 	private static string GetData(Context context)
 	{
 		var builder = new StringBuilder();
@@ -308,6 +356,14 @@ public static class Assembler
 		{
 			builder.AppendLine(GetStaticVariables(type));
 			builder.Append(SEPARATOR);
+		}
+
+		foreach (var type in context.Types.Values)
+		{
+			if (type.Configuration != null)
+			{
+				AppendTable(builder, type.Configuration.Entry);
+			}
 		}
 
 		var nodes = GetStringNodes(context);

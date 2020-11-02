@@ -27,7 +27,7 @@ to_string(n: num) {
 ###
 summary: Converts the specified decimal number into a string
 ###
-to_string_decimal(n: decimal) {
+to_string(n: decimal) {
 	result = to_string(n as num)
 
 	if n < 0 {
