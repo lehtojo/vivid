@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace Zigzag.Unit
+namespace Vivid.Unit
 {
 	[TestFixture]
 	public class LexerTests

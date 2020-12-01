@@ -8,7 +8,10 @@ public class ElseNode : Node, IResolvable, IContext
 	public ElseNode(Context context, Node body)
 	{
 		Context = context;
-		Add(body);
+
+		Add(new ContextNode(context));
+
+		body.ForEach(i => Body.Add(i));
 	}
 
 	public IfNode GetRoot()

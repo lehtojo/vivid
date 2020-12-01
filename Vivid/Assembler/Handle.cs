@@ -60,7 +60,7 @@ public class Handle
 
 	public override string ToString()
 	{
-		throw new NotImplementedException("Missing text conversion from handle");
+		return string.Empty;
 	}
 }
 
@@ -100,6 +100,8 @@ public class DataSectionHandle : Handle
 {
 	public string Identifier { get; set; }
 	public long Offset { get; set; } = 0;
+
+	// Address means whether to use the value of the address or not
 	public bool Address { get; set; } = false;
 
 	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY)
@@ -237,7 +239,12 @@ public class ConstantHandle : Handle
 
 	public override string ToString()
 	{
-		var result = Value?.ToString()?.Replace(',', '.') ?? throw new NullReferenceException("Constant value was missing");
+		var result = Value?.ToString()?.Replace(',', '.');
+
+		if (result == null)
+		{
+			return string.Empty;
+		}
 
 		if (Format.IsDecimal() && !result.Contains('.'))
 		{
@@ -360,7 +367,7 @@ public class MemoryHandle : Handle
 			}
 		}
 
-		throw new ApplicationException("Start of the memory handle was no longer in register");
+		return string.Empty;
 	}
 
 	public override Result[] GetRegisterDependentResults()
@@ -508,7 +515,7 @@ public class ComplexMemoryHandle : Handle
 		}
 		else
 		{
-			throw new ApplicationException("Complex memory address's offset was not a constant or in a register");
+			return string.Empty;
 		}
 
 		if (Start.Value.Type == HandleType.REGISTER ||
@@ -526,7 +533,7 @@ public class ComplexMemoryHandle : Handle
 			}
 		}
 
-		throw new ApplicationException("Base of the memory handle was no longer in register");
+		return string.Empty;
 	}
 
 	public override Result[] GetRegisterDependentResults()
@@ -541,18 +548,12 @@ public class ComplexMemoryHandle : Handle
 
 	public override Handle Finalize()
 	{
-		if ((Start.Value.Type == HandleType.REGISTER || Start.Value.Type == HandleType.CONSTANT) &&
-		   (Offset.Value.Type == HandleType.REGISTER || Offset.Value.Type == HandleType.CONSTANT))
-		{
-			return new ComplexMemoryHandle
-			(
-			   new Result(Start.Value, Start.Format),
-			   new Result(Offset.Value, Offset.Format),
-			   Stride
-			);
-		}
-
-		throw new ApplicationException("Parameters of a complex memory handle were in invalid format for freeze operation");
+		return new ComplexMemoryHandle
+		(
+			new Result(Start.Value.Finalize(), Start.Format),
+			new Result(Offset.Value.Finalize(), Offset.Format),
+			Stride
+		);
 	}
 
 	public override bool Equals(object? other)
@@ -579,6 +580,11 @@ public class CalculationHandle : Handle
 	public static CalculationHandle CreateAddition(Result left, Result right)
 	{
 		return new CalculationHandle(left, 1, right, 0);
+	}
+
+	public static CalculationHandle CreateAddition(Handle left, Handle right)
+	{
+		return new CalculationHandle(new Result(left, Assembler.Format), 1, new Result(right, Assembler.Format), 0);
 	}
 
 	public CalculationHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.CALCULATION)

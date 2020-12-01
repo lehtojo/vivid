@@ -1,8 +1,8 @@
-public class Link : Type
+public class Link : Number
 {
 	private const int STRIDE = 1;
 
-	public Link() : base("link", AccessModifier.PUBLIC)
+	public Link() : base(Parser.Format, Parser.Size.Bits, true, "link")
 	{
 		Identifier = "h";
 	}

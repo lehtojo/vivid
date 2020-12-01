@@ -10,7 +10,7 @@ public static class Assembler
 {
 	private const string ALLOCATE_FUNCTION_IDENTIFIER = "allocate";
 
-	public static Function? AllocationFunction { get; private set; }
+	public static Function? AllocationFunction { get; set; }
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
@@ -132,7 +132,7 @@ public static class Assembler
 				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
 				var variables = unit.Function.Parameters;
 
-				if (unit.Function.Metadata!.IsMember && !unit.Function.Metadata!.IsConstructor)
+				if ((unit.Function.Metadata!.IsMember || implementation.IsLambda) && !unit.Function.Metadata!.IsConstructor)
 				{
 					variables.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
 				}
@@ -324,7 +324,7 @@ public static class Assembler
 		{
 			var result = item switch
 			{
-				string a => $"{Size.BYTE.Allocator} '{a}', 0",
+				string a => $"{Size.BYTE.Allocator} {FormatString(a)}",
 				long b => $"{Size.QWORD.Allocator} {b}",
 				int c => $"{Size.DWORD.Allocator} {c}",
 				short d => $"{Size.WORD.Allocator} {d}",

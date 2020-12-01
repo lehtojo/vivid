@@ -25,7 +25,7 @@ public class LoopControlNode : Node
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Instruction);
 		return hash.ToHashCode();

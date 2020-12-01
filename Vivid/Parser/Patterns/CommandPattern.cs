@@ -22,7 +22,7 @@ public class CommandPattern : Pattern
 	{
 		var instruction = tokens[INSTRUCTION].To<KeywordToken>();
 
-		return instruction.Keyword == Keywords.STOP || instruction.Keyword == Keywords.CONTINUE;
+		return instruction.Keyword == Keywords.STOP || instruction.Keyword == Keywords.CONTINUE || instruction.Keyword == Keywords.RETURN;
 	}
 
 	public override Node? Build(Context context, List<Token> tokens)

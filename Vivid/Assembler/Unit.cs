@@ -109,7 +109,7 @@ public class Unit
 		{
 			new Register(Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.NUMERATOR),
 			new Register(Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
-			new Register(Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
+			new Register(Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE | RegisterFlag.SHIFT),
 			new Register(Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
 			new Register(Size.QWORD, new [] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
 			new Register(Size.QWORD, new [] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
@@ -561,6 +561,11 @@ public class Unit
 		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER)) ?? throw new ApplicationException("Architecture did not have a remainder register");
 	}
 
+	public Register GetShiftRegister()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.SHIFT)) ?? throw new ApplicationException("Architecture did not have a shift register");
+	}
+
 	public void Reset()
 	{
 		Registers.ForEach(r => r.Reset(true));
@@ -697,6 +702,7 @@ public class Unit
 		}
 	}
 
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Lower invariant is needed here because of styling")]
 	public override string ToString()
 	{
 		var occupied_register = Registers.Where(r => r.Handle != null);

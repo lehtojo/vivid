@@ -333,6 +333,6 @@ public class Result
 
 	public override string ToString()
 	{
-		return Value?.ToString() ?? throw new InvalidOperationException("Missing value");
+		return Value?.ToString() ?? string.Empty;
 	}
 }

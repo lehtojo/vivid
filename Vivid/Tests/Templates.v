@@ -31,7 +31,7 @@ Pack<A, B> {
 		 => third
 	  }
 	  else {
-		 => none as first
+		 => none as Pair<A, B>
 	  }
    }
 

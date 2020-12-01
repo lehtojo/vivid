@@ -6,7 +6,7 @@ public static class Translator
 {
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
 	{
-		return unit.Instructions.SelectMany(i => i.Parameters).Where(p => p.IsRegister && !p.Value!.To<RegisterHandle>().Register.IsVolatile).Select(p => p.Value!.To<RegisterHandle>().Register).Distinct().ToList();
+		return unit.Instructions.SelectMany(i => i.Parameters).Where(p => p.IsAnyRegister && !p.Value!.To<RegisterHandle>().Register.IsVolatile).Select(p => p.Value!.To<RegisterHandle>().Register).Distinct().ToList();
 	}
 
 	private static IEnumerable<Handle> GetAllHandles(Unit unit)
@@ -54,6 +54,11 @@ public static class Translator
 
 	public static string Translate(Unit unit, out List<ConstantDataSectionHandle> constants)
 	{
+		if (Analysis.IsInstructionAnalysisEnabled)
+		{
+			InstructionAnalysis.Optimize(unit);
+		}
+		
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);

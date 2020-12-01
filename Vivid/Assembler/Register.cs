@@ -6,12 +6,12 @@ public static class RegisterFlag
 	public const int VOLATILE = 1;
 	public const int RESERVED = 2;
 	public const int RETURN = 4;
-	public const int BASE_POINTER = 8;
-	public const int STACK_POINTER = 16;
-	public const int NUMERATOR = 32;
-	public const int REMAINDER = 64;
-	public const int MEDIA = 128;
-	public const int DECIMAL_RETURN = 256;
+	public const int STACK_POINTER = 8;
+	public const int NUMERATOR = 16;
+	public const int REMAINDER = 32;
+	public const int MEDIA = 64;
+	public const int DECIMAL_RETURN = 128;
+	public const int SHIFT = 256;
 }
 
 public class Register
@@ -32,7 +32,7 @@ public class Register
 		get => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
 	}
 
-	public int Flags { get; private set; }
+	public int Flags { get; set; }
 
 	public bool IsUsed { get; private set; } = false;
 	public bool IsLocked { get; set; } = false;

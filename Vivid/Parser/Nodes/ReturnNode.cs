@@ -48,7 +48,7 @@ public class ReturnNode : InstructionNode, IResolvable
 		}
 
 		// Find the parent function where the return value can be assigned
-		var function = FindContext().GetContext()!.GetFunctionParent();
+		var function = GetParentContext()!.GetFunctionParent();
 
 		if (function == null)
 		{
@@ -57,6 +57,11 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		var expected = function.ReturnType;
 		var actual = Value.TryGetType();
+
+		if (actual == null)
+		{
+			return Status.Error("Could not resolve the return value");
+		}
 
 		if (Resolver.GetSharedType(expected, actual) == null)
 		{

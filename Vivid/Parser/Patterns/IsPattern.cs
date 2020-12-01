@@ -26,11 +26,6 @@ public class IsPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens.First().Is(TokenType.IDENTIFIER, TokenType.FUNCTION) && !tokens.First().To<DynamicToken>().Node.Is(NodeType.LINK))
-		{
-			return false;
-		}
-
 		if (!tokens[IS].Is(Keywords.IS))
 		{
 			return false;

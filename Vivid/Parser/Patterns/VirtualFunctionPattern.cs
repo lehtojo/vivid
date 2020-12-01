@@ -65,7 +65,7 @@ public class VirtualFunctionPattern : Pattern
 			throw Errors.Get(tokens.First().Position, "All parameters of a uncompleted function must have a type");
 		}
 
-		function.Parameters = parameters;
+		function.Parameters.AddRange(parameters);
 
 		type.Declare(function);
 

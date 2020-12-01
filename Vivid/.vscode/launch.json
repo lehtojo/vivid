@@ -55,7 +55,14 @@
 			//"args": [ "${workspaceFolder}/Tests/Templates.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Lambdas.v", "--asm", "--time", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Arrays.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/External.v", "--asm", "--time", "-st" ],
-			"args": [ "${workspaceFolder}/Examples/Inlines.v", "--asm", "--time", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Inlines.v", "--asm", "--time", "-st" ],
+
+			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
+
+			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
+			"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug", "-O1" ],
+
+			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "--asm", "--debug" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

@@ -42,7 +42,8 @@ public class ShortFunctionPattern : Pattern
 				typeof(OperatorPattern),
 				typeof(PreIncrementAndDecrementPattern),
 				typeof(PostIncrementAndDecrementPattern),
-				typeof(UnarySignPattern)
+				typeof(UnarySignPattern),
+				typeof(IsPattern)
 			}
 
 		).Count > 0;
@@ -70,7 +71,7 @@ public class ShortFunctionPattern : Pattern
 		}
 
 		var function = new Function(context, AccessModifier.PUBLIC, header.Name, body);
-		function.Parameters = header.GetParameters(function);
+		function.Parameters.AddRange(header.GetParameters(function));
 
 		context.Declare(function);
 

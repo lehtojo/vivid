@@ -80,7 +80,9 @@ public class ElseIfPattern : Pattern
 		var context = new Context();
 		context.Link(environment);
 
-		return new ElseIfNode(context, condition, Parser.Parse(context, body, 0, 20));
+		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+
+		return new ElseIfNode(context, condition, node);
 	}
 
 	public override int GetStart()

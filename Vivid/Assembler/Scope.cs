@@ -112,7 +112,7 @@ public sealed class Scope : IDisposable
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
 		// (Otherwise there would be a lot of register moves trying to save the cached variables)
-		var non_volatile_mode = node.Any(n => n.Is(NodeType.FUNCTION, NodeType.CALL));
+		var non_volatile_mode = node.Find(n => n.Is(NodeType.FUNCTION, NodeType.CALL)) != null;
 
 		unit.Append(new CacheVariablesInstruction(unit, new[] { node }, variables, non_volatile_mode));
 	}
@@ -126,7 +126,7 @@ public sealed class Scope : IDisposable
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
 		// (Otherwise there would be a lot of register moves trying to save the cached variables)
-		var non_volatile_mode = roots.Any(i => i.Any(j => j.Is(NodeType.FUNCTION, NodeType.CALL)));
+		var non_volatile_mode = roots.Any(i => i.Find(j => j.Is(NodeType.FUNCTION, NodeType.CALL)) != null);
 
 		unit.Append(new CacheVariablesInstruction(unit, roots, variables, non_volatile_mode));
 	}
@@ -551,11 +551,6 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	public void Dispose()
 	{
-		if (Unit == null)
-		{
-			throw new ApplicationException("Unit was not assigned to a scope, make sure the unit is given through the constructor");
-		}
-
 		Exit();
 	}
 }

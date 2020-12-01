@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class IfNode : Node, IResolvable, IContext
+public class IfNode : Node, IResolvable
 {
 	public Context Context { get; set; }
 	public Node? Successor => (Next?.Is(NodeType.ELSE_IF, NodeType.ELSE) ?? false) ? Next : null;
@@ -15,7 +15,9 @@ public class IfNode : Node, IResolvable, IContext
 		Context = context;
 
 		Add(new Node());
-		Add(body);
+		Add(new ContextNode(Context));
+
+		body.ForEach(i => Body.Add(i));
 
 		First!.Add(condition);
 	}
@@ -94,15 +96,5 @@ public class IfNode : Node, IResolvable, IContext
 	public override NodeType GetNodeType()
 	{
 		return NodeType.IF;
-	}
-
-	public void SetContext(Context context)
-	{
-		Context = context;
-	}
-
-	public Context GetContext()
-	{
-		return Context;
 	}
 }

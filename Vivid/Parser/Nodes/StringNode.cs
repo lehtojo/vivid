@@ -42,7 +42,7 @@ public class StringNode : Node, IType, ICloneable
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Text);
 		return hash.ToHashCode();

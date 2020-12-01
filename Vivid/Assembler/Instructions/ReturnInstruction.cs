@@ -37,7 +37,10 @@ public class ReturnInstruction : Instruction
 			return;
 		}
 
-		Unit.Append(new MoveInstruction(Unit, new Result(ReturnRegisterHandle, ReturnType!.GetRegisterFormat()), Object));
+		Unit.Append(new MoveInstruction(Unit, new Result(ReturnRegisterHandle, ReturnType!.GetRegisterFormat()), Object)
+		{
+			Type = MoveType.RELOCATE
+		});
 	}
 
 	public void Build(List<Register> recover_registers, int local_variables_top)

@@ -3,8 +3,8 @@ global main
 main:
 jmp _V4initv_rx
 
-extern _V8allocatex_rPh
 extern _V14internal_printPhx
+extern _V17internal_allocatex_rPh
 
 _V8pidigitsx_rPh:
 push rbx
@@ -35,89 +35,72 @@ call _VN5ArrayIxE4initEx_rPS_
 mov rcx, rsi
 mov rbp, rax
 call _VN5ArrayIxE4initEx_rPS_
-xor rcx, rcx
-cmp rcx, rbx
+xor r12, r12
+cmp r12, rbx
 jge _V8pidigitsx_rPh_L1
 _V8pidigitsx_rPh_L0:
-mov rdx, rcx
-mov r12, rcx
 mov rcx, rdi
+mov rdx, r12
 mov r8, 20
 mov r13, rax
 call _VN5ArrayIxE3setExx
 add r12, 1
 mov rax, r13
-mov rcx, r12
-cmp rcx, rbx
+cmp r12, rbx
 jl _V8pidigitsx_rPh_L0
 _V8pidigitsx_rPh_L1:
-xor rdx, rdx
-cmp rdx, rsi
+xor r13, r13
+mov r14, rax
+cmp r13, rsi
 jge _V8pidigitsx_rPh_L5
 _V8pidigitsx_rPh_L4:
-xor rcx, rcx
-xor r8, r8
-cmp rcx, rbx
+xor r12, r12
+xor r15, r15
+cmp r12, rbx
 jge _V8pidigitsx_rPh_L8
 _V8pidigitsx_rPh_L7:
-mov r12, rbx
-sub r12, rcx
-sub r12, 1
-mov r13, r12
-sal r13, 1
-add r13, 1
-mov r14, rdx
-mov rdx, rcx
-mov r15, rcx
-mov rcx, rdi
-mov qword [rsp+80], rax
-mov qword [rsp+72], r8
-call _VN5ArrayIxE3getEx_rx
-mov rcx, [rsp+72]
-add rax, rcx
-mov rdx, rcx
-mov rcx, rdi
-mov r8, rdx
-mov rdx, r15
+mov r8, rbx
+sub r8, r12
+sub r8, 1
 mov r9, r8
-mov r8, rax
+sal r9, 1
+add r9, 1
+mov rcx, rdi
+mov rdx, r12
+mov qword [rsp+80], r8
 mov qword [rsp+72], r9
+call _VN5ArrayIxE3getEx_rx
+add rax, r15
+mov rcx, rdi
+mov rdx, r12
+mov r8, rax
 call _VN5ArrayIxE3setExx
 mov rcx, rdi
-mov rdx, r15
+mov rdx, r12
 call _VN5ArrayIxE3getEx_rx
-mov rcx, rax
 cqo
-idiv r13
+mov rcx, [rsp+72]
+idiv rcx
+mov qword [rsp+72], rcx
 mov rcx, rdi
-mov rdx, r15
+mov rdx, r12
 mov qword [rsp+64], rax
 call _VN5ArrayIxE3getEx_rx
-mov rcx, rax
 cqo
-idiv r13
+idiv qword [rsp+72]
 mov rcx, rbp
 mov r8, rdx
-mov rdx, r15
+mov rdx, r12
 call _VN5ArrayIxE3setExx
-mov rcx, [rsp+64]
-imul rcx, r12
-add r15, 1
-mov r8, rcx
-mov rax, [rsp+80]
-mov rcx, r15
-mov rdx, r14
-cmp rcx, rbx
+mov r15, [rsp+64]
+imul r15, [rsp+80]
+add r12, 1
+cmp r12, rbx
 jl _V8pidigitsx_rPh_L7
 _V8pidigitsx_rPh_L8:
-mov r9, rbx
-sub r9, 1
-mov r12, rcx
+mov rdx, rbx
+sub rdx, 1
 mov rcx, rdi
-mov r13, rdx
-mov rdx, r9
-mov r14, rax
-mov r15, r8
 call _VN5ArrayIxE3getEx_rx
 mov rcx, 1844674407370955162
 mul rcx
@@ -128,29 +111,26 @@ mov r8, rcx
 mov rdx, r13
 mov rcx, r14
 call _VN5ArrayIxE3setExx
-mov rcx, rbx
-sub rcx, 1
+mov r8, rbx
+sub r8, 1
 mov rdx, rbx
 sub rdx, 1
-mov r8, rcx
 mov rcx, rdi
-mov qword [rsp+56], r8
+mov qword [rsp+48], r8
 call _VN5ArrayIxE3getEx_rx
-mov rcx, rax
 cqo
-mov r8, 10
-idiv r8
+mov rcx, 10
+idiv rcx
 mov rcx, rbp
 mov r8, rdx
-mov rdx, [rsp+56]
+mov rdx, [rsp+48]
 call _VN5ArrayIxE3setExx
-xor rax, rax
-cmp rax, rbx
+xor r12, r12
+cmp r12, rbx
 jge _V8pidigitsx_rPh_L12
 _V8pidigitsx_rPh_L11:
 mov rcx, rbp
-mov rdx, rax
-mov r12, rax
+mov rdx, r12
 call _VN5ArrayIxE3getEx_rx
 imul rax, 10
 mov rcx, rdi
@@ -158,70 +138,57 @@ mov rdx, r12
 mov r8, rax
 call _VN5ArrayIxE3setExx
 add r12, 1
-mov rax, r12
-cmp rax, rbx
+cmp r12, rbx
 jl _V8pidigitsx_rPh_L11
 _V8pidigitsx_rPh_L12:
 add r13, 1
-mov rcx, rax
-mov rdx, r13
-mov rax, r14
-cmp rdx, rsi
+cmp r13, rsi
 jl _V8pidigitsx_rPh_L4
 _V8pidigitsx_rPh_L5:
-mov r8, rsi
-sal r8, 3
-mov r12, rcx
-mov rcx, r8
-mov r13, rax
-mov r14, rdx
-call _VN5ArrayIhE4initEx_rPS_
 mov rcx, rsi
-sub rcx, 1
-xor rdx, rdx
-test rcx, rcx
+sal rcx, 3
+call _VN5ArrayIhE4initEx_rPS_
+mov r13, rsi
+sub r13, 1
+xor r15, r15
+mov qword [rsp+56], rbx
+mov rbx, rax
+test r13, r13
 jl _V8pidigitsx_rPh_L17
 _V8pidigitsx_rPh_L16:
-mov rbx, rdx
-mov rdx, rcx
-mov rsi, rcx
-mov rcx, r13
-mov rdi, rax
+mov rcx, r14
+mov rdx, r13
 call _VN5ArrayIxE3getEx_rx
-add rax, rbx
-mov rcx, r13
-mov rdx, rsi
+add rax, r15
+mov rcx, r14
+mov rdx, r13
 mov r8, rax
 call _VN5ArrayIxE3setExx
-mov rcx, r13
-mov rdx, rsi
+mov rcx, r14
+mov rdx, r13
 call _VN5ArrayIxE3getEx_rx
 mov rcx, 1844674407370955162
 mul rcx
-mov rbx, rdx
-sar rbx, 63
-add rbx, rdx
-mov rcx, r13
-mov rdx, rsi
+mov r15, rdx
+sar r15, 63
+add r15, rdx
+mov rcx, r14
+mov rdx, r13
 call _VN5ArrayIxE3getEx_rx
-mov rcx, rax
 cqo
-mov rbp, 10
-idiv rbp
+mov rcx, 10
+idiv rcx
 mov rcx, 48
 add rcx, rdx
 mov r8, rcx
-mov rdx, rsi
-mov rcx, rdi
+mov rdx, r13
+mov rcx, rbx
 call _VN5ArrayIhE3setExh
-sub rsi, 1
-mov rax, rdi
-mov rcx, rsi
-mov rdx, rbx
-test rcx, rcx
+sub r13, 1
+test r13, r13
 jge _V8pidigitsx_rPh_L16
 _V8pidigitsx_rPh_L17:
-mov rax, [rax+8]
+mov rax, [rbx+8]
 add rsp, 88
 pop r15
 pop r14
@@ -269,6 +236,95 @@ add rsp, 48
 pop rbx
 ret
 
+_V8allocatex_rPh:
+push rbx
+push rsi
+sub rsp, 40
+mov r8, [rel _VN10Allocation_current]
+test r8, r8
+je _V8allocatex_rPh_L0
+mov rdx, [r8+16]
+lea r9, [rdx+rcx]
+cmp r9, 1000000
+jg _V8allocatex_rPh_L0
+lea r9, [rdx+rcx]
+mov qword [r8+16], r9
+lea r9, [rdx+rcx]
+mov rax, [r8+8]
+add rax, rdx
+add rsp, 40
+pop rsi
+pop rbx
+ret
+_V8allocatex_rPh_L0:
+mov rbx, rcx
+mov rcx, 1000000
+call _V17internal_allocatex_rPh
+mov rcx, 24
+mov rsi, rax
+call _V17internal_allocatex_rPh
+mov qword [rax+8], rsi
+mov qword [rax+16], rbx
+mov qword [rel _VN10Allocation_current], rax
+mov rax, rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+_V8inheritsPhPS__rx:
+push rbx
+push rsi
+sub rsp, 16
+mov r8, [rcx]
+mov r9, [rdx]
+movzx r10, byte [r9]
+xor rax, rax
+_V8inheritsPhPS__rx_L1:
+_V8inheritsPhPS__rx_L0:
+movzx rcx, byte [r8+rax]
+add rax, 1
+cmp rcx, r10
+jnz _V8inheritsPhPS__rx_L4
+mov r11, rcx
+mov rbx, 1
+_V8inheritsPhPS__rx_L7:
+_V8inheritsPhPS__rx_L6:
+movzx r11, byte [r8+rax]
+movzx rsi, byte [r9+rbx]
+add rax, 1
+add rbx, 1
+cmp r11, rsi
+jz _V8inheritsPhPS__rx_L9
+cmp r11, 1
+jne _V8inheritsPhPS__rx_L9
+test rsi, rsi
+jne _V8inheritsPhPS__rx_L9
+mov rax, 1
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L9:
+jmp _V8inheritsPhPS__rx_L6
+_V8inheritsPhPS__rx_L8:
+jmp _V8inheritsPhPS__rx_L3
+_V8inheritsPhPS__rx_L4:
+cmp rcx, 2
+jne _V8inheritsPhPS__rx_L3
+xor rax, rax
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L3:
+jmp _V8inheritsPhPS__rx_L0
+_V8inheritsPhPS__rx_L2:
+add rsp, 16
+pop rsi
+pop rbx
+ret
+
 _VN5ArrayIxE4initEx_rPS_:
 push rbx
 push rsi
@@ -289,14 +345,14 @@ pop rbx
 ret
 
 _VN5ArrayIxE3setExx:
+mov r9, [rcx+8]
 sal rdx, 3
-mov rcx, [rcx+8]
-mov qword [rcx+rdx], r8
+mov qword [r9+rdx], r8
 ret
 
 _VN5ArrayIxE3getEx_rx:
-sal rdx, 3
 mov r8, [rcx+8]
+sal rdx, 3
 mov rax, [r8+rdx]
 ret
 
@@ -319,11 +375,13 @@ pop rbx
 ret
 
 _VN5ArrayIhE3setExh:
-mov rcx, [rcx+8]
-mov byte [rcx+rdx], r8b
+mov r9, [rcx+8]
+mov byte [r9+rdx], r8b
 ret
 
 section .data
+
+_VN10Allocation_current dq 0
 
 _VN5Array_configuration:
 dq _VN5Array_descriptor
@@ -334,7 +392,7 @@ dd 8
 dd 0
 
 _VN5Array_descriptor_0:
-db 'Array', 0
+db 'Array', 0, 1, 2, 0
 
 _VN6String_configuration:
 dq _VN6String_descriptor
@@ -345,7 +403,29 @@ dd 16
 dd 0
 
 _VN6String_descriptor_0:
-db 'String', 0
+db 'String', 0, 1, 2, 0
+
+_VN4Page_configuration:
+dq _VN4Page_descriptor
+
+_VN4Page_descriptor:
+dq _VN4Page_descriptor_0
+dd 24
+dd 0
+
+_VN4Page_descriptor_0:
+db 'Page', 0, 1, 2, 0
+
+_VN10Allocation_configuration:
+dq _VN10Allocation_descriptor
+
+_VN10Allocation_descriptor:
+dq _VN10Allocation_descriptor_0
+dd 8
+dd 0
+
+_VN10Allocation_descriptor_0:
+db 'Allocation', 0, 1, 2, 0
 
 _VN5ArrayIxE_configuration:
 dq _VN5ArrayIxE_descriptor
@@ -356,7 +436,7 @@ dd 24
 dd 0
 
 _VN5ArrayIxE_descriptor_0:
-db 'Array<large>', 0
+db 'Array<large>', 0, 1, 2, 0
 
 _VN5ArrayIhE_configuration:
 dq _VN5ArrayIhE_descriptor
@@ -367,4 +447,4 @@ dd 24
 dd 0
 
 _VN5ArrayIhE_descriptor_0:
-db 'Array<u8>', 0
+db 'Array<u8>', 0, 1, 2, 0

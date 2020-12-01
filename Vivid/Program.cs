@@ -1,5 +1,3 @@
-using System;
-
 public static class Program
 {
 	public static void Main(string[] arguments)
@@ -18,7 +16,7 @@ public static class Program
 		// Pack the program arguments in the chain
 		var bundle = new Bundle();
 		bundle.Put("arguments", arguments);
-
+		
 		// Execute the chain
 		chain.Execute(bundle);
 	}

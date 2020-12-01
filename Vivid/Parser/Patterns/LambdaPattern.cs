@@ -45,7 +45,8 @@ public class LambdaPattern : Pattern
 				typeof(PreIncrementAndDecrementPattern),
 				typeof(PostIncrementAndDecrementPattern),
 				typeof(ReturnPattern),
-				typeof(UnarySignPattern)
+				typeof(UnarySignPattern),
+				typeof(IsPattern)
 			}
 
 		).Count > 0;
@@ -53,7 +54,7 @@ public class LambdaPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[OPERATOR].Is(Operators.IMPLICATION))
+		if (!tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS) || !tokens[OPERATOR].Is(Operators.IMPLICATION))
 		{
 			return false;
 		}
@@ -86,13 +87,13 @@ public class LambdaPattern : Pattern
 		);
 
 		var lambda = new Lambda(
-		   context,
-		   AccessModifier.PUBLIC,
-		   name,
-		   body
+			context,
+			AccessModifier.PUBLIC,
+			name,
+			body
 		);
 
-		lambda.Parameters = function.GetParameters(lambda);
+		lambda.Parameters.AddRange(function.GetParameters(lambda));
 
 		if (lambda.Parameters.All(p => p.Type != null && !p.Type.IsUnresolved))
 		{

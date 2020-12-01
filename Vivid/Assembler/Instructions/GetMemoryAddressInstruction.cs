@@ -4,6 +4,7 @@
 public class GetMemoryAddressInstruction : Instruction
 {
 	public AccessMode Mode { get; private set; }
+	public Format Format { get; private set; }
 
 	public Result Start { get; private set; }
 	public Result Offset { get; private set; }
@@ -15,15 +16,21 @@ public class GetMemoryAddressInstruction : Instruction
 		Start = start;
 		Offset = offset;
 		Stride = stride;
+		Format = format;
 
 		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
 		Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
-		Result.Format = format;
+		Result.Format = Format;
 	}
 
 	public override void OnBuild()
 	{
 		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
+
+		if (Mode == AccessMode.READ)
+		{
+			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Result.GetRecommendation(Unit));
+		}
 	}
 
 	public override Result[] GetResultReferences()

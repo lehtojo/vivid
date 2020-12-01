@@ -3,15 +3,14 @@ global main
 main:
 jmp _V4initv_rx
 
-extern _V8allocatex_rPh
 extern _V14large_functionv
+extern _V17internal_allocatex_rPh
 
 global _V9linkage_1x_rx
 export _V9linkage_1x_rx
 _V9linkage_1x_rx:
 mov rax, rcx
-mov rcx, 1
-add rcx, rax
+add rax, 1
 add rax, rcx
 ret
 
@@ -19,8 +18,7 @@ global _V9linkage_2x_rx
 export _V9linkage_2x_rx
 _V9linkage_2x_rx:
 sal rcx, 1
-add rcx, 2
-mov rax, rcx
+lea rax, [rcx+2]
 ret
 
 global _V9linkage_3x_rx
@@ -31,10 +29,9 @@ xor rdx, rdx
 cmp rdx, 3
 jge _V9linkage_3x_rx_L1
 _V9linkage_3x_rx_L0:
-mov r8, rdx
+mov rax, rdx
 lea rcx, [rdx+1]
 add rdx, 1
-mov rax, r8
 cmp rdx, 3
 jl _V9linkage_3x_rx_L0
 _V9linkage_3x_rx_L1:
@@ -86,14 +83,13 @@ mov r13, r12
 mov r14, r13
 mov r15, r14
 mov rdx, r15
-mov r8, rdx
-mov qword [rsp+128], rcx
 mov qword [rsp+48], rdx
-mov qword [rsp+40], r8
+mov qword [rsp+128], rcx
+mov qword [rsp+40], rdx
 call _V14large_functionv
 xor rax, rax
-mov rcx, [rsp+48]
-mov rdx, [rsp+40]
+mov rcx, [rsp+40]
+mov rdx, [rsp+48]
 cmp rax, 5
 jge _V9linkage_5x_rx_L1
 _V9linkage_5x_rx_L0:
@@ -119,8 +115,7 @@ add rbx, r13
 add rbx, r14
 add rbx, r15
 add rbx, rcx
-add rbx, rdx
-mov rax, rbx
+lea rax, [rbx+rdx]
 add rsp, 56
 pop r15
 pop r14
@@ -141,23 +136,19 @@ push rdi
 push rbp
 sub rsp, 40
 mov rbx, rcx
-xor rax, rax
-cmp rax, rdx
+xor rsi, rsi
+mov rdi, rdx
+cmp rsi, rdi
 jge _V16linked_variablesxx_rx_L1
 _V16linked_variablesxx_rx_L0:
-mov rsi, rax
-mov rdi, rcx
-mov rbp, rdx
+mov rbp, rcx
 call _V14large_functionv
 add rsi, 1
-mov rcx, rdi
-mov rax, rsi
-mov rdx, rbp
-cmp rax, rdx
+mov rcx, rbp
+cmp rsi, rdi
 jl _V16linked_variablesxx_rx_L0
 _V16linked_variablesxx_rx_L1:
-add rbx, rcx
-mov rax, rbx
+lea rax, [rbx+rcx]
 add rsp, 40
 pop rbp
 pop rdi
@@ -172,32 +163,22 @@ push rbx
 push rsi
 push rdi
 push rbp
-push r12
-sub rsp, 48
-xor rax, rax
-xor r8, r8
-cmp rax, rdx
+sub rsp, 40
+xor rbx, rbx
+mov rsi, rdx
+xor rdi, rdi
+mov rbp, rcx
+cmp rbx, rsi
 jge _V18linked_variables_2xx_rx_L1
 _V18linked_variables_2xx_rx_L0:
-mov rbx, rcx
-mov rsi, rax
-mov rdi, rcx
-mov rbp, rdx
-mov r12, r8
 call _V14large_functionv
-add r12, rbx
-add rsi, 1
-mov rcx, rdi
-mov r8, r12
-mov rax, rsi
-mov rdx, rbp
-cmp rax, rdx
+add rdi, rbp
+add rbx, 1
+cmp rbx, rsi
 jl _V18linked_variables_2xx_rx_L0
 _V18linked_variables_2xx_rx_L1:
-add r8, rcx
-mov rax, r8
-add rsp, 48
-pop r12
+lea rax, [rdi+rbp]
+add rsp, 40
 pop rbp
 pop rdi
 pop rsi
@@ -226,3 +207,118 @@ xor rcx, rcx
 xor rdx, rdx
 call _V18linked_variables_2xx_rx
 ret
+
+_V8allocatex_rPh:
+push rbx
+push rsi
+sub rsp, 40
+mov r8, [rel _VN10Allocation_current]
+test r8, r8
+je _V8allocatex_rPh_L0
+mov rdx, [r8+16]
+lea r9, [rdx+rcx]
+cmp r9, 1000000
+jg _V8allocatex_rPh_L0
+lea r9, [rdx+rcx]
+mov qword [r8+16], r9
+lea r9, [rdx+rcx]
+mov rax, [r8+8]
+add rax, rdx
+add rsp, 40
+pop rsi
+pop rbx
+ret
+_V8allocatex_rPh_L0:
+mov rbx, rcx
+mov rcx, 1000000
+call _V17internal_allocatex_rPh
+mov rcx, 24
+mov rsi, rax
+call _V17internal_allocatex_rPh
+mov qword [rax+8], rsi
+mov qword [rax+16], rbx
+mov qword [rel _VN10Allocation_current], rax
+mov rax, rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+_V8inheritsPhPS__rx:
+push rbx
+push rsi
+sub rsp, 16
+mov r8, [rcx]
+mov r9, [rdx]
+movzx r10, byte [r9]
+xor rax, rax
+_V8inheritsPhPS__rx_L1:
+_V8inheritsPhPS__rx_L0:
+movzx rcx, byte [r8+rax]
+add rax, 1
+cmp rcx, r10
+jnz _V8inheritsPhPS__rx_L4
+mov r11, rcx
+mov rbx, 1
+_V8inheritsPhPS__rx_L7:
+_V8inheritsPhPS__rx_L6:
+movzx r11, byte [r8+rax]
+movzx rsi, byte [r9+rbx]
+add rax, 1
+add rbx, 1
+cmp r11, rsi
+jz _V8inheritsPhPS__rx_L9
+cmp r11, 1
+jne _V8inheritsPhPS__rx_L9
+test rsi, rsi
+jne _V8inheritsPhPS__rx_L9
+mov rax, 1
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L9:
+jmp _V8inheritsPhPS__rx_L6
+_V8inheritsPhPS__rx_L8:
+jmp _V8inheritsPhPS__rx_L3
+_V8inheritsPhPS__rx_L4:
+cmp rcx, 2
+jne _V8inheritsPhPS__rx_L3
+xor rax, rax
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L3:
+jmp _V8inheritsPhPS__rx_L0
+_V8inheritsPhPS__rx_L2:
+add rsp, 16
+pop rsi
+pop rbx
+ret
+
+section .data
+
+_VN10Allocation_current dq 0
+
+_VN4Page_configuration:
+dq _VN4Page_descriptor
+
+_VN4Page_descriptor:
+dq _VN4Page_descriptor_0
+dd 24
+dd 0
+
+_VN4Page_descriptor_0:
+db 'Page', 0, 1, 2, 0
+
+_VN10Allocation_configuration:
+dq _VN10Allocation_descriptor
+
+_VN10Allocation_descriptor:
+dq _VN10Allocation_descriptor_0
+dd 8
+dd 0
+
+_VN10Allocation_descriptor_0:
+db 'Allocation', 0, 1, 2, 0

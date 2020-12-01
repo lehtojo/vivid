@@ -27,8 +27,6 @@ public class ConvertInstruction : Instruction
 		{
 			Type = MoveType.LOAD
 		});
-
-		//Memory.MoveToRegister(Unit, Number, Size.QWORD, !ToInteger, Result.GetRecommendation(Unit));
 	}
 
 	public override Result[] GetResultReferences()

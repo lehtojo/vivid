@@ -1,6 +1,10 @@
 public class AdditionInstruction : DualParameterInstruction
 {
 	private const string STANDARD_ADDITION_INSTRUCTION = "add";
+
+	private const int STANDARD_ADDITION_FIRST = 0;
+	private const int STANDARD_ADDITION_SECOND = 1;
+
 	private const string EXTENDED_ADDITION_INSTRUCTION = "lea";
 
 	private const string SINGLE_PRECISION_ADDITION_INSTRUCTION = "addss";
@@ -28,13 +32,13 @@ public class AdditionInstruction : DualParameterInstruction
 			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_ADDITION_INSTRUCTION : DOUBLE_PRECISION_ADDITION_INSTRUCTION;
 
 			// NOTE: Changed the parameter flag to none because any attachment could override the contents of the destination register and the variable should move to an appropriate register attaching the variable there
-			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
+			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 
 			Build(
 				instruction,
 				new InstructionParameter(
 					First,
-					flags,
+					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
 				new InstructionParameter(
@@ -55,7 +59,7 @@ public class AdditionInstruction : DualParameterInstruction
 				First.Size,
 				new InstructionParameter(
 					First,
-					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
+					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH | ParameterFlag.READS,
 					HandleType.REGISTER,
 					HandleType.MEMORY
 				),
@@ -77,7 +81,7 @@ public class AdditionInstruction : DualParameterInstruction
 				Assembler.Size,
 				new InstructionParameter(
 					First,
-					ParameterFlag.DESTINATION,
+					ParameterFlag.DESTINATION | ParameterFlag.READS,
 					HandleType.REGISTER
 				),
 				new InstructionParameter(
@@ -108,6 +112,32 @@ public class AdditionInstruction : DualParameterInstruction
 				HandleType.CALCULATION
 			)
 		);
+	}
+
+	public override bool Redirect(Handle handle)
+	{
+		if (Operation == SINGLE_PRECISION_ADDITION_INSTRUCTION || Operation == DOUBLE_PRECISION_ADDITION_INSTRUCTION || Assigns)
+		{
+			return false;
+		}
+
+		var first = Parameters[STANDARD_ADDITION_FIRST];
+		var second = Parameters[STANDARD_ADDITION_SECOND];
+
+		if (handle.Type == HandleType.REGISTER && first.IsAnyRegister && (second.IsAnyRegister || second.IsConstant))
+		{
+			Operation = EXTENDED_ADDITION_INSTRUCTION;
+
+			var calculation = CalculationHandle.CreateAddition(first.Value!, second.Value!);
+
+			Parameters.Clear();
+			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));
+			Parameters.Add(new InstructionParameter(calculation, ParameterFlag.NONE));
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public override Result? GetDestinationDependency()

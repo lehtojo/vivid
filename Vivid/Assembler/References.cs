@@ -139,7 +139,7 @@ public static class References
 
 			case NodeType.CAST:
 			{
-				return Casts.Build(unit, (CastNode)node);
+				return Casts.Build(unit, (CastNode)node, mode);
 			}
 
 			case NodeType.OPERATOR:
@@ -150,6 +150,11 @@ public static class References
 			case NodeType.OFFSET:
 			{
 				return Arrays.BuildOffset(unit, (OffsetNode)node, mode);
+			}
+
+			case NodeType.LINK:
+			{
+				return Links.Build(unit, (LinkNode)node, mode);
 			}
 
 			case NodeType.CONTENT:

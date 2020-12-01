@@ -3,8 +3,8 @@ using System;
 
 public class PatternState
 {
-	public List<Token> Tokens { get; set; }
-	public List<Token> Formatted { get; set; }
+	public List<Token> Tokens { get; }
+	public List<Token> Formatted { get; }
 
 	public int Start { get; set; }
 	public int End { get; set; }
@@ -47,25 +47,31 @@ public abstract class Pattern
 		return Parser.TryConsume(state, out consumed, mask);
 	}
 
+	public static Token? Peek(PatternState state)
+	{
+		return state.Tokens.Count > state.End ? state.Tokens[state.End] : null;
+	}
+
 	public static bool Try(Func<PatternState, bool> attempt, PatternState state)
 	{
-		var tokens = state.Tokens;
-		var formatted = state.Formatted;
+		var tokens = new List<Token>(state.Tokens);
+		var formatted = new List<Token>(state.Formatted);
 		var start = state.Start;
 		var end = state.End;
 		var min = state.Min;
 		var max = state.Max;
-
-		state.Tokens = new List<Token>(tokens);
-		state.Formatted = new List<Token>(formatted);
 
 		if (attempt(state))
 		{
 			return true;
 		}
 
-		state.Tokens = tokens;
-		state.Formatted = formatted;
+		state.Tokens.Clear();
+		state.Formatted.Clear();
+
+		state.Tokens.AddRange(tokens);
+		state.Formatted.AddRange(formatted);
+
 		state.Start = start;
 		state.End = end;
 		state.Min = min;
@@ -76,23 +82,24 @@ public abstract class Pattern
 
 	public static bool Try(PatternState state, Func<bool> attempt)
 	{
-		var tokens = state.Tokens;
-		var formatted = state.Formatted;
+		var tokens = new List<Token>(state.Tokens);
+		var formatted = new List<Token>(state.Formatted);
 		var start = state.Start;
 		var end = state.End;
 		var min = state.Min;
 		var max = state.Max;
-
-		state.Tokens = new List<Token>(tokens);
-		state.Formatted = new List<Token>(formatted);
 
 		if (attempt())
 		{
 			return true;
 		}
 
-		state.Tokens = tokens;
-		state.Formatted = formatted;
+		state.Tokens.Clear();
+		state.Formatted.Clear();
+
+		state.Tokens.AddRange(tokens);
+		state.Formatted.AddRange(formatted);
+		
 		state.Start = start;
 		state.End = end;
 		state.Min = min;

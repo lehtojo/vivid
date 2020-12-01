@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Numerics;
 
 public static class Arithmetic
 {
@@ -12,6 +11,22 @@ public static class Arithmetic
 	public static Result Build(Unit unit, DecrementNode node)
 	{
 		return BuildDecrementOperation(unit, node);
+	}
+
+	public static Result BuildShiftLeft(Unit unit, OperatorNode shift)
+	{
+		var left = References.Get(unit, shift.Left, AccessMode.READ);
+		var right = References.Get(unit, shift.Right, AccessMode.READ);
+		
+		return BitwiseInstruction.ShiftLeft(unit, left, right, Assembler.Format).Execute();
+	}
+
+	public static Result BuildShiftRight(Unit unit, OperatorNode shift)
+	{
+		var left = References.Get(unit, shift.Left, AccessMode.READ);
+		var right = References.Get(unit, shift.Right, AccessMode.READ);
+		
+		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format).Execute();
 	}
 
 	public static Result BuildNot(Unit unit, NotNode node)
@@ -96,6 +111,14 @@ public static class Arithmetic
 		if (Equals(operation, Operators.ASSIGN_AND) || Equals(operation, Operators.ASSIGN_XOR) || Equals(operation, Operators.ASSIGN_OR))
 		{
 			return BuildBitwiseOperator(unit, node, true);
+		}
+		if (Equals(operation, Operators.SHIFT_LEFT))
+		{
+			return BuildShiftLeft(unit, node);
+		}
+		if (Equals(operation, Operators.SHIFT_RIGHT))
+		{
+			return BuildShiftRight(unit, node);
 		}
 		if (operation.Type == OperatorType.COMPARISON || operation.Type == OperatorType.LOGIC)
 		{
@@ -227,8 +250,8 @@ public static class Arithmetic
 		var is_destination_complex = IsComplexDestination(operation.Left);
 		var access = (assigns && !is_destination_complex) ? AccessMode.WRITE : AccessMode.READ;
 
-		var right = References.Get(unit, operation.Right);
 		var left = References.Get(unit, operation.Left, access);
+		var right = References.Get(unit, operation.Right);
 		var number_type = operation.GetType()!.To<Number>().Type;
 		var is_unsigned = operation.Left.GetType() is Number number ? number.IsUnsigned : true;
 
@@ -242,16 +265,27 @@ public static class Arithmetic
 		return result;
 	}
 
+	private static bool IsAliasAssignment(Node value)
+	{
+		if (value.Is(NodeType.VARIABLE) && value.To<VariableNode>().Variable.IsPredictable)
+		{
+			return true;
+		}
+
+		return value.Is(NodeType.CAST) && value.GetLeftWhile(i => i.Is(NodeType.CAST)) is VariableNode x && x.Variable.IsPredictable;
+	}
+
 	private static Result BuildAssignOperator(Unit unit, OperatorNode node)
 	{
-		var left = References.Get(unit, node.Left, AccessMode.WRITE);
+		// NOTE: The right side should be loaded first since mathematical analysis uses this order
 		var right = References.Get(unit, node.Right);
+		var left = References.Get(unit, node.Left, AccessMode.WRITE);
 
 		if (node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable)
 		{
 			var variable = node.Left.To<VariableNode>().Variable;
 
-			if (node.Right.Is(NodeType.VARIABLE) && node.Right.To<VariableNode>().Variable.IsPredictable)
+			if (IsAliasAssignment(node.Right))
 			{
 				// The assignment is an alias assignment, so the alias variable should be duplicated
 				right = new DuplicateInstruction(unit, right).Execute();
@@ -345,6 +379,16 @@ public static class Arithmetic
 		if (is_destination_complex && assigns)
 		{
 			return new MoveInstruction(unit, References.Get(unit, left, AccessMode.WRITE), addition).Execute();
+		}
+
+		if (assigns && left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable)
+		{
+			var variable = left.To<VariableNode>().Variable;
+				
+			var instruction = new SetVariableInstruction(unit, variable, addition);
+			instruction.Value.Metadata.Attach(new VariableAttribute(variable));
+
+			return instruction.Execute();
 		}
 
 		return addition;

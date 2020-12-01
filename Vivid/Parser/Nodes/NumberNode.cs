@@ -56,7 +56,7 @@ public class NumberNode : Node, IType, ICloneable
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Type);
 		hash.Add(Value);

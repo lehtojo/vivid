@@ -185,9 +185,24 @@ public class Context
 	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
 	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
+	public List<Variable> Locals => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Concat(Subcontexts.SelectMany(c => c.Locals)).ToList();
+
 	private int Lambdas { get; set; } = 0;
 	private int Hiddens { get; set; } = 0;
 	private int Sections { get; set; } = 0;
+
+	/// <summary>
+	/// Create a new context
+	/// </summary>
+	public Context() {}
+
+	/// <summary>
+	/// Create a new context and link it to the specified parent
+	/// </summary>
+	public Context(Context parent)
+	{
+		Link(parent);
+	}
 
 	/// <summary>
 	/// Returns whether the given context is a parent context or higher to this context
@@ -242,8 +257,13 @@ public class Context
 				if (resolvable != null)
 				{
 					// Try to solve the type
-					var type = (TypeNode?)resolvable.Resolve(this);
-					variable.Type = type?.Type;
+					var node = resolvable.Resolve(this);
+					var type = node?.TryGetType();
+
+					if (type != null)
+					{
+						variable.Type = type;
+					}
 				}
 			}
 		}

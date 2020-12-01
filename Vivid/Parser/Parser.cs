@@ -92,15 +92,17 @@ public class Sublist<T> : IList<T>
 
 public static class Parser
 {
-	public static FunctionImplementation? AllocationFunction { get; private set; }
+	public static FunctionImplementation? AllocationFunction { get; set; }
+	public static FunctionImplementation? InheritanceFunction { get; set; }
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
 	public static int Bytes => Size.Bytes;
 
 	public const int MAX_PRIORITY = 23;
-	public const int MEMBERS = 19;
+	public const int MAX_FUNCTION_BODY_PRIORITY = 19;
 	public const int MIN_PRIORITY = 0;
+
 	private const int FUNCTION_LENGTH = 2;
 
 	private class Instance
@@ -148,18 +150,28 @@ public static class Parser
 			return absolute_position;
 		}
 
+		public Range GetRange()
+		{
+			var start = Pattern.GetStart();
+			var end = Pattern.GetEnd();
+
+			return new Range(
+				start == -1 ? Tokens.Count : GetAbsolutePosition(start),
+				end == -1 ? Tokens.Count : GetAbsolutePosition(end)
+			);
+		}
+
 		public void Replace(DynamicToken token)
 		{
-			var absolute_start = GetAbsolutePosition(Pattern.GetStart());
-			var virtual_end = Pattern.GetEnd();
-			var count = (virtual_end == -1 ? Tokens.Count : GetAbsolutePosition(virtual_end)) - absolute_start;
+			var range = GetRange();
+			var length = range.End.Value - range.Start.Value;
 
-			for (var i = 0; i < count; i++)
+			for (var i = 0; i < length; i++)
 			{
-				Tokens.RemoveAt(absolute_start);
+				Tokens.RemoveAt(range.Start.Value);
 			}
 
-			Tokens.Insert(absolute_start, token);
+			Tokens.Insert(range.Start.Value, token);
 		}
 	}
 
@@ -397,8 +409,10 @@ public static class Parser
 			if (node != null)
 			{
 				// Calculate how many tokens the pattern holds inside
-				var count = instance.Tokens
-					.Sum(t => consumption.FirstOrDefault(i => i.Token == t)?.Count ?? 1);
+				var range = instance.GetRange();
+				var start = range.Start.Value;
+				var length = range.End.Value - start;
+				var count = instance.Tokens.Skip(start).Take(length).Sum(t => consumption.FirstOrDefault(i => i.Token == t)?.Count ?? 1);
 
 				// Replace the pattern with a dynamic token
 				var token = new DynamicToken(node);
@@ -560,16 +574,6 @@ public static class Parser
 
 		var number = context.GetType("num") ?? throw new ApplicationException("Could not find type 'num'");
 
-		var allocate = new Function
-		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
-			"allocate",
-			Types.LINK,
-			new Parameter("bytes", number)
-		);
-
-		AllocationFunction = allocate.Implementations.First();
-
 		var copy = new Function
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
@@ -600,7 +604,6 @@ public static class Parser
 			new Parameter("bytes", number)
 		);
 
-		context.Declare(allocate);
 		context.Declare(copy);
 		context.Declare(offset_copy);
 		context.Declare(deallocate);

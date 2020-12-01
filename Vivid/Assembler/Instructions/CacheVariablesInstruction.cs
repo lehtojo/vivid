@@ -213,7 +213,7 @@ public class CacheVariablesInstruction : Instruction
 			// Relocate the variable to the register
 			var destination = new Result(new RegisterHandle(register), current.Reference!.Format);
 			var source = current.Reference!;
-
+			
 			Unit.Append(new MoveInstruction(Unit, destination, source)
 			{
 				Type = MoveType.RELOCATE,

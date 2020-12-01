@@ -14,7 +14,7 @@ public class Parameter
 		Type = type;
 	}
 
-	public string ToString()
+	public override string ToString()
 	{
 		if (Type == null)
 		{
@@ -31,7 +31,7 @@ public class Function : Context
 
 	public int Modifiers { get; set; }
 
-	public List<Parameter> Parameters { get; set; } = new List<Parameter>();
+	public List<Parameter> Parameters { get; } = new List<Parameter>();
 	public List<Token> Blueprint { get; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
@@ -146,6 +146,12 @@ public class Function : Context
 	/// <param name="parameter">Parameter types used in filtering</param>
 	public virtual FunctionImplementation? Get(List<Type> parameters)
 	{
+		// Implementation should not be made if any of the parameters has a fixed type but it's unresolved
+		if (Parameters.Any(i => i.Type != null && i.Type.IsUnresolved))
+		{
+			return null;
+		}
+
 		var types = Parameters.Zip(parameters).Select(i => i.First.Type ?? i.Second).ToList();
 		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(types));
 

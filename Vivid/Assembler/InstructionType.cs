@@ -7,6 +7,7 @@ public enum InstructionType
 	CALL,
 	COMPARE,
 	CONVERT,
+	DECLARE,
 	DIVISION,
 	DUPLICATE,
 	EVACUATE,

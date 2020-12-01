@@ -134,6 +134,20 @@ public class ResolverPhase : Phase
 		return final.ToString();
 	}
 
+	private static void RegisterDefaultFunctions(Context context)
+	{
+		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing allocation function");
+		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing inheritance function");
+
+		var link = context.GetType("link") ?? throw new ApplicationException("Missing default link type");
+		var integer = context.GetType("num") ?? throw new ApplicationException("Missing default integer type");
+
+		Parser.AllocationFunction = allocation_function.GetImplementation(new List<Type> { integer });
+		Assembler.AllocationFunction = allocation_function.GetOverload(new List<Type> { integer });
+
+		Parser.InheritanceFunction = inheritance_function.GetImplementation(new List<Type> { link, link });
+	}
+
 	public override Status Execute(Bundle bundle)
 	{
 		if (!bundle.Contains("parse"))
@@ -145,6 +159,9 @@ public class ResolverPhase : Phase
 
 		var context = parse.Context;
 		var report = GetReport(context);
+		var evaluated = false;
+
+		RegisterDefaultFunctions(context);
 
 		// Try to resolve as long as errors change -- errors don't always decrease since the program may expand each cycle
 		while (true)
@@ -152,15 +169,25 @@ public class ResolverPhase : Phase
 			var previous = report;
 
 			// Try to resolve any problems in the node tree
+			ParserPhase.ImplementRequiredFunctions(context);
 			Resolver.ResolveContext(context);
 			report = GetReport(context);
 
 			// Try again only if the errors have changed
 			if (report == previous)
 			{
+				if (!evaluated)
+				{
+					Analysis.Evaluate(context);
+					evaluated = true;
+					continue;
+				}
+
 				break;
 			}
 		}
+
+		// TODO: Should check whether all required functions are implemented
 
 		// The compiler must not continue if the resolver phase has failed
 		if (report.Length > 0)

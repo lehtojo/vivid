@@ -3,7 +3,7 @@ using System.Collections.Generic;
 public static class Keywords
 {
 	public static readonly Keyword AS = new Keyword("as");
-	public static readonly Keyword CASE = new FlowKeyword("case");
+	public static readonly Keyword COMPILES = new Keyword("compiles");
 	public static readonly Keyword CONTINUE = new FlowKeyword("continue");
 	public static readonly Keyword ELSE = new FlowKeyword("else");
 	public static readonly Keyword EXPORT = new AccessModifierKeyword("export", AccessModifier.GLOBAL);
@@ -13,7 +13,6 @@ public static class Keywords
 	public static readonly Keyword INIT = new Keyword("init");
 	public static readonly Keyword IMPORT = new AccessModifierKeyword("import", AccessModifier.EXTERNAL);
 	public static readonly Keyword LOOP = new Keyword("loop");
-	public static readonly Keyword NEW = new Keyword("new");
 	public static readonly Keyword PRIVATE = new AccessModifierKeyword("private", AccessModifier.PRIVATE);
 	public static readonly Keyword PROTECTED = new AccessModifierKeyword("protected", AccessModifier.PROTECTED);
 	public static readonly Keyword PUBLIC = new AccessModifierKeyword("public", AccessModifier.PUBLIC);
@@ -29,7 +28,7 @@ public static class Keywords
 	static Keywords()
 	{
 		Values.Add(AS.Identifier, AS);
-		Values.Add(CASE.Identifier, CASE);
+		Values.Add(COMPILES.Identifier, COMPILES);
 		Values.Add(CONTINUE.Identifier, CONTINUE);
 		Values.Add(ELSE.Identifier, ELSE);
 		Values.Add(EXPORT.Identifier, EXPORT);
@@ -38,7 +37,6 @@ public static class Keywords
 		Values.Add(IS.Identifier, IS);
 		Values.Add(IMPORT.Identifier, IMPORT);
 		Values.Add(LOOP.Identifier, LOOP);
-		Values.Add(NEW.Identifier, NEW);
 		Values.Add(PRIVATE.Identifier, PRIVATE);
 		Values.Add(PROTECTED.Identifier, PROTECTED);
 		Values.Add(PUBLIC.Identifier, PUBLIC);

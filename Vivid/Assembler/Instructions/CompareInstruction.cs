@@ -12,8 +12,10 @@ public class CompareInstruction : DualParameterInstruction
 	{
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
+			var instruction = Assembler.IsTargetX64 ? DOUBLE_PRECISION_DECIMAL_COMPARISON : SINGLE_PRECISION_DECIMAL_COMPARISON;
+
 			Build(
-				Assembler.IsTargetX64 ? DOUBLE_PRECISION_DECIMAL_COMPARISON : SINGLE_PRECISION_DECIMAL_COMPARISON,
+				instruction,
 				new InstructionParameter(
 					First,
 					ParameterFlag.NONE,
@@ -56,8 +58,8 @@ public class CompareInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.REGISTER,
 					HandleType.CONSTANT,
+					HandleType.REGISTER,
 					HandleType.MEMORY
 				)
 			);

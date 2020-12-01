@@ -4,6 +4,9 @@ public class MultiplicationInstruction : DualParameterInstruction
 {
 	private const string SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION = "imul";
 
+	private const int SIGNED_INTEGER_MULTIPLICATION_FIRST = 0;
+	private const int SIGNED_INTEGER_MULTIPLICATION_SECOND = 1;
+
 	private const string SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulss";
 	private const string DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulsd";
 
@@ -65,7 +68,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				instruction,
 				new InstructionParameter(
 					First,
-					flags,
+					ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
 				new InstructionParameter(
@@ -96,7 +99,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 						Assembler.Size,
 						new InstructionParameter(
 							multiplication.Other,
-							flags,
+							ParameterFlag.READS | flags,
 							HandleType.REGISTER
 						),
 						new InstructionParameter(
@@ -144,7 +147,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			Assembler.Size,
 			new InstructionParameter(
 				First,
-				flags,
+				ParameterFlag.READS | flags,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
@@ -172,6 +175,31 @@ public class MultiplicationInstruction : DualParameterInstruction
 		}
 
 		return First;
+	}
+
+	public override bool Redirect(Handle handle)
+	{
+		if (Operation != SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION || Assigns)
+		{
+			return false;
+		}
+
+		var first = Parameters[SIGNED_INTEGER_MULTIPLICATION_FIRST];
+		var second = Parameters[SIGNED_INTEGER_MULTIPLICATION_SECOND];
+
+		if (handle.Type == HandleType.REGISTER && (first.IsMemoryAddress || first.IsStandardRegister) && second.IsConstant)
+		{
+			Operation = SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION;
+
+			Parameters.Clear();
+			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));
+			Parameters.Add(new InstructionParameter(first.Value!, ParameterFlag.NONE));
+			Parameters.Add(new InstructionParameter(second.Value!, ParameterFlag.NONE));
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public override InstructionType GetInstructionType()

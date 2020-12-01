@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 
 public class Label
 {
 	protected string Name { get; set; }
+	public List<JumpNode> Jumps { get; private set; } = new List<JumpNode>();
 
 	public Label(string name = "")
 	{
@@ -16,7 +18,7 @@ public class Label
 
 	public override string ToString()
 	{
-		throw new InvalidOperationException("Use method 'GetName' instead of 'ToString' when interacting with labels");
+		return Name;
 	}
 
 	public override bool Equals(object? other)

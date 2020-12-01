@@ -23,7 +23,7 @@ public static class Links
 		return Calls.Build(unit, self, function);
 	}
 
-	public static Result Build(Unit unit, LinkNode node)
+	public static Result Build(Unit unit, LinkNode node, AccessMode mode)
 	{
 		var self_type = node.Object.GetType();
 
@@ -32,9 +32,7 @@ public static class Links
 			VariableNode member when member.Variable.Category == VariableCategory.GLOBAL => References.GetVariable(unit,
 				member.Variable),
 
-			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, References.Get(unit, node.Object),
-					member.Variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned"))
-				.Execute(),
+			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, References.Get(unit, node.Object), member.Variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned"), mode).Execute(),
 
 			FunctionNode function => GetMemberFunctionCall(unit, function, node.Object, self_type),
 

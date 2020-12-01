@@ -46,7 +46,7 @@ public class ConstructorPattern : Pattern
 		if (head.Name == Keywords.INIT.Identifier)
 		{
 			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.Tokens);
-			constructor.Parameters = head.GetParameters(constructor);
+			constructor.Parameters.AddRange(head.GetParameters(constructor));
 
 			type.AddConstructor(constructor);
 
@@ -55,7 +55,7 @@ public class ConstructorPattern : Pattern
 		else
 		{
 			var destructor = new Constructor(context, AccessModifier.PUBLIC, body.Tokens);
-			destructor.Parameters = head.GetParameters(destructor);
+			destructor.Parameters.AddRange(head.GetParameters(destructor));
 
 			type.AddDestructor(destructor);
 

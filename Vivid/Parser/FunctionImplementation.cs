@@ -28,14 +28,6 @@ public class FunctionImplementation : Context
 		.Select(p => p.Type!)
 		.ToList();
 
-	public List<Variable> Locals => base.Variables.Values
-		.Where(v => v.Category == VariableCategory.LOCAL)
-		.Concat(Subcontexts
-			.SelectMany(c => c.Variables.Values
-			.Where(v => v.Category == VariableCategory.LOCAL
-		)))
-		.ToList();
-
 	public int LocalMemorySize => Variables.Values
 		.Where(v => v.Category == VariableCategory.LOCAL)
 		.Select(v => v.Type!.ReferenceSize)
@@ -146,7 +138,7 @@ public class FunctionImplementation : Context
 		}
 
 		Node = new ImplementationNode(this);
-		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MEMBERS);
+		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}
 
 	/// <summary>

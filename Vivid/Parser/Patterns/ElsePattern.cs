@@ -74,7 +74,9 @@ public class ElsePattern : Pattern
 		var context = new Context();
 		context.Link(environment);
 
-		return new ElseNode(context, Parser.Parse(context, body));
+		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+
+		return new ElseNode(context, node);
 	}
 
 	public override int GetStart()

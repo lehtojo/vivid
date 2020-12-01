@@ -8,7 +8,7 @@ public class CallInstruction : Instruction
 
 	public Result Function { get; }
 	public CallingConvention Convention { get; }
-	public List<Instruction> ParameterInstructions { get; set; } = new List<Instruction>();
+	public List<Instruction> ParameterInstructions { get; } = new List<Instruction>();
 
 	private bool IsParameterInstructionListExtracted => IsBuilt;
 
@@ -66,12 +66,13 @@ public class CallInstruction : Instruction
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
 
 		Build(
-		   INSTRUCTION,
-		   new InstructionParameter(
-			  Function,
-			  ParameterFlag.NONE,
-			  HandleType.MEMORY
-		   )
+			INSTRUCTION,
+			new InstructionParameter(
+				Function,
+				ParameterFlag.ALLOW_64_BIT_CONSTANT,
+				HandleType.REGISTER,
+				HandleType.MEMORY
+			)
 		);
 
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
@@ -119,11 +120,6 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		/*return ParameterInstructions
-				.Where(i => i.Type == InstructionType.MOVE)
-				.Select(i => i.To<DualParameterInstruction>().Second)
-				.Concat(new Result[] { Result, Function }).ToArray();*/
-
 		// If this call follows the x64 calling convention, the parameter instructions' source values must be referenced so that they aren't overriden before this call
 		if (!IsParameterInstructionListExtracted && Convention == CallingConvention.X64)
 		{

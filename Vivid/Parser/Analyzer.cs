@@ -3,10 +3,26 @@ using System;
 
 public static class Analyzer
 {
-	public static bool IsEdited(VariableNode reference)
+	public static bool IsEdited(Node reference)
 	{
-		return reference.Parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION && operation.Left == reference ||
-			(reference.Parent?.Is(NodeType.INCREMENT, NodeType.DECREMENT) ?? false);
+		var parent = reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Reference did not have a valid parent");
+
+		if (parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION)
+		{
+			return operation.Left == reference || reference.IsUnder(operation.Left);
+		}
+
+		return parent.Is(NodeType.INCREMENT, NodeType.DECREMENT);
+	}
+
+	public static Node GetEdited(Node edit)
+	{
+		return edit.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
+	}
+
+	public static Node GetEditNode(Node reference)
+	{
+		return reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the edit node");
 	}
 
 	private static void ResetVariableUsages(Node root)
@@ -22,6 +38,13 @@ public static class Analyzer
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
 			ResetVariableUsages(implementation.Node!);
+		}
+
+		foreach (var variable in context.Variables.Values)
+		{
+			variable.References.Clear();
+			variable.Edits.Clear();
+			variable.Reads.Clear();
 		}
 
 		foreach (var subcontext in context.Subcontexts)

@@ -5,15 +5,13 @@ public class UnarySignPattern : Pattern
 {
 	public const int PRIORITY = 18;
 
-	public const int OPERATOR = 0;
-	public const int SIGN = 1;
-	public const int OBJECT = 2;
+	public const int SIGN = 0;
+	public const int OBJECT = 1;
 
 	/// Example:
 	/// a = -x
 	public UnarySignPattern() : base
 	(
-		TokenType.KEYWORD | TokenType.OPERATOR | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
 		TokenType.OBJECT
 	)
@@ -22,7 +20,13 @@ public class UnarySignPattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var sign = tokens[SIGN].To<OperatorToken>().Operator;
-		return (sign == Operators.ADD || sign == Operators.SUBTRACT) && (!tokens[OPERATOR].Is(TokenType.NONE) || state.Start == 0);
+
+		if (sign != Operators.ADD && sign != Operators.SUBTRACT)
+		{
+			return false;
+		}
+
+		return state.Start == 0 || state.Tokens[state.Start - 1].Is(TokenType.OPERATOR);
 	}
 
 	public override Node? Build(Context context, List<Token> tokens)
@@ -51,10 +55,5 @@ public class UnarySignPattern : Pattern
 	public override int GetPriority(List<Token> tokens)
 	{
 		return PRIORITY;
-	}
-
-	public override int GetStart()
-	{
-		return SIGN;
 	}
 }

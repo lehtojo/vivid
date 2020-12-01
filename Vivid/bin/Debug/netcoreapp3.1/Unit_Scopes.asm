@@ -3,8 +3,8 @@ global main
 main:
 jmp _V4initv_rx
 
-extern _V8allocatex_rPh
 extern _V14large_functionv
+extern _V17internal_allocatex_rPh
 
 global _V27scopes_nested_if_statementsxxxxxxxx_rx
 export _V27scopes_nested_if_statementsxxxxxxxx_rx
@@ -22,102 +22,45 @@ mov rbx, rcx
 sal rbx, 1
 lea rsi, [rdx*2+rdx]
 lea rdi, [r8*4+r8]
-mov rax, [rsp+144]
-test rcx, rcx
+mov rbp, rcx
+mov r12, r8
+mov r13, rdx
+mov r14, r9
+mov r15, [rsp+144]
+test rbp, rbp
 jle _V27scopes_nested_if_statementsxxxxxxxx_rx_L1
-test r8, r8
+test r12, r12
 jle _V27scopes_nested_if_statementsxxxxxxxx_rx_L3
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L3:
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 jmp _V27scopes_nested_if_statementsxxxxxxxx_rx_L0
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L1:
-test rdx, rdx
+test r13, r13
 jle _V27scopes_nested_if_statementsxxxxxxxx_rx_L5
-test r9, r9
+test r14, r14
 jle _V27scopes_nested_if_statementsxxxxxxxx_rx_L7
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L7:
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 jmp _V27scopes_nested_if_statementsxxxxxxxx_rx_L0
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L5:
-test rax, rax
+test r15, r15
 jle _V27scopes_nested_if_statementsxxxxxxxx_rx_L9
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L9:
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
 call _V14large_functionv
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov rax, rbp
 _V27scopes_nested_if_statementsxxxxxxxx_rx_L0:
-add rcx, rdx
-add rcx, r8
-add rcx, r9
-add rcx, rax
-add rcx, [rsp+152]
-add rcx, [rsp+160]
-add rcx, [rsp+168]
-imul rcx, rbx
-imul rcx, rsi
-imul rcx, rdi
-mov rax, rcx
+add rbp, r13
+add rbp, r12
+add rbp, r14
+lea rax, [rbp+r15]
+add rax, [rsp+152]
+add rax, [rsp+160]
+add rax, [rsp+168]
+imul rax, rbx
+imul rax, rsi
+imul rax, rdi
 add rsp, 40
 pop r15
 pop r14
@@ -145,26 +88,22 @@ mov rbx, rcx
 sal rbx, 1
 lea rsi, [rdx*2+rdx]
 lea rdi, [r8*4+r8]
-xor rax, rax
-mov r10, [rsp+168]
-cmp rax, r10
+xor rbp, rbp
+mov r12, [rsp+168]
+cmp rbp, r12
 jge _V18scopes_single_loopxxxxxxxx_rx_L1
 _V18scopes_single_loopxxxxxxxx_rx_L0:
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
-mov qword [rsp+168], r10
+mov r13, rcx
+mov r14, rdx
+mov r15, r8
+mov qword [rsp+136], r9
 call _V14large_functionv
 add rbp, 1
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov r10, [rsp+168]
-mov rax, rbp
-cmp rax, r10
+mov rcx, r13
+mov rdx, r14
+mov r8, r15
+mov r9, [rsp+136]
+cmp rbp, r12
 jl _V18scopes_single_loopxxxxxxxx_rx_L0
 _V18scopes_single_loopxxxxxxxx_rx_L1:
 add rcx, rdx
@@ -173,11 +112,10 @@ add rcx, r9
 add rcx, [rsp+144]
 add rcx, [rsp+152]
 add rcx, [rsp+160]
-add rcx, r10
-imul rcx, rbx
-imul rcx, rsi
-imul rcx, rdi
-mov rax, rcx
+lea rax, [rcx+r12]
+imul rax, rbx
+imul rax, rsi
+imul rax, rdi
 add rsp, 40
 pop r15
 pop r14
@@ -205,52 +143,40 @@ mov rbx, rcx
 sal rbx, 1
 lea rsi, [rdx*2+rdx]
 lea rdi, [r8*4+r8]
-xor rax, rax
-mov r10, [rsp+168]
-mov r11, [rsp+160]
-cmp rax, r10
+xor rbp, rbp
+mov r12, [rsp+168]
+mov r13, [rsp+160]
+cmp rbp, r12
 jge _V19scopes_nested_loopsxxxxxxxx_rx_L1
 _V19scopes_nested_loopsxxxxxxxx_rx_L0:
-xor rbp, rbp
-cmp rbp, r11
+xor r14, r14
+cmp r14, r13
 jge _V19scopes_nested_loopsxxxxxxxx_rx_L4
 _V19scopes_nested_loopsxxxxxxxx_rx_L3:
-mov r12, rax
-mov r13, rcx
-mov r14, rdx
-mov r15, r8
+mov r15, rcx
+mov qword [rsp+120], rdx
+mov qword [rsp+128], r8
 mov qword [rsp+136], r9
-mov qword [rsp+168], r10
-mov qword [rsp+160], r11
 call _V14large_functionv
-add rbp, 1
-mov rax, r12
-mov rcx, r13
-mov rdx, r14
-mov r8, r15
+add r14, 1
+mov rcx, r15
+mov rdx, [rsp+120]
+mov r8, [rsp+128]
 mov r9, [rsp+136]
-mov r11, [rsp+160]
-mov r10, [rsp+168]
-cmp rbp, r11
+cmp r14, r13
 jl _V19scopes_nested_loopsxxxxxxxx_rx_L3
 _V19scopes_nested_loopsxxxxxxxx_rx_L4:
-mov rbp, rax
-mov r12, rcx
-mov r13, rdx
-mov r14, r8
-mov r15, r9
-mov qword [rsp+168], r10
-mov qword [rsp+160], r11
+mov r14, rcx
+mov r15, rdx
+mov qword [rsp+128], r8
+mov qword [rsp+136], r9
 call _V14large_functionv
 add rbp, 1
-mov rcx, r12
-mov rdx, r13
-mov r8, r14
-mov r9, r15
-mov r11, [rsp+160]
-mov r10, [rsp+168]
-mov rax, rbp
-cmp rax, r10
+mov rcx, r14
+mov rdx, r15
+mov r8, [rsp+128]
+mov r9, [rsp+136]
+cmp rbp, r12
 jl _V19scopes_nested_loopsxxxxxxxx_rx_L0
 _V19scopes_nested_loopsxxxxxxxx_rx_L1:
 add rcx, rdx
@@ -258,12 +184,11 @@ add rcx, r8
 add rcx, r9
 add rcx, [rsp+144]
 add rcx, [rsp+152]
-add rcx, r11
-add rcx, r10
-imul rcx, rbx
-imul rcx, rsi
-imul rcx, rdi
-mov rax, rcx
+add rcx, r13
+lea rax, [rcx+r12]
+imul rax, rbx
+imul rax, rsi
+imul rax, rdi
 add rsp, 40
 pop r15
 pop r14
@@ -308,3 +233,118 @@ mov qword [rsp+48], 0
 mov qword [rsp+56], 0
 call _V19scopes_nested_loopsxxxxxxxx_rx
 ret
+
+_V8allocatex_rPh:
+push rbx
+push rsi
+sub rsp, 40
+mov r8, [rel _VN10Allocation_current]
+test r8, r8
+je _V8allocatex_rPh_L0
+mov rdx, [r8+16]
+lea r9, [rdx+rcx]
+cmp r9, 1000000
+jg _V8allocatex_rPh_L0
+lea r9, [rdx+rcx]
+mov qword [r8+16], r9
+lea r9, [rdx+rcx]
+mov rax, [r8+8]
+add rax, rdx
+add rsp, 40
+pop rsi
+pop rbx
+ret
+_V8allocatex_rPh_L0:
+mov rbx, rcx
+mov rcx, 1000000
+call _V17internal_allocatex_rPh
+mov rcx, 24
+mov rsi, rax
+call _V17internal_allocatex_rPh
+mov qword [rax+8], rsi
+mov qword [rax+16], rbx
+mov qword [rel _VN10Allocation_current], rax
+mov rax, rsi
+add rsp, 40
+pop rsi
+pop rbx
+ret
+
+_V8inheritsPhPS__rx:
+push rbx
+push rsi
+sub rsp, 16
+mov r8, [rcx]
+mov r9, [rdx]
+movzx r10, byte [r9]
+xor rax, rax
+_V8inheritsPhPS__rx_L1:
+_V8inheritsPhPS__rx_L0:
+movzx rcx, byte [r8+rax]
+add rax, 1
+cmp rcx, r10
+jnz _V8inheritsPhPS__rx_L4
+mov r11, rcx
+mov rbx, 1
+_V8inheritsPhPS__rx_L7:
+_V8inheritsPhPS__rx_L6:
+movzx r11, byte [r8+rax]
+movzx rsi, byte [r9+rbx]
+add rax, 1
+add rbx, 1
+cmp r11, rsi
+jz _V8inheritsPhPS__rx_L9
+cmp r11, 1
+jne _V8inheritsPhPS__rx_L9
+test rsi, rsi
+jne _V8inheritsPhPS__rx_L9
+mov rax, 1
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L9:
+jmp _V8inheritsPhPS__rx_L6
+_V8inheritsPhPS__rx_L8:
+jmp _V8inheritsPhPS__rx_L3
+_V8inheritsPhPS__rx_L4:
+cmp rcx, 2
+jne _V8inheritsPhPS__rx_L3
+xor rax, rax
+add rsp, 16
+pop rsi
+pop rbx
+ret
+_V8inheritsPhPS__rx_L3:
+jmp _V8inheritsPhPS__rx_L0
+_V8inheritsPhPS__rx_L2:
+add rsp, 16
+pop rsi
+pop rbx
+ret
+
+section .data
+
+_VN10Allocation_current dq 0
+
+_VN4Page_configuration:
+dq _VN4Page_descriptor
+
+_VN4Page_descriptor:
+dq _VN4Page_descriptor_0
+dd 24
+dd 0
+
+_VN4Page_descriptor_0:
+db 'Page', 0, 1, 2, 0
+
+_VN10Allocation_configuration:
+dq _VN10Allocation_descriptor
+
+_VN10Allocation_descriptor:
+dq _VN10Allocation_descriptor_0
+dd 8
+dd 0
+
+_VN10Allocation_descriptor_0:
+db 'Allocation', 0, 1, 2, 0

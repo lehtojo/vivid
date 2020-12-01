@@ -178,9 +178,14 @@ public class ConfigurationPhase : Phase
 				}
 			}
 
-			case "--disable_mathematical_optimization":
+			case "-O":
+			case "-O1":
+			case "--optimize":
 			{
-				Analysis.IsMathematicalOptimizationEnabled = false;
+				Analysis.IsInstructionAnalysisEnabled = true;
+				Analysis.IsMathematicalAnalysisEnabled = true;
+				Analysis.IsRepetitionAnalysisEnabled = true;
+				Analysis.IsUnwrapAnalysisEnabled = true;
 				return Status.OK;
 			}
 

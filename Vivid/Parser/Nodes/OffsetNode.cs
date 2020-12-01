@@ -82,8 +82,7 @@ public class OffsetNode : Node, IType, IResolvable
 	private Node? TryResolveAsIndexedGetter(Type type)
 	{
 		// Determine if this node represents a setter
-		if (Parent != null && Parent.Is(NodeType.OPERATOR) &&
-			Parent.To<OperatorNode>().Operator.Type == OperatorType.ACTION)
+		if (Parent != null && Parent.Is(NodeType.OPERATOR) && Parent.To<OperatorNode>().Operator.Type == OperatorType.ACTION && Parent.First == this)
 		{
 			// Indexed accessor setter is handled elsewhere
 			return null;
@@ -132,7 +131,7 @@ public class OffsetNode : Node, IType, IResolvable
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		return hash.ToHashCode();
 	}

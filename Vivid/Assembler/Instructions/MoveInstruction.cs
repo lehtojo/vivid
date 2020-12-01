@@ -54,7 +54,7 @@ public class MoveInstruction : DualParameterInstruction
 
 	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format)
 	{
-		IsFutureUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
+		IsUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
 	}
 
 	private void UpdateResultFormat()

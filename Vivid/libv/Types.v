@@ -53,3 +53,7 @@ TypeDescriptor {
         => supertypes
     }
 }
+
+typeof(object) => TypeDescriptor(object as link)
+sizeof(object) => TypeDescriptor(object as link).size()
+nameof(object) => TypeDescriptor(object as link).name()

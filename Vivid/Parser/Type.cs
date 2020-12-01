@@ -33,6 +33,10 @@ public class Table
 
 public class RuntimeConfiguration
 {
+	public const string ZERO_TERMINATOR = "\\x00";
+	public const string INHERITANT_SEPARATOR = "\\x01";
+	public const string FULLNAME_END = "\\x02";
+
 	public const string CONFIGURATION_TABLE_POSTFIX = "_configuration";
 	public const string DESCRIPTOR_TABLE_POSTFIX = "_descriptor";
 
@@ -40,6 +44,22 @@ public class RuntimeConfiguration
 	public Table Descriptor { get; private set; }
 
 	public Variable Variable { get; private set; }
+
+	private string GetFullname(Type type, bool start = false)
+	{
+		var a = type.Name;
+		var b = INHERITANT_SEPARATOR;
+		
+		b += string.Join(string.Empty, type.Supertypes.Select(i => GetFullname(i)).ToArray());
+
+		if (start)
+		{
+			a += ZERO_TERMINATOR;
+			b += FULLNAME_END;
+		}
+
+		return a + b;
+	}
 
 	public RuntimeConfiguration(Type type)
 	{
@@ -49,7 +69,8 @@ public class RuntimeConfiguration
 		Descriptor = new Table(type.GetFullname() + DESCRIPTOR_TABLE_POSTFIX);
 
 		Entry.Add(Descriptor);
-		Descriptor.Add(type.Name, false);
+
+		Descriptor.Add(GetFullname(type, true), false);
 	}
 }
 

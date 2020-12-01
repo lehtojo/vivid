@@ -64,6 +64,8 @@ public class IfPattern : Pattern
 		var context = new Context();
 		context.Link(environment);
 
-		return new IfNode(context, condition, Parser.Parse(context, body, 0, 20));
+		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+
+		return new IfNode(context, condition, node);
 	}
 }

@@ -257,7 +257,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Name);
 		return hash.ToHashCode();

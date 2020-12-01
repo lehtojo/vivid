@@ -22,6 +22,7 @@ public class AssemblerPhase : Phase
 
 	private const string WINDOWS_LINKER_SUBSYSTEM = "/subsystem:console";
 	private const string WINDOWS_LINKER_ENTRY = "/entry:main";
+	private const string WINDOWS_HEAP_SIZE = "/heap:2000000000,2000000000";
 	private const string WINDOWS_LINKER_DEBUG = "/debug";
 	private const string WINDOWS_LARGE_ADDRESS_UNAWARE = "/largeaddressaware:no";
 
@@ -166,6 +167,7 @@ public class AssemblerPhase : Phase
 			WINDOWS_LINKER_ENTRY,
 			WINDOWS_LINKER_DEBUG,
 			WINDOWS_LARGE_ADDRESS_UNAWARE,
+			WINDOWS_HEAP_SIZE,
 			"kernel32.lib",
 			"user32.lib",
 			input_file,

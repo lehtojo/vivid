@@ -29,6 +29,14 @@ public static class Builders
 				return Arithmetic.Build(unit, (IncrementNode)node);
 			}
 
+			case NodeType.DECLARE:
+			{
+				var declaration = (DeclareNode)node;
+				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
+
+				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
+			}
+
 			case NodeType.DECREMENT:
 			{
 				return Arithmetic.Build(unit, (DecrementNode)node);
@@ -51,7 +59,7 @@ public static class Builders
 
 			case NodeType.LINK:
 			{
-				return Links.Build(unit, (LinkNode)node);
+				return Links.Build(unit, (LinkNode)node, AccessMode.READ);
 			}
 
 			case NodeType.IF:
@@ -71,7 +79,7 @@ public static class Builders
 
 			case NodeType.CAST:
 			{
-				return Casts.Build(unit, (CastNode)node);
+				return Casts.Build(unit, (CastNode)node, AccessMode.READ);
 			}
 
 			case NodeType.NOT:

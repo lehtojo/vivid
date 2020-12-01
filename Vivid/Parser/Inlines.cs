@@ -153,24 +153,7 @@ public static class Inlines
 	/// </summary>
 	public static void Inline(FunctionImplementation implementation, FunctionNode reference)
 	{
-		/**
-		 * TODO: Fix inlining in the following situations:
-		 * x = i++ + f(i)
-		 * The current system will inline the expression the following way (wrong):
-		 * a = f(i)
-		 * x = i++ + a
-		 * The solution could be to rewrite expressions which have increments and decrements the following way:
-		 * x = i++ + f(i)
-		 * =>
-		 * x = i + f(i + 1)
-		 * i += 1
-		 * =>
-		 * a = f(i + 1)
-		 * x = i + a
-		 * i += 1
-		 */
-
-		var context = reference.FindContext().GetContext();
+		var context = reference.GetParentContext();
 		var body = GetInlineBody(context, implementation, reference, out Node destination);
 		var position = GetInlineInsertPosition(reference);
 
@@ -209,13 +192,19 @@ public static class Inlines
 			}
 
 			// Insert a node to the destination position and replace it with the inlined body
-			var temporary = new Node();
-			position.Insert(temporary);
+			//var temporary = new Node();
+			//position.Insert(temporary);
 
 			// Replace the function call with the result of the inlined function
-			destination.Replace(new VariableNode(result));
+			//destination.Replace(new VariableNode(result));
 
-			temporary.ReplaceWithChildren(body);
+			var temporary = new InlineNode();
+			body.ForEach(i => temporary.Add(i));
+			temporary.Add(new VariableNode(result));
+
+			destination.Replace(temporary);
+
+			//temporary.ReplaceWithChildren(body);
 
 			return;
 		}
@@ -235,7 +224,11 @@ public static class Inlines
 			}
 
 			// Replace the function call with the body of the inlined function
-			destination.ReplaceWithChildren(body);
+			var temporary = new InlineNode();
+			body.ForEach(i => temporary.Add(i));
+
+			destination.Replace(temporary);
+			//destination.ReplaceWithChildren(body);
 		}
 	}
 

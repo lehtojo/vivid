@@ -79,4 +79,12 @@ public class UnresolvedType : Type, IResolvable
 
 		return Status.Error($"Could not resolve type '{descriptor}'");
 	}
+
+	public override string ToString()
+	{
+		var template_parameters = string.Join(", ", Arguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
+		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
+
+		return descriptor;
+	}
 }

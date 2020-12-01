@@ -188,4 +188,41 @@ String {
 
 		=> i
 	}
+
+	equals(other: String) {
+		a = length()
+		b = other.length()
+
+		if a != b => false as bool
+
+		loop (i = 0, i < a, i++) {
+			if text[i] != other.text[i] => false as bool
+		}
+
+		=> true as bool
+	}
+
+	equals(text: link) {
+		a = length()
+		b = length_of(text)
+
+		if a != b => false as bool
+
+		loop (i = 0, i < a, i++) {
+			if this.text[i] != text[i] => false as bool
+		}
+
+		=> true as bool
+	}
+
+	hash() {
+		hash = 1
+		length = length()
+
+		loop (i = 0, i < length, i++) {
+			hash *= text[i] as num
+		}
+
+		=> hash
+	}
 }

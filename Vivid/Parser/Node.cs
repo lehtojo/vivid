@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class NodeEnumerator : IEnumerator, IEnumerator<Node>
+public sealed class NodeEnumerator : IEnumerator, IEnumerator<Node>
 {
 	private Node? Position { get; set; }
 	private Node? Next { get; set; }
@@ -62,6 +62,7 @@ public class NodeEnumerator : IEnumerator, IEnumerator<Node>
 	}
 }
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1710")]
 public class Node : IEnumerable, IEnumerable<Node>
 {
 	public Node? Parent { get; set; }
@@ -133,6 +134,11 @@ public class Node : IEnumerable, IEnumerable<Node>
 	public IContext FindContext()
 	{
 		return (IContext)FindParent(p => p is IContext)!;
+	}
+
+	public Context GetParentContext()
+	{
+		return FindContext().GetContext();
 	}
 
 	public Node? Find(Predicate<Node> filter)
@@ -256,8 +262,14 @@ public class Node : IEnumerable, IEnumerable<Node>
 		}
 	}
 
-	public void Insert(Node position, Node child)
+	public void Insert(Node? position, Node child)
 	{
+		if (position == null)
+		{
+			Add(child);
+			return;
+		}
+
 		if (position == First)
 		{
 			First = child;
@@ -414,7 +426,32 @@ public class Node : IEnumerable, IEnumerable<Node>
 		Last = null;
 	}
 
-	private static Node[]? GetNodesUnderSharedParent(Node a, Node b)
+	public static Node? GetSharedParent(Node a, Node b)
+	{
+		var x = a.Path.Reverse().ToArray();
+		var y = b.Path.Reverse().ToArray();
+
+		var i = 0;
+		var count = Math.Min(x.Length, y.Length);
+
+		for (; i < count; i++)
+		{
+			if (x[i] != y[i])
+			{
+				break;
+			}
+		}
+
+		// Second condition: This scenario means that one of the nodes is parent of the other
+		if (i == 0 || i == count)
+		{
+			return null;
+		}
+
+		return x[i - 1];
+	}
+
+	public static Node[]? GetNodesUnderSharedParent(Node a, Node b)
 	{
 		var x = a.Path.Reverse().ToArray();
 		var y = b.Path.Reverse().ToArray();
@@ -551,6 +588,74 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return IsBefore(end) && IsAfter(start);
 	}
 
+	public Node? GetLeftWhile(Predicate<Node> filter)
+	{
+		if (First == null)
+		{
+			return null;
+		}
+
+		var iterator = First;
+
+		while (iterator.First != null && filter(iterator))
+		{
+			iterator = iterator.First;
+		}
+
+		return iterator;
+	}
+
+	public Node? GetRightWhile(Predicate<Node> filter)
+	{
+		if (Last == null)
+		{
+			return null;
+		}
+
+		var iterator = Last;
+
+		while (iterator.Last != null && filter(iterator))
+		{
+			iterator = iterator.Last;
+		}
+
+		return iterator;
+	}
+
+	public Node? GetBottomLeft()
+	{
+		if (First == null)
+		{
+			return null;
+		}
+
+		var iterator = First;
+
+		while (iterator.First != null)
+		{
+			iterator = iterator.First;
+		}
+
+		return iterator;
+	}
+
+	public Node? GetBottomRight()
+	{
+		if (Last == null)
+		{
+			return null;
+		}
+
+		var iterator = Last;
+
+		while (iterator.Last != null)
+		{
+			iterator = iterator.Last;
+		}
+
+		return iterator;
+	}
+
 	public Node Clone()
 	{
 		var result = (Node)MemberwiseClone();
@@ -590,14 +695,46 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public override bool Equals(object? other)
 	{
-		return other is Node node &&
-			   GetNodeType() == node.GetNodeType() &&
-			   EqualityComparer<Node?>.Default.Equals(Next, node.Next) &&
-			   EqualityComparer<Node?>.Default.Equals(First, node.First);
+		if (other is Node node && GetNodeType() == node.GetNodeType())
+		{
+			var a = Count();
+			var b = node.Count();
+
+			if (a != b)
+			{
+				return false;
+			}
+
+			var i = First;
+			var j = node.First;
+
+			while (i != null)
+			{
+				if (!i.Equals(j))
+				{
+					return false;
+				}
+
+				i = i.Next;
+				j = j.Next;
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Next, First);
+		var hash = new HashCode();
+		hash.Add(GetNodeType());
+
+		foreach (var iterator in this)
+		{
+			hash.Add(iterator);
+		}
+
+		return hash.ToHashCode();
 	}
 }

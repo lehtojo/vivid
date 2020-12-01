@@ -3,8 +3,6 @@ public class SingleParameterInstruction : Instruction
 {
 	private const string NEGATE_INSTRUCTION = "neg";
 	private const string NOT_INSTRUCTION = "not";
-	private const string MULTPLICATION_INSTRUCTION = "mul";
-	private const string SIGNED_MULTPLICATION_INSTRUCTION = "imul";
 
 	public string Instruction { get; private set; }
 	public Result Target { get; private set; }
@@ -25,22 +23,6 @@ public class SingleParameterInstruction : Instruction
 		};
 	}
 
-	public static SingleParameterInstruction Multiply(Unit unit, Result target)
-	{
-		return new SingleParameterInstruction(unit, MULTPLICATION_INSTRUCTION, target)
-		{
-			Description = "Performs multiplication between the operands"
-		};
-	}
-
-	public static SingleParameterInstruction SignedMultiply(Unit unit, Result target)
-	{
-		return new SingleParameterInstruction(unit, SIGNED_MULTPLICATION_INSTRUCTION, target)
-		{
-			Description = "Performs signed multiplication between the operands"
-		};
-	}
-
 	private SingleParameterInstruction(Unit unit, string instruction, Result target) : base(unit)
 	{
 		Instruction = instruction;
@@ -55,7 +37,7 @@ public class SingleParameterInstruction : Instruction
 			Assembler.Size,
 			new InstructionParameter(
 				Target,
-				ParameterFlag.DESTINATION,
+				ParameterFlag.DESTINATION | ParameterFlag.READS,
 				HandleType.REGISTER
 			)
 		);

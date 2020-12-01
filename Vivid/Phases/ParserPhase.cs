@@ -50,7 +50,7 @@ public class ParserPhase : Phase
 	/// <summary>
 	/// Ensures that exported functions and virtual functions are implemented
 	/// </summary>
-	private static void ImplementRequiredFunctions(Context context)
+	public static void ImplementRequiredFunctions(Context context)
 	{
 		foreach (var function in context.Functions.Values.SelectMany(i => i.Overloads).ToArray())
 		{
@@ -61,16 +61,16 @@ public class ParserPhase : Phase
 			}
 
 			// Retrieve the types of all parameters
-			var types = function.Parameters.Select(i => i.Type).ToArray();
+			var types = function.Parameters.Select(i => i.Type).ToList();
 
-			// If any of the parameters have a undefined type, it can not be implemented
-			if (types.Any(i => i == Types.UNKNOWN))
+			// If any of the parameters has an undefined type, it can not be implemented
+			if (types.Any(i => i == Types.UNKNOWN || i.IsUnresolved))
 			{
 				continue;
 			}
 
 			// Force implement the current exported function
-			function.Implement(types!);
+			function.Get(types!);
 		}
 
 		// Implement all virtual function overloads
@@ -87,7 +87,7 @@ public class ParserPhase : Phase
 					if (virtual_function.Parent != type)
 					{
 						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
 					}
 
 					continue;

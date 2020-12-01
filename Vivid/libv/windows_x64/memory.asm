@@ -14,8 +14,8 @@ _V4exitx:
 jmp ExitProcess
 
 ; rcx: Bytes
-global _V8allocatex_rPh:function
-_V8allocatex_rPh:
+global _V17internal_allocatex_rPh:function
+_V17internal_allocatex_rPh:
 
 mov rdx, rcx ; Bytes
 xor rcx, rcx ; lpAddress

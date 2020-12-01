@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public class CallDescriptorType : Type
 {
 	public Type? Self { get; private set; }
-	public List<Type?> Parameters { get; set; }
+	public List<Type?> Parameters { get; }
 	public Type? ReturnType { get; }
 
 	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
@@ -60,6 +61,16 @@ public class CallDescriptorType : Type
 		return ReturnType == type.ReturnType || Resolver.GetSharedType(ReturnType, type.ReturnType) != null;
 	}
 
+	public override int GetHashCode()
+	{
+		var hash = new HashCode();
+		hash.Add(base.GetHashCode());
+		hash.Add(Self);
+		hash.Add(Parameters);
+		hash.Add(ReturnType);
+		return hash.ToHashCode();
+	}
+	
 	public override string ToString()
 	{
 		return $"({string.Join(", ", Parameters.Select(p => p?.ToString() ?? "_").ToArray())}) => {ReturnType?.ToString() ?? "_"}";

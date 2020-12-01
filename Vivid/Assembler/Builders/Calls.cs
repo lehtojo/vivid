@@ -87,7 +87,9 @@ public static class Calls
 			}
 
 			var register = (Register?)null;
-			var instructions = new List<Instruction>();
+
+			// Save the parameter instructions for inspection
+			call.ParameterInstructions.Clear();
 
 			// On Windows x64 a 'shadow space' is allocated for the first four parameters
 			var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
@@ -101,7 +103,7 @@ public static class Calls
 					var destination = new RegisterHandle(register);
 
 					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
-					instructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer)
+					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer)
 					{
 						IsSafe = true
 					});
@@ -109,7 +111,7 @@ public static class Calls
 				else
 				{
 					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					instructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
+					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
 					stack_position.Offset += Size.FromFormat(self_pointer.Format).Bytes;
 				}
 			}
@@ -133,7 +135,7 @@ public static class Calls
 					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
 					var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
 
-					instructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
+					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
 					{
 						IsSafe = true
 					});
@@ -143,17 +145,15 @@ public static class Calls
 					var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
 
 					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					instructions.Add(new MoveInstruction(unit, destination, source));
+					call.ParameterInstructions.Add(new MoveInstruction(unit, destination, source));
 					stack_position.Offset += Size.FromFormat(source.Format).Bytes;
 				}
 			}
-
-			// Save the parameter instructions for inspection
-			call.ParameterInstructions = instructions;
 		}
 		else
 		{
-			var instructions = new List<Instruction>();
+			// Save the parameter instructions for inspection
+			call.ParameterInstructions.Clear();
 
 			for (var i = parameters.Length - 1; i >= 0; i--)
 			{
@@ -164,7 +164,7 @@ public static class Calls
 
 				var push = new PushInstruction(unit, handle);
 
-				instructions.Add(push);
+				call.ParameterInstructions.Add(push);
 				unit.Append(push);
 			}
 
@@ -178,16 +178,13 @@ public static class Calls
 			{
 				var push = new PushInstruction(unit, self_pointer);
 
-				instructions.Add(push);
+				call.ParameterInstructions.Add(push);
 				unit.Append(push);
 
 				stack_parameter_count++;
 			}
 
-			instructions.ForEach(i => i.Execute());
-
-			// Save the parameter instructions for inspection
-			call.ParameterInstructions = instructions;
+			call.ParameterInstructions.ForEach(i => i.Execute());
 		}
 
 		return stack_parameter_count;

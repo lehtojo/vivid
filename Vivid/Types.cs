@@ -24,7 +24,7 @@ public static class Types
 
 	public static bool IsPrimitive(Type type)
 	{
-		return type is Number || type is Bool;
+		return (type is Number || type is Bool) && type != Types.LINK;
 	}
 
 	public static void Inject(Context context)

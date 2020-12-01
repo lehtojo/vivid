@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.v": "vivid",
+        "map": "cpp"
+    }
+}

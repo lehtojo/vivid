@@ -1,8 +1,8 @@
 [section .text]
 
 ; rdi: Length
-global _V8allocatex_rPh:function hidden
-_V8allocatex_rPh:
+global _V17internal_allocatex_rPh:function hidden
+_V17internal_allocatex_rPh:
 ;   System call parameters
 ;
 ;   off_t offset,

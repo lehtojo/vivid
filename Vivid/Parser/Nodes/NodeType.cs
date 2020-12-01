@@ -2,8 +2,10 @@ public enum NodeType
 {
 	CALL,
 	CAST,
+	COMPILES,
 	CONTENT,
 	CONTEXT,
+	DECLARE,
 	DECREMENT,
 	ELSE_IF,
 	ELSE,

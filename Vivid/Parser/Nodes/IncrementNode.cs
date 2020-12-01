@@ -30,7 +30,7 @@ public class IncrementNode : Node, IType
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(Post);
 		return hash.ToHashCode();

@@ -42,20 +42,20 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 			Result.Value = new RegisterHandle(remainder);
 
 			Build(
-			   Instruction,
-			   Assembler.Size,
-			   new InstructionParameter(
-				  Result,
-				  ParameterFlag.DESTINATION | ParameterFlag.HIDDEN,
-				  HandleType.REGISTER
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  ParameterFlag.NONE,
-				  HandleType.CONSTANT,
-				  HandleType.REGISTER,
-				  HandleType.MEMORY
-			   )
+				Instruction,
+				Assembler.Size,
+				new InstructionParameter(
+					Result,
+					ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					ParameterFlag.NONE,
+					HandleType.CONSTANT,
+					HandleType.REGISTER,
+					HandleType.MEMORY
+				)
 			);
 		}
 	}

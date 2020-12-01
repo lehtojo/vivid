@@ -94,7 +94,7 @@ public class LambdaImplementation : FunctionImplementation
 		Type = new Type(this, string.Empty, AccessModifier.PUBLIC);
 		Node = new ImplementationNode(this);
 
-		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MEMBERS);
+		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}
 
 	public override Variable? GetSelfPointer()

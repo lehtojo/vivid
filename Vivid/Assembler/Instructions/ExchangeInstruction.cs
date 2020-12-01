@@ -8,7 +8,7 @@ public class ExchangeInstruction : DualParameterInstruction
 	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second, first.Format)
 	{
 		IsSafe = is_safe;
-		IsFutureUsageAnalyzed = false;
+		IsUsageAnalyzed = false;
 	}
 
 	public override void OnBuild()
@@ -18,12 +18,12 @@ public class ExchangeInstruction : DualParameterInstruction
 			Assembler.Size,
 			new InstructionParameter(
 				First,
-				ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_SOURCE | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS),
+				ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_SOURCE | ParameterFlag.READS | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS),
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
 				Second,
-				ParameterFlag.SOURCE | ParameterFlag.RELOCATE_TO_DESTINATION,
+				ParameterFlag.SOURCE | ParameterFlag.RELOCATE_TO_DESTINATION | ParameterFlag.READS,
 				HandleType.REGISTER
 			)
 		);

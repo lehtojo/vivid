@@ -106,7 +106,7 @@ public class LoopPattern : Pattern
 		var token = tokens[BODY].To<ContentToken>();
 
 		var body = new ContextNode(body_context);
-		Parser.Parse(body_context, token.Tokens, 0, 20).ForEach(n => body.Add(n));
+		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
 
 		return new LoopNode(steps_context, steps, body);
 	}

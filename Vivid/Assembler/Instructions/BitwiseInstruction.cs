@@ -55,6 +55,76 @@ public class BitwiseInstruction : DualParameterInstruction
 		}
 	}
 
+	private void BuildShift()
+	{
+		var unlock = (Instruction?)null;
+		var shifter = new Result(Second.Value, Format.INT8);
+
+		if (!Second.IsConstant)
+		{
+			// Relocate the second operand to the shift register
+			var register = Unit.GetShiftRegister();
+			Memory.ClearRegister(Unit, register);
+
+			shifter = new MoveInstruction(Unit, new Result(new RegisterHandle(register), Format.INT8), Second)
+			{
+				Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
+
+			}.Execute();
+
+			// Lock the shift register since it's very important it doesn't get relocated
+			LockStateInstruction.Lock(Unit, register).Execute();
+			unlock = LockStateInstruction.Unlock(Unit, register);
+		}
+
+		var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
+
+		if (First.IsMemoryAddress && Assigns)
+		{
+			Build(
+				Instruction,
+				new InstructionParameter(
+					First,
+					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
+					HandleType.MEMORY
+				),
+				new InstructionParameter(
+					shifter,
+					ParameterFlag.NONE,
+					HandleType.CONSTANT,
+					HandleType.REGISTER
+				)
+			);
+
+			if (unlock != null)
+			{
+				Unit.Append(unlock);
+			}
+
+			return;
+		}
+
+		Build(
+			Instruction,
+			new InstructionParameter(
+				First,
+				ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				shifter,
+				ParameterFlag.NONE,
+				HandleType.CONSTANT,
+				HandleType.REGISTER
+			)
+		);
+
+		if (unlock != null)
+		{
+			Unit.Append(unlock);
+		}
+	}
+
 	public override void OnBuild()
 	{
 		if (Instruction == SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION || Instruction == DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION)
@@ -68,7 +138,7 @@ public class BitwiseInstruction : DualParameterInstruction
 				Instruction,
 				new InstructionParameter(
 					First,
-					ParameterFlag.DESTINATION,
+					ParameterFlag.DESTINATION | ParameterFlag.READS,
 					HandleType.MEDIA_REGISTER
 				),
 				new InstructionParameter(
@@ -82,16 +152,22 @@ public class BitwiseInstruction : DualParameterInstruction
 			return;
 		}
 
+		if (Instruction == SHIFT_LEFT_INSTRUCTION || Instruction == SHIFT_RIGHT_INSTRUCTION)
+		{
+			BuildShift();
+			return;
+		}
+
 		var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
 
-		if (First.IsMemoryAddress)
+		if (First.IsMemoryAddress && Assigns)
 		{
 			Build(
 				Instruction,
 				First.Size,
 				new InstructionParameter(
 					First,
-					flags,
+					ParameterFlag.READS | flags,
 					HandleType.MEMORY
 				),
 				new InstructionParameter(
@@ -110,7 +186,7 @@ public class BitwiseInstruction : DualParameterInstruction
 			Assembler.Size,
 			new InstructionParameter(
 				First,
-				flags,
+				ParameterFlag.READS | flags,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(

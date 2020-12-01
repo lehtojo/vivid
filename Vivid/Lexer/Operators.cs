@@ -57,10 +57,16 @@ public static class Operators
 	public static readonly IndependentOperator END = new IndependentOperator("\n");
 
 	private static readonly Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
+	private static readonly Dictionary<string, ActionOperator> Actions = new Dictionary<string, ActionOperator>();
 
 	private static void Add(Operator operation)
 	{
 		Map.Add(operation.Identifier, operation);
+
+		if (operation is ActionOperator action && !string.IsNullOrEmpty(action.Operator?.Identifier))
+		{
+			Actions.Add(action.Operator.Identifier, action);
+		}
 	}
 
 	static Operators()
@@ -124,6 +130,16 @@ public static class Operators
 		}
 
 		throw new System.Exception($"Unknown operator '{text}'");
+	}
+
+	public static ActionOperator? GetActionOperator(Operator operation)
+	{
+		if (Actions.TryGetValue(operation.Identifier, out ActionOperator? action))
+		{
+			return action;
+		}
+
+		return null;
 	}
 
 	public static bool Exists(string identifier)

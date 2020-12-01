@@ -16,6 +16,7 @@ public static class ParameterFlag
 	public const int HIDDEN = 128;
 	public const int ALLOW_64_BIT_CONSTANT = 256;
 	public const int NO_ATTACH = 512;
+	public const int READS = 1024;
 }
 
 public class InstructionParameter
@@ -33,13 +34,14 @@ public class InstructionParameter
 	public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
 	public bool IsAttachable => !Flag.Has(Flags, ParameterFlag.NO_ATTACH);
 
-	public bool IsRegister => Value?.Type == HandleType.REGISTER;
-	public bool IsMediaRegister => Value is RegisterHandle handle && handle.Register.IsMediaRegister;
-	public bool IsMemoryAddress => Result.Value.Type == HandleType.MEMORY;
+	public bool IsAnyRegister => Value?.Type == HandleType.REGISTER || Value?.Type == HandleType.MEDIA_REGISTER;
+	public bool IsStandardRegister => Value?.Type == HandleType.REGISTER;
+	public bool IsMediaRegister => Value?.Type == HandleType.MEDIA_REGISTER;
+	public bool IsMemoryAddress => Value?.Type == HandleType.MEMORY;
+	public bool IsConstant => Value?.Type == HandleType.CONSTANT;
 
 	public bool IsConstantValid => Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
 
-	public bool IsValid => Types.Contains(Result.Value.Type) && (!Result.IsConstant || IsConstantValid);
 	public bool IsValueValid => Value != null && Types.Contains(Value.Type);
 
 	public InstructionParameter(Result handle, int flags, params HandleType[] types)
@@ -52,6 +54,14 @@ public class InstructionParameter
 		Flags = flags;
 		Result = handle;
 		Types = types;
+	}
+
+	public InstructionParameter(Handle handle, int flags)
+	{
+		Flags = flags;
+		Result = new Result(handle, Assembler.Format);
+		Value = handle;
+		Types = new[] { handle.Type };
 	}
 
 	/// <summary>
@@ -83,6 +93,28 @@ public class InstructionParameter
 		Value.IsSizeVisible = visible;
 	}
 
+	public bool IsValid()
+	{
+		if (!Types.Contains(Result.Value.Type))
+		{
+			return false;
+		}
+
+		// 64-bit numbers can not be inlined
+		if (Result.IsConstant)
+		{
+			return Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
+		}
+
+		// Datasection address values should be moved into a register
+		if (Result.Value is DataSectionHandle handle)
+		{
+			return Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || !handle.Address;
+		}
+
+		return true;
+	}
+
 	public override string ToString()
 	{
 		return Result.Value.ToString();
@@ -103,7 +135,7 @@ public abstract class Instruction
 	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
 	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
 
-	public bool IsFutureUsageAnalyzed { get; set; } = true;
+	public bool IsUsageAnalyzed { get; set; } = true;
 	public bool IsBuilt { get; private set; } = false;
 
 	public Instruction(Unit unit)
@@ -136,7 +168,7 @@ public abstract class Instruction
 		var protect = parameter.IsDestination && parameter.IsProtected;
 		var recommendation = parameter.IsDestination ? Result.GetRecommendation(Unit) : parameter.Result.GetRecommendation(Unit);
 
-		if (parameter.IsValid)
+		if (parameter.IsValid())
 		{
 			// Get the more preffered options for this parameter
 			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
@@ -154,9 +186,8 @@ public abstract class Instruction
 					};
 				}
 
-				// TODO: Analyze whether the value will be actually used as a register
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
+				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
 				{
 					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, recommendation);
 				}
@@ -174,9 +205,8 @@ public abstract class Instruction
 					};
 				}
 
-				/// TODO: Analyze whether the value will be actually used as a register
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsFutureUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
+				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
 				{
 					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, recommendation);
 				}
@@ -186,7 +216,7 @@ public abstract class Instruction
 			// NOTE: The parameter shall not be converted if it represents a destination memory address which is being written to
 			if (parameter.Size != Size.NONE && parameter.Result.Size != parameter.Size)
 			{
-				if (parameter.IsMemoryAddress && parameter.IsDestination)
+				if (parameter.Result.IsMemoryAddress && parameter.IsDestination)
 				{
 					throw new ApplicationException("Could not convert memory address to the required size since it was specified as a destination");
 				}
@@ -230,12 +260,12 @@ public abstract class Instruction
 
 				destination = parameter.Value;
 			}
-			else if (parameter.IsSource && parameter.IsAttachable)
+
+			if (parameter.IsSource && parameter.IsAttachable)
 			{
-				// There should not be multiple sources
 				if (source != null)
 				{
-					throw new ApplicationException("Instruction parameters had multiple sources which is not allowed");
+					throw new InvalidOperationException("Instruction had multiple sources");
 				}
 
 				source = parameter.Value;
@@ -327,6 +357,14 @@ public abstract class Instruction
 	}
 
 	/// <summary>
+	/// Builds the instruction with the given arguments but doesn't force the parameters to be the same size
+	/// </summary>
+	public void Build(params InstructionParameter[] parameters)
+	{
+		Build(string.Empty, Size.NONE, parameters);
+	}
+
+	/// <summary>
 	/// Prepares the handle for use
 	/// </summary>
 	/// <returns>
@@ -407,12 +445,13 @@ public abstract class Instruction
 		// Skip empty instructions
 		if (string.IsNullOrEmpty(Operation))
 		{
+			SimulateParameterFlags();
 			return;
 		}
 
 		foreach (var parameter in Parameters)
 		{
-			if (!parameter.IsValueValid || parameter.Value == null)
+			if (parameter.Value == null)
 			{
 				throw new ApplicationException("During translation one instruction parameter was in incorrect format");
 			}
@@ -460,7 +499,14 @@ public abstract class Instruction
 		{
 			if (!parameter.IsHidden)
 			{
-				result.Append($" {parameter.Value},");
+				var value = parameter.Value?.ToString();
+
+				if (string.IsNullOrEmpty(value))
+				{
+					throw new ApplicationException("Instruction parameter could not be converted into text");
+				}
+
+				result.Append($" {value},");
 			}
 		}
 
@@ -480,6 +526,7 @@ public abstract class Instruction
 	public virtual void OnSimulate() { }
 	public virtual void OnBuild() { }
 	public virtual void OnPostBuild() { }
+	public virtual bool Redirect(Handle handle) { return false; }
 
 	public void Build()
 	{

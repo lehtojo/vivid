@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Collections.Generic;
 
-namespace Zigzag.Unit
+namespace Vivid.Unit
 {
 	[TestFixture]
 	class AssemblerTests
@@ -66,7 +66,10 @@ namespace Zigzag.Unit
 		private static extern long _V23special_multiplicationsxx_rx(long a, long b);
 
 		[DllImport("Unit_LargeFunctions", ExactSpelling = true)]
-		private static extern long _V1gxx_rx(long a, long b);
+		private static extern long _V1xxx_rx(long a, long b);
+
+		[DllImport("Unit_LargeFunctions", ExactSpelling = true)]
+		private static extern double _V1yxx_rd(long a, long b);
 
 		private static string GetExecutablePostfix()
 		{
@@ -112,7 +115,7 @@ namespace Zigzag.Unit
 			return GetProjectRoot() + separator + string.Join(separator, path) + separator + file;
 		}
 
-		private static bool Compile(string output, bool optimization, params string[] source_files)
+		private static bool Compile(string output, params string[] source_files)
 		{
 			// Configure the flow of the compiler
 			var chain = new Chain
@@ -128,22 +131,17 @@ namespace Zigzag.Unit
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 			var arguments = new List<string>() { "--shared", "--asm", "-o", Prefix + output };
 
-			if (!optimization)
+			if (IsOptimizationEnabled)
 			{
-				arguments.Add("--disable_mathematical_optimization");
+				arguments.Add("-O1");
 			}
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
-			bundle.Put("arguments", arguments.Concat(files).ToArray());
+			bundle.Put("arguments", arguments.Concat(files).Concat(new[] { GetProjectFile("Core.v", LIBV) }).ToArray());
 
 			// Execute the chain
 			return chain.Execute(bundle);
-		}
-
-		private static bool Compile(string output, params string[] source_files)
-		{
-			return Compile(output, IsOptimizationEnabled, source_files);
 		}
 
 		private static bool CompileExecutable(string output, string[] source_files)
@@ -162,14 +160,18 @@ namespace Zigzag.Unit
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 			var arguments = new List<string>() { "--asm", "--debug", "-o", Prefix + output };
 
-			if (!IsOptimizationEnabled)
+			#pragma warning disable 162
+			if (IsOptimizationEnabled)
 			{
-				arguments.Add("--disable_mathematical_optimization");
+				// The condition depends on the constant boolean which is used manually to control the optimization of the tests
+				// NOTE: This is practically redundant since this could be automated
+				arguments.Add("-O1");
 			}
+			#pragma warning restore 162
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
-			bundle.Put("arguments", arguments.Concat(files).ToArray());
+			bundle.Put("arguments", arguments.Concat(files).Concat(new[] { GetProjectFile("Core.v", LIBV) }).ToArray());
 
 			// Execute the chain
 			return chain.Execute(bundle);
@@ -211,6 +213,20 @@ namespace Zigzag.Unit
 		private static string LoadAssemblyOutput(string output)
 		{
 			return File.ReadAllText(Prefix + output + ".asm");
+		}
+
+		private static string LoadAssemblyFunction(string output, string function)
+		{
+			var assembly = File.ReadAllText(Prefix + output + ".asm");
+			var start = assembly.IndexOf(function + ':');
+			var end = assembly.IndexOf("\n\n", start);
+
+			if (start == -1 || end == -1)
+			{
+				Assert.Fail($"Could not load assembly function '{function}' from file '{Prefix + output + ".asm"}'");
+			}
+
+			return assembly[start..end];
 		}
 
 		private static int GetCountOf(string assembly, string pattern)
@@ -606,7 +622,7 @@ namespace Zigzag.Unit
 
 				if (j++ == -1)
 				{
-					Assert.Fail("Warning: Assembly output didn't contain five 'add rsp, 40' instructions");
+					Assert.Fail("Warning: Assembly output did not contain five 'add rsp, 40' instructions");
 				}
 			}
 		}
@@ -626,16 +642,8 @@ namespace Zigzag.Unit
 		{
 			Assert.AreEqual(-10799508, _V20register_utilizationxxxxxxx_rx(90, 7, 1, 1, 1, 1, 1));
 
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-			{
-				// Ensure the assembly output has exactly four memory addresses since otherwise the compiler wouldn't be utilizing registers as much as it should
-				Assert.AreEqual(4, GetMemoryAddressCount(LoadAssemblyOutput("RegisterUtilization")));
-			}
-			else
-			{
-				// Ensure the assembly output has exactly two memory addresses since otherwise the compiler wouldn't be utilizing registers as much as it should
-				Assert.AreEqual(2, GetMemoryAddressCount(LoadAssemblyOutput("RegisterUtilization")));
-			}
+			// Ensure the assembly function has exactly one memory address since otherwise the compiler wouldn't be utilizing registers as much as it should
+			Assert.AreEqual(1, GetMemoryAddressCount(LoadAssemblyFunction("RegisterUtilization", "_V20register_utilizationxxxxxxx_rx")));
 		}
 
 		[TestCase]
@@ -652,29 +660,41 @@ namespace Zigzag.Unit
 		[TestCase]
 		public void SpecialMultiplications()
 		{
-			if (!Compile("SpecialMultiplications", false, "SpecialMultiplications.v"))
+			if (!Compile("SpecialMultiplications", "SpecialMultiplications.v"))
 			{
 				Assert.Fail("Failed to compile");
 			}
 
 			Assert.AreEqual(1802, _V23special_multiplicationsxx_rx(7, 100));
 
+			// The last part of this test is supposed to run when optimization is disabled
+			#pragma warning disable 162
+			
+			if (IsOptimizationEnabled)
+			{
+				Assert.Pass();
+				return;
+			}
+
 			var assembly = LoadAssemblyOutput("SpecialMultiplications");
 			Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
 			Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));
 			Assert.AreEqual(1, GetCountOf(assembly, "lea\\ [a-z]+"));
 			Assert.AreEqual(1, GetCountOf(assembly, "sar\\ [a-z]+"));
+
+			#pragma warning restore 162
 		}
 
 		private static void LargeFunctions_Test()
 		{
-			Assert.AreEqual(197, _V1gxx_rx(26, 16));
+			Assert.AreEqual(197, _V1xxx_rx(26, 16));
+			Assert.AreEqual(414.414, _V1yxx_rd(8, 13));
 		}
 
 		[TestCase]
 		public void LargeFunctions()
 		{
-			if (!Compile("LargeFunctions", new[] { "LargeFunctions.v" }))
+			if (!Compile("LargeFunctions", new[] { "LargeFunctions.v", GetProjectFile("Core.v", LIBV) }))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1250,6 +1270,110 @@ namespace Zigzag.Unit
 			}
 
 			Whens_Test();
+		}
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern bool _V7can_useP6EntityP6Usable_rb(IntPtr entity, IntPtr usable);
+		
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(IntPtr usables, long min_reliability);
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(IntPtr entity, IntPtr vehicles, long distance);
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V10create_pigv_rP3Pig();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V10create_busv_rP3Bus();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V10create_carv_rP3Car();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V13create_bananav_rP6Banana();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V11create_johnv_rP6Person();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V10create_maxv_rP6Person();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V11create_gabev_rP6Person();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V12create_stevev_rP6Person();
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern IntPtr _V12create_arrayx_rP5ArrayIP6UsableE(long size);
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern void _V3setP5ArrayIP6UsableES0_x(IntPtr array, IntPtr usable, long i);
+
+		[DllImport("Unit_Is", ExactSpelling = true)]
+		private static extern bool _V6is_pigP7Vehicle_rb(IntPtr vehicle);
+
+		private static void Is_Test()
+		{
+			var pig = _V10create_pigv_rP3Pig();
+			var bus = _V10create_busv_rP3Bus();
+			var car = _V10create_carv_rP3Car();
+			var banana = _V13create_bananav_rP6Banana();
+
+			var john = _V11create_johnv_rP6Person();
+			var max = _V10create_maxv_rP6Person();
+			var gabe = _V11create_gabev_rP6Person();
+			var steve = _V12create_stevev_rP6Person();
+
+			var array = _V12create_arrayx_rP5ArrayIP6UsableE(4);
+			_V3setP5ArrayIP6UsableES0_x(array, pig + 8, 0);
+			_V3setP5ArrayIP6UsableES0_x(array, bus + 8, 1);
+			_V3setP5ArrayIP6UsableES0_x(array, car + 8, 2);
+			_V3setP5ArrayIP6UsableES0_x(array, banana, 3);
+
+			Assert.False(_V7can_useP6EntityP6Usable_rb(john, pig + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(john, bus + 8));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(john, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(john, banana));
+
+			Assert.True(_V7can_useP6EntityP6Usable_rb(max, pig + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(max, bus + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(max, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(max, banana));
+
+			Assert.False(_V7can_useP6EntityP6Usable_rb(gabe, pig + 8));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, bus + 8));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(gabe, banana));
+
+			Assert.True(_V7can_useP6EntityP6Usable_rb(steve, pig + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, bus + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, banana));
+
+			var all = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, long.MinValue);
+
+			var vehicles = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, 10);
+
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(john, vehicles, 7000));
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(max, vehicles, 1000));
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(gabe, vehicles, 3000));
+			
+			var vehicle = _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(steve, vehicles, 3000);
+
+			Assert.True(_V6is_pigP7Vehicle_rb(vehicle));
+		}
+
+		[TestCase]
+		public void Is()
+		{
+			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Core.v", LIBV), GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Is_Test();
 		}
 	}
 }

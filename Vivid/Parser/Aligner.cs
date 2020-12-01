@@ -146,19 +146,13 @@ public static class Aligner
 					continue;
 				}
 
-				if (parameter.Type == Types.DECIMAL && media_register_count-- > 0 ||
-						parameter.Type != Types.DECIMAL && standard_register_count-- > 0)
+				if (parameter.Type == Types.DECIMAL && media_register_count-- > 0 || parameter.Type != Types.DECIMAL && standard_register_count-- > 0)
 				{
 					continue;
 				}
 
-				if (parameter.Name == "g")
-				{
-					Console.WriteLine(position);
-				}
-
 				parameter.LocalAlignment = position;
-				position += parameter.Type!.ReferenceSize;
+				position += Parser.Bytes; // Stack elements each require the same amount of memory
 			}
 		}
 		else
@@ -181,7 +175,7 @@ public static class Aligner
 				if (variable.Category == VariableCategory.PARAMETER)
 				{
 					variable.LocalAlignment = position;
-					position += variable.Type!.ReferenceSize;
+					position += Parser.Bytes; // Stack elements each require the same amount of memory
 				}
 			}
 		}

@@ -55,7 +55,7 @@ public class ExtensionFunction : Pattern
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
 
 		var function = new Function(destination, AccessModifier.PUBLIC, descriptor.Name, tokens[BODY].To<ContentToken>().Tokens);
-		function.Parameters = descriptor.GetParameters(function);
+		function.Parameters.AddRange(descriptor.GetParameters(function));
 
 		destination.Declare(function);
 

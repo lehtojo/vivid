@@ -74,6 +74,27 @@ println(text: link) {
 ###
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
+println(number: tiny) {
+	println(to_string(number as num))
+}
+
+###
+summary: Converts the specified number to a string and writes it and a line ending to the console
+###
+println(number: small) {
+	println(to_string(number as num))
+}
+
+###
+summary: Converts the specified number to a string and writes it and a line ending to the console
+###
+println(number: normal) {
+	println(to_string(number as num))
+}
+
+###
+summary: Converts the specified number to a string and writes it and a line ending to the console
+###
 println(number: num) {
 	println(to_string(number))
 }

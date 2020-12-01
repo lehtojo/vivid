@@ -2,592 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class VariableReferenceDescriptor
-{
-	public List<Node> Reads { get; }
-	public List<Node> Writes { get; }
-
-	public VariableReferenceDescriptor(List<Node> reads, List<Node> writes)
-	{
-		Writes = writes;
-		Reads = reads;
-	}
-}
-
-public class VariableEqualityComparer : EqualityComparer<Variable>
-{
-	public override bool Equals(Variable? a, Variable? b)
-	{
-		return a == b;
-	}
-
-	public override int GetHashCode(Variable? a) => 0;
-}
-
-public abstract class Component
-{
-	public abstract void Negate();
-
-	public virtual Component? Add(Component other)
-	{
-		return null;
-	}
-
-	public virtual Component? Subtract(Component other)
-	{
-		return null;
-	}
-
-	public virtual Component? Multiply(Component other)
-	{
-		return null;
-	}
-
-	public virtual Component? Divide(Component other)
-	{
-		return null;
-	}
-
-	public static Component? operator +(Component left, Component right)
-	{
-		return left.Add(right);
-	}
-
-	public static Component? operator -(Component left, Component right)
-	{
-		return left.Subtract(right);
-	}
-
-	public static Component? operator *(Component left, Component right)
-	{
-		return left.Multiply(right);
-	}
-
-	public static Component? operator /(Component left, Component right)
-	{
-		return left.Divide(right);
-	}
-
-	public virtual Component Clone()
-	{
-		return (Component)MemberwiseClone();
-	}
-}
-
-public class NumberComponent : Component
-{
-	public object Value { get; private set; }
-
-	public NumberComponent(object value)
-	{
-		Value = value;
-
-		if (!(Value is long || Value is double))
-		{
-			throw new ArgumentException("Invalid value passed for number component");
-		}
-	}
-
-	public override void Negate()
-	{
-		if (Value is long coefficient)
-		{
-			Value = -coefficient;
-		}
-		else
-		{
-			Value = -(double)Value;
-		}
-	}
-
-	public override Component? Add(Component other)
-	{
-		if (Numbers.IsZero(this))
-		{
-			return other.Clone();
-		}
-		else if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-
-		if (other is NumberComponent number_component)
-		{
-			return new NumberComponent(Numbers.Add(Value, number_component.Value));
-		}
-
-		return null;
-	}
-
-	public override Component? Subtract(Component other)
-	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-		else if (Numbers.IsZero(Value))
-		{
-			var clone = other.Clone();
-			clone.Negate();
-
-			return clone;
-		}
-
-		if (other is NumberComponent number_component)
-		{
-			return new NumberComponent(Numbers.Subtract(Value, number_component.Value));
-		}
-
-		return null;
-	}
-
-	public override Component? Multiply(Component other)
-	{
-		if (Numbers.IsZero(this) || Numbers.IsZero(other))
-		{
-			return new NumberComponent(0L);
-		}
-		else if (Numbers.IsOne(this))
-		{
-			return other.Clone();
-		}
-		else if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		return other switch
-		{
-			NumberComponent number_component => new NumberComponent(Numbers.Multiply(Value, number_component.Value)),
-			VariableComponent variable_component => new VariableComponent(variable_component.Variable,
-				Numbers.Multiply(Value, variable_component.Coefficient)),
-			ComplexVariableProduct product => product * this,
-			_ => null
-		};
-	}
-
-	public override Component? Divide(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		return other switch
-		{
-			NumberComponent number_component => new NumberComponent(Numbers.Divide(Value, number_component.Value)),
-			_ => null
-		};
-	}
-
-	public override bool Equals(object? other)
-	{
-		return other is NumberComponent component && Equals(component.Value, Value);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Value);
-	}
-}
-
-public class VariableComponent : Component
-{
-	public object Coefficient { get; set; }
-	public int Order { get; set; }
-	public Variable Variable { get; }
-
-	public VariableComponent(Variable variable, object? coefficient = null, int order = 1)
-	{
-		Coefficient = coefficient ?? 1L;
-		Variable = variable;
-		Order = order;
-	}
-
-	public override void Negate()
-	{
-		if (Coefficient is long coefficient)
-		{
-			Coefficient = -coefficient;
-		}
-		else
-		{
-			Coefficient = -(double)Coefficient;
-		}
-	}
-
-	public override Component? Add(Component other)
-	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-
-		if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
-		{
-			var coefficient = Numbers.Add(Coefficient, x.Coefficient);
-
-			if (Numbers.IsZero(coefficient))
-			{
-				return new NumberComponent(0L);
-			}
-
-			return new VariableComponent(Variable, coefficient);
-		}
-
-		return null;
-	}
-
-	public override Component? Subtract(Component other)
-	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-
-		if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
-		{
-			var coefficient = Numbers.Subtract(Coefficient, x.Coefficient);
-
-			if (Numbers.IsZero(coefficient))
-			{
-				return new NumberComponent(0L);
-			}
-
-			return new VariableComponent(Variable, coefficient);
-		}
-
-		return null;
-	}
-
-	public override Component? Multiply(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-		else if (Numbers.IsZero(other))
-		{
-			return new NumberComponent(0L);
-		}
-
-		if (other is VariableComponent variable_component)
-		{
-			if (Equals(Variable, variable_component.Variable))
-			{
-				return new VariableComponent(
-					Variable,
-					Numbers.Multiply(Coefficient, variable_component.Coefficient),
-					Order + variable_component.Order
-				);
-			}
-
-			var coefficient = Numbers.Multiply(Coefficient, variable_component.Coefficient);
-			Coefficient = 1L;
-			variable_component.Coefficient = 1L;
-
-			return new ComplexVariableProduct(coefficient, new List<VariableComponent> { this, variable_component });
-		}
-
-		if (other is NumberComponent number_component)
-		{
-			return new VariableComponent(Variable, Numbers.Multiply(Coefficient, number_component.Value), Order);
-		}
-
-		if (other is ComplexVariableProduct product)
-		{
-			return product * this;
-		}
-
-		return null;
-	}
-
-	public override Component? Divide(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		if (other is VariableComponent variable_component && Equals(Variable, variable_component.Variable))
-		{
-			var order = Order - variable_component.Order;
-			var coefficient = Numbers.Divide(Coefficient, variable_component.Coefficient);
-
-			if (order == 0)
-			{
-				return new NumberComponent(coefficient);
-			}
-
-			// Ensure that the coefficient supports fractions
-			if (coefficient is double || Numbers.IsZero(Numbers.Remainder(Coefficient, variable_component.Coefficient)))
-			{
-				return new VariableComponent(Variable, coefficient, order);
-			}
-		}
-
-		if (other is NumberComponent number)
-		{
-			// If neither one of the two coefficients is a decimal number, the dividend must be divisible by the divisor
-			if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))
-			{
-				return null;
-			}
-
-			return new VariableComponent(Variable, Numbers.Divide(Coefficient, number.Value), Order);
-		}
-
-		return null;
-	}
-
-	public override bool Equals(object? other)
-	{
-		return other is VariableComponent component && Equals(component.Coefficient, Coefficient) && Equals(component.Variable, Variable);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Coefficient, Variable);
-	}
-}
-
-public class ComplexVariableProduct : Component
-{
-	public object Coefficient { get; set; } = 0L;
-	public List<VariableComponent> Variables { get; private set; } = new List<VariableComponent>();
-
-	public ComplexVariableProduct(object coefficient, List<VariableComponent> variables)
-	{
-		Coefficient = coefficient;
-		Variables = variables;
-	}
-
-	public override void Negate()
-	{
-		Coefficient = Numbers.Negate(Coefficient);
-	}
-
-	private bool Equals(Component other)
-	{
-		if (!(other is ComplexVariableProduct product) || Variables.Count != product.Variables.Count)
-		{
-			return false;
-		}
-
-		foreach (var x in Variables)
-		{
-			if (!product.Variables.Exists(v => v.Variable == x.Variable && v.Order == x.Order))
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	public override Component? Add(Component other)
-	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-
-		if (!Equals(other))
-		{
-			return null;
-		}
-
-		var clone = (ComplexVariableProduct)Clone();
-		clone.Coefficient = Numbers.Add(Coefficient, ((ComplexVariableProduct)other).Coefficient);
-
-		return clone;
-	}
-
-	public override Component? Subtract(Component other)
-	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
-
-		if (!Equals(other))
-		{
-			return null;
-		}
-
-		var clone = (ComplexVariableProduct)Clone();
-		clone.Coefficient = Numbers.Subtract(Coefficient, ((ComplexVariableProduct)other).Coefficient);
-
-		return clone;
-	}
-
-	public override Component? Multiply(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-		else if (Numbers.IsZero(other))
-		{
-			return new NumberComponent(0L);
-		}
-
-		switch (other)
-		{
-			case NumberComponent number:
-			{
-				var coefficient = Numbers.Multiply(Coefficient, number.Value);
-
-				if (Numbers.IsZero(coefficient))
-				{
-					return new NumberComponent(0L);
-				}
-
-				var clone = (ComplexVariableProduct)Clone();
-				clone.Coefficient = coefficient;
-
-				return clone;
-			}
-
-			case VariableComponent x:
-			{
-				var coefficient = Numbers.Multiply(Coefficient, x.Coefficient);
-
-				var clone = (ComplexVariableProduct)Clone();
-				clone.Coefficient = coefficient;
-
-				var a = clone.Variables.Find(v => v.Variable == x.Variable);
-
-				if (a != null)
-				{
-					a.Order += x.Order;
-
-					if (a.Order == 0)
-					{
-						Variables.Remove(a);
-					}
-				}
-				else
-				{
-					x = (VariableComponent)x.Clone();
-					x.Coefficient = 1L;
-
-					clone.Variables.Add(x);
-				}
-
-				return clone;
-			}
-
-			case ComplexVariableProduct product:
-			{
-				var coefficient = Numbers.Multiply(Coefficient, product.Coefficient);
-
-				var clone = (ComplexVariableProduct)Clone();
-				clone.Coefficient = coefficient;
-
-				foreach (var x in product.Variables)
-				{
-					clone = (ComplexVariableProduct)clone.Multiply(x)!;
-				}
-
-				return this;
-			}
-
-			default: return null;
-		}
-	}
-
-	public override Component? Divide(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		if (other is NumberComponent number)
-		{
-			if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))
-			{
-				return null;
-			}
-
-			var coefficient = Numbers.Divide(Coefficient, number.Value);
-
-			var clone = (ComplexVariableProduct)Clone();
-			clone.Coefficient = coefficient;
-
-			return clone;
-		}
-
-		return null;
-	}
-
-	public override Component Clone()
-	{
-		var clone = (ComplexVariableProduct)MemberwiseClone();
-		clone.Variables = Variables.Select(v => (VariableComponent)v.Clone()).ToList();
-
-		return clone;
-	}
-}
-
-public class ComplexComponent : Component
-{
-	public Node Node { get; private set; }
-	public bool IsNegative { get; private set; }
-
-	public override void Negate()
-	{
-		IsNegative = !IsNegative;
-	}
-
-	public ComplexComponent(Node node)
-	{
-		Node = node;
-	}
-
-	public override Component? Add(Component other)
-	{
-		return Numbers.IsZero(other) ? Clone() : null;
-	}
-
-	public override Component? Subtract(Component other)
-	{
-		return Numbers.IsZero(other) ? Clone() : null;
-	}
-
-	public override Component? Multiply(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		return Numbers.IsZero(other) ? new NumberComponent(0L) : null;
-	}
-
-	public override Component? Divide(Component other)
-	{
-		if (Numbers.IsOne(other))
-		{
-			return Clone();
-		}
-
-		return null;
-	}
-
-	public override Component Clone()
-	{
-		var clone = (ComplexComponent)MemberwiseClone();
-		clone.Node = Node.Clone();
-
-		return clone;
-	}
-}
-
 public static class Analysis
 {
-	public static bool IsMathematicalOptimizationEnabled { get; set; }  = true;
+	public static bool IsInstructionAnalysisEnabled { get; set; } = false;
+	public static bool IsUnwrapAnalysisEnabled { get; set; } = false;
+	public static bool IsMathematicalAnalysisEnabled { get; set; } = false;
+	public static bool IsRepetitionAnalysisEnabled { get; set; } = false;
 
 	/// <summary>
 	/// Creates a node tree representing the specified components
@@ -625,7 +45,7 @@ public static class Analysis
 					continue;
 				}
 
-				var node = GetOrderedVariable(variable_component.Variable, variable_component.Order);
+				var node = CreateVariableWithOrder(variable_component.Variable, variable_component.Order);
 				bool is_coefficient_negative;
 
 				// When the coefficient is exactly one (double), the coefficient can be ignored, meaning the inaccuracy of the comparison is expected
@@ -665,7 +85,7 @@ public static class Analysis
 				);
 			}
 
-			if (component is ComplexVariableProduct product)
+			if (component is VariableProductComponent product)
 			{
 				var is_negative = product.Coefficient is long a && a < 0L || product.Coefficient is double b && b < 0.0;
 
@@ -690,7 +110,7 @@ public static class Analysis
 	/// </summary>
 	/// <param name="variable">Target variable</param>
 	/// <param name="order">Order of the variable</param>
-	private static Node GetOrderedVariable(Variable variable, int order)
+	private static Node CreateVariableWithOrder(Variable variable, int order)
 	{
 		if (order == 0)
 		{
@@ -736,7 +156,7 @@ public static class Analysis
 				return new NumberNode(Assembler.Format, 0L);
 			}
 
-			var result = GetOrderedVariable(variable_component.Variable, variable_component.Order);
+			var result = CreateVariableWithOrder(variable_component.Variable, variable_component.Order);
 
 			// When the coefficient is exactly one (double), the coefficient can be ignored, meaning the inaccuracy of the comparison is expected
 			if (variable_component.Coefficient is double c)
@@ -763,16 +183,16 @@ public static class Analysis
 				: complex_component.Node;
 		}
 
-		if (component is ComplexVariableProduct product)
+		if (component is VariableProductComponent product)
 		{
-			var result = GetOrderedVariable(product.Variables.First().Variable, product.Variables.First().Order);
+			var result = CreateVariableWithOrder(product.Variables.First().Variable, product.Variables.First().Order);
 
 			for (var i = 1; i < product.Variables.Count; i++)
 			{
 				var variable = product.Variables[i];
 
 				result = new OperatorNode(Operators.MULTIPLY)
-					.SetOperands(result, GetOrderedVariable(variable.Variable, variable.Order));
+					.SetOperands(result, CreateVariableWithOrder(variable.Variable, variable.Order));
 			}
 
 			return !Numbers.Equals(product.Coefficient, 1L)
@@ -936,8 +356,7 @@ public static class Analysis
 	/// <param name="left_components">Components of the left hand side</param>
 	/// <param name="right_components">Components of the right hand side</param>
 	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifyMultiplication(List<Component> left_components,
-		List<Component> right_components)
+	private static List<Component> SimplifyMultiplication(List<Component> left_components, List<Component> right_components)
 	{
 		var components = new List<Component>();
 
@@ -946,8 +365,7 @@ public static class Analysis
 			foreach (var right_component in right_components)
 			{
 				var result = left_component * right_component ?? new ComplexComponent(
-					new OperatorNode(Operators.MULTIPLY)
-						.SetOperands(Recreate(left_component), Recreate(right_component))
+					new OperatorNode(Operators.MULTIPLY).SetOperands(Recreate(left_component), Recreate(right_component))
 				);
 
 				components.Add(result);
@@ -963,8 +381,7 @@ public static class Analysis
 	/// <param name="left_components">Components of the left hand side</param>
 	/// <param name="right_components">Components of the right hand side</param>
 	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifyDivision(List<Component> left_components,
-		List<Component> right_components)
+	private static List<Component> SimplifyDivision(List<Component> left_components, List<Component> right_components)
 	{
 		if (left_components.Count == 1 && right_components.Count == 1)
 		{
@@ -978,11 +395,19 @@ public static class Analysis
 
 		return new List<Component>
 		{
-			new ComplexComponent(
-				new OperatorNode(Operators.DIVIDE)
-					.SetOperands(Recreate(left_components), Recreate(right_components))
-			)
+			new ComplexComponent(new OperatorNode(Operators.DIVIDE).SetOperands(Recreate(left_components), Recreate(right_components)))
 		};
+	}
+
+	/// <summary>
+	/// Tries to simplify the specified node
+	/// </summary>
+	private static Node GetSimplifiedValue(Node value)
+	{
+		var components = CollectComponents(value);
+		var simplified = Recreate(components);
+
+		return simplified;
 	}
 
 	/// <summary>
@@ -994,45 +419,12 @@ public static class Analysis
 		return node.Find(n => !(n.Is(NodeType.NUMBER) || n.Is(NodeType.OPERATOR) || n.Is(NodeType.VARIABLE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
 	}
 
-	private static List<Node> GetReferences(Node root, Variable variable)
-	{
-		return root.FindAll(n => n.Is(NodeType.VARIABLE))
-			.Where(v => v.To<VariableNode>().Variable == variable)
-			.ToList();
-	}
-
-	private static List<Node> GetEdits(List<Node> references)
-	{
-		return references
-			.Where(v => Analyzer.IsEdited(v.To<VariableNode>())).ToList();
-	}
-
-	public static VariableReferenceDescriptor GetVariableReferenceDescriptor(Node root, Variable variable)
-	{
-		var reads = GetReferences(root, variable);
-		var writes = GetEdits(reads);
-
-		for (var i = 0; i < writes.Count; i++)
-		{
-			for (var j = 0; j < reads.Count; j++)
-			{
-				if (reads[j] == writes[i] && !writes[i].Parent!.Is(NodeType.INCREMENT, NodeType.DECREMENT))
-				{
-					reads.RemoveAt(j);
-					break;
-				}
-			}
-		}
-
-		return new VariableReferenceDescriptor(reads, writes);
-	}
-
 	private static Node? GetBranch(Node node)
 	{
 		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
 	}
 
-	public static List<Node> GetBlacklist(Node node)
+	private static List<Node> GetBlacklist(Node node)
 	{
 		var blacklist = new List<Node>();
 		var branch = node;
@@ -1073,324 +465,7 @@ public static class Analysis
 		return perspective.FindParent(i => i.Is(NodeType.LOOP)) != null;
 	}
 
-	private static List<Edit> GetPastEdits(Node reference, IEnumerable<Edit> edits)
-	{
-		// Get a blacklist which describes which sections of the node tree have not been executed in the past or won't be executed in the future
-		var blacklist = GetBlacklist(reference);
-
-		return edits.Reverse()
-			.SkipWhile(e => !e.GetRoot().IsBefore(reference)) // Take while the edits are before the specified reference
-			.Where(e => !blacklist.Any(i => e.Node.IsUnder(i))) // Filter out all the edits which are not in the execution paths that lead to the specified reference
-			.ToList();
-	}
-
-	private class Edit
-	{
-		public Variable Variable { get; set; }
-		public Node Node { get; set; }
-		public List<Node> Dependencies { get; private set; } = new List<Node>();
-		public bool Required => Dependencies.Any();
-
-		public Edit(Variable variable, Node node)
-		{
-			Variable = variable;
-			Node = node;
-		}
-
-		public void AddDependency(Node dependency)
-		{
-			if (!Dependencies.Contains(dependency))
-			{
-				Dependencies.Add(dependency);
-			}
-		}
-
-		public void RemoveDependency(Node dependency)
-		{
-			if (!Dependencies.Remove(dependency))
-			{
-				throw new ApplicationException("Tried to remove edit depedency but it was not registered");
-			}
-		}
-
-		public Node GetRoot()
-		{
-			return Node.FindParent(p => p.Is(NodeType.INCREMENT, NodeType.DECREMENT) ||
-				p.Is(NodeType.OPERATOR) && p.To<OperatorNode>().Operator.Type == OperatorType.ACTION)
-				?? throw new ApplicationException("Could not find the root of a edit");
-		}
-
-		public Variable[] GetVariableDependencies()
-		{
-			var root = GetRoot();
-
-			if (root.Is(NodeType.INCREMENT, NodeType.DECREMENT))
-			{
-				return Array.Empty<Variable>();
-			}
-
-			return root.FindAll(i => i.Is(NodeType.VARIABLE))
-				.Select(i => i.To<VariableNode>().Variable)
-				.Distinct()
-				.Where(i => i != Variable)
-				.ToArray();
-		}
-	}
-
-	/// <summary>
-	/// Toggles all edits which are encountered in the specified node tree and returns whether the edits are bypassable
-	/// </summary>
-	/// <returns>
-	/// Returns whether the specified node tree is executable without encountering the specified edits
-	/// </returns>
-	private static bool Register(Node node, Node dependency, List<Edit> edits)
-	{
-		var edit = edits.Find(e => e.GetRoot() == node);
-
-		if (edit != null)
-		{
-			edit.AddDependency(dependency);
-
-			if (edit.GetRoot().Is(Operators.ASSIGN))
-			{
-				return false;
-			}
-		}
-
-		// If the specified node tree doesn't contain any of the edits, it must be penetrable
-		if (node.Find(n => edits.Any(e => e.Node == n)) == null)
-		{
-			return true;
-		}
-
-		if (node.Is(NodeType.IF))
-		{
-			var branches = node.To<IfNode>().GetBranches();
-			edits.Where(e => branches.Any(b => e.Node.IsUnder(b))).ForEach(e => e.AddDependency(dependency));
-		}
-		else if (node.Is(NodeType.LOOP))
-		{
-			if (node.To<LoopNode>().IsForeverLoop && !Register(node.To<LoopNode>().Body, dependency, edits))
-			{
-				return false;
-			}
-			else
-			{
-				// Register all the edits inside the loop
-				edits.Where(e => e.Node.IsUnder(node)).ForEach(e => e.AddDependency(dependency));
-
-				// If the initialization contains an edit, it means it's not bypassable
-				if (!Register(node.To<LoopNode>().Initialization, dependency, edits))
-				{
-					return false;
-				}
-			}
-		}
-		else if (!node.Is(NodeType.ELSE_IF, NodeType.ELSE))
-		{
-			var iterator = node.Last;
-
-			while (iterator != null)
-			{
-				if (!Register(iterator, dependency, edits))
-				{
-					return false;
-				}
-
-				iterator = iterator.Previous;
-			}
-		}
-
-		return true;
-	}
-
-	private static Node? StepOutside(Node? iterator, List<Edit> edits, Node dependency)
-	{
-		if (iterator == null)
-		{
-			return null;
-		}
-
-		switch (iterator.GetNodeType())
-		{
-			case NodeType.LOOP:
-			{
-				// All edits which are inside the current loop are needed by the dependency node
-				edits.Where(e => e.Node.IsUnder(iterator)).ForEach(e => e.AddDependency(dependency));
-
-				if (iterator.Previous != null)
-				{
-					return iterator.Previous;
-				}
-
-				return iterator.Previous ?? StepOutside(iterator.Parent, edits, dependency);
-			}
-
-			case NodeType.IF:
-			{
-				return iterator.Previous ?? StepOutside(iterator.Parent, edits, dependency);
-			}
-
-			case NodeType.ELSE_IF:
-			{
-				iterator = iterator.To<ElseIfNode>().GetRoot();
-
-				return iterator.Previous ?? StepOutside(iterator.Parent, edits, dependency);
-			}
-
-			case NodeType.ELSE:
-			{
-				iterator = iterator.To<ElseNode>().GetRoot();
-
-				return iterator.Previous ?? StepOutside(iterator.Parent, edits, dependency);
-			}
-
-			case NodeType.CONTEXT:
-			case NodeType.NORMAL:
-			{
-				return StepOutside(iterator.Parent, edits, dependency);
-			}
-
-			case NodeType.IMPLEMENTATION:
-			{
-				return null;
-			}
-
-			default:
-			{
-				return iterator;
-			}
-		}
-	}
-
-	/// <summary>
-	/// Iterates backwards starting from the specified node and registers all edits as needed which may affect the specified node
-	/// </summary>
-	/// <returns>Returns the edit which is closest to the specified node</returns>
-	private static Edit? RegisterSignificantEdits(Node node, Node dependency, List<Edit> edits)
-	{
-		var iterator = (Node?)node;
-		var past = GetPastEdits(node, edits);
-
-		while (iterator != null)
-		{
-			if (!Register(iterator, dependency, past))
-			{
-				return past.FirstOrDefault();
-			}
-
-			if (iterator.Previous == null)
-			{
-				iterator = StepOutside(iterator.Parent, edits, dependency);
-			}
-			else
-			{
-				iterator = iterator.Previous;
-			}
-		}
-
-		return past.FirstOrDefault();
-	}
-
-	private static bool IsBranched(Node read, Node edit)
-	{
-		var x = read.FindParent(p => p is IContext && !(p.Is(NodeType.LOOP) && p.To<LoopNode>().IsForeverLoop)) ?? throw new ApplicationException("Analysis executed outside of a context");
-		var y = edit.FindParent(p => p is IContext && !(p.Is(NodeType.LOOP) && p.To<LoopNode>().IsForeverLoop)) ?? throw new ApplicationException("Analysis executed outside of a context");
-
-		return x != y && !x.IsUnder(y);
-	}
-
-	private static bool IsAssignable(Node read, Edit edit, List<Edit> edits, Dictionary<Variable, VariableReferenceDescriptor> descriptors)
-	{
-		var root = edit.GetRoot()!;
-
-		if (!root.Is(Operators.ASSIGN))
-		{
-			/// TODO: Assignment value is possible to calculate here sometimes
-			return false;
-		}
-
-		// Skip edits which have function calls or they are branched from the perspective of the read
-		if (!IsPrimitive(root) || IsBranched(read, edit.Node))
-		{
-			return false;
-		}
-
-		// Collect all variables in the value of the edit
-		var dependencies = edit.GetVariableDependencies();
-
-		// If any of the depedency variables is between the edit and the read, the edit can not be assigned
-		if (dependencies.SelectMany(i => descriptors.GetValueOrDefault(i)?.Writes ?? new List<Node>()).Any(i => i.IsBetween(edit.Node, read)))
-		{
-			return false;
-		}
-
-		var loop = read.FindParent(p => p.Is(NodeType.LOOP));
-
-		if (loop == null)
-		{
-			return true;
-		}
-
-		if (!loop.To<LoopNode>().IsForeverLoop && read.IsUnder(loop.To<LoopNode>().Condition))
-		{
-			return false;
-		}
-
-		return !(!edit.Node.IsUnder(loop) && edits.Where(e => e != edit).Any(e => e.Node.IsUnder(loop)));
-	}
-
-	/// <summary>
-	/// Tries to simplify the specified node
-	/// </summary>
-	private static Node GetSimplifiedValue(Node value)
-	{
-		var components = CollectComponents(value);
-		var simplified = Recreate(components);
-
-		return simplified;
-	}
-
-	private static Node AssignVariable(FunctionImplementation context, Node node, Variable variable, out Dictionary<Variable, VariableReferenceDescriptor> descriptors, bool clone = true)
-	{
-		var root = clone ? node.Clone() : node;
-
-		// Retrieve descriptors for each of the variables in the context
-		descriptors = new Dictionary<Variable, VariableReferenceDescriptor>(context.Locals.Concat(context.Parameters).Select(
-			v => new KeyValuePair<Variable, VariableReferenceDescriptor>(v, GetVariableReferenceDescriptor(root, v))
-		), new VariableEqualityComparer());
-
-		var descriptor = descriptors[variable];
-		var edits = descriptor.Writes.Select(i => new Edit(variable, i)).ToList();
-
-		foreach (var read in descriptor.Reads)
-		{
-			// Register all of the past edits which are needed by the current reference
-			// Retrieve the latest edit which concerns the current reference
-			var edit = RegisterSignificantEdits(read, read, edits);
-
-			// Try to inline the value from the assignment
-			if (edit != null && IsAssignable(read, edit, edits, descriptors))
-			{
-				var assignment = edit.GetRoot();
-
-				edit.RemoveDependency(read);
-
-				// Optimize the value of the assignment is allowed
-				var value = IsMathematicalOptimizationEnabled ? GetSimplifiedValue(assignment.Last!) : assignment.Last!.Clone();
-
-				// Replace the reference with the value of the assignment
-				read.Replace(value);
-			}
-		}
-
-		// Remove all edits which are not needed or have been assigned completely
-		edits.Where(e => !e.Required).ForEach(e => e.GetRoot().Remove());
-
-		return root;
-	}
-
-	private static bool OptimizeComparisons(Node root)
+	public static bool OptimizeComparisons(Node root)
 	{
 		var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
 		var precomputed = false;
@@ -1472,7 +547,125 @@ public static class Analysis
 		return precomputed;
 	}
 
-	private static bool UnwrapStatements(Node root, FunctionImplementation context)
+	private static void EvaluateLogicalOperator(OperatorNode expression)
+	{
+		if (expression.Left.Is(Operators.AND) || expression.Left.Is(Operators.OR))
+		{
+			EvaluateLogicalOperator(expression.Left.To<OperatorNode>());
+		}
+
+		if (expression.Right.Is(Operators.AND) || expression.Right.Is(Operators.OR))
+		{
+			EvaluateLogicalOperator(expression.Right.To<OperatorNode>());
+		}
+
+		if (!expression.Left.Is(NodeType.NUMBER) && !expression.Right.Is(NodeType.NUMBER))
+		{
+			return;
+		}
+
+		var a = expression.Left is NumberNode x && x.Value.Equals(0L);
+		var b = expression.Right is NumberNode y && y.Value.Equals(0L);
+
+		if (a && b)
+		{
+			expression.Replace(new NumberNode(Parser.Format, 0L));
+			return;
+		}
+
+		expression.Replace(a ? expression.Right : expression.Left);
+	}
+
+	private static void EvaluateLogicalOperators(Node root)
+	{
+		foreach (var iterator in root)
+		{
+			if (iterator.Is(Operators.AND) || iterator.Is(Operators.OR))
+			{
+				EvaluateLogicalOperator(iterator.To<OperatorNode>());
+			}
+			else
+			{
+				EvaluateLogicalOperators(iterator);
+			}
+		}
+	}
+
+	private static bool EvaluateConditionalStatement(IfNode root)
+	{
+		if (!(root.Condition is NumberNode condition) || root.GetConditionInitialization().Any())
+		{
+			return false;
+		}
+
+		if (!condition.Value.Equals(0L))
+		{
+			// None of the successors will execute
+			root.GetSuccessors().ForEach(i => i.Remove());
+
+			if (root.Predecessor == null)
+			{
+				// Since the root node is the first branch, the body can be inlined
+				root.ReplaceWithChildren(root.Body.Clone());
+			}
+			else
+			{
+				// Since there is a branch before the root node, the root can be replaced with an else statement
+				root.Replace(new ElseNode(root.Context, root.Body.Clone()));
+			}
+		}
+		else if (root.Successor == null || root.Predecessor != null)
+		{
+			root.Remove();
+		}
+		else
+		{
+			if (root.Successor is ElseIfNode x)
+			{
+				root.Replace(new IfNode(x.Context, x.Condition, x.Body));
+				x.Remove();
+				return true;
+			}
+
+			root.ReplaceWithChildren(root.Successor);
+			root.Successor.Remove();
+		}
+
+		return true;
+	}
+
+	private static void EvaluateConditionalStatements(Node root)
+	{
+		var iterator = root.First;
+
+		while (iterator != null)
+		{
+			if (iterator is IfNode x)
+			{
+				if (EvaluateConditionalStatement(x))
+				{
+					iterator = root.First;
+				}
+				else
+				{
+					iterator = iterator.Next;
+				}
+				
+				continue;
+			}
+			else if (iterator.Is(NodeType.ELSE))
+			{
+				iterator = iterator.Next;
+			}
+			else
+			{
+				EvaluateConditionalStatements(iterator);
+				iterator = iterator.Next;
+			}
+		}
+	}
+
+	public static bool UnwrapStatements(Node root)
 	{
 		var iterator = root.First;
 		var unwrapped = false;
@@ -1547,7 +740,7 @@ public static class Analysis
 					{
 						iterator = statement.Next;
 
-						if (TryUnwrapLoop(root, context, statement))
+						if (TryUnwrapLoop(statement))
 						{
 							unwrapped = true;
 						}
@@ -1719,7 +912,7 @@ public static class Analysis
 		// x^2 < 10
 		// x < ax + 10
 		if (left.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
-			c is ComplexVariableProduct y && y.Variables.Exists(i => i.Variable == variable)))
+			c is VariableProductComponent y && y.Variables.Exists(i => i.Variable == variable)))
 		{
 			return null;
 		}
@@ -1727,7 +920,7 @@ public static class Analysis
 		var right = CollectComponents(condition.Last!);
 
 		if (right.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
-			c is ComplexVariableProduct y && y.Variables.Exists(i => i.Variable == variable)))
+			c is VariableProductComponent y && y.Variables.Exists(i => i.Variable == variable)))
 		{
 			return null;
 		}
@@ -1800,18 +993,18 @@ public static class Analysis
 		return null;
 	}
 
-	public static bool TryUnwrapLoop(Node root, FunctionImplementation context, LoopNode loop)
+	public static bool TryUnwrapLoop(LoopNode loop)
 	{
 		var descriptor = TryGetLoopUnwrapDescriptor(loop);
 
-		if (descriptor == null)
+		if (descriptor == null || descriptor.Steps > 100)
 		{
 			return false;
 		}
 
 		loop.InsertChildren(loop.Initialization.Clone());
 
-		var action = TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
+		var action = ReconstructionAnalysis.TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
 
 		for (var i = 0; i < descriptor.Steps; i++)
 		{
@@ -1821,109 +1014,10 @@ public static class Analysis
 
 		loop.Remove();
 
-		AssignVariable(context, root, descriptor.Iterator, out Dictionary<Variable, VariableReferenceDescriptor> _, false);
 		return true;
 	}
 
-	private static Node? TryRewriteAsAssignOperation(Node edit)
-	{
-		if (IsValueUsed(edit))
-		{
-			return null;
-		}
-
-		switch (edit)
-		{
-			case IncrementNode increment:
-			{
-
-				var destination = increment.Object.Clone().To<VariableNode>();
-
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
-					destination,
-					new OperatorNode(Operators.ADD).SetOperands(
-						destination.Clone(),
-						new NumberNode(destination.Variable.Type!.Format, 1L)
-					)
-				);
-			}
-
-			case DecrementNode decrement:
-			{
-
-				var destination = decrement.Object.Clone().To<VariableNode>();
-
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
-					destination,
-					new OperatorNode(Operators.SUBTRACT).SetOperands(
-						destination.Clone(),
-						new NumberNode(destination.Variable.Type!.Format, 1L)
-					)
-				);
-			}
-
-			case OperatorNode operation:
-			{
-
-				if (operation.Operator.Type != OperatorType.ACTION)
-				{
-					return null;
-				}
-
-				var destination = operation.Left.Clone().To<VariableNode>();
-				var type = ((ActionOperator)operation.Operator).Operator;
-
-				if (type == null)
-				{
-					return null;
-				}
-
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
-					destination,
-					new OperatorNode(type).SetOperands(
-						destination.Clone(),
-						edit.Last!.Clone()
-					)
-				);
-			}
-		}
-
-		return null;
-	}
-
-	private static Node? TryRewriteAsActionOperation(Node edit)
-	{
-		if (!edit.Is(NodeType.INCREMENT, NodeType.DECREMENT) || IsValueUsed(edit))
-		{
-			return null;
-		}
-
-		if (edit is IncrementNode increment)
-		{
-			var destination = increment.Object.Clone();
-			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from increment node");
-
-			return new OperatorNode(Operators.ASSIGN_ADD).SetOperands(
-				destination,
-				new NumberNode(type.Format, 1L)
-			);
-		}
-
-		if (edit is DecrementNode decrement)
-		{
-			var destination = decrement.Object.Clone();
-			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from decrement node");
-
-			return new OperatorNode(Operators.ASSIGN_SUBTRACT).SetOperands(
-				destination,
-				new NumberNode(type.Format, 1L)
-			);
-		}
-
-		return null;
-	}
-
-	private static bool RemoveUnreachableStatements(Node root)
+	public static bool RemoveUnreachableStatements(Node root)
 	{
 		var return_statements = root.FindAll(n => n.Is(NodeType.RETURN));
 		var removed = false;
@@ -1947,7 +1041,7 @@ public static class Analysis
 		return removed;
 	}
 
-	private static long GetCost(Node node)
+	public static long GetCost(Node node)
 	{
 		var result = 0L;
 		var iterator = node.First;
@@ -1979,6 +1073,10 @@ public static class Analysis
 					result++;
 				}
 			}
+			else if (iterator.Is(NodeType.LINK, NodeType.OFFSET))
+			{
+				result += 10;
+			}
 
 			result += GetCost(iterator);
 
@@ -1991,7 +1089,7 @@ public static class Analysis
 	/// <summary>
 	/// Tries to optimize all expressions in the specified node tree
 	/// </summary>
-	private static void OptimizeAllExpressions(Node root)
+	public static void OptimizeAllExpressions(Node root)
 	{
 		// Find all top level operators
 		var expressions = new List<Node>();
@@ -2013,61 +1111,6 @@ public static class Analysis
 			// Replace the expression with a simplified version
 			expression.Replace(GetSimplifiedValue(expression));
 		}
-	}
-
-	/// <summary>
-	/// Tries to optimize the specified node tree which is described by the specified context
-	/// </summary>
-	private static Node Optimize(Node node, FunctionImplementation context)
-	{
-		var minimum_cost_snapshot = node;
-		var minimum_cost = GetCost(node);
-
-		var snapshot = node;
-
-	Start:
-
-		foreach (var variable in context.Locals.Concat(context.Parameters))
-		{
-			// Assign the definitions of the current variable
-			snapshot = AssignVariable(context, snapshot, variable, out Dictionary<Variable, VariableReferenceDescriptor> descriptors);
-
-			// Try to optimize all comparisons found in the current snapshot
-			if (IsMathematicalOptimizationEnabled && OptimizeComparisons(snapshot))
-			{
-				goto Start;
-			}
-
-			// Try to unwrap conditional statements whose outcome have been resolved
-			if (UnwrapStatements(snapshot, context))
-			{
-				goto Start;
-			}
-
-			// Removes all statements which are not reachable
-			if (RemoveUnreachableStatements(snapshot))
-			{
-				goto Start;
-			}
-
-			// Now, since the variable is assigned, try to simplify the code
-			if (IsMathematicalOptimizationEnabled)
-			{
-				OptimizeAllExpressions(snapshot);
-			}
-
-			// Calculate the complexity of the current snapshot
-			var cost = GetCost(snapshot);
-
-			if (cost < minimum_cost)
-			{
-				// Since the current snapshot is less complex it should be used
-				minimum_cost_snapshot = snapshot;
-				minimum_cost = cost;
-			}
-		}
-
-		return minimum_cost_snapshot;
 	}
 
 	/// <summary>
@@ -2108,291 +1151,6 @@ public static class Analysis
 		}
 
 		return operators;
-	}
-
-	/// <summary>
-	/// Returns a node representing a position where new nodes can be inserted
-	/// </summary>
-	private static Node GetInsertPosition(Node reference)
-	{
-		var iterator = reference.Parent!;
-		var position = reference;
-
-		while (!(iterator is IContext || iterator.Is(NodeType.NORMAL)))
-		{
-			position = iterator;
-			iterator = iterator.Parent!;
-		}
-
-		return position;
-	}
-
-	private static List<OperatorNode> FindBooleanValues(Node root)
-	{
-		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON || i.To<OperatorNode>().Operator.Type == OperatorType.LOGIC)).Cast<OperatorNode>();
-
-		return candidates.Where(candidate =>
-		{
-			var parent = candidate.FindParent(i => !i.Is(NodeType.CONTENT))!;
-
-			if (!parent.Is(
-				NodeType.CAST,
-				NodeType.DECREMENT,
-				NodeType.ELSE_IF,
-				NodeType.ELSE,
-				NodeType.FUNCTION,
-				NodeType.INCREMENT,
-				NodeType.LINK,
-				NodeType.LOOP,
-				NodeType.NEGATE,
-				NodeType.NOT,
-				NodeType.OFFSET,
-				NodeType.RETURN
-			))
-			{
-				return false;
-			}
-
-			return !(parent is OperatorNode operation && (operation.Operator.Type == OperatorType.COMPARISON || operation.Operator.Type == OperatorType.LOGIC));
-
-		}).ToList();
-	}
-
-	private static void OutlineBooleanValues(Node root)
-	{
-		var instances = FindBooleanValues(root);
-
-		foreach (var instance in instances)
-		{
-			var position = GetInsertPosition(instance);
-
-			// Declare a hidden variable which represents the result
-			var environment = instance.FindContext()?.GetContext() ?? throw new ApplicationException("Could not find the current context");
-			var destination = environment.DeclareHidden(Types.BOOL);
-
-			// Initialize the result with value 'false'
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-			   new VariableNode(destination),
-			   new NumberNode(Assembler.Format, 0L)
-			);
-
-			// Replace the operation with the result
-			var replacement = new VariableNode(destination);
-			instance.Replace(replacement);
-
-			var context = new Context();
-			context.Link(environment);
-
-			// The destination is edited inside the following statement
-			var edit = new OperatorNode(Operators.ASSIGN).SetOperands(
-			   new VariableNode(destination),
-			   new NumberNode(Assembler.Format, 1L)
-			);
-
-			destination.Edits.Add(edit);
-
-			// Create a conditional statement which sets the value of the destination variable to true if the condition is true
-			var statement = new IfNode(
-			   context,
-			   instance,
-			   edit
-			);
-
-			// Add the statements which implement the boolean value
-			position.Insert(statement);
-			statement.Insert(initialization);
-		}
-	}
-
-	private static bool IsValueUsed(Node value)
-	{
-		return value.Parent!.Is(
-			NodeType.CAST,
-			NodeType.CONTENT,
-			NodeType.DECREMENT,
-			NodeType.FUNCTION,
-			NodeType.INCREMENT,
-			NodeType.LINK,
-			NodeType.NEGATE,
-			NodeType.NOT,
-			NodeType.OFFSET,
-			NodeType.OPERATOR,
-			NodeType.RETURN
-		);
-	}
-
-	/// <summary>
-	/// Rewrites increment and decrement operators as action operations if their values are discard.
-	/// Example (value is not discarded):
-	/// x = ++i
-	/// Before (value is discarded):
-	/// loop (i = 0, i < n, i++)
-	/// After:
-	/// loop (i = 0, i < n, i += 1)
-	/// </summary>
-	private static void RewriteDiscardedIncrements(Node root)
-	{
-		var increments = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
-
-		foreach (var increment in increments)
-		{
-			if (IsValueUsed(increment))
-			{
-				continue;
-			}
-
-			var replacement = TryRewriteAsActionOperation(increment) ?? throw new ApplicationException("Could not rewrite increment operation as assign operation");
-
-			increment.Replace(replacement);
-		}
-	}
-
-	/// <summary>
-	/// Removes negation nodes which cancel each other out.
-	/// Example: x = -(-a)
-	/// </summary>
-	private static void RemoveCancellingNegations(Node root)
-	{
-		if (root is NegateNode x && x.Object is NegateNode y)
-		{
-			root.Replace(y.Object);
-			RemoveCancellingNegations(y.Object);
-			return;
-		}
-
-		foreach (var iterator in root)
-		{
-			RemoveCancellingNegations(iterator);
-		}
-	}
-
-	/// <summary>
-	/// Removes not nodes which cancel each other out.
-	/// Example: x = !!a
-	/// </summary>
-	private static void RemoveCancellingNots(Node root)
-	{
-		if (root is NotNode x && x.Object is NotNode y)
-		{
-			root.Replace(y.Object);
-			RemoveCancellingNegations(y.Object);
-			return;
-		}
-
-		foreach (var iterator in root)
-		{
-			RemoveCancellingNots(iterator);
-		}
-	}
-
-	/// <summary>
-	/// Removes redundant parenthesis in the specified node tree
-	/// Example: x = x * (((x + 1)))
-	/// </summary>
-	private static void RemoveRedundantParenthesis(Node root)
-	{
-		if (root.Is(NodeType.CONTENT) || root.Is(NodeType.LIST))
-		{
-			foreach (var iterator in root)
-			{
-				if (iterator is ContentNode parenthesis && parenthesis.Count() == 1)
-				{
-					iterator.Replace(iterator.First!);
-				}
-			}
-		}
-
-		root.ForEach(RemoveRedundantParenthesis);
-	}
-
-	/// <summary>
-	/// Creates a condition which passes if the source has the same type as the specified type in runtime
-	/// </summary>
-	private static Node CreateTypeCondition(Node source, Type expected)
-	{
-		var type = source.GetType();
-	
-		if (type.Configuration == null || expected.Configuration == null)
-		{
-			// If the configuration of the type is not present, it means that the type can not be inherited
-			// Since the type can not be inherited, this means the result of the condition can be determined
-
-			return new NumberNode(Parser.Format, type == expected ? 1L : 0L);
-		}
-
-		var configuration = type.GetConfigurationVariable();
-		var start = new LinkNode(source, new VariableNode(configuration));
-
-		return new OperatorNode(Operators.EQUALS).SetOperands(
-			OffsetNode.CreateConstantOffset(start, 0, 1, Parser.Format),
-			new DataPointer(expected.Configuration.Descriptor)
-		);
-	}
-
-	/// <summary>
-	/// Rewrites is expressions so that they use logic that can be compiled
-	/// </summary>
-	private static void RewriteIsExpressions(Node root)
-	{
-		var expressions = root.FindAll(i => i.Is(NodeType.IS)).Cast<IsNode>().ToList();
-
-		for (var i = expressions.Count - 1; i >= 0; i--)
-		{
-			var expression = expressions[i];
-
-			if (expression.HasResultVariable)
-			{
-				continue;
-			}
-
-			expression.Replace(CreateTypeCondition(expression.Object, expression.Type));
-			expressions.RemoveAt(i);
-		}
-
-		foreach (var expression in expressions)
-		{
-			// Initialize the result variable
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(expression.Result),
-				new NumberNode(Parser.Format, 0L)
-			);
-
-			// The result variable must be initialized outside the condition
-			Inlines.GetInlineInsertPosition(expression).Insert(initialization);
-
-			// Get the context of the expression
-			var expression_context = expression.FindContext().GetContext().Parent!;
-
-			// Declare a variable which is used to store the inspected object
-			var object_type = expression.Object.GetType();
-			var object_variable = expression_context.DeclareHidden(object_type);
-
-			// Load the inspected object
-			var load = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(object_variable),
-				expression.Object
-			);
-
-			var assignment_context = new Context();
-			assignment_context.Link(expression_context);
-
-			// Create a condition which passes if the inspected object is the expected type
-			var condition = CreateTypeCondition(new VariableNode(object_variable), expression.Type);
-
-			// Create an assignment which assigns the inspected object to the result variable while casting it to the expected type
-			var assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(expression.Result),
-				new CastNode(new VariableNode(object_variable), new TypeNode(expression.Type))
-			);
-
-			var conditional_assignment = new IfNode(assignment_context, condition, assignment);
-
-			// Create a condition which represents the result of the is expression
-			var result_condition = new VariableNode(expression.Result);
-
-			// Replace the expression with the logic above
-			expression.Replace(new InlineNode() { load, conditional_assignment, result_condition });
-		}
 	}
 
 	/// <summary>
@@ -2447,7 +1205,7 @@ public static class Analysis
 					if (virtual_function.Parent != type)
 					{
 						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
 					}
 
 					continue;
@@ -2475,7 +1233,7 @@ public static class Analysis
 					if (virtual_function.Parent != type)
 					{
 						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"Warning: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
+						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
 					}
 
 					continue;
@@ -2552,18 +1310,257 @@ public static class Analysis
 
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
-			RemoveRedundantParenthesis(implementation.Node!);
-			RemoveCancellingNegations(implementation.Node!);
-			RemoveCancellingNots(implementation.Node!);
-			OutlineBooleanValues(implementation.Node!);
-			RewriteDiscardedIncrements(implementation.Node!);
-			RewriteIsExpressions(implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation.Node!);
 
-			implementation.Node = Optimize(implementation.Node!, implementation);
+			implementation.Node = GeneralAnalysis.Optimize(implementation, implementation.Node!);
+			
+			ReconstructionAnalysis.Finish(implementation.Node!);
 
 			// Analyze lambdas for example
 			Analyze(implementation);
 		}
+	}
+
+	public static void Evaluate(Node root)
+	{
+		var expressions = root.FindAll(i => i.Is(NodeType.COMPILES));
+
+		foreach (var expression in expressions)
+		{
+			var result = 1L;
+
+			if (expression.Find(i => i is IResolvable x && x.GetStatus().IsProblematic) != null)
+			{
+				result = 0L;
+			}
+
+			expression.Replace(new NumberNode(Parser.Format, result));
+		}
+	}
+
+	public static void Evaluate(Context context)
+	{
+		foreach (var type in context.Types.Values)
+		{
+			Evaluate(type);
+		}
+
+		foreach (var implementation in context.GetImplementedFunctions())
+		{
+			// Should evaluate as long as the node tree changes
+			Evaluate(implementation.Node!);
+			EvaluateLogicalOperators(implementation.Node!);
+			EvaluateConditionalStatements(implementation.Node!);
+			Evaluate(implementation);
+		}
+	}
+
+	private static void ReplaceRepetition(Node repetition, Variable variable, bool store = false)
+	{
+		if (Analyzer.IsEdited(repetition))
+		{
+			var edit = Analyzer.GetEditNode(repetition);
+
+			if (edit is OperatorNode operation && operation.Operator == Operators.ASSIGN)
+			{
+				var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+					new VariableNode(variable),
+					operation.Right
+				);
+
+				var inline = new InlineNode() { initialization };
+
+				edit.Replace(inline);
+
+				inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+					repetition.Clone(),
+					new VariableNode(variable)
+				));
+
+				inline.Add(new VariableNode(variable));
+			}
+			else
+			{
+				// Increments, decrements and special assignment operators should be unwrapped before unrepetition
+				throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
+			}
+		}
+		else if (store)
+		{
+			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(variable),
+				repetition.Clone()
+			);
+
+			repetition.Replace(new InlineNode() { initialization, new VariableNode(variable) });
+		}
+		else
+		{
+			repetition.Replace(new VariableNode(variable));
+		}
+	}
+
+	private static List<Node> FindTop(Node root, Predicate<Node> filter)
+	{
+		var nodes = new List<Node>();
+		var iterator = (IEnumerable<Node>)root;
+
+		if (root is OperatorNode x && x.Operator.Type == OperatorType.ACTION)
+		{
+			iterator = iterator.Reverse();
+		}
+
+		foreach (var i in iterator)
+		{
+			if (filter(i))
+			{
+				nodes.Add(i);
+			}
+			else
+			{
+				nodes.AddRange(FindTop(i, filter));
+			}
+		}
+
+		return nodes;
+	}
+
+	private static List<Node> GetEditables(Node node)
+	{
+		var result = new List<Node>();
+
+		foreach (var iterator in node)
+		{
+			if (iterator is LinkNode link)
+			{
+				result.Add(link);
+				result.AddRange(GetEditables(link));
+			}
+			else if (iterator != null)
+			{
+				var editables = GetEditables(iterator);
+
+				if (editables.Any())
+				{
+					result.AddRange(editables);
+					result.AddRange(editables.SelectMany(i => GetEditables(i)));
+				}
+				else
+				{
+					result.Add(node.GetBottomLeft()!);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	public static void Unrepeat(Node root)
+	{
+		var filtered = new Queue<Node>();
+		var links = FindTop(root, i => i.Is(NodeType.LINK, NodeType.OFFSET));
+
+		Start:
+		var flow = new Flow(root);
+
+		if (!links.Any())
+		{
+			return;
+		}
+
+		var repetitions = new List<Node>();
+		var start = links.First();
+
+		// Collect all parts of the start node which can be edited
+		var editables = GetEditables(start);
+
+		for (var j = links.Count - 1; j >= 1; j--)
+		{
+			var other = links[j];
+
+			if (other.Any(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT)))
+			{
+				links.RemoveAt(j);
+				continue;
+			}
+
+			if (!start.Equals(other))
+			{
+				var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
+
+				foreach (var sublink in sublinks)
+				{
+					if (sublink.Equals(start))
+					{
+						repetitions.Insert(0, sublink);
+					}
+				}
+
+				continue;
+			}
+
+			repetitions.Insert(0, other);
+		}
+
+		// The current is processed, so remove it now
+		links.RemoveAt(0);
+
+		if (!repetitions.Any())
+		{
+			// Find inner links inside the current one and process them now
+			var inner = FindTop(start, i => i.Is(NodeType.LINK, NodeType.OFFSET));
+			links.InsertRange(0, inner);
+
+			goto Start;
+		}
+
+		repetitions.ForEach(i => links.Remove(i));
+
+		var context = start.FindParent(i => i.Is(NodeType.IMPLEMENTATION))!.To<ImplementationNode>().Context;
+		var variable = context.DeclareHidden(start.GetType());
+
+		// Initialize the variable
+		root.Insert(root.First!, new DeclareNode(variable));
+
+		ReplaceRepetition(start, variable, true);
+
+		foreach (var repetition in repetitions)
+		{
+			var store = false;
+
+			// Find all edits between the start and the repetition
+			var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ACTION) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+
+			// If any of the edits contain a destination which matches any of the editables, a store is required
+			foreach (var edit in edits)
+			{
+				var edited = Analyzer.GetEdited(edit);
+
+				if (editables.Contains(edited))
+				{
+					start = repetition;
+					store = true;
+					break;
+				}
+			}
+
+			// 1. If there are function calls between the start and the repetition, the function calls could edit the repetition, so a store is required
+			// 2. If the start is not always executed before the repetition, a store is needed
+			if (flow.Between(start, repetition, i => i.Is(NodeType.FUNCTION, NodeType.CALL)))
+			{
+				start = repetition;
+				store = true;
+			}
+			else if (!flow.IsExecutedBefore(start, repetition))
+			{
+				start = repetition;
+				store = true;
+			}
+
+			ReplaceRepetition(repetition, variable, store);
+		}
+
+		goto Start;
 	}
 
 	// TODO: Remove redundant casts and add necessary casts

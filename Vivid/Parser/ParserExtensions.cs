@@ -17,6 +17,11 @@ public static class ParserExtensions
 		return node.Is(NodeType.OPERATOR) && node.To<OperatorNode>().Operator == operation;
 	}
 
+	public static bool Is(this Node node, OperatorType type)
+	{
+		return node.Is(NodeType.OPERATOR) && node.To<OperatorNode>().Operator.Type == type;
+	}
+
 	public static bool Is(this Token token, int type)
 	{
 		return token.Type == type;

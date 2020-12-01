@@ -237,7 +237,7 @@ public static class Memory
 	/// <summary>
 	/// Determines the next register
 	/// </summary>
-	private static Register GetNextRegister(Unit unit, bool media_register, IHint? hint = null)
+	public static Register GetNextRegister(Unit unit, bool media_register, IHint? hint = null)
 	{
 		var register = hint != null ? Consider(unit, hint, media_register) : null;
 
@@ -421,34 +421,6 @@ public static class Memory
 					GetRegisterFor(unit, result, is_media_register);
 					return result;
 				}
-
-				/*RegisterHandle? register;
-
-				if (is_media_register)
-				{
-					register = unit.TryGetCachedMediaRegister(result);
-				}
-				else
-				{
-					register = unit.TryGetCached(result);
-				}*/
-
-
-
-				/*if (register != null)
-				{
-					if (protect && !expiring)
-					{
-						using (new RegisterLock(register.Register))
-						{
-							return CopyToRegister(unit, new Result(register, register.Format), is_media_register);
-						}
-					}
-					else
-					{
-						return new Result(register, register.Format);
-					}
-				}*/
 
 				var expiring = result.IsExpiring(unit.Position);
 

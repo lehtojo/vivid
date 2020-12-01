@@ -29,14 +29,19 @@ public class DivisionInstruction : DualParameterInstruction
 	/// </summary>
 	private Result CorrectNumeratorLocation()
 	{
-		var register = Unit.GetNumeratorRegister();
-		var location = new RegisterHandle(register);
+		var numerator = Unit.GetNumeratorRegister();
+		var remainder = Unit.GetRemainderRegister();
 
-		if (!First.Value.Equals(location))
+		var destination = new RegisterHandle(numerator);
+
+		if (!First.Value.Equals(destination))
 		{
-			Memory.ClearRegister(Unit, location.Register);
+			using (RegisterLock.Create(remainder))
+			{
+				Memory.ClearRegister(Unit, destination.Register);
+			}
 
-			return new MoveInstruction(Unit, new Result(location, First.Format), First)
+			return new MoveInstruction(Unit, new Result(destination, First.Format), First)
 			{
 				Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
 
@@ -44,12 +49,38 @@ public class DivisionInstruction : DualParameterInstruction
 		}
 		else if (!Assigns)
 		{
-			Memory.ClearRegister(Unit, location.Register);
+			if (!First.IsExpiring(Unit.Position))
+			{
+				Memory.ClearRegister(Unit, destination.Register);
+			}
 
-			return new Result(location, First.Format);
+			return new Result(destination, First.Format);
 		}
 
 		return First;
+	}
+
+	/// <summary>
+	/// Ensures the remainder register is ready for division or modulus operation
+	/// </summary>
+	private void PrepareRemainderRegister()
+	{
+		var numerator_register = Unit.GetNumeratorRegister();
+		var remainder_register = Unit.GetRemainderRegister();
+
+		using var numerator_lock = new RegisterLock(numerator_register);
+		using var remainder_lock = new RegisterLock(remainder_register);
+
+		if (Unsigned)
+		{
+			// Clear the remainder register
+			Memory.Zero(Unit, remainder_register);
+		}
+		else
+		{
+			Memory.ClearRegister(Unit, remainder_register);
+			Unit.Append(new ExtendNumeratorInstruction(Unit));
+		}
 	}
 
 	/// <summary>
@@ -60,24 +91,24 @@ public class DivisionInstruction : DualParameterInstruction
 		var destination = new RegisterHandle(Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!);
 
 		Build(
-		   SIGNED_INTEGER_DIVISION_INSTRUCTION,
-		   Assembler.Size,
-		   new InstructionParameter(
-			  numerator,
-			  ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN,
-			  HandleType.REGISTER
-		   ),
-		   new InstructionParameter(
-			  Second,
-			  ParameterFlag.NONE,
-			  HandleType.REGISTER,
-			  HandleType.MEMORY
-		   ),
-		   new InstructionParameter(
-			  new Result(destination, Assembler.Format),
-			  ParameterFlag.WRITE_ACCESS | ParameterFlag.DESTINATION | ParameterFlag.HIDDEN,
-			  HandleType.REGISTER
-		   )
+			SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			Assembler.Size,
+			new InstructionParameter(
+				numerator,
+				ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER,
+				HandleType.MEMORY
+			),
+			new InstructionParameter(
+				new Result(destination, Assembler.Format),
+				ParameterFlag.WRITE_ACCESS | ParameterFlag.DESTINATION | ParameterFlag.HIDDEN,
+				HandleType.REGISTER
+			)
 		);
 	}
 
@@ -87,19 +118,19 @@ public class DivisionInstruction : DualParameterInstruction
 	private void BuildDivision(Result numerator)
 	{
 		Build(
-		   SIGNED_INTEGER_DIVISION_INSTRUCTION,
-		   Assembler.Size,
-		   new InstructionParameter(
-			  numerator,
-			  ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN,
-			  HandleType.REGISTER
-		   ),
-		   new InstructionParameter(
-			  Second,
-			  ParameterFlag.NONE,
-			  HandleType.REGISTER,
-			  HandleType.MEMORY
-		   )
+			SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			Assembler.Size,
+			new InstructionParameter(
+				numerator,
+				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER,
+				HandleType.MEMORY
+			)
 		);
 	}
 
@@ -141,21 +172,21 @@ public class DivisionInstruction : DualParameterInstruction
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
 			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_DIVISION_INSTRUCTION : DOUBLE_PRECISION_DIVISION_INSTRUCTION;
-			var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
+			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 
 			Build(
-			   instruction,
-			   new InstructionParameter(
-				  First,
-				  flags,
-				  HandleType.MEDIA_REGISTER
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  ParameterFlag.NONE,
-				  HandleType.MEDIA_REGISTER,
-				  HandleType.MEMORY
-			   )
+				instruction,
+				new InstructionParameter(
+					First,
+					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
+					HandleType.MEDIA_REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					ParameterFlag.NONE,
+					HandleType.MEDIA_REGISTER,
+					HandleType.MEMORY
+				)
 			);
 
 			return;
@@ -168,20 +199,20 @@ public class DivisionInstruction : DualParameterInstruction
 			if (division != null && IsPowerOfTwo(division.Constant) && division.Constant != 0L)
 			{
 				var count = new ConstantHandle((long)Math.Log2(division.Constant));
-				var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
+				var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 
 				Build(
-				   DIVIDE_BY_TWO_INSTRUCTION,
-				   Assembler.Size,
-				   new InstructionParameter(
-					  division.Dividend,
-					  flags,
-					  HandleType.REGISTER
-				   ),
-				   new InstructionParameter(
-					  new Result(count, Assembler.Format),
-					  ParameterFlag.NONE,
-					  HandleType.CONSTANT
+					DIVIDE_BY_TWO_INSTRUCTION,
+					Assembler.Size,
+					new InstructionParameter(
+						division.Dividend,
+						ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						new Result(count, Assembler.Format),
+						ParameterFlag.NONE,
+						HandleType.CONSTANT
 				   )
 				);
 
@@ -189,30 +220,23 @@ public class DivisionInstruction : DualParameterInstruction
 			}
 		}
 
-		var numerator = CorrectNumeratorLocation();
-		var remainder = Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!;
+		var numerator_register = Unit.GetNumeratorRegister();
+		var remainder_register = Unit.GetRemainderRegister();
 
-		if (Unsigned)
+		var numerator = CorrectNumeratorLocation();
+
+		PrepareRemainderRegister();
+
+		using var numerator_lock = new RegisterLock(numerator_register);
+		using var remainder_lock = new RegisterLock(remainder_register);
+
+		if (Modulus)
 		{
-			// Clear the remainder register
-			Memory.Zero(Unit, remainder);
+			BuildModulus(numerator);
 		}
 		else
 		{
-			Memory.ClearRegister(Unit, Unit.GetRemainderRegister());
-			Unit.Append(new ExtendNumeratorInstruction(Unit));
-		}
-
-		using (RegisterLock.Create(remainder))
-		{
-			if (Modulus)
-			{
-				BuildModulus(numerator);
-			}
-			else
-			{
-				BuildDivision(numerator);
-			}
+			BuildDivision(numerator);
 		}
 	}
 

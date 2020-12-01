@@ -99,6 +99,16 @@ public class Size
 		return size.Bits != bits;
 	}
 
+	public override bool Equals(object? other)
+	{
+		return other is Size size && Bytes == size.Bytes;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Identifier, Allocator, Bytes, Bits);
+	}
+
 	public override string ToString()
 	{
 		return Identifier;

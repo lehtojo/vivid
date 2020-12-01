@@ -29,6 +29,17 @@ public class SetVariableInstruction : Instruction
 		Unit.Scope!.Variables[Variable] = Value;
 	}
 
+    public override void OnBuild()
+    {
+		if (Unit.Scope!.Variables.TryGetValue(Variable, out Result? current) && current.IsAnyRegister)
+		{
+			Unit.Append(new MoveInstruction(Unit, current, Value)
+			{
+				Type = MoveType.RELOCATE
+			});
+		}
+	}
+
 	public override InstructionType GetInstructionType()
 	{
 		return InstructionType.SET_VARIABLE;

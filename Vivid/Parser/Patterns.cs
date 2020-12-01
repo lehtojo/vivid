@@ -83,6 +83,7 @@ public class Patterns
 	{
 		Add(new AssignPattern());
 		Add(new CastPattern());
+		Add(new CompilesPattern());
 		Add(new ConstructorPattern());
 		Add(new ElseIfPattern());
 		Add(new ElsePattern());

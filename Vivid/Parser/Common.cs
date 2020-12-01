@@ -346,7 +346,7 @@ public static class Common
 
 		if (template_argument_names.Count == 0)
 		{
-			throw Errors.Get(template_arguments_start, "Template type's argument list cannot be empty");
+			throw Errors.Get(template_arguments_start, "Template type's argument list can not be empty");
 		}
 
 		return template_argument_names;
