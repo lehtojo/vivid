@@ -130,7 +130,7 @@ public static class GeneralAnalysis
 		if (calls.Any())
 		{
 			// Add all the calls under an inline node
-			var inline = new InlineNode();
+			var inline = new InlineNode(statement.Position);
 			calls.ForEach(inline.Add);
 
 			statement.Replace(inline);
@@ -192,7 +192,7 @@ public static class GeneralAnalysis
 				if (calls.Any())
 				{
 					// Add all the calls under an inline node
-					var inline = new InlineNode { declaration };
+					var inline = new InlineNode(redundant.Node.Position) { declaration };
 					calls.ForEach(inline.Add);
 
 					redundant.Node.Replace(inline);
@@ -391,7 +391,11 @@ public static class GeneralAnalysis
 
 	public static Node Optimize(FunctionImplementation implementation, Node root)
 	{
-		RemoveRedundantAssignments(implementation, root);
+		if (!Assembler.IsDebuggingEnabled)
+		{
+			RemoveRedundantAssignments(implementation, root);
+		}
+		
 		return AssignVariables(implementation, root);
 	}
 }

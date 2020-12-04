@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 public class ExtensionFunction : Pattern
 {
@@ -55,10 +56,11 @@ public class ExtensionFunction : Pattern
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
 
 		var function = new Function(destination, AccessModifier.PUBLIC, descriptor.Name, tokens[BODY].To<ContentToken>().Tokens);
+		function.Position = tokens.First().Position;
 		function.Parameters.AddRange(descriptor.GetParameters(function));
 
 		destination.Declare(function);
 
-		return new FunctionDefinitionNode(function);
+		return new FunctionDefinitionNode(function, destination.Position);
 	}
 }

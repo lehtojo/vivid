@@ -25,6 +25,8 @@ public static class Calls
 
 	public static Result Build(Unit unit, FunctionNode node)
 	{
+		unit.TryAppendPosition(node);
+		
 		Result? self = null;
 
 		if (IsSelfPointerRequired(unit.Function, node.Function))
@@ -46,14 +48,10 @@ public static class Calls
 
 	public static Result Build(Unit unit, Result self, FunctionNode node)
 	{
+		unit.TryAppendPosition(node);
 		return Build(unit, self, node.Parameters, node.Function!);
 	}
-
-	public static Result Build(Unit unit, Node? parameters, FunctionImplementation implementation)
-	{
-		return Build(unit, null, parameters, implementation);
-	}
-
+	
 	private static bool IsSelfPointerRequired(FunctionImplementation current, FunctionImplementation other)
 	{
 		if (other.IsStatic || other.IsConstructor || !current.IsMember || !other.IsMember)

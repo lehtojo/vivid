@@ -36,6 +36,6 @@ public class OffsetPattern : Pattern
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var indices = Singleton.Parse(context, tokens[INDICES]);
 
-		return new OffsetNode(source, indices);
+		return new OffsetNode(source, indices, tokens[INDICES].Position);
 	}
 }

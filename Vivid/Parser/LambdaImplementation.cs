@@ -92,7 +92,7 @@ public class LambdaImplementation : FunctionImplementation
 	public override void Implement(List<Token> blueprint)
 	{
 		Type = new Type(this, string.Empty, AccessModifier.PUBLIC);
-		Node = new ImplementationNode(this);
+		Node = new ImplementationNode(this, Metadata.Position);
 
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}

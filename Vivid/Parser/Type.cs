@@ -6,7 +6,9 @@ using System.Globalization;
 public class Table
 {
 	public string Name { get; private set; }
+	public Label Start { get; private set; }
 	public bool IsBuilt { get; set; } = false;
+	public bool IsSection { get; set; } = false;
 
 	public List<object> Items { get; private set; } = new List<object>();
 	public int Subtables { get; private set; } = 0;
@@ -14,6 +16,7 @@ public class Table
 	public Table(string name)
 	{
 		Name = name;
+		Start = new Label(name);
 	}
 
 	public void Add(object item, bool inline = true)
@@ -97,6 +100,7 @@ public class Type : Context
 	}
 
 	public int Modifiers { get; set; }
+	public Position? Position { get; set; }
 
 	public bool IsUnresolved => !IsResolved();
 	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);

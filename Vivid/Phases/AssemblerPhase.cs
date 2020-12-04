@@ -9,7 +9,7 @@ public class AssemblerPhase : Phase
 {
 	private const int EXIT_CODE_OK = 0;
 
-	private const string COMPILER = "yasm";
+	private const string COMPILER = "as";
 
 	private const string WINDOWS_ASSEMBLER_FORMAT = "-f win";
 	private const string LINUX_ASSEMBLER_FORMAT = "-f elf";
@@ -17,19 +17,11 @@ public class AssemblerPhase : Phase
 	private const string WINDOWS_ASSEMBLER_DEBUG_ARGUMENT = "-g cv8";
 	private const string LINUX_ASSEMBLER_DEBUG_ARGUMENT = "-g dwarf2";
 
-	private const string WINDOWS_LINKER = "link";
+	private const string WINDOWS_LINKER = "ld";
 	private const string LINUX_LINKER = "ld";
 
-	private const string WINDOWS_LINKER_SUBSYSTEM = "/subsystem:console";
-	private const string WINDOWS_LINKER_ENTRY = "/entry:main";
-	private const string WINDOWS_HEAP_SIZE = "/heap:2000000000,2000000000";
-	private const string WINDOWS_LINKER_DEBUG = "/debug";
-	private const string WINDOWS_LARGE_ADDRESS_UNAWARE = "/largeaddressaware:no";
-
-	private const string LINUX_SHARED_LIBRARY_FLAG = "--shared";
-	private const string LINUX_STATIC_LIBRARY_FLAG = "--static";
-
-	private const string WINDOWS_SHARED_LIBRARY_FLAG = "/dll";
+	private const string SHARED_LIBRARY_FLAG = "--shared";
+	private const string STATIC_LIBRARY_FLAG = "--static";
 
 	private const string STANDARD_LIBRARY = "libv";
 
@@ -113,15 +105,9 @@ public class AssemblerPhase : Phase
 
 		var arguments = new List<string>();
 
-		if (debug)
-		{
-			arguments.Add(AssemblerDebugArgument);
-		}
-
 		// Add assembler format and output filename
 		arguments.AddRange(new string[]
 		{
-			AssemblerFormat,
 			$"-o {output_file}",
 			input_file
 		});
@@ -158,9 +144,9 @@ public class AssemblerPhase : Phase
 
 		// Provide all folders in PATH to linker as library paths
 		var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
-		var library_paths = path.Split(';').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"/libpath:\"{p}\"").Select(p => p.Replace('\\', '/'));
+		var library_paths = path.Split(';').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"-L \"{p}\"").Select(p => p.Replace('\\', '/'));
 
-		var arguments = new List<string>()
+		/*var arguments = new List<string>()
 		{
 			$"/out:{output_name + output_extension}",
 			WINDOWS_LINKER_SUBSYSTEM,
@@ -172,11 +158,21 @@ public class AssemblerPhase : Phase
 			"user32.lib",
 			input_file,
 			StandardLibrary
+		};*/
+
+		var arguments = new List<string>()
+		{
+			$"-o {output_name + output_extension}",
+			"-e main",
+			"-lkernel32",
+			"-luser32",
+			input_file,
+			StandardLibrary
 		};
 
 		if (output_type == BinaryType.SHARED_LIBRARY)
 		{
-			arguments.Add(WINDOWS_SHARED_LIBRARY_FLAG);
+			arguments.Add(SHARED_LIBRARY_FLAG);
 		}
 		else if (output_type == BinaryType.STATIC_LIBRARY)
 		{
@@ -196,7 +192,10 @@ public class AssemblerPhase : Phase
 
 		try
 		{
-			File.Delete(input_file);
+			if (!Assembler.IsDebuggingEnabled)
+			{
+				File.Delete(input_file);
+			}
 		}
 		catch
 		{
@@ -219,7 +218,7 @@ public class AssemblerPhase : Phase
 		{
 			var extension = output_type == BinaryType.SHARED_LIBRARY ? SharedLibraryExtension : StaticLibraryExtension;
 
-			var flag = output_type == BinaryType.SHARED_LIBRARY ? LINUX_SHARED_LIBRARY_FLAG : LINUX_STATIC_LIBRARY_FLAG;
+			var flag = output_type == BinaryType.SHARED_LIBRARY ? SHARED_LIBRARY_FLAG : STATIC_LIBRARY_FLAG;
 
 			arguments = new List<string>()
 			{

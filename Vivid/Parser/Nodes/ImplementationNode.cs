@@ -2,9 +2,10 @@
 {
 	public Context Context { get; private set; }
 
-	public ImplementationNode(FunctionImplementation implementation)
+	public ImplementationNode(FunctionImplementation implementation, Position? position = null)
 	{
 		Context = implementation;
+		Position = position;
 	}
 
 	public override NodeType GetNodeType()

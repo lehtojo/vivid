@@ -5,9 +5,10 @@ public class ElseNode : Node, IResolvable, IContext
 	public Context Context { get; set; }
 	public Node Body => First!;
 
-	public ElseNode(Context context, Node body)
+	public ElseNode(Context context, Node body, Position? position = null)
 	{
 		Context = context;
+		Position = position;
 
 		Add(new ContextNode(context));
 

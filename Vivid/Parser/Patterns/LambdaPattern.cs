@@ -93,6 +93,7 @@ public class LambdaPattern : Pattern
 			body
 		);
 
+		lambda.Position = tokens[PARAMETERS].Position;
 		lambda.Parameters.AddRange(function.GetParameters(lambda));
 
 		if (lambda.Parameters.All(p => p.Type != null && !p.Type.IsUnresolved))
@@ -100,7 +101,7 @@ public class LambdaPattern : Pattern
 			lambda.Implement(lambda.Parameters.Select(p => p.Type!));
 		}
 
-		return new LambdaNode(lambda);
+		return new LambdaNode(lambda, tokens[PARAMETERS].Position);
 	}
 
 	public override int GetPriority(List<Token> tokens)

@@ -5,22 +5,22 @@ public class LexerPhase : Phase
 {
 	public override Status Execute(Bundle bundle)
 	{
-		string[] contents = bundle.Get("input_file_contents", Array.Empty<string>());
+		var contents = bundle.Get("input_file_contents", Array.Empty<string>());
 
 		if (contents.Length == 0)
 		{
 			return Status.Error("Nothing to tokenize");
 		}
 
-		List<Token>[] tokens = new List<Token>[contents.Length];
+		var tokens = new List<Token>[contents.Length];
 
-		for (int i = 0; i < contents.Length; i++)
+		for (var i = 0; i < contents.Length; i++)
 		{
-			int index = i;
+			var index = i;
 
 			Run(() =>
 			{
-				string content = contents[index];
+				var content = contents[index];
 
 				try
 				{

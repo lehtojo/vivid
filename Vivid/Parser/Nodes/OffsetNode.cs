@@ -23,6 +23,13 @@ public class OffsetNode : Node, IType, IResolvable
 		Add(offset);
 	}
 
+	public OffsetNode(Node start, Node offset, Position? position)
+	{
+		Add(start);
+		Add(offset);
+		Position = position;
+	}
+
 	public int GetStride()
 	{
 		if (Stride != null)
@@ -54,10 +61,7 @@ public class OffsetNode : Node, IType, IResolvable
 		// If the parameter type list is null, it means that one or more of the parameters could not be resolved
 		if (parameter_types == null)
 		{
-			return new LinkNode(
-				target,
-				new UnresolvedFunction(function).SetParameters(parameters)
-			);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ??
@@ -67,16 +71,10 @@ public class OffsetNode : Node, IType, IResolvable
 
 		if (operator_function == null)
 		{
-			return new LinkNode(
-				target,
-				new UnresolvedFunction(function).SetParameters(parameters)
-			);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		return new LinkNode(
-			target,
-			new FunctionNode(operator_function).SetParameters(parameters)
-		);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters),Position);
 	}
 
 	private Node? TryResolveAsIndexedGetter(Type type)

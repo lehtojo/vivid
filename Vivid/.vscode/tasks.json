@@ -41,6 +41,18 @@
 				"/consoleloggerparameters:NoSummary"
 			],
 			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "Compile",
+			"command": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Vivid.exe",
+			"type": "process",
+			"args": [
+				"${workspaceFolder}/Examples/Sandbox.v",
+				"${workspaceFolder}/libv/Core.v",
+				"--debug",
+				"--asm"
+			],
+			"problemMatcher": "$msCompile"
 		}
 	]
 }

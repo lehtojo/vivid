@@ -211,6 +211,11 @@ public class ResolverPhase : Phase
 		// Analyze the output
 		Analyzer.Analyze(context, parse.Node);
 
+		if (Assembler.IsDebuggingEnabled)
+		{
+			//Aligner.AlignLocals(context);
+		}
+
 		return Status.OK;
 	}
 }

@@ -65,6 +65,8 @@ public sealed class NodeEnumerator : IEnumerator, IEnumerator<Node>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1710")]
 public class Node : IEnumerable, IEnumerable<Node>
 {
+	public Position? Position { get; set; }
+
 	public Node? Parent { get; set; }
 	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>());
 

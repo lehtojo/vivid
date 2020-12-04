@@ -13,10 +13,10 @@ public class OperatorNode : Node, IType, IResolvable
 		Operator = operation;
 	}
 
-	public OperatorNode(Operator operation, Node left, Node right)
+	public OperatorNode(Operator operation, Position? position)
 	{
 		Operator = operation;
-		SetOperands(left, right);
+		Position = position;
 	}
 
 	public OperatorNode SetOperands(Node left, Node right)
@@ -115,32 +115,19 @@ public class OperatorNode : Node, IType, IResolvable
 		// If the parameter type list is null, it means that one or more of the parameters could not be resolved
 		if (parameter_types == null)
 		{
-			return new LinkNode(
-				target,
-				new UnresolvedFunction(function)
-					.SetParameters(parameters)
-			);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		var operator_functions = target.GetType().GetFunction(function) ??
-								 throw new InvalidOperationException("Tried to create an operator function call but the function didn't exist");
+		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function didn't exist");
 
 		var operator_function = operator_functions.GetImplementation(parameter_types);
 
 		if (operator_function == null)
 		{
-			return new LinkNode(
-				target,
-				new UnresolvedFunction(function)
-					.SetParameters(parameters)
-			);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		return new LinkNode(
-			target,
-			new FunctionNode(operator_function)
-				.SetParameters(parameters)
-		);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters), Position);
 	}
 
 	private Node? TryResolveAsIndexedSetter()

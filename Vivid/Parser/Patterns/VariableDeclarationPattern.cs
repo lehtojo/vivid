@@ -181,6 +181,8 @@ public class VariableDeclarationPattern : Pattern
 			AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
 		);
 
-		return new VariableNode(variable);
+		variable.Position = tokens[NAME].Position;
+
+		return new VariableNode(variable, name.Position);
 	}
 }

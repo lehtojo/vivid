@@ -5,9 +5,10 @@ public class StringNode : Node, IType, ICloneable
 	public string Text { get; private set; }
 	public string? Identifier { get; private set; }
 
-	public StringNode(string text)
+	public StringNode(string text, Position? position)
 	{
 		Text = text;
+		Position = position;
 	}
 
 	public string GetIdentifier(Unit unit)
@@ -22,10 +23,7 @@ public class StringNode : Node, IType, ICloneable
 
 	public new object Clone()
 	{
-		return new StringNode(Text)
-		{
-			Identifier = Identifier
-		};
+		return new StringNode(Text, Position?.Clone()) { Identifier = Identifier };
 	}
 
 	public override NodeType GetNodeType()

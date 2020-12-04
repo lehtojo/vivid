@@ -58,6 +58,8 @@ public class VirtualFunctionPattern : Pattern
 		}
 
 		var function = new VirtualFunction(type, descriptor.Name, return_type);
+		function.Position = tokens.First().Position;
+		
 		var parameters = descriptor.GetParameters(function);
 
 		if (parameters.Any(i => i.Type == null))
@@ -69,6 +71,6 @@ public class VirtualFunctionPattern : Pattern
 
 		type.Declare(function);
 
-		return new FunctionDefinitionNode(function);
+		return new FunctionDefinitionNode(function, tokens.First().Position);
 	}
 }

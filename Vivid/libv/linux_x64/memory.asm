@@ -1,5 +1,3 @@
-[section .text]
-
 ; rdi: Length
 global _V17internal_allocatex_rPh:function hidden
 _V17internal_allocatex_rPh:
@@ -39,8 +37,8 @@ ret
 ; rdi: Source
 ; rsi: Count
 ; rdx: Destination
-global _V4copyPhxPS_:function hidden
-_V4copyPhxPS_:
+global _V4copyPhxS_:function hidden
+_V4copyPhxS_:
 
 xchg rdi, rdx ; rdi = Destination, rdx = Source
 mov rcx, rsi ; rcx = Count
@@ -54,8 +52,8 @@ ret
 ; rsi: Count
 ; rdx: Destination
 ; rcx: Offset
-global _V11offset_copyPhxPS_x:function hidden
-_V11offset_copyPhxPS_x:
+global _V11offset_copyPhxS_x:function hidden
+_V11offset_copyPhxS_x:
 
 add rdx, rcx ; Apply offset
 

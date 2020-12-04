@@ -11,6 +11,13 @@ public class VariableNode : Node, IType
 		Variable.References.Add(this);
 	}
 
+	public VariableNode(Variable variable, Position? position)
+	{
+		Variable = variable;
+		Variable.References.Add(this);
+		Position = position;
+	}
+
 	public new Type? GetType()
 	{
 		return Variable.Type;

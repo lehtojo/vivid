@@ -36,6 +36,6 @@ public class ListPattern : Pattern
 			return list;
 		}
 
-		return new ListNode(Singleton.Parse(context, tokens[LEFT]), Singleton.Parse(context, tokens[RIGHT]));
+		return new ListNode(tokens[COMMA].Position, Singleton.Parse(context, tokens[LEFT]), Singleton.Parse(context, tokens[RIGHT]));
 	}
 }

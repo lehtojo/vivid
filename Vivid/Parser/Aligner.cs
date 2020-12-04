@@ -106,6 +106,39 @@ public static class Aligner
 		}
 	}
 
+	private static void AlignLocals(FunctionImplementation implementation)
+	{
+		var locals = implementation.Locals;
+		locals.Reverse();
+
+		var position = 0;
+
+		foreach (var local in locals)
+		{
+			position -= local.Type!.ReferenceSize;
+			local.LocalAlignment = position;
+		}
+
+		foreach (var iterator in implementation.GetImplementedFunctions())
+		{
+			AlignLocals(iterator);
+		}
+	}
+
+	public static void AlignLocals(Context context)
+	{
+		// Align types and subtypes
+		foreach (var type in context.Types.Values)
+		{
+			AlignLocals(type);
+		}
+
+		foreach (var implementation in context.GetImplementedFunctions())
+		{
+			AlignLocals(implementation);
+		}
+	}
+
 	/// <summary>
 	/// Aligns function variables
 	/// </summary>
@@ -160,13 +193,15 @@ public static class Aligner
 			var position = offset * Parser.Bytes;
 
 			// Align the this pointer if it exists
-			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
+			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x) && !function.IsConstructor)
 			{
-				x.LocalAlignment = position - Parser.Bytes;
+				x.LocalAlignment = position;
+				position += Parser.Bytes;
 			}
 			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
 			{
 				y.LocalAlignment = position - Parser.Bytes;
+				position += Parser.Bytes;
 			}
 
 			// Parameters:

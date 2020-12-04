@@ -23,7 +23,7 @@ public class ModifierSectionPattern : Pattern
 
 	public override Node? Build(Context context, List<Token> tokens)
 	{
-		return new SectionNode(tokens[MODIFIER].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier);
+		return new SectionNode(tokens[MODIFIER].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier, tokens[MODIFIER].Position);
 	}
 
 	public override int GetPriority(List<Token> tokens)

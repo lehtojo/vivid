@@ -143,8 +143,11 @@ public static class Loops
 		var recovery = new SaveStateInstruction(unit);
 		unit.Append(recovery);
 
-		// Initialize the loop
-		Scope.Cache(unit, node);
+		if (!Assembler.IsDebuggingEnabled)
+		{
+			// Try to cache loop variables
+			Scope.Cache(unit, node);
+		}
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Context, node.Body.Context);
 		unit.Append(new BranchInstruction(unit, new Node[] { node.Body }));
@@ -173,6 +176,8 @@ public static class Loops
 
 	public static Result Build(Unit unit, LoopNode node)
 	{
+		unit.TryAppendPosition(node);
+		
 		if (node.IsForeverLoop)
 		{
 			return BuildForeverLoop(unit, node);
@@ -189,8 +194,11 @@ public static class Loops
 		// Initialize the loop
 		Builders.Build(unit, node.Initialization);
 
-		// Try to cache loop variables
-		Scope.Cache(unit, node);
+		if (!Assembler.IsDebuggingEnabled)
+		{
+			// Try to cache loop variables
+			Scope.Cache(unit, node);
+		}
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
 		unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
@@ -364,10 +372,10 @@ public static class Loops
 			return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
 		}
 
-		var replacement = new OperatorNode(Operators.NOT_EQUALS);
+		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
 		condition.Replace(replacement);
 
-		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L));
+		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, condition.Position));
 
 		return BuildCondition(unit, replacement, success, failure);
 	}

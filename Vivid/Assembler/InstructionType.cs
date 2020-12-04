@@ -1,6 +1,7 @@
 public enum InstructionType
 {
 	ADDITION,
+	APPEND_POSITION,
 	BITWISE,
 	BRANCH,
 	CACHE_VARIABLES,

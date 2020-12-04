@@ -4,9 +4,10 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 {
 	public string Value { get; private set; }
 
-	public UnresolvedIdentifier(string value)
+	public UnresolvedIdentifier(string value, Position position)
 	{
 		Value = value;
+		Position = position;
 	}
 
 	public Node? GetResolvedNode(Context context)

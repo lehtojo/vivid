@@ -39,27 +39,29 @@ public class ConstructorPattern : Pattern
 
 	public override Node? Build(Context context, List<Token> tokens)
 	{
-		var head = tokens[HEAD].To<FunctionToken>();
+		var header = tokens[HEAD].To<FunctionToken>();
 		var body = tokens[BODY].To<ContentToken>();
 		var type = (Type)context;
 
-		if (head.Name == Keywords.INIT.Identifier)
+		if (header.Name == Keywords.INIT.Identifier)
 		{
 			var constructor = new Constructor(context, AccessModifier.PUBLIC, body.Tokens);
-			constructor.Parameters.AddRange(head.GetParameters(constructor));
+			constructor.Position = header.Position;
+			constructor.Parameters.AddRange(header.GetParameters(constructor));
 
 			type.AddConstructor(constructor);
 
-			return new FunctionDefinitionNode(constructor);
+			return new FunctionDefinitionNode(constructor, header.Position);
 		}
 		else
 		{
 			var destructor = new Constructor(context, AccessModifier.PUBLIC, body.Tokens);
-			destructor.Parameters.AddRange(head.GetParameters(destructor));
+			destructor.Position = header.Position;
+			destructor.Parameters.AddRange(header.GetParameters(destructor));
 
 			type.AddDestructor(destructor);
 
-			return new FunctionDefinitionNode(destructor);
+			return new FunctionDefinitionNode(destructor, header.Position);
 		}
 	}
 }

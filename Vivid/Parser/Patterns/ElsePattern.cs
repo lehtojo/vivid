@@ -76,7 +76,7 @@ public class ElsePattern : Pattern
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
-		return new ElseNode(context, node);
+		return new ElseNode(context, node, tokens[ELSE].Position);
 	}
 
 	public override int GetStart()

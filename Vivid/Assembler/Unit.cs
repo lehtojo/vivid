@@ -56,6 +56,8 @@ class ResourceIndexer
 public class Unit
 {
 	public FunctionImplementation Function { get; private set; }
+	public Label? Start { get; private set; }
+	public Label? End { get; private set; }
 
 	public List<Register> Registers { get; }
 	public List<Register> NonVolatileRegisters { get; }
@@ -90,6 +92,7 @@ public class Unit
 		Self = Function.GetSelfPointer();
 
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
+		var base_pointer_flags = Assembler.IsDebuggingEnabled ? RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER : RegisterFlag.NONE;
 
 		/* Registers = new List<Register>()
 		{
@@ -113,7 +116,7 @@ public class Unit
 			new Register(Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
 			new Register(Size.QWORD, new [] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
 			new Register(Size.QWORD, new [] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }),
+			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
 			new Register(Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED | RegisterFlag.DECIMAL_RETURN),
@@ -541,6 +544,11 @@ public class Unit
 		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.STACK_POINTER)) ?? throw new Exception("Architecture did not have stack pointer register");
 	}
 
+	public Register GetBasePointer()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.BASE_POINTER)) ?? throw new Exception("Architecture did not have base pointer register");
+	}
+
 	public Register GetStandardReturnRegister()
 	{
 		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN)) ?? throw new Exception("Architecture did not have a standard return register");
@@ -671,6 +679,11 @@ public class Unit
 
 	public string Export()
 	{
+		if (Assembler.IsDebuggingEnabled)
+		{
+			Builder.AppendLine(".cfi_endproc");
+		}
+		
 		return Builder.ToString();
 	}
 
@@ -700,6 +713,23 @@ public class Unit
 				result.Use(i);
 			}
 		}
+	}
+
+	public bool TryAppendPosition(Node node)
+	{
+		if (!Assembler.IsDebuggingEnabled)
+		{
+			return true;
+		}
+
+		if (node.Position == null)
+		{
+			return false;
+		}
+
+		Append(new AppendPositionInstruction(this, node.Position));
+		
+		return true;
 	}
 
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Lower invariant is needed here because of styling")]

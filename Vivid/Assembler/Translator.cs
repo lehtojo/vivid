@@ -64,6 +64,12 @@ public static class Translator
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
 		constants = GetAllConstantDataSectionHandles(unit).ToList();
 
+		// When debugging mode is enabled, the base pointer is reserved for saving the value of the stack pointer in the start
+		if (Assembler.IsDebuggingEnabled)
+		{
+			registers.Add(unit.GetBasePointer());	
+		}
+
 		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes);
 		var local_memory_top = 0;
 
@@ -72,6 +78,11 @@ public static class Translator
 			if (unit.Instructions.Last().Type != InstructionType.RETURN)
 			{
 				unit.Append(new ReturnInstruction(unit, null, Types.UNKNOWN));
+			}
+
+			if (Assembler.IsDebuggingEnabled)
+			{
+				unit.Append(new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name)));
 			}
 		});
 

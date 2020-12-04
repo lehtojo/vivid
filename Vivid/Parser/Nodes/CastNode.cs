@@ -2,8 +2,9 @@ public class CastNode : Node, IType, IResolvable
 {
 	public Node Object => First!;
 
-	public CastNode(Node target, Node type)
+	public CastNode(Node target, Node type, Position? position = null)
 	{
+		Position = position;
 		Add(target);
 		Add(type);
 	}

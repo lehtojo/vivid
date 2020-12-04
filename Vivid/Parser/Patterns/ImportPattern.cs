@@ -71,6 +71,8 @@ public class ImportPattern : Pattern
 			parameter_names.Zip(parameter_types).Select(i => new Parameter(i.First, i.Second)).ToArray()
 		);
 
+		function.Position = header.Position;
+
 		function.Merge(function_context);
 		environment.Declare(function);
 

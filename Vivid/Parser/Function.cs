@@ -33,6 +33,7 @@ public class Function : Context
 
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
 	public List<Token> Blueprint { get; }
+	public Position? Position { get; set; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 

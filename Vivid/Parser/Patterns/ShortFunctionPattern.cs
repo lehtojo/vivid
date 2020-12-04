@@ -71,10 +71,11 @@ public class ShortFunctionPattern : Pattern
 		}
 
 		var function = new Function(context, AccessModifier.PUBLIC, header.Name, body);
+		function.Position = header.Position;
 		function.Parameters.AddRange(header.GetParameters(function));
 
 		context.Declare(function);
 
-		return new FunctionDefinitionNode(function);
+		return new FunctionDefinitionNode(function, header.Position);
 	}
 }

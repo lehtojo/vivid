@@ -7,8 +7,7 @@ public class CapturedVariable : Variable
 		return new CapturedVariable(context, captured, declare);
 	}
 
-	public CapturedVariable(Context context, Variable captured, bool declare = true)
-	   : base(context, captured.Type, captured.Category, captured.Name, captured.Modifiers, declare)
+	public CapturedVariable(Context context, Variable captured, bool declare = true) : base(context, captured.Type, captured.Category, captured.Name, captured.Modifiers, declare)
 	{
 		Captured = captured;
 	}

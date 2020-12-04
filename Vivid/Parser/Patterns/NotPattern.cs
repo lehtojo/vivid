@@ -22,7 +22,7 @@ public class NotPattern : Pattern
 
 	public override Node? Build(Context context, List<Token> tokens)
 	{
-		return new NotNode(Singleton.Parse(context, tokens[OBJECT]));
+		return new NotNode(Singleton.Parse(context, tokens[OBJECT]), tokens[NOT].Position);
 	}
 
 	public override int GetPriority(List<Token> tokens)

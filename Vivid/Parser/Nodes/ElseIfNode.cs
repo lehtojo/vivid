@@ -1,6 +1,6 @@
 public class ElseIfNode : IfNode
 {
-	public ElseIfNode(Context context, Node condition, Node body) : base(context, condition, body) { }
+	public ElseIfNode(Context context, Node condition, Node body, Position? position = null) : base(context, condition, body, position) { }
 
 	public IfNode GetRoot()
 	{

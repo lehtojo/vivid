@@ -36,6 +36,6 @@ class ReturnPattern : Pattern
 			throw Errors.Get(tokens[RETURN].Position, "Return statement can not be outside a function");
 		}
 
-		return new ReturnNode(value);
+		return new ReturnNode(value, tokens[RETURN].Position);
 	}
 }

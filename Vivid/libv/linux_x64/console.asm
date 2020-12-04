@@ -1,5 +1,3 @@
-section .text
-
 ; rdi: Text
 ; rsi: Length
 global _V14internal_printPhx:function hidden

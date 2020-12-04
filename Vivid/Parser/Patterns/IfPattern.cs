@@ -66,6 +66,6 @@ public class IfPattern : Pattern
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
-		return new IfNode(context, condition, node);
+		return new IfNode(context, condition, node, tokens[KEYWORD].Position);
 	}
 }

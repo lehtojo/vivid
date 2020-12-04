@@ -4,7 +4,15 @@ public class ReturnNode : InstructionNode, IResolvable
 {
 	public Node? Value => First;
 
-	public ReturnNode(Node? node) : base(Keywords.RETURN)
+	public ReturnNode(Node? node) : base(Keywords.RETURN, null)
+	{
+		if (node != null)
+		{
+			Add(node);
+		}
+	}
+
+	public ReturnNode(Node? node, Position? position) : base(Keywords.RETURN, position)
 	{
 		if (node != null)
 		{

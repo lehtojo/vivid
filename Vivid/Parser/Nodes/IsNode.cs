@@ -6,16 +6,17 @@
 
 	public bool HasResultVariable => Count() == 2;
 
-	public IsNode(Node source, Type type, Variable? result)
+	public IsNode(Node source, Type type, Variable? result, Position? position = null)
 	{
+		Type = type;
+		Position = position;
+		
 		Add(source);
 
 		if (result != null)
 		{
-			Add(new VariableNode(result));
+			Add(new VariableNode(result, Position));
 		}
-
-		Type = type;
 	}
 
 	public new Type GetType()

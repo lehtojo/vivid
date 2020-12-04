@@ -10,6 +10,11 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		SetOperands(left, right);
 	}
 
+	public LinkNode(Node left, Node right, Position? position) : base(Operators.DOT, position)
+	{
+		SetOperands(left, right);
+	}
+
 	public override Node? Resolve(Context environment)
 	{
 		// Try to resolve the left node
@@ -42,6 +47,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 
 			if (resolved != null)
 			{
+				resolved.Position = Position;
 				return resolved;
 			}
 
@@ -50,6 +56,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 
 			if (resolved != null)
 			{
+				resolved.Position = Position;
 				return resolved;
 			}
 		}

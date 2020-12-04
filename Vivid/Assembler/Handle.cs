@@ -135,18 +135,18 @@ public class DataSectionHandle : Handle
 
 			if (Assembler.IsTargetX64)
 			{
-				return IsSizeVisible ? $"{Size} [rel {Identifier}{offset}]" : $"[rel {Identifier}{offset}]";
+				return IsSizeVisible ? $"{Size} ptr [rip+{Identifier}{offset}]" : $"[rip+{Identifier}{offset}]";
 			}
 
-			return IsSizeVisible ? $"{Size} [{Identifier}{offset}]" : $"[{Identifier}{offset}]";
+			return IsSizeVisible ? $"{Size} ptr [{Identifier}{offset}]" : $"[{Identifier}{offset}]";
 		}
 
 		if (Assembler.IsTargetX64)
 		{
-			return IsSizeVisible ? $"{Size} [rel {Identifier}]" : $"[rel {Identifier}]";
+			return IsSizeVisible ? $"{Size} ptr [rip+{Identifier}]" : $"[rip+{Identifier}]";
 		}
 
-		return IsSizeVisible ? $"{Size} [{Identifier}]" : $"[{Identifier}]";
+		return IsSizeVisible ? $"{Size} ptr [{Identifier}]" : $"[{Identifier}]";
 	}
 
 	public override Handle Finalize()
@@ -359,7 +359,7 @@ public class MemoryHandle : Handle
 
 			if (IsSizeVisible)
 			{
-				return $"{Size} {address}";
+				return $"{Size} ptr {address}";
 			}
 			else
 			{
@@ -525,7 +525,7 @@ public class ComplexMemoryHandle : Handle
 
 			if (IsSizeVisible)
 			{
-				return $"{Size} {address}";
+				return $"{Size} ptr {address}";
 			}
 			else
 			{

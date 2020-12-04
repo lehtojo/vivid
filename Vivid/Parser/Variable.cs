@@ -9,6 +9,7 @@ public class Variable
 	public Type? Type { get; set; }
 	public VariableCategory Category { get; set; }
 	public int Modifiers { get; set; }
+	public Position? Position { get; set; }
 
 	public bool IsConstant => Flag.Has(Modifiers, AccessModifier.CONSTANT);
 	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
@@ -34,6 +35,7 @@ public class Variable
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
+	public bool IsGenerated => Position == null;
 
 	public static Variable Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{

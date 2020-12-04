@@ -127,17 +127,19 @@ public class FunctionImplementation : Context
 	{
 		if (Metadata.IsMember)
 		{
+			var type = IsConstructor ? VariableCategory.LOCAL : VariableCategory.PARAMETER;
+
 			Self = new Variable(
 				this,
 				Metadata.GetTypeParent(),
-				VariableCategory.PARAMETER,
+				type,
 				Function.SELF_POINTER_IDENTIFIER,
 				AccessModifier.PUBLIC
 
 			) { IsSelfPointer = true };
 		}
 
-		Node = new ImplementationNode(this);
+		Node = new ImplementationNode(this, Metadata.Position);
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}
 

@@ -47,11 +47,26 @@ public class InitializeInstruction : Instruction
 		var builder = new StringBuilder();
 		var start = Unit.StackOffset;
 
+		if (Assembler.IsDebuggingEnabled)
+		{
+			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!, 1));
+			builder.AppendLine(".cfi_startproc");
+		}
+
 		// Save all used non-volatile rgisters
 		foreach (var register in save_registers)
 		{
 			builder.AppendLine($"push {register}");
 			Unit.StackOffset += Assembler.Size.Bytes;
+		}
+
+		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
+		if (Assembler.IsDebuggingEnabled)
+		{
+			builder.AppendLine(".cfi_def_cfa_offset 16");
+			builder.AppendLine(".cfi_offset 6, -16");
+			builder.AppendLine(MoveInstruction.MOVE_INSTRUCTION + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
+			builder.AppendLine(".cfi_def_cfa_register 6");
 		}
 
 		// Local variables in memory start now
@@ -74,7 +89,7 @@ public class InitializeInstruction : Instruction
 			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
 			var total = StackMemoryChange + (calls.Any() ? Assembler.Size.Bytes : 0);
 
-			if (total != 0)
+			if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
 			{
 				// Apply padding to the memory to make it aligned
 				var padding = Calls.STACK_ALIGNMENT - (total % Calls.STACK_ALIGNMENT);

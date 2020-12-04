@@ -75,10 +75,8 @@ public class TemplateTypePattern : Pattern
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 
 		var template_type = new TemplateType(context, name.Value, AccessModifier.PUBLIC | AccessModifier.TEMPLATE_TYPE, blueprint, template_argument_names);
+		template_type.Position = name.Position;
 
-		return new TypeNode(template_type)
-		{
-			IsDefinition = true
-		};
+		return new TypeNode(template_type, name.Position) { IsDefinition = true };
 	}
 }

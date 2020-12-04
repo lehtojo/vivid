@@ -81,18 +81,22 @@ public static class Conditionals
 	{
 		switch (node)
 		{
-			case IfNode if_node:
+			case IfNode x:
 			{
-				return Build(unit, if_node, if_node.Condition, end);
+				unit.TryAppendPosition(x);
+				
+				return Build(unit, x, x.Condition, end);
 			}
 				
-			case ElseNode else_node:
+			case ElseNode y:
 			{
+				unit.TryAppendPosition(y);
+
 				// Get the current state of the unit for later recovery
 				var recovery = new SaveStateInstruction(unit);
 				unit.Append(recovery);
 
-				var result = BuildBody(unit, else_node.Context, else_node.Body);
+				var result = BuildBody(unit, y.Context, y.Body);
 
 				// Recover the previous state
 				unit.Append(new RestoreStateInstruction(unit, recovery));
@@ -276,10 +280,10 @@ public static class Conditionals
 			return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
 		}
 
-		var replacement = new OperatorNode(Operators.NOT_EQUALS);
+		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
 		condition.Replace(replacement);
 
-		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L));
+		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, replacement.Position));
 
 		return BuildCondition(unit, replacement, success, failure);
 	}

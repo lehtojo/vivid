@@ -86,9 +86,11 @@ public class TemplateFunctionPattern : Pattern
 		var blueprint = new List<Token>() { new FunctionToken(name, parameters), body };
 
 		var template_function = new TemplateFunction(context, AccessModifier.PUBLIC, name.Value, blueprint, template_argument_names);
+		template_function.Position = name.Position;
 		template_function.Parameters.AddRange(((FunctionToken)blueprint.First().Clone()).GetParameters(template_function));
+		
 		context.Declare(template_function);
 
-		return new FunctionDefinitionNode(template_function);
+		return new FunctionDefinitionNode(template_function, name.Position);
 	}
 }

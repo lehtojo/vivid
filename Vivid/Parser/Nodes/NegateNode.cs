@@ -2,9 +2,10 @@ public class NegateNode : Node, IType
 {
 	public Node Object => First!;
 
-	public NegateNode(Node target)
+	public NegateNode(Node target, Position? position = null)
 	{
 		Add(target);
+		Position = position;
 	}
 
 	public new Type? GetType()

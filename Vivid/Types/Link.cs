@@ -4,12 +4,12 @@ public class Link : Number
 
 	public Link() : base(Parser.Format, Parser.Size.Bits, true, "link")
 	{
-		Identifier = "h";
+		Identifier = "Ph";
 	}
 
 	public override void AddDefinition(Mangle mangle)
 	{
-		mangle.Value += "h";
+		mangle.Value += "Ph";
 	}
 
 	public override int GetContentSize()

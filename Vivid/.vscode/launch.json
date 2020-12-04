@@ -1,6 +1,7 @@
 {
 	"version": "0.2.0",
 	"configurations": [
+
 		{
 			"name": "Debug",
 			"type": "coreclr",
@@ -60,7 +61,8 @@
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
 
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
-			"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug", "-O1" ],
+			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
+			"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "-d", "--asm", "-st" ],
 
 			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "--asm", "--debug" ],
 
@@ -70,6 +72,28 @@
 			"logging": {
 				"moduleLoad": false
 		  	}
+		},
+		{
+			"name": "Vivid Debug",
+			"type": "cppdbg",
+			"request": "launch",
+			"preLaunchTask": "Compile",
+			"program": "${workspaceRoot}/v.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"miDebuggerPath": "C:/Program Files/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gdb.exe",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			]
 		}
+
 	]
 }

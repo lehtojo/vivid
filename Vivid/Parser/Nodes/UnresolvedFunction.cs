@@ -7,25 +7,26 @@ public class UnresolvedFunction : Node, IResolvable, IType
 	public string Name { get; }
 	public Type[] TemplateArguments { get; }
 
-
 	/// <summary>
 	/// Creates an unresolved function with a function name to look for
 	/// </summary>
 	/// <param name="name">Function name</param>
-	public UnresolvedFunction(string name)
+	public UnresolvedFunction(string name, Position? position)
 	{
 		Name = name;
 		TemplateArguments = Array.Empty<Type>();
+		Position = position;
 	}
 
 	/// <summary>
 	/// Creates an unresolved function with a function name to look for with the specified template parameters
 	/// </summary>
 	/// <param name="name">Function name</param>
-	public UnresolvedFunction(string name, Type[] template_arguments)
+	public UnresolvedFunction(string name, Type[] template_arguments, Position? position)
 	{
 		Name = name;
 		TemplateArguments = template_arguments;
+		Position = position;
 	}
 
 	/// <summary>
@@ -187,6 +188,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 			if (result != null)
 			{
+				result.Position = Position;
 				return result;
 			}
 
@@ -195,6 +197,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 			if (result != null)
 			{
+				result.Position = Position;
 				return result;
 			}
 		}
@@ -204,7 +207,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 			return null;
 		}
 
-		var node = new FunctionNode(function).SetParameters(this);
+		var node = new FunctionNode(function, Position).SetParameters(this);
 
 		if (function.IsConstructor)
 		{
@@ -217,7 +220,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		{
 			var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
-			return new LinkNode(new VariableNode(self), node);
+			return new LinkNode(new VariableNode(self, Position), node, Position);
 		}
 
 		return node;

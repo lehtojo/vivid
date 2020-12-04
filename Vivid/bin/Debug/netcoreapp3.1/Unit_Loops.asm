@@ -1,13 +1,14 @@
-section .text
-global main
+.section .text
+.intel_syntax noprefix
+.file 1 "Sandbox.v"
+.global main
 main:
 jmp _V4initv_rx
 
-extern _V14large_functionv
-extern _V17internal_allocatex_rPh
+.extern _V14large_functionv
+.extern _V17internal_allocatex_rPh
 
-global _V5loopsxx_rx
-export _V5loopsxx_rx
+.global _V5loopsxx_rx
 _V5loopsxx_rx:
 mov rax, rcx
 xor r8, r8
@@ -23,8 +24,7 @@ jl _V5loopsxx_rx_L0
 _V5loopsxx_rx_L1:
 ret
 
-global _V12forever_loopv_rx
-export _V12forever_loopv_rx
+.global _V12forever_loopv_rx
 _V12forever_loopv_rx:
 xor rax, rax
 _V12forever_loopv_rx_L1:
@@ -34,8 +34,7 @@ jmp _V12forever_loopv_rx_L0
 _V12forever_loopv_rx_L2:
 ret
 
-global _V16conditional_loopx_rx
-export _V16conditional_loopx_rx
+.global _V16conditional_loopx_rx
 _V16conditional_loopx_rx:
 cmp rcx, 10
 jge _V16conditional_loopx_rx_L1
@@ -47,8 +46,7 @@ _V16conditional_loopx_rx_L1:
 mov rax, rcx
 ret
 
-global _V23conditional_action_loopx_rx
-export _V23conditional_action_loopx_rx
+.global _V23conditional_action_loopx_rx
 _V23conditional_action_loopx_rx:
 cmp rcx, 1000
 jge _V23conditional_action_loopx_rx_L1
@@ -60,8 +58,7 @@ _V23conditional_action_loopx_rx_L1:
 mov rax, rcx
 ret
 
-global _V15normal_for_loopxx_rx
-export _V15normal_for_loopxx_rx
+.global _V15normal_for_loopxx_rx
 _V15normal_for_loopxx_rx:
 mov rax, rcx
 xor r8, r8
@@ -75,8 +72,7 @@ jl _V15normal_for_loopxx_rx_L0
 _V15normal_for_loopxx_rx_L1:
 ret
 
-global _V25normal_for_loop_with_stopxx_rx
-export _V25normal_for_loop_with_stopxx_rx
+.global _V25normal_for_loop_with_stopxx_rx
 _V25normal_for_loop_with_stopxx_rx:
 mov rax, rcx
 xor r8, r8
@@ -95,8 +91,7 @@ jle _V25normal_for_loop_with_stopxx_rx_L0
 _V25normal_for_loop_with_stopxx_rx_L1:
 ret
 
-global _V29normal_for_loop_with_continuexx_rx
-export _V29normal_for_loop_with_continuexx_rx
+.global _V29normal_for_loop_with_continuexx_rx
 _V29normal_for_loop_with_continuexx_rx:
 mov rax, rcx
 xor r8, r8
@@ -123,12 +118,10 @@ jl _V29normal_for_loop_with_continuexx_rx_L0
 _V29normal_for_loop_with_continuexx_rx_L1:
 ret
 
-global _V16nested_for_loopsPhx_rx
-export _V16nested_for_loopsPhx_rx
+.global _V16nested_for_loopsPhx_rx
 _V16nested_for_loopsPhx_rx:
 push rbx
 push rsi
-sub rsp, 16
 xor rax, rax
 xor r8, r8
 cmp rax, rdx
@@ -182,7 +175,7 @@ mov rbx, r9
 imul rbx, rdx
 add r11, rbx
 add r11, r10
-mov byte [rcx+r11], 100
+mov byte ptr [rcx+r11], 100
 jmp _V16nested_for_loopsPhx_rx_L11
 _V16nested_for_loopsPhx_rx_L12:
 mov r11, rax
@@ -192,7 +185,7 @@ mov rbx, r9
 imul rbx, rdx
 add r11, rbx
 add r11, r10
-mov byte [rcx+r11], 0
+mov byte ptr [rcx+r11], 0
 _V16nested_for_loopsPhx_rx_L11:
 test r10, r10
 jne _V16nested_for_loopsPhx_rx_L16
@@ -215,18 +208,16 @@ cmp rax, rdx
 jl _V16nested_for_loopsPhx_rx_L0
 _V16nested_for_loopsPhx_rx_L1:
 mov rax, r8
-add rsp, 16
 pop rsi
 pop rbx
 ret
 
-global _V38normal_for_loop_with_memory_evacuationxx
-export _V38normal_for_loop_with_memory_evacuationxx
+.global _V38normal_for_loop_with_memory_evacuationxx
 _V38normal_for_loop_with_memory_evacuationxx:
 push rbx
 push rsi
 push rdi
-sub rsp, 48
+sub rsp, 32
 mov rbx, rcx
 mov rsi, rcx
 mov rdi, rdx
@@ -238,7 +229,7 @@ add rbx, 1
 cmp rbx, rdi
 jl _V38normal_for_loop_with_memory_evacuationxx_L0
 _V38normal_for_loop_with_memory_evacuationxx_L1:
-add rsp, 48
+add rsp, 32
 pop rdi
 pop rsi
 pop rbx
@@ -275,7 +266,7 @@ _V8allocatex_rPh:
 push rbx
 push rsi
 sub rsp, 40
-mov r8, [rel _VN10Allocation_current]
+mov r8, [rip+_VN10Allocation_current]
 test r8, r8
 je _V8allocatex_rPh_L0
 mov rdx, [r8+16]
@@ -283,7 +274,7 @@ lea r9, [rdx+rcx]
 cmp r9, 1000000
 jg _V8allocatex_rPh_L0
 lea r9, [rdx+rcx]
-mov qword [r8+16], r9
+mov qword ptr [r8+16], r9
 lea r9, [rdx+rcx]
 mov rax, [r8+8]
 add rax, rdx
@@ -298,90 +289,95 @@ call _V17internal_allocatex_rPh
 mov rcx, 24
 mov rsi, rax
 call _V17internal_allocatex_rPh
-mov qword [rax+8], rsi
-mov qword [rax+16], rbx
-mov qword [rel _VN10Allocation_current], rax
+mov qword ptr [rax+8], rsi
+mov qword ptr [rax+16], rbx
+mov qword ptr [rip+_VN10Allocation_current], rax
 mov rax, rsi
 add rsp, 40
 pop rsi
 pop rbx
 ret
 
-_V8inheritsPhPS__rx:
+_V8inheritsPhS__rx:
 push rbx
 push rsi
-sub rsp, 16
 mov r8, [rcx]
 mov r9, [rdx]
-movzx r10, byte [r9]
+movzx r10, byte ptr [r9]
 xor rax, rax
-_V8inheritsPhPS__rx_L1:
-_V8inheritsPhPS__rx_L0:
-movzx rcx, byte [r8+rax]
+_V8inheritsPhS__rx_L1:
+_V8inheritsPhS__rx_L0:
+movzx rcx, byte ptr [r8+rax]
 add rax, 1
 cmp rcx, r10
-jnz _V8inheritsPhPS__rx_L4
+jnz _V8inheritsPhS__rx_L4
 mov r11, rcx
 mov rbx, 1
-_V8inheritsPhPS__rx_L7:
-_V8inheritsPhPS__rx_L6:
-movzx r11, byte [r8+rax]
-movzx rsi, byte [r9+rbx]
+_V8inheritsPhS__rx_L7:
+_V8inheritsPhS__rx_L6:
+movzx r11, byte ptr [r8+rax]
+movzx rsi, byte ptr [r9+rbx]
 add rax, 1
 add rbx, 1
 cmp r11, rsi
-jz _V8inheritsPhPS__rx_L9
+jz _V8inheritsPhS__rx_L9
 cmp r11, 1
-jne _V8inheritsPhPS__rx_L9
+jne _V8inheritsPhS__rx_L9
 test rsi, rsi
-jne _V8inheritsPhPS__rx_L9
+jne _V8inheritsPhS__rx_L9
 mov rax, 1
-add rsp, 16
 pop rsi
 pop rbx
 ret
-_V8inheritsPhPS__rx_L9:
-jmp _V8inheritsPhPS__rx_L6
-_V8inheritsPhPS__rx_L8:
-jmp _V8inheritsPhPS__rx_L3
-_V8inheritsPhPS__rx_L4:
+_V8inheritsPhS__rx_L9:
+jmp _V8inheritsPhS__rx_L6
+_V8inheritsPhS__rx_L8:
+jmp _V8inheritsPhS__rx_L3
+_V8inheritsPhS__rx_L4:
 cmp rcx, 2
-jne _V8inheritsPhPS__rx_L3
+jne _V8inheritsPhS__rx_L3
 xor rax, rax
-add rsp, 16
 pop rsi
 pop rbx
 ret
-_V8inheritsPhPS__rx_L3:
-jmp _V8inheritsPhPS__rx_L0
-_V8inheritsPhPS__rx_L2:
-add rsp, 16
+_V8inheritsPhS__rx_L3:
+jmp _V8inheritsPhS__rx_L0
+_V8inheritsPhS__rx_L2:
 pop rsi
 pop rbx
 ret
 
-section .data
+.section .data
 
-_VN10Allocation_current dq 0
+_VN10Allocation_current:
+.quad 0
 
 _VN4Page_configuration:
-dq _VN4Page_descriptor
+.quad _VN4Page_descriptor
 
 _VN4Page_descriptor:
-dq _VN4Page_descriptor_0
-dd 24
-dd 0
+.quad _VN4Page_descriptor_0
+.long 24
+.long 0
 
 _VN4Page_descriptor_0:
-db 'Page', 0, 1, 2, 0
+.ascii "Page"
+.byte 0
+.byte 1
+.byte 2
+.byte 0
 
 _VN10Allocation_configuration:
-dq _VN10Allocation_descriptor
+.quad _VN10Allocation_descriptor
 
 _VN10Allocation_descriptor:
-dq _VN10Allocation_descriptor_0
-dd 8
-dd 0
+.quad _VN10Allocation_descriptor_0
+.long 8
+.long 0
 
 _VN10Allocation_descriptor_0:
-db 'Allocation', 0, 1, 2, 0
+.ascii "Allocation"
+.byte 0
+.byte 1
+.byte 2
+.byte 0

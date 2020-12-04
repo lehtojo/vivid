@@ -10,9 +10,10 @@ public class IfNode : Node, IResolvable
 	public Node Condition => First!.Last!;
 	public Node Body => Last!;
 
-	public IfNode(Context context, Node condition, Node body)
+	public IfNode(Context context, Node condition, Node body, Position? position = null)
 	{
 		Context = context;
+		Position = position;
 
 		Add(new Node());
 		Add(new ContextNode(Context));

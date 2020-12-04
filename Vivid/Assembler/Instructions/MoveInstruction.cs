@@ -510,7 +510,7 @@ public class MoveInstruction : DualParameterInstruction
 		else if (Assembler.IsTargetX64 && Second.Value is DataSectionHandle handle && handle.Address)
 		{
 			// Examples (64-bit mode only):
-			// mov rax, function_f_S0 => lea rax, [rel function_f_S0]
+			// mov rax, function_f_S0 => lea rax, [rip+function_f_S0]
 
 			Second.Value.To<DataSectionHandle>().Address = false;
 

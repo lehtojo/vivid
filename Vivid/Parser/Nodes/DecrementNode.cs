@@ -5,9 +5,10 @@ public class DecrementNode : Node, IType
 	public bool Post { get; private set; }
 	public Node Object => First!;
 
-	public DecrementNode(Node destination, bool post = false)
+	public DecrementNode(Node destination, Position? position, bool post = false)
 	{
 		Add(destination);
+		Position = position;
 		Post = post;
 	}
 

@@ -18,21 +18,33 @@ public static class Assembler
 	public static bool IsTargetLinux => Target == OSPlatform.Linux;
 	public static bool IsTargetX86 => Size.Bits == 32;
 	public static bool IsTargetX64 => Size.Bits == 64;
+	public static bool IsDebuggingEnabled { get; set; } = false;
 
-	private const string TEXT_SECTION = "section .text";
+	private const string SECTION_DIRECTIVE = ".section";
+	private const string SECREL_DIRECTIVE = ".secrel";
+	private const string TEXT_SECTION = SECTION_DIRECTIVE + " .text";
+	private const string STRING_ALLOCATOR = ".ascii";
+	private const string BYTE_ALIGNMENT = ".balign";
+	private const string COMMENT = "#";
 
-	private const string LINUX_TEXT_SECTION_HEADER = "global _start" + "\n" +
-													 "_start:" + "\n" +
-													 "call {0}" + "\n" +
-													 "mov rax, 60" + "\n" +
-													 "xor rdi, rdi" + "\n" +
-													 "syscall" + SEPARATOR;
+	private const string LINUX_TEXT_SECTION_HEADER = 
+		".intel_syntax noprefix" + "\n" +
+		".file 1 \"Sandbox.v\"" + "\n" +
+		".global _start" + "\n" +
+		"_start:" + "\n" +
+		"call {0}" + "\n" +
+		"mov rax, 60" + "\n" +
+		"xor rdi, rdi" + "\n" +
+		"syscall" + SEPARATOR;
 
-	private const string WINDOWS_TEXT_SECTION_HEADER = "global main" + "\n" +
-													   "main:" + "\n" +
-													   "jmp {0}" + SEPARATOR;
+	private const string WINDOWS_TEXT_SECTION_HEADER = 
+		".intel_syntax noprefix" + "\n" +
+		".file 1 \"Sandbox.v\"" + "\n" +
+		".global main" + "\n" +
+		"main:" + "\n" +
+		"jmp {0}" + SEPARATOR;
 
-	private const string DATA_SECTION = "section .data";
+	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
 	private const string SEPARATOR = "\n\n";
 
 	private static string GetExternalFunctions(Context context)
@@ -53,7 +65,7 @@ public static class Assembler
 					continue;
 				}
 
-				builder.AppendLine($"extern {implementation.GetFullname()}");
+				builder.AppendLine($".extern {implementation.GetFullname()}");
 			}
 		}
 
@@ -83,12 +95,7 @@ public static class Assembler
 			// Export this function if necessary
 			if (function.IsExported)
 			{
-				builder.AppendLine($"global {implementation.GetFullname()}");
-
-				if (IsTargetWindows)
-				{
-					builder.AppendLine($"export {implementation.GetFullname()}");
-				}
+				builder.AppendLine($".global {implementation.GetFullname()}");
 			}
 
 			var fullname = implementation.GetFullname();
@@ -205,7 +212,8 @@ public static class Assembler
 			var name = variable.GetStaticName();
 			var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
 
-			builder.AppendLine($"{name} {allocator} 0");
+			builder.AppendLine($"{name}:");
+			builder.AppendLine($"{allocator} 0");
 		}
 
 		foreach (var subtype in type.Supertypes)
@@ -240,13 +248,8 @@ public static class Assembler
 		return nodes;
 	}
 
-	private static string FormatString(string text)
+	private static string AllocateString(string text)
 	{
-		if (text.Length == 0)
-		{
-			return "0";
-		}
-
 		var builder = new StringBuilder();
 		var position = 0;
 
@@ -257,7 +260,7 @@ public static class Assembler
 
 			if (buffer.Length > 0)
 			{
-				builder.Append($"\'{buffer}\', ");
+				builder.AppendLine($"{STRING_ALLOCATOR} \"{buffer}\"");
 			}
 
 			if (position >= text.Length)
@@ -299,15 +302,30 @@ public static class Assembler
 			}
 
 			var bytes = BitConverter.GetBytes(value).Take(length / 2).ToArray();
-			bytes.ForEach(i => builder.Append($"{i}, "));
+			bytes.ForEach(i => builder.AppendLine($"{Size.BYTE.Allocator} {i}"));
 
 			position += length;
 		}
 
-		return builder.Append('0').ToString();
+		return builder.Append($"{Size.BYTE.Allocator} 0").ToString();
 	}
 
-	private static void AppendTable(StringBuilder builder, Table table)
+	private static string AppendTableLable(TableLabel label)
+	{
+		if (label.Declare)
+		{
+			return $"{label.Name}:";
+		}
+
+		if (label.IsSecrel)
+		{
+			return SECREL_DIRECTIVE + label.Size.Bits.ToString(CultureInfo.InvariantCulture) + ' ' + label.Name;
+		}
+
+		return $"{label.Size.Allocator} {label.Name}";
+	}
+
+	public static void AppendTable(StringBuilder builder, Table table)
 	{
 		if (table.IsBuilt)
 		{
@@ -316,7 +334,14 @@ public static class Assembler
 
 		table.IsBuilt = true;
 
-		builder.AppendLine(table.Name + ':');
+		if (table.IsSection)
+		{
+			builder.AppendLine(SECTION_DIRECTIVE + ' ' + table.Name);
+		}
+		else
+		{
+			builder.AppendLine(table.Name + ':');
+		}
 
 		var subtables = new List<Table>();
 
@@ -324,13 +349,15 @@ public static class Assembler
 		{
 			var result = item switch
 			{
-				string a => $"{Size.BYTE.Allocator} {FormatString(a)}",
+				string a => AllocateString(a),
 				long b => $"{Size.QWORD.Allocator} {b}",
 				int c => $"{Size.DWORD.Allocator} {c}",
 				short d => $"{Size.WORD.Allocator} {d}",
 				byte e => $"{Size.BYTE.Allocator} {e}",
 				Table f => $"{Size.Allocator} {f.Name}",
 				Label g => $"{Size.Allocator} {g.GetName()}",
+				Offset h => $"{Size.DWORD.Allocator} {h.To.Name} - {h.From.Name}",
+				TableLabel i => AppendTableLable(i),
 				_ => throw new ApplicationException("Invalid table item")
 			};
 
@@ -377,11 +404,11 @@ public static class Assembler
 
 			var name = node.Identifier;
 			var allocator = Size.BYTE.Allocator;
-			var text = FormatString(node.Text);
 
 			// Align every data label for now since some instructions need them to be that way
-			builder.AppendLine("align 16");
-			builder.AppendLine($"{name} {allocator} {text}");
+			builder.AppendLine($"{BYTE_ALIGNMENT} 16");
+			builder.AppendLine($"{name}:");
+			builder.AppendLine(AllocateString(node.Text));
 		}
 
 		return builder.ToString();
@@ -417,7 +444,7 @@ public static class Assembler
 					value += ".0";
 				}
 
-				text += $" ; {value}";
+				text += $" {COMMENT} {value}";
 			}
 			else if (constant.Value is float z)
 			{
@@ -433,7 +460,7 @@ public static class Assembler
 					value += ".0";
 				}
 
-				text += $" ; {value}";
+				text += $" {COMMENT} {value}";
 			}
 			else
 			{
@@ -442,11 +469,59 @@ public static class Assembler
 			}
 
 			// Align every data label for now since some instructions need them to be that way
-			builder.AppendLine("align 16");
-			builder.AppendLine($"{name} {allocator} {text}");
+			builder.AppendLine($"{BYTE_ALIGNMENT} 16");
+			builder.AppendLine($"{name}:");
+			builder.AppendLine($"{allocator} {text}");
 		}
 
 		return builder.ToString();
+	}
+
+	public static void AppendFunctionDebugInfo(Debug debug, FunctionImplementation implementation)
+	{
+		debug.AppendFunction(implementation);
+
+		foreach (var iterator in implementation.GetImplementedFunctions())
+		{
+			if (iterator.Metadata.IsImported)
+			{
+				continue;
+			}
+
+			AppendFunctionDebugInfo(debug, iterator);
+		}
+	}
+
+	public static void AppendTypeDebugInfo(Debug debug, Type type)
+	{
+		debug.AppendType(type);
+
+		foreach (var iterator in type.Types.Values)
+		{
+			AppendTypeDebugInfo(debug, iterator);
+		}
+	}
+
+	public static void AppendDebugInfo(StringBuilder builder, Context context)
+	{
+		var debug = new Debug("Sandbox.v", "C:/Users/joona/vivid/Vivid/Examples");
+
+		foreach (var iterator in context.GetImplementedFunctions())
+		{
+			if (iterator.Metadata.IsImported)
+			{
+				continue;
+			}
+			
+			AppendFunctionDebugInfo(debug, iterator);
+		}
+
+		foreach (var iterator in context.Types.Values.Distinct())
+		{
+			AppendTypeDebugInfo(debug, iterator);
+		}
+
+		debug.Export(builder);
 	}
 
 	public static string Assemble(Context context)
@@ -467,6 +542,11 @@ public static class Assembler
 		builder.Append(GetText(context, out List<ConstantDataSectionHandle> constants));
 		builder.Append(SEPARATOR);
 
+		if (Assembler.IsDebuggingEnabled)
+		{
+			builder.AppendLine($"{Debug.COMPILATION_UNIT_END}:");
+		}
+
 		var data = GetData(context) + GetConstantData(constants);
 
 		if (Regex.IsMatch(data, "[a-zA-z0-9]"))
@@ -476,6 +556,11 @@ public static class Assembler
 			builder.Append(SEPARATOR);
 		}
 
+		if (Assembler.IsDebuggingEnabled)
+		{
+			AppendDebugInfo(builder, context);
+		}
+		
 		return Regex.Replace(builder.Replace("\r\n", "\n").ToString(), "\n{3,}", "\n\n");
 	}
 }

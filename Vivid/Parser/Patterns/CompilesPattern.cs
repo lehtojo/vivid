@@ -4,7 +4,7 @@ public class CompilesPattern : Pattern
 {
     public const int PRIORITY = 5;
 
-    private const int EXISTS = 0;
+    private const int COMPILES = 0;
     private const int CONDITION = 2;
 
     public CompilesPattern() : base
@@ -21,13 +21,13 @@ public class CompilesPattern : Pattern
 
     public override bool Passes(Context context, PatternState state, List<Token> tokens)
     {
-        return tokens[EXISTS].Is(Keywords.COMPILES) && tokens[CONDITION].Is(ParenthesisType.CURLY_BRACKETS);
+        return tokens[COMPILES].Is(Keywords.COMPILES) && tokens[CONDITION].Is(ParenthesisType.CURLY_BRACKETS);
     }
 
     public override Node? Build(Context context, List<Token> tokens)
     {
         var conditions = Singleton.Parse(context, tokens[CONDITION].To<ContentToken>());
-        var result = new CompilesNode();
+        var result = new CompilesNode(tokens[COMPILES].Position);
 
         conditions.ForEach(i => result.Add(i));
 

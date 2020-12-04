@@ -20,20 +20,21 @@ public static class Singleton
 				var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
 				return new LinkNode(
-					new VariableNode(self),
-					new VariableNode(variable)
+					new VariableNode(self, identifier.Position),
+					new VariableNode(variable, identifier.Position),
+					identifier.Position
 				);
 			}
 
-			return new VariableNode(variable);
+			return new VariableNode(variable, identifier.Position);
 		}
 		else if (context.IsTypeDeclared(identifier.Value))
 		{
-			return new TypeNode(context.GetType(identifier.Value)!);
+			return new TypeNode(context.GetType(identifier.Value)!, identifier.Position);
 		}
 		else
 		{
-			return new UnresolvedIdentifier(identifier.Value);
+			return new UnresolvedIdentifier(identifier.Value, identifier.Position);
 		}
 	}
 
@@ -102,14 +103,14 @@ public static class Singleton
 
 		if (types == null)
 		{
-			return new UnresolvedFunction(descriptor.Name).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
 		}
 
 		var function = GetFunctionByName(primary, descriptor.Name, types);
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
 
 			if (function.IsConstructor)
 			{
@@ -120,7 +121,7 @@ public static class Singleton
 			{
 				var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
-				return new LinkNode(new VariableNode(self), node);
+				return new LinkNode(new VariableNode(self, descriptor.Position), node, descriptor.Position);
 			}
 
 			return node;
@@ -133,6 +134,7 @@ public static class Singleton
 
 			if (result != null)
 			{
+				result.Position = descriptor.Position;
 				return result;
 			}
 
@@ -141,11 +143,12 @@ public static class Singleton
 
 			if (result != null)
 			{
+				result.Position = descriptor.Position;
 				return result;
 			}
 		}
 
-		return new UnresolvedFunction(descriptor.Name).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
 	}
 
 	/// <summary>
@@ -158,14 +161,14 @@ public static class Singleton
 
 		if (types == null || template_arguments.Any(i => i.IsUnresolved))
 		{
-			return new UnresolvedFunction(descriptor.Name, template_arguments).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
 		}
 
 		var function = GetFunctionByName(primary, descriptor.Name, types, template_arguments);
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
 
 			if (function.IsConstructor)
 			{
@@ -176,14 +179,14 @@ public static class Singleton
 			{
 				var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
-				return new LinkNode(new VariableNode(self), node);
+				return new LinkNode(new VariableNode(self, descriptor.Position), node, descriptor.Position);
 			}
 
 			return node;
 		}
 
 		// NOTE: Template lambdas are not supported
-		return new UnresolvedFunction(descriptor.Name, template_arguments).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
 	}
 
 	/// <summary>
@@ -191,7 +194,7 @@ public static class Singleton
 	/// </summary>
 	public static Node GetNumber(NumberToken number)
 	{
-		return new NumberNode(number.NumberType, number.Value);
+		return new NumberNode(number.NumberType, number.Value, number.Position);
 	}
 
 	/// <summary>
@@ -199,7 +202,7 @@ public static class Singleton
 	/// </summary>
 	public static Node GetContent(Context context, ContentToken content)
 	{
-		var node = new ContentNode();
+		var node = new ContentNode(content.Position);
 
 		foreach (var section in content.GetSections())
 		{
@@ -212,9 +215,9 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build string into a node
 	/// </summary>
-	public static Node GetString(StringToken string_token)
+	public static Node GetString(StringToken token)
 	{
-		return new StringNode(string_token.Text);
+		return new StringNode(token.Text, token.Position);
 	}
 
 	public static Node Parse(Context context, Token token)
@@ -264,10 +267,9 @@ public static class Singleton
 	{
 		return token.Type switch
 		{
-			TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value),
+			TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value, token.To<IdentifierToken>().Position),
 
-			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name)
-				   .SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
+			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
 
 			_ => throw new Exception($"Could not create unresolved token ({token.Type})"),
 		};

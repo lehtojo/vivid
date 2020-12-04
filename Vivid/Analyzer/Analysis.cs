@@ -166,13 +166,11 @@ public static class Analysis
 					return result;
 				}
 
-				return new OperatorNode(Operators.MULTIPLY)
-					.SetOperands(result, new NumberNode(Format.DECIMAL, c));
+				return new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Format.DECIMAL, c));
 			}
 
 			return !Numbers.IsOne(variable_component.Coefficient)
-				? new OperatorNode(Operators.MULTIPLY)
-					.SetOperands(result, new NumberNode(Assembler.Format, variable_component.Coefficient))
+				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, variable_component.Coefficient))
 				: result;
 		}
 
@@ -191,13 +189,11 @@ public static class Analysis
 			{
 				var variable = product.Variables[i];
 
-				result = new OperatorNode(Operators.MULTIPLY)
-					.SetOperands(result, CreateVariableWithOrder(variable.Variable, variable.Order));
+				result = new OperatorNode(Operators.MULTIPLY).SetOperands(result, CreateVariableWithOrder(variable.Variable, variable.Order));
 			}
 
 			return !Numbers.Equals(product.Coefficient, 1L)
-				? new OperatorNode(Operators.MULTIPLY)
-					.SetOperands(result, new NumberNode(Assembler.Format, product.Coefficient))
+				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, product.Coefficient))
 				: result;
 		}
 
@@ -277,11 +273,7 @@ public static class Analysis
 
 		return new List<Component>
 		{
-			new ComplexComponent(
-				new OperatorNode(node.Operator).SetOperands(
-					Recreate(left_components), Recreate(right_components)
-				)
-			)
+			new ComplexComponent(new OperatorNode(node.Operator).SetOperands(Recreate(left_components), Recreate(right_components)))
 		};
 	}
 
@@ -539,7 +531,7 @@ public static class Analysis
 
 			if (evaluation != null)
 			{
-				comparison.Replace(new NumberNode(Parser.Format, (bool)evaluation ? 1L : 0L));
+				comparison.Replace(new NumberNode(Parser.Format, (bool)evaluation ? 1L : 0L, comparison.Position));
 				precomputed = true;
 			}
 		}
@@ -569,7 +561,7 @@ public static class Analysis
 
 		if (a && b)
 		{
-			expression.Replace(new NumberNode(Parser.Format, 0L));
+			expression.Replace(new NumberNode(Parser.Format, 0L, expression.Position));
 			return;
 		}
 
@@ -611,7 +603,7 @@ public static class Analysis
 			else
 			{
 				// Since there is a branch before the root node, the root can be replaced with an else statement
-				root.Replace(new ElseNode(root.Context, root.Body.Clone()));
+				root.Replace(new ElseNode(root.Context, root.Body.Clone(), root.Position));
 			}
 		}
 		else if (root.Successor == null || root.Predecessor != null)
@@ -622,7 +614,7 @@ public static class Analysis
 		{
 			if (root.Successor is ElseIfNode x)
 			{
-				root.Replace(new IfNode(x.Context, x.Condition, x.Body));
+				root.Replace(new IfNode(x.Context, x.Condition, x.Body, x.Position));
 				x.Remove();
 				return true;
 			}
@@ -748,11 +740,13 @@ public static class Analysis
 						continue;
 					}
 
+					// NOTE: Here the condition of the loop must be a number node
+					// Basically if the number node represents a non-zero value it means the loop should be reconstructed as a forever loop
 					if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
 					{
 						statement.Parent!.Insert(statement, statement.Initialization);
 
-						var replacement = new LoopNode(statement.Context, null, statement.Body);
+						var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
 						statement.Parent!.Insert(statement, replacement);
 
 						iterator = replacement.Next;
@@ -1334,7 +1328,7 @@ public static class Analysis
 				result = 0L;
 			}
 
-			expression.Replace(new NumberNode(Parser.Format, result));
+			expression.Replace(new NumberNode(Parser.Format, result, expression.Position));
 		}
 	}
 
@@ -1368,7 +1362,7 @@ public static class Analysis
 					operation.Right
 				);
 
-				var inline = new InlineNode() { initialization };
+				var inline = new InlineNode(edit.Position) { initialization };
 
 				edit.Replace(inline);
 
@@ -1392,7 +1386,7 @@ public static class Analysis
 				repetition.Clone()
 			);
 
-			repetition.Replace(new InlineNode() { initialization, new VariableNode(variable) });
+			repetition.Replace(new InlineNode(repetition.Position) { initialization, new VariableNode(variable) });
 		}
 		else
 		{

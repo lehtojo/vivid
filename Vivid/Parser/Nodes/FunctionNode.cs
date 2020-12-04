@@ -9,10 +9,11 @@ public class FunctionNode : Node, IType
 	public Node Parameters => this;
 	public Node Body => Last!;
 
-	public FunctionNode(FunctionImplementation function)
+	public FunctionNode(FunctionImplementation function, Position? position = null)
 	{
 		Function = function;
 		Function.References.Add(this);
+		Position = position;
 		Tokens = new List<Token>();
 	}
 

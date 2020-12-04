@@ -42,7 +42,7 @@ namespace Vivid.Unit
 		private static extern long _V51conditionally_changing_constant_with_loop_statementxx_rx(long a, long b);
 
 		[DllImport("Unit_ConstantPermanence", ExactSpelling = true)]
-		private static extern void _V34constant_permanence_and_array_copyPhPS_([MarshalAs(UnmanagedType.LPArray)] byte[] source, [MarshalAs(UnmanagedType.LPArray)] byte[] destination);
+		private static extern void _V34constant_permanence_and_array_copyPhS_([MarshalAs(UnmanagedType.LPArray)] byte[] source, [MarshalAs(UnmanagedType.LPArray)] byte[] destination);
 
 		[DllImport("Unit_Linkage", ExactSpelling = true)]
 		private static extern long _V9linkage_1x_rx(long b);
@@ -158,7 +158,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "--asm", "--debug", "-o", Prefix + output };
+			var arguments = new List<string>() { "--asm", "-o", Prefix + output };
 
 			#pragma warning disable 162
 			if (IsOptimizationEnabled)
@@ -528,7 +528,7 @@ namespace Vivid.Unit
 			var source = new byte[] { 1, 3, 5, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 37 };
 			var destination = new byte[14];
 
-			_V34constant_permanence_and_array_copyPhPS_(source, destination);
+			_V34constant_permanence_and_array_copyPhS_(source, destination);
 
 			// Check whether the array copy with offset succeeded
 			Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);

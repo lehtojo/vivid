@@ -82,26 +82,32 @@ public static class Arithmetic
 		}
 		if (Equals(operation, Operators.ASSIGN_ADD))
 		{
+			unit.TryAppendPosition(node);
 			return BuildAdditionOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_SUBTRACT))
 		{
+			unit.TryAppendPosition(node);
 			return BuildSubtractionOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_MULTIPLY))
 		{
+			unit.TryAppendPosition(node);
 			return BuildMultiplicationOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_DIVIDE))
 		{
+			unit.TryAppendPosition(node);
 			return BuildDivisionOperator(unit, false, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN_MODULUS))
 		{
+			unit.TryAppendPosition(node);
 			return BuildDivisionOperator(unit, true, node, true);
 		}
 		if (Equals(operation, Operators.ASSIGN))
 		{
+			unit.TryAppendPosition(node);
 			return BuildAssignOperator(unit, node);
 		}
 		if (Equals(operation, Operators.BITWISE_AND) || Equals(operation, Operators.BITWISE_XOR) || Equals(operation, Operators.BITWISE_OR))
@@ -110,6 +116,7 @@ public static class Arithmetic
 		}
 		if (Equals(operation, Operators.ASSIGN_AND) || Equals(operation, Operators.ASSIGN_XOR) || Equals(operation, Operators.ASSIGN_OR))
 		{
+			unit.TryAppendPosition(node);
 			return BuildBitwiseOperator(unit, node, true);
 		}
 		if (Equals(operation, Operators.SHIFT_LEFT))
@@ -151,7 +158,7 @@ public static class Arithmetic
 	private static Result BuildIncrementOperation(Unit unit, IncrementNode increment)
 	{
 		var left = References.Get(unit, increment.Object, AccessMode.WRITE);
-		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L));
+		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L, increment.Position));
 
 		var number_type = increment.Object.GetType()!.To<Number>().Type;
 
@@ -173,7 +180,7 @@ public static class Arithmetic
 	private static Result BuildDecrementOperation(Unit unit, DecrementNode decrement)
 	{
 		var left = References.Get(unit, decrement.Object, AccessMode.WRITE);
-		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L));
+		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L, decrement.Position));
 
 		var number_type = decrement.Object.GetType()!.To<Number>().Type;
 
@@ -281,7 +288,7 @@ public static class Arithmetic
 		var right = References.Get(unit, node.Right);
 		var left = References.Get(unit, node.Left, AccessMode.WRITE);
 
-		if (node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable)
+		if (node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
 		{
 			var variable = node.Left.To<VariableNode>().Variable;
 

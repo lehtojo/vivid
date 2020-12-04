@@ -46,7 +46,7 @@ public class UnarySignPattern : Pattern
 
 		if (sign == Operators.SUBTRACT)
 		{
-			return new NegateNode(target);
+			return new NegateNode(target, tokens[SIGN].Position);
 		}
 
 		return target;

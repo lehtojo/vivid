@@ -19,9 +19,10 @@ public class LoopNode : Node, IResolvable, IContext
 
 	public bool IsForeverLoop => First == Last;
 
-	public LoopNode(Context context, Node? steps, ContextNode body)
+	public LoopNode(Context context, Node? steps, ContextNode body, Position? position = null)
 	{
 		Context = context;
+		Position = position;
 
 		if (steps != null)
 		{

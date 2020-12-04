@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 public enum AreaType
 {
@@ -211,9 +210,9 @@ public static class Lexer
 	/// <returns>Returns the position after the spaces</returns>
 	private static Position SkipSpaces(string text, Position position)
 	{
-		while (position.Absolute < text.Length)
+		while (position.Local < text.Length)
 		{
-			var c = text[position.Absolute];
+			var c = text[position.Local];
 
 			if (c != ' ')
 			{
@@ -238,14 +237,14 @@ public static class Lexer
 	{
 		var position = start.Clone();
 
-		var opening = text[position.Absolute];
+		var opening = text[position.Local];
 		var closing = ParenthesisType.Get(opening).Closing;
 
 		var count = 0;
 
-		while (position.Absolute < text.Length)
+		while (position.Local < text.Length)
 		{
-			var c = text[position.Absolute];
+			var c = text[position.Local];
 
 			if (c == '\n')
 			{
@@ -279,7 +278,7 @@ public static class Lexer
 	/// </summary>
 	private static bool IsMultilineComment(string text, Position start)
 	{
-		return start.Absolute + (MULTILINE_COMMENT.Length * 2 + 1) <= text.Length && text[start.Absolute..(start.Absolute + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Absolute + MULTILINE_COMMENT.Length] != COMMENT;
+		return start.Local + (MULTILINE_COMMENT.Length * 2 + 1) <= text.Length && text[start.Local..(start.Local + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Local + MULTILINE_COMMENT.Length] != COMMENT;
 	}
 
 	/// <summary>
@@ -292,7 +291,7 @@ public static class Lexer
 	{
 		if (IsMultilineComment(text, start))
 		{
-			var j = text.IndexOf(MULTILINE_COMMENT, start.Absolute + MULTILINE_COMMENT.Length);
+			var j = text.IndexOf(MULTILINE_COMMENT, start.Local + MULTILINE_COMMENT.Length);
 
 			if (j == -1)
 			{
@@ -303,27 +302,27 @@ public static class Lexer
 			j += MULTILINE_COMMENT.Length;
 
 			// Count how many line ending are there inside the comment
-			var lines = text[start.Absolute..j].Count(i => i == '\n');
+			var lines = text[start.Local..j].Count(i => i == '\n');
 
 			// Try to resolve the character position from the last line ending inside the multiline comment
-			var k = text[start.Absolute..j].LastIndexOf('\n');
+			var k = text[start.Local..j].LastIndexOf('\n');
 
 			// If there is no line ending inside the multiline comment, it means the comment uses only one line and its length can be added to the current character position
-			var c = k != -1 ? (j - k) : (start.Character + j - start.Absolute);
+			var c = k != -1 ? (j - k) : (start.Character + j - start.Local);
 
 			return new Position(start.Line + lines, c, j);
 		}
 
-		var i = text.IndexOf('\n', start.Absolute);
+		var i = text.IndexOf('\n', start.Local);
 
 		if (i != -1)
 		{
-			var length = i - start.Absolute;
+			var length = i - start.Local;
 			return new Position(start.Line, start.Character + length, i);
 		}
 		else
 		{
-			var length = text.Length - start.Absolute;
+			var length = text.Length - start.Local;
 			return new Position(start.Line, start.Character + length, text.Length);
 		}
 	}
@@ -334,15 +333,15 @@ public static class Lexer
 	/// <returns>Position after the closures</returns>
 	private static Position SkipClosures(char closure, string text, Position start, string error)
 	{
-		var i = text.IndexOf(closure, start.Absolute + 1);
-		var j = text.IndexOf('\n', start.Absolute + 1);
+		var i = text.IndexOf(closure, start.Local + 1);
+		var j = text.IndexOf('\n', start.Local + 1);
 
 		if (i == -1 || j != -1 && j < i)
 		{
 			throw Errors.Get(start, error);
 		}
 
-		var length = i - start.Absolute;
+		var length = i - start.Local;
 
 		return new Position(start.Line, start.Character + length, i + 1);
 	}
@@ -456,7 +455,7 @@ public static class Lexer
 		var position = SkipSpaces(text, start);
 
 		// Verify there's text to iterate
-		if (position.Absolute == text.Length)
+		if (position.Local == text.Length)
 		{
 			return null;
 		}
@@ -464,7 +463,7 @@ public static class Lexer
 		var area = new Area
 		{
 			Start = position.Clone(),
-			Type = GetType(text[position.Absolute])
+			Type = GetType(text[position.Local])
 		};
 
 		switch (area.Type)
@@ -473,14 +472,14 @@ public static class Lexer
 			case AreaType.COMMENT:
 			{
 				area.End = SkipComment(text, area.Start);
-				area.Text = text[area.Start.Absolute..area.End.Absolute];
+				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
 			case AreaType.CONTENT:
 			{
 				area.End = SkipContent(text, area.Start);
-				area.Text = text[area.Start.Absolute..area.End.Absolute];
+				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
@@ -494,14 +493,14 @@ public static class Lexer
 			case AreaType.STRING:
 			{
 				area.End = SkipString(text, area.Start);
-				area.Text = text[area.Start.Absolute..area.End.Absolute];
+				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
 			case AreaType.CHARACTER:
 			{
 				area.End = SkipCharacterValue(text, area.Start);
-				area.Text = GetCharacterValue(area.Start, text[area.Start.Absolute..area.End.Absolute]).ToString(CultureInfo.InvariantCulture);
+				area.Text = GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]).ToString(CultureInfo.InvariantCulture);
 				area.Type = AreaType.NUMBER;
 				return area;
 			}
@@ -512,9 +511,9 @@ public static class Lexer
 		position.NextCharacter();
 
 		// Possible types are now: TEXT, NUMBER, OPERATOR
-		while (position.Absolute < text.Length)
+		while (position.Local < text.Length)
 		{
-			var current_symbol = text[position.Absolute];
+			var current_symbol = text[position.Local];
 
 			if (IsContent(current_symbol))
 			{
@@ -528,7 +527,7 @@ public static class Lexer
 			}
 
 			var type = GetType(current_symbol);
-			var previous_symbol = position.Absolute == 0 ? (char)0 : text[position.Absolute - 1];
+			var previous_symbol = position.Local == 0 ? (char)0 : text[position.Local - 1];
 
 			if (!IsPartOf(area.Type, type, previous_symbol, current_symbol))
 			{
@@ -539,7 +538,7 @@ public static class Lexer
 		}
 
 		area.End = position;
-		area.Text = text[area.Start.Absolute..area.End.Absolute];
+		area.Text = text[area.Start.Local..area.End.Local];
 
 		return area;
 	}
@@ -569,19 +568,18 @@ public static class Lexer
 	/// Parses a token from a text area
 	/// </summary>
 	/// <param name="area">Current text area</param>
-	/// <param name="anchor">Current position in text</param>
 	/// <returns>Area as a token</returns>
-	private static Token ParseToken(Area area, Position anchor)
+	private static Token ParseToken(Area area)
 	{
 		return area.Type switch
 		{
 			AreaType.TEXT => ParseTextToken(area.Text),
 			AreaType.NUMBER => new NumberToken(area.Text),
-			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw Errors.Get(anchor, $"Unknown operator '{area.Text}'")),
-			AreaType.CONTENT => new ContentToken(area.Text, anchor += area.Start),
+			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw Errors.Get(area.Start, $"Unknown operator '{area.Text}'")),
+			AreaType.CONTENT => new ContentToken(area.Text, area.Start),
 			AreaType.END => new Token(TokenType.END),
 			AreaType.STRING => new StringToken(area.Text),
-			_ => throw Errors.Get(anchor += area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unknown token '{0}'", area.Text))),
+			_ => throw Errors.Get(area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unknown token '{0}'", area.Text))),
 		};
 	}
 
@@ -654,11 +652,11 @@ public static class Lexer
 		text = PreprocessSpecialCharacters(text);
 
 		var tokens = new List<Token>();
-		var position = new Position();
+		var position = new Position(anchor.Line, anchor.Character, 0, anchor.Absolute);
 
-		while (position.Absolute < text.Length)
+		while (position.Local < text.Length)
 		{
-			var area = GetNextToken(text, position);
+			var area = GetNextToken(text, position.Clone());
 
 			if (area == null)
 			{
@@ -667,8 +665,8 @@ public static class Lexer
 
 			if (area.Type != AreaType.COMMENT)
 			{
-				var token = ParseToken(area, anchor);
-				token.Position = (anchor += area.Start);
+				var token = ParseToken(area);
+				token.Position = area.Start;
 				tokens.Add(token);
 			}
 

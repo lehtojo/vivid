@@ -11,6 +11,8 @@ public class ConfigurationPhase : Phase
 	private List<string> Libraries { get; set; } = new List<string>();
 	private List<string> Files { get; set; } = new List<string>();
 
+	private bool IsOptimizationEnabled { get; set; } = false;
+
 	private void Collect(Bundle bundle, DirectoryInfo folder, bool recursive = true)
 	{
 		foreach (var item in folder.GetFiles())
@@ -98,6 +100,12 @@ public class ConfigurationPhase : Phase
 			case "-d":
 			case "--debug":
 			{
+				if (IsOptimizationEnabled)
+				{
+					return Status.Error("Optimization and debugging can not be enabled at the same time");
+				}
+
+				Assembler.IsDebuggingEnabled = true;
 				bundle.PutBool("debug", true);
 				return Status.OK;
 			}
@@ -182,10 +190,18 @@ public class ConfigurationPhase : Phase
 			case "-O1":
 			case "--optimize":
 			{
+				if (Assembler.IsDebuggingEnabled)
+				{
+					return Status.Error("Optimization and debugging can not be enabled at the same time");
+				}
+
+				IsOptimizationEnabled = true;
+
 				Analysis.IsInstructionAnalysisEnabled = true;
 				Analysis.IsMathematicalAnalysisEnabled = true;
 				Analysis.IsRepetitionAnalysisEnabled = true;
 				Analysis.IsUnwrapAnalysisEnabled = true;
+
 				return Status.OK;
 			}
 

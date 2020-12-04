@@ -198,7 +198,7 @@ public static class Inlines
 			// Replace the function call with the result of the inlined function
 			//destination.Replace(new VariableNode(result));
 
-			var temporary = new InlineNode();
+			var temporary = new InlineNode(reference.Position);
 			body.ForEach(i => temporary.Add(i));
 			temporary.Add(new VariableNode(result));
 
@@ -224,7 +224,7 @@ public static class Inlines
 			}
 
 			// Replace the function call with the body of the inlined function
-			var temporary = new InlineNode();
+			var temporary = new InlineNode(reference.Position);
 			body.ForEach(i => temporary.Add(i));
 
 			destination.Replace(temporary);
@@ -265,17 +265,9 @@ public static class Inlines
 			i.Parent!.First == i
 		).Select(i => i.To<VariableNode>());
 
-		usages.ForEach(i =>
-		{
-			i.Replace(new LinkNode(
-				self_pointer.Clone(),
-				new VariableNode(i.Variable)
-			));
-		});
+		usages.ForEach(i => i.Replace(new LinkNode(self_pointer.Clone(), new VariableNode(i.Variable), i.Position)));
 
-		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) &&
-			i.To<VariableNode>().Variable.IsSelfPointer
-		);
+		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsSelfPointer);
 
 		self_pointers.ForEach(i => i.Replace(self_pointer.Clone()));
 

@@ -125,7 +125,7 @@ public class Mangle
 
 			type.AddDefinition(this);
 
-			if (!Types.IsPrimitive(type) && type != Types.LINK)
+			if (!Types.IsPrimitive(type))
 			{
 				Definitions.Add(new Definition(type, Definitions.Count, 0));
 			}
@@ -153,7 +153,7 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, Types.IsPrimitive(type) ? 0 : 1);
+			Add(type, (Types.IsPrimitive(type) || type == Types.LINK) ? 0 : 1);
 		}
 	}
 }

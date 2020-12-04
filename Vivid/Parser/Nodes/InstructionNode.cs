@@ -5,9 +5,10 @@ public class InstructionNode : Node
 {
 	public Keyword Instruction { get; private set; }
 
-	public InstructionNode(Keyword instruction)
+	public InstructionNode(Keyword instruction, Position? position = null)
 	{
 		Instruction = instruction;
+		Position = position;
 	}
 
 	public override NodeType GetNodeType()

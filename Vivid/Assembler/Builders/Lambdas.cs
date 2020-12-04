@@ -9,6 +9,8 @@ public static class Lambdas
 		{
 			throw new ApplicationException("Missing implementation for lambda");
 		}
+		
+		unit.TryAppendPosition(node);
 
 		var implementation = node.Lambda.Implementation;
 		var root = implementation.Node ?? throw new ApplicationException("Missing implementation for lambda");

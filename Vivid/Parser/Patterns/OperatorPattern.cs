@@ -31,7 +31,7 @@ public class OperatorPattern : Pattern
 
 	public override Node Build(Context context, List<Token> tokens)
 	{
-		return new OperatorNode(tokens[OPERATOR].To<OperatorToken>().Operator).SetOperands(
+		return new OperatorNode(tokens[OPERATOR].To<OperatorToken>().Operator, tokens[OPERATOR].Position).SetOperands(
 			Singleton.Parse(context, tokens[LEFT]),
 			Singleton.Parse(context, tokens[RIGHT])
 		);

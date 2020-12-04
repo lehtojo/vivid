@@ -75,14 +75,15 @@ public class LinkPattern : Pattern
 			// Since the primary context could not be retrieved, an unresolved link node must be returned
 			if (template_arguments.Any())
 			{
-				right = new UnresolvedFunction(tokens[RIGHT].To<IdentifierToken>().Value, template_arguments);
+				var token = tokens[RIGHT].To<IdentifierToken>();
+				right = new UnresolvedFunction(token.Value, template_arguments, token.Position);
 			}
 			else
 			{
 				right = Singleton.GetUnresolved(environment, tokens[RIGHT]);
 			}
 
-			return new LinkNode(left, right);
+			return new LinkNode(left, right, tokens[OPERATOR].Position);
 		}
 
 		// Try to create template function call if there are any template parameters
@@ -108,6 +109,7 @@ public class LinkPattern : Pattern
 
 			if (result != null)
 			{
+				result.Position = tokens[OPERATOR].Position;
 				return result;
 			}
 
@@ -116,10 +118,11 @@ public class LinkPattern : Pattern
 
 			if (result != null)
 			{
+				result.Position = tokens[OPERATOR].Position;
 				return result;
 			}
 		}
 
-		return new LinkNode(left, right);
+		return new LinkNode(left, right, tokens[OPERATOR].Position);
 	}
 }

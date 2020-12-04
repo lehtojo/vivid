@@ -30,7 +30,8 @@ public class TypePattern : Pattern
 		var body = tokens[BODY].To<ContentToken>();
 
 		var type = new Type(context, name.Value, AccessModifier.PUBLIC);
+		type.Position = name.Position;
 
-		return new TypeNode(type, body.Tokens);
+		return new TypeNode(type, body.Tokens, name.Position);
 	}
 }

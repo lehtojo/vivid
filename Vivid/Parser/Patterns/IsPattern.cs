@@ -58,9 +58,9 @@ public class IsPattern : Pattern
 			var name = tokens.Last().To<IdentifierToken>().Value;
 			var result = new Variable(context, type, VariableCategory.LOCAL, name, AccessModifier.PUBLIC);
 
-			return new IsNode(source, type, result);
+			return new IsNode(source, type, result, tokens[IS].Position);
 		}
 
-		return new IsNode(source, type, null);
+		return new IsNode(source, type, null, tokens[IS].Position);
 	}
 }

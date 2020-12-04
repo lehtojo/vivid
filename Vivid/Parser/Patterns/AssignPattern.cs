@@ -51,7 +51,9 @@ class AssignPattern : Pattern
 				AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
 			);
 
-			return new VariableNode(variable);
+			variable.Position = tokens[DESTINATION].Position;
+
+			return new VariableNode(variable, destination.Position);
 		}
 
 		variable = context.GetVariable(destination.Value)!;
@@ -61,12 +63,13 @@ class AssignPattern : Pattern
 			var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
 			return new LinkNode(
-				new VariableNode(self),
-				new VariableNode(variable)
+				new VariableNode(self, destination.Position),
+				new VariableNode(variable, destination.Position),
+				destination.Position
 			);
 		}
 
-		return new VariableNode(variable);
+		return new VariableNode(variable, destination.Position);
 	}
 
 	public override int GetEnd()

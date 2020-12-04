@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 public class LoopPattern : Pattern
 {
@@ -108,6 +107,6 @@ public class LoopPattern : Pattern
 		var body = new ContextNode(body_context);
 		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
 
-		return new LoopNode(steps_context, steps, body);
+		return new LoopNode(steps_context, steps, body, tokens[KEYWORD].Position);
 	}
 }

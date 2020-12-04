@@ -2,22 +2,23 @@ using System;
 
 public class Size
 {
-	public static readonly Size NONE = new Size("?", 0);
-	public static readonly Size BYTE = new Size("byte", 1);
-	public static readonly Size WORD = new Size("word", 2);
-	public static readonly Size DWORD = new Size("dword", 4);
-	public static readonly Size QWORD = new Size("qword", 8);
-	public static readonly Size OWORD = new Size("oword", 16);
-	public static readonly Size YWORD = new Size("yword", 32);
+	public static readonly Size NONE = new Size("?", "?", 0);
+	public static readonly Size BYTE = new Size("byte", ".byte", 1);
+	public static readonly Size WORD = new Size("word", ".short", 2);
+	public static readonly Size DWORD = new Size("dword", ".long", 4);
+	public static readonly Size QWORD = new Size("qword", ".quad", 8);
+	public static readonly Size OWORD = new Size("oword", "?", 16);
+	public static readonly Size YWORD = new Size("yword", "?", 32);
 
 	public string Identifier { get; private set; }
-	public string Allocator => "d" + Identifier[0];
+	public string Allocator { get; private set; }	
 	public int Bytes { get; private set; }
 	public int Bits => Bytes * 8;
 
-	private Size(string identifier, int bytes)
+	private Size(string identifier, string allocator, int bytes)
 	{
 		Identifier = identifier;
+		Allocator = allocator;
 		Bytes = bytes;
 	}
 

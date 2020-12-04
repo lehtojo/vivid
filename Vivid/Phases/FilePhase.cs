@@ -8,26 +8,26 @@ public class FilePhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		string[] files = bundle.Get("input_files", Array.Empty<string>());
+		var files = bundle.Get("input_files", Array.Empty<string>());
 
 		if (files.Length == 0)
 		{
 			return Status.Error("Please enter input files");
 		}
 
-		string[] contents = new string[files.Length];
+		var contents = new string[files.Length];
 
 		for (int i = 0; i < files.Length; i++)
 		{
-			int index = i;
+			var index = i;
 
 			Run(() =>
 			{
-				string file = files[index];
+				var file = files[index];
 
 				try
 				{
-					string content = File.ReadAllText(file);
+					var content = File.ReadAllText(file);
 					contents[index] = content.Replace(COMPLEX_LINE_ENDING, LINE_ENDING).Replace('\t', ' ');
 				}
 				catch

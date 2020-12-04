@@ -16,9 +16,9 @@ public static class ReconstructionAnalysis
 			var destination = increment.Object.Clone();
 			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from increment node");
 
-			return new OperatorNode(Operators.ASSIGN_ADD).SetOperands(
+			return new OperatorNode(Operators.ASSIGN_ADD, increment.Position).SetOperands(
 				destination,
-				new NumberNode(type.Format, 1L)
+				new NumberNode(type.Format, 1L, increment.Position)
 			);
 		}
 
@@ -27,9 +27,9 @@ public static class ReconstructionAnalysis
 			var destination = decrement.Object.Clone();
 			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from decrement node");
 
-			return new OperatorNode(Operators.ASSIGN_SUBTRACT).SetOperands(
+			return new OperatorNode(Operators.ASSIGN_SUBTRACT, decrement.Position).SetOperands(
 				destination,
-				new NumberNode(type.Format, 1L)
+				new NumberNode(type.Format, 1L, decrement.Position)
 			);
 		}
 
@@ -49,11 +49,11 @@ public static class ReconstructionAnalysis
 			{
 				var destination = increment.Object.Clone();
 
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
+				return new OperatorNode(Operators.ASSIGN, increment.Position).SetOperands(
 					destination,
-					new OperatorNode(Operators.ADD).SetOperands(
+					new OperatorNode(Operators.ADD, increment.Position).SetOperands(
 						destination.Clone(),
-						new NumberNode(Parser.Format, 1L)
+						new NumberNode(Parser.Format, 1L, increment.Position)
 					)
 				);
 			}
@@ -62,11 +62,11 @@ public static class ReconstructionAnalysis
 			{
 				var destination = decrement.Object.Clone();
 
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
+				return new OperatorNode(Operators.ASSIGN, decrement.Position).SetOperands(
 					destination,
-					new OperatorNode(Operators.SUBTRACT).SetOperands(
+					new OperatorNode(Operators.SUBTRACT, decrement.Position).SetOperands(
 						destination.Clone(),
-						new NumberNode(Parser.Format, 1L)
+						new NumberNode(Parser.Format, 1L, decrement.Position)
 					)
 				);
 			}
@@ -91,9 +91,9 @@ public static class ReconstructionAnalysis
 					return null;
 				}
 
-				return new OperatorNode(Operators.ASSIGN).SetOperands(
+				return new OperatorNode(Operators.ASSIGN, operation.Position).SetOperands(
 					destination,
-					new OperatorNode(type).SetOperands(
+					new OperatorNode(type, operation.Position).SetOperands(
 						destination.Clone(),
 						edit.Last!.Clone()
 					)
@@ -267,7 +267,7 @@ public static class ReconstructionAnalysis
 			var result_condition = new VariableNode(expression.Result);
 
 			// Replace the expression with the logic above
-			expression.Replace(new InlineNode() { load, conditional_assignment, result_condition });
+			expression.Replace(new InlineNode(expression.Position) { load, conditional_assignment, result_condition });
 		}
 	}
 
@@ -325,7 +325,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var instance in instances)
 		{
-			var position = GetInsertPosition(instance);
+			//var position = GetInsertPosition(instance);
 
 			// Declare a hidden variable which represents the result
 			var environment = instance.FindContext()?.GetContext() ?? throw new ApplicationException("Could not find the current context");
@@ -338,8 +338,9 @@ public static class ReconstructionAnalysis
 			);
 
 			// Replace the operation with the result
-			var replacement = new VariableNode(destination);
-			instance.Replace(replacement);
+			var inline = new InlineNode(instance.Position);
+			instance.Replace(inline);
+			//var replacement = new VariableNode(destination);
 
 			var context = new Context();
 			context.Link(environment);
@@ -356,8 +357,11 @@ public static class ReconstructionAnalysis
 			var statement = new IfNode(context, instance, new Node { assignment });
 
 			// Add the statements which implement the boolean value
-			position.Insert(statement);
-			statement.Insert(initialization);
+			inline.Add(initialization);
+			inline.Add(statement);
+			inline.Add(new VariableNode(destination));
+			//position.Insert(statement);
+			//statement.Insert(initialization);
 		}
 	}
 
@@ -433,7 +437,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var expression in expressions)
 		{
-			var inline = new ContextInlineNode(expression.GetParentContext());
+			var inline = new ContextInlineNode(expression.GetParentContext(), expression.Position);
 
 			var assignment = TryRewriteAsAssignOperation(expression, true);
 
@@ -509,7 +513,7 @@ public static class ReconstructionAnalysis
 					continue;
 				}
 
-				assignment.Replace(new OperatorNode(action_operator).SetOperands(assignment.Left, value));
+				assignment.Replace(new OperatorNode(action_operator, assignment.Position).SetOperands(assignment.Left, value));
 			}
 		}
 	}

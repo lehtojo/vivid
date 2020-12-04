@@ -31,9 +31,9 @@ public class CommandPattern : Pattern
 
 		if (keyword == Keywords.RETURN)
 		{
-			return new ReturnNode(null);
+			return new ReturnNode(null, tokens[INSTRUCTION].Position);
 		}
 
-		return new LoopControlNode(keyword);
+		return new LoopControlNode(keyword, tokens[INSTRUCTION].Position);
 	}
 }

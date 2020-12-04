@@ -2,9 +2,10 @@ public class NotNode : Node, IType
 {
 	public Node Object => First!;
 
-	public NotNode(Node target)
+	public NotNode(Node target, Position? position)
 	{
 		Add(target);
+		Position = position;
 	}
 
 	public new Type? GetType()

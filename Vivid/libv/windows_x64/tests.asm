@@ -1,5 +1,4 @@
-[section .text]
-global _V14large_functionv
+.global _V14large_functionv
 _V14large_functionv:
 xor rax, rax
 xor rcx, rcx

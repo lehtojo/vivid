@@ -15,10 +15,18 @@ public class TypeNode : Node, IType, IContext
 		Body = new List<Token>();
 	}
 
-	public TypeNode(Type type, List<Token> body)
+	public TypeNode(Type type, Position? position)
+	{
+		Type = type;
+		Body = new List<Token>();
+		Position = position;
+	}
+
+	public TypeNode(Type type, List<Token> body, Position? position)
 	{
 		Type = type;
 		Body = body;
+		Position = position;
 		IsDefinition = true;
 	}
 

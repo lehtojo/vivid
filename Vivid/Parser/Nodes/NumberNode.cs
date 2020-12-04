@@ -17,6 +17,18 @@ public class NumberNode : Node, IType, ICloneable
 		}
 	}
 
+	public NumberNode(Format type, object value, Position? position)
+	{
+		Type = type;
+		Value = value;
+		Position = position;
+
+		if (!(Value is long || Value is double))
+		{
+			throw new ArgumentException("Number node received a number which was not in the correct format");
+		}
+	}
+
 	public NumberNode Negate()
 	{
 		if (Type == Format.DECIMAL)
@@ -43,7 +55,7 @@ public class NumberNode : Node, IType, ICloneable
 
 	public new object Clone()
 	{
-		return new NumberNode(Type, Value);
+		return new NumberNode(Type, Value, Position?.Clone());
 	}
 
 	public override bool Equals(object? other)

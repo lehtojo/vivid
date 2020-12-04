@@ -11,7 +11,7 @@ public class CallNode : Node, IType
 
 		Add(self);
 		Add(pointer);
-		Add(new ListNode());
+		Add(new ListNode(parameters.Position));
 
 		foreach (var parameter in parameters)
 		{

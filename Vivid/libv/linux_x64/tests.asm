@@ -1,4 +1,3 @@
-[section .text]
 global _V14large_functionv:function hidden
 _V14large_functionv:
 xor rax, rax

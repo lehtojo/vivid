@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 class FunctionPattern : Pattern
 {
@@ -40,10 +41,11 @@ class FunctionPattern : Pattern
 		var body = tokens[BODY].To<ContentToken>();
 
 		var function = new Function(context, modifiers, header.Name, body.Tokens);
+		function.Position = header.Position;
 		function.Parameters.AddRange(header.GetParameters(function));
 
 		context.Declare(function);
 
-		return new FunctionDefinitionNode(function);
+		return new FunctionDefinitionNode(function, header.Position);
 	}
 }

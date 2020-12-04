@@ -57,7 +57,7 @@ public class WhenPattern : Pattern
 
     public override Node? Build(Context context, List<Token> tokens)
     {
-		var result = new InlineNode();
+		var result = new InlineNode(tokens.First().Position);
 
 		// Load the inspected value into a variable
 		var source = Singleton.Parse(context, tokens[VALUE]);

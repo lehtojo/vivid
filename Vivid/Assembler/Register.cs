@@ -12,6 +12,7 @@ public static class RegisterFlag
 	public const int MEDIA = 64;
 	public const int DECIMAL_RETURN = 128;
 	public const int SHIFT = 256;
+	public const int BASE_POINTER = 512;
 }
 
 public class Register

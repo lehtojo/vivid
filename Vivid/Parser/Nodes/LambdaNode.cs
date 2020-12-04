@@ -6,9 +6,10 @@ public class LambdaNode : Node, IResolvable, IType
 
 	public Lambda Lambda { get; private set; }
 
-	public LambdaNode(Lambda lambda)
+	public LambdaNode(Lambda lambda, Position? position = null)
 	{
 		Lambda = lambda;
+		Position = position;
 	}
 
 	public new Type? GetType()

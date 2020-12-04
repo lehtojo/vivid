@@ -55,6 +55,11 @@ public class ReturnInstruction : Instruction
 			Unit.StackOffset -= allocated_local_memory;
 		}
 
+		if (Assembler.IsDebuggingEnabled)
+		{
+			builder.AppendLine(".cfi_def_cfa 7, 8");
+		}
+
 		foreach (var register in recover_registers)
 		{
 			builder.AppendLine($"pop {register}");
