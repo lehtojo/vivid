@@ -15,7 +15,7 @@ public class SymmetryEndInstruction : Instruction
 	public void Append()
 	{
 		Sources.Clear();
-		Sources.AddRange(Start.ActiveVariables.Select(i => References.GetVariable(Unit, i)));
+		Sources.AddRange(Start.ActiveVariables.Select(i => References.GetVariable(Unit, i, AccessMode.READ)));
 	}
 
 	public override void OnBuild()

@@ -1,19 +1,18 @@
-using System.Collections.Generic;
-using System.Linq;
-
 public class GetVariableInstruction : Instruction
 {
 	public Result? Self { get; private set; }
 	public Type? SelfType { get; private set; }
 	public Variable Variable { get; private set; }
+	public AccessMode Mode { get; private set; }
 
-	public GetVariableInstruction(Unit unit, Variable variable) : this(unit, null, null, variable) { }
+	public GetVariableInstruction(Unit unit, Variable variable, AccessMode mode) : this(unit, null, null, variable, mode) {}
 
-	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable) : base(unit)
+	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable, AccessMode mode) : base(unit)
 	{
 		Self = self;
 		SelfType = self_type;
 		Variable = variable;
+		Mode = mode;
 		Description = $"Get the current handle of variable '{variable.Name}'";
 
 		Result.Value = References.CreateVariableHandle(unit, Self, self_type, variable);

@@ -31,7 +31,7 @@ public static class Conditionals
 			// Keep all scope variables which are needed later active
 			var required_variables = active_variables.Where(i => Analysis.IsUsedLater(i, body)).ToList();
 
-			required_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i)));
+			required_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i, AccessMode.READ)));
 		}
 
 		unit.Set(state);

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 public class SingletonPattern : Pattern
@@ -20,7 +19,7 @@ public class SingletonPattern : Pattern
 		return true;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		return Singleton.Parse(context, tokens.First());
 	}

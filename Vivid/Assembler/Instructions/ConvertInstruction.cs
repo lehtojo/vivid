@@ -18,6 +18,8 @@ public class ConvertInstruction : Instruction
 	{
 		if (Number.Format.IsDecimal() == !ToInteger)
 		{
+			// The result must be equal to the value if there is no needed for conversion, since the result is directly used
+			Result.Join(Number);
 			return;
 		}
 

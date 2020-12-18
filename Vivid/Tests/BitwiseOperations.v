@@ -22,17 +22,17 @@ export synthetic_or(a: tiny, b: tiny) {
    => (a ¤ b) ¤ (a & b)
 }
 
-export assign_bitwise_and(a: num) {
+export assign_bitwise_and(a: large) {
    a &= a / 2
    => a
 }
 
-export assign_bitwise_xor(a: num) {
+export assign_bitwise_xor(a: large) {
    a ¤= 1
    => a
 }
 
-export assign_bitwise_or(a: num, b: num) {
+export assign_bitwise_or(a: large, b: large) {
    a |= b
    => a
 }

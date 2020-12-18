@@ -130,12 +130,21 @@ public class VariableDeclarationPattern : Pattern
 
 			type = context.GetType(name);
 
-			if (type != null && type is TemplateType template_type)
+			if (type == Types.UNKNOWN)
+			{
+				return new UnresolvedType(context, name, template_arguments);
+			}
+
+			if (type is TemplateType template_type)
 			{
 				return template_type.GetVariant(template_arguments);
 			}
-
-			return new UnresolvedType(context, name, template_arguments);
+			else
+			{
+				type = type.Clone();
+				type.TemplateArguments = template_arguments;
+				return type;
+			}
 		}
 
 		switch (tokens[TYPE].Type)
@@ -153,7 +162,7 @@ public class VariableDeclarationPattern : Pattern
 		return type;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 

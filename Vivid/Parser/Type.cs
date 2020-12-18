@@ -104,7 +104,7 @@ public class Type : Context
 
 	public bool IsUnresolved => !IsResolved();
 	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
-
+	
 	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
@@ -112,6 +112,7 @@ public class Type : Context
 	public RuntimeConfiguration? Configuration { get; private set; }
 
 	public List<Type> Supertypes { get; } = new List<Type>();
+	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();
 	public Dictionary<string, FunctionList> Virtuals { get; } = new Dictionary<string, FunctionList>();
 	public FunctionList Constructors { get; } = new FunctionList();
 	public FunctionList Destructors { get; } = new FunctionList();
@@ -147,18 +148,30 @@ public class Type : Context
 		return Destructors;
 	}
 
-	public Type(Context context, string name, int modifiers) : this(context, name, modifiers, new List<Type>()) { }
-
-	public Type(Context context, string name, int modifiers, List<Type> supertypes)
+	public Type(Context context, string name, int modifiers, Position position)
 	{
 		Name = name;
 		Identifier = Name;
 		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
-		Supertypes = supertypes;
+		Position = position;
+		Supertypes = new List<Type>();
 		OnAddDefinition = OnAddDefaultDefinition;
 
-		Constructors.Add(Constructor.Empty(this));
+		Constructors.Add(Constructor.Empty(this, position));
+
+		Link(context);
+		context.Declare(this);
+	}
+
+	public Type(Context context, string name, int modifiers)
+	{
+		Name = name;
+		Identifier = Name;
+		Prefix = $"N{Name.Length}";
+		Modifiers = modifiers;
+		Supertypes = new List<Type>();
+		OnAddDefinition = OnAddDefaultDefinition;
 
 		Link(context);
 		context.Declare(this);
@@ -171,8 +184,6 @@ public class Type : Context
 		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 		OnAddDefinition = OnAddDefaultDefinition;
-
-		Constructors.Add(Constructor.Empty(this));
 	}
 
 	public Type(Context context)
@@ -182,7 +193,6 @@ public class Type : Context
 		OnAddDefinition = OnAddDefaultDefinition;
 
 		Link(context);
-		Constructors.Add(Constructor.Empty(this));
 	}
 
 	public void AddRuntimeConfiguration()
@@ -484,6 +494,16 @@ public class Type : Context
 	public virtual void AddDefinition(Mangle mangle)
 	{
 		OnAddDefinition(mangle);
+	}
+
+	public virtual Type? GetOffsetType()
+	{
+		return global::Types.UNKNOWN;
+	}
+
+	public virtual Type Clone()
+	{
+		return (Type)MemberwiseClone();
 	}
 
 	public override bool Equals(object? other)

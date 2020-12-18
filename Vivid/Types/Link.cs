@@ -1,10 +1,23 @@
+using System.Linq;
+
 public class Link : Number
 {
-	private const int STRIDE = 1;
-
 	public Link() : base(Parser.Format, Parser.Size.Bits, true, "link")
 	{
 		Identifier = "Ph";
+	}
+
+	public override Type Clone()
+	{
+		var clone = base.Clone();
+		clone.TemplateArguments = (Type[])TemplateArguments.Clone();
+
+		return clone;
+	}
+
+	public override Type GetOffsetType()
+	{
+		return TemplateArguments.FirstOrDefault() ?? global::Types.TINY;
 	}
 
 	public override void AddDefinition(Mangle mangle)
@@ -14,6 +27,6 @@ public class Link : Number
 
 	public override int GetContentSize()
 	{
-		return STRIDE;
+		return (TemplateArguments.FirstOrDefault() ?? global::Types.TINY).ReferenceSize;
 	}
 }

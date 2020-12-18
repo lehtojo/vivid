@@ -2,11 +2,11 @@ Entity {}
 
 Entity Person {
     name: String
-    skill: num
+    skill: large
     likes_driving: bool
     likes_riding: bool
 
-    init(name: link, skill: num, likes_driving: bool, likes_riding: bool) {
+    init(name: link, skill: large, likes_driving: bool, likes_riding: bool) {
         this.name = String(name)
         this.skill = skill
         this.likes_driving = likes_driving
@@ -20,14 +20,14 @@ Usable {
 
 Usable Vehicle {
     speed: decimal
-    weight: num
+    weight: large
     acceleration: decimal
     passengers: small
 
     time(distance: decimal) => sqrt(2 * distance / acceleration)
 
-    skill(): num
-    reliability(): num
+    skill(): large
+    reliability(): large
 }
 
 Drivable {}
@@ -98,7 +98,7 @@ export can_use(entity: Entity, usable: Usable) {
     => false as bool
 }
 
-export get_reliable_vehicles(usables: Array<Usable>, min_reliability: num) {
+export get_reliable_vehicles(usables: Array<Usable>, min_reliability: large) {
     vehicles = List<Vehicle>()
 
     loop (i = 0, i < usables.count, i++) {
@@ -116,7 +116,7 @@ export get_reliable_vehicles(usables: Array<Usable>, min_reliability: num) {
     => vehicles
 }
 
-export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: num) {
+export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: large) {
 	=> choose_vehicle(entity, vehicles, distance as decimal)
 }
 
@@ -151,8 +151,8 @@ export create_max() => Person('Max', 7, true as bool, true as bool)
 export create_gabe() => Person('Gabe', 50, true as bool, false as bool)
 export create_steve() => Person('Steve', 1, false as bool, true as bool)
 
-export create_array(size: num) => Array<Usable>(size)
-export set(array: Array<Usable>, usable: Usable, i: num) {
+export create_array(size: large) => Array<Usable>(size)
+export set(array: Array<Usable>, usable: Usable, i: large) {
     array[i] = usable
 }
 

@@ -81,7 +81,7 @@ public static class Analysis
 			{
 				result = new OperatorNode(complex_component.IsNegative ? Operators.SUBTRACT : Operators.ADD).SetOperands(
 					result,
-					complex_component.Node
+					complex_component.Node.Clone()
 				);
 			}
 
@@ -416,28 +416,28 @@ public static class Analysis
 		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
 	}
 
-	private static List<Node> GetBlacklist(Node node)
+	private static List<Node> GetDenylist(Node node)
 	{
-		var blacklist = new List<Node>();
+		var denylist = new List<Node>();
 		var branch = node;
 
 		while ((branch = GetBranch(branch!)) != null)
 		{
 			if (branch is IfNode x)
 			{
-				blacklist.AddRange(x.GetBranches().Where(b => b != x));
+				denylist.AddRange(x.GetBranches().Where(b => b != x));
 			}
 			else if (branch is ElseIfNode y)
 			{
-				blacklist.AddRange(y.GetRoot().GetBranches().Where(b => b != y));
+				denylist.AddRange(y.GetRoot().GetBranches().Where(b => b != y));
 			}
 			else if (branch is ElseNode z)
 			{
-				blacklist.AddRange(z.GetRoot().GetBranches().Where(b => b != z));
+				denylist.AddRange(z.GetRoot().GetBranches().Where(b => b != z));
 			}
 		}
 
-		return blacklist;
+		return denylist;
 	}
 
 	/// <summary>
@@ -445,11 +445,11 @@ public static class Analysis
 	/// </summary>
 	public static bool IsUsedLater(Variable variable, Node perspective)
 	{
-		// Get a blacklist which describes which sections of the node tree have not been executed in the past or won't be executed in the future
-		var blacklist = GetBlacklist(perspective);
+		// Get a denylist which describes which sections of the node tree have not been executed in the past or won't be executed in the future
+		var denylist = GetDenylist(perspective);
 
 		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.References.Any(i => !blacklist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
+		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
 		{
 			return true;
 		}
@@ -1196,12 +1196,6 @@ public static class Analysis
 
 				if (overloads == null)
 				{
-					if (virtual_function.Parent != type)
-					{
-						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
-					}
-
 					continue;
 				}
 
@@ -1276,10 +1270,23 @@ public static class Analysis
 
 			foreach (var return_statement in constructor.Node!.FindAll(i => i.Is(NodeType.RETURN)))
 			{
-				return_statement.Replace(new ReturnNode(new VariableNode(self)));
+				return_statement.Replace(new ReturnNode(new VariableNode(self), return_statement.Position));
 			}
 
 			constructor.Node!.Add(new ReturnNode(new VariableNode(self)));
+		}
+	}
+
+	/// <summary>
+	/// Evaluates the values of size nodes
+	/// </summary>
+	private static void CompleteSizes(Node root)
+	{
+		var sizes = root.FindAll(i => i.Is(NodeType.SIZE)).Cast<SizeNode>();
+
+		foreach (var size in sizes)
+		{
+			size.Replace(new NumberNode(Parser.Format, (long)size.Type.ReferenceSize));
 		}
 	}
 
@@ -1290,8 +1297,14 @@ public static class Analysis
 	{
 		foreach (var type in context.Types.Values)
 		{
-			Complete((Context)type);
+			Complete(type);
 			CompleteConstructors(type);
+		}
+
+		foreach (var implementation in context.GetImplementedFunctions())
+		{
+			Complete(implementation);
+			CompleteSizes(implementation.Node!);
 		}
 	}
 

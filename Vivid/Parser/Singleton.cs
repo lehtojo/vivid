@@ -60,14 +60,21 @@ public static class Singleton
 
 			if (template_arguments.Any())
 			{
-				// If there are template parameters and the type is not a template type or if any of the template parameters is unresolved, then this function should fail
-				if (!(type is TemplateType template_type) || template_arguments.Any(i => i.IsUnresolved))
+				// If there are template parameters and the if any of the template parameters is unresolved, then this function should fail
+				if (template_arguments.Any(i => i.IsUnresolved))
 				{
 					return null;
 				}
 
-				// Since the function name refers to a type, the constructors of the type should be explored next
-				functions = template_type.GetVariant(template_arguments).GetConstructors();
+				if (type is TemplateType template_type)
+				{
+					// Since the function name refers to a type, the constructors of the type should be explored next
+					functions = template_type.GetVariant(template_arguments).GetConstructors();
+				}
+				else
+				{
+					return null;
+				}
 			}
 			else
 			{
@@ -95,8 +102,9 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build function into a node
 	/// </summary>
-	public static Node GetFunction(Context environment, Context primary, FunctionToken descriptor, bool linked = false)
+	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked = false)
 	{
+		var descriptor = (FunctionToken)token.Clone();
 		var parameters = descriptor.GetParsedParameters(environment);
 
 		var types = Resolver.GetTypes(parameters);

@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 
 public class UnarySignPattern : Pattern
@@ -29,7 +28,7 @@ public class UnarySignPattern : Pattern
 		return state.Start == 0 || state.Tokens[state.Start - 1].Is(TokenType.OPERATOR);
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var target = Singleton.Parse(context, tokens[OBJECT]);
 		var sign = tokens[SIGN].To<OperatorToken>().Operator;

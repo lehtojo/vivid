@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 public class OperatorPattern : Pattern
 {
@@ -11,13 +10,12 @@ public class OperatorPattern : Pattern
 	// ... [\n] Operator [\n] ...
 	public OperatorPattern() : base
 	(
-		  TokenType.OBJECT,
-		  TokenType.END | TokenType.OPTIONAL,
-		  TokenType.OPERATOR,
-		  TokenType.END | TokenType.OPTIONAL,
-		  TokenType.OBJECT
-	)
-	{ }
+		TokenType.OBJECT,
+		TokenType.END | TokenType.OPTIONAL,
+		TokenType.OPERATOR,
+		TokenType.END | TokenType.OPTIONAL,
+		TokenType.OBJECT
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -29,7 +27,7 @@ public class OperatorPattern : Pattern
 		return true;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		return new OperatorNode(tokens[OPERATOR].To<OperatorToken>().Operator, tokens[OPERATOR].Position).SetOperands(
 			Singleton.Parse(context, tokens[LEFT]),

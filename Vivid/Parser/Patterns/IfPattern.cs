@@ -5,7 +5,7 @@ public class IfPattern : Pattern
 {
 	public const int PRIORITY = 1;
 
-	public const int KEYWORD = 0;
+	public const int IF = 0;
 	public const int CONDITION = 1;
 	public const int BODY = 3;
 
@@ -23,49 +23,36 @@ public class IfPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var keyword = tokens[KEYWORD].To<KeywordToken>();
+		var keyword = tokens[IF].To<KeywordToken>();
 
 		if (keyword.Keyword != Keywords.IF)
 		{
 			return false;
 		}
 
-		if (Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS))
-		{
-			return true;
-		}
-
-		return Consume
-		(
-			context,
-			state,
-			new List<System.Type> 
-			{
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(OffsetPattern),
-				typeof(OperatorPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(ReturnPattern),
-				typeof(UnarySignPattern)
-			}
-
-		).Count > 0;
+		Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
+		return true;
 	}
 
-	public override Node Build(Context environment, List<Token> tokens)
+	public override Node Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var condition = Singleton.Parse(environment, tokens[CONDITION]);
-		var body = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
+		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
 
-		var context = new Context();
-		context.Link(environment);
+		var context = new Context(environment);
+
+		if (body == null)
+		{
+			body = new List<Token>();
+			
+			if (!Common.ConsumeBlock(context, state, body))
+			{
+				throw Errors.Get(tokens[IF].Position, "If-statement has an empty body");
+			}
+		}
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
-		return new IfNode(context, condition, node, tokens[KEYWORD].Position);
+		return new IfNode(context, condition, node, tokens[IF].Position);
 	}
 }

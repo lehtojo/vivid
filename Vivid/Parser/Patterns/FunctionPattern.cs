@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 class FunctionPattern : Pattern
 {
@@ -34,7 +33,7 @@ class FunctionPattern : Pattern
 		return tokens[MODIFIERS].Type == TokenType.NONE ? AccessModifier.PUBLIC : tokens[MODIFIERS].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var modifiers = GetModifiers(tokens);
 		var header = tokens[HEADER].To<FunctionToken>();

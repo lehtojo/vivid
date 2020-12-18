@@ -73,8 +73,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		var unresolved = parameters.Where(p => p.Type.IsUnresolved).ToArray();
 
 		// Ensure all the unresolved parameter types represent lambda types
-		if (!unresolved.All(p => p.Type is CallDescriptorType && p.Node.Is(NodeType.LAMBDA)) ||
-			!environment.IsFunctionDeclared(Name))
+		if (!unresolved.All(p => p.Type is CallDescriptorType && p.Node.Is(NodeType.LAMBDA)) || !environment.IsFunctionDeclared(Name))
 		{
 			return;
 		}
@@ -248,7 +247,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 		descriptor += $"({string.Join(", ", ((IEnumerable<Node>)this).Select(p => p.TryGetType()?.ToString() ?? "?"))})";
 
-		return Status.Error($"Could not find function or constructor '{descriptor}'");
+		return Status.Error(Position, $"Could not find function or constructor '{descriptor}'");
 	}
 
 	public override bool Equals(object? other)

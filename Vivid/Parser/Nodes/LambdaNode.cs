@@ -2,14 +2,15 @@ using System.Linq;
 
 public class LambdaNode : Node, IResolvable, IType
 {
-	private Status Status { get; set; } = Status.Error("Could not resolve parameter types of the short function");
+	private Status Status { get; set; }
 
 	public Lambda Lambda { get; private set; }
 
-	public LambdaNode(Lambda lambda, Position? position = null)
+	public LambdaNode(Lambda lambda, Position position)
 	{
 		Lambda = lambda;
 		Position = position;
+		Status = Status.Error(Position, "Could not resolve parameter types of the short function");
 	}
 
 	public new Type? GetType()

@@ -1,5 +1,5 @@
-import internal_print(text: link, length: num)
-import internal_read(buffer: link, length: num): num
+import internal_print(text: link, length: large)
+import internal_read(buffer: link, length: large): large
 
 CONSOLE_READ_LINE_BUFFER_SIZE = 256
 
@@ -27,7 +27,7 @@ readln() {
 summary: 'Reads text from the console until a line ending is encountered.
 The maximum length of the returned text is determined by the specified length.'
 ###
-readln(length: num) {
+readln(length: large) {
 	buffer = allocate(length)
 	length = internal_read(buffer, length) - 2
 
@@ -75,27 +75,27 @@ println(text: link) {
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
 println(number: tiny) {
-	println(to_string(number as num))
+	println(to_string(number as large))
 }
 
 ###
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
 println(number: small) {
-	println(to_string(number as num))
+	println(to_string(number as large))
 }
 
 ###
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
 println(number: normal) {
-	println(to_string(number as num))
+	println(to_string(number as large))
 }
 
 ###
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: num) {
+println(number: large) {
 	println(to_string(number))
 }
 
@@ -109,7 +109,7 @@ println(number: decimal) {
 ###
 summary: Writes the specified character to the console
 ###
-print_character(character: num) {
+print_character(character: large) {
 	buffer = allocate(1)
 	buffer[0] = character
 	internal_print(buffer, 1)

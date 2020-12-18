@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 public class ImportPattern : Pattern
 {
@@ -48,14 +47,13 @@ public class ImportPattern : Pattern
 		return false;
 	}
 
-	public override Node? Build(Context environment, List<Token> tokens)
+	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var function_context = new Context();
 		function_context.Link(environment);
 
 		var header = tokens[HEADER].To<FunctionToken>();
-		var parameter_names = header.GetParameterNames(function_context);
-		var parameter_types = header.ParameterTree!.Select(n => n is IType x ? x.GetType() : Types.UNKNOWN);
+		var parameters = header.GetParameters(function_context);
 		var return_type = Types.UNIT;
 
 		if (tokens[RETURN_TYPE].Type != TokenType.NONE)
@@ -68,7 +66,7 @@ public class ImportPattern : Pattern
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
 			header.Name,
 			return_type,
-			parameter_names.Zip(parameter_types).Select(i => new Parameter(i.First, i.Second)).ToArray()
+			parameters.ToArray()
 		);
 
 		function.Position = header.Position;

@@ -21,60 +21,50 @@ public class ShortFunctionPattern : Pattern
 		return PRIORITY;
 	}
 
-	private static bool TryConsumeBody(Context context, PatternState state)
-	{
-		if (Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS))
-		{
-			return true;
-		}
-
-		return Consume
-		(
-			context,
-			state,
-			new List<System.Type>
-			{
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(OffsetPattern),
-				typeof(OperatorPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(UnarySignPattern),
-				typeof(IsPattern)
-			}
-
-		).Count > 0;
-	}
-
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.IMPLICATION && TryConsumeBody(context, state);
+		if (!tokens[OPERATOR].Is(Operators.IMPLICATION))
+		{
+			return false;
+		}
+
+		Common.ConsumeBody(state);
+		return true;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var header = tokens[HEADER].To<FunctionToken>();
+		var blueprint = (List<Token>?)null;
 
-		List<Token>? body;
-
-		if (tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
+		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			body = tokens[BODY].To<ContentToken>().Tokens;
-		}
-		else
-		{
-			body = tokens.Skip(BODY).ToList();
-			body.Insert(0, new OperatorToken(Operators.IMPLICATION));
+			blueprint = tokens.Last().To<ContentToken>().Tokens;
 		}
 
-		var function = new Function(context, AccessModifier.PUBLIC, header.Name, body);
-		function.Position = header.Position;
+		var function = new Function(context, AccessModifier.PUBLIC, header.Name) { Position = header.Position };
 		function.Parameters.AddRange(header.GetParameters(function));
-
 		context.Declare(function);
+
+		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
+		if (function.IsMember)
+		{
+			function.DeclareSelfPointer();
+		}
+
+		if (blueprint == null)
+		{
+			blueprint = new List<Token> { new OperatorToken(Operators.IMPLICATION) };
+
+			if (!Common.ConsumeBlock(function, state, blueprint))
+			{
+				throw Errors.Get(header.Position, "Short function has an empty body");
+			}
+
+			tokens.AddRange(blueprint);
+		}
+
+		function.Blueprint.AddRange(blueprint);
 
 		return new FunctionDefinitionNode(function, header.Position);
 	}

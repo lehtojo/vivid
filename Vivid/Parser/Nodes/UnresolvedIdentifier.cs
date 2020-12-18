@@ -12,7 +12,7 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 
 	public Node? GetResolvedNode(Context context)
 	{
-		return Singleton.GetIdentifier(context, new IdentifierToken(Value), Parent?.Is(NodeType.LINK) ?? false);
+		return Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), Parent?.Is(NodeType.LINK) ?? false);
 	}
 
 	public Node? Resolve(Context context)
@@ -32,7 +32,7 @@ public class UnresolvedIdentifier : Node, IResolvable, IType
 
 	public Status GetStatus()
 	{
-		return Status.Error($"Could not resolve identifier '{Value}'");
+		return Status.Error(Position, $"Could not resolve identifier '{Value}'");
 	}
 
 	public override string ToString()

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 public class ListPattern : Pattern
 {
@@ -28,7 +26,7 @@ public class ListPattern : Pattern
 		return tokens[COMMA].To<OperatorToken>().Operator == Operators.COMMA;
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		if (tokens[LEFT] is DynamicToken left && left.Node is ListNode list)
 		{

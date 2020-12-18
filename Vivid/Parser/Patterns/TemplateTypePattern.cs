@@ -64,7 +64,7 @@ public class TemplateTypePattern : Pattern
 		return Consume(state, out Token? parenthesis, TokenType.CONTENT) && parenthesis!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens.Last().To<ContentToken>();
@@ -74,8 +74,7 @@ public class TemplateTypePattern : Pattern
 
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 
-		var template_type = new TemplateType(context, name.Value, AccessModifier.PUBLIC | AccessModifier.TEMPLATE_TYPE, blueprint, template_argument_names);
-		template_type.Position = name.Position;
+		var template_type = new TemplateType(context, name.Value, AccessModifier.PUBLIC | AccessModifier.TEMPLATE_TYPE, blueprint, template_argument_names, name.Position);
 
 		return new TypeNode(template_type, name.Position) { IsDefinition = true };
 	}

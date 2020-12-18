@@ -3,7 +3,7 @@ DECIMAL_PRECISION = 15
 ###
 summary: Converts the specified integer number into a string
 ###
-to_string(n: num) {
+to_string(n: large) {
 	number = String('')
 	sign = String('')
 
@@ -28,14 +28,14 @@ to_string(n: num) {
 summary: Converts the specified decimal number into a string
 ###
 to_string(n: decimal) {
-	result = to_string(n as num)
+	result = to_string(n as large)
 
 	if n < 0 {
 		n = -n
 	}
 
 	# Remove the integer part
-	n -= n as num
+	n -= n as large
 
 	if n == 0 => result.combine(String(',0'))
 
@@ -44,10 +44,10 @@ to_string(n: decimal) {
 
 	loop (i = 0, i < DECIMAL_PRECISION and n > 0, i++) {
 		n *= 10.0
-		d = n as num
+		d = n as large
 		n -= d
 
-		result = result.append(48 + d)
+		result = result.append(`0` + d)
 	}
 
 	=> result
@@ -74,7 +74,7 @@ to_number(text: String) {
 	n = 0
 
 	loop (i < length) {
-		a = buffer[i] as num - `0`
+		a = buffer[i] as large - `0`
 		n = n * 10 + a
 		++i
 	}
@@ -135,7 +135,7 @@ String {
 		=> String(memory)
 	}
 
-	insert(index: num, character: u8) {
+	insert(index: large, character: u8) {
 		# Calculate the current string length
 		length = length()
 
@@ -165,14 +165,14 @@ String {
 	###
 	summary: Overrides the indexed accessor, returning the character in the specified position
 	###
-	get(i: num) {
+	get(i: large) {
 		=> text[i] as u8
 	}
 
 	###
 	summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position
 	###
-	set(i: num, value: u8) {
+	set(i: large, value: u8) {
 		text[i] = value
 	}
 	
@@ -220,7 +220,7 @@ String {
 		length = length()
 
 		loop (i = 0, i < length, i++) {
-			hash *= text[i] as num
+			hash *= text[i] as large
 		}
 
 		=> hash

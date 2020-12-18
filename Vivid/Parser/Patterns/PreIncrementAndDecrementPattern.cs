@@ -33,7 +33,7 @@ class PreIncrementAndDecrementPattern : Pattern
 		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT || tokens[OPERATOR].To<OperatorToken>().Operator == Operators.DECREMENT;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		if (tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT)
 		{

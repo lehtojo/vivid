@@ -1,32 +1,32 @@
 List<T> {
 
 	private:
-	elements: link
-	capacity: num
-	position: num
+	elements: link<T>
+	capacity: large
+	position: large
 
 	public:
 
-	init(count: num) {
+	init(count: large) {
 		if count == 0 {
 			count = 1
 		}
 
-		elements = allocate(count * T.size)
+		elements = allocate(count * sizeof(T))
 		capacity = count
 		position = 0
 	}
 
 	init() {
-		elements = allocate(T.size)
+		elements = allocate(sizeof(T))
 		capacity = 1
 		position = 0
 	}
 
 	private grow() {
-		memory = allocate(capacity * 2 * T.size)
-		copy(elements, capacity * T.size, memory)
-		#deallocate(elements, capacity * T.size)
+		memory = allocate(capacity * 2 * sizeof(T))
+		copy(elements, capacity * sizeof(T), memory)
+		#deallocate(elements, capacity * sizeof(T))
 
 		elements = memory
 		capacity = capacity * 2
@@ -37,16 +37,16 @@ List<T> {
 			grow()
 		}
 
-		elements[position * T.size] as T = element
+		elements[position] = element
 		position += 1
 	}
 
-	remove(at: num) {
-		offset = (at + 1) * T.size
-		bytes = (position - at - 1) * T.size
+	remove(at: large) {
+		offset = (at + 1) * sizeof(T)
+		bytes = (position - at - 1) * sizeof(T)
 
 		if bytes > 0 {
-			destination = elements + at * T.size
+			destination = elements + at * sizeof(T)
 
 			move(elements, offset, destination, bytes)
 		}
@@ -56,15 +56,15 @@ List<T> {
 
 	take() {
 		position -= 1
-		=> elements[position * T.size] as T
+		=> elements[position]
 	}
 	
-	set(i: num, value: T) {
-		elements[i * T.size] as T = value
+	set(i: large, value: T) {
+		elements[i] = value
 	}
 
-	get(i: num) {
-		=> elements[i * T.size] as T
+	get(i: large) {
+		=> elements[i]
 	}
 	
 	assign_plus(element: T) {

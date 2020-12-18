@@ -1,99 +1,101 @@
-﻿require(result: bool) {
-	if result == 0 {
+﻿REQUIREMENT_EXIT_CODE = 1
+
+require(result: bool) {
+	if result == false {
 		println('Requirement failed')
-		exit(1)
+		exit(REQUIREMENT_EXIT_CODE)
 	}
 }
 
 require(result: bool, message: link) {
-	if result == 0 {
+	if result == false {
 		println(message)
-		exit(1)
+		exit(REQUIREMENT_EXIT_CODE)
 	}
 }
 
 Array<T> {
-	private data: link
-	count: num
+	private data: link<T>
+	count: large
 	
-	init(count: num) {
+	init(count: large) {
 		require(count >= 0, 'Tried to create a standard array but its size was a negative value')
 		
-		this.data = allocate(count * T.size)
+		this.data = allocate(count * sizeof(T))
 		this.count = count
 	}
 	
-	set(i: num, value: T) {
+	set(i: large, value: T) {
 		require(i >= 0 and i < count, 'Index out of bounds')
 		
-		data[i * T.size] as T = value
+		data[i] = value
 	}
 	
-	get(i: num) {
+	get(i: large) {
 		require(i >= 0 and i < count, 'Index out of bounds')
-		
-		=> data[i * T.size] as T
+
+		=> data[i]
 	}
 	
 	deinit() {
-		deallocate(data, count * T.size)
+		deallocate(data, count * sizeof(T))
 	}
 }
 
 Sheet<T> {
 	private data: link
-	width: num
-	height: num
+	width: large
+	height: large
 	
-	init(width: num, height: num) {
+	init(width: large, height: large) {
 		require(width >= 0 and height >= 0, 'Tried to create a sheet but its width or height was a negative value')
 		
-		this.data = allocate(width * height * T.size)
+		this.data = allocate(width * height * sizeof(T))
 		this.width = width
 		this.height = height
 	}
 	
-	set(x: num, y: num, value: T) {
+	set(x: large, y: large, value: T) {
 		require(x >= 0 and x < width and y >= 0 and y <= height, 'Index out of bounds')
-		data[(y * width + x) * T.size] as T = value
+		data[y * width + x] = value
 	}
 	
-	get(x: num, y: num) {
+	get(x: large, y: large) {
 		require(x >= 0 and x < width and y >= 0 and y <= height, 'Index out of bounds')
-		=> data[(y * width + x) * T.size] as T
+		=> data[y * width + x]
 	}
 	
 	deinit() {
-		deallocate(width * height * T.size)
+		deallocate(width * height * sizeof(T))
 	}
 }
 
 Box<T> {
 	private data: link
-	width: num
-	height: num
-	depth: num
+	width: large
+	height: large
+	depth: large
 		
-	init(width: num, height: num, depth: num) {
+	init(width: large, height: large, depth: large) {
 		require(width >= 0 and height >= 0 and depth >= 0, 'Tried to create a box but its width, height or depth was a negative value')
 			
-		this.data = allocate(width * height * depth * T.size)
+		this.data = allocate(width * height * depth)
 		this.width = width
 		this.height = height
 		this.depth = depth
 	}
 		
-	set(x: num, y: num, z: num, value: T) {
+	set(x: large, y: large, z: large, value: T) {
 		require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth, 'Index out of bounds')
-		data[(z * width * height + y * width + x) * T.size] as T = value
+		data[z * width * height + y * width + x] = value
 	}
 		
-	get(x: num, y: num, z: num) {
+	get(x: large, y: large, z: large) {
 		require(x >= 0 and x < width and y >= 0 and y <= height and z >= 0 and z <= depth, 'Index out of bounds')
-		=> data[(z * width * height + y * width + x) * T.size] as T
+		=> data[z * width * height + y * width + x]
 	}
 		
 	deinit() {
-		deallocate(width * height * depth * T.size)
+		deallocate(width * height * depth * sizeof(T))
 	}
 }

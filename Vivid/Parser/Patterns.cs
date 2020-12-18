@@ -87,8 +87,9 @@ public class Patterns
 		Add(new ConstructorPattern());
 		Add(new ElseIfPattern());
 		Add(new ElsePattern());
-		Add(new ExtensionFunction());
+		Add(new ExtensionFunctionPattern());
 		Add(new FunctionPattern());
+		Add(new HasPattern());
 		Add(new IfPattern());
 		Add(new ImportPattern());
 		Add(new InheritancePattern());
@@ -112,6 +113,7 @@ public class Patterns
 		Add(new TemplateFunctionCallPattern());
 		Add(new TemplateFunctionPattern());
 		Add(new TemplateTypePattern());
+		Add(new TypeInspectionPattern());
 		Add(new TypePattern());
 		Add(new UnarySignPattern());
 		Add(new VariableDeclarationPattern());

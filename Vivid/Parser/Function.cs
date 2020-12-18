@@ -6,11 +6,19 @@ using System.Linq;
 public class Parameter
 {
 	public string Name { get; set; }
+	public Position? Position { get; set; }
 	public Type? Type { get; set; }
 
 	public Parameter(string name, Type? type = Types.UNKNOWN)
 	{
 		Name = name;
+		Type = type;
+	}
+
+	public Parameter(string name, Position? position, Type? type)
+	{
+		Name = name;
+		Position = position;
 		Type = type;
 	}
 
@@ -31,8 +39,9 @@ public class Function : Context
 
 	public int Modifiers { get; set; }
 
+	public Variable? Self { get; protected set; }
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
-	public List<Token> Blueprint { get; }
+	public List<Token> Blueprint { get; private set; }
 	public Position? Position { get; set; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
@@ -59,6 +68,21 @@ public class Function : Context
 	}
 
 	/// <summary>
+	/// Creates a unimplemented function
+	/// </summary>
+	/// <param name="context">Context to link into</param>
+	/// <param name="modifiers">Function access modifiers</param>
+	/// <param name="name">Function name</param>
+	public Function(Context context, int modifiers, string name)
+	{
+		Parent = context;
+		Name = name;
+		Prefix = Name.Length.ToString(CultureInfo.InvariantCulture);
+		Modifiers = modifiers;
+		Blueprint = new List<Token>();
+	}
+
+	/// <summary>
 	/// Creates a function with default implementation using the parameters and the return type
 	/// </summary>
 	/// <param name="modifiers">Function access modifiers</param>
@@ -80,6 +104,23 @@ public class Function : Context
 	}
 
 	/// <summary>
+	/// Declares a self pointer inside this function
+	/// </summary>
+	public void DeclareSelfPointer()
+	{
+		var type = IsConstructor ? VariableCategory.LOCAL : VariableCategory.PARAMETER;
+
+		Self = new Variable(
+			this,
+			GetTypeParent(),
+			type,
+			Function.SELF_POINTER_IDENTIFIER,
+			AccessModifier.PUBLIC
+
+		) { IsSelfPointer = true, Position = Position };
+	}
+
+	/// <summary>
 	/// Implements the function with parameter types
 	/// </summary>
 	/// <param name="types">Parameter types</param>
@@ -87,7 +128,7 @@ public class Function : Context
 	public virtual FunctionImplementation Implement(IEnumerable<Type> types)
 	{
 		// Pack parameters with names and types
-		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();
+		var parameters = Parameters.Zip(types, (a, b) => new Parameter(a.Name, a.Position, b)).ToList();
 
 		// Create a function implementation
 		var implementation = new FunctionImplementation(this, parameters, null, Parent);
@@ -162,6 +203,11 @@ public class Function : Context
 		}
 
 		return Parameters.Count != parameters.Count ? null : Implement(types);
+	}
+
+	public override Variable? GetSelfPointer()
+	{
+		return Self;
 	}
 
 	protected override void OnMangle(Mangle mangle)

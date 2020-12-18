@@ -23,4 +23,27 @@ public class Status
 	{
 		return new Status(description, true);
 	}
+
+	public static Status Error(Position? position, string description)
+	{
+		var location = string.Empty;
+
+		if (position != null)
+		{
+			var fullname = Errors.UNKNOWN_FILE;
+
+			if (position.File != null)
+			{
+				fullname = position.File.Fullname;
+			}
+
+			location = $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}";
+		}
+		else
+		{
+			location = Errors.UNKNOWN_LOCATION;
+		}
+
+		return Status.Error($"{location}: {Errors.ERROR_BEGIN}error{Errors.ERROR_END}: {description}");
+	}
 }

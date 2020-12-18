@@ -20,7 +20,7 @@ public class SymmetryStartInstruction : Instruction
 		Variables.Clear();
 
 		var handles = ActiveVariables
-			.Select(i => Unit.GetCurrentVariableHandle(i) ?? References.GetVariable(Unit, i))
+			.Select(i => Unit.GetCurrentVariableHandle(i) ?? References.GetVariable(Unit, i, AccessMode.READ))
 			.ToArray();
 
 		for (var i = 0; i < ActiveVariables.Count; i++)

@@ -29,7 +29,7 @@ public class Lambda : Function
 		}
 
 		// Pack parameters with names and types
-		var parameters = Parameters.Select(p => p.Name).Zip(types, (name, type) => new Parameter(name, type)).ToList();
+		var parameters = Parameters.Zip(types, (a, b) => new Parameter(a.Name, a.Position, b)).ToList();
 
 		// Create a function implementation
 		var implementation = new LambdaImplementation(this, parameters, null, Parent);

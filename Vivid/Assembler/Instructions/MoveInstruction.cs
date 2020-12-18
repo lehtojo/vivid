@@ -134,17 +134,17 @@ public class MoveInstruction : DualParameterInstruction
 				// movsd xmm0, qword [C1] (C1: 10.0)
 
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.MEDIA_REGISTER
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.MEMORY
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEDIA_REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEMORY
+					)
 				);
 			}
 			else
@@ -152,18 +152,18 @@ public class MoveInstruction : DualParameterInstruction
 				instruction = Assembler.IsTargetX86 ? CONVERT_INTEGER_TO_SINGLE_PRECISION : CONVERT_INTEGER_TO_DOUBLE_PRECISION;
 
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.MEDIA_REGISTER
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.REGISTER,
-					  HandleType.MEMORY
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEDIA_REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.REGISTER,
+						HandleType.MEMORY
+					)
 				);
 			}
 		}
@@ -192,17 +192,17 @@ public class MoveInstruction : DualParameterInstruction
 				instruction = MOVE_INSTRUCTION;
 
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.REGISTER
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.CONSTANT
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.CONSTANT
+					)
 				);
 			}
 			else
@@ -210,18 +210,18 @@ public class MoveInstruction : DualParameterInstruction
 				instruction = Assembler.IsTargetX86 ? CONVERT_SINGLE_PRECISION_TO_INTEGER : CONVERT_DOUBLE_PRECISION_TO_INTEGER;
 
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.REGISTER
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.MEDIA_REGISTER,
-					  HandleType.MEMORY
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEDIA_REGISTER,
+						HandleType.MEMORY
+					)
 				);
 			}
 		}
@@ -252,33 +252,33 @@ public class MoveInstruction : DualParameterInstruction
 					Second.Format = Assembler.Format;
 
 					Build(
-					   MOVE_INSTRUCTION,
-					   new InstructionParameter(
-						  First,
-						  flags_first,
-						  HandleType.MEMORY
-					   ),
-					   new InstructionParameter(
-						  Second,
-						  flags_second,
-						  HandleType.CONSTANT
-					   )
+						MOVE_INSTRUCTION,
+						new InstructionParameter(
+							First,
+							flags_first,
+							HandleType.MEMORY
+						),
+						new InstructionParameter(
+							Second,
+							flags_second,
+							HandleType.CONSTANT
+						)
 					);
 				}
 				else
 				{
 					Build(
-					   MOVE_INSTRUCTION,
-					   new InstructionParameter(
-						  First,
-						  flags_first,
-						  HandleType.MEMORY
-					   ),
-					   new InstructionParameter(
-						  Second,
-						  flags_second,
-						  HandleType.REGISTER
-					   )
+						MOVE_INSTRUCTION,
+						new InstructionParameter(
+							First,
+							flags_first,
+							HandleType.MEMORY
+						),
+						new InstructionParameter(
+							Second,
+							flags_second,
+							HandleType.REGISTER
+						)
 					);
 				}
 			}
@@ -303,17 +303,17 @@ public class MoveInstruction : DualParameterInstruction
 					Second.Value.To<ConstantHandle>().Value = BitConverter.DoubleToInt64Bits((long)Second.Value.To<ConstantHandle>().Value);
 
 					Build(
-					   MOVE_INSTRUCTION,
-					   new InstructionParameter(
-						  First,
-						  flags_first,
-						  HandleType.MEMORY
-					   ),
-					   new InstructionParameter(
-						  Second,
-						  flags_second,
-						  HandleType.REGISTER
-					   )
+						MOVE_INSTRUCTION,
+						new InstructionParameter(
+							First,
+							flags_first,
+							HandleType.MEMORY
+						),
+						new InstructionParameter(
+							Second,
+							flags_second,
+							HandleType.REGISTER
+						)
 					);
 				}
 				else
@@ -321,17 +321,17 @@ public class MoveInstruction : DualParameterInstruction
 					instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_MOVE : DOUBLE_PRECISION_MOVE;
 
 					Build(
-					   instruction,
-					   new InstructionParameter(
-						  First,
-						  flags_first,
-						  HandleType.MEMORY
-					   ),
-					   new InstructionParameter(
-						  Second,
-						  flags_second,
-						  HandleType.MEDIA_REGISTER
-					   )
+						instruction,
+						new InstructionParameter(
+							First,
+							flags_first,
+							HandleType.MEMORY
+						),
+						new InstructionParameter(
+							Second,
+							flags_second,
+							HandleType.MEDIA_REGISTER
+						)
 					);
 				}
 			}
@@ -382,34 +382,34 @@ public class MoveInstruction : DualParameterInstruction
 			if (First.IsMemoryAddress)
 			{
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.MEMORY
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.MEDIA_REGISTER
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEMORY
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEDIA_REGISTER
+					)
 				);
 			}
 			else
 			{
 				Build(
-				   instruction,
-				   new InstructionParameter(
-					  First,
-					  flags_first,
-					  HandleType.MEDIA_REGISTER
-				   ),
-				   new InstructionParameter(
-					  Second,
-					  flags_second,
-					  HandleType.MEDIA_REGISTER,
-					  HandleType.MEMORY
-				   )
+					instruction,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.MEDIA_REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEDIA_REGISTER,
+						HandleType.MEMORY
+					)
 				);
 			}
 		}
@@ -467,23 +467,23 @@ public class MoveInstruction : DualParameterInstruction
 		{
 			// Example: xor rax, rax
 			Build(
-			   CLEAR_INSTRUCTION,
-			   Assembler.Size,
-			   new InstructionParameter(
-				  First,
-				  flags_first,
-				  HandleType.REGISTER
-			   ),
-			   new InstructionParameter(
-				  First,
-				  ParameterFlag.NONE,
-				  HandleType.REGISTER
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  flags_second | ParameterFlag.HIDDEN,
-				  HandleType.CONSTANT
-			   )
+				CLEAR_INSTRUCTION,
+				Assembler.Size,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					First,
+					ParameterFlag.NONE,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					flags_second | ParameterFlag.HIDDEN,
+					HandleType.CONSTANT
+				)
 			);
 		}
 		else if (First.IsMemoryAddress)
@@ -492,19 +492,19 @@ public class MoveInstruction : DualParameterInstruction
 			// mov [rsp+8], 314159
 			// mov [rdi], -1
 			Build(
-			   MOVE_INSTRUCTION,
-			   new InstructionParameter(
-				  First,
-				  flags_first,
-				  HandleType.REGISTER,
-				  HandleType.MEMORY
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  flags_second,
-				  HandleType.CONSTANT,
-				  HandleType.REGISTER
-			   )
+				MOVE_INSTRUCTION,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.REGISTER,
+					HandleType.MEMORY
+				),
+				new InstructionParameter(
+					Second,
+					flags_second,
+					HandleType.CONSTANT,
+					HandleType.REGISTER
+				)
 			);
 		}
 		else if (Assembler.IsTargetX64 && Second.Value is DataSectionHandle handle && handle.Address)
@@ -515,35 +515,36 @@ public class MoveInstruction : DualParameterInstruction
 			Second.Value.To<DataSectionHandle>().Address = false;
 
 			Build(
-			   LOAD_ADDRESS_INSTRUCTION,
-			   new InstructionParameter(
-				  First,
-				  flags_first,
-				  HandleType.REGISTER
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  flags_second,
-				  HandleType.MEMORY
-			   )
+				LOAD_ADDRESS_INSTRUCTION,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					flags_second,
+					HandleType.MEMORY
+				)
 			);
 		}
-		else if (Second.IsCalculation)
+		else if (Second.IsExpression)
 		{
 			// Examples:
 			// lea rcx, [rbx+16]
+			// lea rax, [rcx*4+rbx-1]
 			Build(
-			   LOAD_ADDRESS_INSTRUCTION,
-			   new InstructionParameter(
-				  First,
-				  flags_first,
-				  HandleType.REGISTER
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  flags_second,
-				  HandleType.CALCULATION
-			   )
+				LOAD_ADDRESS_INSTRUCTION,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					flags_second,
+					HandleType.EXPRESSION
+				)
 			);
 		}
 		else
@@ -553,20 +554,20 @@ public class MoveInstruction : DualParameterInstruction
 			// mov rbx, rax
 			// mov rcx, [rsp+8]
 			Build(
-			   MOVE_INSTRUCTION,
-			   new InstructionParameter(
-				  First,
-				  flags_first,
-				  HandleType.REGISTER,
-				  HandleType.MEMORY
-			   ),
-			   new InstructionParameter(
-				  Second,
-				  flags_second | ParameterFlag.ALLOW_64_BIT_CONSTANT,
-				  HandleType.CONSTANT,
-				  HandleType.REGISTER,
-				  HandleType.MEMORY
-			   )
+				MOVE_INSTRUCTION,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.REGISTER,
+					HandleType.MEMORY
+				),
+				new InstructionParameter(
+					Second,
+					flags_second | ParameterFlag.ALLOW_64_BIT_CONSTANT,
+					HandleType.CONSTANT,
+					HandleType.REGISTER,
+					HandleType.MEMORY
+				)
 			);
 		}
 	}

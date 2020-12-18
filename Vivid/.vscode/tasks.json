@@ -49,10 +49,13 @@
 			"args": [
 				"${workspaceFolder}/Examples/Sandbox.v",
 				"${workspaceFolder}/libv/Core.v",
-				"--debug",
-				"--asm"
+				"-d",
+				"-a"
 			],
-			"problemMatcher": "$msCompile"
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	]
 }

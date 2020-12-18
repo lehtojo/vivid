@@ -49,7 +49,7 @@ public class InitializeInstruction : Instruction
 
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!, 1));
+			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!));
 			builder.AppendLine(".cfi_startproc");
 		}
 

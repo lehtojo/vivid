@@ -265,22 +265,50 @@ public static class Common
 		
 		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
 		{
-			var parameters = ReadTemplateArguments(context, tokens);
+			var template_arguments = ReadTemplateArguments(context, tokens);
 
-			if (parameters.All(i => !i.IsUnresolved) && context.IsTypeDeclared(name))
+			if (template_arguments.All(i => !i.IsUnresolved) && context.IsTypeDeclared(name))
 			{
 				var type = context.GetType(name)!;
 
-				if (type is TemplateType template)
+				if (type is TemplateType template_type)
 				{
-					return template.GetVariant(parameters);
+					return template_type.GetVariant(template_arguments);
+				}
+				else
+				{
+					type = type.Clone();
+					type.TemplateArguments = template_arguments;
+					return type;
 				}
 			}
 
-			return new UnresolvedType(context, name, parameters);
+			return new UnresolvedType(context, name, template_arguments);
 		}
 
 		return context.IsTypeDeclared(name) ? context.GetType(name) : new UnresolvedType(context, name);
+	}
+
+	/// <summary>
+	/// Reads a type from the next tokens inside the specified queue
+	/// Pattern: $name [<$1, $2, ... $n>]
+	/// </summary>
+	public static List<Token>? ReadTypeArgumentTokens(Queue<Token> tokens)
+	{
+		if (!tokens.Peek().Is(TokenType.IDENTIFIER))
+		{
+			return null;
+		}
+
+		var name = tokens.Dequeue().To<IdentifierToken>();
+		var result = new List<Token> { name };
+		
+		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
+		{
+			result.AddRange(ReadTemplateArgumentTokens(tokens));
+		}
+
+		return result;
 	}
 
 	/// <summary>
@@ -321,6 +349,49 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Reads template parameters from the next tokens inside the specified queue
+	/// Pattern: <$1, $2, ... $n>
+	/// </summary>
+	public static List<Token> ReadTemplateArgumentTokens(Queue<Token> tokens)
+	{
+		var opening = tokens.Dequeue().To<OperatorToken>();
+		var result = new List<Token> { opening };
+
+		if (opening.Operator != Operators.LESS_THAN)
+		{
+			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+		}
+
+		while (true)
+		{
+			var type_argument_tokens = ReadTypeArgumentTokens(tokens);
+
+			if (type_argument_tokens == null)
+			{
+				break;
+			}
+
+			result.AddRange(type_argument_tokens);
+
+			if (tokens.Peek().Is(Operators.COMMA))
+			{
+				result.Add(tokens.Dequeue());
+			}
+		}
+
+		var closing = tokens.Dequeue().To<OperatorToken>();
+
+		if (closing.Operator != Operators.GREATER_THAN)
+		{
+			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+		}
+
+		result.Add(closing);
+
+		return result;
+	}
+
+	/// <summary>
 	/// Reads template parameter names
 	/// Pattern: <A, B, C, ...>
 	/// Returns: { A, B, C, ... }
@@ -350,5 +421,36 @@ public static class Common
 		}
 
 		return template_argument_names;
+	}
+
+	public static bool ConsumeBlock(Context context, PatternState state, List<Token> destination)
+	{
+		var consumed = Parser.Consume(
+			context,
+			state,
+			new List<System.Type>()
+			{
+				typeof(CastPattern),
+				typeof(CommandPattern),
+				typeof(HasPattern),
+				typeof(IsPattern),
+				typeof(LinkPattern),
+				typeof(NotPattern),
+				typeof(OffsetPattern),
+				typeof(OperatorPattern),
+				typeof(PreIncrementAndDecrementPattern),
+				typeof(PostIncrementAndDecrementPattern),
+				typeof(ReturnPattern),
+				typeof(UnarySignPattern)
+			}
+		);
+
+		destination.AddRange(consumed);
+		return consumed.Any();
+	}
+
+	public static bool ConsumeBody(PatternState state)
+	{
+		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
 	}
 }

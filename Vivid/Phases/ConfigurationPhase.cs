@@ -2,9 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 public class ConfigurationPhase : Phase
 {
+	public const string ARGUMENTS = "arguments";
+	public const string FILES = "filenames";
+	public const string LIBRARIES = "libraries";
+
+	public const string OUTPUT_NAME = "output";
+	public const string REBUILD_FLAG = "rebuild";
+
 	public const string EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "v";
 
@@ -45,24 +54,29 @@ public class ConfigurationPhase : Phase
 
 	private Status Configure(Bundle bundle, string option, Queue<string> parameters)
 	{
+		// Replace sequential option characters with one
+		option = Regex.Replace(option, "-{2,}", "-");
+
 		switch (option)
 		{
 			case "-help":
-			case "--help":
 			{
 				var options = new Option[]
 				{
-					new Option() { Command = "-help / --help",                       Description = "Displays this information" },
-					new Option() { Command = "-r <folder> / --recursive <folder>",   Description = "Includes source files (.v) from the given folder and its subfolders"},
-					new Option() { Command = "-d / --debug",                           Description = "Generates the output binary with debug info" },
-					new Option() { Command = "-o <filename> / --output <filename>", Description = "Sets the output filename (Default: v.asm, v.o, z, ...)" },
-					new Option() { Command = "-l <library> / --library <library>",   Description = "Includes a library to the compilation process" },
-					new Option() { Command = "--asm",                                 Description = "Exports the generated assembly to a file" },
-					new Option() { Command = "--shared",                               Description = "Sets the output type to shared library (.dll or .so)" },
-					new Option() { Command = "--static",                               Description = "Sets the output type to static library (.lib or .a)"},
-					new Option() { Command = "-st / --single-thread",                 Description = "Compiles on a single thread instead of multiple threads" },
-					new Option() { Command = "-q / --quiet",                           Description = "Suppresses the console output" },
-					new Option() { Command = "-f <bits> / --format <bits>",         Description = "Specifies the bitmode to use" }
+					new Option() { Command = "-help",											Description = "Displays this information" },
+					new Option() { Command = "-r <folder> / -recursive <folder>",		Description = "Includes source files (.v) from the specified folder and its subfolders"},
+					new Option() { Command = "-d / -debug",									Description = "Generates the output binary with debug information" },
+					new Option() { Command = "-o <filename> / -output <filename>",		Description = "Sets the output filename (Default: v.asm, v.o, v, ...)" },
+					new Option() { Command = "-l <library> / -library <library>",		Description = "Includes a library to the compilation process" },
+					new Option() { Command = "-a / -assembly",								Description = "Exports the generated assembly to a file" },
+					new Option() { Command = "-shared / -dynamic / -dll",					Description = "Sets the output type to shared library (.dll or .so)" },
+					new Option() { Command = "-static",											Description = "Sets the output type to static library (.lib or .a)"},
+					new Option() { Command = "-st / -single-thread",						Description = "Compiles on a single thread instead of multiple threads" },
+					new Option() { Command = "-q / -quiet",									Description = "Suppresses the console output" },
+					new Option() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
+					new Option() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
+					new Option() { Command = "-time",											Description = "Displays information about the length of the compilation" },
+					new Option() { Command = "-O, -O1, -optimize",							Description = "Optimizes the output" }
 				};
 
 				Console.WriteLine
@@ -78,7 +92,7 @@ public class ConfigurationPhase : Phase
 			}
 
 			case "-r":
-			case "--recursive":
+			case "-recursive":
 			{
 				var folder = parameters.Dequeue();
 
@@ -98,7 +112,7 @@ public class ConfigurationPhase : Phase
 			}
 
 			case "-d":
-			case "--debug":
+			case "-debug":
 			{
 				if (IsOptimizationEnabled)
 				{
@@ -111,7 +125,7 @@ public class ConfigurationPhase : Phase
 			}
 
 			case "-o":
-			case "--output":
+			case "-output":
 			{
 				var output = parameters.Dequeue();
 
@@ -125,8 +139,7 @@ public class ConfigurationPhase : Phase
 			}
 
 			case "-l":
-			case "--lib":
-			case "--library":
+			case "-library":
 			{
 				var library = parameters.Dequeue();
 
@@ -139,56 +152,65 @@ public class ConfigurationPhase : Phase
 				return Status.OK;
 			}
 
-			case "--asm":
+			case "-a":
+			case "-assembly":
 			{
 				bundle.PutBool("assembly", true);
 				return Status.OK;
 			}
 
-			case "--shared":
+			case "-dynamic":
+			case "-shared":
+			case "-dll":
 			{
 				bundle.Put("output_type", BinaryType.SHARED_LIBRARY);
 				return Status.OK;
 			}
 
-			case "--static":
+			case "-static":
 			{
 				bundle.Put("output_type", BinaryType.STATIC_LIBRARY);
 				return Status.OK;
 			}
 
 			case "-st":
-			case "--single-thread":
+			case "-single-thread":
 			{
 				bundle.PutBool("multithreaded", false);
 				return Status.OK;
 			}
 
-			case "--time":
+			case "-time":
 			{
 				bundle.PutBool("time", true);
 				return Status.OK;
 			}
 
-			case "-f":
-			case "--format":
+			case "-q":
+			case "-quiet":
 			{
-				if (int.TryParse(parameters.Dequeue(), out int bits) && (bits == 64 || bits == 32))
-				{
-					Lexer.Size = Size.FromBytes(bits / 8);
-					Parser.Size = Size.FromBytes(bits / 8);
-					Assembler.Size = Size.FromBytes(bits / 8);
-					return Status.OK;
-				}
-				else
-				{
-					return Status.Error("Invalid format argument");
-				}
+				Assembler.IsVerboseOutputEnabled = false;
+				return Status.OK;
+			}
+
+			case "-v":
+			case "-verbose":
+			{
+				Assembler.IsVerboseOutputEnabled = true;
+				return Status.OK;
+			}
+
+			case "-f":
+			case "-force":
+			case "-rebuild":
+			{
+				bundle.PutBool(REBUILD_FLAG, true);
+				return Status.OK;
 			}
 
 			case "-O":
 			case "-O1":
-			case "--optimize":
+			case "-optimize":
 			{
 				if (Assembler.IsDebuggingEnabled)
 				{
@@ -207,7 +229,7 @@ public class ConfigurationPhase : Phase
 
 			default:
 			{
-				return Status.Error("Unknown option");
+				return Status.Error($"Unknown option '{option}'");
 			}
 		}
 	}
@@ -219,12 +241,12 @@ public class ConfigurationPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		if (!bundle.Contains("arguments"))
+		if (!bundle.Contains(ARGUMENTS))
 		{
 			return Status.Error("Could not configure settings");
 		}
 
-		var arguments = bundle.Get<string[]>("arguments");
+		var arguments = bundle.Get<string[]>(ARGUMENTS);
 		var parameters = new Queue<string>(arguments);
 
 		while (parameters.Count > 0)
@@ -265,14 +287,14 @@ public class ConfigurationPhase : Phase
 					continue;
 				}
 
-				return Status.Error("Invalid source file/folder '{0}'", element);
+				return Status.Error("Invalid source file or folder '{0}'", element);
 			}
 		}
 
 		Assembler.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
 
-		bundle.Put("input_files", Files.ToArray());
-		bundle.Put("libraries", Libraries.ToArray());
+		bundle.Put(FILES, Files.Distinct().ToArray());
+		bundle.Put(LIBRARIES, Libraries.ToArray());
 
 		if (!bundle.Contains("output"))
 		{

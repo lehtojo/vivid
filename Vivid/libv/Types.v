@@ -1,59 +1,64 @@
 TYPE_DESCRIPTOR_NAME_OFFSET = 0
-TYPE_DESCRIPTOR_SIZE_OFFSET = 8
-TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET = 16
-TYPE_DESCRIPTOR_SUPERTYPES_FIRST = 24
-TYPE_DESCRIPTOR_SUPERTYPE_STRIDE = 8
+TYPE_DESCRIPTOR_SIZE_OFFSET = 1
+TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET = 2
+TYPE_DESCRIPTOR_SUPERTYPES_FIRST = 3
+
+# TYPE_DESCRIPTOR_SUPERTYPE_STRIDE = 8
+# TYPE_DESCRIPTOR_SIZE_OFFSET = 8
+# TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET = 16
+# TYPE_DESCRIPTOR_SUPERTYPES_FIRST = 24
 
 TypeDescriptor {
-    private:
-    address: link
+	private:
+	address: link
 
-    get_supertype_count() {
-        => address[TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET] as normal
-    }
+	get_supertype_count() {
+		=> address[TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET] as normal
+	}
 
-    public:
+	public:
 
-    init(address: link) {
-        this.address = (address[0] as link)[0] as link
-    }
+	init(address: link) {
+		this.address = (address as link<link<link<large>>>)[0][0]
+	}
 
-    equals(other: TypeDescriptor) => equals(other.address)
+	equals(other: TypeDescriptor) => equals(other.address)
 
-    equals(other: link) {
-        if other == address {
-            => true
-        }
+	equals(other: link) {
+		if other == address {
+			=> true
+		}
 
-        supertypes = supertypes()
-        count = supertypes.count
+		supertypes = supertypes()
+		count = supertypes.count
 
-        loop (i = 0, i < count, i++) {
-            if supertypes[i].address == other {
-                => true
-            }
-        }
+		loop (i = 0, i < count, i++) {
+			if supertypes[i].address == other {
+				=> true
+			}
+		}
 
-        => false
-    }
+		=> false
+	}
 
-    name() => String(address[TYPE_DESCRIPTOR_NAME_OFFSET] as link)
+	name() => String(address[TYPE_DESCRIPTOR_NAME_OFFSET] as link)
 
-    size() => address[TYPE_DESCRIPTOR_SIZE_OFFSET] as normal
+	size() => address[TYPE_DESCRIPTOR_SIZE_OFFSET] as normal
 
-    supertypes() {
-        count = get_supertype_count()
-        supertypes = Array<TypeDescriptor>(count)
+	supertypes() {
+		count = get_supertype_count()
+		supertypes = Array<TypeDescriptor>(count)
 
-        loop (i = 0, i < count, i++) {
-            supertype = address[TYPE_DESCRIPTOR_SUPERTYPES_FIRST + i * TYPE_DESCRIPTOR_SUPERTYPE_STRIDE] as link
-            supertypes[i] = TypeDescriptor(supertype)
-        }
+		loop (i = 0, i < count, i++) {
+			supertype = address[TYPE_DESCRIPTOR_SUPERTYPES_FIRST + i] as link
+			supertypes[i] = TypeDescriptor(supertype)
+		}
 
-        => supertypes
-    }
+		=> supertypes
+	}
 }
 
 typeof(object) => TypeDescriptor(object as link)
-sizeof(object) => TypeDescriptor(object as link).size()
-nameof(object) => TypeDescriptor(object as link).name()
+
+internal_sizeof(object) => TypeDescriptor(object as link).size()
+internal_nameof(object) => TypeDescriptor(object as link).name()

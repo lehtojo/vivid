@@ -24,13 +24,12 @@ public class TypePattern : Pattern
 		return tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens[BODY].To<ContentToken>();
 
-		var type = new Type(context, name.Value, AccessModifier.PUBLIC);
-		type.Position = name.Position;
+		var type = new Type(context, name.Value, AccessModifier.PUBLIC, name.Position);
 
 		return new TypeNode(type, body.Tokens, name.Position);
 	}

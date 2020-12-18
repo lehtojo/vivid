@@ -12,7 +12,7 @@ public class LoadOnlyIfConstantInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var handle = new GetVariableInstruction(Unit, Variable).Execute();
+		var handle = new GetVariableInstruction(Unit, Variable, AccessMode.READ).Execute();
 
 		if (handle == null)
 		{

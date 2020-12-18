@@ -4,18 +4,17 @@ using System.Linq;
 public class UnresolvedType : Type, IResolvable
 {
 	private new string Name { get; }
-	private Type[] Arguments { get; }
 
 	public UnresolvedType(Context context, string name) : base(context)
 	{
 		Name = name;
-		Arguments = Array.Empty<Type>();
+		TemplateArguments = Array.Empty<Type>();
 	}
 
 	public UnresolvedType(Context context, string name, Type[] arguments) : base(context)
 	{
 		Name = name;
-		Arguments = arguments;
+		TemplateArguments = arguments;
 	}
 
 	public override bool IsResolved()
@@ -26,9 +25,9 @@ public class UnresolvedType : Type, IResolvable
 	public Node? Resolve(Context context)
 	{
 		// Resolve potential template parameters
-		for (var i = 0; i < Arguments.Length; i++)
+		for (var i = 0; i < TemplateArguments.Length; i++)
 		{
-			var parameter = Arguments[i];
+			var parameter = TemplateArguments[i];
 			var replacement = Resolver.Resolve(context, parameter);
 
 			if (replacement == null)
@@ -36,11 +35,11 @@ public class UnresolvedType : Type, IResolvable
 				continue;
 			}
 
-			Arguments[i] = replacement;
+			TemplateArguments[i] = replacement;
 		}
 
 		// If any of the parameters is unresolved, then this type can not be resolved yet
-		if (Arguments.Any(i => i.IsUnresolved))
+		if (TemplateArguments.Any(i => i.IsUnresolved))
 		{
 			return null;
 		}
@@ -53,17 +52,21 @@ public class UnresolvedType : Type, IResolvable
 
 		var type = context.GetType(Name)!;
 
-		if (!Arguments.Any())
+		if (!TemplateArguments.Any())
 		{
 			return new TypeNode(type);
 		}
 
-		if (type is TemplateType template)
+		if (type is TemplateType template_type)
 		{
-			return new TypeNode(template.GetVariant(Arguments));
+			return new TypeNode(template_type.GetVariant(TemplateArguments));
 		}
-
-		return null;
+		else
+		{
+			type = type.Clone();
+			type.TemplateArguments = TemplateArguments;
+			return new TypeNode(type);
+		}
 	}
 
 	public Type? TryResolveType(Context context)
@@ -73,16 +76,16 @@ public class UnresolvedType : Type, IResolvable
 
 	public Status GetStatus()
 	{
-		var template_parameters = string.Join(", ", Arguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
+		var template_parameters = string.Join(", ", TemplateArguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
 
 		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
 
-		return Status.Error($"Could not resolve type '{descriptor}'");
+		return Status.Error(Position, $"Could not resolve type '{descriptor}'");
 	}
 
 	public override string ToString()
 	{
-		var template_parameters = string.Join(", ", Arguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
+		var template_parameters = string.Join(", ", TemplateArguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
 		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
 
 		return descriptor;

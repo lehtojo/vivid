@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System;
 
-class AssignPattern : Pattern
+public class AssignPattern : Pattern
 {
 	public const int PRIORITY = 18;
 
@@ -26,7 +26,7 @@ class AssignPattern : Pattern
 		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.ASSIGN;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var destination = tokens[DESTINATION].To<IdentifierToken>();
 

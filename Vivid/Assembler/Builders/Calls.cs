@@ -34,7 +34,7 @@ public static class Calls
 			var local_self_type = unit.Function.GetTypeParent()!;
 			var function_self_type = node.Function.GetTypeParent()!;
 
-			self = References.GetVariable(unit, unit.Self!);
+			self = References.GetVariable(unit, unit.Self!, AccessMode.READ);
 
 			// If the function is not defined inside the type of the self pointer, it means it must have been defined in its supertypes, therefore casting is needed
 			if (local_self_type != function_self_type)
@@ -81,7 +81,7 @@ public static class Calls
 			// Retrieve the this pointer if it's required and it's not loaded
 			if (self_pointer == null && is_self_pointer_required)
 			{
-				self_pointer = new GetVariableInstruction(unit, unit.Self!).Execute();
+				self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
 			}
 
 			var register = (Register?)null;
@@ -169,7 +169,7 @@ public static class Calls
 			// Retrieve the this pointer if it's required and it's not loaded
 			if (self_pointer == null && is_self_pointer_required)
 			{
-				self_pointer = new GetVariableInstruction(unit, unit.Self!).Execute();
+				self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
 			}
 
 			if (self_pointer != null)
@@ -259,5 +259,56 @@ public static class Calls
 		StackMemoryInstruction.Shrink(unit, stack_parameter_count * Assembler.Size.Bytes, false).Execute();
 
 		return result;
+	}
+
+	public static void MoveParametersToStack(Unit unit)
+	{
+		if (unit.Function.Convention != CallingConvention.X64)
+		{
+			return;
+		}
+
+		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
+
+		var register = (Register?)null;
+
+		if ((unit.Function.IsMember || unit.Function.IsLambda) && !unit.Function.IsConstructor)
+		{
+			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
+
+			register = standard_parameter_registers.Pop();
+
+			if (register != null)
+			{
+				var destination = new Result(References.CreateVariableHandle(unit, unit.Self!), unit.Self!.Type!.Format);
+				var source = new Result(new RegisterHandle(register), unit.Self!.GetRegisterFormat());
+
+				unit.Append(new MoveInstruction(unit, destination, source)
+				{
+					Type = MoveType.RELOCATE
+				});
+			}
+			else
+			{
+				throw new ApplicationException("Self pointer should not be in stack (x64 calling convention)");
+			}
+		}
+
+		foreach (var parameter in unit.Function.Parameters)
+		{
+			register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+			if (register != null)
+			{
+				var destination = new Result(References.CreateVariableHandle(unit, parameter), parameter.Type!.Format);
+				var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
+
+				unit.Append(new MoveInstruction(unit, destination, source)
+				{
+					Type = MoveType.RELOCATE
+				});
+			}
+		}
 	}
 }

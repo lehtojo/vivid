@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using System;
 
 public class Offset
@@ -21,18 +22,25 @@ public class TableLabel
 	public bool IsSecrel { get; set; } = false;
 	public bool Declare { get; set; }
 
-	public TableLabel(string name, Size size, bool declare)
+	public TableLabel(string name, Size size, bool declare = false)
 	{
 		Name = name;
 		Size = size;
+		Declare = declare;
+	}
+
+	public TableLabel(string name, bool declare = false)
+	{
+		Name = name;
+		Size = Size.QWORD;
 		Declare = declare;
 	}
 }
 
 public class Debug
 {
-	public const string COMPILATION_UNIT_START = "main";
-	public const string COMPILATION_UNIT_END = "end";
+	public const string FORMAT_COMPILATION_UNIT_START = "debug_file_{0}_start";
+	public const string FORMAT_COMPILATION_UNIT_END = "debug_file_{0}_end";
 
 	public const string DEBUG_ABBREVATION_TABLE = ".debug_abbrev";
 	public const string DEBUG_INFO_TABLE = ".debug_info";
@@ -94,6 +102,7 @@ public class Debug
 	public const byte DWARF_TYPE = 73;
 	public const byte DWARF_EXPORTED = 63;
 	public const byte DWARF_VARIABLE = 52;
+	public const byte DWARF_PARAMETER = 5;
 	public const byte DWARF_LOCATION = 2;
 	public const byte DWARF_ENCODING = 62;
 	public const byte DWARF_BYTE_SIZE = 11;
@@ -121,71 +130,44 @@ public class Debug
 
 	public byte Index { get; private set; } = 1;
 
+	public byte FileAbbrevation { get; private set; } = 0;
 	public byte ObjectTypeAbbrevation { get; private set; } = 0;
 	public byte BaseTypeAbbrevation { get; private set; } = 0;
 	public byte PointerTypeAbbrevation { get; private set; } = 0;
 	public byte MemberVariableAbbrevation { get; private set; } = 0;
-	public byte VariableAbbrevation { get; private set; } = 0;
+	public byte ParameterVariableAbbrevation { get; private set; } = 0;
+	public byte LocalVariableAbbrevation { get; private set; } = 0;
 
 	public static object GetOffset(TableLabel from, TableLabel to)
 	{
 		return new Offset(from, to );
 	}
 
-	public void AppendFile(string file, string folder, TableLabel start, TableLabel end)
+	public void BeginFile(File file)
 	{
-		Entry.Add(Index); // DW_TAG_compile_unit
+		Entry.Add(FileAbbrevation); // DW_TAG_compile_unit
 		Entry.Add(DWARF_PRODUCER_TEXT); // DW_AT_producer
 		Entry.Add(DWARF_LANGUANGE_IDENTIFIER); // DW_AT_language
 
-		Entry.Add(file); // DW_AT_name
+		var fullname = file.Fullname;
+
+		if (fullname.StartsWith(Environment.CurrentDirectory))
+		{
+			fullname = fullname.Remove(0, Environment.CurrentDirectory.Length);
+			fullname = fullname.Insert(0, ".");
+		}
+
+		Entry.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
 		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSecrel = true }); // DW_AT_stmt_list
-
-		Entry.Add(folder); // DW_AT_comp_dir
-		Entry.Add(start); // DW_AT_low_pc
-
-		Entry.Add(GetOffset(start, end)); /// DW_AT_high_pc
-
-		Abbrevation.Add(Index++); // Define the current abbrevation code
-
-		Abbrevation.Add(DWARF_TAG_COMPILE_UNIT); // This is a compile unit and it has children
-		Abbrevation.Add(DWARF_HAS_CHILDREN);
-
-		Abbrevation.Add(DWARF_PRODUCER); // The producer is identified with a string pointer
-		Abbrevation.Add(DWARF_STRING);
-
-		Abbrevation.Add(DWARF_LANGUANGE); // The languange is identified with a short integer
-		Abbrevation.Add(DWARF_DATA_16);
-
-		Abbrevation.Add(DWARF_NAME); // The name of the file is added with a string pointer
-		Abbrevation.Add(DWARF_STRING);
 		
-		Abbrevation.Add(DWARF_LINE_NUMBER_INFORMATION); // The line number information is added with a section offset
-		Abbrevation.Add(DWARF_DATA_SECTION_OFFSET);
+		Entry.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
-		Abbrevation.Add(DWARF_COMPILATION_FOLDER); // The compilation folder is added with a string pointer
-		Abbrevation.Add(DWARF_STRING);
+		var start = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_START, file.Index));
+		var end = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_END, file.Index));
 
-		Abbrevation.Add(DWARF_LOW_PC);
-		Abbrevation.Add(DWARF_ADDRESS);
-
-		Abbrevation.Add(DWARF_HIGH_PC);
-		Abbrevation.Add(DWARF_DATA_32);
-
-		Abbrevation.Add(DWARF_END);
-		Abbrevation.Add(DWARF_END);
-
-		AppendObjectTypeAbbrevation();
-		AppendBaseTypeAbbrevation();
-		AppendPointerTypeAbbrevation();
-		AppendMemberVariableAbbrevation();
-		AppendVariableAbbrevation();
-	}
-
-	public static TableLabel GetStart(FunctionImplementation implementation)
-	{
-		return new TableLabel(implementation.GetFullname(), Size.QWORD, false);
+		Entry.Add(start); // DW_AT_low_pc
+		Entry.Add(GetOffset(start, end)); /// DW_AT_high_pc
 	}
 
 	public static TableLabel GetEnd(FunctionImplementation implementation)
@@ -195,7 +177,7 @@ public class Debug
 
 	public static int GetFile(FunctionImplementation implementation)
 	{
-		return 1;
+		return implementation.Metadata.Position?.File?.Index ?? throw new ApplicationException($"Declaration file of function '{implementation.GetHeader()}' missing");
 	}
 
 	public static int GetLine(FunctionImplementation implementation)
@@ -205,7 +187,7 @@ public class Debug
 
 	public static int GetFile(Type type)
 	{
-		return 1;
+		return type.Position?.File?.Index ?? throw new ApplicationException($"Declaration file of type '{type}' missing");
 	}
 
 	public static int GetLine(Type type)
@@ -215,7 +197,7 @@ public class Debug
 
 	public static int GetFile(Variable variable)
 	{
-		return 1;
+		return variable.Position?.File?.Index ?? throw new ApplicationException($"Declaration file of variable '{variable.Name}' missing");
 	}
 
 	public static int GetLine(Variable variable)
@@ -297,15 +279,61 @@ public class Debug
 			Entry.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!))); // DW_AT_type
 		}
 		
-		foreach (var variable in implementation.Variables.Where(i => i.Value.Category == VariableCategory.LOCAL))
+		foreach (var local in implementation.Locals)
 		{
-			AppendVariable(variable.Value, file);
+			AppendLocalVariable(local, file);
+		}
+
+		var self = implementation.GetSelfPointer();
+
+		if (self != null)
+		{
+			AppendParameterVariable(self, file);
+		}
+
+		foreach (var parameter in implementation.Parameters)
+		{
+			AppendParameterVariable(parameter, file);
 		}
 
 		if (has_children) 
 		{
 			Entry.Add(DWARF_END); // End Of Children Mark
 		}
+	}
+
+	public void AppendFileAbbrevation()
+	{
+		Abbrevation.Add(Index); // Define the current abbrevation code
+
+		Abbrevation.Add(DWARF_TAG_COMPILE_UNIT); // This is a compile unit and it has children
+		Abbrevation.Add(DWARF_HAS_CHILDREN);
+
+		Abbrevation.Add(DWARF_PRODUCER); // The producer is identified with a string pointer
+		Abbrevation.Add(DWARF_STRING);
+
+		Abbrevation.Add(DWARF_LANGUANGE); // The languange is identified with a short integer
+		Abbrevation.Add(DWARF_DATA_16);
+
+		Abbrevation.Add(DWARF_NAME); // The name of the file is added with a string pointer
+		Abbrevation.Add(DWARF_STRING);
+		
+		Abbrevation.Add(DWARF_LINE_NUMBER_INFORMATION); // The line number information is added with a section offset
+		Abbrevation.Add(DWARF_DATA_SECTION_OFFSET);
+
+		Abbrevation.Add(DWARF_COMPILATION_FOLDER); // The compilation folder is added with a string pointer
+		Abbrevation.Add(DWARF_STRING);
+
+		Abbrevation.Add(DWARF_LOW_PC);
+		Abbrevation.Add(DWARF_ADDRESS);
+
+		Abbrevation.Add(DWARF_HIGH_PC);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		FileAbbrevation = Index++;
 	}
 
 	public void AppendObjectTypeAbbrevation()
@@ -401,7 +429,7 @@ public class Debug
 		MemberVariableAbbrevation = Index++;
 	}
 
-	public void AppendVariableAbbrevation()
+	public void AppendLocalVariableAbbrevation()
 	{
 		Abbrevation.Add(Index);
 		Abbrevation.Add(DWARF_VARIABLE);
@@ -425,7 +453,34 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		VariableAbbrevation = Index++;
+		LocalVariableAbbrevation = Index++;
+	}
+
+	public void AppendParameterVariableAbbrevation()
+	{
+		Abbrevation.Add(Index);
+		Abbrevation.Add(DWARF_PARAMETER);
+		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
+
+		Abbrevation.Add(DWARF_LOCATION);
+		Abbrevation.Add(DWARF_EXPRESSION);
+
+		Abbrevation.Add(DWARF_NAME);
+		Abbrevation.Add(DWARF_STRING);
+
+		Abbrevation.Add(DWARF_DECLARATION_FILE);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_DECLARATION_LINE);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_TYPE);
+		Abbrevation.Add(DWARF_REFERENCE_32);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		ParameterVariableAbbrevation = Index++;
 	}
 
 	public static bool IsPointerType(Type type)
@@ -482,11 +537,6 @@ public class Debug
 
 	public void AppendType(Type type)
 	{
-		if (type == Types.UNIT)
-		{
-			return;
-		}
-
 		Entry.Add(new TableLabel(GetTypeLabelName(type), Size.QWORD, true));
 
 		var encoding = (byte)0;
@@ -511,6 +561,10 @@ public class Debug
 		{
 			encoding = DWARF_ENCODING_BOOL;
 		}
+		else if (type == Types.UNIT)
+		{
+			encoding = DWARF_ENCODING_SIGNED;
+		}
 		else if (type is Number number)
 		{
 			encoding = number.IsUnsigned ? DWARF_ENCODING_UNSIGNED : DWARF_ENCODING_SIGNED;
@@ -528,14 +582,14 @@ public class Debug
 		Entry.Add(type.ReferenceSize);
 	}
 
-	public void AppendVariable(Variable variable, int file)
+	public void AppendLocalVariable(Variable variable, int file)
 	{
 		if (variable.IsGenerated)
 		{
 			return;
 		}
 
-		Entry.Add(VariableAbbrevation); // DW_TAG_variable
+		Entry.Add(LocalVariableAbbrevation); // DW_TAG_variable
 
 		var offset = (byte)(DWARF_OFFSET_ZERO + variable.LocalAlignment! + variable.Type!.ReferenceSize);
 		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, offset); // DW_AT_location
@@ -548,7 +602,28 @@ public class Debug
 		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!)))); // DW_AT_type
 	}
 
-	public Debug(string file, string folder)
+	public void AppendParameterVariable(Variable variable, int file)
+	{
+		if (variable.IsGenerated)
+		{
+			return;
+		}
+
+		Entry.Add(ParameterVariableAbbrevation); // DW_TAG_variable
+
+		// Substract one pointer size from the alignment (return address size)
+		var offset = (byte)(variable.LocalAlignment! + Assembler.Size.Bytes);
+		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, offset); // DW_AT_location
+
+		Entry.Add(variable.Name); // DW_AT_name
+
+		Entry.Add(file); // DW_AT_decl_file
+		Entry.Add(GetLine(variable)); // DW_AT_decl_line
+
+		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!)))); // DW_AT_type
+	}
+
+	public Debug()
 	{
 		Abbrevation = new Table(DEBUG_ABBREVATION_TABLE) { IsSection = true };
 		Entry = new Table(DEBUG_INFO_TABLE) { IsSection = true };
@@ -569,19 +644,33 @@ public class Debug
 
 		Lines.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.QWORD, true));
 
-		AppendFile(file, folder, new TableLabel(COMPILATION_UNIT_START, Size.QWORD, false), new TableLabel(COMPILATION_UNIT_END, Size.QWORD, false));
+		AppendFileAbbrevation();
+		AppendObjectTypeAbbrevation();
+		AppendBaseTypeAbbrevation();
+		AppendPointerTypeAbbrevation();
+		AppendMemberVariableAbbrevation();
+		AppendParameterVariableAbbrevation();
+		AppendLocalVariableAbbrevation();
 	}
 
-	public void Export(StringBuilder builder)
+	public void EndFile()
+	{
+		Entry.Add(DWARF_END);
+	}
+
+	public string Export()
 	{
 		Entry.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
 		Entry.Add(End);
 
+		var builder = new StringBuilder();
 		Assembler.AppendTable(builder, Abbrevation);
 		Assembler.AppendTable(builder, Entry);
 		Assembler.AppendTable(builder, Strings);
 		Assembler.AppendTable(builder, Lines);
+
+		return builder.ToString();
 	}
 }

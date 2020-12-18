@@ -10,7 +10,7 @@ public class TemplateFunction : Function
 	public List<Type> TemplateArgumentTypes { get; }
 	private Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
 
-	public TemplateFunction(Context context, int modifiers, string name, List<Token> blueprint, List<string> template_argument_names) : base(context, modifiers, name, blueprint)
+	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names) : base(context, modifiers, name)
 	{
 		TemplateArgumentNames = template_argument_names;
 		TemplateArgumentTypes = new List<Type>();

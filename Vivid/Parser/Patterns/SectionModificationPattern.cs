@@ -30,12 +30,11 @@ public class SectionModificationPattern : Pattern
 			return true;
 		}
 
-		return target.Is(NodeType.OPERATOR) &&
-					target.To<OperatorNode>().Operator == Operators.ASSIGN &&
-					target.To<OperatorNode>().Left is VariableNode x && x.Variable.Category == VariableCategory.MEMBER;
+		return target.Is(NodeType.OPERATOR) && target.Is(Operators.ASSIGN) && 
+			target.To<OperatorNode>().Left is VariableNode x && x.Variable.Category == VariableCategory.MEMBER;
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var section = tokens[SECTION].To<DynamicToken>().Node.To<SectionNode>();
 

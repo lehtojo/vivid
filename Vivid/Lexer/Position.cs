@@ -1,5 +1,6 @@
 ﻿public class Position
 {
+	public File? File { get; set; }
 	public int Line { get; private set; }
 	public int Character { get; private set; }
 	public int Local { get; private set; }

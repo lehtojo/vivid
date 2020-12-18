@@ -1,3 +1,5 @@
+using System;
+
 public static class Builders
 {
 	public static Result Build(Unit unit, Node node)
@@ -26,7 +28,12 @@ public static class Builders
 
 			case NodeType.INCREMENT:
 			{
-				return Arithmetic.Build(unit, (IncrementNode)node);
+				throw new ApplicationException("Increment operations should not be passed to the back end");
+			}
+
+			case NodeType.DECREMENT:
+			{
+				throw new ApplicationException("Decrement operations should not be passed to the back end");
 			}
 
 			case NodeType.DECLARE:
@@ -35,11 +42,6 @@ public static class Builders
 				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
 
 				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
-			}
-
-			case NodeType.DECREMENT:
-			{
-				return Arithmetic.Build(unit, (DecrementNode)node);
 			}
 
 			case NodeType.OPERATOR:

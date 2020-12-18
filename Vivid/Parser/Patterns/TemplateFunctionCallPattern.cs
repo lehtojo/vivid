@@ -20,7 +20,7 @@ public class TemplateFunctionCallPattern : Pattern
 		return Common.ConsumeTemplateFunctionCall(state);
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
 		var descriptor = new FunctionToken(name, tokens.Last()?.To<ContentToken>() ?? throw new ApplicationException("Tried to create a template function call but the syntax was invalid"));

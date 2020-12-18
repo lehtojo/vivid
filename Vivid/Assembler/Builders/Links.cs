@@ -30,7 +30,7 @@ public static class Links
 		return node.Member switch
 		{
 			VariableNode member when member.Variable.Category == VariableCategory.GLOBAL => References.GetVariable(unit,
-				member.Variable),
+				member.Variable, mode),
 
 			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, References.Get(unit, node.Object), member.Variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned"), mode).Execute(),
 

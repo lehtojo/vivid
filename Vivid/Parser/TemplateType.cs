@@ -22,25 +22,12 @@ public class TemplateType : Type
 	private const int NAME = 0;
 
 	public List<string> TemplateArgumentNames { get; private set; }
-	public int TemplateArgumentCount => TemplateArgumentNames.Count;
+	public List<Token> Inherited { get; private set; } = new List<Token>();
 
 	private List<Token> Blueprint { get; set; }
 	private Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
-
-	public static TemplateType? TryGetTemplateType(Context environment, string name, Node parameters)
-	{
-		if (!environment.IsTemplateTypeDeclared(name))
-		{
-			return null;
-		}
-
-		var template_type = (TemplateType)environment.GetType(name)!;
-
-		// Check if the template type has the same amount of arguments as this function has parameters
-		return template_type.TemplateArgumentCount == parameters.Count() ? template_type : null;
-	}
-
-	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names) : base(context, name, modifiers)
+	
+	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names, Position position) : base(context, name, modifiers, position)
 	{
 		Blueprint = blueprint;
 		TemplateArgumentNames = template_argument_names;
@@ -110,13 +97,17 @@ public class TemplateType : Type
 		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name));
 
 		// Copy the blueprint and insert the specified arguments to their places
+		var tokens = Inherited.Select(t => (Token)t.Clone()).ToList();
+
 		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
 		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name)) + '>';
 
-		InsertArguments(blueprint, arguments);
+		tokens.AddRange(blueprint);
+
+		InsertArguments(tokens, arguments);
 
 		// Parse the new variant
-		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template type did not have parent context"), blueprint).First;
+		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template type did not have parent context"), tokens).First;
 
 		if (result == null || !result.Is(NodeType.TYPE))
 		{

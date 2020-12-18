@@ -8,8 +8,11 @@ public class FunctionList
 
 	public void Add(Function function)
 	{
+		// Conflicts can only happen with functions which are similar kind (either a template function or a standard function) and have the same amount of parameters
+		var is_template_function = function is TemplateFunction;
+
 		var count = function.Parameters.Count;
-		var conflicts = Overloads.Where(i => i.Parameters.Count == count);
+		var conflicts = Overloads.Where(i => i.Parameters.Count == count && i is TemplateFunction == is_template_function);
 
 		foreach (var conflict in conflicts)
 		{
@@ -81,7 +84,7 @@ public class FunctionList
 		}
 		else
 		{
-			var candidates = Overloads.FindAll(o => o.Passes(parameters));
+			var candidates = Overloads.FindAll(i => !(i is TemplateFunction) && i.Passes(parameters));
 
 			if (candidates.Count <= 1)
 			{
@@ -112,7 +115,7 @@ public class FunctionList
 		}
 		else
 		{
-			var candidates = Overloads.FindAll(o => o.Passes(parameters));
+			var candidates = Overloads.FindAll(i => !(i is TemplateFunction) && i.Passes(parameters));
 
 			if (candidates.Count <= 1)
 			{

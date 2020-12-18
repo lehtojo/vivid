@@ -3,16 +3,6 @@ using System.Linq;
 
 public static class Arithmetic
 {
-	public static Result Build(Unit unit, IncrementNode node)
-	{
-		return BuildIncrementOperation(unit, node);
-	}
-
-	public static Result Build(Unit unit, DecrementNode node)
-	{
-		return BuildDecrementOperation(unit, node);
-	}
-
 	public static Result BuildShiftLeft(Unit unit, OperatorNode shift)
 	{
 		var left = References.Get(unit, shift.Left, AccessMode.READ);
@@ -147,56 +137,12 @@ public static class Arithmetic
 
 		var result = new AdditionInstruction(unit, left, right, number_type, assigns).Execute();
 
-		if (is_destination_complex && assigns)
+		if ((is_destination_complex || Assembler.IsDebuggingEnabled) && assigns)
 		{
 			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
 		}
 
 		return result;
-	}
-
-	private static Result BuildIncrementOperation(Unit unit, IncrementNode increment)
-	{
-		var left = References.Get(unit, increment.Object, AccessMode.WRITE);
-		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L, increment.Position));
-
-		var number_type = increment.Object.GetType()!.To<Number>().Type;
-
-		if (increment.Post)
-		{
-			// Load the variable to be incremented to a register and then increment the source location
-			var result = new DuplicateInstruction(unit, left).Execute();
-			unit.Append(new AdditionInstruction(unit, left, right, number_type, true));
-
-			return result;
-		}
-
-		// Edit the object first and then copy it since there are situations where not copying would cause an error (for example: ++i + i++)
-		unit.Append(new AdditionInstruction(unit, left, right, number_type, true));
-
-		return new DuplicateInstruction(unit, left).Execute();
-	}
-
-	private static Result BuildDecrementOperation(Unit unit, DecrementNode decrement)
-	{
-		var left = References.Get(unit, decrement.Object, AccessMode.WRITE);
-		var right = References.Get(unit, new NumberNode(Assembler.Size.ToFormat(false), 1L, decrement.Position));
-
-		var number_type = decrement.Object.GetType()!.To<Number>().Type;
-
-		if (decrement.Post)
-		{
-			// Load the variable to be incremented to a register and then increment the source location
-			var result = new DuplicateInstruction(unit, left).Execute();
-			unit.Append(new SubtractionInstruction(unit, left, right, number_type, true));
-
-			return result;
-		}
-
-		// Edit the object first and then copy it since there are situations where not copying would cause an error (for example: --i + i--)
-		unit.Append(new SubtractionInstruction(unit, left, right, number_type, true));
-
-		return new DuplicateInstruction(unit, left).Execute();
 	}
 
 	private static Result BuildSubtractionOperator(Unit unit, OperatorNode operation, bool assigns = false)
@@ -211,7 +157,7 @@ public static class Arithmetic
 
 		var result = new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
 
-		if (is_destination_complex && assigns)
+		if ((is_destination_complex || Assembler.IsDebuggingEnabled) && assigns)
 		{
 			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
 		}
@@ -239,7 +185,7 @@ public static class Arithmetic
 
 		var result = new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
 
-		if (is_destination_complex && assigns)
+		if ((is_destination_complex || Assembler.IsDebuggingEnabled) && assigns)
 		{
 			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
 		}
@@ -264,7 +210,7 @@ public static class Arithmetic
 
 		var result = new DivisionInstruction(unit, modulus, left, right, number_type, assigns, is_unsigned).Execute();
 
-		if (is_destination_complex && assigns)
+		if ((is_destination_complex || Assembler.IsDebuggingEnabled) && assigns)
 		{
 			return new MoveInstruction(unit, References.Get(unit, operation.Left, AccessMode.WRITE), result).Execute();
 		}

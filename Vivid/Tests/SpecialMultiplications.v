@@ -1,4 +1,4 @@
-export special_multiplications(a: num, b: num) {
+export special_multiplications(a: large, b: large) {
    => 2 * a + b * 17 + a * 9 + b / 4
 }
 

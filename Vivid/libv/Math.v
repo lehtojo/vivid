@@ -1,6 +1,6 @@
 import pow(a: decimal, b: decimal): decimal
 
-import sqrt(a: num): decimal
+import sqrt(a: large): decimal
 import sqrt(a: decimal): decimal
 
 import sin(a: decimal): decimal
@@ -17,8 +17,8 @@ max(a, b) {
     else => b
 }
 
-ceil(a: decimal) => (a + 0.5) as num
-floor(a: decimal) => a as num
+ceil(a: decimal) => (a + 0.5) as large
+floor(a: decimal) => a as large
 
 sign(a: decimal) {
     if a > 0 => 1
@@ -26,15 +26,15 @@ sign(a: decimal) {
     else => 0 
 }
 
-cbrt(a: num) => pow(a, 1.0 / 3.0)
+cbrt(a: large) => pow(a, 1.0 / 3.0)
 cbrt(a: decimal) => pow(a, 1.0 / 3.0)
 
 Random {
     static:
-    a: num
-    b: num
-    c: num
-    n: num
+    a: large
+    b: large
+    c: large
+    n: large
 }
 
 ###
@@ -57,7 +57,7 @@ random() {
     => x
 }
 
-set_random_seed(seed: num) {
+set_random_seed(seed: large) {
     Random.a = seed
     Random.b = seed
     Random.c = seed

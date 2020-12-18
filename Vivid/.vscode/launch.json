@@ -1,7 +1,22 @@
 {
 	"version": "0.2.0",
 	"configurations": [
-
+		{
+			"type": "by-gdb",
+			"request": "launch",
+			"name": "Launch(gdb)",
+			"program": "${workspaceRoot}/v.exe",
+			"cwd": "${workspaceRoot}"
+		},
+		{
+			"type": "vgdb",
+			"request": "launch",
+			"name": "C/C++ Debug Launch",
+			"program": "/v.exe",
+			"args": [],
+			"cwd": ""
+		},
+		
 		{
 			"name": "Debug",
 			"type": "coreclr",
@@ -62,7 +77,7 @@
 
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
-			"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "-d", "--asm", "-st" ],
+			"args": [ "${workspaceFolder}/Examples/Donut.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-O1" ],
 
 			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "--asm", "--debug" ],
 
@@ -93,7 +108,8 @@
 					"ignoreFailures": true
 				}
 			]
-		}
+		},
+
 
 	]
 }

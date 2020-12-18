@@ -25,7 +25,7 @@ public class CommandPattern : Pattern
 		return instruction.Keyword == Keywords.STOP || instruction.Keyword == Keywords.CONTINUE || instruction.Keyword == Keywords.RETURN;
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var keyword = tokens[INSTRUCTION].To<KeywordToken>().Keyword;
 

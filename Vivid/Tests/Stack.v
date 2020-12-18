@@ -1,6 +1,6 @@
 import large_function()
 
-export multi_return(a: num, b: num) {
+export multi_return(a: large, b: large) {
    large_function()
 
    if a > b {

@@ -107,14 +107,7 @@ public class OffsetNode : Node, IType, IResolvable
 
 	public new Type? GetType()
 	{
-		var type = Start.TryGetType();
-
-		if (type == Types.LINK || type is CallDescriptorType)
-		{
-			return Types.LINK;
-		}
-
-		return Types.UNKNOWN;
+		return Start.TryGetType()?.GetOffsetType();
 	}
 
 	public override NodeType GetNodeType()

@@ -12,16 +12,14 @@ public class ModifierSectionPattern : Pattern
 	(
 		TokenType.KEYWORD,
 		TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[MODIFIER].To<KeywordToken>().Keyword.Type == KeywordType.ACCESS_MODIFIER &&
-			   tokens[COLON].To<OperatorToken>().Operator == Operators.COLON;
+		return tokens[MODIFIER].To<KeywordToken>().Keyword.Type == KeywordType.ACCESS_MODIFIER && tokens[COLON].Is(Operators.COLON);
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		return new SectionNode(tokens[MODIFIER].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier, tokens[MODIFIER].Position);
 	}

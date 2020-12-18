@@ -56,8 +56,6 @@ class ResourceIndexer
 public class Unit
 {
 	public FunctionImplementation Function { get; private set; }
-	public Label? Start { get; private set; }
-	public Label? End { get; private set; }
 
 	public List<Register> Registers { get; }
 	public List<Register> NonVolatileRegisters { get; }
@@ -93,20 +91,6 @@ public class Unit
 
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
 		var base_pointer_flags = Assembler.IsDebuggingEnabled ? RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER : RegisterFlag.NONE;
-
-		/* Registers = new List<Register>()
-		{
-			new Register(Size.QWORD, new string[] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.DENOMINATOR),
-			new Register(Size.QWORD, new string[] { "rbx", "ebx", "bx", "bl" }),
-			new Register(Size.QWORD, new string[] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new string[] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
-			new Register(Size.QWORD, new string[] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
-			new Register(Size.QWORD, new string[] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
-			new Register(Size.QWORD, new string[] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
-			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED | RegisterFlag.DECIMAL_RETURN),
-			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
-		}; */
 
 		Registers = new List<Register>()
 		{
@@ -395,16 +379,14 @@ public class Unit
 
 	public Register? GetNextNonVolatileRegister(int start, int end)
 	{
-		var register = NonVolatileRegisters
-			.Find(r => (r.Handle == null || !r.Handle.Lifetime.IsIntersecting(start, end)) && !r.IsReserved);
+		var register = NonVolatileRegisters.Find(r => (r.Handle == null || !r.Handle.Lifetime.IsIntersecting(start, end)) && !r.IsReserved);
 
 		return register;
 	}
 
 	public Register? GetNextNonVolatileRegister(bool release = true)
 	{
-		var register = NonVolatileRegisters
-			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		var register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null || !release)
 		{
@@ -469,6 +451,7 @@ public class Unit
 
 		if (register == null)
 		{
+			// NOTE: This usually happens when there's a flaw in the algorithm and the compiler doesn't know how to handle a value for example
 			throw new ApplicationException("All registers were locked or reserved, this should not happen");
 		}
 

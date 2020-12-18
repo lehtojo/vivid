@@ -127,7 +127,7 @@ public static class Loops
 			BuildEndCondition(unit, loop.Condition, start.Label);
 
 			// Keep all scope variables which are needed later active
-			active_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i)));
+			active_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i, AccessMode.READ)));
 		}
 
 		unit.Set(state);
@@ -324,7 +324,7 @@ public static class Loops
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
-			using (new Scope(Unit, Unit.Scope!.ActiveVariables))
+			using (new Scope(Unit, Unit.Scope!.Actives))
 			{
 				// Merges all changes that happen in the scope with the outer scope
 				var merge = new MergeScopeInstruction(Unit);

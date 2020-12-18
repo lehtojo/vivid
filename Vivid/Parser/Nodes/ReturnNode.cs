@@ -60,7 +60,7 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		if (function == null)
 		{
-			return Status.Error("Return statement was not inside a function");
+			return Status.Error(Position, "Return statement was not inside a function");
 		}
 
 		var expected = function.ReturnType;
@@ -68,12 +68,12 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		if (actual == null)
 		{
-			return Status.Error("Could not resolve the return value");
+			return Status.Error(Position, "Could not resolve the return value");
 		}
 
 		if (Resolver.GetSharedType(expected, actual) == null)
 		{
-			return Status.Error($"Type '{actual}' is not compatible with the current return type '{expected?.ToString() ?? "none"}'");
+			return Status.Error(Position, $"Type '{actual}' is not compatible with the current return type '{expected?.ToString() ?? "none"}'");
 		}
 
 		return Status.OK;

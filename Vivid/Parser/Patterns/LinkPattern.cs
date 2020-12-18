@@ -53,7 +53,7 @@ public class LinkPattern : Pattern
 		return true;
 	}
 
-	public override Node Build(Context environment, List<Token> tokens)
+	public override Node Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var template_arguments = Array.Empty<Type>();
 

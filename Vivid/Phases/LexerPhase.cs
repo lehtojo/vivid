@@ -1,30 +1,36 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 
 public class LexerPhase : Phase
 {
+	public const string OUTPUT = "files";
+
 	public override Status Execute(Bundle bundle)
 	{
-		var contents = bundle.Get("input_file_contents", Array.Empty<string>());
+		var files = bundle.Get(FilePhase.OUTPUT, Array.Empty<File>());
 
-		if (contents.Length == 0)
+		if (!files.Any())
 		{
 			return Status.Error("Nothing to tokenize");
 		}
 
-		var tokens = new List<Token>[contents.Length];
-
-		for (var i = 0; i < contents.Length; i++)
+		for (var i = 0; i < files.Length; i++)
 		{
 			var index = i;
 
 			Run(() =>
 			{
-				var content = contents[index];
+				var file = files[index];
 
 				try
 				{
-					tokens[index] = Lexer.GetTokens(content);
+					file.Tokens.AddRange(Lexer.GetTokens(file.Content));
+					Lexer.RegisterFile(file.Tokens, file);
+				}
+				catch (LexerException e)
+				{
+					e.Position.File = file;
+					return Status.Error(e.Position, e.Description);
 				}
 				catch (Exception e)
 				{
@@ -34,8 +40,6 @@ public class LexerPhase : Phase
 				return Status.OK;
 			});
 		}
-
-		bundle.Put("input_file_tokens", tokens);
 
 		return Status.OK;
 	}

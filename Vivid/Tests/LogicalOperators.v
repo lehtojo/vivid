@@ -22,7 +22,7 @@ export two_booleans(a: bool, b: bool) {
 	}
 }
 
-export nested_if_statements(x: num, y: num, z: num) {
+export nested_if_statements(x: large, y: large, z: large) {
 	if x == 1 {
 		if y == 2 {
 			if z == 3 {
@@ -104,7 +104,7 @@ export nested_logical_statements(a: bool, b: bool, c: bool, d: bool) {
 	}
 }
 
-export logical_operators_1(a: num, b: num) {
+export logical_operators_1(a: large, b: large) {
    if a > b or a == 0 {
 	  => b
    }
@@ -116,7 +116,7 @@ export logical_operators_1(a: num, b: num) {
    }
 }
 
-export logical_operators_2(a: num, b: num, c: num) {
+export logical_operators_2(a: large, b: large, c: large) {
    if (a > b and a > c) or c > b {
 	  => 1
    }
@@ -128,7 +128,7 @@ export logical_operators_2(a: num, b: num, c: num) {
    }
 }
 
-f(a: num) {
+f(a: large) {
    if a == 7 {
 	  => true
    }
@@ -137,7 +137,7 @@ f(a: num) {
    }
 }
 
-export logical_operators_3(a: num, b: num) {
+export logical_operators_3(a: large, b: large) {
    if (a > 10 or f(a) == true) and a > b {
 	  => 0
    }

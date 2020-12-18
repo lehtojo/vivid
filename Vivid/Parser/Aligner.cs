@@ -78,7 +78,7 @@ public static class Aligner
 		// Member functions:
 		foreach (var implementation in type.GetImplementedFunctions())
 		{
-			Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
 		}
 
 		// Constructors:

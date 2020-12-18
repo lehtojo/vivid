@@ -55,7 +55,7 @@ public class WhenPattern : Pattern
 		return section.Take(i).Any(i => i.Is(Keywords.ELSE));
 	}
 
-    public override Node? Build(Context context, List<Token> tokens)
+    public override Node? Build(Context context, PatternState state, List<Token> tokens)
     {
 		var result = new InlineNode(tokens.First().Position);
 
@@ -107,7 +107,7 @@ public class WhenPattern : Pattern
 
 			var section_tokens = section.TakeWhile(i => !i.Is(Operators.IMPLICATION)).ToList();
 			var section_tokens_count = section_tokens.Count;
-			var value = Parser.Parse(context, section_tokens);
+			var value = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 			if (!value.Any())
 			{
@@ -132,7 +132,7 @@ public class WhenPattern : Pattern
 				section_tokens = section_tokens.First().To<ContentToken>().Tokens;
 			}
 
-			var section_body = Parser.Parse(context, section_tokens);
+			var section_body = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 			if (!section_body.Any())
 			{
@@ -179,7 +179,7 @@ public class WhenPattern : Pattern
 				section_tokens = section_tokens.First().To<ContentToken>().Tokens;
 			}
 
-			var section_body = Parser.Parse(context, section_tokens);
+			var section_body = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 			if (!section_body.Any())
 			{

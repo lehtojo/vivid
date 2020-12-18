@@ -179,7 +179,7 @@ public sealed class Scope : IDisposable
 	{
 		return GetAllActiveContextVariables(unit, current_context, roots)
 			  .Concat(GetAllNonLocalVariables(roots, scope_contexts))
-			  .Concat(unit.Scope!.ActiveVariables)
+			  .Concat(unit.Scope!.Actives)
 			  .Distinct();
 	}
 
@@ -190,7 +190,7 @@ public sealed class Scope : IDisposable
 	{
 		return GetAllActiveContextVariables(unit, current_context, new[] { root })
 			  .Concat(GetAllNonLocalVariables(new[] { root }, scope_contexts))
-			  .Concat(unit.Scope!.ActiveVariables)
+			  .Concat(unit.Scope!.Actives)
 			  .Distinct();
 	}
 
@@ -257,7 +257,7 @@ public sealed class Scope : IDisposable
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
 	private HashSet<Variable> Finalizers { get; set; } = new HashSet<Variable>();
 
-	public List<Variable> ActiveVariables { get; } = new List<Variable>();
+	public List<Variable> Actives { get; } = new List<Variable>();
 	public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
 	public Dictionary<Variable, Result> Transferers { get; } = new Dictionary<Variable, Result>();
 
@@ -277,7 +277,7 @@ public sealed class Scope : IDisposable
 	/// <param name="active_variables">Variables that must not be released</param>
 	public Scope(Unit unit, IEnumerable<Variable>? active_variables = null)
 	{
-		ActiveVariables = active_variables?.ToList() ?? new List<Variable>();
+		Actives = active_variables?.ToList() ?? new List<Variable>();
 		Enter(unit);
 	}
 
@@ -355,10 +355,10 @@ public sealed class Scope : IDisposable
 		}
 
 		// Detect if there are new variables to load
-		if (Loads.Count != ActiveVariables.Count)
+		if (Loads.Count != Actives.Count)
 		{
 			// Add all the missing variable loads
-			foreach (var variable in ActiveVariables)
+			foreach (var variable in Actives)
 			{
 				// Skip variables which are already loaded
 				if (Loads.Exists(l => l.Variable == variable))
@@ -366,7 +366,7 @@ public sealed class Scope : IDisposable
 					continue;
 				}
 
-				var handle = References.GetVariable(Unit, variable);
+				var handle = References.GetVariable(Unit, variable, AccessMode.READ);
 				var instruction = handle.Instruction!;
 
 				instruction.Description = $"Transfers the current handle of variable '{variable.Name}' to the upcoming scope";
@@ -381,9 +381,9 @@ public sealed class Scope : IDisposable
 		// Connect to the outer scope if it exists
 		if (Outer != null)
 		{
-			for (var i = 0; i < ActiveVariables.Count; i++)
+			for (var i = 0; i < Actives.Count; i++)
 			{
-				var variable = ActiveVariables[i];
+				var variable = Actives[i];
 				var external_handle = Loads[i].Reference;
 
 				if (external_handle != null)
@@ -394,15 +394,15 @@ public sealed class Scope : IDisposable
 				if (!Initializers.Contains(variable))
 				{
 					// The current variable is an active one so it must stay protected during the whole scope
-					References.GetVariable(unit, variable).Instruction!.Description = $"Registers variable '{variable.Name}' as active";
+					References.GetVariable(unit, variable, AccessMode.READ).Instruction!.Description = $"Registers variable '{variable.Name}' as active";
 
 					Initializers.Add(variable);
 				}
 			}
 
 			// Get all the register which hold any active variable
-			var blacklist = Variables.Values.Where(i => i.Value.Is(HandleType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
-			var registers = Unit.NonReservedRegisters.Where(r => !blacklist.Contains(r));
+			var denylist = Variables.Values.Where(i => i.Value.Is(HandleType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
+			var registers = Unit.NonReservedRegisters.Where(r => !denylist.Contains(r));
 
 			// All register which don't hold active variables must be reset since they would disturb the execution of the scope
 			foreach (var register in registers)
@@ -436,17 +436,7 @@ public sealed class Scope : IDisposable
 
 			foreach (var parameter in unit.Function.Parameters)
 			{
-				var is_decimal = parameter.Type == Types.DECIMAL;
-
-				// Determine the parameter register
-				if (is_decimal)
-				{
-					register = decimal_parameter_registers.Pop();
-				}
-				else
-				{
-					register = standard_parameter_registers.Pop();
-				}
+				register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 
 				if (register != null)
 				{
@@ -460,26 +450,14 @@ public sealed class Scope : IDisposable
 		}
 	}
 
-	/// <summary>
-	/// Returns all handles to the given constant
-	/// </summary>
-	public List<Result> GetConstantHandles(object constant)
-	{
-		if (Constants.TryGetValue(constant, out List<Result>? elements))
-		{
-			return elements;
-		}
-		else
-		{
-			var handles = new List<Result>();
-			Constants.Add(constant, handles);
-
-			return handles;
-		}
-	}
-
 	public Result? GetCurrentVariableHandle(Variable variable)
 	{
+		// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
+		if (Assembler.IsDebuggingEnabled)
+		{
+			return null;
+		}
+
 		// Only predictable variables are allowed to be cached
 		if (!variable.IsPredictable)
 		{
@@ -505,15 +483,6 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
-	/// Returns the current handle to the given constant
-	/// </summary>
-	public Result? GetCurrentConstantHandle(Unit unit, object constant)
-	{
-		var handles = GetConstantHandles(constant).FindAll(h => h.IsValid(unit.Position));
-		return handles.Count == 0 ? null : handles.Last();
-	}
-
-	/// <summary>
 	/// Switches back to the outer scope
 	/// </summary>
 	public void Exit()
@@ -525,12 +494,12 @@ public sealed class Scope : IDisposable
 
 		if (AppendFinalizers)
 		{
-			foreach (var variable in ActiveVariables)
+			foreach (var variable in Actives)
 			{
 				if (!Finalizers.Contains(variable))
 				{
 					// The current variable is an active one so it must stay protected during the whole scope lifetime
-					References.GetVariable(Unit, variable).Instruction!.Description = "Keep variable active";
+					References.GetVariable(Unit, variable, AccessMode.READ).Instruction!.Description = "Keep variable active";
 
 					Finalizers.Add(variable);
 				}

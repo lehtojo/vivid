@@ -1,5 +1,5 @@
-﻿import exit(code: num)
-import internal_allocate(bytes: num): link
+﻿import exit(code: large)
+import internal_allocate(bytes: large): link
 
 true = 1
 false = 0
@@ -10,7 +10,7 @@ PAGE_SIZE = 1000000
 
 Page {
     address: link
-    position: num
+    position: large
 }
 
 Allocation {
@@ -18,34 +18,36 @@ Allocation {
     current: Page
 }
 
-# Safe: allocate(bytes: num) => internal_allocate(bytes)
+# Safe: allocate(bytes: large) => internal_allocate(bytes)
 
-allocate(bytes: num) {
-    if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
-        position = Allocation.current.position
-        Allocation.current.position += bytes
+allocate(bytes: large) {
+	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
+		position = Allocation.current.position
+		Allocation.current.position += bytes
 
-        => (Allocation.current.address + position) as link
-    }
+		=> (Allocation.current.address + position) as link
+	}
 
-    address = internal_allocate(PAGE_SIZE)
+	address = internal_allocate(PAGE_SIZE)
 
-    page = internal_allocate(24) as Page
-    page.address = address
-    page.position = bytes
+	page = internal_allocate(24) as Page
+	page.address = address
+	page.position = bytes
 
-    Allocation.current = page
+	Allocation.current = page
 
-    => address as link
+	=> address as link
 }
+
+allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_INHERITANT_SEPARATOR = 1
 TYPE_DESCRIPTOR_FULLNAME_END = 2
 
 inherits(descriptor: link, type: link) {
-	x = descriptor[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
-	y = type[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	x = (descriptor as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	y = (type as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 
 	s = y[0]
 	i = 0
@@ -71,27 +73,27 @@ inherits(descriptor: link, type: link) {
 	}
 }
 
-move(source: link, offset: num, destination: link, bytes: num) {
-    # Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
-    buffer = allocate(bytes)
-    source += offset
-    copy(source, bytes, buffer)
-    
-    # Copy the contents of the temporary buffer to the destination
-    copy(buffer, bytes, destination)
+move(source: link, offset: large, destination: link, bytes: large) {
+	# Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
+	buffer = allocate(bytes)
+	source += offset
+	copy(source, bytes, buffer)
+	
+	# Copy the contents of the temporary buffer to the destination
+	copy(buffer, bytes, destination)
 
-    # Delete the temporary buffer
-    #deallocate(buffer, bytes)
+	# Delete the temporary buffer
+	#deallocate(buffer, bytes)
 }
 
-move(source: link, destination: link, bytes: num) {
-    # Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
-    buffer = allocate(bytes)
-    copy(source, bytes, buffer)
+move(source: link, destination: link, bytes: large) {
+	# Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
+	buffer = allocate(bytes)
+	copy(source, bytes, buffer)
     
-    # Copy the contents of the temporary buffer to the destination
-    copy(buffer, bytes, destination)
+	# Copy the contents of the temporary buffer to the destination
+	copy(buffer, bytes, destination)
 
-    # Delete the temporary buffer
-    #deallocate(buffer, bytes)
+	# Delete the temporary buffer
+	#deallocate(buffer, bytes)
 }

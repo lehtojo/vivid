@@ -55,7 +55,7 @@ public class NumberToken : Token
 		}
 	}
 
-	private static int GetExponent(string text)
+	private int GetExponent(string text)
 	{
 		var index = text.IndexOf(Lexer.EXPONENT_SEPARATOR);
 
@@ -63,18 +63,23 @@ public class NumberToken : Token
 		{
 			return 0;
 		}
-		else if (int.TryParse(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToString(), out int result))
+
+		var exponent = new string(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToArray());
+
+		if (int.TryParse(exponent, out int result))
 		{
 			return result;
 		}
 		else
 		{
-			throw new ApplicationException($"Invalid number exponent: '{text}'");
+			throw new LexerException(Position, $"Invalid number exponent: '{text}'");
 		}
 	}
 
-	public NumberToken(string text) : base(TokenType.NUMBER)
+	public NumberToken(string text, Position position) : base(TokenType.NUMBER)
 	{
+		Position = position;
+
 		var exponent = GetExponent(text);
 
 		if (IsDecimal(text))
@@ -86,7 +91,6 @@ public class NumberToken : Token
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
 
-			/// TODO: Think about overriding the decimal type
 			Value = value;
 			NumberType = Format.DECIMAL;
 			Bits = Lexer.Size.Bytes * 8;
@@ -103,7 +107,7 @@ public class NumberToken : Token
 			GetType(text, out int bits, out bool unsigned);
 
 			Value = value;
-			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new ApplicationException($"Invalid number format: '{text}'");
+			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format: '{text}'");
 			Bits = bits;
 		}
 	}
@@ -122,10 +126,10 @@ public class NumberToken : Token
 		Bits = Lexer.Size.Bytes * 8;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is NumberToken token &&
-			   base.Equals(obj) &&
+		return other is NumberToken token &&
+			   base.Equals(other) &&
 			   (long)Value == (long)token.Value &&
 			   NumberType == token.NumberType &&
 			   Bits == token.Bits &&

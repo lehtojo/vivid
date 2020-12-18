@@ -43,6 +43,11 @@ public class CallDescriptorType : Type
 		mangle += 'E';
 	}
 
+	public override Type? GetOffsetType()
+	{
+		return global::Types.LINK;
+	}
+
 	public override bool Equals(object? other)
 	{
 		if (!(other is CallDescriptorType type) || Parameters.Count != type.Parameters.Count)

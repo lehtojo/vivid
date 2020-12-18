@@ -1,34 +1,21 @@
 using System;
-using System.Globalization;
 
 public static class Errors
 {
-	public static Exception Get(Position position, Exception exception)
-	{
-		return new Exception(message:
-			$"Line: {position.FriendlyLine}, Character: {position.FriendlyCharacter} | {exception.Message}");
-	}
+	public const string UNKNOWN_FILE = "[Unknown file]";
+	public const string UNKNOWN_LOCATION = "[Unknown location]";
+	public const string ERROR_BEGIN = "\x1B[1;31m";
+	public const string ERROR_END = "\x1B[0m";
 
-	public static Exception Get(Position position, string exception)
+	public static Exception Get(Position position, string description)
 	{
-		return new Exception($"Line: {position.FriendlyLine}, Character: {position.FriendlyCharacter} | {exception}");
-	}
+		var fullname = UNKNOWN_FILE;
 
-	public static Exception Get(Position position, string format, params object[] args)
-	{
-		return new Exception(
-			$"Line: {position.FriendlyLine}, Character: {position.FriendlyCharacter} | {string.Format(CultureInfo.InvariantCulture, format, args)}");
-	}
+		if (position.File != null)
+		{
+			fullname = position.File.Fullname;
+		}
 
-	/// <summary>
-	/// Prints to the console the specified description of the error and also the current stack trace.
-	/// After the printing the application exits with the specified exit code
-	/// </summary>
-	public static void Abort(string description, int exit_code = 1)
-	{
-		Console.ForegroundColor = ConsoleColor.Red;
-		Console.WriteLine($"Terminated: {description}\n{Environment.StackTrace}");
-		Console.ForegroundColor = ConsoleColor.White;
-		Environment.Exit(exit_code);
+		return new Exception($"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}error{ERROR_END}: {description}");
 	}
 }

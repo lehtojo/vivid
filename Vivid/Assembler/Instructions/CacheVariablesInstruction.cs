@@ -16,7 +16,7 @@ public class CacheVariablesInstruction : Instruction
 		Description = "Prepares the stored variables based on their usage";
 
 		// Load all the variables before caching
-		Usages.ForEach(u => u.Reference = References.GetVariable(unit, u.Variable));
+		Usages.ForEach(u => u.Reference = References.GetVariable(unit, u.Variable, AccessMode.READ));
 	}
 
 	/// <summary>

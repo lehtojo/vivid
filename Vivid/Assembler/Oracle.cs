@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-using VariableGroup = System.Collections.Generic.List<Variable>;
-
 public static class Oracle
 {
 	private static void SimulateLoads(Unit unit, Instruction instruction)
@@ -16,7 +14,7 @@ public static class Oracle
 
 				if (handle == null)
 				{
-					throw new ApplicationException("Could not get the current handle of a variable for a Require-Variables-Instruction");
+					continue;
 				}
 
 				r.References.Add(handle);

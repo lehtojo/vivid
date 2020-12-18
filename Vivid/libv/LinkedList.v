@@ -56,7 +56,7 @@ LinkedList<T> {
             tail = previous
         }
 
-        #deallocate(iterator as link, T.size)
+        #deallocate(iterator as link, sizeof(T))
     }
 
     size() {

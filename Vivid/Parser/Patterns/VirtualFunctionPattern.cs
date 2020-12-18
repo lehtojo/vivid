@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 public class VirtualFunctionPattern : Pattern
 {
@@ -34,7 +32,7 @@ public class VirtualFunctionPattern : Pattern
 		return indicator.Is(TokenType.NONE) || indicator.Is(Operators.COLON) && Common.ConsumeType(state);
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var return_type = Types.UNIT;
 		var indicator = tokens[RETURN_TYPE_INDICATOR];
@@ -49,7 +47,7 @@ public class VirtualFunctionPattern : Pattern
 			}
 		}
 
-		var type = context.GetTypeParent() ?? throw new ApplicationException("Missing virtual function type parent");
+		var type = context.GetTypeParent() ?? throw Errors.Get(tokens.First().Position, "Missing virtual function type parent");
 		var descriptor = tokens.First().To<FunctionToken>();
 
 		if (type.IsVirtualFunctionDeclared(descriptor.Name))
@@ -57,9 +55,8 @@ public class VirtualFunctionPattern : Pattern
 			throw Errors.Get(tokens.First().Position, "Uncompleted function with same name is already declared in one of the inherited types");
 		}
 
-		var function = new VirtualFunction(type, descriptor.Name, return_type);
-		function.Position = tokens.First().Position;
-		
+		var function = new VirtualFunction(type, descriptor.Name, return_type) { Position = tokens.First().Position };
+
 		var parameters = descriptor.GetParameters(function);
 
 		if (parameters.Any(i => i.Type == null))

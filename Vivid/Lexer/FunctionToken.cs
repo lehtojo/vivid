@@ -5,7 +5,7 @@ public class FunctionToken : Token
 {
 	public IdentifierToken Identifier { get; private set; }
 	public ContentToken Parameters { get; private set; }
-	public Node ParameterTree { get; private set; } = new Node();
+	public Node Tree { get; private set; } = new Node();
 
 	public string Name => Identifier.Value;
 
@@ -22,61 +22,24 @@ public class FunctionToken : Token
 	/// <returns>Parameters as node tree</returns>
 	public Node GetParsedParameters(Context context)
 	{
-		if (!ParameterTree.IsEmpty)
+		if (!Tree.IsEmpty)
 		{
-			return ParameterTree;
+			return Tree;
 		}
 
-		var parameters = Parser.Parse(context, Parameters.Tokens);
+		// NOTE: It is important that the tokens are cloned, since consumed tokens in short functions for example, would corrupt with parsed dynamic tokens
+		var parameters = Parser.Parse(context, new List<Token>(Parameters.Tokens), Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 		if (parameters.First is ListNode list)
 		{
-			ParameterTree = list;
+			Tree = list;
 		}
 		else
 		{
-			ParameterTree = parameters;
+			Tree = parameters;
 		}
 
-		return ParameterTree;
-	}
-
-	/// <summary>
-	/// Returns the parameter names
-	/// </summary>
-	/// <returns>List of parameter names</returns>
-	public List<string> GetParameterNames(Context function_context)
-	{
-		var names = new List<string>();
-
-		if (Parameters.IsEmpty)
-		{
-			return names;
-		}
-
-		ParameterTree = GetParsedParameters(function_context);
-
-		foreach (var parameter in ParameterTree)
-		{
-			if (parameter is VariableNode variable_node)
-			{
-				names.Add(variable_node.Variable.Name);
-			}
-			else if (parameter is OperatorNode assign && assign.Operator == Operators.ASSIGN)
-			{
-				throw new NotImplementedException("Parameter default values aren't supported yet");
-			}
-			else if (parameter is UnresolvedIdentifier parameter_identifier)
-			{
-				names.Add(parameter_identifier.Value);
-			}
-			else
-			{
-				throw new NotImplementedException("Unknown parameter syntax");
-			}
-		}
-
-		return names;
+		return Tree;
 	}
 
 	/// <summary>
@@ -92,21 +55,21 @@ public class FunctionToken : Token
 			return parameters;
 		}
 
-		ParameterTree = GetParsedParameters(function_context);
+		Tree = GetParsedParameters(function_context);
 
-		foreach (var parameter in ParameterTree)
+		foreach (var parameter in Tree)
 		{
 			if (parameter is VariableNode node)
 			{
-				parameters.Add(new Parameter(node.Variable.Name, node.Variable.Type));
+				parameters.Add(new Parameter(node.Variable.Name, node.Position, node.Variable.Type));
 			}
-			else if (parameter is OperatorNode assign && assign.Operator == Operators.ASSIGN)
+			else if (parameter.Is(Operators.ASSIGN))
 			{
-				throw new NotImplementedException("Parameter default values aren't supported yet");
+				throw new NotImplementedException("Parameter default values are not supported yet");
 			}
 			else if (parameter is UnresolvedIdentifier name)
 			{
-				parameters.Add(new Parameter(name.Value));
+				parameters.Add(new Parameter(name.Value, name.Position, Types.UNKNOWN));
 			}
 			else
 			{

@@ -24,35 +24,6 @@ public class ElsePattern : Pattern
 		return PRIORITY;
 	}
 
-	private static bool TryConsumeBody(Context context, PatternState state)
-	{
-		if (Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS))
-		{
-			return true;
-		}
-
-		return Consume
-		(
-			context,
-			state,
-			new List<System.Type>
-			{
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(OffsetPattern),
-				typeof(OperatorPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(ReturnPattern),
-				typeof(UnarySignPattern)
-			}
-
-		).Count > 0;
-	}
-
-
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
@@ -62,17 +33,29 @@ public class ElsePattern : Pattern
 
 		var former = tokens[FORMER].To<DynamicToken>();
 
-		return (former.Node.GetNodeType() == NodeType.IF ||
-				former.Node.GetNodeType() == NodeType.ELSE_IF) &&
-				TryConsumeBody(context, state);
+		if (!former.Node.Is(NodeType.IF, NodeType.ELSE_IF))
+		{
+			return false;
+		}
+
+		Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
+		return true;
 	}
 
-	public override Node? Build(Context environment, List<Token> tokens)
+	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		var body = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
+		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
+		var context = new Context(environment);
 
-		var context = new Context();
-		context.Link(environment);
+		if (body == null)
+		{
+			body = new List<Token>();
+			
+			if (!Common.ConsumeBlock(context, state, body))
+			{
+				throw Errors.Get(tokens[ELSE].Position, "Else-statement has an empty body");
+			}
+		}
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 

@@ -1,3 +1,5 @@
+using System;
+
 public static class Program
 {
 	public static void Main(string[] arguments)
@@ -18,6 +20,6 @@ public static class Program
 		bundle.Put("arguments", arguments);
 		
 		// Execute the chain
-		chain.Execute(bundle);
+		Environment.Exit(chain.Execute(bundle) ? 0 : 1);
 	}
 }

@@ -34,7 +34,7 @@ public class CastPattern : Pattern
 		return true;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var type = Common.ReadTypeArgument(context, new Queue<Token>(tokens.Skip(TYPE)));

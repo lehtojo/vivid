@@ -1,14 +1,18 @@
 using System.Collections.Generic;
-using System.Linq;
 using System;
 
 public class MergeScopeInstruction : Instruction
 {
 	public MergeScopeInstruction(Unit unit) : base(unit) { }
 
+	private Result GetVariableStackHandle(Variable variable)
+	{
+		return new Result(References.CreateVariableHandle(Unit, variable), variable.Type!.Format);
+	}
+
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? References.GetVariable(Unit, variable);
+		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
 	}
 
 	private bool IsUsedLater(Variable variable)
@@ -20,9 +24,9 @@ public class MergeScopeInstruction : Instruction
 	{
 		var moves = new List<MoveInstruction>();
 
-		foreach (var variable in Scope!.ActiveVariables)
+		foreach (var variable in Scope!.Actives)
 		{
-			var source = Unit.GetCurrentVariableHandle(variable) ?? throw new ApplicationException("Could not get the current handle for an active variable");
+			var source = Unit.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
 
 			// Copy the destination value to prevent any relocation leaks
 			var destination = new Result(GetDestinationHandle(variable).Value, variable.GetRegisterFormat());

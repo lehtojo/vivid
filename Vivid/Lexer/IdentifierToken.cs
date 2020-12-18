@@ -9,6 +9,12 @@ public class IdentifierToken : Token
 		Value = value;
 	}
 
+	public IdentifierToken(string value, Position position) : base(TokenType.IDENTIFIER)
+	{
+		Value = value;
+		Position = position;
+	}
+
 	public override bool Equals(object? obj)
 	{
 		return obj is IdentifierToken token &&

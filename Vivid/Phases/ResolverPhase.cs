@@ -27,7 +27,7 @@ public class ResolverPhase : Phase
 
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			errors.Add(Status.Error("Could not resolve return type"));
+			errors.Add(Status.Error(implementation.Metadata.Position, "Could not resolve return type"));
 		}
 
 		if (!Equals(implementation.Node, null))
@@ -43,7 +43,7 @@ public class ResolverPhase : Phase
 
 		errors.AddRange(implementation.Variables.Values
 			.Where(v => v.IsUnresolved)
-			.Select(v => Status.Error($"Could not resolve type of local variable '{v.Name}'"))
+			.Select(v => Status.Error(v.Position, $"Could not resolve type of local variable '{v.Name}'"))
 		);
 
 		if (!errors.Any())
@@ -53,7 +53,7 @@ public class ResolverPhase : Phase
 
 		foreach (var error in errors)
 		{
-			builder.Append($"ERROR: {error.Description}\n");
+			builder.Append($"{error.Description}\n");
 		}
 
 		return builder.ToString();
@@ -140,10 +140,9 @@ public class ResolverPhase : Phase
 		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing inheritance function");
 
 		var link = context.GetType("link") ?? throw new ApplicationException("Missing default link type");
-		var integer = context.GetType("num") ?? throw new ApplicationException("Missing default integer type");
-
-		Parser.AllocationFunction = allocation_function.GetImplementation(new List<Type> { integer });
-		Assembler.AllocationFunction = allocation_function.GetOverload(new List<Type> { integer });
+		
+		Parser.AllocationFunction = allocation_function.GetImplementation(new List<Type> { Types.LARGE });
+		Assembler.AllocationFunction = allocation_function.GetOverload(new List<Type> { Types.LARGE });
 
 		Parser.InheritanceFunction = inheritance_function.GetImplementation(new List<Type> { link, link });
 	}
@@ -210,11 +209,6 @@ public class ResolverPhase : Phase
 
 		// Analyze the output
 		Analyzer.Analyze(context, parse.Node);
-
-		if (Assembler.IsDebuggingEnabled)
-		{
-			//Aligner.AlignLocals(context);
-		}
 
 		return Status.OK;
 	}

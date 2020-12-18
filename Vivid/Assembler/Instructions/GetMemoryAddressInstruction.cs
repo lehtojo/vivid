@@ -25,11 +25,27 @@ public class GetMemoryAddressInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
+		if (!Trace.IsLoadingRequired(Unit, Result))
+		{
+			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
+			Result.Format = Format;
+			return;
+		}
 
 		if (Mode == AccessMode.READ)
-		{
+		{	
+			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
+			Result.Format = Format;
+
 			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Result.GetRecommendation(Unit));
+		}
+		else
+		{
+			var address = new Result(ExpressionHandle.CreateMemoryAddress(Start, Offset, Stride), Assembler.Format);
+			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Result.GetRecommendation(Unit));
+
+			Result.Value = new MemoryHandle(Unit, address, 0);
+			Result.Format = Format;
 		}
 	}
 

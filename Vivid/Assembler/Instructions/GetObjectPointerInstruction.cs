@@ -21,12 +21,27 @@ public class GetObjectPointerInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		Result.Value = new MemoryHandle(Unit, Start, Offset);
-		Result.Format = Variable.Type!.Format;
+		if (!Trace.IsLoadingRequired(Unit, Result))
+		{
+			Result.Value = new MemoryHandle(Unit, Start, Offset);
+			Result.Format = Variable.Type!.Format;
+			return;
+		}
 
 		if (Mode == AccessMode.READ)
-		{
+		{	
+			Result.Value = new MemoryHandle(Unit, Start, Offset);
+			Result.Format = Variable.Type!.Format;
+
 			Memory.MoveToRegister(Unit, Result, Assembler.Size, Variable.GetRegisterFormat().IsDecimal(), Result.GetRecommendation(Unit));
+		}
+		else
+		{
+			var address = new Result(ExpressionHandle.CreateMemoryAddress(Start, Offset), Assembler.Format);
+			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Result.GetRecommendation(Unit));
+
+			Result.Value = new MemoryHandle(Unit, address, 0);
+			Result.Format = Variable.Type!.Format;
 		}
 	}
 

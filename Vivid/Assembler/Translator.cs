@@ -52,7 +52,7 @@ public static class Translator
 		}
 	}
 
-	public static string Translate(Unit unit, out List<ConstantDataSectionHandle> constants)
+	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
 	{
 		if (Analysis.IsInstructionAnalysisEnabled)
 		{
@@ -62,7 +62,7 @@ public static class Translator
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
-		constants = GetAllConstantDataSectionHandles(unit).ToList();
+		var constant_handles = GetAllConstantDataSectionHandles(unit);
 
 		// When debugging mode is enabled, the base pointer is reserved for saving the value of the stack pointer in the start
 		if (Assembler.IsDebuggingEnabled)
@@ -107,7 +107,7 @@ public static class Translator
 		// Align all used local variables
 		Aligner.AlignLocalMemory(local_variables, temporary_handles.ToList(), local_memory_top);
 
-		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constants));
+		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 
 		unit.Simulate(UnitPhase.BUILD_MODE, instruction =>
 		{
@@ -115,7 +115,7 @@ public static class Translator
 		});
 
 		// Remove duplicates
-		constants = constants.Distinct().ToList();
+		constants.AddRange(constant_handles.Distinct());
 
 		return unit.Export();
 	}

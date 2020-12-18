@@ -66,23 +66,23 @@ public static class References
 		return handle;
 	}
 
-	public static Result GetVariable(Unit unit, VariableNode node)
+	public static Result GetVariable(Unit unit, VariableNode node, AccessMode mode)
 	{
-		return GetVariable(unit, node.Variable);
+		return GetVariable(unit, node.Variable, mode);
 	}
 
-	public static Result GetVariable(Unit unit, Variable variable)
+	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
 		Result? self = null;
 		Type? self_type = null;
 
 		if (variable.Category == VariableCategory.MEMBER)
 		{
-			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function")).Execute();
+			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
 			self_type = unit.Self.Type!;
 		}
 
-		var handle = new GetVariableInstruction(unit, self, self_type, variable).Execute();
+		var handle = new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 		handle.Metadata.Attach(new VariableAttribute(variable));
 
 		return handle;
@@ -124,7 +124,7 @@ public static class References
 
 			case NodeType.VARIABLE:
 			{
-				return GetVariable(unit, (VariableNode)node);
+				return GetVariable(unit, (VariableNode)node, mode);
 			}
 
 			case NodeType.NUMBER:

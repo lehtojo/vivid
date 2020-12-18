@@ -12,15 +12,14 @@ public class NotPattern : Pattern
 	(
 		TokenType.OPERATOR,
 		TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		return tokens[NOT].To<OperatorToken>().Operator == Operators.EXCLAMATION;
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		return new NotNode(Singleton.Parse(context, tokens[OBJECT]), tokens[NOT].Position);
 	}

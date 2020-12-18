@@ -48,7 +48,7 @@ public class LoopPattern : Pattern
 		{
 			// Parse the tokens of the step and add them under a normal node
 			var step = new Node();
-			Parser.Parse(step, context, section);
+			Parser.Parse(step, context, section, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 			steps.Add(step);
 		}
@@ -85,7 +85,7 @@ public class LoopPattern : Pattern
 		return steps;
 	}
 
-	public override Node Build(Context environment, List<Token> tokens)
+	public override Node Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var body_context = new Context();
 		var steps_context = new Context();

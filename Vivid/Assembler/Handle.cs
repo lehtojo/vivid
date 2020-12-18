@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
 
 public enum HandleType
 {
@@ -10,7 +9,7 @@ public enum HandleType
 	CONSTANT,
 	REGISTER,
 	MEDIA_REGISTER,
-	CALCULATION,
+	EXPRESSION,
 	NONE
 }
 
@@ -570,24 +569,34 @@ public class ComplexMemoryHandle : Handle
 	}
 }
 
-public class CalculationHandle : Handle
+public class ExpressionHandle : Handle
 {
 	public Result Multiplicand { get; private set; }
 	public int Multiplier { get; private set; }
 	public Result? Addition { get; private set; }
 	public int Constant { get; private set; }
 
-	public static CalculationHandle CreateAddition(Result left, Result right)
+	public static ExpressionHandle CreateAddition(Result left, Result right)
 	{
-		return new CalculationHandle(left, 1, right, 0);
+		return new ExpressionHandle(left, 1, right, 0);
 	}
 
-	public static CalculationHandle CreateAddition(Handle left, Handle right)
+	public static ExpressionHandle CreateAddition(Handle left, Handle right)
 	{
-		return new CalculationHandle(new Result(left, Assembler.Format), 1, new Result(right, Assembler.Format), 0);
+		return new ExpressionHandle(new Result(left, Assembler.Format), 1, new Result(right, Assembler.Format), 0);
 	}
 
-	public CalculationHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.CALCULATION)
+	public static ExpressionHandle CreateMemoryAddress(Result start, int offset)
+	{
+		return new ExpressionHandle(start, 1, null, offset);
+	}
+
+	public static ExpressionHandle CreateMemoryAddress(Result start, Result offset, int stride)
+	{
+		return new ExpressionHandle(offset, stride, start, 0);
+	}
+
+	public ExpressionHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.EXPRESSION)
 	{
 		Multiplicand = multiplicand;
 		Multiplier = multiplier;
@@ -663,22 +672,22 @@ public class CalculationHandle : Handle
 	{
 		Validate();
 
-		return new CalculationHandle
+		return new ExpressionHandle
 		(
-		   new Result(Multiplicand.Value, Assembler.Format),
-		   Multiplier,
-		   Addition == null ? null : new Result(Addition.Value, Assembler.Format),
-		   Constant
+			new Result(Multiplicand.Value, Assembler.Format),
+			Multiplier,
+			Addition == null ? null : new Result(Addition.Value, Assembler.Format),
+			Constant
 		);
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is CalculationHandle handle &&
-			   EqualityComparer<Result>.Default.Equals(Multiplicand, handle.Multiplicand) &&
-			   Multiplier == handle.Multiplier &&
-			   EqualityComparer<Result?>.Default.Equals(Addition, handle.Addition) &&
-			   Constant == handle.Constant;
+		return other is ExpressionHandle handle &&
+			EqualityComparer<Result>.Default.Equals(Multiplicand, handle.Multiplicand) &&
+			Multiplier == handle.Multiplier &&
+			EqualityComparer<Result?>.Default.Equals(Addition, handle.Addition) &&
+			Constant == handle.Constant;
 	}
 
 	public override int GetHashCode()

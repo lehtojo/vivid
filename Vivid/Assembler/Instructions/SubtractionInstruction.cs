@@ -109,7 +109,7 @@ public class SubtractionInstruction : DualParameterInstruction
 			Operation = EXTENDED_ADDITION_INSTRUCTION;
 
 			var constant = -(long)second.Value!.To<ConstantHandle>().Value;
-			var calculation = CalculationHandle.CreateAddition(first.Value!, new ConstantHandle(constant));
+			var calculation = ExpressionHandle.CreateAddition(first.Value!, new ConstantHandle(constant));
 
 			Parameters.Clear();
 			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));

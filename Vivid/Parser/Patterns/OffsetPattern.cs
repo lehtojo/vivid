@@ -31,7 +31,7 @@ public class OffsetPattern : Pattern
 		return !index.IsEmpty;
 	}
 
-	public override Node Build(Context context, List<Token> tokens)
+	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var indices = Singleton.Parse(context, tokens[INDICES]);

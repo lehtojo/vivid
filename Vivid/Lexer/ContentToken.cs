@@ -10,7 +10,7 @@ public class ContentToken : Token
 	public List<Token> Tokens { get; private set; }  = new List<Token>();
 	public bool IsEmpty => Tokens.Count == 0;
 
-	public new ParenthesisType Type { get; private set; }
+	public new ParenthesisType Type { get; set; }
 
 	public int GetSectionCount()
 	{

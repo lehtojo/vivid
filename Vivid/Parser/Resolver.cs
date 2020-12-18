@@ -148,6 +148,30 @@ public static class Resolver
 	}
 
 	/// <summary>
+	/// Return all supertypes of the specified type and output them to the specified supertype list.
+	/// The output supertypes are in priority order.
+	/// </summary>
+	public static List<Type> GetAllTypes(Type type)
+	{
+		var batch = new List<Type>(type.Supertypes);
+		var supertypes = new List<Type>(type.Supertypes);
+
+		while (batch.Any())
+		{
+			var copy = new List<Type>(batch);
+
+			batch.Clear();
+			batch.AddRange(copy.SelectMany(i => i.Supertypes));
+
+			supertypes.AddRange(batch);
+		}
+
+		supertypes.Insert(0, type);
+
+		return supertypes;
+	}
+
+	/// <summary>
 	/// Returns the shared type between the types
 	/// </summary>
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
@@ -173,7 +197,18 @@ public static class Resolver
 			return GetSharedNumber(x, y);
 		}
 
-		return actual.IsSuperTypeDeclared(expected) ? expected : Types.UNKNOWN;
+		var expected_supertypes = GetAllTypes(expected);
+		var actual_supertypes = GetAllTypes(actual);
+
+		foreach (var supertype in expected_supertypes)
+		{
+			if (actual_supertypes.Contains(supertype))
+			{
+				return supertype;
+			}
+		}
+
+		return Types.UNKNOWN;
 	}
 
 	/// <summary>
@@ -183,12 +218,13 @@ public static class Resolver
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	private static Type? GetSharedType(IReadOnlyList<Type> types)
 	{
-		switch (types.Count)
+		if (types.Count == 0)
 		{
-			case 0:
-				return Types.UNKNOWN;
-			case 1:
-				return types[0];
+			return Types.UNKNOWN;
+		}
+		else if (types.Count == 1)
+		{
+			return types[0];
 		}
 
 		var current = types[0];

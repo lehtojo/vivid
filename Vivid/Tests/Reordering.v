@@ -1,6 +1,6 @@
 ﻿Holder {
-	value: num
-	other: num
+	value: large
+	other: large
 }
 
 # Without reordering:

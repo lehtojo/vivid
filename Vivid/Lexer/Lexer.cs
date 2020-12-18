@@ -3,6 +3,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1032", Justification = "Lexer exception should not be constructed without a position")]
+public class LexerException : Exception
+{
+	public Position Position { get; private set; }
+	public string Description { get; private set; }
+
+	public LexerException(Position position, string description)
+	{
+		Position = position;
+		Description = description;
+	}
+}
+
 public enum AreaType
 {
 	UNSPECIFIED,
@@ -270,7 +283,7 @@ public static class Lexer
 			}
 		}
 
-		throw Errors.Get(start, "Could not find closing parenthesis");
+		throw new LexerException(start, "Could not find closing parenthesis");
 	}
 
 	/// <summary>
@@ -295,7 +308,7 @@ public static class Lexer
 
 			if (j == -1)
 			{
-				throw new ApplicationException($"Multiline comment did not have a closing '{MULTILINE_COMMENT}'");
+				throw new LexerException(start, $"Multiline comment did not have a closing '{MULTILINE_COMMENT}'");
 			}
 
 			// Skip to the end of the multiline comment
@@ -394,19 +407,19 @@ public static class Lexer
 		}
 		else
 		{
-			Errors.Abort("Could not understand string command");
+			throw new LexerException(position, $"Could not understand string command '{command}'");
 		}
 
 		var hexadecimal = text.Substring(2);
 		
 		if (hexadecimal.Length != length)
 		{
-			throw Errors.Get(position, "Invalid character");
+			throw new LexerException(position, "Invalid character");
 		}
 
 		if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value))
 		{
-			throw Errors.Get(position, error);
+			throw new LexerException(position, error);
 		}
 
 		return value;
@@ -422,14 +435,14 @@ public static class Lexer
 
 		if (text.Length == 0)
 		{
-			throw Errors.Get(position, "Character value was empty");
+			throw new LexerException(position, "Character value was empty");
 		}
 
 		if (text.First() != '\\')
 		{
 			if (text.Length != 1)
 			{
-				throw Errors.Get(position, "Character value allows only one character");
+				throw new LexerException(position, "Character value allows only one character");
 			}
 
 			return text.First();
@@ -437,7 +450,7 @@ public static class Lexer
 
 		if (text.Length <= 2)
 		{
-			throw Errors.Get(position, "Invalid character");
+			throw new LexerException(position, "Invalid character");
 		}
 
 		return GetSpecialCharacterValue(position, text);
@@ -520,7 +533,7 @@ public static class Lexer
 				// There cannot be number and content tokens side by side
 				if (area.Type == AreaType.NUMBER)
 				{
-					throw Errors.Get(position, "Missing operator between number and parenthesis");
+					throw new LexerException(position, "Missing operator between number and parenthesis");
 				}
 
 				break;
@@ -574,12 +587,12 @@ public static class Lexer
 		return area.Type switch
 		{
 			AreaType.TEXT => ParseTextToken(area.Text),
-			AreaType.NUMBER => new NumberToken(area.Text),
-			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw Errors.Get(area.Start, $"Unknown operator '{area.Text}'")),
+			AreaType.NUMBER => new NumberToken(area.Text, area.Start),
+			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw new LexerException(area.Start, $"Unknown operator '{area.Text}'")),
 			AreaType.CONTENT => new ContentToken(area.Text, area.Start),
 			AreaType.END => new Token(TokenType.END),
 			AreaType.STRING => new StringToken(area.Text),
-			_ => throw Errors.Get(area.Start, new Exception(string.Format(CultureInfo.InvariantCulture, "Unknown token '{0}'", area.Text))),
+			_ => throw new LexerException(area.Start, $"Unknown token '{area.Text}'"),
 		};
 	}
 
@@ -681,5 +694,29 @@ public static class Lexer
 		}
 
 		return tokens;
+	}
+
+	/// <summary>
+	/// Ensures all the tokens have a reference to the specified file
+	/// </summary>
+	public static void RegisterFile(List<Token> tokens, File file)
+	{
+		foreach (var token in tokens)
+		{
+			token.Position.File = file;
+
+			if (token.Is(TokenType.CONTENT))
+			{
+				RegisterFile(token.To<ContentToken>().Tokens, file);
+			}
+			else if (token.Is(TokenType.FUNCTION))
+			{
+				var function = token.To<FunctionToken>();
+				function.Identifier.Position.File = file;
+				function.Parameters.Position.File = file;
+
+				RegisterFile(function.Parameters.Tokens, file);
+			}
+		}
 	}
 }

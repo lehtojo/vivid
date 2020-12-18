@@ -11,6 +11,8 @@ public class AssemblerPhase : Phase
 
 	private const string COMPILER = "as";
 
+	private const string ASSEMBLY_OUTPUT_EXTENSION = ".asm";
+
 	private const string WINDOWS_ASSEMBLER_FORMAT = "-f win";
 	private const string LINUX_ASSEMBLER_FORMAT = "-f elf";
 
@@ -34,6 +36,11 @@ public class AssemblerPhase : Phase
 	private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
 	private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
 	private static string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
+
+	private static string RED = "\x1B[1;31m";
+	private static string GREEN = "\x1B[1;32m";
+	private static string CYAN = "\x1B[1;36m";
+	private static string RESET = "\x1B[0m";
 
 	/// <summary>
 	/// Returns whether the specified program is installed
@@ -109,7 +116,8 @@ public class AssemblerPhase : Phase
 		arguments.AddRange(new string[]
 		{
 			$"-o {output_file}",
-			input_file
+			input_file,
+			"-g"
 		});
 
 		var status = Run(COMPILER, arguments);
@@ -118,7 +126,7 @@ public class AssemblerPhase : Phase
 		{
 			try
 			{
-				File.Delete(input_file);
+				System.IO.File.Delete(input_file);
 			}
 			catch
 			{
@@ -132,7 +140,7 @@ public class AssemblerPhase : Phase
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private static Status Windows_Link(Bundle bundle, string input_file, string output_name)
+	private static Status Windows_Link(Bundle bundle, IEnumerable<string> input_files, string output_name)
 	{
 		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
 		var output_extension = output_type switch
@@ -146,29 +154,16 @@ public class AssemblerPhase : Phase
 		var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
 		var library_paths = path.Split(';').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"-L \"{p}\"").Select(p => p.Replace('\\', '/'));
 
-		/*var arguments = new List<string>()
-		{
-			$"/out:{output_name + output_extension}",
-			WINDOWS_LINKER_SUBSYSTEM,
-			WINDOWS_LINKER_ENTRY,
-			WINDOWS_LINKER_DEBUG,
-			WINDOWS_LARGE_ADDRESS_UNAWARE,
-			WINDOWS_HEAP_SIZE,
-			"kernel32.lib",
-			"user32.lib",
-			input_file,
-			StandardLibrary
-		};*/
-
 		var arguments = new List<string>()
 		{
 			$"-o {output_name + output_extension}",
 			"-e main",
 			"-lkernel32",
 			"-luser32",
-			input_file,
 			StandardLibrary
 		};
+
+		arguments.AddRange(input_files);
 
 		if (output_type == BinaryType.SHARED_LIBRARY)
 		{
@@ -188,27 +183,13 @@ public class AssemblerPhase : Phase
 			arguments.Add(library);
 		}
 
-		var result = Run(WINDOWS_LINKER, arguments);
-
-		try
-		{
-			if (!Assembler.IsDebuggingEnabled)
-			{
-				File.Delete(input_file);
-			}
-		}
-		catch
-		{
-			Console.WriteLine("Warning: Could not remove generated object file");
-		}
-
-		return result;
+		return Run(WINDOWS_LINKER, arguments);
 	}
 
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private static Status Linux_Link(Bundle bundle, string input_file, string output_file)
+	private static Status Linux_Link(Bundle bundle, IEnumerable<string> input_files, string output_file)
 	{
 		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
 
@@ -224,7 +205,6 @@ public class AssemblerPhase : Phase
 			{
 				flag,
 				$"-o {output_file}{extension}",
-				input_file,
 				StandardLibrary
 			};
 		}
@@ -233,10 +213,11 @@ public class AssemblerPhase : Phase
 			arguments = new List<string>()
 			{
 				$"-o {output_file}",
-				input_file,
 				StandardLibrary
 			};
 		}
+
+		arguments.AddRange(input_files);
 
 		var libraries = bundle.Get("libraries", Array.Empty<string>());
 
@@ -245,18 +226,57 @@ public class AssemblerPhase : Phase
 			arguments.Add("-l" + library);
 		}
 
-		var result = Run(LINUX_LINKER, arguments);
+		return Run(LINUX_LINKER, arguments);
+	}
 
-		try
+	public static File[] GetModifiedFiles(Bundle bundle, File[] files)
+	{
+		// If the bundle contains a flag, which forces to rebuild, just return the specified files
+		if (bundle.Get(ConfigurationPhase.REBUILD_FLAG, false))
 		{
-			File.Delete(input_file);
-		}
-		catch
-		{
-			Console.WriteLine("Warning: Could not remove generated object file");
+			return files;
 		}
 
-		return result;
+		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
+		var modified = new List<File>();
+
+		foreach (var file in files)
+		{
+			var object_file = output_name + '.' + file.GetFilenameWithoutExtension() + ObjectFileExtension;
+
+			if (!System.IO.File.Exists(object_file))
+			{
+				if (Assembler.IsVerboseOutputEnabled)
+				{
+					Console.WriteLine($"{file.Fullname} {CYAN}is a new file{RESET}");
+				}
+				
+				modified.Add(file);
+				continue;
+			}
+
+			var source_file_last_write = System.IO.File.GetLastWriteTime(file.Fullname);
+			var object_file_last_write = System.IO.File.GetLastWriteTime(object_file);
+
+			if (source_file_last_write < object_file_last_write)
+			{
+				if (Assembler.IsVerboseOutputEnabled)
+				{
+					Console.WriteLine($"{file.Fullname} {GREEN}has not changed{RESET}");
+				}
+
+				continue;
+			}
+
+			if (Assembler.IsVerboseOutputEnabled)
+			{
+				Console.WriteLine($"{file.Fullname} {RED}has changed{RESET}");
+			}
+
+			modified.Add(file);
+		}
+
+		return modified.ToArray();
 	}
 
 	public override Status Execute(Bundle bundle)
@@ -267,17 +287,18 @@ public class AssemblerPhase : Phase
 		}
 
 		var parse = bundle.Get<Parse>("parse");
+		var files = bundle.Get(FilePhase.OUTPUT, Array.Empty<File>());
+		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
 
-		var output_file = bundle.Get("output", ConfigurationPhase.DEFAULT_OUTPUT);
-		var source_file = output_file + ".asm";
-		var object_file = output_file + ObjectFileExtension;
+		// Filter out files that have not changed since the last compilation
+		var modified = GetModifiedFiles(bundle, files);
 
 		var context = parse.Context;
-		string? assembly;
+		var assemblies = new Dictionary<File, string>();
 
 		try
 		{
-			assembly = Assembler.Assemble(context).TrimEnd();
+			assemblies = Assembler.Assemble(context, modified);
 		}
 		catch (Exception e)
 		{
@@ -286,7 +307,13 @@ public class AssemblerPhase : Phase
 
 		try
 		{
-			File.WriteAllText(source_file, assembly);
+			foreach (var file in modified)
+			{
+				var assembly = assemblies[file];
+				var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
+
+				System.IO.File.WriteAllText(assembly_file, assembly);
+			}
 		}
 		catch
 		{
@@ -295,18 +322,26 @@ public class AssemblerPhase : Phase
 
 		Status status;
 
-		if ((status = Compile(bundle, source_file, object_file)).IsProblematic)
+		foreach (var file in modified)
 		{
-			return status;
+			var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
+			var object_file = output_name + '.' + file.GetFilenameWithoutExtension() + ObjectFileExtension;
+
+			if ((status = Compile(bundle, assembly_file, object_file)).IsProblematic)
+			{
+				return status;
+			}
 		}
+
+		var object_files = files.Select(i => output_name + '.' + i.GetFilenameWithoutExtension() + ObjectFileExtension).ToArray();
 
 		if (IsLinux)
 		{
-			return Linux_Link(bundle, object_file, output_file);
+			return Linux_Link(bundle, object_files, output_name);
 		}
 		else
 		{
-			return Windows_Link(bundle, object_file, output_file);
+			return Windows_Link(bundle, object_files, output_name);
 		}
 	}
 }

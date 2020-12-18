@@ -1,5 +1,3 @@
-using System;
-
 public static class Types
 {
 	public const Type UNKNOWN = null;
@@ -21,6 +19,10 @@ public static class Types
 
 	public static readonly Decimal DECIMAL = new Decimal();
 
+	public static readonly L16 L16 = new L16();
+	public static readonly L32 L32 = new L32();
+	public static readonly L64 L64 = new L64();
+
 	public static bool IsPrimitive(Type type)
 	{
 		return (type is Number || type is Bool) && type != Types.LINK;
@@ -40,19 +42,12 @@ public static class Types
 		context.Declare(U32);
 		context.Declare(U64);
 		context.Declare(DECIMAL);
-
-		switch (Parser.Bytes)
-		{
-			case 1: { context.DeclareTypeAlias("num", TINY); break; }
-			case 2: { context.DeclareTypeAlias("num", SMALL); break; }
-			case 4: { context.DeclareTypeAlias("num", NORMAL); break; }
-			case 8: { context.DeclareTypeAlias("num", LARGE); break; }
-
-			default: throw new ApplicationException("Could not declare alias type 'num'");
-		}
+		context.Declare(L16);
+		context.Declare(L32);
+		context.Declare(L64);
 
 		context.DeclareTypeAlias("byte", U8);
-
+		context.DeclareTypeAlias("l8", LINK);
 		context.DeclareTypeAlias("i8", TINY);
 		context.DeclareTypeAlias("i16", SMALL);
 		context.DeclareTypeAlias("i32", NORMAL);

@@ -114,7 +114,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				else if (IsConstantValidForExtendedMultiplication(value - 1))
 				{
 					// Example: imul rax, 3 => lea ..., [rax*2+rax]
-					var calculation = new CalculationHandle
+					var calculation = new ExpressionHandle
 					(
 						multiplication.Other,
 						(int)value - 1,
@@ -133,7 +133,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 						new InstructionParameter(
 							new Result(calculation, Assembler.Format),
 							ParameterFlag.NONE,
-							HandleType.CALCULATION
+							HandleType.EXPRESSION
 						)
 					);
 

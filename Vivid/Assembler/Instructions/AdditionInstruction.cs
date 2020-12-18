@@ -96,7 +96,7 @@ public class AdditionInstruction : DualParameterInstruction
 			return;
 		}
 
-		var calculation = CalculationHandle.CreateAddition(First, Second);
+		var calculation = ExpressionHandle.CreateAddition(First, Second);
 
 		Build(
 			EXTENDED_ADDITION_INSTRUCTION,
@@ -109,7 +109,7 @@ public class AdditionInstruction : DualParameterInstruction
 			new InstructionParameter(
 				new Result(calculation, Assembler.Format),
 				ParameterFlag.NONE,
-				HandleType.CALCULATION
+				HandleType.EXPRESSION
 			)
 		);
 	}
@@ -128,7 +128,7 @@ public class AdditionInstruction : DualParameterInstruction
 		{
 			Operation = EXTENDED_ADDITION_INSTRUCTION;
 
-			var calculation = CalculationHandle.CreateAddition(first.Value!, second.Value!);
+			var calculation = ExpressionHandle.CreateAddition(first.Value!, second.Value!);
 
 			Parameters.Clear();
 			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));

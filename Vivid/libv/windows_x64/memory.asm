@@ -107,3 +107,23 @@ rep stosb
 
 pop rdi
 ret
+
+; rcx: Bytes
+.global _V14allocate_stackx_rPh
+_V14allocate_stackx_rPh:
+pop rdx
+sub rsp, rcx
+mov rax, rsp
+jump rdx
+
+; rcx: Bytes
+.global _V16deallocate_stackx_rPh
+_V16deallocate_stackx_rPh:
+pop rax
+add rsp, rcx
+jump rax
+
+.global _V17get_stack_pointerv_rPh
+_V17get_stack_pointerv_rPh:
+lea rax, [rsp+8]
+ret

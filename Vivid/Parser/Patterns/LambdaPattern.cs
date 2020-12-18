@@ -25,7 +25,7 @@ public class LambdaPattern : Pattern
 
 	private static bool TryConsumeBody(Context context, PatternState state)
 	{
-		if (Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS))
+		if (Common.ConsumeBody(state))
 		{
 			return true;
 		}
@@ -65,11 +65,11 @@ public class LambdaPattern : Pattern
 	private static ContentToken GetParameterTokens(List<Token> tokens)
 	{
 		return tokens[PARAMETERS].Type == TokenType.CONTENT
-		   ? tokens[PARAMETERS].To<ContentToken>()
-		   : new ContentToken(tokens[PARAMETERS]);
+			? tokens[PARAMETERS].To<ContentToken>()
+			: new ContentToken(tokens[PARAMETERS]);
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var body = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
 		
@@ -82,8 +82,8 @@ public class LambdaPattern : Pattern
 
 		// Create a function token manually since it contains some useful helper functions
 		var function = new FunctionToken(
-		   new IdentifierToken(name),
-		   GetParameterTokens(tokens)
+			new IdentifierToken(name),
+			GetParameterTokens(tokens)
 		);
 
 		var lambda = new Lambda(

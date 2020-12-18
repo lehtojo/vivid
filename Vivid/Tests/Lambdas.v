@@ -37,7 +37,7 @@ Vector {
 Animal {
 	action: (Animal) => Vector
 
-	type: num
+	type: large
 	position: Vector
 
 	interact(other: Animal) {
@@ -103,18 +103,18 @@ export execute_default_action(action: () => _) {
 }
 
 export create_number_action() {
-	=> (n: num) => println(to_string(n))
+	=> (n: large) => println(to_string(n))
 }
 
-export execute_number_action(action: (num) => _, number: num) {
+export execute_number_action(action: (large) => _, number: large) {
 	action(number)
 }
 
 export create_sum_function() {
-	=> (a: num, b: num) => a + b
+	=> (a: large, b: large) => a + b
 }
 
-export execute_sum_function(function: (num, num) => num, a: num, b: num) {
+export execute_sum_function(function: (large, large) => large, a: large, b: large) {
 	=> function(a, b)
 }
 

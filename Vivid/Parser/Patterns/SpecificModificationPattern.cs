@@ -28,7 +28,7 @@ public class SpecificModificationPattern : Pattern
 		return tokens[OBJECT].To<DynamicToken>().Node.Is(NodeType.VARIABLE, NodeType.FUNCTION_DEFINITION, NodeType.TYPE);
 	}
 
-	public override Node? Build(Context context, List<Token> tokens)
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier;
 

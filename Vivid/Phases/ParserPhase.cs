@@ -20,15 +20,10 @@ public class ParserPhase : Phase
 
 	private void ParseTypes(Node root)
 	{
-		foreach (var node in root)
+		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>();
+
+		foreach (var type in types)
 		{
-			if (!node.Is(NodeType.TYPE))
-			{
-				continue;
-			}
-
-			var type = (TypeNode)node;
-
 			Run(() =>
 			{
 				try
@@ -42,8 +37,6 @@ public class ParserPhase : Phase
 
 				return Status.OK;
 			});
-
-			ParseTypes(type);
 		}
 	}
 
@@ -84,12 +77,6 @@ public class ParserPhase : Phase
 
 				if (overloads == null)
 				{
-					if (virtual_function.Parent != type)
-					{
-						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
-					}
-
 					continue;
 				}
 
@@ -115,13 +102,12 @@ public class ParserPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		if (!bundle.Contains("input_file_tokens"))
+		if (!bundle.Contains(LexerPhase.OUTPUT))
 		{
 			return Status.Error("Nothing to parse");
 		}
 
-		var files = bundle.Get<List<Token>[]>("input_file_tokens");
-		var parses = new Parse[files.Length];
+		var files = bundle.Get<File[]>(LexerPhase.OUTPUT);
 
 		// Form the 'hull' of the code
 		for (var i = 0; i < files.Length; i++)
@@ -130,21 +116,21 @@ public class ParserPhase : Phase
 
 			Run(() =>
 			{
-				var tokens = files[index];
-
-				var node = new Node();
+				var file = files[index];
 				var context = Parser.Initialize();
+				var root = new ContextNode(context);
 
 				try
 				{
-					Parser.Parse(node, context, tokens);
+					Parser.Parse(root, context, file.Tokens);
 				}
 				catch (Exception e)
 				{
 					return Status.Error(e.Message);
 				}
 
-				parses[index] = new Parse(context, node);
+				file.Root = root;
+				file.Context = context;
 
 				return Status.OK;
 			});
@@ -158,13 +144,13 @@ public class ParserPhase : Phase
 		}
 
 		// Parse types, subtypes and their members
-		for (int i = 0; i < files.Length; i++)
+		for (var i = 0; i < files.Length; i++)
 		{
-			int index = i;
+			var index = i;
 
 			Run(() =>
 			{
-				ParseTypes(parses[index].Node);
+				ParseTypes(files[index].Root!);
 				return Status.OK;
 			});
 		}
@@ -178,12 +164,12 @@ public class ParserPhase : Phase
 
 		// Merge all parsed files
 		var context = new Context();
-		var root = new Node();
+		var root = new ContextNode(context);
 
-		foreach (var parse in parses)
+		foreach (var file in files)
 		{
-			context.Merge(parse.Context);
-			root.Merge(parse.Node);
+			context.Merge(file.Context!);
+			root.Merge(file.Root!);
 		}
 
 		// Ensure exported and virtual functions are implemented

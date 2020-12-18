@@ -108,14 +108,16 @@ public static class Parser
 	private class Instance
 	{
 		public Pattern Pattern { get; private set; }
-		public IList<Token> Tokens { get; private set; }
+		public IList<Token> Tokens { get; set; }
 		public List<Token> Formatted { get; private set; }
+		public PatternState State { get; private set; }
 
-		public Instance(Pattern pattern, IList<Token> tokens, List<Token> formatted)
+		public Instance(Pattern pattern, IList<Token> tokens, List<Token> formatted, PatternState state)
 		{
 			Pattern = pattern;
 			Tokens = tokens;
 			Formatted = formatted;
+			State = state;
 		}
 
 		public void Remove()
@@ -135,19 +137,19 @@ public static class Parser
 			return tokens.IndexOf(Tokens.First());
 		}
 
-		private int GetAbsolutePosition(int virtual_position)
+		private int GetAbsolutePosition(int p)
 		{
-			var absolute_position = 0;
+			var x = 0;
 
-			for (var i = 0; i < virtual_position; i++)
+			for (var i = 0; i < p; i++)
 			{
 				if (Formatted[i].Type != TokenType.NONE)
 				{
-					absolute_position++;
+					x++;
 				}
 			}
 
-			return absolute_position;
+			return x;
 		}
 
 		public Range GetRange()
@@ -194,7 +196,7 @@ public static class Parser
 	/// <param name="tokens">Tokens to scan through</param>
 	/// <param name="priority">Pattern priority used for filtering</param>
 	/// <returns>Success: Next important pattern in tokens, Failure null</returns>
-	private static Instance? Next(Context context, List<Token> tokens, int min, int priority, List<System.Type> whitelist, int start = 0)
+	private static Instance? Next(Context context, List<Token> tokens, int min, int priority, List<System.Type> allowlist, int start = 0)
 	{
 		for (; start < tokens.Count; start++)
 		{
@@ -228,8 +230,8 @@ public static class Parser
 					{
 						var pattern = option.Pattern;
 
-						// Skip this candidate if it's blacklisted
-						if (whitelist.Any() && !whitelist.Exists(i => i == pattern.GetType()))
+						// Skip this candidate if it's denylisted
+						if (allowlist.Any() && !allowlist.Exists(i => i == pattern.GetType()))
 						{
 							continue;
 						}
@@ -238,32 +240,15 @@ public static class Parser
 
 						if (pattern.GetPriority(formatted) == priority)
 						{
-							var state = new PatternState(
-								tokens,
-								formatted,
-								start,
-								end + 1,
-								min,
-								priority
-							);
+							var state = new PatternState(tokens, formatted, start, end + 1, min, priority);
 
 							if (!pattern.Passes(context, state, formatted))
 							{
 								continue;
 							}
 
-							// Determine how many tokens were consumed in the pass function
-							var count = state.End - (end + 1);
-
-							// Rearrange the consumed tokens if tokens where consumed
-							if (count > 0)
-							{
-								candidate = tokens.Sublist(start, state.End);
-
-								//end = state.End;
-							}
-
-							instance = new Instance(pattern, candidate, state.Formatted);
+							candidate = tokens.Sublist(state.Start, state.End);
+							instance = new Instance(pattern, candidate, state.Formatted, state);
 							break;
 						}
 					}
@@ -384,7 +369,7 @@ public static class Parser
 	{
 		if (patterns.Exists(p => !p.IsSubclassOf(typeof(Pattern))))
 		{
-			throw new ArgumentException("Patterns whitelist contained a non-pattern type");
+			throw new ArgumentException("Pattern list contained a non-pattern type");
 		}
 
 		var result = new List<Token>();
@@ -404,7 +389,9 @@ public static class Parser
 
 			// Build the pattern into a node
 			var pattern = instance.Pattern;
-			var node = pattern.Build(context, instance.Formatted);
+			var node = pattern.Build(context, instance.State, instance.Formatted);
+
+			instance.Tokens = clone.Sublist(instance.State.Start, instance.State.End);
 
 			if (node != null)
 			{
@@ -461,24 +448,25 @@ public static class Parser
 		RemoveLineEndingDuplications(tokens);
 		CreateFunctionCalls(tokens);
 
-		var blacklist = new List<System.Type>();
+		var denylist = new List<System.Type>();
 		
 		for (var priority = max; priority >= min; priority--)
 		{
 			Instance? instance;
 
 			// Find all patterns with the current priority
-			while ((instance = Next(context, tokens, min, priority, blacklist)) != null)
+			while ((instance = Next(context, tokens, min, priority, denylist)) != null)
 			{
 				// Build the pattern into a node
 				var pattern = instance.Pattern;
-				var node = pattern.Build(context, instance.Formatted);
+				var node = pattern.Build(context, instance.State, instance.Formatted);
+
+				instance.Tokens = tokens.Sublist(instance.State.Start, instance.State.End);
 
 				if (node != null)
 				{
 					// Replace the pattern with a dynamic token
-					var token = new DynamicToken(node);
-					instance.Replace(token);
+					instance.Replace(new DynamicToken(node));
 				}
 				else
 				{
@@ -572,15 +560,13 @@ public static class Parser
 		var context = new Context();
 		Types.Inject(context);
 
-		var number = context.GetType("num") ?? throw new ApplicationException("Could not find type 'num'");
-
 		var copy = new Function
 		(
 			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
 			"copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
-			new Parameter("bytes", number),
+			new Parameter("bytes", Types.LARGE),
 			new Parameter("destination", Types.LINK)
 		);
 
@@ -590,9 +576,9 @@ public static class Parser
 			"offset_copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
-			new Parameter("bytes", number),
+			new Parameter("bytes", Types.LARGE),
 			new Parameter("destination", Types.LINK),
-			new Parameter("offset", number)
+			new Parameter("offset", Types.LARGE)
 		);
 
 		var deallocate = new Function
@@ -601,7 +587,7 @@ public static class Parser
 			"deallocate",
 			Types.UNIT,
 			new Parameter("address", Types.LINK),
-			new Parameter("bytes", number)
+			new Parameter("bytes", Types.LARGE)
 		);
 
 		context.Declare(copy);

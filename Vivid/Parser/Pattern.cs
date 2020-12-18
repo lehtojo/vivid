@@ -110,7 +110,7 @@ public abstract class Pattern
 
 	public abstract int GetPriority(List<Token> tokens);
 	public abstract bool Passes(Context context, PatternState state, List<Token> tokens);
-	public abstract Node? Build(Context context, List<Token> tokens);
+	public abstract Node? Build(Context context, PatternState state, List<Token> tokens);
 
 	public virtual int GetStart()
 	{

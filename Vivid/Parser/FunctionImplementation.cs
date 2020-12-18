@@ -5,7 +5,6 @@ using System.Globalization;
 
 public enum CallingConvention
 {
-	CDECL,
 	X64
 }
 
@@ -114,7 +113,11 @@ public class FunctionImplementation : Context
 	{
 		foreach (var properties in parameters)
 		{
-			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC, false);
+			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC, false)
+			{
+				Position = properties.Position
+			};
+
 			Variables.Add(parameter.Name, parameter);
 		}
 	}
@@ -136,7 +139,7 @@ public class FunctionImplementation : Context
 				Function.SELF_POINTER_IDENTIFIER,
 				AccessModifier.PUBLIC
 
-			) { IsSelfPointer = true };
+			) { IsSelfPointer = true, Position = Metadata.Position };
 		}
 
 		Node = new ImplementationNode(this, Metadata.Position);

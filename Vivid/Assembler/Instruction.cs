@@ -227,7 +227,6 @@ public abstract class Instruction
 			// If the current parameter is the destination and it is needed later, then it must me copied to another register
 			if (protect && parameter.Result.IsOnlyValid(Position))
 			{
-				/// TODO: All parameter that include media register type are not floating point numbers
 				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
 			}
 

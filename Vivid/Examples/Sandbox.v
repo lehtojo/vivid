@@ -1,36 +1,13 @@
-Goo {
-	x: num
-	y: num
+A {
+	x: large
 
-	init() {
-		x = 1
-		y = -1
-	}
-
-	foo(c) {
-		=> x + y + c
+	change() {
+		x = -1
+		=> x
 	}
 }
 
 init() {
-	goo = Goo()
-	g = 3.141
-
-	a = 1
-	b = 2
-
-	loop (i = 0, i < 10, i++) {
-		a++
-	}
-
-	b = goo.foo(a + b)
-
-	if a > b {
-		a = 10
-	}
-	else {
-		b = 5
-	}
-
-	=> a + b
+	buffer = allocate<A>(10)
+	=> buffer > 0
 }

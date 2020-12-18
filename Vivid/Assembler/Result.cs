@@ -124,7 +124,7 @@ public class Result
 	private IEnumerable<Result> System => Connections.Concat(new List<Result> { this });
 	private IEnumerable<Result> Others => Connections;
 
-	public bool IsCalculation => _Value.Type == HandleType.CALCULATION;
+	public bool IsExpression => _Value.Type == HandleType.EXPRESSION;
 	public bool IsConstant => _Value.Type == HandleType.CONSTANT;
 	public bool IsStandardRegister => _Value.Type == HandleType.REGISTER;
 	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;

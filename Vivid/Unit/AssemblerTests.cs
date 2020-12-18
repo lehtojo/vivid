@@ -7,11 +7,174 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct Holder : IEquatable<Holder>
+{
+	[FieldOffset(8)] public int Normal;
+	[FieldOffset(12)] public byte Tiny;
+	[FieldOffset(13)] public double Double;
+	[FieldOffset(21)] public long Large;
+	[FieldOffset(29)] public short Small;
+
+	public override bool Equals(object? other)
+	{
+		return other is Holder holder && Equals(holder);
+	}
+
+	public bool Equals(Holder other)
+	{
+		return Normal == other.Normal;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Normal);
+	}
+
+	public static bool operator ==(Holder left, Holder right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Holder left, Holder right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct Apple : IEquatable<Apple>
+{
+	[FieldOffset(8)] public long Weight;
+	[FieldOffset(16)] public double Price;
+
+	public override bool Equals(object? other)
+	{
+		return other is Apple apple &&
+			Weight == apple.Weight &&
+			Price == apple.Price;
+	}
+
+	public bool Equals(Apple other)
+	{
+		return Weight == other.Weight && Price == other.Price;
+	}
+
+	public static bool operator ==(Apple left, Apple right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Apple left, Apple right)
+	{
+		return !(left == right);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Weight, Price);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct Car : IEquatable<Car>
+{
+	[FieldOffset(8)] public double Price;
+	[FieldOffset(16)] public long Weight;
+	[FieldOffset(24)] public IntPtr Brand;
+
+	public override bool Equals(object? other)
+	{
+		return other is Car car &&
+			Price == car.Price &&
+			Weight == car.Weight &&
+			Brand.Equals(car.Brand);
+	}
+
+	public bool Equals(Car other)
+	{
+		return Price == other.Price && Weight == other.Weight && Brand == other.Brand;
+	}
+
+	public static bool operator ==(Car left, Car right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Car left, Car right)
+	{
+		return !(left == right);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Price, Weight, Brand);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct String : IEquatable<String>
+{
+	[FieldOffset(8)] public IntPtr Data;
+
+	public static String From(IntPtr data)
+	{
+		return (String?)Marshal.PtrToStructure(data, typeof(String)) ?? throw new ApplicationException("Native code returned an invalid string object");
+	}
+
+	public String(string text)
+	{
+		Data = Marshal.AllocHGlobal(text.Length + 1);
+		Marshal.Copy(Encoding.UTF8.GetBytes(text), 0, Data, text.Length);
+		Marshal.WriteByte(Data, text.Length, 0);
+	}
+
+	public void Assert(string expected)
+	{
+		var expected_bytes = Encoding.UTF8.GetBytes(expected);
+		var actual_bytes = new byte[expected_bytes.Length];
+		Marshal.Copy(Data, actual_bytes, 0, actual_bytes.Length);
+
+		NUnit.Framework.Assert.AreEqual(expected_bytes, actual_bytes);
+		NUnit.Framework.Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is String text && Data.Equals(text.Data);
+	}
+
+	public bool Equals(String other)
+	{
+		return Data == other.Data;
+	}
+
+	public static bool operator ==(String left, String right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(String left, String right)
+	{
+		return !(left == right);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Data);
+	}
+}
 
 namespace Vivid.Unit
 {
 	[TestFixture]
-	class AssemblerTests
+	public class AssemblerTests
 	{
 		private const bool IsOptimizationEnabled = true;
 
@@ -129,7 +292,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "--shared", "--asm", "-o", Prefix + output };
+			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
 
 			if (IsOptimizationEnabled)
 			{
@@ -158,7 +321,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "--asm", "-o", Prefix + output };
+			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
 
 			#pragma warning disable 162
 			if (IsOptimizationEnabled)
@@ -210,14 +373,19 @@ namespace Vivid.Unit
 			}
 		}
 
-		private static string LoadAssemblyOutput(string output)
+		private static string LoadAssemblyOutput(string project)
 		{
-			return File.ReadAllText(Prefix + output + ".asm");
+			return LoadAssemblyOutput(project, project);
+		}
+
+		private static string LoadAssemblyOutput(string project, string file)
+		{
+			return System.IO.File.ReadAllText(Prefix + project + '.' + file + ".asm");
 		}
 
 		private static string LoadAssemblyFunction(string output, string function)
 		{
-			var assembly = File.ReadAllText(Prefix + output + ".asm");
+			var assembly = System.IO.File.ReadAllText(Prefix + output + ".asm");
 			var start = assembly.IndexOf(function + ':');
 			var end = assembly.IndexOf("\n\n", start);
 
@@ -464,16 +632,6 @@ namespace Vivid.Unit
 			Evacuation_Test();
 		}
 
-		[StructLayout(LayoutKind.Explicit)]
-		public struct Holder
-		{
-			[FieldOffset(8)] public int Normal;
-			[FieldOffset(12)] public byte Tiny;
-			[FieldOffset(13)] public double Double;
-			[FieldOffset(21)] public long Large;
-			[FieldOffset(29)] public short Small;
-		}
-
 		private static void Assignment_Test()
 		{
 			var target = new Holder();
@@ -571,7 +729,7 @@ namespace Vivid.Unit
 		private static void PI_Test()
 		{
 			string actual = Execute("PI");
-			string expected = File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
+			string expected = System.IO.File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -590,7 +748,7 @@ namespace Vivid.Unit
 		private static void Fibonacci_Test()
 		{
 			string actual = Execute("Fibonacci");
-			string expected = File.ReadAllText(GetProjectFile("Fibonacci_Output.txt", TESTS)).Replace("\r\n", "\n");
+			string expected = System.IO.File.ReadAllText(GetProjectFile("Fibonacci_Output.txt", TESTS)).Replace("\r\n", "\n");
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -643,7 +801,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(-10799508, _V20register_utilizationxxxxxxx_rx(90, 7, 1, 1, 1, 1, 1));
 
 			// Ensure the assembly function has exactly one memory address since otherwise the compiler wouldn't be utilizing registers as much as it should
-			Assert.AreEqual(1, GetMemoryAddressCount(LoadAssemblyFunction("RegisterUtilization", "_V20register_utilizationxxxxxxx_rx")));
+			Assert.AreEqual(1, GetMemoryAddressCount(LoadAssemblyFunction("RegisterUtilization.RegisterUtilization", "_V20register_utilizationxxxxxxx_rx")));
 		}
 
 		[TestCase]
@@ -694,7 +852,7 @@ namespace Vivid.Unit
 		[TestCase]
 		public void LargeFunctions()
 		{
-			if (!Compile("LargeFunctions", new[] { "LargeFunctions.v", GetProjectFile("Core.v", LIBV) }))
+			if (!Compile("LargeFunctions", new[] { "LargeFunctions.v" }))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -801,48 +959,6 @@ namespace Vivid.Unit
 			LogicalOperators_Test();
 		}
 
-		[StructLayout(LayoutKind.Explicit)]
-		public struct Apple
-		{
-			[FieldOffset(8)] public long Weight;
-			[FieldOffset(16)] public double Price;
-		}
-
-		[StructLayout(LayoutKind.Explicit)]
-		public struct Car
-		{
-			[FieldOffset(8)] public double Price;
-			[FieldOffset(16)] public long Weight;
-			[FieldOffset(24)] public IntPtr Brand;
-		}
-
-		[StructLayout(LayoutKind.Explicit)]
-		public struct String
-		{
-			[FieldOffset(8)] public IntPtr Data;
-
-			public static String From(IntPtr data)
-			{
-				return (String?)Marshal.PtrToStructure(data, typeof(String)) ?? throw new ApplicationException("Native code returned an invalid string object");
-			}
-
-			public String(string text)
-			{
-				Data = Marshal.AllocHGlobal(text.Length + 1);
-				Marshal.Copy(Encoding.UTF8.GetBytes(text), 0, Data, text.Length);
-				Marshal.WriteByte(Data, text.Length, 0);
-			}
-
-			public void Assert(string expected)
-			{
-				var expected_bytes = Encoding.UTF8.GetBytes(expected);
-				var actual_bytes = new byte[expected_bytes.Length];
-				Marshal.Copy(Data, actual_bytes, 0, actual_bytes.Length);
-
-				NUnit.Framework.Assert.AreEqual(expected_bytes, actual_bytes);
-				NUnit.Framework.Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
-			}
-		}
 
 		[DllImport("Unit_Objects", ExactSpelling = true)]
 		private static extern IntPtr _V12create_applev_rP5Apple();
@@ -1212,7 +1328,7 @@ namespace Vivid.Unit
 		private static void Lambdas_Test()
 		{
 			string actual = Execute("Lambdas");
-			string expected = File.ReadAllText(GetProjectFile("Lambdas.txt", TESTS));
+			string expected = System.IO.File.ReadAllText(GetProjectFile("Lambdas.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1231,7 +1347,7 @@ namespace Vivid.Unit
 		private static void Virtuals_Test()
 		{
 			string actual = Execute("Virtuals");
-			string expected = File.ReadAllText(GetProjectFile("Virtuals.txt", TESTS));
+			string expected = System.IO.File.ReadAllText(GetProjectFile("Virtuals.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1368,7 +1484,7 @@ namespace Vivid.Unit
 		[TestCase]
 		public void Is()
 		{
-			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Core.v", LIBV), GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!Compile("Is", new[] { "Is.v", GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
 				Assert.Fail("Failed to compile");
 			}

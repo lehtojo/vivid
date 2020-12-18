@@ -1,4 +1,4 @@
-import sleep(seconds: num)
+import sleep(seconds: large)
 
 init() {
    socket = Socket()

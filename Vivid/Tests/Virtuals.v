@@ -16,7 +16,7 @@ execute_virtual_type_one() {
 }
 
 InheritantTwo {
-    a: num
+    a: large
 
     bar()
 }
@@ -39,9 +39,9 @@ execute_virtual_type_two() {
 }
 
 InheritantThree {
-    b: num
+    b: large
 
-    baz(x: tiny, y: small): num
+    baz(x: tiny, y: small): large
 }
 
 InheritantThree VirtualTypeThree {

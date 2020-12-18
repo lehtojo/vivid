@@ -1,22 +1,22 @@
 Array<T> {
-	private data: link
-	count: num
+	private data: link<T>
+	count: large
 	
-	init(count: num) {
-		this.data = allocate(count * T.size)
+	init(count: large) {
+		this.data = allocate(count * sizeof(T))
 		this.count = count
 	}
 	
-	set(i: num, value: T) {
-		data[i * T.size] as T = value
+	set(i: large, value: T) {
+		data[i] = value
 	}
 	
-	get(i: num) {
-		=> data[i * T.size] as T
+	get(i: large) {
+		=> data[i]
 	}
 	
 	deinit() {
-		deallocate(data, count * T.size)
+		deallocate(data, count)
 	}
 }
 

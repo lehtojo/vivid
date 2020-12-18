@@ -7,12 +7,12 @@ public class AppendPositionInstruction : Instruction
 
 	public new Position Position { get; private set; }
 
-	public static string GetPositionInstruction(Position position, int file)
+	public static string GetPositionInstruction(Position position)
 	{
 		var line = position.FriendlyLine.ToString(CultureInfo.InvariantCulture);
 		var character = position.FriendlyCharacter.ToString(CultureInfo.InvariantCulture);
 
-		return INSTRUCTION + ' ' + file.ToString(CultureInfo.InvariantCulture) + ' ' + line + ' ' + character;
+		return INSTRUCTION + " 1 " + line + ' ' + character;
 	}
 
 	public AppendPositionInstruction(Unit unit, Position position) : base(unit)
@@ -25,7 +25,7 @@ public class AppendPositionInstruction : Instruction
 		var line = Position.FriendlyLine.ToString(CultureInfo.InvariantCulture);
 		var character = Position.FriendlyCharacter.ToString(CultureInfo.InvariantCulture);
 
-		Build(GetPositionInstruction(Position, 1));
+		Build(GetPositionInstruction(Position));
 	}
 
 	public override InstructionType GetInstructionType()

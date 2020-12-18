@@ -22,7 +22,7 @@ export forever_loop() {
 	=> result
 }
 
-export conditional_loop(i: num) {
+export conditional_loop(i: large) {
 	loop (i < 10) {
 		++i
 	}
@@ -30,12 +30,12 @@ export conditional_loop(i: num) {
 	=> i
 }
 
-export conditional_action_loop(i: num) {
+export conditional_action_loop(i: large) {
 	loop (i < 1000, i *= 2) {}
 	=> i
 }
 
-export normal_for_loop(start: num, count: num) {
+export normal_for_loop(start: large, count: large) {
 	result = start
 
 	loop (i = 0, i < count, ++i) {
@@ -45,7 +45,7 @@ export normal_for_loop(start: num, count: num) {
 	=> result
 }
 
-export normal_for_loop_with_stop(start: num, count: num) {
+export normal_for_loop_with_stop(start: large, count: large) {
 	result = start
 
 	loop (i = 0, i <= count, ++i) {
@@ -61,7 +61,7 @@ export normal_for_loop_with_stop(start: num, count: num) {
 	=> result
 }
 
-export normal_for_loop_with_continue(start: num, count: num) {
+export normal_for_loop_with_continue(start: large, count: large) {
 	result = start
 
 	loop (i = 0, i < count, ++i) {
@@ -77,7 +77,7 @@ export normal_for_loop_with_continue(start: num, count: num) {
 	=> result
 }
 
-export nested_for_loops(memory: link, width: num) {
+export nested_for_loops(memory: link, width: large) {
 	w = 0
 
 	loop (z = 0, z < width, ++z) {
@@ -110,7 +110,7 @@ export nested_for_loops(memory: link, width: num) {
 
 import large_function()
 
-export normal_for_loop_with_memory_evacuation(start: num, count: num) {
+export normal_for_loop_with_memory_evacuation(start: large, count: large) {
 	loop (i = start, i < count, ++i) {
 		large_function()
 	}
