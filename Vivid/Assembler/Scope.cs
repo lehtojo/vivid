@@ -202,7 +202,7 @@ public sealed class Scope : IDisposable
 		// All edited variables that are constants must be moved to registers or into memory
 		foreach (var variable in edited_variables)
 		{
-			unit.Append(new LoadOnlyIfConstantInstruction(unit, variable)
+			unit.Append(new SetModifiableInstruction(unit, variable)
 			{
 				Description = $"Loads the variable '{variable.Name}' into a register or memory if it's a constant"
 			});
@@ -249,7 +249,7 @@ public sealed class Scope : IDisposable
 		// All edited variables that are constants must be moved to registers or into memory
 		foreach (var variable in edited_variables)
 		{
-			unit.Append(new LoadOnlyIfConstantInstruction(unit, variable));
+			unit.Append(new SetModifiableInstruction(unit, variable));
 		}
 	}
 
@@ -418,7 +418,7 @@ public sealed class Scope : IDisposable
 
 			var register = (Register?)null;
 
-			if ((unit.Function.IsMember || unit.Function.IsLambda) && !unit.Function.IsConstructor)
+			if (unit.Function.IsMember || unit.Function.IsLambda)
 			{
 				var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 

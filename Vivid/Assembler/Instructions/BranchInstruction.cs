@@ -1,5 +1,8 @@
 using System;
 
+/// <summary>
+/// This instructions seems to do nothing at the moment, so it's to be removed
+/// </summary>
 public class BranchInstruction : Instruction
 {
 	public Node[] Branches { get; private set; }

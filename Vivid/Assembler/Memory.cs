@@ -4,6 +4,25 @@ using System.Linq;
 
 public static class Memory
 {
+	public static Result LoadOperand(Unit unit, Result operand, bool media_register, bool assigns)
+	{
+		if (!assigns)
+		{
+			return operand;
+		}
+
+		if (operand.IsMemoryAddress)
+		{
+			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, operand.GetRecommendation(unit));
+		}
+		else
+		{
+			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, operand.GetRecommendation(unit));
+		}
+
+		return operand;
+	}
+
 	/// <summary>
 	/// Minimizes intersection between the specified move instructions and tries to use exchange instructions
 	/// </summary>
@@ -14,25 +33,27 @@ public static class Memory
 		var exchanges = new List<ExchangeInstruction>();
 		var exchanged_indices = new SortedSet<int>();
 
-		for (var i = 0; i < result.Count; i++)
+		if (Assembler.IsX64)
 		{
-			for (var j = 0; j < result.Count; j++)
+			for (var i = 0; i < result.Count; i++)
 			{
-				if (i == j || exchanged_indices.Contains(i) || exchanged_indices.Contains(j))
+				for (var j = 0; j < result.Count; j++)
 				{
-					continue;
-				}
+					if (i == j || exchanged_indices.Contains(i) || exchanged_indices.Contains(j))
+					{
+						continue;
+					}
 
-				var current = result[i];
-				var other = result[j];
+					var current = result[i];
+					var other = result[j];
 
-				if (current.First.Value.Equals(other.Second.Value) &&
-					current.Second.Value.Equals(other.First.Value))
-				{
-					exchanges.Add(new ExchangeInstruction(unit, current.Second, other.Second, false));
-					exchanged_indices.Add(i);
-					exchanged_indices.Add(j);
-					break;
+					if (current.First.Value.Equals(other.Second.Value) && current.Second.Value.Equals(other.First.Value))
+					{
+						exchanges.Add(new ExchangeInstruction(unit, current.Second, other.Second, false));
+						exchanged_indices.Add(i);
+						exchanged_indices.Add(j);
+						break;
+					}
 				}
 			}
 		}
@@ -219,7 +240,7 @@ public static class Memory
 			// Try to direct towards the next return register
 			var register = x.GetClosestReturnInstruction(unit.Position).ReturnRegister;
 
-			return register.IsAvailable(unit.Position) ? register : null;
+			return register;
 		}
 		else if (hint is AvoidRegisters y)
 		{
@@ -228,7 +249,7 @@ public static class Memory
 		}
 		else if (hint is DirectToRegister z)
 		{
-			return z.Register.IsAvailable(unit.Position) ? z.Register : null;
+			return z.Register;
 		}
 
 		return null;
@@ -237,11 +258,11 @@ public static class Memory
 	/// <summary>
 	/// Determines the next register
 	/// </summary>
-	public static Register GetNextRegister(Unit unit, bool media_register, IHint? hint = null)
+	public static Register GetNextRegister(Unit unit, bool media_register, IHint? hint = null, bool is_result = false)
 	{
 		var register = hint != null ? Consider(unit, hint, media_register) : null;
 
-		if (register == null || media_register != register.IsMediaRegister || !register.IsAvailable(unit.Position))
+		if (register == null || media_register != register.IsMediaRegister || (is_result ? !register.IsAvailable(unit.Position + 1) : !register.IsAvailable(unit.Position)))
 		{
 			return media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 		}
@@ -381,14 +402,29 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to an available register
+	/// Moves the specified result to an available register
 	/// </summary>
-	public static void GetRegisterFor(Unit unit, Result value, bool media_register)
+	public static void GetRegisterFor(Unit unit, Result result, bool media_register)
 	{
-		var register = GetNextRegister(unit, media_register, value.GetRecommendation(unit));
+		var register = GetNextRegister(unit, media_register, result.GetRecommendation(unit));
 
-		register.Handle = value;
-		value.Value = new RegisterHandle(register);
+		register.Handle = result;
+
+		result.Value = new RegisterHandle(register);
+		result.Format = media_register ? Format.DECIMAL : Assembler.Format;
+	}
+
+	/// <summary>
+	/// Moves the specified result to an available register
+	/// </summary>
+	public static void GetResultRegisterFor(Unit unit, Result result, bool media_register)
+	{
+		var register = GetNextRegister(unit, media_register, result.GetRecommendation(unit), true);
+
+		register.Handle = result;
+
+		result.Value = new RegisterHandle(register);
+		result.Format = media_register ? Format.DECIMAL : Assembler.Format;
 	}
 
 	public static Result Convert(Unit unit, Result result, Size size, HandleType[] types, bool protect, IHint? recommendation)
@@ -439,6 +475,19 @@ public static class Memory
 				{
 					return CopyToRegister(unit, destination, size, is_media_register, recommendation);
 				}
+			}
+
+			case HandleType.MEMORY:
+			{
+				if (!Assembler.IsArm64 || !(result.Value is DataSectionHandle handle))
+				{
+					return null;
+				}
+
+				var address = new GetRelativeAddressInstruction(unit, handle).Execute();
+				var offset = new Result(new Lower12Bits(handle), Assembler.Format);
+
+				return new Result(new ComplexMemoryHandle(address, offset, 1), result.Format);
 			}
 
 			case HandleType.NONE:

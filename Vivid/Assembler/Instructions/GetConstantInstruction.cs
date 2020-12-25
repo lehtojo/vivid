@@ -1,3 +1,7 @@
+/// <summary>
+/// Returns a handle to the specified constant value
+/// This instruction works on all architectures
+/// </summary>
 public class GetConstantInstruction : Instruction
 {
 	public object Value { get; private set; }

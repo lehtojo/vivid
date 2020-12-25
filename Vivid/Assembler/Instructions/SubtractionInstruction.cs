@@ -1,16 +1,20 @@
 using System.Linq;
 
+/// <summary>
+/// Substracts the specified values together
+/// </summary>
 public class SubtractionInstruction : DualParameterInstruction
 {
-	private const string EXTENDED_ADDITION_INSTRUCTION = "lea";
-
-	private const string STANDARD_SUBTRACTION_INSTRUCTION = "sub";
+	public const string SHARED_STANDARD_SUBTRACTION_INSTRUCTION = "sub";
 
 	private const int STANDARD_SUBTRACTION_FIRST = 0;
 	private const int STANDARD_SUBTRACTION_SECOND = 1;
 
-	private const string SINGLE_PRECISION_SUBTRACTION_INSTRUCTION = "subss";
-	private const string DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION = "subsd";
+	private const string X64_EXTENDED_ADDITION_INSTRUCTION = "lea";
+	private const string X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION = "subss";
+	private const string X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION = "subsd";
+
+	public const string ARM64_DECIMAL_SUBSTRACTION_INSTRUCTION = "fsub";
 
 	public bool Assigns { get; private set; }
 
@@ -24,17 +28,35 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public override void OnBuild()
 	{
+		if (Assembler.IsX64)
+		{
+			OnBuildX64();
+		}
+		else
+		{
+			OnBuildArm64();
+		}
+	}
+
+	public void OnBuildX64()
+	{
 		var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
 
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_SUBTRACTION_INSTRUCTION : DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION;
+			if (First.IsMemoryAddress)
+			{
+				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+			}
+
+			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION : X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION;
+			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 
 			Build(
 				instruction,
 				new InstructionParameter(
-					First,
+					result,
 					ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
@@ -52,7 +74,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		if (Assigns)
 		{
 			Build(
-				STANDARD_SUBTRACTION_INSTRUCTION,
+				SHARED_STANDARD_SUBTRACTION_INSTRUCTION,
 				First.Size,
 				new InstructionParameter(
 					First,
@@ -72,7 +94,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		}
 
 		Build(
-			STANDARD_SUBTRACTION_INSTRUCTION,
+			SHARED_STANDARD_SUBTRACTION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				First,
@@ -94,9 +116,71 @@ public class SubtractionInstruction : DualParameterInstruction
 		);
 	}
 
-	public override bool Redirect(Handle handle)
+	public void OnBuildArm64()
 	{
-		if (Operation == SINGLE_PRECISION_SUBTRACTION_INSTRUCTION || Operation == DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION || Assigns)
+		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
+		var instruction = is_decimal ? ARM64_DECIMAL_SUBSTRACTION_INSTRUCTION : SHARED_STANDARD_SUBTRACTION_INSTRUCTION;
+		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
+		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
+
+		if (Assigns)
+		{
+			if (First.IsMemoryAddress)
+			{
+				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+			}
+
+			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
+
+			Build(
+				instruction,
+				Assembler.Size,
+				new InstructionParameter(
+					result,
+					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
+					base_register_type
+				),
+				new InstructionParameter(
+					result,
+					ParameterFlag.NONE,
+					base_register_type
+				),
+				new InstructionParameter(
+					Second,
+					ParameterFlag.CreateBitLimit(12),
+					types
+				)
+			);
+
+			return;
+		}
+
+		Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+
+		Build(
+			instruction,
+			Assembler.Size,
+			new InstructionParameter(
+				Result,
+				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
+				base_register_type
+			),
+			new InstructionParameter(
+				First,
+				ParameterFlag.NONE,
+				base_register_type
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.CreateBitLimit(12),
+				types
+			)
+		);
+	}
+
+	public bool RedirectX64(Handle handle)
+	{
+		if (Operation == X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION || Assigns)
 		{
 			return false;
 		}
@@ -106,7 +190,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 		if (handle.Type == HandleType.REGISTER && first.IsAnyRegister && second.IsConstant)
 		{
-			Operation = EXTENDED_ADDITION_INSTRUCTION;
+			Operation = X64_EXTENDED_ADDITION_INSTRUCTION;
 
 			var constant = -(long)second.Value!.To<ConstantHandle>().Value;
 			var calculation = ExpressionHandle.CreateAddition(first.Value!, new ConstantHandle(constant));
@@ -119,6 +203,33 @@ public class SubtractionInstruction : DualParameterInstruction
 		}
 
 		return false;
+	}
+
+	public bool RedirectArm64(Handle handle)
+	{
+		if (Operation == SHARED_STANDARD_SUBTRACTION_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		{
+			Parameters.First().Value = handle;
+			return true;
+		}
+
+		if (Operation == ARM64_DECIMAL_SUBSTRACTION_INSTRUCTION && handle.Is(HandleType.MEDIA_REGISTER))
+		{
+			Parameters.First().Value = handle;
+			return true;
+		}
+
+		return false;
+	}
+
+	public override bool Redirect(Handle handle)
+	{
+		if (Assembler.IsArm64)
+		{
+			return RedirectArm64(handle);
+		}
+
+		return RedirectX64(handle);
 	}
 
 	public override Result GetDestinationDependency()

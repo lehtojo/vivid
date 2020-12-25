@@ -169,6 +169,11 @@ public static class References
 				return result ?? throw new ApplicationException("Found empty parenthesis and its value was required");
 			}
 
+			case NodeType.STACK_ADDRESS:
+			{
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>().Bytes).Execute();
+			}
+
 			default:
 			{
 				return Builders.Build(unit, node);

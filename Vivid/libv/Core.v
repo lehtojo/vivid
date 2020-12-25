@@ -20,7 +20,7 @@ Allocation {
 
 # Safe: allocate(bytes: large) => internal_allocate(bytes)
 
-allocate(bytes: large) {
+outline allocate(bytes: large) {
 	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
 		position = Allocation.current.position
 		Allocation.current.position += bytes
@@ -39,13 +39,13 @@ allocate(bytes: large) {
 	=> address as link
 }
 
-allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
+outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_INHERITANT_SEPARATOR = 1
 TYPE_DESCRIPTOR_FULLNAME_END = 2
 
-inherits(descriptor: link, type: link) {
+outline inherits(descriptor: link, type: link) {
 	x = (descriptor as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 	y = (type as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 

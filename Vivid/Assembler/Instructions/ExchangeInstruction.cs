@@ -1,4 +1,7 @@
-
+/// <summary>
+/// Exchanges the locations of the specified values
+/// This instruction works only on architecture x86-64
+/// </summary>
 public class ExchangeInstruction : DualParameterInstruction
 {
 	public const string INSTRUCTION = "xchg";

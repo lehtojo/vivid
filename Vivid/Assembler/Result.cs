@@ -132,6 +132,8 @@ public class Result
 	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
 	public bool IsStackVariable => _Value is StackVariableHandle;
 	public bool IsDataSectionHandle => _Value is DataSectionHandle;
+	public bool IsModifier => _Value.Type == HandleType.MODIFIER;
+
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
 
 	public bool IsReleasable()

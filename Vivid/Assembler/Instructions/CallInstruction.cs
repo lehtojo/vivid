@@ -4,7 +4,9 @@ using System.Collections.Generic;
 
 public class CallInstruction : Instruction
 {
-	private const string INSTRUCTION = "call";
+	private const string X64_INSTRUCTION = "call";
+	private const string ARM64_CALL_LABEL = "bl";
+	private const string ARM64_CALL_REGISTER = "blr";
 
 	public Result Function { get; }
 	public CallingConvention Convention { get; }
@@ -65,15 +67,32 @@ public class CallInstruction : Instruction
 		
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
 
-		Build(
-			INSTRUCTION,
-			new InstructionParameter(
-				Function,
-				ParameterFlag.ALLOW_64_BIT_CONSTANT,
-				HandleType.REGISTER,
-				HandleType.MEMORY
-			)
-		);
+		if (Assembler.IsArm64)
+		{
+			var is_address = Function.IsDataSectionHandle && Function.Value.To<DataSectionHandle>().Address;
+
+			Build(
+				is_address ? ARM64_CALL_LABEL : ARM64_CALL_REGISTER,
+				new InstructionParameter(
+					Function,
+					ParameterFlag.ALLOW_ADDRESS,
+					is_address ? HandleType.MEMORY : HandleType.REGISTER
+				)
+			);
+		}
+		else
+		{
+			Build(
+				X64_INSTRUCTION,
+				new InstructionParameter(
+					Function,
+					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
+					HandleType.CONSTANT,
+					HandleType.REGISTER,
+					HandleType.MEMORY
+				)
+			);
+		}
 
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
 
@@ -82,30 +101,9 @@ public class CallInstruction : Instruction
 
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
-		var source = new RegisterHandle(register);
-
-		if (Result.IsEmpty)
-		{
-			// The result is not predefined so the result can just hold the standard return register
-			Result.Value = source;
-			register.Handle = Result;
-		}
-		else
-		{
-			// Ensure that the destination register is empty
-			if (Result.Value.Type == HandleType.REGISTER)
-			{
-				Memory.ClearRegister(Unit, Result.Value.To<RegisterHandle>().Register);
-			}
-
-			// The result is predefined so the value from the source handle must be moved to the predefined result
-			Unit.Append(new MoveInstruction(Unit, Result, new Result(source, Result.Format))
-			{
-				// Configure the move so that this instruction's result is attached to the destination
-				Type = MoveType.LOAD
-
-			}, true);
-		}
+		
+		Result.Value = new RegisterHandle(register);
+		register.Handle = Result;
 	}
 
 	public override Result GetDestinationDependency()

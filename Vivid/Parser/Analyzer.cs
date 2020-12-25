@@ -20,9 +20,22 @@ public static class Analyzer
 		return edit.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
 	}
 
-	public static Node GetEditNode(Node reference)
+	public static Node GetEditor(Node reference)
 	{
-		return reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the edit node");
+		var editor = reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the editor node");
+		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : throw new ApplicationException("Could not find the editor node");
+	}
+
+	public static Node? TryGetEditor(Node reference)
+	{
+		var editor = reference.FindParent(i => !i.Is(NodeType.CAST));
+
+		if (editor == null)
+		{
+			return null;
+		}
+
+		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : null;
 	}
 
 	private static void ResetVariableUsages(Node root)
@@ -56,6 +69,12 @@ public static class Analyzer
 		{
 			ResetVariableUsages(type);
 		}
+	}
+
+	public static void ResetVariableUsages(Node root, Context context)
+	{
+		ResetVariableUsages(root);
+		ResetVariableUsages(context);
 	}
 
 	private static void AnalyzeVariableUsages(Node root)
@@ -110,6 +129,12 @@ public static class Analyzer
 		{
 			AnalyzeVariableUsages(type);
 		}
+	}
+
+	public static void AnalyzeVariableUsages(Node root, Context context)
+	{
+		AnalyzeVariableUsages(root);
+		AnalyzeVariableUsages(context);
 	}
 
 	private static void ConfigureStaticVariables(Context context)
@@ -177,12 +202,10 @@ public static class Analyzer
 		}
 	}
 
-	public static void Analyze(Context context, Node root)
+	public static void Analyze(Node root, Context context)
 	{
-		ResetVariableUsages(root);
-		ResetVariableUsages(context);
-		AnalyzeVariableUsages(root);
-		AnalyzeVariableUsages(context);
+		ResetVariableUsages(root, context);
+		AnalyzeVariableUsages(root, context);
 		ConfigureStaticVariables(context);
 		ApplyConstants(context);
 	}

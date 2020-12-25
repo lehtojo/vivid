@@ -14,9 +14,21 @@ public static class ParameterFlag
 	public const int RELOCATE_TO_DESTINATION = 32;
 	public const int RELOCATE_TO_SOURCE = 64;
 	public const int HIDDEN = 128;
-	public const int ALLOW_64_BIT_CONSTANT = 256;
+	public const int BIT_LIMIT = 256;
+	public const int BIT_LIMIT_64 = BIT_LIMIT | (64 << 24);
 	public const int NO_ATTACH = 512;
 	public const int READS = 1024;
+	public const int ALLOW_ADDRESS = 2048;
+
+	public static int CreateBitLimit(int bits)
+	{
+		return BIT_LIMIT | (bits << 24);
+	}
+
+	public static int GetBitLimit(int flag)
+	{
+		return flag >> 24;
+	}
 }
 
 public class InstructionParameter
@@ -39,8 +51,6 @@ public class InstructionParameter
 	public bool IsMediaRegister => Value?.Type == HandleType.MEDIA_REGISTER;
 	public bool IsMemoryAddress => Value?.Type == HandleType.MEMORY;
 	public bool IsConstant => Value?.Type == HandleType.CONSTANT;
-
-	public bool IsConstantValid => Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
 
 	public bool IsValueValid => Value != null && Types.Contains(Value.Type);
 
@@ -90,7 +100,7 @@ public class InstructionParameter
 			return;
 		}
 
-		Value.IsSizeVisible = visible;
+		Value.IsPrecise = visible;
 	}
 
 	public bool IsValid()
@@ -100,16 +110,28 @@ public class InstructionParameter
 			return false;
 		}
 
-		// 64-bit numbers can not be inlined
+		// Watch out for bit limit
 		if (Result.IsConstant)
 		{
-			return Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || Result.Value.To<ConstantHandle>().Bits <= 32;
+			var bits = Result.Value.To<ConstantHandle>().Bits;
+
+			if (!Flag.Has(Flags, ParameterFlag.BIT_LIMIT))
+			{
+				return bits <= 32;
+			}
+
+			return bits <= ParameterFlag.GetBitLimit(Flags);
 		}
 
 		// Datasection address values should be moved into a register
 		if (Result.Value is DataSectionHandle handle)
 		{
-			return Flag.Has(Flags, ParameterFlag.ALLOW_64_BIT_CONSTANT) || !handle.Address;
+			if (Assembler.IsArm64)
+			{
+				return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
+			}
+			
+			return Flag.Has(Flags, ParameterFlag.BIT_LIMIT_64) || !handle.Address;
 		}
 
 		return true;

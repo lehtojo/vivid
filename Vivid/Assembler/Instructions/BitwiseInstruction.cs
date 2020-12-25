@@ -2,13 +2,22 @@ using System;
 
 public class BitwiseInstruction : DualParameterInstruction
 {
-	private const string AND_INSTRUCTION = "and";
-	private const string XOR_INSTRUCTION = "xor";
-	private const string SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorps";
-	private const string DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorpd";
-	private const string OR_INSTRUCTION = "or";
-	private const string SHIFT_LEFT_INSTRUCTION = "sal";
-	private const string SHIFT_RIGHT_INSTRUCTION = "sar";
+	public const string SHARED_AND_INSTRUCTION = "and";
+
+	public const string X64_XOR_INSTRUCTION = "xor";
+	public const string ARM64_XOR_INSTRUCTION = "eor";
+
+	public const string X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorps";
+	public const string X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorpd";
+
+	public const string X64_OR_INSTRUCTION = "or";
+	public const string ARM64_OR_INSTRUCTION = "orr";
+
+	public const string X64_SHIFT_LEFT_INSTRUCTION = "sal";
+	public const string X64_SHIFT_RIGHT_INSTRUCTION = "sar";
+
+	public const string ARM64_SHIFT_LEFT_INSTRUCTION = "lsl";
+	public const string ARM64_SHIFT_RIGHT_INSTRUCTION = "asr";
 
 	public string Instruction { get; private set; }
 
@@ -16,32 +25,32 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public static BitwiseInstruction And(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, AND_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, SHARED_AND_INSTRUCTION, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction Xor(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
 		if (format.IsDecimal())
 		{
-			return new BitwiseInstruction(unit, Assembler.IsTargetX64 ? DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION : SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION, first, second, format, assigns);
+			return new BitwiseInstruction(unit, Assembler.Is64bit ? X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION : X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION, first, second, format, assigns);
 		}
 
-		return new BitwiseInstruction(unit, XOR_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_XOR_INSTRUCTION : X64_XOR_INSTRUCTION, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction Or(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, OR_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_OR_INSTRUCTION : X64_OR_INSTRUCTION, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction ShiftLeft(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, SHIFT_LEFT_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_SHIFT_LEFT_INSTRUCTION : X64_SHIFT_LEFT_INSTRUCTION, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction ShiftRight(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, SHIFT_RIGHT_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_SHIFT_RIGHT_INSTRUCTION : X64_SHIFT_RIGHT_INSTRUCTION, first, second, format, assigns);
 	}
 
 	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
@@ -55,7 +64,19 @@ public class BitwiseInstruction : DualParameterInstruction
 		}
 	}
 
-	private void BuildShift()
+	public override void OnBuild()
+	{
+		if (Assembler.IsX64)
+		{
+			OnBuildX64();
+		}
+		else
+		{
+			OnBuildArm64();
+		}
+	}
+
+	private void BuildShiftX64()
 	{
 		var unlock = (Instruction?)null;
 		var shifter = new Result(Second.Value, Format.INT8);
@@ -98,7 +119,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 			if (unlock != null)
 			{
-				Unit.Append(unlock);
+				Unit.Append(unlock, true);
 			}
 
 			return;
@@ -121,13 +142,13 @@ public class BitwiseInstruction : DualParameterInstruction
 
 		if (unlock != null)
 		{
-			Unit.Append(unlock);
+			Unit.Append(unlock, true);
 		}
 	}
 
-	public override void OnBuild()
+	public void OnBuildX64()
 	{
-		if (Instruction == SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION || Instruction == DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION)
+		if (Instruction == X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION || Instruction == X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION)
 		{
 			if (Assigns)
 			{
@@ -152,9 +173,9 @@ public class BitwiseInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (Instruction == SHIFT_LEFT_INSTRUCTION || Instruction == SHIFT_RIGHT_INSTRUCTION)
+		if (Instruction == X64_SHIFT_LEFT_INSTRUCTION || Instruction == X64_SHIFT_RIGHT_INSTRUCTION)
 		{
-			BuildShift();
+			BuildShiftX64();
 			return;
 		}
 
@@ -195,6 +216,65 @@ public class BitwiseInstruction : DualParameterInstruction
 				HandleType.CONSTANT,
 				HandleType.REGISTER,
 				HandleType.MEMORY
+			)
+		);
+	}
+
+	public void OnBuildArm64()
+	{
+		if (Assigns)
+		{
+			if (First.IsMemoryAddress)
+			{
+				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+			}
+
+			var result = Memory.LoadOperand(Unit, First, false, Assigns);
+
+			Build(
+				Instruction,
+				Assembler.Size,
+				new InstructionParameter(
+					result,
+					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					result,
+					ParameterFlag.NONE,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					ParameterFlag.CreateBitLimit(12),
+					HandleType.CONSTANT, 
+					HandleType.REGISTER
+				)
+			);
+
+			return;
+		}
+
+		Memory.GetResultRegisterFor(Unit, Result, false);
+
+		Build(
+			Instruction,
+			Assembler.Size,
+			new InstructionParameter(
+				Result,
+				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				First,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.CreateBitLimit(12),
+				HandleType.CONSTANT,
+				HandleType.REGISTER
 			)
 		);
 	}

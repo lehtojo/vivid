@@ -8,6 +8,7 @@ public static class Analysis
 	public static bool IsUnwrapAnalysisEnabled { get; set; } = false;
 	public static bool IsMathematicalAnalysisEnabled { get; set; } = false;
 	public static bool IsRepetitionAnalysisEnabled { get; set; } = false;
+	public static bool IsFunctionInliningEnabled { get; set; } = false;
 
 	/// <summary>
 	/// Creates a node tree representing the specified components
@@ -406,7 +407,7 @@ public static class Analysis
 	/// Returns whether the specified node is primitive that is whether it contains only operators, numbers, parameter- or local variables
 	/// </summary>
 	/// <returns>True if the definition is primitive, otherwise false</returns>
-	private static bool IsPrimitive(Node node)
+	public static bool IsPrimitive(Node node)
 	{
 		return node.Find(n => !(n.Is(NodeType.NUMBER) || n.Is(NodeType.OPERATOR) || n.Is(NodeType.VARIABLE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
 	}
@@ -1218,12 +1219,6 @@ public static class Analysis
 
 				if (implementation == null)
 				{
-					if (virtual_function.Parent != type)
-					{
-						// TODO: This should not be allowed since virtual functions should always be overloaded
-						Console.WriteLine($"NOTE: Type '{type.Name}' contains virtual function '{virtual_function}' but it is not implemented");
-					}
-
 					continue;
 				}
 
@@ -1236,7 +1231,7 @@ public static class Analysis
 		{
 			var self = constructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer in a constructor");
 
-			var allocation_size = Math.Max(1L, type.ContentSize);
+			/*var allocation_size = Math.Max(1L, type.ContentSize);
 			var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
 
 			var allocation = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -1244,7 +1239,7 @@ public static class Analysis
 				new FunctionNode(Parser.AllocationFunction!).SetParameters(allocation_parameters)
 			);
 
-			expressions.Add(allocation);
+			expressions.Add(allocation);*/
 
 			foreach (var iterator in expressions)
 			{
@@ -1366,7 +1361,7 @@ public static class Analysis
 	{
 		if (Analyzer.IsEdited(repetition))
 		{
-			var edit = Analyzer.GetEditNode(repetition);
+			var edit = Analyzer.GetEditor(repetition);
 
 			if (edit is OperatorNode operation && operation.Operator == Operators.ASSIGN)
 			{

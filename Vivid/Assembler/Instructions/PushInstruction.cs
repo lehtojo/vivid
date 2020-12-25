@@ -1,3 +1,7 @@
+/// <summary>
+/// Allocates memory from the stack and moves the specified variable there
+/// This instruction works only on architecture x86-64
+/// </summary>
 public class PushInstruction : Instruction
 {
 	public const string INSTRUCTION = "push";

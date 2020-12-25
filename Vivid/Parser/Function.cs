@@ -49,6 +49,7 @@ public class Function : Context
 	public bool IsConstructor => this is Constructor;
 	public bool IsImported => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
 	public bool IsExported => Flag.Has(Modifiers, AccessModifier.GLOBAL);
+	public bool IsOutlined => Flag.Has(Modifiers, AccessModifier.OUTLINE);
 	public bool IsResponsible => Flag.Has(Modifiers, AccessModifier.RESPONSIBLE);
 
 	/// <summary>

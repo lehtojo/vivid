@@ -204,11 +204,13 @@ public class ResolverPhase : Phase
 		// Align variables in memory
 		Aligner.Align(context);
 
+		Analyzer.AnalyzeVariableUsages(parse.Node, context);
+
 		// Apply analysis to the functions
 		Analysis.Analyze(context);
 
 		// Analyze the output
-		Analyzer.Analyze(context, parse.Node);
+		Analyzer.Analyze(parse.Node, context);
 
 		return Status.OK;
 	}

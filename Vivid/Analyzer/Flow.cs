@@ -32,6 +32,7 @@ public class Flow
 	public Dictionary<Node, int> Indices { get; private set; } = new Dictionary<Node, int>(new ReferenceEqualityComparer<Node>());
 	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new ReferenceEqualityComparer<JumpNode>());
 	public Dictionary<Label, int> Labels { get; private set; } = new Dictionary<Label, int>(new ReferenceEqualityComparer<Label>());
+	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
 	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new ReferenceEqualityComparer<LoopNode>());
 	public Label End { get; private set; }
 
@@ -51,7 +52,14 @@ public class Flow
 			if (iterator.Key is JumpNode jump)
 			{
 				Jumps.Add(jump, iterator.Value);
-				jump.Label.Jumps.Add(jump);
+				
+				if (!Paths.TryGetValue(jump.Label, out List<JumpNode>? jumps))
+				{
+					jumps = new List<JumpNode>();
+					Paths[jump.Label] = jumps;
+				}
+
+				jumps.Add(jump);
 			}
 			else if (iterator.Key is LabelNode node)
 			{
@@ -613,7 +621,7 @@ public class Flow
 		var labels = Labels.Where(l => l.Value > i && l.Value < j).ToArray();
 
 		// If there is even one jump that goes to one the labels above, the node is not always executed
-		return !labels.Any(i => i.Key.Jumps.Any());
+		return !labels.SelectMany(i => Paths.GetValueOrDefault(i.Key, new List<JumpNode>())).Any(a => { var x = Indices[a]; return x < i || x > j; });
 	}
 
 	public bool Between(Node from, Node to, Func<Node, bool> filter)

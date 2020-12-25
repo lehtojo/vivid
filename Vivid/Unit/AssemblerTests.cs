@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
@@ -141,8 +140,8 @@ public struct String : IEquatable<String>
 		var actual_bytes = new byte[expected_bytes.Length];
 		Marshal.Copy(Data, actual_bytes, 0, actual_bytes.Length);
 
-		NUnit.Framework.Assert.AreEqual(expected_bytes, actual_bytes);
-		NUnit.Framework.Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
+		global::Assert.AreEqual(expected_bytes, actual_bytes);
+		global::Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
 	}
 
 	public override bool Equals(object? other)
@@ -173,12 +172,11 @@ public struct String : IEquatable<String>
 
 namespace Vivid.Unit
 {
-	[TestFixture]
-	public class AssemblerTests
+	public static class AssemblerTests
 	{
 		private const bool IsOptimizationEnabled = true;
 
-		private const string Prefix = "Unit_";
+		private static string Prefix => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libUnit_" : "Unit_";
 
 		private const string LIBV = "libv";
 		private const string TESTS = "Tests";
@@ -246,25 +244,7 @@ namespace Vivid.Unit
 
 		private static string GetProjectRoot()
 		{
-			var current = Directory.GetCurrentDirectory();
-			var separator = GetSeparator();
-
-			// The current directory should be in one of the following forms (Examples):
-			// X:\...\$PROJECT_ROOT\bin\Debug\netcoreapp3.1
-			// /home/.../$PROJECT_ROOT/bin/Debug/netcore3.1
-			for (var i = 0; i < 3; i++)
-			{
-				var x = current.LastIndexOf(separator);
-
-				if (x == -1)
-				{
-					throw new ApplicationException("Could not find project root folder");
-				}
-
-				current = current[0..x];
-			}
-
-			return current;
+			return Directory.GetCurrentDirectory();
 		}
 
 		private static string GetProjectFolder(params string[] path)
@@ -294,10 +274,12 @@ namespace Vivid.Unit
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
 
+			#pragma warning disable 162
 			if (IsOptimizationEnabled)
 			{
 				arguments.Add("-O1");
 			}
+			#pragma warning restore 162
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
@@ -438,20 +420,6 @@ namespace Vivid.Unit
 			}
 		}
 
-		[DllImport("kernel32.dll", SetLastError = true)]
-		static extern bool FreeLibrary(IntPtr module);
-
-		public static void UnloadModule(string name)
-		{
-			foreach (ProcessModule? module in Process.GetCurrentProcess().Modules)
-			{
-				if (module?.ModuleName.Contains(name) ?? false)
-				{
-					FreeLibrary(module.BaseAddress);
-				}
-			}
-		}
-
 		[DllImport("Unit_Arithmetic", ExactSpelling = true)]
 		private static extern long _V8additionxx_rx(long a, long b);
 		[DllImport("Unit_Arithmetic", ExactSpelling = true)]
@@ -486,8 +454,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(1, _V22division_with_constantx_rx(10));
 		}
 
-		[TestCase]
-		public void Arithmetic()
+		public static void Arithmetic()
 		{
 			if (!Compile("Arithmetic", new[] { "Arithmetic.v" }))
 			{
@@ -531,8 +498,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(9.870 + 7.389 * 9.870 - 7.389 / 9.870, _V22decimal_operator_orderdd_rd(9.870, 7.389));
 		}
 
-		[TestCase]
-		public void Decimals()
+		public static void Decimals()
 		{
 			if (!Compile("Decimals", new[] { "Decimals.v" }))
 			{
@@ -554,8 +520,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(777, result);
 		}
 
-		[TestCase]
-		public void Conditionals()
+		public static void Conditionals()
 		{
 			if (!Compile("Conditionals", new[] { "Conditionals.v" }))
 			{
@@ -605,8 +570,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(13, w);
 		}
 
-		[TestCase]
-		public void Loops()
+		public static void Loops()
 		{
 			if (!Compile("Loops", new[] { "Loops.v" }))
 			{
@@ -621,8 +585,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(570, _V10evacuationxx_rx(10, 50));
 		}
 
-		[TestCase]
-		public void Evacuation()
+		public static void Evacuation()
 		{
 			if (!Compile("Evacuation", new[] { "Evacuation.v" }))
 			{
@@ -644,8 +607,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(1.414, target.Double);
 		}
 
-		[TestCase]
-		public void Assignment()
+		public static void Assignment()
 		{
 			if (!Compile("Assignment", new[] { "Assignment.v" }))
 			{
@@ -670,8 +632,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(5 * 103, result);
 		}
 
-		[TestCase]
-		public void ConditionallyChangingConstant()
+		public static void ConditionallyChangingConstant()
 		{
 			if (!Compile("ConditionallyChangingConstant", new[] { "ConditionallyChangingConstant.v" }))
 			{
@@ -692,15 +653,19 @@ namespace Vivid.Unit
 			Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
 
 			var assembly = LoadAssemblyOutput("ConstantPermanence");
-			Assert.IsTrue(Regex.IsMatch(assembly, "\\[3\\+[a-z0-9]*\\]"));
+			Assert.True(Regex.IsMatch(assembly, "\\[3\\+[a-z0-9]*\\]"));
 		}
 
-		[TestCase]
-		public void ConstantPermanenceAndArrayCopy()
+		public static void ConstantPermanenceAndArrayCopy()
 		{
 			if (!Compile("ConstantPermanence", new[] { "ConstantPermanence.v" }))
 			{
 				Assert.Fail("Failed to compile");
+			}
+
+			if (Assembler.IsArm64)
+			{
+				Assert.Pass("Constant permanence is not tested on arhitecture Arm64");
 			}
 
 			ConstantPermanenceAndArrayCopy_Test();
@@ -714,9 +679,8 @@ namespace Vivid.Unit
 			Assert.AreEqual(5, _V9linkage_3x_rx(b));
 			Assert.AreEqual(4 * b + 75, _V9linkage_4x_rx(b));
 		}
-
-		[TestCase]
-		public void Linkage()
+		
+		public static void Linkage()
 		{
 			if (!Compile("Linkage", new[] { "Linkage.v" }))
 			{
@@ -734,8 +698,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void PI()
+		public static void PI()
 		{
 			if (!CompileExecutable("PI", new[] { "PI.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
@@ -753,8 +716,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Fibonacci()
+		public static void Fibonacci()
 		{
 			if (!CompileExecutable("Fibonacci", new[] { "Fibonacci.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
@@ -770,23 +732,22 @@ namespace Vivid.Unit
 			Assert.AreEqual(0, _V12multi_returnxx_rx(-1, -1));
 			Assert.AreEqual(-1, _V12multi_returnxx_rx(5, 20));
 
-			var assembly = LoadAssemblyOutput("Stack");
+			var assembly = LoadAssemblyFunction("Stack.Stack", "_V12multi_returnxx_rx");
 			var j = 0;
 
-			// There should be five 'add rsp, 40' instructions
-			for (var i = 0; i < 5; i++)
+			// There should be five 'add rsp, 40' or 'ldp' instructions
+			for (var i = 0; i < 4; i++)
 			{
-				j = assembly.IndexOf("add rsp, ", j, StringComparison.Ordinal);
+				j = assembly.IndexOf(Assembler.IsArm64 ? "ldp" : "add rsp, ", j, StringComparison.Ordinal);
 
 				if (j++ == -1)
 				{
-					Assert.Fail("Warning: Assembly output did not contain five 'add rsp, 40' instructions");
+					Assert.Fail("Warning: Assembly output did not contain five 'add rsp, 40' or 'ldp' instructions");
 				}
 			}
 		}
 
-		[TestCase]
-		public void Stack()
+		public static void Stack()
 		{
 			if (!Compile("Stack", new[] { "Stack.v" }))
 			{
@@ -804,19 +765,22 @@ namespace Vivid.Unit
 			Assert.AreEqual(1, GetMemoryAddressCount(LoadAssemblyFunction("RegisterUtilization.RegisterUtilization", "_V20register_utilizationxxxxxxx_rx")));
 		}
 
-		[TestCase]
-		public void RegisterUtilization()
+		public static void RegisterUtilization()
 		{
 			if (!Compile("RegisterUtilization", new[] { "RegisterUtilization.v" }))
 			{
 				Assert.Fail("Failed to compile");
 			}
 
+			if (Assembler.IsArm64)
+			{
+				Assert.Pass("TODO");
+			}
+
 			RegisterUtilization_Test();
 		}
 
-		[TestCase]
-		public void SpecialMultiplications()
+		public static void SpecialMultiplications()
 		{
 			if (!Compile("SpecialMultiplications", "SpecialMultiplications.v"))
 			{
@@ -830,15 +794,25 @@ namespace Vivid.Unit
 			
 			if (IsOptimizationEnabled)
 			{
-				Assert.Pass();
+				Assert.Pass("Special multiplications are not tested when optimization is enabled");
 				return;
 			}
 
 			var assembly = LoadAssemblyOutput("SpecialMultiplications");
-			Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
-			Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));
-			Assert.AreEqual(1, GetCountOf(assembly, "lea\\ [a-z]+"));
-			Assert.AreEqual(1, GetCountOf(assembly, "sar\\ [a-z]+"));
+
+			if (Assembler.IsX64)
+			{
+				Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
+				Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));
+				Assert.AreEqual(1, GetCountOf(assembly, "lea\\ [a-z]+"));
+				Assert.AreEqual(1, GetCountOf(assembly, "sar\\ [a-z]+"));
+			}
+			else
+			{
+				Assert.AreEqual(1, GetCountOf(assembly, "lsl.+#1"));
+				Assert.AreEqual(2, GetCountOf(assembly, "add.+lsl\\ #"));
+				Assert.AreEqual(1, GetCountOf(assembly, "asr.+#2"));
+			}
 
 			#pragma warning restore 162
 		}
@@ -849,8 +823,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(414.414, _V1yxx_rd(8, 13));
 		}
 
-		[TestCase]
-		public void LargeFunctions()
+		public static void LargeFunctions()
 		{
 			if (!Compile("LargeFunctions", new[] { "LargeFunctions.v" }))
 			{
@@ -884,8 +857,8 @@ namespace Vivid.Unit
 		private static void LogicalOperators_Test()
 		{
 			// Single boolean as input
-			Assert.IsFalse(_V14single_booleanb_rx(true));
-			Assert.IsTrue(_V14single_booleanb_rx(false));
+			Assert.False(_V14single_booleanb_rx(true));
+			Assert.True(_V14single_booleanb_rx(false));
 
 			// Two booleans as input
 			Assert.AreEqual(1, _V12two_booleansbb_rx(true, false));
@@ -895,26 +868,26 @@ namespace Vivid.Unit
 			// Nested if-statement:
 
 			// All correct inputs
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 2, 3));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 2, 4));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 0, 1));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(1, 0, -1));
+			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 3));
+			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 4));
+			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, 1));
+			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, -1));
 
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 4, 8));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 4, 6));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 3, 4));
-			Assert.IsTrue(_V20nested_if_statementsxxx_rx(2, 3, 5));
+			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 8));
+			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 6));
+			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 4));
+			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 5));
 
 			// Most of the paths for returning false
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(0, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rx(0, 0, 0));
 
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 1, 1));
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 2, 5));
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(1, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rx(1, 1, 1));
+			Assert.False(_V20nested_if_statementsxxx_rx(1, 2, 5));
+			Assert.False(_V20nested_if_statementsxxx_rx(1, 0, 0));
 
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 0, 0));
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 4, 7));
-			Assert.IsFalse(_V20nested_if_statementsxxx_rx(2, 3, 6));
+			Assert.False(_V20nested_if_statementsxxx_rx(2, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rx(2, 4, 7));
+			Assert.False(_V20nested_if_statementsxxx_rx(2, 3, 6));
 
 			// Logical and
 			Assert.AreEqual(10, _V27logical_and_in_if_statementbb_rx(true, true));
@@ -948,8 +921,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(0, _V19logical_operators_1xx_rx(3, 3));
 		}
 
-		[TestCase]
-		public void LogicalOperators()
+		public static void LogicalOperators()
 		{
 			if (!Compile("LogicalOperators", new[] { "LogicalOperators.v" }))
 			{
@@ -976,15 +948,14 @@ namespace Vivid.Unit
 			var car = (Car)Marshal.PtrToStructure(_V10create_card_rP3Car(20000), typeof(Car))!;
 
 			Assert.AreEqual(2000000, car.Weight);
-			Assert.AreEqual(20000, car.Price);
+			Assert.AreEqual(20000.0, car.Price);
 
 			var brand = (String)Marshal.PtrToStructure(car.Brand, typeof(String))!;
 
 			brand.Assert("Flash");
 		}
 
-		[TestCase]
-		public void Objects()
+		public static void Objects()
 		{
 			if (!Compile("Objects", new[] { "Objects.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
@@ -1035,9 +1006,9 @@ namespace Vivid.Unit
 			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 0);
 			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 1);
 
-			Assert.IsTrue(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 0));
-			Assert.IsTrue(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 1));
-			Assert.IsFalse(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 2));
+			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 0));
+			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 1));
+			Assert.False(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 2));
 
 			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("iCar");
 			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("iBanana");
@@ -1051,8 +1022,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(40000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, DOLLARS));
 		}
 
-		[TestCase]
-		public void Templates()
+		public static void Templates()
 		{
 			if (!Compile("Templates", new[] { "Templates.v", GetProjectFile("String.v", LIBV) }))
 			{
@@ -1131,8 +1101,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(96, _V17assign_bitwise_orxx_rx(32, 64));
 		}
 
-		[TestCase]
-		public void BitwiseOperations()
+		public static void BitwiseOperations()
 		{
 			if (!Compile("BitwiseOperations", new[] { "BitwiseOperations.v" }))
 			{
@@ -1271,8 +1240,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(false, salmon.is_hiding);
 		}
 
-		[TestCase]
-		public void Inheritance()
+		public static void Inheritance()
 		{
 			if (!Compile("Inheritance", new[] { "Inheritance.v" }))
 			{
@@ -1314,8 +1282,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(GetExpectedReturnValue(7, 8, 11, 16, 23, 32, 43, 56), _V19scopes_nested_loopsxxxxxxxx_rx(7, 8, 11, 16, 23, 32, 43, 56));
 		}
 
-		[TestCase]
-		public void Scopes()
+		public static void Scopes()
 		{
 			if (!Compile("Scopes", new[] { "Scopes.v" }))
 			{
@@ -1333,8 +1300,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lambdas()
+		public static void Lambdas()
 		{
 			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
@@ -1352,8 +1318,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Virtuals()
+		public static void Virtuals()
 		{
 			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{
@@ -1377,8 +1342,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(0, _V14numerical_whenx_rx(0));
 		}
 
-		[TestCase]
-		public void Whens()
+		public static void Whens()
 		{
 			if (!Compile("Whens", new[] { "Whens.v" }))
 			{
@@ -1481,8 +1445,7 @@ namespace Vivid.Unit
 			Assert.True(_V6is_pigP7Vehicle_rb(vehicle));
 		}
 
-		[TestCase]
-		public void Is()
+		public static void Is()
 		{
 			if (!Compile("Is", new[] { "Is.v", GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
 			{

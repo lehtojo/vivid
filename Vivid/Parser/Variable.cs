@@ -26,7 +26,7 @@ public class Variable
 
 	public bool IsEdited => Edits.Count > 0;
 	public bool IsRead => Reads.Count > 0;
-	public bool IsUsed => References.Count > 1;
+	public bool IsCopied => Reads.Any(i => !i.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT))?.Is(NodeType.LINK) ?? true);
 
 	public bool IsUnresolved => Type == Types.UNKNOWN || Type is IResolvable;
 	public bool IsResolved => !IsUnresolved;
@@ -35,6 +35,8 @@ public class Variable
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
+	public bool IsInlined => (Flag.Has(Modifiers, AccessModifier.INLINE) || !IsCopied) && !Flag.Has(Modifiers, AccessModifier.OUTLINE);
+
 	public bool IsGenerated => Position == null;
 
 	public static Variable Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
@@ -56,7 +58,7 @@ public class Variable
 		}
 	}
 
-	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style required lower case")]
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style requires lower case")]
 	public string GetStaticName()
 	{
 		return Context.GetFullname() + '_' + Name.ToLowerInvariant();

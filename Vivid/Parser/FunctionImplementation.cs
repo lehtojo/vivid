@@ -130,12 +130,10 @@ public class FunctionImplementation : Context
 	{
 		if (Metadata.IsMember)
 		{
-			var type = IsConstructor ? VariableCategory.LOCAL : VariableCategory.PARAMETER;
-
 			Self = new Variable(
 				this,
 				Metadata.GetTypeParent(),
-				type,
+				VariableCategory.PARAMETER,
 				Function.SELF_POINTER_IDENTIFIER,
 				AccessModifier.PUBLIC
 
@@ -211,6 +209,28 @@ public class FunctionImplementation : Context
 	public override Variable? GetSelfPointer()
 	{
 		return Self;
+	}
+
+	public bool IsInlineable()
+	{
+		if (Metadata.IsOutlined || Metadata.IsImported || Node == null)
+		{
+			return false;
+		}
+
+		// Try to find a return statement which is inside a statement, if at least one is found this function should not be inlined
+		if (Node.Find(i => i.Is(NodeType.RETURN) && i.FindParent(i => i is IContext && !i.Is(NodeType.IMPLEMENTATION)) != null) != null)
+		{
+			return false;
+		}
+
+		// Try to find nested if-statements, else-if-statements, else-statements or loop-statements, if at least one is found this function should not be inlined
+		if (Node.Find(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) && i.FindParent(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP)) != null) != null)
+		{
+			return false;
+		}
+
+		return Node.Find(i => i.Is(NodeType.FUNCTION) && i.To<FunctionNode>().Function == this) == null;
 	}
 
 	public override bool Equals(object? other)

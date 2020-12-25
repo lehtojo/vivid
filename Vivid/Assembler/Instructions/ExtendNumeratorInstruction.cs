@@ -1,15 +1,19 @@
 ﻿using System;
 
+/// <summary>
+/// Extends the sign of the quentient register
+/// This instruction works only on architecture x86-64
+/// </summary>
 public class ExtendNumeratorInstruction : Instruction
 {
-	public const string INSTRUCTION_X86 = "cdq";
-	public const string INSTRUCTION_X64 = "cqo";
+	public const string X64_INSTRUCTION_32BIT_MODE = "cdq";
+	public const string X64_INSTRUCTION_64BIT_MODE = "cqo";
 
 	public ExtendNumeratorInstruction(Unit unit) : base(unit) { }
 
 	public override void OnBuild()
 	{
-		Build(Assembler.IsTargetX64 ? INSTRUCTION_X64 : INSTRUCTION_X86);
+		Build(Assembler.Is64bit ? X64_INSTRUCTION_64BIT_MODE : X64_INSTRUCTION_32BIT_MODE);
 	}
 
 	public override Result? GetDestinationDependency()

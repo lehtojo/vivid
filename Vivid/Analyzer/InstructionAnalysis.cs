@@ -86,8 +86,8 @@ public static class InstructionAnalysis
 		var is_destination_memory_address = move.Destination.IsMemoryAddress;
 		var is_source_return_register = IsReturnRegister(unit, source);
 
-		var is_destination_division_register = IsDivisionRegister(unit, destination);
-		var is_source_division_register = IsDivisionRegister(unit, source);
+		var is_destination_division_register = Assembler.IsX64 && IsDivisionRegister(unit, destination);
+		var is_source_division_register = Assembler.IsX64 && IsDivisionRegister(unit, source);
 
 		var write = (Instruction?)null;
 		var intermediates = new List<Instruction>();
@@ -168,9 +168,11 @@ public static class InstructionAnalysis
 			return;
 		}
 
-		write!.Destination!.Value = destination;
-		usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
-		unit.Instructions.Remove(move);
+		if (write!.Redirect(destination))
+		{
+			usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
+			unit.Instructions.Remove(move);
+		}
 	}
 
 	private static Instruction[] FindEnforcedMoveInstructions(List<Instruction> instructions)

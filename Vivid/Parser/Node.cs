@@ -428,6 +428,12 @@ public class Node : IEnumerable, IEnumerable<Node>
 		Last = null;
 	}
 
+	public void RemoveChildren()
+	{
+		First = null;
+		Last = null;
+	}
+
 	public static Node? GetSharedParent(Node a, Node b)
 	{
 		var x = a.Path.Reverse().ToArray();

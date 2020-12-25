@@ -1,5 +1,6 @@
 /// <summary>
-/// Specialized instruction for accessing raw memory
+/// Returns a handle for accessing raw memory
+/// This instruction works on all architectures
 /// </summary>
 public class GetMemoryAddressInstruction : Instruction
 {

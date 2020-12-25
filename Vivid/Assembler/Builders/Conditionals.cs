@@ -116,8 +116,6 @@ public static class Conditionals
 
 		Scope.PrepareConditionallyChangingConstants(unit, node);
 
-		unit.Append(new BranchInstruction(unit, node.GetBranches().ToArray()));
-
 		var end = new LabelInstruction(unit, unit.GetNextLabel());
 		var result = Build(unit, node, end);
 		unit.Append(end);
@@ -129,8 +127,6 @@ public static class Conditionals
 	{
 		// Conditions sometimes edit variable so entering must be prepared
 		Scope.PrepareConditionallyChangingConstants(unit, condition);
-		unit.Append(new BranchInstruction(unit, new[] { condition }));
-
 		var success = unit.GetNextLabel();
 
 		var instructions = BuildCondition(unit, condition, success, failure);

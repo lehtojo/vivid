@@ -18,6 +18,24 @@
 			}
 		},
 		{
+			"label": "Units",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/Vivid.csproj",
+				"-c",
+				"Units",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
 			"label": "Publish",
 			"command": "dotnet",
 			"type": "process",

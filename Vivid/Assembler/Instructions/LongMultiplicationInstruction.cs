@@ -1,3 +1,7 @@
+/// <summary>
+/// Multiplicates the specified values together while supporting larger output number
+/// This instruction works only on architecture x86-64
+/// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
 {
 	private const string MULTPLICATION_INSTRUCTION = "mul";

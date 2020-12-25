@@ -2,9 +2,9 @@ public class ContextInlineNode : InlineNode, IContext
 {
 	public Context Context { get; private set; }
 
-	public ContextInlineNode(Context parent, Position? position = null) : base(position)
+	public ContextInlineNode(Context context, Position? position = null) : base(position)
 	{
-		Context = new Context(parent);
+		Context = context;
 	}
 
 	public Context GetContext()

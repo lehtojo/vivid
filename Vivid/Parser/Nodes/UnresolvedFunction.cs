@@ -210,7 +210,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 		if (function.IsConstructor)
 		{
-			return node;
+			return new ConstructionNode(node, node.Position);
 		}
 
 		// When the environment context is the same as the current context it means that this function is not part of a link

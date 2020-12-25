@@ -9,13 +9,21 @@ using System.Globalization;
 public static class Assembler
 {
 	public static Function? AllocationFunction { get; set; }
+
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
+	public static Architecture Architecture { get; set; } = RuntimeInformation.ProcessArchitecture;
+
+	public static bool Is32bit => Size.Bits == 32;
+	public static bool Is64bit => Size.Bits == 64;
+
 	public static bool IsTargetWindows => Target == OSPlatform.Windows;
 	public static bool IsTargetLinux => Target == OSPlatform.Linux;
-	public static bool IsTargetX86 => Size.Bits == 32;
-	public static bool IsTargetX64 => Size.Bits == 64;
+
+	public static bool IsArm64 => Architecture == Architecture.Arm64;
+	public static bool IsX64 => Architecture == Architecture.X64;
+
 	public static bool IsDebuggingEnabled { get; set; } = false;
 	public static bool IsVerboseOutputEnabled { get; set; } = false;
 
@@ -26,9 +34,12 @@ public static class Assembler
 	private const string FILE_DIRECTIVE = ".file";
 	private const string STRING_ALLOCATOR_DIRECTIVE = ".ascii";
 	private const string BYTE_ALIGNMENT_DIRECTIVE = ".balign";
-	private const string COMMENT = "#";
+	private const string POWER_OF_TWO_ALIGNMENT = ".align";
+	private const string ARM64_COMMENT = "//";
+	private const string X64_COMMENT = "#";
+	public static string Comment { get; set; } = X64_COMMENT;
 
-	private const string FORMAT_LINUX_TEXT_SECTION_HEADER = 
+	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER = 
 		".global _start" + "\n" +
 		"_start:" + "\n" +
 		"call {0}" + "\n" +
@@ -36,10 +47,23 @@ public static class Assembler
 		"xor rdi, rdi" + "\n" +
 		"syscall" + SEPARATOR;
 
-	private const string FORMAT_WINDOWS_TEXT_SECTION_HEADER =
+	private const string FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER =
 		".global main" + "\n" +
 		"main:" + "\n" +
 		"jmp {0}" + SEPARATOR;
+
+	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER = 
+		".global _start" + "\n" +
+		"_start:" + "\n" +
+		"bl {0}" + "\n" +
+		"mov x8, #93" + "\n" +
+		"mov x0, xzr" + "\n" +
+		"svc #0" + SEPARATOR;
+
+	private const string FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER =
+		".global main" + "\n" +
+		"main:" + "\n" +
+		"b {0}" + SEPARATOR;
 
 	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
 	private const string SEPARATOR = "\n\n";
@@ -126,7 +150,7 @@ public static class Assembler
 				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
 				var parameters = unit.Function.Parameters;
 
-				if ((unit.Function.Metadata!.IsMember || implementation.IsLambda) && !unit.Function.Metadata!.IsConstructor)
+				if (unit.Function.Metadata!.IsMember || implementation.IsLambda)
 				{
 					parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
 				}
@@ -192,6 +216,11 @@ public static class Assembler
 
 			var name = variable.GetStaticName();
 			var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
+
+			if (Assembler.IsArm64)
+			{
+				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
+			}
 
 			builder.AppendLine($"{name}: {allocator} 0");
 		}
@@ -320,6 +349,11 @@ public static class Assembler
 		}
 		else
 		{
+			if (Assembler.IsArm64)
+			{
+				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
+			}
+
 			builder.AppendLine(table.Name + ':');
 		}
 
@@ -463,7 +497,7 @@ public static class Assembler
 					value += ".0";
 				}
 
-				text += $" {COMMENT} {value}";
+				text += $" {Comment} {value}";
 			}
 			else if (constant.Value is float z)
 			{
@@ -479,7 +513,7 @@ public static class Assembler
 					value += ".0";
 				}
 
-				text += $" {COMMENT} {value}";
+				text += $" {Comment} {value}";
 			}
 			else
 			{
@@ -638,6 +672,11 @@ public static class Assembler
 
 	public static Dictionary<File, string> Assemble(Context context, File[] files)
 	{
+		if (Assembler.IsArm64)
+		{
+			Comment = ARM64_COMMENT;
+		}
+
 		var result = new Dictionary<File, string>();
 
 		var entry_function = context.GetFunction(Keywords.INIT.Identifier)!.Overloads.First().Implementations.First();
@@ -653,7 +692,11 @@ public static class Assembler
 			var is_data_section = false;
 
 			builder.AppendLine(TEXT_SECTION_DIRECTIVE);
-			builder.AppendLine(SYNTAX_REQUIREMENT_DIRECTIVE);
+
+			if (Assembler.IsX64)
+			{
+				builder.AppendLine(SYNTAX_REQUIREMENT_DIRECTIVE);
+			}
 
 			if (Assembler.IsDebuggingEnabled)
 			{
@@ -673,7 +716,12 @@ public static class Assembler
 
 			if (entry_function_file == file)
 			{
-				var header = IsTargetWindows ? FORMAT_WINDOWS_TEXT_SECTION_HEADER : FORMAT_LINUX_TEXT_SECTION_HEADER;
+				var header = IsTargetWindows ? FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+
+				if (Assembler.IsArm64)
+				{
+					header = IsTargetWindows ? FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER;
+				}
 
 				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, header, entry_function.GetFullname()));
 				builder.Append(GetExternalFunctions(context));

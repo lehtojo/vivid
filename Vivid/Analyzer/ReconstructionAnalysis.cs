@@ -200,7 +200,7 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Rewrites is expressions so that they use logic that can be compiled
+	/// Rewrites is-expressions so that they use nodes which can be compiled
 	/// </summary>
 	private static void RewriteIsExpressions(Node root)
 	{
@@ -272,20 +272,46 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Returns a node representing a position where new nodes can be inserted
+	/// Rewrites construction expressions so that they use nodes which can be compiled
 	/// </summary>
-	private static Node GetInsertPosition(Node reference)
+	private static void RewriteConstructionExpressions(Node root)
 	{
-		var iterator = reference.Parent!;
-		var position = reference;
+		var constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
 
-		while (!(iterator is IContext || iterator.Is(NodeType.NORMAL)))
+		foreach (var construction in constructions)
 		{
-			position = iterator;
-			iterator = iterator.Parent!;
+			var editor = Analyzer.TryGetEditor(construction);
+
+			if (editor == null)
+			{
+				continue;
+			}
+
+			var edited = Analyzer.GetEdited(editor);
+
+			if (!edited.Is(NodeType.VARIABLE))
+			{
+				continue;
+			}
+
+			var variable = edited.To<VariableNode>().Variable;
+
+			if (!variable.IsInlined || !variable.IsPredictable)
+			{
+				continue;
+			}
+
+			var replacement = Common.CreateStackConstruction(construction.Constructor);
+			construction.Replace(replacement);
 		}
 
-		return position;
+		constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
+
+		foreach (var construction in constructions)
+		{
+			var replacement = Common.CreateHeapConstruction(construction.Constructor);
+			construction.Replace(replacement);
+		}
 	}
 
 	private static List<OperatorNode> FindBooleanValues(Node root)
@@ -325,8 +351,6 @@ public static class ReconstructionAnalysis
 
 		foreach (var instance in instances)
 		{
-			//var position = GetInsertPosition(instance);
-
 			// Declare a hidden variable which represents the result
 			var environment = instance.FindContext()?.GetContext() ?? throw new ApplicationException("Could not find the current context");
 			var destination = environment.DeclareHidden(Types.BOOL);
@@ -360,8 +384,6 @@ public static class ReconstructionAnalysis
 			inline.Add(initialization);
 			inline.Add(statement);
 			inline.Add(new VariableNode(destination));
-			//position.Insert(statement);
-			//statement.Insert(initialization);
 		}
 	}
 
@@ -437,7 +459,8 @@ public static class ReconstructionAnalysis
 
 		foreach (var expression in expressions)
 		{
-			var inline = new ContextInlineNode(expression.GetParentContext(), expression.Position);
+			var environment = expression.GetParentContext();
+			var inline = new ContextInlineNode(new Context(environment), expression.Position);
 
 			var assignment = TryRewriteAsAssignOperation(expression, true);
 
@@ -535,17 +558,127 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	public static void LiftupInlineNodes(Node root)
+	{
+		var inlines = root.FindAll(i => i.Is(NodeType.INLINE));
+
+		foreach (var inline in inlines)
+		{
+			while (true)
+			{
+				var parent = inline.Parent!;
+
+				/// TODO: Casting is a problem
+				if (!parent.Is(NodeType.OPERATOR) || inline.Last == null)
+				{
+					break;
+				}
+
+				Node? operation;
+				var value = inline.Last;
+
+				if (parent.First == inline)
+				{
+					operation = parent.Clone();
+					operation.RemoveChildren();
+
+					inline.Remove(value);
+
+					operation.Add(value);
+					operation.Add(parent.Last!);
+
+					inline.Add(operation);
+
+					parent.Replace(inline);
+					continue;
+				}
+
+				/// TODO: It's possible the continue but the execution order must be preserved using hidden variables
+				if (!Analysis.IsPrimitive(parent.First!))
+				{
+					break;
+				}
+
+				operation = parent.Clone();
+				operation.RemoveChildren();
+
+				inline.Remove(value);
+
+				operation.Add(parent.First!);
+				operation.Add(value);
+
+				inline.Add(operation);
+
+				parent.Replace(inline);
+			}
+		}
+	}
+
+	private static void RewriteRemainderOperation(OperatorNode remainder)
+	{
+		var environment = remainder.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), remainder.Position);
+
+		var a = inline.Context.DeclareHidden(remainder.Left.GetType());
+		var b = inline.Context.DeclareHidden(remainder.Right.GetType());
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(a),
+			remainder.Left.Clone()
+		));
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(b),
+			remainder.Right.Clone()
+		));
+
+		// Formula: a % b = a - (a / b) * b
+		inline.Add(new OperatorNode(Operators.SUBTRACT).SetOperands(
+			new VariableNode(a),
+			new OperatorNode(Operators.MULTIPLY).SetOperands(
+				new OperatorNode(Operators.DIVIDE).SetOperands(
+					new VariableNode(a),
+					new VariableNode(b)
+				),
+				new VariableNode(b)
+			)
+		));
+
+		remainder.Replace(inline);
+	}
+
+	public static void RewriteRemainderOperations(Node root)
+	{
+		var remainders = root.FindAll(i => i.Is(Operators.MODULUS)).Cast<OperatorNode>();
+
+		foreach (var remainder in remainders)
+		{
+			if (remainder.Right.Is(NodeType.NUMBER))
+			{
+				RewriteRemainderOperation(remainder);
+			}
+		}
+	}
+
 	public static void Reconstruct(Node root)
 	{
 		RemoveRedundantParenthesis(root);
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
 		RewriteIsExpressions(root);
+		RewriteConstructionExpressions(root);
 		OutlineBooleanValues(root);
 		RewriteDiscardedIncrements(root);
 		RewriteIncrements(root);
 		RewriteAllEditsAsAssignOperations(root);
 		SubstituteInlineNodes(root);
+		//LiftupInlineNodes(root);
+		RewriteRemainderOperations(root);
+		
+		if (Analysis.IsFunctionInliningEnabled)
+		{
+			//Inlines.Build(root);
+		}
 	}
 
 	public static void Finish(Node root)

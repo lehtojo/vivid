@@ -1,12 +1,29 @@
 using System.Collections.Generic;
 using System;
 
+/// <summary>
+/// Jumps to the specified label and optionally checks a condition
+/// </summary>
 public class JumpInstruction : Instruction
 {
+	public const string X64_CONDITIONLESS_JUMP = "jmp";
+	public const string ARM64_CONDITIONLESS_JUMP = "b";
+
 	private static readonly Dictionary<ComparisonOperator, string[]> Instructions = new Dictionary<ComparisonOperator, string[]>();
 
-	static JumpInstruction()
+	private static void Initialize()
 	{
+		if (Assembler.IsArm64)
+		{
+			Instructions.Add(Operators.GREATER_THAN, new[] { "b.gt", "b.gt" });
+			Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { "b.ge", "b.ge" });
+			Instructions.Add(Operators.LESS_THAN, new[] { "b.lt", "b.lt" });
+			Instructions.Add(Operators.LESS_OR_EQUAL, new[] { "b.le", "b.le" });
+			Instructions.Add(Operators.EQUALS, new[] { "b.eq", "b.eq" });
+			Instructions.Add(Operators.NOT_EQUALS, new[] { "b.ne", "b.ne" });
+			return;
+		}
+
 		Instructions.Add(Operators.GREATER_THAN, new[] { "jg", "ja" });
 		Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { "jge", "jae" });
 		Instructions.Add(Operators.LESS_THAN, new[] { "jl", "jb" });
@@ -22,12 +39,22 @@ public class JumpInstruction : Instruction
 
 	public JumpInstruction(Unit unit, Label label) : base(unit)
 	{
+		if (Instructions.Count == 0)
+		{
+			Initialize();
+		}
+
 		Label = label;
 		Comparator = null;
 	}
 
 	public JumpInstruction(Unit unit, ComparisonOperator comparator, bool invert, bool signed, Label label) : base(unit)
 	{
+		if (Instructions.Count == 0)
+		{
+			Initialize();
+		}
+
 		Label = label;
 		Comparator = invert ? comparator.Counterpart : comparator;
 		IsSigned = signed;
@@ -40,7 +67,7 @@ public class JumpInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var instruction = Comparator == null ? "jmp" : Instructions[Comparator][IsSigned ? 0 : 1];
+		var instruction = Comparator == null ? (Assembler.IsArm64 ? ARM64_CONDITIONLESS_JUMP : X64_CONDITIONLESS_JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
 
 		Build($"{instruction} {Label.GetName()}");
 	}

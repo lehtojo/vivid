@@ -76,7 +76,9 @@ public class ConfigurationPhase : Phase
 					new Option() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
 					new Option() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
 					new Option() { Command = "-time",											Description = "Displays information about the length of the compilation" },
-					new Option() { Command = "-O, -O1, -optimize",							Description = "Optimizes the output" }
+					new Option() { Command = "-O, -O1, -optimize",							Description = "Optimizes the output" },
+					new Option() { Command = "-x64",												Description = "Compile for architecture x64" },
+					new Option() { Command = "-arm64",											Description = "Compile for architecture arm64" },
 				};
 
 				Console.WriteLine
@@ -223,7 +225,20 @@ public class ConfigurationPhase : Phase
 				Analysis.IsMathematicalAnalysisEnabled = true;
 				Analysis.IsRepetitionAnalysisEnabled = true;
 				Analysis.IsUnwrapAnalysisEnabled = true;
+				Analysis.IsFunctionInliningEnabled = true;
 
+				return Status.OK;
+			}
+
+			case "-x64":
+			{
+				Assembler.Architecture = Architecture.X64;
+				return Status.OK;
+			}
+
+			case "-arm64":
+			{
+				Assembler.Architecture = Architecture.Arm64;
 				return Status.OK;
 			}
 
@@ -299,6 +314,11 @@ public class ConfigurationPhase : Phase
 		if (!bundle.Contains("output"))
 		{
 			bundle.Put("output", DEFAULT_OUTPUT);
+		}
+
+		if (!Assembler.IsX64 && !Assembler.IsArm64)
+		{
+			return Status.Error("This compiler only supports architectures x64 and arm64");
 		}
 
 		return Status.OK;

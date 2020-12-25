@@ -1,15 +1,22 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
-using System;
 
+/// <summary>
+/// Initializes the functions by handling the stack properly
+/// </summary>
 public class InitializeInstruction : Instruction
 {
+	public const string X64_STORE_REGISTER_INSTRUCTION = "push";
+
+	public const string ARM64_STORE_REGISTER_PAIR_INSTRUCTION = "stp";
+	public const string ARM64_STORE_REGISTER_INSTRUCTION = "str";
+
 	public int StackMemoryChange { get; private set; }
 	public int LocalMemoryTop { get; private set; }
 
-	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.IsTargetX64;
-	private static bool IsStackAligned => Assembler.IsTargetX64;
+	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64bit;
+	private static bool IsStackAligned => Assembler.Is64bit;
 
 	public InitializeInstruction(Unit unit) : base(unit) { }
 
@@ -39,11 +46,116 @@ public class InitializeInstruction : Instruction
 		}
 
 		// Find the memory handle which has the greatest offset, that tells how much memory should be allocated for calls
-		return parameter_instructions.Select(i => i.Destination!.Value!.To<MemoryHandle>().Offset).Max();
+		return parameter_instructions.Select(i => i.Destination!.Value!.To<MemoryHandle>().Offset).Max() + Assembler.Size.Bytes;
+	}
+
+	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)
+	{
+		if (!registers.Any())
+		{
+			return;
+		}
+
+		var stack_pointer = Unit.GetStackPointer();
+		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
+
+		Unit.StackOffset += bytes;
+
+		if (registers.Count == 1)
+		{
+			builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {registers.First()}, [{stack_pointer}, #{-bytes}]!");
+			return;
+		}
+
+		var standard_registers = registers.Where(i => !i.IsMediaRegister).ToArray();
+		var media_registers = registers.Where(i => i.IsMediaRegister).ToArray();
+
+		var position = 0;
+		var allocated = false;
+
+		while (position < standard_registers.Length)
+		{
+			var batch = standard_registers.Skip(position).Take(2).ToArray();
+
+			if (batch.Length == 1)
+			{
+				if (!allocated)
+				{
+					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
+					allocated = true;
+				}
+				else
+				{
+					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				}
+
+				position++;
+				continue;
+			}
+
+			if (!allocated)
+			{
+				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
+				allocated = true;
+			}
+			else
+			{
+				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+			}
+
+			position += 2;
+		}
+
+		for (var i = 0; i < media_registers.Length;)
+		{
+			var batch = media_registers.Skip(i).Take(2).ToArray();
+
+			if (batch.Length == 1)
+			{
+				if (!allocated)
+				{
+					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
+					allocated = true;
+				}
+				else
+				{
+					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				}
+
+				i++;
+				position++;
+				continue;
+			}
+
+			if (!allocated)
+			{
+				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
+				allocated = true;
+			}
+			else
+			{
+				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+			}
+
+			i += 2;
+			position += 2;
+		}
+	}
+
+	private void SaveRegistersX64(StringBuilder builder, List<Register> registers)
+	{
+		// Save all used non-volatile rgisters
+		foreach (var register in registers)
+		{
+			builder.AppendLine($"{X64_STORE_REGISTER_INSTRUCTION} {register}");
+			Unit.StackOffset += Assembler.Size.Bytes;
+		}
 	}
 
 	public void Build(List<Register> save_registers, int required_local_memory)
 	{
+		var calls = Unit.Instructions.FindAll(i => i.Type == InstructionType.CALL).Select(i => (CallInstruction)i);
+
 		var builder = new StringBuilder();
 		var start = Unit.StackOffset;
 
@@ -53,11 +165,19 @@ public class InitializeInstruction : Instruction
 			builder.AppendLine(".cfi_startproc");
 		}
 
-		// Save all used non-volatile rgisters
-		foreach (var register in save_registers)
+		if (Assembler.IsArm64 && calls.Any())
 		{
-			builder.AppendLine($"push {register}");
-			Unit.StackOffset += Assembler.Size.Bytes;
+			save_registers.Add(Unit.GetReturnAddressRegister());
+		}
+
+		// Save all used non-volatile rgisters
+		if (Assembler.IsX64)
+		{
+			SaveRegistersX64(builder, save_registers);
+		}
+		else
+		{
+			SaveRegistersArm64(builder, save_registers);
 		}
 
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
@@ -65,7 +185,7 @@ public class InitializeInstruction : Instruction
 		{
 			builder.AppendLine(".cfi_def_cfa_offset 16");
 			builder.AppendLine(".cfi_offset 6, -16");
-			builder.AppendLine(MoveInstruction.MOVE_INSTRUCTION + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
+			builder.AppendLine(MoveInstruction.SHARED_MOVE_INSTRUCTION + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
 			builder.AppendLine(".cfi_def_cfa_register 6");
 		}
 
@@ -76,7 +196,6 @@ public class InitializeInstruction : Instruction
 		var additional_memory = required_local_memory;
 
 		// Allocate memory for calls
-		var calls = Unit.Instructions.FindAll(i => i.Type == InstructionType.CALL).Select(i => (CallInstruction)i);
 		additional_memory += GetRequiredCallMemory(calls);
 
 		// Apply the additional memory to the stack and calculate the change from the start
@@ -87,7 +206,7 @@ public class InitializeInstruction : Instruction
 		if (IsStackAligned)
 		{
 			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
-			var total = StackMemoryChange + (calls.Any() ? Assembler.Size.Bytes : 0);
+			var total = StackMemoryChange + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
 
 			if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
 			{
@@ -101,7 +220,16 @@ public class InitializeInstruction : Instruction
 
 		if (additional_memory > 0)
 		{
-			builder.Append($"sub {Unit.GetStackPointer()}, {additional_memory}");
+			var stack_pointer = Unit.GetStackPointer();
+
+			if (Assembler.IsX64)
+			{
+				builder.Append($"{SubtractionInstruction.SHARED_STANDARD_SUBTRACTION_INSTRUCTION} {stack_pointer}, {additional_memory}");
+			}
+			else
+			{
+				builder.Append($"{SubtractionInstruction.SHARED_STANDARD_SUBTRACTION_INSTRUCTION} {stack_pointer}, {stack_pointer}, #{additional_memory}");
+			}
 		}
 		else if (save_registers.Count > 0)
 		{

@@ -1,5 +1,9 @@
 using System.Collections.Generic;
 
+/// <summary>
+/// Saves the current state of the unit
+/// This instruction works on all architectures
+/// </summary>
 public class SaveStateInstruction : Instruction
 {
 	public Instruction Perspective { get; private set; }

@@ -1,5 +1,9 @@
 using System;
 
+/// <summary>
+/// Restores the state of the unit
+/// This instruction works on all architectures
+/// </summary>
 public class RestoreStateInstruction : Instruction
 {
 	public SaveStateInstruction Save { get; private set; }

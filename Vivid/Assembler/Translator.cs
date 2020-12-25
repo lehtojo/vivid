@@ -9,9 +9,16 @@ public static class Translator
 		return unit.Instructions.SelectMany(i => i.Parameters).Where(p => p.IsAnyRegister && !p.Value!.To<RegisterHandle>().Register.IsVolatile).Select(p => p.Value!.To<RegisterHandle>().Register).Distinct().ToList();
 	}
 
+	private static IEnumerable<Handle> GetAllHandles(Result[] results)
+	{
+		return results.Select(i => i.Value).Concat(results.SelectMany(i => GetAllHandles(i.Value.GetInnerResults())));
+	}
+
 	private static IEnumerable<Handle> GetAllHandles(Unit unit)
 	{
-		return unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
+		var handles = unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
+		
+		return handles.Concat(handles.SelectMany(i => GetAllHandles(i.GetInnerResults())));
 	}
 
 	private static List<Variable> GetAllSavedLocalVariables(Unit unit)
@@ -28,6 +35,14 @@ public static class Translator
 		return GetAllHandles(unit)
 			.Where(h => h is TemporaryMemoryHandle)
 			.Select(h => h.To<TemporaryMemoryHandle>())
+			.ToList();
+	}
+
+	private static List<InlineHandle> GetAllInlineHandles(Unit unit)
+	{
+		return GetAllHandles(unit)
+			.Where(h => h is InlineHandle)
+			.Select(h => h.To<InlineHandle>())
 			.ToList();
 	}
 
@@ -62,6 +77,7 @@ public static class Translator
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
+		var inline_handles = GetAllInlineHandles(unit);
 		var constant_handles = GetAllConstantDataSectionHandles(unit);
 
 		// When debugging mode is enabled, the base pointer is reserved for saving the value of the stack pointer in the start
@@ -70,7 +86,7 @@ public static class Translator
 			registers.Add(unit.GetBasePointer());	
 		}
 
-		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes);
+		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
 		var local_memory_top = 0;
 
 		unit.Execute(UnitPhase.BUILD_MODE, () =>
@@ -88,24 +104,25 @@ public static class Translator
 
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
-			if (!(i is InitializeInstruction instruction)) return;
+			if (!i.Is(InstructionType.INITIALIZE)) return;
 
-			instruction.Build(registers, required_local_memory);
-			local_memory_top = instruction.LocalMemoryTop;
+			var initialization = i.To<InitializeInstruction>();
+
+			initialization.Build(registers, required_local_memory);
+			local_memory_top = initialization.LocalMemoryTop;
 		});
-
+		
 		registers.Reverse();
 
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
-			if (i is ReturnInstruction instruction)
-			{
-				instruction.Build(registers, local_memory_top);
-			}
+			if (!i.Is(InstructionType.RETURN)) return;
+
+			i.To<ReturnInstruction>().Build(registers, local_memory_top);
 		});
 
 		// Align all used local variables
-		Aligner.AlignLocalMemory(local_variables, temporary_handles.ToList(), local_memory_top);
+		Aligner.AlignLocalMemory(local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 

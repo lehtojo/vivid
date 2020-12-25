@@ -321,9 +321,9 @@ public static class Lexer
 			var k = text[start.Local..j].LastIndexOf('\n');
 
 			// If there is no line ending inside the multiline comment, it means the comment uses only one line and its length can be added to the current character position
-			var c = k != -1 ? (j - k) : (start.Character + j - start.Local);
+			var c = k != -1 ? (j - k - 1) : (start.Character + j - start.Local);
 
-			return new Position(start.Line + lines, c, j);
+			return new Position(start.Line + lines, c, j, j);
 		}
 
 		var i = text.IndexOf('\n', start.Local);
@@ -331,12 +331,12 @@ public static class Lexer
 		if (i != -1)
 		{
 			var length = i - start.Local;
-			return new Position(start.Line, start.Character + length, i);
+			return new Position(start.Line, start.Character + length, start.Local + length, i);
 		}
 		else
 		{
 			var length = text.Length - start.Local;
-			return new Position(start.Line, start.Character + length, text.Length);
+			return new Position(start.Line, start.Character + length, start.Local + length, text.Length);
 		}
 	}
 
@@ -354,9 +354,9 @@ public static class Lexer
 			throw Errors.Get(start, error);
 		}
 
-		var length = i - start.Local;
+		var length = (i + 1) - start.Local;
 
-		return new Position(start.Line, start.Character + length, i + 1);
+		return new Position(start.Line, start.Character + length, start.Local + length, i + 1);
 	}
 
 	/// <summary>

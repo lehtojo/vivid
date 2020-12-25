@@ -45,7 +45,7 @@ public static class Common
 
 		var required_self_type = overload.GetTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
 
-		return new CallNode(self, function_pointer, parameters, new CallDescriptorType(required_self_type, parameter_types!, overload.ReturnType));
+		return new CallNode(self, function_pointer, parameters, new CallDescriptorType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType));
 	}
 
 	/// <summary>
@@ -452,5 +452,41 @@ public static class Common
 	public static bool ConsumeBody(PatternState state)
 	{
 		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
+	}
+
+	public static Node CreateHeapConstruction(FunctionNode constructor)
+	{
+		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+
+		var allocation_size = Math.Max(1L, type.ContentSize);
+		var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
+
+		var allocation = new CastNode(
+			new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(allocation_parameters),
+			new TypeNode(type)
+		);
+
+		return new LinkNode(allocation, constructor, constructor.Position);
+	}
+
+	public static Node CreateStackConstruction(FunctionNode constructor)
+	{
+		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+
+		var environment = constructor.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+
+		var allocation_size = Math.Max(1, type.ContentSize);
+		var temporary = inline.Context.DeclareHidden(type);
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(temporary),
+			new CastNode(new StackAddressNode(allocation_size), new TypeNode(type))
+		));
+
+		inline.Add(new LinkNode(new VariableNode(temporary), constructor, constructor.Position));
+		inline.Add(new VariableNode(temporary));
+
+		return inline;
 	}
 }

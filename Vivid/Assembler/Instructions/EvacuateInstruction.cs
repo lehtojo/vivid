@@ -1,5 +1,9 @@
 using System;
 
+/// <summary>
+/// Ensures that variables and values which are required later are moved to locations which are not affected by call instructions for example
+/// This instruction is works in all architectures
+/// </summary>
 public class EvacuateInstruction : Instruction
 {
 	public Instruction Perspective { get; private set; }

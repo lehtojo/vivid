@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Ensures that the current locations of values match the specified start state
+/// This instruction works on all architectures
+/// </summary>
 public class SymmetryEndInstruction : Instruction
 {
 	public SymmetryStartInstruction Start { get; private set; }
@@ -15,7 +19,7 @@ public class SymmetryEndInstruction : Instruction
 	public void Append()
 	{
 		Sources.Clear();
-		Sources.AddRange(Start.ActiveVariables.Select(i => References.GetVariable(Unit, i, AccessMode.READ)));
+		Sources.AddRange(Start.Actives.Select(i => References.GetVariable(Unit, i, AccessMode.READ)));
 	}
 
 	public override void OnBuild()
@@ -24,7 +28,7 @@ public class SymmetryEndInstruction : Instruction
 
 		for (var i = 0; i < Start.Variables.Count; i++)
 		{
-			var source = Sources[Start.ActiveVariables.IndexOf(Start.Variables[i])];
+			var source = Sources[Start.Actives.IndexOf(Start.Variables[i])];
 			var destination = new Result(Start.Handles[i], source.Format);
 
 			moves.Add(new MoveInstruction(Unit, destination, source)

@@ -2,16 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Saves the current locations of the specified variables
+/// This instruction works on all architectures
+/// </summary>
 public class SymmetryStartInstruction : Instruction
 {
-	public List<Variable> ActiveVariables { get; private set; }
+	public List<Variable> Actives { get; private set; }
 
 	public List<Handle> Handles { get; private set; } = new List<Handle>();
 	public List<Variable> Variables { get; private set; } = new List<Variable>();
 
 	public SymmetryStartInstruction(Unit unit, IEnumerable<Variable>? active_variables) : base(unit)
 	{
-		ActiveVariables = active_variables?.ToList() ?? new List<Variable>();
+		Actives = active_variables?.ToList() ?? new List<Variable>();
 	}
 
 	public override void OnBuild()
@@ -19,18 +23,18 @@ public class SymmetryStartInstruction : Instruction
 		Handles.Clear();
 		Variables.Clear();
 
-		var handles = ActiveVariables
+		var handles = Actives
 			.Select(i => Unit.GetCurrentVariableHandle(i) ?? References.GetVariable(Unit, i, AccessMode.READ))
 			.ToArray();
 
-		for (var i = 0; i < ActiveVariables.Count; i++)
+		for (var i = 0; i < Actives.Count; i++)
 		{
 			var handle = handles[i];
 
 			if (handles.Take(i).All(j => !j.Equals(handle)))
 			{
 				Handles.Add(handle.Value.Finalize());
-				Variables.Add(ActiveVariables[i]);
+				Variables.Add(Actives[i]);
 			}
 		}
 	}

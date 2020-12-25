@@ -1,4 +1,7 @@
-
+/// <summary>
+/// Duplicates the specified value by loading it to another register
+/// This instruction is works in all architectures
+/// </summary>
 public class DuplicateInstruction : DualParameterInstruction
 {
 	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value, value.Format) { }

@@ -2,6 +2,10 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+/// <summary>
+/// Prepares the specified variables by loading them in priority order
+/// This instruction is works in all architectures
+/// </summary>
 public class CacheVariablesInstruction : Instruction
 {
 	private List<VariableUsageDescriptor> Usages { get; }

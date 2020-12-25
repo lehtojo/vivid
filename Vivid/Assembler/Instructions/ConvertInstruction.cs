@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
+﻿/// <summary>
+/// Converts the specified number into the specified format
+/// This instruction is works on all architectures
+/// </summary>
 public class ConvertInstruction : Instruction
 {
 	public Result Number { get; private set; }

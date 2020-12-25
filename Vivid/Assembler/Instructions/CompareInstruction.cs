@@ -1,10 +1,13 @@
 public class CompareInstruction : DualParameterInstruction
 {
-	public const string COMPARISON_INSTRUCTION = "cmp";
-	public const string SINGLE_PRECISION_DECIMAL_COMPARISON = "comiss";
-	public const string DOUBLE_PRECISION_DECIMAL_COMPARISON = "comisd";
+	public const string SHARED_COMPARISON_INSTRUCTION = "cmp";
 
-	public const string ZERO_COMPARISON_INSTRUCTION = "test";
+	public const string X64_SINGLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION = "comiss";
+	public const string X64_DOUBLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION = "comisd";
+
+	public const string ARM64_DECIMAL_COMPARISON_INSTRUCTION = "fcmp";
+
+	public const string X64_ZERO_COMPARISON_INSTRUCTION = "test";
 
 	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format) { }
 
@@ -12,7 +15,12 @@ public class CompareInstruction : DualParameterInstruction
 	{
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.IsTargetX64 ? DOUBLE_PRECISION_DECIMAL_COMPARISON : SINGLE_PRECISION_DECIMAL_COMPARISON;
+			var instruction = Assembler.Is64bit ? X64_DOUBLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION : X64_SINGLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION;
+
+			if (Assembler.IsArm64)
+			{
+				instruction = ARM64_DECIMAL_COMPARISON_INSTRUCTION;
+			}
 
 			Build(
 				instruction,
@@ -28,10 +36,10 @@ public class CompareInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
+		else if (Assembler.IsX64 && Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
 		{
 			Build(
-				ZERO_COMPARISON_INSTRUCTION,
+				X64_ZERO_COMPARISON_INSTRUCTION,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -47,8 +55,16 @@ public class CompareInstruction : DualParameterInstruction
 		}
 		else
 		{
+			var types = Assembler.IsX64 ? new[] { HandleType.CONSTANT, HandleType.REGISTER, HandleType.MEMORY } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
+			var flags_second = ParameterFlag.NONE;
+
+			if (Assembler.IsArm64)
+			{
+				flags_second |= ParameterFlag.CreateBitLimit(8);
+			}
+
 			Build(
-				COMPARISON_INSTRUCTION,
+				SHARED_COMPARISON_INSTRUCTION,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -57,10 +73,8 @@ public class CompareInstruction : DualParameterInstruction
 				),
 				new InstructionParameter(
 					Second,
-					ParameterFlag.NONE,
-					HandleType.CONSTANT,
-					HandleType.REGISTER,
-					HandleType.MEMORY
+					flags_second,
+					types
 				)
 			);
 		}

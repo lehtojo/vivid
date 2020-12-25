@@ -106,6 +106,11 @@ public static class Builders
 				return new Result();
 			}
 
+			case NodeType.STACK_ADDRESS:
+			{
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>().Bytes).Execute();
+			}
+
 			default:
 			{
 				Result? reference = null;

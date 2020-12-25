@@ -1,18 +1,15 @@
 ﻿using System.Collections.Generic;
-using NUnit.Framework;
 
 namespace Vivid.Unit
 {
-	[TestFixture]
-	public class LexerTests
+	public static class LexerTests
 	{
 		private static List<Token> GetTokens(params Token[] tokens)
 		{
 			return new List<Token>(tokens);
 		}
 
-		[TestCase]
-		public void Lexer_SimpleMath()
+		public static void StandardMath()
 		{
 			var actual = Lexer.GetTokens("1 + 2");
 			var expected = GetTokens
@@ -25,8 +22,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lexer_SimpleMathAssign()
+		public static void StandardMathAssignment()
 		{
 			var actual = Lexer.GetTokens("sum = a * b + 5");
 			var expected = GetTokens
@@ -43,8 +39,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lexer_Math()
+		public static void Math()
 		{
 			var actual = Lexer.GetTokens("1 % a ^ (number / c - 9)");
 			var expected = GetTokens
@@ -66,8 +61,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lexer_Assigning()
+		public static void Assignment()
 		{
 			var actual = Lexer.GetTokens("a += b -= c + 5 *= d /= e");
 			var expected = GetTokens
@@ -88,8 +82,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lexer_NestedParenthesis()
+		public static void NestedParenthesis()
 		{
 			var actual = Lexer.GetTokens("apple + (banana * (orange - dragonfruit ^ (5 + 5)) - (blueberry / cucumber ^ potato))");
 			var expected = GetTokens
@@ -128,8 +121,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		[TestCase]
-		public void Lexer_UndefinedOperator_Error()
+		public static void UndefinedOperator()
 		{
 			try
 			{
@@ -137,10 +129,10 @@ namespace Vivid.Unit
 			}
 			catch
 			{
-				Assert.Pass();
+				Assert.Pass("Undefined operator caused an error which was expected");
 			}
 
-			Assert.Fail();
+			Assert.Fail("Undefined operator did not cause an error which was not expected");
 		}
 	}
 }

@@ -100,7 +100,6 @@ public static class Oracle
 	public static void SimulateRegisterUsage(Unit unit)
 	{
 		var calls = unit.Instructions.FindAll(i => i.Type == InstructionType.CALL);
-		var divisions = unit.Instructions.FindAll(i => i.Type == InstructionType.DIVISION);
 
 		// Try to redirect call parameters that follow x64 calling conventions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, instruction =>
@@ -130,6 +129,13 @@ public static class Oracle
 				unit.VolatileRegisters.ForEach(r => r.Reset());
 			}
 		});
+
+		if (Assembler.IsArm64)
+		{
+			return;
+		}
+
+		var divisions = unit.Instructions.FindAll(i => i.Type == InstructionType.DIVISION);
 
 		var numerator_register = unit.GetNumeratorRegister();
 		var remainder_register = unit.GetRemainderRegister();

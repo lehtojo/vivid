@@ -7,20 +7,36 @@ public static class Calls
 	public const int SHADOW_SPACE_SIZE = 32;
 	public const int STACK_ALIGNMENT = 16;
 
-	private const int MAX_MEDIA_REGISTERS_UNIX_X64 = 7;
-	private const int MAX_MEDIA_REGISTERS_WINDOWS_X64 = 4;
+	private const int X64_MAX_MEDIA_REGISTERS_UNIX_X64 = 7;
+	private const int X64_MAX_MEDIA_REGISTERS_WINDOWS_X64 = 4;
 
-	private static readonly string[] StandardParameterRegistersUnixX64 = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
-	private static readonly string[] StandardParameterRegistersWindowsX64 = { "rcx", "rdx", "r8", "r9" };
+	private const int ARM64_MAX_MEDIA_REGISTERS_UNIX_X64 = 8;
+	private const int ARM64_MAX_MEDIA_REGISTERS_WINDOWS_X64 = 8;
+
+	private static readonly string[] X64_StandardParameterRegisters_Unix_X64 = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+	private static readonly string[] X64_StandardParameterRegisters_Windows_X64 = { "rcx", "rdx", "r8", "r9" };
+
+	private static readonly string[] ARM64_StandardParameterRegisters_Windows_X64 = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
+	private static readonly string[] ARM64_StandardParameterRegisters_Unix_X64 = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
 
 	public static IEnumerable<string> GetStandardParameterRegisters()
 	{
-		return Assembler.IsTargetWindows ? StandardParameterRegistersWindowsX64 : StandardParameterRegistersUnixX64;
+		if (Assembler.IsArm64)
+		{
+			return Assembler.IsTargetWindows ? ARM64_StandardParameterRegisters_Windows_X64 : ARM64_StandardParameterRegisters_Unix_X64;
+		}
+
+		return Assembler.IsTargetWindows ? X64_StandardParameterRegisters_Windows_X64 : X64_StandardParameterRegisters_Unix_X64;
 	}
 
 	public static int GetMaxMediaRegisterParameters()
 	{
-		return Assembler.IsTargetWindows ? MAX_MEDIA_REGISTERS_WINDOWS_X64 : MAX_MEDIA_REGISTERS_UNIX_X64;
+		if (Assembler.IsArm64)
+		{
+			return Assembler.IsTargetWindows ? ARM64_MAX_MEDIA_REGISTERS_WINDOWS_X64 : ARM64_MAX_MEDIA_REGISTERS_UNIX_X64;
+		}
+
+		return Assembler.IsTargetWindows ? X64_MAX_MEDIA_REGISTERS_WINDOWS_X64 : X64_MAX_MEDIA_REGISTERS_UNIX_X64;
 	}
 
 	public static Result Build(Unit unit, FunctionNode node)

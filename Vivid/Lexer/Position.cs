@@ -19,11 +19,6 @@
 		Absolute = absolute;
 	}
 
-	public Position Add(Position other)
-	{
-		return new Position(Line + other.Line, Character, Local, Absolute + other.Absolute);
-	}
-
 	public Position NextLine()
 	{
 		Line++;

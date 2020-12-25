@@ -150,7 +150,6 @@ public static class Loops
 		}
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Context, node.Body.Context);
-		unit.Append(new BranchInstruction(unit, new Node[] { node.Body }));
 
 		// Register the start and exit label to the loop for control keywords
 		node.Start = unit.GetNextLabel();
@@ -201,7 +200,7 @@ public static class Loops
 		}
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
-		unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
+		//unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
 
 		// Initialize the condition
 		node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));

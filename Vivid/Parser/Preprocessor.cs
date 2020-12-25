@@ -189,7 +189,7 @@ public static class Preprocessor
 	public static Status Evaluate(Context context, Node root)
 	{
 		// Apply constants and such
-		Analyzer.Analyze(context, root);
+		Analyzer.Analyze(root, context);
 
 		try
 		{

@@ -1,3 +1,7 @@
+/// <summary>
+/// Returns a handle to the specified variable
+/// This instruction works on all architectures
+/// </summary>
 public class GetVariableInstruction : Instruction
 {
 	public Result? Self { get; private set; }

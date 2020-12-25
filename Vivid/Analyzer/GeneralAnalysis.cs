@@ -88,7 +88,7 @@ public static class GeneralAnalysis
 			}
 		}
 
-		return new VariableDescriptor(reads, writes.Select(i => Analyzer.GetEditNode(i)).ToList());
+		return new VariableDescriptor(reads, writes.Select(i => Analyzer.GetEditor(i)).ToList());
 	}
 
 	private static Dictionary<Variable, VariableDescriptor> GetVariableDescriptors(FunctionImplementation implementation, Node root)

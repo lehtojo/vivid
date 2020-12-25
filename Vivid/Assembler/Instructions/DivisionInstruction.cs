@@ -1,13 +1,20 @@
 using System;
+using System.Linq;
 
 public class DivisionInstruction : DualParameterInstruction
 {
-	private const string SIGNED_INTEGER_DIVISION_INSTRUCTION = "idiv";
+	private const string X64_SIGNED_INTEGER_DIVISION_INSTRUCTION = "idiv";
+	private const string ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION = "sdiv";
 
-	private const string SINGLE_PRECISION_DIVISION_INSTRUCTION = "divss";
-	private const string DOUBLE_PRECISION_DIVISION_INSTRUCTION = "divsd";
+	private const string X64_SINGLE_PRECISION_DIVISION_INSTRUCTION = "divss";
+	private const string X64_DOUBLE_PRECISION_DIVISION_INSTRUCTION = "divsd";
 
-	private const string DIVIDE_BY_TWO_INSTRUCTION = "sar";
+	private const string ARM64_DECIMAL_DIVISION_INSTRUCTION = "fdiv";
+
+	private const string X64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION = "sar";
+	private const string ARM64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION = "asr";
+
+	public const string ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION = "msub";
 
 	public bool Modulus { get; private set; }
 	public bool Assigns { get; private set; }
@@ -41,9 +48,10 @@ public class DivisionInstruction : DualParameterInstruction
 				Memory.ClearRegister(Unit, destination.Register);
 			}
 
+			// NOTE: The destination operand must be copied if it's a memory address and this instruction assigns
 			return new MoveInstruction(Unit, new Result(destination, First.Format), First)
 			{
-				Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
+				Type = Assigns && !First.IsMemoryAddress ? MoveType.RELOCATE : MoveType.COPY
 
 			}.Execute();
 		}
@@ -91,7 +99,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var destination = new RegisterHandle(Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!);
 
 		Build(
-			SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -118,7 +126,7 @@ public class DivisionInstruction : DualParameterInstruction
 	private void BuildDivision(Result numerator)
 	{
 		Build(
-			SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -151,7 +159,7 @@ public class DivisionInstruction : DualParameterInstruction
 	/// </summary>
 	private ConstantDivision? TryGetConstantDivision()
 	{
-		if (Second.IsConstant)
+		if (Second.IsConstant && !Second.Format.IsDecimal())
 		{
 			return new ConstantDivision(First, Second);
 		}
@@ -166,18 +174,19 @@ public class DivisionInstruction : DualParameterInstruction
 		return (x & (x - 1)) == 0;
 	}
 
-	public override void OnBuild()
+	public void OnBuildX64()
 	{
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.IsTargetX86 ? SINGLE_PRECISION_DIVISION_INSTRUCTION : DOUBLE_PRECISION_DIVISION_INSTRUCTION;
+			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_DIVISION_INSTRUCTION : X64_DOUBLE_PRECISION_DIVISION_INSTRUCTION;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
+			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 
 			Build(
 				instruction,
 				new InstructionParameter(
-					First,
+					result,
 					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
@@ -200,12 +209,13 @@ public class DivisionInstruction : DualParameterInstruction
 			{
 				var count = new ConstantHandle((long)Math.Log2(division.Constant));
 				var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
+				var result = Memory.LoadOperand(Unit, division.Dividend, false, Assigns);
 
 				Build(
-					DIVIDE_BY_TWO_INSTRUCTION,
+					X64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION,
 					Assembler.Size,
 					new InstructionParameter(
-						division.Dividend,
+						result,
 						ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
 						HandleType.REGISTER
 					),
@@ -213,7 +223,7 @@ public class DivisionInstruction : DualParameterInstruction
 						new Result(count, Assembler.Format),
 						ParameterFlag.NONE,
 						HandleType.CONSTANT
-				   )
+					)
 				);
 
 				return;
@@ -238,6 +248,196 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			BuildDivision(numerator);
 		}
+	}
+
+	public void BuildModulusArm64()
+	{
+		// Formula: a % b = a - (a / b) * b
+
+		// Example:
+		// a: x0
+		// b: x1
+		//
+		// sdiv x2, x0, x1
+		// msub x0, x2, x1, x0 (assigns)
+
+		var first = Memory.LoadOperand(Unit, First, false, Assigns);
+		var division = new DivisionInstruction(Unit, false, first, Second, Format, false, Unsigned).Execute();
+
+		if (Assigns)
+		{
+			Build(
+				ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+				new InstructionParameter(
+					first,
+					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					division,
+					ParameterFlag.NONE,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					Second,
+					ParameterFlag.NONE,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					first,
+					ParameterFlag.NONE,
+					HandleType.REGISTER
+				)
+			);
+
+			return;
+		}
+
+		Memory.GetResultRegisterFor(Unit, Result, false);
+
+		Build(
+			ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+			Assembler.Size,
+			new InstructionParameter(
+				Result,
+				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				division,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				first,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			)
+		);
+
+		return;
+	}
+
+	public void OnBuildArm64()
+	{
+		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
+		var instruction = is_decimal ? ARM64_DECIMAL_DIVISION_INSTRUCTION : ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION;
+		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
+		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.REGISTER };
+
+		var division = TryGetConstantDivision();
+		var second = Second;
+
+		if (!is_decimal && division != null && IsPowerOfTwo(division.Constant) && division.Constant != 0)
+		{
+			second = new Result(new ConstantHandle((long)Math.Log2(division.Constant)), Assembler.Format);
+			types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
+			instruction = ARM64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION;
+		}
+
+		if (Assigns)
+		{
+			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
+			
+			Build(
+				instruction,
+				Assembler.Size,
+				new InstructionParameter(
+					result,
+					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
+					base_register_type
+				),
+				new InstructionParameter(
+					result,
+					ParameterFlag.NONE,
+					base_register_type
+				),
+				new InstructionParameter(
+					second,
+					ParameterFlag.NONE,
+					types
+				)
+			);
+
+			return;
+		}
+
+		Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+
+		Build(
+			instruction,
+			Assembler.Size,
+			new InstructionParameter(
+				Result,
+				ParameterFlag.DESTINATION,
+				base_register_type
+			),
+			new InstructionParameter(
+				First,
+				ParameterFlag.NONE,
+				base_register_type
+			),
+			new InstructionParameter(
+				second,
+				ParameterFlag.NONE,
+				types
+			)
+		);
+
+		return;
+	}
+
+	public override void OnBuild()
+	{
+		if (Assigns && First.IsMemoryAddress)
+		{
+			Unit.Append(new MoveInstruction(Unit, First, Result), true);
+		}
+
+		if (Assembler.IsX64)
+		{
+			OnBuildX64();
+		}
+		else if (Modulus)
+		{
+			BuildModulusArm64();
+		}
+		else
+		{
+			OnBuildArm64();
+		}
+	}
+
+	public bool RedirectArm64(Handle handle)
+	{
+		if (Operation == ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		{
+			Parameters.First().Value = handle;
+			return true;
+		}
+
+		if (Operation == ARM64_DECIMAL_DIVISION_INSTRUCTION && handle.Is(HandleType.MEDIA_REGISTER))
+		{
+			Parameters.First().Value = handle;
+			return true;
+		}
+
+		return false;
+	}
+
+	public override bool Redirect(Handle handle)
+	{
+		if (Assembler.IsArm64)
+		{
+			return RedirectArm64(handle);
+		}
+
+		return false;
 	}
 
 	public override Result GetDestinationDependency()

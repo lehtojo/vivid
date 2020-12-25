@@ -1,3 +1,7 @@
+/// <summary>
+/// Ensures that the specified variable has a location in the current scope
+/// This instruction is works in all architectures
+/// </summary>
 public class DeclareInstruction : Instruction
 {
 	public Variable Variable { get; }
@@ -27,11 +31,6 @@ public class DeclareInstruction : Instruction
 				HandleType.NONE
 			)
 		);
-	}
-
-	public override bool Redirect(Handle handle)
-	{
-		return base.Redirect(handle);
 	}
 
 	public override InstructionType GetInstructionType()

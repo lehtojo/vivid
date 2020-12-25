@@ -122,7 +122,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return node;
+				return new ConstructionNode(node, node.Position);
 			}
 
 			if (function.IsMember && !linked)
@@ -180,7 +180,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return node;
+				return new ConstructionNode(node, node.Position);
 			}
 
 			if (function.IsMember && !linked)

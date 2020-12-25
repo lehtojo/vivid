@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using System;
 
+/// <summary>
+/// Relocates variables so that their locations match the state of the outer scope
+/// This instruction works on all architectures
+/// </summary>
 public class MergeScopeInstruction : Instruction
 {
 	public MergeScopeInstruction(Unit unit) : base(unit) { }

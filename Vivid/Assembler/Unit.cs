@@ -89,10 +89,32 @@ public class Unit
 		Function = function;
 		Self = Function.GetSelfPointer();
 
+		Registers = new List<Register>();
+
+		if (Assembler.IsX64)
+		{
+			LoadArhitectureX64();
+		}
+		else
+		{
+			LoadArhitectureArm64();
+		}
+
+		NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
+		VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
+
+		NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
+		NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
+
+		MediaRegisters = Registers.FindAll(r => r.IsMediaRegister);
+	}
+
+	private void LoadArhitectureX64()
+	{
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;
 		var base_pointer_flags = Assembler.IsDebuggingEnabled ? RegisterFlag.RESERVED | RegisterFlag.BASE_POINTER : RegisterFlag.NONE;
 
-		Registers = new List<Register>()
+		Registers.AddRange(new List<Register>()
 		{
 			new Register(Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.NUMERATOR),
 			new Register(Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
@@ -119,7 +141,7 @@ public class Unit
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
 			new Register(Size.FromFormat(Types.DECIMAL.Format), new string[] { "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
-		};
+		});
 
 		if (Assembler.Size == Size.QWORD)
 		{
@@ -135,21 +157,54 @@ public class Unit
 				new Register(Size.QWORD, new [] { "r15", "r15d", "r15w", "r15b" })
 			});
 		}
+	}
 
-		NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
-		VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
+	private void LoadArhitectureArm64()
+	{
+		for (var i = 0; i < 29; i++)
+		{
+			var register = new Register(Size.QWORD, new [] { $"x{i}", $"w{i}", $"w{i}", $"w{i}" });
 
-		NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
-		NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
+			if (i < 19)
+			{
+				register.Flags |= RegisterFlag.VOLATILE;
+			}
 
-		MediaRegisters = Registers.FindAll(r => r.IsMediaRegister);
+			if (i == 0)
+			{
+				register.Flags |= RegisterFlag.RETURN;
+			}
+
+			Registers.Add(register);
+		}
+
+		for (var i = 0; i < 29; i++)
+		{
+			var register = new Register(Size.FromFormat(Types.DECIMAL.Format), new [] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA | RegisterFlag.RESERVED);
+			
+			if (i < 19)
+			{
+				register.Flags |= RegisterFlag.VOLATILE;
+			}
+
+			if (i == 0)
+			{
+				register.Flags |= RegisterFlag.DECIMAL_RETURN;
+			}
+
+			Registers.Add(register);
+		}
+
+		Registers.Add(new Register(Size.QWORD, new [] { "x30", "w30", "w30", "w30" }, RegisterFlag.RESERVED | RegisterFlag.RETURN_ADDRESS));
+		Registers.Add(new Register(Size.QWORD, new [] { "xzr", "wzr", "szr", "bzr" }, RegisterFlag.ZERO | RegisterFlag.VOLATILE));
+		Registers.Add(new Register(Size.QWORD, new [] { "sp", "sp", "sp", "sp" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER));
 	}
 
 	public void ExpectMode(UnitPhase expected)
 	{
 		if (Phase != expected)
 		{
-			throw new InvalidOperationException("Unit mode didn't match the expected");
+			throw new InvalidOperationException("Unit mode did not match the expected");
 		}
 	}
 
@@ -172,23 +227,13 @@ public class Unit
 		state.ForEach(s => s.Restore(this));
 	}
 
-	public void Set(Variable variable, Result value)
-	{
-		if (!variable.IsPredictable)
-		{
-			return;
-		}
-
-		Scope!.Variables[variable] = value;
-		value.Metadata.Attach(new VariableAttribute(variable));
-	}
-
 	public void Append(Instruction instruction, bool after = false)
 	{
 		if (Position < 0)
 		{
 			Instructions.Add(instruction);
 			instruction.Position = Instructions.Count - 1;
+			Anchor = instruction;
 		}
 		else
 		{
@@ -219,18 +264,41 @@ public class Unit
 			return;
 		}
 
-		var previous = Anchor;
+		if (after)
+		{
+			Position = Anchor!.Position;
+			return;
+		}
+
+		var destination = Anchor;
 
 		Anchor = instruction;
-		Position = Anchor.Position;
+		Position = instruction.Position;
+
 		instruction.Build();
 		instruction.OnSimulate();
-		Anchor = previous;
-		Position = Anchor!.Position;
+
+		// Return to the previous instruction by iterating forward since it must be at the current position or further
+		while (Anchor != destination)
+		{
+			if (!Anchor.IsBuilt)
+			{
+				var temporary = Anchor;
+				temporary.Build();
+				temporary.OnSimulate();
+			}
+
+			Anchor = Instructions[++Position];
+		}
 	}
 
 	public void Append(IEnumerable<Instruction> instructions, bool after = false)
 	{
+		if (!instructions.Any())
+		{
+			return;
+		}
+
 		if (Phase != UnitPhase.BUILD_MODE)
 		{
 			throw new ApplicationException("Appending a range of instructions only works in build mode since it uses reindexing");
@@ -239,6 +307,7 @@ public class Unit
 		if (Position < 0)
 		{
 			Instructions.AddRange(instructions);
+			Anchor = Instructions.Last();
 		}
 		else
 		{
@@ -265,20 +334,33 @@ public class Unit
 
 		Reindex();
 
-		if (Phase == UnitPhase.BUILD_MODE)
+		if (Phase != UnitPhase.BUILD_MODE)
 		{
-			var previous = Anchor;
+			return;
+		}
 
-			foreach (var instruction in instructions)
+		if (after)
+		{
+			Position = Anchor!.Position;
+			return;
+		}
+
+		var destination = Anchor;
+
+		Anchor = instructions.First();
+		Position = Anchor.Position;
+
+		// Return to the previous instruction by iterating forward since it must be at the current position or further
+		while (Anchor != destination)
+		{
+			if (!Anchor.IsBuilt)
 			{
-				Anchor = instruction;
-				Position = Anchor.Position;
-				instruction.Build();
-				instruction.OnSimulate();
+				var temporary = Anchor;
+				temporary.Build();
+				temporary.OnSimulate();
 			}
 
-			Anchor = previous;
-			Position = Anchor!.Position;
+			Anchor = Instructions[++Position];
 		}
 	}
 
@@ -544,7 +626,7 @@ public class Unit
 
 	public Register GetNumeratorRegister()
 	{
-		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NUMERATOR)) ?? throw new ApplicationException("Architecture did not have a nominator register");
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.NUMERATOR)) ?? throw new ApplicationException("Architecture did not have a numerator register");
 	}
 
 	public Register GetRemainderRegister()
@@ -555,6 +637,16 @@ public class Unit
 	public Register GetShiftRegister()
 	{
 		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.SHIFT)) ?? throw new ApplicationException("Architecture did not have a shift register");
+	}
+
+	public Register GetZeroRegister()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.ZERO)) ?? throw new ApplicationException("Architecture did not have a zero register");
+	}
+
+	public Register GetReturnAddressRegister()
+	{
+		return Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.RETURN_ADDRESS)) ?? throw new ApplicationException("Architecture did not have a return address register");
 	}
 
 	public void Reset()
@@ -591,7 +683,6 @@ public class Unit
 		for (Position = 0; Position < Instructions.Count;)
 		{
 			var instruction = Instructions[Position];
-			var next = Position + 1 < Instructions.Count ? Instructions[Position + 1] : null;
 
 			try
 			{
@@ -638,17 +729,14 @@ public class Unit
 				throw new ApplicationException($"ERROR: Unit simulation failed while processing {name}-instruction at position {Position}: {e}");
 			}
 
-			if (next == null)
+			Position = instruction.Position;
+
+			if (Position + 1 >= Instructions.Count)
 			{
 				break;
 			}
 
-			Position = Instructions.IndexOf(next, instruction.Position);
-
-			if (Position == -1)
-			{
-				throw new ApplicationException("Next instruction was removed from the instruction list");
-			}
+			Position++;
 		}
 
 		// Reset the state after this simulation

@@ -1,5 +1,6 @@
 /// <summary>
-/// Specialized instruction for accessing member variables
+/// Returns a handle for accessing member variables
+/// This instruction works on all architectures
 /// </summary>
 public class GetObjectPointerInstruction : Instruction
 {

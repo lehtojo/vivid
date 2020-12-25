@@ -4,6 +4,29 @@ using System;
 
 public static class Inlines
 {
+	public static void Build(Node root)
+	{
+		var batch = root.FindAll(n => n is FunctionNode f && f.Function.IsInlineable());
+
+		while (true)
+		{
+			// Inline all references contained in the batch
+			foreach (var function in batch)
+			{
+				Inline(function.To<FunctionNode>().Function, function.To<FunctionNode>());
+			}
+
+			// Since inlining can create new function references, they must be searched
+			batch = root.FindAll(n => n is FunctionNode f && f.Function.IsInlineable());
+
+			// Stop if there are no function references
+			if (!batch.Any())
+			{
+				break;
+			}
+		}
+	}
+
 	/// <summary>
 	/// Inlines all implementations defined in the specified context
 	/// </summary>
@@ -93,19 +116,12 @@ public static class Inlines
 				value
 			);
 
-			if (body.First == null)
-			{
-				body.Add(initialization);
-			}
-			else
-			{
-				body.Insert(body.First!, initialization);
-			}
+			body.Insert(body.First, initialization);
 		}
 
 		foreach (var local in implementation.Variables.Values)
 		{
-			if (local.IsSelfPointer && !implementation.IsConstructor)
+			if (local.IsSelfPointer)
 			{
 				continue;
 			}
@@ -127,6 +143,7 @@ public static class Inlines
 			destination = reference;
 		}
 
+		ReconstructionAnalysis.Reconstruct(body);
 		return body;
 	}
 
@@ -153,14 +170,14 @@ public static class Inlines
 	/// </summary>
 	public static void Inline(FunctionImplementation implementation, FunctionNode reference)
 	{
-		var context = reference.GetParentContext();
-		var body = GetInlineBody(context, implementation, reference, out Node destination);
-		var position = GetInlineInsertPosition(reference);
+		var environment = reference.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), reference.Position);
+		var body = GetInlineBody(inline.Context, implementation, reference, out Node destination);
 
 		if (implementation.ReturnType != Types.UNIT)
 		{
 			// Declare a variable which contains the result of the inlined function
-			var result = context.DeclareHidden(implementation.ReturnType!);
+			var result = inline.Context.DeclareHidden(implementation.ReturnType!);
 
 			// Find all return statements
 			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Select(i => i.To<ReturnNode>());
@@ -191,20 +208,10 @@ public static class Inlines
 				jump.Insert(assign);
 			}
 
-			// Insert a node to the destination position and replace it with the inlined body
-			//var temporary = new Node();
-			//position.Insert(temporary);
+			body.ForEach(i => inline.Add(i));
+			inline.Add(new VariableNode(result));
 
-			// Replace the function call with the result of the inlined function
-			//destination.Replace(new VariableNode(result));
-
-			var temporary = new InlineNode(reference.Position);
-			body.ForEach(i => temporary.Add(i));
-			temporary.Add(new VariableNode(result));
-
-			destination.Replace(temporary);
-
-			//temporary.ReplaceWithChildren(body);
+			destination.Replace(inline);
 
 			return;
 		}
@@ -224,11 +231,9 @@ public static class Inlines
 			}
 
 			// Replace the function call with the body of the inlined function
-			var temporary = new InlineNode(reference.Position);
-			body.ForEach(i => temporary.Add(i));
+			body.ForEach(i => inline.Add(i));
 
-			destination.Replace(temporary);
-			//destination.ReplaceWithChildren(body);
+			destination.Replace(inline);
 		}
 	}
 
@@ -251,25 +256,38 @@ public static class Inlines
 
 	private static bool WrapMemberAccess(Context context, FunctionNode reference, Node body)
 	{
-		var self_pointer = GetSelfPointer(reference);
+		var self_pointer_value = GetSelfPointer(reference);
 
-		if (self_pointer == null)
+		if (self_pointer_value == null)
 		{
 			WrapCurrentSelfPointer(context, reference, body);
 			return false;
 		}
+		
+		var self_pointer_variable = reference.Function.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+		var self_pointer_replacement = context.DeclareHidden(self_pointer_variable.Type!);
 
+		// Load the self pointer once
+		var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(self_pointer_replacement),
+			self_pointer_value
+		);
+
+		body.Insert(body.First, initialization);
+
+		// Find all member variables which are missing the self pointer at the start
 		var usages = body.FindAll(i => i.Is(NodeType.VARIABLE) &&
 			i.To<VariableNode>().Variable.IsMember &&
 			i.Parent!.Is(NodeType.LINK) &&
 			i.Parent!.First == i
 		).Select(i => i.To<VariableNode>());
 
-		usages.ForEach(i => i.Replace(new LinkNode(self_pointer.Clone(), new VariableNode(i.Variable), i.Position)));
+		usages.ForEach(i => i.Replace(new LinkNode(new VariableNode(self_pointer_replacement), new VariableNode(i.Variable), i.Position)));
 
-		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsSelfPointer);
+		// Find all references of the original self pointer in the body and replace them
+		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable == self_pointer_variable);
 
-		self_pointers.ForEach(i => i.Replace(self_pointer.Clone()));
+		self_pointers.ForEach(i => i.Replace(new VariableNode(self_pointer_replacement)));
 
 		return true;
 	}

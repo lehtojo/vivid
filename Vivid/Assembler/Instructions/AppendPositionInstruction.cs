@@ -1,6 +1,10 @@
 using System;
 using System.Globalization;
 
+/// <summary>
+/// This instruction appends the specified source file position to the generated assembly for debug information
+/// This instruction is works in all architectures
+/// </summary>
 public class AppendPositionInstruction : Instruction
 {
 	public const string INSTRUCTION = ".loc";
@@ -39,11 +43,6 @@ public class AppendPositionInstruction : Instruction
 	}
 
 	public override Result? GetDestinationDependency()
-	{
-		throw new InvalidOperationException("Tried to redirect Append-Position-Instruction");
-	}
-
-	public override bool Redirect(Handle handle)
 	{
 		throw new InvalidOperationException("Tried to redirect Append-Position-Instruction");
 	}

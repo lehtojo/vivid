@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -9,18 +10,13 @@ public class AssemblerPhase : Phase
 {
 	private const int EXIT_CODE_OK = 0;
 
-	private const string COMPILER = "as";
+	private const string X64_ASSEMBLER = "x64-as";
+	private const string ARM64_ASSEMBLER = "arm64-as";
+
+	private const string X64_LINKER = "x64-ld";
+	private const string ARM64_LINKER = "arm64-ld";
 
 	private const string ASSEMBLY_OUTPUT_EXTENSION = ".asm";
-
-	private const string WINDOWS_ASSEMBLER_FORMAT = "-f win";
-	private const string LINUX_ASSEMBLER_FORMAT = "-f elf";
-
-	private const string WINDOWS_ASSEMBLER_DEBUG_ARGUMENT = "-g cv8";
-	private const string LINUX_ASSEMBLER_DEBUG_ARGUMENT = "-g dwarf2";
-
-	private const string WINDOWS_LINKER = "ld";
-	private const string LINUX_LINKER = "ld";
 
 	private const string SHARED_LIBRARY_FLAG = "--shared";
 	private const string STATIC_LIBRARY_FLAG = "--static";
@@ -30,17 +26,34 @@ public class AssemblerPhase : Phase
 	private const string ERROR = "Internal assembler failed";
 
 	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-	private static string AssemblerFormat => (IsLinux ? LINUX_ASSEMBLER_FORMAT : WINDOWS_ASSEMBLER_FORMAT) + Assembler.Size.Bits;
-	private static string AssemblerDebugArgument => IsLinux ? LINUX_ASSEMBLER_DEBUG_ARGUMENT : WINDOWS_ASSEMBLER_DEBUG_ARGUMENT;
 	private static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
 	private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
 	private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
-	private static string StandardLibrary => STANDARD_LIBRARY + Assembler.Size.Bits + ObjectFileExtension;
+	
+
+	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style requires lower case")]
+	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 
 	private static string RED = "\x1B[1;31m";
 	private static string GREEN = "\x1B[1;32m";
 	private static string CYAN = "\x1B[1;36m";
 	private static string RESET = "\x1B[0m";
+
+	/// <summary>
+	/// Returns the executable name of the assembler based on the current settings
+	/// </summary>
+	private static string GetAssembler()
+	{
+		return Assembler.IsArm64 ? ARM64_ASSEMBLER : X64_ASSEMBLER;
+	}
+
+	/// <summary>
+	/// Returns the executable name of the linker based on the current settings
+	/// </summary>
+	private static string GetLinker()
+	{
+		return Assembler.IsArm64 ? ARM64_LINKER : X64_LINKER;
+	}
 
 	/// <summary>
 	/// Returns whether the specified program is installed
@@ -120,7 +133,7 @@ public class AssemblerPhase : Phase
 			"-g"
 		});
 
-		var status = Run(COMPILER, arguments);
+		var status = Run(GetAssembler(), arguments);
 
 		if (!keep_assembly)
 		{
@@ -183,7 +196,7 @@ public class AssemblerPhase : Phase
 			arguments.Add(library);
 		}
 
-		return Run(WINDOWS_LINKER, arguments);
+		return Run(GetLinker(), arguments);
 	}
 
 	/// <summary>
@@ -226,7 +239,7 @@ public class AssemblerPhase : Phase
 			arguments.Add("-l" + library);
 		}
 
-		return Run(LINUX_LINKER, arguments);
+		return Run(GetLinker(), arguments);
 	}
 
 	public static File[] GetModifiedFiles(Bundle bundle, File[] files)

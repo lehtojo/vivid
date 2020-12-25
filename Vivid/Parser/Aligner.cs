@@ -5,8 +5,8 @@ using System;
 
 public static class Aligner
 {
-	private const int MEMBER_FUNCTION_PARAMETER_OFFSET = 2;
-	private const int GLOBAL_FUNCTION_PARAMETER_OFFSET = 1;
+	private static int MemberFunctionParameterOffset => Assembler.IsArm64 ? 1 : 2;
+	private static int GlobalFunctionParameterOffset => Assembler.IsArm64 ? 0 : 1;
 
 	/// <summary>
 	/// Aligns all variable and parameters recursively in the context
@@ -24,14 +24,14 @@ public static class Aligner
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
 			// Align function parameters using global function offset
-			Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, GlobalFunctionParameterOffset);
 		}
 	}
 
 	/// <summary>
 	/// Aligns the local memory used by a function
 	/// </summary>
-	public static void AlignLocalMemory(IEnumerable<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, int top)
+	public static void AlignLocalMemory(IEnumerable<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<InlineHandle> inline_handles, int top)
 	{
 		var position = -top;
 
@@ -58,6 +58,16 @@ public static class Aligner
 		{
 			temporary_handle.Offset = position;
 		}
+
+		foreach (var iterator in inline_handles.GroupBy(i => i.Identifier))
+		{
+			position -= iterator.First().Bytes;
+
+			foreach (var inline_handle in iterator)
+			{
+				inline_handle.Offset = position;
+			}
+		}
 	}
 
 	/// <summary>
@@ -78,7 +88,7 @@ public static class Aligner
 		// Member functions:
 		foreach (var implementation in type.GetImplementedFunctions())
 		{
-			Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+			Align(implementation, GlobalFunctionParameterOffset);
 		}
 
 		// Constructors:
@@ -86,7 +96,7 @@ public static class Aligner
 		{
 			foreach (var implementation in constructor.Implementations)
 			{
-				Align(implementation, GLOBAL_FUNCTION_PARAMETER_OFFSET);
+				Align(implementation, GlobalFunctionParameterOffset);
 			}
 		}
 
@@ -95,7 +105,7 @@ public static class Aligner
 		{
 			foreach (var implementation in destructor.Implementations)
 			{
-				Align(implementation, MEMBER_FUNCTION_PARAMETER_OFFSET);
+				Align(implementation, MemberFunctionParameterOffset);
 			}
 		}
 
@@ -170,7 +180,7 @@ public static class Aligner
 				standard_register_count--;
 			}
 
-			var position = Parser.Bytes;
+			var position = Assembler.IsArm64 ? 0 : Parser.Bytes;
 
 			foreach (var parameter in function.Parameters)
 			{
@@ -193,7 +203,7 @@ public static class Aligner
 			var position = offset * Parser.Bytes;
 
 			// Align the this pointer if it exists
-			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x) && !function.IsConstructor)
+			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
 			{
 				x.LocalAlignment = position;
 				position += Parser.Bytes;

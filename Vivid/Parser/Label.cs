@@ -4,7 +4,6 @@ using System.Collections.Generic;
 public class Label
 {
 	protected string Name { get; set; }
-	public List<JumpNode> Jumps { get; private set; } = new List<JumpNode>();
 
 	public Label(string name = "")
 	{

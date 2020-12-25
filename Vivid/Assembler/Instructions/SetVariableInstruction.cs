@@ -1,5 +1,9 @@
 using System;
 
+/// <summary>
+/// Updates the current value of the variable
+/// This instruction works on all architectures
+/// </summary>
 public class SetVariableInstruction : Instruction
 {
 	public Variable Variable { get; private set; }

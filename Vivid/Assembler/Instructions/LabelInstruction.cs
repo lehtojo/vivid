@@ -1,3 +1,7 @@
+/// <summary>
+/// Appends the specified label to the generated assembly
+/// This instruction works on all architectures
+/// </summary>
 public class LabelInstruction : Instruction
 {
 	public Label Label { get; private set; }
