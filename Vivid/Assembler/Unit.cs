@@ -404,20 +404,25 @@ public class Unit
 			return;
 		}
 
-		if (value.IsReleasable())
+		if (value.IsReleasable(this))
 		{
-			// Get all the variables that this value represents
-			foreach (var attribute in value.Metadata.Variables)
+			foreach (var iterator in Scope!.Variables)
 			{
-				var destination = new Result(References.CreateVariableHandle(this, attribute.Variable), attribute.Variable.Type!.Format);
+				if (!iterator.Value.Equals(value))
+				{
+					continue;
+				}
+
+				var destination = new Result(References.CreateVariableHandle(this, iterator.Key), iterator.Key.Type!.Format);
 
 				var move = new MoveInstruction(this, destination, value)
 				{
-					Description = "Releases the source value to memory",
+					Description = $"Releases the value representing '{iterator.Key}' to memory",
 					Type = MoveType.RELOCATE
 				};
 
 				Append(move);
+				break;
 			}
 		}
 		else
@@ -475,7 +480,7 @@ public class Unit
 			return register;
 		}
 
-		register = NonVolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = NonVolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
 		{
@@ -508,7 +513,7 @@ public class Unit
 		}
 
 		// Try to find the next volatile register which contains a value that has a corresponding memory location
-		register = VolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = VolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
 		{
@@ -517,7 +522,7 @@ public class Unit
 		}
 
 		// Try to find the next volatile register which contains a value that has a corresponding memory location
-		register = NonVolatileRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = NonVolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
 
 		if (register != null)
 		{
@@ -554,7 +559,7 @@ public class Unit
 			return register;
 		}
 
-		register = MediaRegisters.Find(r => r.IsReleasable && !(Function.Returns && r.IsReturnRegister));
+		register = MediaRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister));
 
 		if (register != null)
 		{

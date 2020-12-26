@@ -43,7 +43,6 @@ public class Register
 	public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
 	public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
 	public bool IsMediaRegister => Flag.Has(Flags, RegisterFlag.MEDIA);
-	public bool IsReleasable => !IsLocked && (Handle == null || Handle.IsReleasable());
 
 	public Register(Size width, string[] partitions, params int[] flags)
 	{
@@ -65,12 +64,7 @@ public class Register
 
 	public string GetDescription()
 	{
-		if (_Value == null)
-		{
-			return "Empty";
-		}
-
-		return _Value.Metadata.ToString() ?? "Value";
+		return _Value == null ? "Empty" : "Occupied";
 	}
 
 	public bool IsHandleCopy()
@@ -81,6 +75,11 @@ public class Register
 	public bool IsAvailable(int position)
 	{
 		return !IsLocked && (Handle == null || !Handle.IsValid(position) || IsHandleCopy());
+	}
+
+	public bool IsReleasable(Unit unit)
+	{
+		return !IsLocked && (Handle == null || Handle.IsReleasable(unit));
 	}
 
 	public void Reset(bool full = false)

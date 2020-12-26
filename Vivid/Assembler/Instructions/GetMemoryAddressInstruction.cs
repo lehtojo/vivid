@@ -20,7 +20,6 @@ public class GetMemoryAddressInstruction : Instruction
 		Format = format;
 
 		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
-		Result.Metadata.Attach(new ComplexMemoryAddressAttribute());
 		Result.Format = Format;
 	}
 
@@ -38,12 +37,12 @@ public class GetMemoryAddressInstruction : Instruction
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;
 
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Result.GetRecommendation(Unit));
+			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Trace.GetDirectives(Unit, Result));
 		}
 		else
 		{
 			var address = new Result(ExpressionHandle.CreateMemoryAddress(Start, Offset, Stride), Assembler.Format);
-			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Result.GetRecommendation(Unit));
+			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Trace.GetDirectives(Unit, Result));
 
 			Result.Value = new MemoryHandle(Unit, address, 0);
 			Result.Format = Format;

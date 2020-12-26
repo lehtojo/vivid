@@ -24,11 +24,7 @@ public class DivisionInstruction : DualParameterInstruction
 	{
 		Modulus = modulus;
 		Unsigned = unsigned;
-
-		if (Assigns = assigns)
-		{
-			Result.Metadata = First.Metadata;
-		}
+		Assigns = assigns;
 	}
 
 	/// <summary>

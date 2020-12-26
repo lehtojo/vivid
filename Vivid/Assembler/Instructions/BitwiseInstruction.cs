@@ -57,11 +57,7 @@ public class BitwiseInstruction : DualParameterInstruction
 	{
 		Instruction = instruction;
 		Description = "Executes bitwise XOR-operation between the operands";
-
-		if (Assigns = assigns)
-		{
-			Result.Metadata = First.Metadata;
-		}
+		Assigns = assigns;
 	}
 
 	public override void OnBuild()

@@ -83,7 +83,7 @@ public static class Translator
 		// When debugging mode is enabled, the base pointer is reserved for saving the value of the stack pointer in the start
 		if (Assembler.IsDebuggingEnabled)
 		{
-			registers.Add(unit.GetBasePointer());	
+			registers.Add(unit.GetBasePointer());
 		}
 
 		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);

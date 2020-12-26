@@ -26,10 +26,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public MultiplicationInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
-		if (Assigns = assigns)
-		{
-			Result.Metadata = First.Metadata;
-		}
+		Assigns = assigns;
 	}
 
 	private static bool IsPowerOfTwo(long x)

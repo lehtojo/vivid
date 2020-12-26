@@ -16,7 +16,6 @@ public class GetObjectPointerInstruction : Instruction
 		Offset = offset;
 		Mode = mode;
 
-		Result.Metadata.Attach(new VariableAttribute(Variable));
 		Result.Format = Variable.Type!.Format;
 	}
 
@@ -34,12 +33,12 @@ public class GetObjectPointerInstruction : Instruction
 			Result.Value = new MemoryHandle(Unit, Start, Offset);
 			Result.Format = Variable.Type!.Format;
 
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Variable.GetRegisterFormat().IsDecimal(), Result.GetRecommendation(Unit));
+			Memory.MoveToRegister(Unit, Result, Assembler.Size, Variable.GetRegisterFormat().IsDecimal(), Trace.GetDirectives(Unit, Result));
 		}
 		else
 		{
 			var address = new Result(ExpressionHandle.CreateMemoryAddress(Start, Offset), Assembler.Format);
-			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Result.GetRecommendation(Unit));
+			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Trace.GetDirectives(Unit, Result));
 
 			Result.Value = new MemoryHandle(Unit, address, 0);
 			Result.Format = Variable.Type!.Format;

@@ -174,7 +174,7 @@ namespace Vivid.Unit
 {
 	public static class AssemblerTests
 	{
-		private const bool IsOptimizationEnabled = true;
+		public static bool IsOptimizationEnabled { get; set; } = false;
 
 		private static string Prefix => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libUnit_" : "Unit_";
 

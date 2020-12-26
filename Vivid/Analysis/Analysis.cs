@@ -813,7 +813,6 @@ public static class Analysis
 
 		if (initialization.IsEmpty || initialization.First != initialization.Last)
 		{
-			Console.WriteLine("Analysis encountered an empty loop initialization which canceled the attempt of unwrapping the loop");
 			return null;
 		}
 
@@ -1230,16 +1229,6 @@ public static class Analysis
 		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
 		{
 			var self = constructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer in a constructor");
-
-			/*var allocation_size = Math.Max(1L, type.ContentSize);
-			var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
-
-			var allocation = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(self),
-				new FunctionNode(Parser.AllocationFunction!).SetParameters(allocation_parameters)
-			);
-
-			expressions.Add(allocation);*/
 
 			foreach (var iterator in expressions)
 			{

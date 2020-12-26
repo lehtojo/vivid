@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Vivid.Unit;
 
 public static class Units
@@ -65,8 +66,13 @@ public static class Units
 		Console.WriteLine();
 	}
 
-	public static void Main()
+	public static void Main(string[] arguments)
 	{
+		if (arguments.Any(i => i.Contains("-O")))
+		{
+			AssemblerTests.IsOptimizationEnabled = true;
+		}
+
 		StartSection("Assembler");
 
 		Run("Arithmetic", AssemblerTests.Arithmetic);

@@ -198,4 +198,20 @@ public static class InstructionAnalysis
 		InlineMoveInstructions(unit, unit.Instructions);
 		unit.Reindex();
 	}
+
+	// Inlining:
+	//
+	// cmp x0, #0
+	// b.ne L0
+	//
+	// => cbnz x0, L0
+	// 
+	// sub x0, x0, #1
+	// cmp x0, #0
+	// b.eq L0
+	// =>
+	// subs x0, x0, x1
+	// b.eq L0
+	// 
+	// 
 }

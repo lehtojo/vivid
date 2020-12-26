@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 
 public class AssemblerPhase : Phase
@@ -231,6 +230,12 @@ public class AssemblerPhase : Phase
 		}
 
 		arguments.AddRange(input_files);
+
+		// Provide all folders in PATH to linker as library paths
+		var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+		var library_paths = path.Split(':').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"-L \"{p}\"").Select(p => p.Replace('\\', '/'));
+
+		arguments.AddRange(library_paths);
 
 		var libraries = bundle.Get("libraries", Array.Empty<string>());
 

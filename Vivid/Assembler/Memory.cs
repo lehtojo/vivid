@@ -4,6 +4,9 @@ using System.Linq;
 
 public static class Memory
 {
+	/// <summary>
+	/// Loads the operand so that it's ready based on the specified settings
+	/// </summary>
 	public static Result LoadOperand(Unit unit, Result operand, bool media_register, bool assigns)
 	{
 		if (!assigns)
@@ -13,11 +16,11 @@ public static class Memory
 
 		if (operand.IsMemoryAddress)
 		{
-			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, operand.GetRecommendation(unit));
+			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, Trace.GetDirectives(unit, operand));
 		}
 		else
 		{
-			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, operand.GetRecommendation(unit));
+			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, Trace.GetDirectives(unit, operand));
 		}
 
 		return operand;
@@ -26,7 +29,7 @@ public static class Memory
 	/// <summary>
 	/// Minimizes intersection between the specified move instructions and tries to use exchange instructions
 	/// </summary>
-	private static List<Instruction> OptimizeMoves(Unit unit, List<DualParameterInstruction> moves)
+	private static List<Instruction> Align(Unit unit, List<DualParameterInstruction> moves)
 	{
 		// Find moves that can be replaced with an exchange instruction
 		var result = new List<DualParameterInstruction>(moves);
@@ -105,15 +108,15 @@ public static class Memory
 	/// <summary>
 	/// Safely executes the specified move instructions, making sure that no value is corrupted
 	/// </summary>
-	public static List<Instruction> Relocate(Unit unit, List<MoveInstruction> moves)
+	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves)
 	{
-		return Relocate(unit, moves, out _);
+		return Align(unit, moves, out _);
 	}
 
 	/// <summary>
 	/// Safely executes the specified move instructions, making sure that no value is corrupted
 	/// </summary>
-	public static List<Instruction> Relocate(Unit unit, List<MoveInstruction> moves, out List<Register> registers)
+	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves, out List<Register> registers)
 	{
 		var locks = moves.Where(m => m.IsRedundant && m.First.IsStandardRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
 		var unlocks = locks.Select(l => LockStateInstruction.Unlock(unit, l.Register)).ToList();
@@ -123,7 +126,7 @@ public static class Memory
 		// Now remove all redundant moves
 		moves.RemoveAll(m => m.IsRedundant);
 
-		var optimized = OptimizeMoves(unit, moves.Select(m => m.To<DualParameterInstruction>()).ToList());
+		var optimized = Align(unit, moves.Select(m => m.To<DualParameterInstruction>()).ToList());
 
 		for (var i = optimized.Count - 1; i >= 0; i--)
 		{
@@ -182,7 +185,14 @@ public static class Memory
 
 		using (RegisterLock.Create(target))
 		{
-			register = GetNextRegisterWithoutReleasing(unit, target.IsMediaRegister, target.Handle?.GetRecommendation(unit));
+			var directives = (List<Directive>?)null;
+
+			if (target.Handle != null)
+			{
+				directives = Trace.GetDirectives(unit, target.Handle);
+			}
+
+			register = GetNextRegisterWithoutReleasing(unit, target.IsMediaRegister, directives);
 		}
 
 		if (register == null)
@@ -226,43 +236,65 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Tries to apply the hint
+	/// Tries to apply the specified directive
 	/// </summary>
-	public static Register? Consider(Unit unit, IHint hint, bool media_register)
+	private static Register? Consider(Unit unit, Directive directive, bool media_register)
 	{
-		if (hint is DirectToNonVolatileRegister)
+		return directive.Type switch
 		{
-			// Try to get an available non-volatile register
-			return unit.GetNextNonVolatileRegister(false);
-		}
-		else if (hint is DirectToReturnRegister x)
-		{
-			// Try to direct towards the next return register
-			var register = x.GetClosestReturnInstruction(unit.Position).ReturnRegister;
+			DirectiveType.NON_VOLATILITY => unit.GetNextNonVolatileRegister(false),
+			DirectiveType.AVOID_REGISTERS => media_register ? unit.GetNextMediaRegisterWithoutReleasing(directive.To<AvoidRegistersDirective>().Registers) : unit.GetNextRegisterWithoutReleasing(directive.To<AvoidRegistersDirective>().Registers),
+			DirectiveType.SPECIFIC_REGISTER => directive.To<SpecificRegisterDirective>().Register,
+			_ => throw new ArgumentException("Unknown directive type encountered")
+		};
+	}
 
-			return register;
-		}
-		else if (hint is AvoidRegisters y)
+	/// <summary>
+	/// Tries to apply the most important directive
+	/// </summary>
+	public static Register? Consider(Unit unit, List<Directive> directives, bool media_register)
+	{
+		var register = (Register?)null;
+
+		if (directives != null)
 		{
-			// Try to filter the specified registers
-			return media_register ? unit.GetNextMediaRegisterWithoutReleasing(y.Registers) : unit.GetNextRegisterWithoutReleasing(y.Registers);
-		}
-		else if (hint is DirectToRegister z)
-		{
-			return z.Register;
+			foreach (var directive in directives)
+			{
+				var result = Consider(unit, directive, media_register);
+
+				if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
+				{
+					register = result;
+					break;
+				}
+			}
 		}
 
-		return null;
+		return register;
 	}
 
 	/// <summary>
 	/// Determines the next register
 	/// </summary>
-	public static Register GetNextRegister(Unit unit, bool media_register, IHint? hint = null, bool is_result = false)
+	public static Register GetNextRegister(Unit unit, bool media_register, List<Directive>? directives = null, bool is_result = false)
 	{
-		var register = hint != null ? Consider(unit, hint, media_register) : null;
+		var register = (Register?)null;
 
-		if (register == null || media_register != register.IsMediaRegister || (is_result ? !register.IsAvailable(unit.Position + 1) : !register.IsAvailable(unit.Position)))
+		if (directives != null)
+		{
+			foreach (var directive in directives)
+			{
+				var result = Consider(unit, directive, media_register);
+
+				if (result != null && media_register == result.IsMediaRegister && (is_result ? result.IsAvailable(unit.Position + 1) : result.IsAvailable(unit.Position)))
+				{
+					register = result;
+					break;
+				}
+			}
+		}
+
+		if (register == null)
 		{
 			return media_register ? unit.GetNextMediaRegister() : unit.GetNextRegister();
 		}
@@ -273,11 +305,25 @@ public static class Memory
 	/// <summary>
 	/// Tries to get a register without releasing based on the specified hint
 	/// </summary>
-	private static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, IHint? hint = null)
+	private static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, List<Directive>? directives = null)
 	{
-		var register = hint != null ? Consider(unit, hint, media_register) : null;
+		var register = (Register?)null;
 
-		if (register == null || media_register != register.IsMediaRegister || !register.IsAvailable(unit.Position))
+		if (directives != null)
+		{
+			foreach (var directive in directives)
+			{
+				var result = Consider(unit, directive, media_register);
+
+				if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
+				{
+					register = result;
+					break;
+				}
+			}
+		}
+
+		if (register == null)
 		{
 			return media_register ? unit.GetNextMediaRegisterWithoutReleasing() : unit.GetNextRegisterWithoutReleasing();
 		}
@@ -288,7 +334,7 @@ public static class Memory
 	/// <summary>
 	/// Copies the given result to a register
 	/// </summary>
-	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, IHint? hint = null)
+	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
 		// NOTE: Before the condition checked whether the result was a standard register, so it was changed to check any register, since why wouldn't media registers need register locks as well
 		var format = media_register ? Format.DECIMAL : size.ToFormat();
@@ -297,7 +343,7 @@ public static class Memory
 		{
 			using (RegisterLock.Create(result))
 			{
-				var register = GetNextRegister(unit, media_register, hint);
+				var register = GetNextRegister(unit, media_register, directives);
 				var destination = new Result(new RegisterHandle(register), format);
 
 				return new MoveInstruction(unit, destination, result).Execute();
@@ -305,7 +351,7 @@ public static class Memory
 		}
 		else
 		{
-			var register = GetNextRegister(unit, media_register, hint);
+			var register = GetNextRegister(unit, media_register, directives);
 			var destination = new Result(new RegisterHandle(register), format);
 
 			return new MoveInstruction(unit, destination, result).Execute();
@@ -315,7 +361,7 @@ public static class Memory
 	/// <summary>
 	/// Moves the given result to a register considering the specified hints
 	/// </summary>
-	public static Result MoveToRegister(Unit unit, Result result, Size size, bool media_register, IHint? hint = null)
+	public static Result MoveToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
 		// Prevents reduntant moving to registers
 		if (result.Value.Type == (media_register ? HandleType.MEDIA_REGISTER : HandleType.REGISTER))
@@ -324,7 +370,7 @@ public static class Memory
 		}
 
 		var format = media_register ? Format.DECIMAL : size.ToFormat();
-		var register = GetNextRegister(unit, media_register, hint);
+		var register = GetNextRegister(unit, media_register, directives);
 		var destination = new Result(new RegisterHandle(register), format);
 
 		return new MoveInstruction(unit, destination, result)
@@ -338,7 +384,7 @@ public static class Memory
 	/// <summary>
 	/// Moves the given result to a register considering the specified hints
 	/// </summary>
-	public static Result Convert(Unit unit, Result result, Size size, IHint? hint = null)
+	public static Result Convert(Unit unit, Result result, Size size, List<Directive>? directives = null)
 	{
 		Register? register = null;
 		Result? destination;
@@ -364,7 +410,7 @@ public static class Memory
 		}
 		else if (result.IsMemoryAddress)
 		{
-			register = GetNextRegister(unit, format.IsDecimal(), hint);
+			register = GetNextRegister(unit, format.IsDecimal(), directives);
 			destination = new Result(new RegisterHandle(register), format);
 
 			return new MoveInstruction(unit, destination, result)
@@ -379,10 +425,19 @@ public static class Memory
 			throw new ArgumentException("Unsupported conversion requested");
 		}
 
-		// Try to use the specified hint
-		if (hint != null)
+		// Try to use the specified directives
+		if (directives != null)
 		{
-			register = Consider(unit, hint, format.IsDecimal());
+			foreach (var directive in directives)
+			{
+				var option = Consider(unit, directive, format.IsDecimal());
+
+				if (option != null && format.IsDecimal() == option.IsMediaRegister && option.IsAvailable(unit.Position))
+				{
+					register = option;
+					break;
+				}
+			}
 		}
 
 		// If the hint did not produce any register, the register of the result can be used
@@ -406,7 +461,7 @@ public static class Memory
 	/// </summary>
 	public static void GetRegisterFor(Unit unit, Result result, bool media_register)
 	{
-		var register = GetNextRegister(unit, media_register, result.GetRecommendation(unit));
+		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result));
 
 		register.Handle = result;
 
@@ -419,7 +474,7 @@ public static class Memory
 	/// </summary>
 	public static void GetResultRegisterFor(Unit unit, Result result, bool media_register)
 	{
-		var register = GetNextRegister(unit, media_register, result.GetRecommendation(unit), true);
+		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result), true);
 
 		register.Handle = result;
 
@@ -427,11 +482,11 @@ public static class Memory
 		result.Format = media_register ? Format.DECIMAL : Assembler.Format;
 	}
 
-	public static Result Convert(Unit unit, Result result, Size size, HandleType[] types, bool protect, IHint? recommendation)
+	public static Result Convert(Unit unit, Result result, Size size, HandleType[] types, bool protect, List<Directive>? directives)
 	{
 		foreach (var type in types)
 		{
-			var converted = TryConvert(unit, result, size, type, protect, recommendation);
+			var converted = TryConvert(unit, result, size, type, protect, directives);
 
 			if (converted != null)
 			{
@@ -442,7 +497,7 @@ public static class Memory
 		throw new ArgumentException("Could not convert reference to the requested format");
 	}
 
-	private static Result? TryConvert(Unit unit, Result result, Size size, HandleType type, bool protect, IHint? recommendation)
+	private static Result? TryConvert(Unit unit, Result result, Size size, HandleType type, bool protect, List<Directive>? directives)
 	{
 		switch (type)
 		{
@@ -463,7 +518,7 @@ public static class Memory
 				// The result must be loaded into a register
 				// The recommendation should not be given to the load instructions if copying is needed, since it would conflict with the copy instructions
 				var copy = protect && !expiring;
-				var destination = MoveToRegister(unit, result, size, is_media_register, copy ? null : recommendation);
+				var destination = MoveToRegister(unit, result, size, is_media_register, copy ? null : directives);
 
 				// If no copying is needed, the loaded value can be returned right away
 				if (!copy)
@@ -473,7 +528,7 @@ public static class Memory
 
 				using (new RegisterLock(destination.Value.To<RegisterHandle>().Register))
 				{
-					return CopyToRegister(unit, destination, size, is_media_register, recommendation);
+					return CopyToRegister(unit, destination, size, is_media_register, directives);
 				}
 			}
 

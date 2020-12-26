@@ -17,10 +17,7 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public AdditionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
-		if (Assigns = assigns)
-		{
-			Result.Metadata = First.Metadata;
-		}
+		Assigns = assigns;
 	}
 
 	public override InstructionType GetInstructionType()

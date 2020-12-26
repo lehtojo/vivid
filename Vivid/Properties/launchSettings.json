@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Vivid": {
-      "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\joona\\vivid\\Vivid\\Tests\\Lambdas.v C:\\Users\\joona\\vivid\\Vivid\\libv\\Console.v C:\\Users\\joona\\vivid\\Vivid\\libv\\String.v C:\\Users\\joona\\vivid\\Vivid\\libv\\Types.v C:\\Users\\joona\\vivid\\Vivid\\libv\\Array.v C:\\Users\\joona\\vivid\\Vivid\\libv\\External.v --asm --debug --time"
-    }
-  }
-}

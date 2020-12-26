@@ -52,7 +52,7 @@ public class CallInstruction : Instruction
 	{
 		var moves = ParameterInstructions.Select(i => i.To<MoveInstruction>()).ToList();
 
-		Unit.Append(Memory.Relocate(Unit, moves, out List<Register> registers));
+		Unit.Append(Memory.Align(Unit, moves, out List<Register> registers));
 		Unit.Append(new EvacuateInstruction(Unit, this));
 
 		return registers;

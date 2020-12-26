@@ -82,18 +82,12 @@ public static class References
 			self_type = unit.Self.Type!;
 		}
 
-		var handle = new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
-		handle.Metadata.Attach(new VariableAttribute(variable));
-
-		return handle;
+		return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 	}
 
 	public static Result GetConstant(Unit unit, NumberNode node)
 	{
-		var handle = new GetConstantInstruction(unit, node.Value, node.Type.IsDecimal()).Execute();
-		handle.Metadata.Attach(new ConstantAttribute(node.Value));
-
-		return handle;
+		return new GetConstantInstruction(unit, node.Value, node.Type.IsDecimal()).Execute();
 	}
 
 	public static Result GetString(Unit unit, StringNode node)

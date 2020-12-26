@@ -188,8 +188,8 @@ public abstract class Instruction
 	private Result Convert(InstructionParameter parameter)
 	{
 		var protect = parameter.IsDestination && parameter.IsProtected;
-		var recommendation = parameter.IsDestination ? Result.GetRecommendation(Unit) : parameter.Result.GetRecommendation(Unit);
-
+		var directives = parameter.IsDestination ? Trace.GetDirectives(Unit, Result) : Trace.GetDirectives(Unit, parameter.Result);
+	
 		if (parameter.IsValid())
 		{
 			// Get the more preffered options for this parameter
@@ -211,7 +211,7 @@ public abstract class Instruction
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
 				{
-					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, recommendation);
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, directives);
 				}
 			}
 			else if (options.Contains(HandleType.MEDIA_REGISTER))
@@ -230,7 +230,7 @@ public abstract class Instruction
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
 				{
-					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, recommendation);
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, directives);
 				}
 			}
 
@@ -243,19 +243,19 @@ public abstract class Instruction
 					throw new ApplicationException("Could not convert memory address to the required size since it was specified as a destination");
 				}
 
-				Memory.Convert(Unit, parameter.Result, parameter.Size, recommendation);
+				Memory.Convert(Unit, parameter.Result, parameter.Size, directives);
 			}
 
 			// If the current parameter is the destination and it is needed later, then it must me copied to another register
 			if (protect && parameter.Result.IsOnlyValid(Position))
 			{
-				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), recommendation);
+				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), directives);
 			}
 
 			return parameter.Result;
 		}
 
-		return Memory.Convert(Unit, parameter.Result, parameter.Size, parameter.Types, protect, recommendation);
+		return Memory.Convert(Unit, parameter.Result, parameter.Size, parameter.Types, protect, directives);
 	}
 
 	/// <summary>
@@ -400,7 +400,7 @@ public abstract class Instruction
 		{
 			if (!result.IsStandardRegister)
 			{
-				Memory.MoveToRegister(Unit, result, result.Size, false, result.GetRecommendation(Unit));
+				Memory.MoveToRegister(Unit, result, result.Size, false, Trace.GetDirectives(Unit, result));
 			}
 
 			locks.Add(RegisterLock.Create(result));
@@ -601,24 +601,6 @@ public abstract class Instruction
 			previous = dependency;
 			dependency = instruction.GetDestinationDependency();
 		}
-	}
-
-	public int Redirect(IHint hint)
-	{
-		Result.AddHint(hint);
-
-		var destination = GetDestinationDependency();
-		var previous = (Result?)null;
-
-		while (destination != null && destination != previous)
-		{
-			destination.AddHint(hint);
-
-			previous = destination;
-			destination = destination.Instruction?.GetDestinationDependency();
-		}
-
-		return previous?.Instruction?.Position ?? -1;
 	}
 
 	public abstract InstructionType GetInstructionType();

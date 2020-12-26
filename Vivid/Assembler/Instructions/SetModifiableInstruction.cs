@@ -28,14 +28,14 @@ public class SetModifiableInstruction : Instruction
 			return;
 		}
 
-		var recommendation = handle.GetRecommendation(Unit);
+		var directives = Trace.GetDirectives(Unit, handle);
 		var is_media_register = handle.Format.IsDecimal();
 
 		Register? register = null;
 
-		if (recommendation != null)
+		if (directives != null)
 		{
-			register = Memory.Consider(Unit, recommendation, is_media_register);
+			register = Memory.Consider(Unit, directives, is_media_register);
 		}
 
 		if (register == null)

@@ -31,6 +31,12 @@ public class SymmetryEndInstruction : Instruction
 			var source = Sources[Start.Actives.IndexOf(Start.Variables[i])];
 			var destination = new Result(Start.Handles[i], source.Format);
 
+			// There are situation where the variable is constant in the outer scope and it's loaded into a register in the current scope so it should not be relocated
+			if (destination.IsConstant)
+			{
+				continue;
+			}
+
 			moves.Add(new MoveInstruction(Unit, destination, source)
 			{
 				IsSafe = true,
@@ -39,7 +45,7 @@ public class SymmetryEndInstruction : Instruction
 			});
 		}
 
-		Unit.Append(Memory.Relocate(Unit, moves), true);
+		Unit.Append(Memory.Align(Unit, moves), true);
 	}
 
 	public override Result? GetDestinationDependency()

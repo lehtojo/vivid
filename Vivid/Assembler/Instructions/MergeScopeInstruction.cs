@@ -49,7 +49,7 @@ public class MergeScopeInstruction : Instruction
 			moves.Add(new MoveInstruction(Unit, destination, source));
 		}
 
-		Unit.Append(Memory.Relocate(Unit, moves), true);
+		Unit.Append(Memory.Align(Unit, moves), true);
 	}
 
 	public override Result? GetDestinationDependency()

@@ -229,10 +229,7 @@ public static class Arithmetic
 				right = new DuplicateInstruction(unit, right).Execute();
 			}
 
-			var instruction = new SetVariableInstruction(unit, variable, right);
-			instruction.Value.Metadata.Attach(new VariableAttribute(variable));
-
-			return instruction.Execute();
+			return new SetVariableInstruction(unit, variable, right).Execute();
 		}
 
 		// Externally used variables need an immediate update 
@@ -365,11 +362,7 @@ public static class Arithmetic
 			if (left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable)
 			{
 				var variable = left.To<VariableNode>().Variable;
-				
-				var instruction = new SetVariableInstruction(unit, variable, addition);
-				instruction.Value.Metadata.Attach(new VariableAttribute(variable));
-
-				return instruction.Execute();
+				return new SetVariableInstruction(unit, variable, addition).Execute();
 			}
 
 			return new MoveInstruction(unit, destination, addition).Execute();

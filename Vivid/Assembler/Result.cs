@@ -1,95 +1,57 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
-public interface IHint
+public enum DirectiveType
 {
-	bool IsRelevant(int perspective);
+	NON_VOLATILITY,
+	SPECIFIC_REGISTER,
+	AVOID_REGISTERS
 }
 
-public class DirectToNonVolatileRegister : IHint
+public class Directive
 {
-	public Instruction[] Calls { get; }
+	public DirectiveType Type { get; }
 
-	public DirectToNonVolatileRegister(Instruction[] calls)
+	public Directive(DirectiveType type)
 	{
-		Calls = calls;
+		Type = type;
 	}
 
-	public bool IsRelevant(int perspective)
+	public T To<T>() where T : Directive
 	{
-		return Calls.Any(c => c.Position > perspective);
-	}
-}
-
-public class DirectToReturnRegister : IHint
-{
-	public List<ReturnInstruction> Objectives { get; } = new List<ReturnInstruction>();
-
-	public DirectToReturnRegister(ReturnInstruction objective)
-	{
-		Objectives.Add(objective);
-	}
-
-	public ReturnInstruction GetClosestReturnInstruction(int perspective)
-	{
-		return Objectives.Where(r => r.Position > perspective).OrderBy(r => r.Position - perspective).First();
-	}
-
-	public bool IsRelevant(int perspective)
-	{
-		return Objectives.Any(c => c.Position > perspective);
+		return (T)this;
 	}
 }
 
-public class DirectToRegister : IHint
+public class NonVolatilityDirective : Directive
 {
-	public Instruction Objective { get; }
+	public NonVolatilityDirective() : base(DirectiveType.NON_VOLATILITY) {}
+}
+
+public class SpecificRegisterDirective : Directive
+{
 	public Register Register { get; }
 
-	public DirectToRegister(Instruction objective, Register register)
+	public SpecificRegisterDirective(Register register) : base(DirectiveType.SPECIFIC_REGISTER)
 	{
-		Objective = objective;
 		Register = register;
-	}
-
-	public bool IsRelevant(int perspective)
-	{
-		return Objective.Position > perspective;
 	}
 }
 
-public class AvoidRegisters : IHint
+public class AvoidRegistersDirective : Directive
 {
-	public Instruction End { get; }
 	public Register[] Registers { get; }
 
-	public AvoidRegisters(Instruction end, Register[] registers)
+	public AvoidRegistersDirective(Register[] registers) : base(DirectiveType.AVOID_REGISTERS)
 	{
-		End = end;
 		Registers = registers;
-	}
-
-	public bool IsRelevant(int perspective)
-	{
-		return perspective <= End.Position;
 	}
 }
 
 public class Result
 {
 	public Instruction? Instruction { get; set; }
-
-	private Metadata _Metadata = new Metadata();
-	public Metadata Metadata
-	{
-		get => _Metadata;
-		set
-		{
-			_Metadata = value;
-			Connections.ForEach(c => c._Metadata = value);
-		}
-	}
 
 	private Handle _Value;
 	public Handle Value
@@ -113,10 +75,7 @@ public class Result
 		}
 	}
 
-	public List<IHint> Hints { get; private set; } = new List<IHint>();
-
 	public Size Size => Size.FromFormat(Format);
-	public bool IsUnsigned => Format.IsUnsigned();
 
 	public Lifetime Lifetime { get; private set; } = new Lifetime();
 
@@ -133,18 +92,12 @@ public class Result
 	public bool IsStackVariable => _Value is StackVariableHandle;
 	public bool IsDataSectionHandle => _Value is DataSectionHandle;
 	public bool IsModifier => _Value.Type == HandleType.MODIFIER;
-
+	public bool IsUnsigned => Format.IsUnsigned();
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
 
-	public bool IsReleasable()
+	public bool IsReleasable(Unit unit)
 	{
-		// Prevent releasing this pointer
-		if (Metadata.IsPrimarilyVariable && Metadata.Primary!.To<VariableAttribute>().Variable.IsSelfPointer)
-		{
-			return false;
-		}
-
-		return Metadata.Variables.Any() && Metadata.Variables.All(v => v.Variable.IsPredictable);
+		return unit.Scope!.Variables.Values.Any(i => i.Equals(this));
 	}
 
 	public Result(Instruction instruction)
@@ -178,46 +131,6 @@ public class Result
 	}
 
 	/// <summary>
-	/// Determines the currently most imporant hint, if any exists
-	/// </summary>
-	public IHint? GetRecommendation(Unit unit)
-	{
-		var relevant_hints = Hints.FindAll(h => h.IsRelevant(unit.Position));
-
-		if (Hints.Count == 0)
-		{
-			return null;
-		}
-
-		if (Hints.Exists(h => h is DirectToNonVolatileRegister))
-		{
-			return Hints.Find(h => h is DirectToNonVolatileRegister);
-		}
-		else if (Hints.Exists(h => h is DirectToReturnRegister))
-		{
-			return Hints.Find(h => h is DirectToReturnRegister);
-		}
-		else if (Hints.Exists(h => h is AvoidRegisters))
-		{
-			return Hints.Find(h => h is AvoidRegisters);
-		}
-		else if (Hints.Exists(h => h is DirectToRegister))
-		{
-			return Hints.Find(h => h is DirectToRegister);
-		}
-
-		return null;
-	}
-
-	public void AddHint(IHint hint)
-	{
-		if (!Hints.Exists(h => h.GetType() == hint.GetType()))
-		{
-			Hints.Add(hint);
-		}
-	}
-
-	/// <summary>
 	/// Connects this result to the other system (doesn't make duplicates)
 	/// </summary>
 	private void Connect(IEnumerable<Result> system)
@@ -225,11 +138,10 @@ public class Result
 		Connections.AddRange(system.Where(result => System.All(m => m != result)));
 	}
 
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2245", Justification = "Assigning to the variable itself causes an update")]
+	[SuppressMessage("Microsoft.Maintainability", "CA2245", Justification = "Assigning to the variable itself causes an update")]
 	private void Update()
 	{
 		// Update the value to the same because it sends an update wave which corrects all values across the system
-		Metadata = Metadata;
 		Value = Value;
 		Format = Format;
 
@@ -238,7 +150,6 @@ public class Result
 		{
 			member.Instruction = Instruction;
 			member.Lifetime = Lifetime;
-			member.Hints = Hints;
 		}
 	}
 
@@ -308,19 +219,6 @@ public class Result
 
 		Value.Use(position);
 		Connections.ForEach(c => c.Lifetime = Lifetime.Clone());
-	}
-
-	public void Set(Handle value, bool force = false)
-	{
-		if (force)
-		{
-			// Do not care about the value permissions
-			System.ToList().ForEach(r => r._Value = value);
-		}
-		else
-		{
-			Value = value;
-		}
 	}
 
 	public override bool Equals(object? other)

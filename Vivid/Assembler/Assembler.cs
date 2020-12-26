@@ -95,6 +95,56 @@ public static class Assembler
 		return builder.ToString();
 	}
 
+	private static void AppendVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
+	{
+		unit.Append(new LabelInstruction(unit, new Label(fullname + "_v")));
+
+		var from = implementation.VirtualFunction!.GetTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
+		var to = implementation.GetTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
+
+		// NOTE: The type 'from' must be one of the subtypes that type 'to' has
+		var alignment = to.GetSupertypeBaseOffset(from);
+
+		if (alignment == null || alignment < 0)
+		{
+			throw new ApplicationException("Could not add virtual function header");
+		}
+
+		if (alignment != 0)
+		{
+			var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ);
+			var offset = References.GetConstant(unit, new NumberNode(Format, (long)alignment));
+
+			// Convert the self pointer to the type 'to' by offsetting it
+			unit.Append(new SubtractionInstruction(unit, self, offset, Format, true));
+		}
+	}
+
+	private static void RegisterRequiredVariables(Unit unit)
+	{
+		unit.Simulate(UnitPhase.APPEND_MODE, i =>
+		{
+			if (!i.Is(InstructionType.REQUIRE_VARIABLES))
+			{
+				return;
+			}
+
+			var instruction = i.To<RequireVariablesInstruction>();
+
+			foreach (var variable in instruction.Variables)
+			{
+				var handle = unit.GetCurrentVariableHandle(variable);
+
+				if (handle == null)
+				{
+					continue;
+				}
+
+				instruction.References.Add(handle);
+			}
+		});
+	}
+
 	private static string GetTextSection(Function function, List<ConstantDataSectionHandle> constants)
 	{
 		var builder = new StringBuilder();
@@ -119,27 +169,7 @@ public static class Assembler
 
 				if (implementation.VirtualFunction != null)
 				{
-					unit.Append(new LabelInstruction(unit, new Label(fullname + "_v")));
-
-					var from = implementation.VirtualFunction.GetTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
-					var to = implementation.GetTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
-
-					// NOTE: The type 'from' must be one of the subtypes that type 'to' has
-					var alignment = to.GetSupertypeBaseOffset(from);
-
-					if (alignment == null || alignment < 0)
-					{
-						throw new ApplicationException("Could not add virtual function header");
-					}
-
-					if (alignment != 0)
-					{
-						var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ);
-						var offset = References.GetConstant(unit, new NumberNode(Format, (long)alignment));
-
-						// Convert the self pointer to the type 'to' by offsetting it
-						unit.Append(new SubtractionInstruction(unit, self, offset, Format, true));
-					}
+					AppendVirtualFunctionHeader(unit, implementation, fullname);
 				}
 
 				unit.Append(new LabelInstruction(unit, new Label(fullname)));
@@ -165,9 +195,9 @@ public static class Assembler
 				Builders.Build(unit, implementation.Node!);
 			});
 
-			Oracle.Channel(unit);
+			RegisterRequiredVariables(unit);
 
-			Oracle.SimulateLifetimes(unit);
+			unit.Reindex();
 			unit.Simulate(UnitPhase.BUILD_MODE, instruction => { instruction.Build(); });
 
 			builder.Append(Translator.Translate(unit, constants));

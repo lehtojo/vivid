@@ -14,7 +14,7 @@ public class DeclareInstruction : Instruction
 	public override void OnBuild()
 	{
 		var media_register = Variable.GetRegisterFormat().IsDecimal();
-		var register = Memory.GetNextRegister(Unit, media_register, Result.GetRecommendation(Unit));
+		var register = Memory.GetNextRegister(Unit, media_register, Trace.GetDirectives(Unit, Result));
 
 		Result.Value = new RegisterHandle(register);
 		Result.Format = Variable.GetRegisterFormat();

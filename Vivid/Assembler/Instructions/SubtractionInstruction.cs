@@ -20,10 +20,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public SubtractionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
 	{
-		if (Assigns = assigns)
-		{
-			Result.Metadata = First.Metadata;
-		}
+		Assigns = assigns;
 	}
 
 	public override void OnBuild()

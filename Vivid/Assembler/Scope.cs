@@ -320,8 +320,6 @@ public sealed class Scope : IDisposable
 			var format = variable.Type! == Types.DECIMAL ? Format.DECIMAL : Assembler.Format;
 
 			transferer = new Result(handle, format);
-			transferer.Metadata.Attach(new VariableAttribute(variable));
-
 			Transferers.Add(variable, transferer);
 		}
 
