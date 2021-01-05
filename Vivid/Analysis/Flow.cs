@@ -15,6 +15,19 @@ public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
 	}
 }
 
+public class HashlessReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
+{
+	public bool Equals(T? x, T? y)
+	{
+		return object.ReferenceEquals(x, y);
+	}
+
+	public int GetHashCode(T x)
+	{
+		return 0;
+	}
+}
+
 public class LoopDescriptor
 {
 	public Label Start { get; }

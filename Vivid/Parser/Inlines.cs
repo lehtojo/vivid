@@ -36,7 +36,7 @@ public static class Inlines
 		foreach (var implementation in context.GetImplementedFunctions())
 		{
 			var batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsConstructor &&
-				!f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, AccessModifier.OUTLINE));
+				!f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, Modifier.OUTLINE));
 
 			while (true)
 			{
@@ -47,7 +47,7 @@ public static class Inlines
 				}
 
 				// Since inlining can create new function references, they must be searched
-				batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, AccessModifier.OUTLINE));
+				batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, Modifier.OUTLINE));
 
 				// Stop if there are no function references
 				if (!batch.Any())
@@ -56,7 +56,7 @@ public static class Inlines
 				}
 			}
 
-			// The implementation is inlined completely only if it's not exported
+			// The implementation is inlined completely only if it is not exported
 			//implementation.IsInlined = !implementation.Metadata.IsExported; 
 		}
 
@@ -73,12 +73,11 @@ public static class Inlines
 			if (iterator is IContext subcontext && !iterator.Is(NodeType.TYPE))
 			{
 				// The subcontext must be replaced with a new context so that there are no references to the original function
-				var replacement_context = new Context();
-				replacement_context.Link(context);
+				var replacement_context = new Context(context);
 
 				foreach (var local in subcontext.GetContext().Variables.Values)
 				{
-					// Skip the variable if it's the self pointer
+					// Skip the variable if it is the self pointer
 					if (local.IsSelfPointer)
 					{
 						continue;

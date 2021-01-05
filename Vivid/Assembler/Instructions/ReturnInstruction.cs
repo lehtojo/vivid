@@ -8,6 +8,8 @@ using System.Linq;
 /// </summary>
 public class ReturnInstruction : Instruction
 {
+	private const string DEBUG_FOOTER = ".cfi_def_cfa 7, 8";
+
 	private const string SHARED_RETURN_INSTRUCTION = "ret";
 
 	public const string X64_LOAD_REGISTER_INSTRUCTION = "pop";
@@ -15,19 +17,18 @@ public class ReturnInstruction : Instruction
 	public const string ARM64_LOAD_REGISTER_PAIR_INSTRUCTION = "ldp";
 	public const string ARM64_LOAD_REGISTER_INSTRUCTION = "ldr";
 
-
 	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 	private Handle ReturnRegisterHandle => new RegisterHandle(ReturnRegister);
 
 	public Result? Object { get; private set; }
 	public Type? ReturnType { get; private set; }
 
-	public int StackMemoryChange { get; private set; }
-
-	public ReturnInstruction(Unit unit, Result? value, Type? return_type) : base(unit)
+	public ReturnInstruction(Unit unit, Result? value, Type? return_type) : base(unit, InstructionType.RETURN)
 	{
 		Object = value;
 		ReturnType = return_type;
+		Dependencies = Object != null ? new[] { Result, Object } : new[] { Result };
+
 		Result.Format = ReturnType?.GetRegisterFormat() ?? Assembler.Format;
 	}
 
@@ -41,7 +42,7 @@ public class ReturnInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		// Ensure that if there's a value to return it's in a return register
+		// Ensure that if there's a value to return it is in a return register
 		if (Object == null || IsValueInReturnRegister())
 		{
 			return;
@@ -73,8 +74,6 @@ public class ReturnInstruction : Instruction
 
 		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
 		var stack_pointer = Unit.GetStackPointer();
-		
-		Unit.StackOffset -= bytes;
 
 		if (registers.Count == 1)
 		{
@@ -156,21 +155,19 @@ public class ReturnInstruction : Instruction
 		}
 	}
 
-	private void RestoreRegistersX64(StringBuilder builder, List<Register> registers)
+	private static void RestoreRegistersX64(StringBuilder builder, List<Register> registers)
 	{
 		// Save all used non-volatile rgisters
 		foreach (var register in registers)
 		{
 			builder.AppendLine($"{X64_LOAD_REGISTER_INSTRUCTION} {register}");
-			Unit.StackOffset += Assembler.Size.Bytes;
 		}
 	}
 
 	public void Build(List<Register> recover_registers, int local_variables_top)
 	{
 		var builder = new StringBuilder();
-		var start = Unit.StackOffset;
-		var allocated_local_memory = start - local_variables_top;
+		var allocated_local_memory = Unit.StackOffset - local_variables_top;
 
 		if (allocated_local_memory > 0)
 		{
@@ -184,13 +181,11 @@ public class ReturnInstruction : Instruction
 			{
 				builder.AppendLine($"{AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION} {stack_pointer}, {stack_pointer}, #{allocated_local_memory}");
 			}
-
-			Unit.StackOffset -= allocated_local_memory;
 		}
 
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.AppendLine(".cfi_def_cfa 7, 8");
+			builder.AppendLine(DEBUG_FOOTER);
 		}
 
 		// Restore all used non-volatile rgisters
@@ -205,28 +200,6 @@ public class ReturnInstruction : Instruction
 
 		builder.Append(SHARED_RETURN_INSTRUCTION);
 
-		StackMemoryChange = Unit.StackOffset - start;
-
 		Build(builder.ToString());
-	}
-
-	public override int GetStackOffsetChange()
-	{
-		return StackMemoryChange;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Object;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.RETURN;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return Object != null ? new[] { Result, Object } : new[] { Result };
 	}
 }

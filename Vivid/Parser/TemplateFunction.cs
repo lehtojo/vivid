@@ -17,7 +17,7 @@ public class TemplateFunction : Function
 
 		for (var i = 0; i < TemplateArgumentNames.Count; i++)
 		{
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], AccessModifier.PUBLIC));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.PUBLIC));
 		}
 	}
 
@@ -70,11 +70,11 @@ public class TemplateFunction : Function
 		InsertArguments(blueprint, template_arguments);
 
 		// Parse the new variant
-		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template function didn't have parent context"), blueprint).First;
+		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template function did not have parent context"), blueprint).First;
 
 		if (result == null || !result.Is(NodeType.FUNCTION_DEFINITION))
 		{
-			throw new ApplicationException("Tried to parse a new variant from template function but the result wasn't a new function");
+			throw new ApplicationException("Tried to parse a new variant from template function but the result was not a new function");
 		}
 
 		// Register the new variant

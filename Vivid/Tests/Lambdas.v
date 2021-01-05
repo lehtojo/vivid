@@ -55,7 +55,9 @@ Animal Dog {
 		type = ANIMAL_DOG
 
 		action = (other: Animal) => {
-			distance = sqrt(pow(position.x - other.position.x, 2.0) + pow(position.y - other.position.y, 2.0))
+			dx = position.x - other.position.x
+			dy = position.y - other.position.y
+			distance = sqrt(dx * dx + dy * dy)
 			direction = other.position - position
 
 			if distance <= 1 and other.type == ANIMAL_CAT {

@@ -187,13 +187,16 @@ public static class GeneralAnalysis
 				var declaration = new DeclareNode(redundant.Declaration);
 
 				// Find all function calls inside the redundant write and replace the write with them
-				var calls = redundant.Node.FindAll(i => i.Is(NodeType.FUNCTION, NodeType.CALL));
+				var blocks = redundant.Node.FindTop(i => i.Is(NodeType.FUNCTION, NodeType.CALL, NodeType.INLINE));
 
-				if (calls.Any())
+				// If any of the calls in under a link node, select those link nodes
+				blocks = blocks.Select(i => i.Parent!.Is(NodeType.LINK) ? i.Parent! : i).ToList();
+
+				if (blocks.Any())
 				{
 					// Add all the calls under an inline node
 					var inline = new InlineNode(redundant.Node.Position) { declaration };
-					calls.ForEach(inline.Add);
+					blocks.ForEach(inline.Add);
 
 					redundant.Node.Replace(inline);
 				}
@@ -272,7 +275,7 @@ public static class GeneralAnalysis
 
 			var assignable = GetAssignable(write, reads, flow);
 
-			// If the value contains the destination variable and it can not be assigned to all its usages or it's repeated, it should not be assigned
+			// If the value contains the destination variable and it can not be assigned to all its usages or it is repeated, it should not be assigned
 			var recursive = write.Value.Find(i => i is VariableNode x && x.Variable == variable) != null;
 
 			if (recursive && (assignable.Length != reads.Length || flow.IsRepeated(write.Node)))
@@ -368,7 +371,7 @@ public static class GeneralAnalysis
 				}
 			}
 
-			// NOTE: This is a repetition, but it's needed since some function don't have variables
+			// NOTE: This is a repetition, but it is needed since some function don't have variables
 			// Finally, try to simplify all expressions
 			if (Analysis.IsMathematicalAnalysisEnabled)
 			{

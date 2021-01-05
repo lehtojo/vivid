@@ -99,7 +99,7 @@ public class TemplateFunctionPattern : Pattern
 		var parameters = tokens[template_parameters_end + PARAMETERS_OFFSET].To<ContentToken>();
 		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
 		
-		var template_function = new TemplateFunction(context, AccessModifier.PUBLIC, name.Value, template_parameter_names)
+		var template_function = new TemplateFunction(context, Modifier.PUBLIC, name.Value, template_parameter_names)
 		{
 			Position = name.Position
 		};

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,7 +12,7 @@ public class SymmetryStartInstruction : Instruction
 	public List<Handle> Handles { get; private set; } = new List<Handle>();
 	public List<Variable> Variables { get; private set; } = new List<Variable>();
 
-	public SymmetryStartInstruction(Unit unit, IEnumerable<Variable>? active_variables) : base(unit)
+	public SymmetryStartInstruction(Unit unit, IEnumerable<Variable>? active_variables) : base(unit, InstructionType.SYMMETRY_START)
 	{
 		Actives = active_variables?.ToList() ?? new List<Variable>();
 	}
@@ -37,20 +36,5 @@ public class SymmetryStartInstruction : Instruction
 				Variables.Add(Actives[i]);
 			}
 		}
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Symmetry-Start-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SYMMETRY_START;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

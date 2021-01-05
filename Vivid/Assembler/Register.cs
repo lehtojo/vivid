@@ -69,7 +69,7 @@ public class Register
 
 	public bool IsHandleCopy()
 	{
-		return Handle != null && !(Handle.Value is RegisterHandle handle && handle.Register == this);
+		return Handle != null && !(Handle.Value.Is(HandleInstanceType.REGISTER) && Handle.Value.To<RegisterHandle>().Register == this);
 	}
 
 	public bool IsAvailable(int position)

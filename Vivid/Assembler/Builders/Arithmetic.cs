@@ -189,20 +189,42 @@ public static class Arithmetic
 	}
 
 	/// <summary>
+	/// Returns whether a division with non power of two divisor possible with the specified division node
+	/// </summary>
+	private static bool IsNonPowerOfTwoIntegerDivisionPossible(OperatorNode operation)
+	{
+		var format = operation.GetType()!.To<Number>().Type;
+
+		// 1. This algorithm is only responsible for integer divisions
+		// 2. This divisor must be a constant integer
+		if (format.IsDecimal() || !operation.Right.Is(NodeType.NUMBER))
+		{
+			return false;
+		}
+
+		// NOTE: The value must be an integer since the format of the division is integer here
+		var constant = (long)operation.Right.To<NumberNode>().Value;
+
+		// This algorithm handles positive divisors which can not be expressed as power of two
+		return constant > 0 && !IsPowerOfTwo(constant);
+	}
+
+	/// <summary>
 	/// Builds a division or remainder operation which can assign the result if specified
 	/// </summary>
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
 	{
-		if (Assembler.IsX64 && !modulus && operation.Right.Is(NodeType.NUMBER) && operation.Right.To<NumberNode>().Value is long divisor && !IsPowerOfTwo(divisor))
+		var format = operation.GetType()!.To<Number>().Type;
+
+		if (Assembler.IsX64 && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
-			return BuildConstantDivision(unit, operation.Left, divisor, assigns);
+			return BuildConstantDivision(unit, operation.Left, (long)operation.Right.To<NumberNode>().Value, assigns);
 		}
 
 		var access = assigns ? AccessMode.WRITE : AccessMode.READ;
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var format = operation.GetType()!.To<Number>().Type;
 		var is_unsigned = operation.Left.GetType() is Number number ? number.IsUnsigned : true;
 
 		var result = new DivisionInstruction(unit, modulus, left, right, format, assigns, is_unsigned).Execute();
@@ -215,9 +237,8 @@ public static class Arithmetic
 	/// </summary>
 	private static Result BuildAssignOperator(Unit unit, OperatorNode node)
 	{
-		// NOTE: The right side should be loaded first since mathematical analysis uses this order
-		var right = References.Get(unit, node.Right);
 		var left = References.Get(unit, node.Left, AccessMode.WRITE);
+		var right = References.Get(unit, node.Right);
 
 		if (node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
 		{
@@ -269,25 +290,43 @@ public static class Arithmetic
 	}
 
 	/// <summary>
+	/// Returns the value of the specified node
+	/// </summary>
+	private static Node GetValue(Node root)
+	{
+		var iterator = root;
+
+		while (true)
+		{
+			if (iterator.Is(NodeType.CAST))
+			{
+				iterator = iterator.First();
+			}
+			else if (iterator.Is(NodeType.INLINE))
+			{
+				iterator = iterator.Last();
+			}
+			else if (iterator.Is(NodeType.CONTENT))
+			{
+				iterator = iterator.Last();
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return iterator;
+	}
+
+	/// <summary>
 	/// Returns whether a variable is being assigned with another variable
 	/// </summary>
 	private static bool IsAliasAssignment(Node value)
 	{
-		if (value.Is(NodeType.VARIABLE) && value.To<VariableNode>().Variable.IsPredictable)
-		{
-			return true;
-		}
+		value = GetValue(value);
 
-		return value.Is(NodeType.CAST) && value.GetLeftWhile(i => i.Is(NodeType.CAST)) is VariableNode x && x.Variable.IsPredictable;
-	}
-
-	/// <summary>
-	/// Returns whether the node represents a object located in memory
-	/// </summary>
-	private static bool IsComplexDestination(Node node)
-	{
-		return node.Is(NodeType.VARIABLE) && !node.To<VariableNode>().Variable.IsPredictable ||
-				 node.Is(NodeType.LINK) || node.Is(NodeType.OFFSET);
+		return value.Is(NodeType.VARIABLE) && value.To<VariableNode>().Variable.IsPredictable;
 	}
 
 	/// <summary>
@@ -330,11 +369,6 @@ public static class Arithmetic
 		// Retrieve the destination
 		var destination = References.Get(unit, left, access);
 		var dividend = destination;
-
-		if (assigns)
-		{
-			dividend = new DuplicateInstruction(unit, destination).Execute();
-		}
 
 		// Multiply the variable with the divisor's reciprocal
 		var reciprocal = new ConstantHandle(GetDivisorReciprocal(divisor));

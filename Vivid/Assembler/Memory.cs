@@ -5,7 +5,7 @@ using System.Linq;
 public static class Memory
 {
 	/// <summary>
-	/// Loads the operand so that it's ready based on the specified settings
+	/// Loads the operand so that it is ready based on the specified settings
 	/// </summary>
 	public static Result LoadOperand(Unit unit, Result operand, bool media_register, bool assigns)
 	{
@@ -336,7 +336,7 @@ public static class Memory
 	/// </summary>
 	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
-		// NOTE: Before the condition checked whether the result was a standard register, so it was changed to check any register, since why wouldn't media registers need register locks as well
+		// NOTE: Before the condition checked whether the result was a standard register, so it was changed to check any register, since why would not media registers need register locks as well
 		var format = media_register ? Format.DECIMAL : size.ToFormat();
 
 		if (result.IsAnyRegister)
@@ -404,7 +404,7 @@ public static class Memory
 		{
 			if (result.Size.Bytes >= size.Bytes)
 			{
-				result.Format = format;
+				//result.Format = format;
 				return result;
 			}
 		}
@@ -513,6 +513,12 @@ public static class Memory
 					return result;
 				}
 
+				// If the format does not match the required register type, only copy it since the conversion may be lossy
+				if (result.Format.IsDecimal() != is_media_register)
+				{
+					return CopyToRegister(unit, result, size, is_media_register, directives);
+				}
+
 				var expiring = result.IsExpiring(unit.Position);
 
 				// The result must be loaded into a register
@@ -534,15 +540,23 @@ public static class Memory
 
 			case HandleType.MEMORY:
 			{
-				if (!Assembler.IsArm64 || !(result.Value is DataSectionHandle handle))
+				if (!Assembler.IsArm64 || !result.IsDataSectionHandle)
 				{
 					return null;
 				}
 
-				var address = new GetRelativeAddressInstruction(unit, handle).Execute();
-				var offset = new Result(new Lower12Bits(handle), Assembler.Format);
+				var handle = result.Value.To<DataSectionHandle>();
 
-				return new Result(new ComplexMemoryHandle(address, offset, 1), result.Format);
+				// Example:
+				// S0
+				// =>
+				// adrp x0, :got:S0
+				// ldr x0, [x0, :got_lo12:S0]
+				var intermediate = new GetRelativeAddressInstruction(unit, handle).Execute();
+				var offset = new Result(new Lower12Bits(handle, true), Assembler.Format);
+				var address = Memory.MoveToRegister(unit, new Result(new ComplexMemoryHandle(intermediate, offset, 1), Assembler.Format), Assembler.Size, false);
+
+				return new Result(new MemoryHandle(unit, address, (int)handle.Offset), result.Format);
 			}
 
 			case HandleType.NONE:

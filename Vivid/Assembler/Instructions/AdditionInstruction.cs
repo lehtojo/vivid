@@ -1,5 +1,9 @@
 using System.Linq;
 
+/// <summary>
+/// This instruction adds the two specified operand together and outputs a result.
+/// This instruction is works on all architectures
+/// </summary>
 public class AdditionInstruction : DualParameterInstruction
 {
 	public const string SHARED_STANDARD_ADDITION_INSTRUCTION = "add";
@@ -15,14 +19,9 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public bool Assigns { get; private set; }
 
-	public AdditionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
+	public AdditionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.ADDITION)
 	{
 		Assigns = assigns;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.ADDITION;
 	}
 
 	public override void OnBuild()
@@ -41,7 +40,7 @@ public class AdditionInstruction : DualParameterInstruction
 	{
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			if (First.IsMemoryAddress)
+			if (Assigns && First.IsMemoryAddress)
 			{
 				Unit.Append(new MoveInstruction(Unit, First, Result), true);
 			}
@@ -196,9 +195,20 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
-		if (Operation == X64_SINGLE_PRECISION_ADDITION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION || Assigns)
+		if (Operation == X64_SINGLE_PRECISION_ADDITION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION)
 		{
 			return false;
+		}
+
+		if (Operation == X64_EXTENDED_ADDITION_INSTRUCTION)
+		{
+			if (!handle.Is(HandleType.REGISTER))
+			{
+				return false;
+			}
+
+			Destination!.Value = handle;
+			return true;
 		}
 
 		var first = Parameters[STANDARD_ADDITION_FIRST];
@@ -245,10 +255,5 @@ public class AdditionInstruction : DualParameterInstruction
 		}
 
 		return RedirectX64(handle);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return (First.IsExpiring(Position) || Assigns) ? First : Result;
 	}
 }

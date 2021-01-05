@@ -5,13 +5,13 @@ public class CompilesNode : Node, IType
 		Position = position;
 	}
 
-	 public new Type GetType()
-	 {
-		  return Types.BOOL;
-	 }
+	public new Type GetType()
+	{
+		return Types.BOOL;
+	}
 
-	 public override NodeType GetNodeType()
-	 {
-		  return NodeType.COMPILES;
-	 }
+	public override NodeType GetNodeType()
+	{
+		return NodeType.COMPILES;
+	}
 }

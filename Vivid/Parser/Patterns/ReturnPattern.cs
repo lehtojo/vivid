@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 class ReturnPattern : Pattern
 {
@@ -26,6 +27,11 @@ class ReturnPattern : Pattern
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
+		if (!context.IsInsideFunction)
+		{
+			throw Errors.Get(tokens.First().Position, "Return statement must be inside a function");
+		}
+
 		var token = tokens[VALUE];
 		var value = Singleton.Parse(context, token);
 

@@ -15,7 +15,7 @@ public static class Loops
 		{
 			var exit = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
 
-			var symmetry_start = unit.Loops[node.Loop.Identifier!.Value] ?? throw new ApplicationException("Loop was not registered to unit");
+			var symmetry_start = unit.Loops[node.Loop.Identifier!] ?? throw new ApplicationException("Loop was not registered to unit");
 			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
 
 			// Restore the state after the body
@@ -30,7 +30,7 @@ public static class Loops
 		{
 			var start = node.Loop.Start ?? throw new ApplicationException("Missing loop exit label");
 
-			var symmetry_start = unit.Loops[node.Loop.Identifier!.Value] ?? throw new ApplicationException("Loop was not registered to unit");
+			var symmetry_start = unit.Loops[node.Loop.Identifier!] ?? throw new ApplicationException("Loop was not registered to unit");
 			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
 
 			// Restore the state after the body
@@ -63,8 +63,8 @@ public static class Loops
 			unit.Append(symmetry_start);
 
 			// Register loop to the unit
-			loop.Identifier = Guid.NewGuid();
-			unit.Loops.Add(loop.Identifier!.Value, symmetry_start);
+			loop.Identifier = unit.GetNextIdentity();
+			unit.Loops.Add(loop.Identifier, symmetry_start);
 
 			// Build the loop body
 			result = Builders.Build(unit, loop.Body);
@@ -99,8 +99,8 @@ public static class Loops
 			unit.Append(symmetry_start);
 
 			// Register loop to the unit
-			loop.Identifier = Guid.NewGuid();
-			unit.Loops.Add(loop.Identifier!.Value, symmetry_start);
+			loop.Identifier = unit.GetNextIdentity();
+			unit.Loops.Add(loop.Identifier, symmetry_start);
 
 			// Build the loop body
 			result = Builders.Build(unit, loop.Body);
@@ -200,7 +200,6 @@ public static class Loops
 		}
 
 		Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
-		//unit.Append(new BranchInstruction(unit, new Node[] { node.Initialization, node.Condition, node.Action, node.Body }));
 
 		// Initialize the condition
 		node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
@@ -284,7 +283,7 @@ public static class Loops
 			// Check if any jump instruction uses the current label
 			if (!jumps.Any(j => j.Label == label.Label))
 			{
-				// Since the label isn't used, it can be removed
+				// Since the label is not used, it can be removed
 				instructions.Remove(label);
 			}
 		}
@@ -309,7 +308,7 @@ public static class Loops
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit)
+		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
 		{
 			Comparison = comparison;
 		}
@@ -343,11 +342,6 @@ public static class Loops
 
 			// Recover the previous state
 			Unit.Append(new RestoreStateInstruction(Unit, recovery));
-		}
-
-		public override InstructionType GetInstructionType()
-		{
-			return InstructionType.TEMPORARY_COMPARE;
 		}
 	}
 

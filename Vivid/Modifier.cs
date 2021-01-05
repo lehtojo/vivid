@@ -1,4 +1,4 @@
-public static class AccessModifier
+public static class Modifier
 {
 	public const int PRIVATE = 1;
 	public const int PROTECTED = 2;

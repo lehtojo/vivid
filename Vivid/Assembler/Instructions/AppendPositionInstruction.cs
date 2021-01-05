@@ -1,9 +1,8 @@
-using System;
 using System.Globalization;
 
 /// <summary>
 /// This instruction appends the specified source file position to the generated assembly for debug information
-/// This instruction is works in all architectures
+/// This instruction is works on all architectures
 /// </summary>
 public class AppendPositionInstruction : Instruction
 {
@@ -19,7 +18,7 @@ public class AppendPositionInstruction : Instruction
 		return INSTRUCTION + " 1 " + line + ' ' + character;
 	}
 
-	public AppendPositionInstruction(Unit unit, Position position) : base(unit)
+	public AppendPositionInstruction(Unit unit, Position position) : base(unit, InstructionType.APPEND_POSITION)
 	{
 		Position = position;
 	}
@@ -30,21 +29,6 @@ public class AppendPositionInstruction : Instruction
 		var character = Position.FriendlyCharacter.ToString(CultureInfo.InvariantCulture);
 
 		Build(GetPositionInstruction(Position));
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.APPEND_POSITION;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new InvalidOperationException("Tried to redirect Append-Position-Instruction");
 	}
 
 	public override string ToString()

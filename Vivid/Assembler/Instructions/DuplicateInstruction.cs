@@ -1,10 +1,10 @@
 /// <summary>
 /// Duplicates the specified value by loading it to another register
-/// This instruction is works in all architectures
+/// This instruction is works on all architectures
 /// </summary>
 public class DuplicateInstruction : DualParameterInstruction
 {
-	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value, value.Format) { }
+	public DuplicateInstruction(Unit unit, Result value) : base(unit, new Result(), value, value.Format, InstructionType.DUPLICATE) { }
 
 	public override void OnBuild()
 	{
@@ -13,15 +13,5 @@ public class DuplicateInstruction : DualParameterInstruction
 			Type = MoveType.LOAD,
 			IsSafe = true
 		});
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.DUPLICATE;
 	}
 }

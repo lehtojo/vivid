@@ -79,10 +79,12 @@ public static class Units
 		Run("Assignment", AssemblerTests.Assignment);
 		Run("BitwiseOperations", AssemblerTests.BitwiseOperations);
 		Run("ConditionallyChangingConstant", AssemblerTests.ConditionallyChangingConstant);
+		Run("Conversions", AssemblerTests.Conversions);
 		Run("Conditionals", AssemblerTests.Conditionals);
 		Run("ConstantPermanenceAndArrayCopy", AssemblerTests.ConstantPermanenceAndArrayCopy);
 		Run("Decimals", AssemblerTests.Decimals);
 		Run("Evacuation", AssemblerTests.Evacuation);
+		Run("ExpressionVariables", AssemblerTests.ExpressionVariables);
 		Run("Fibonacci", AssemblerTests.Fibonacci);
 		Run("Inheritance", AssemblerTests.Inheritance);
 		Run("Is", AssemblerTests.Is);

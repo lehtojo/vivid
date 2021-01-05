@@ -118,7 +118,7 @@ public class OperatorNode : Node, IType, IResolvable
 			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function didn't exist");
+		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
 
 		var operator_function = operator_functions.GetImplementation(parameter_types);
 
@@ -166,7 +166,7 @@ public class OperatorNode : Node, IType, IResolvable
 		Resolver.Resolve(context, Left);
 		Resolver.Resolve(context, Right);
 
-		// Check if the left node represents an indexed accessor and if it's being assigned a value
+		// Check if the left node represents an indexed accessor and if it is being assigned a value
 		if (Operator.Type == OperatorType.ACTION && Left.Is(NodeType.OFFSET))
 		{
 			var result = TryResolveAsIndexedSetter();

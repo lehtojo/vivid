@@ -1,5 +1,3 @@
-using System;
-
 /// <summary>
 /// Sets the lock state of the specified variable
 /// This instruction works on all architectures
@@ -19,7 +17,7 @@ public class LockStateInstruction : Instruction
 		return new LockStateInstruction(unit, register, false);
 	}
 
-	private LockStateInstruction(Unit unit, Register register, bool locked) : base(unit)
+	private LockStateInstruction(Unit unit, Register register, bool locked) : base(unit, InstructionType.LOCK_STATE)
 	{
 		Register = register;
 		IsLocked = locked;
@@ -34,20 +32,5 @@ public class LockStateInstruction : Instruction
 	public override void OnBuild()
 	{
 		Register.IsLocked = IsLocked;
-	}
-
-	public override Result GetDestinationDependency()
-	{
-		throw new InvalidOperationException("Tried to redirect Set-Register-Lock-State-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.LOCK_STATE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

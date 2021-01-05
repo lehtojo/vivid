@@ -89,9 +89,10 @@ public class Result
 	public bool IsMediaRegister => _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsAnyRegister => _Value.Type == HandleType.REGISTER || _Value.Type == HandleType.MEDIA_REGISTER;
 	public bool IsMemoryAddress => _Value.Type == HandleType.MEMORY;
-	public bool IsStackVariable => _Value is StackVariableHandle;
-	public bool IsDataSectionHandle => _Value is DataSectionHandle;
+	public bool IsStackVariable => _Value.Instance == HandleInstanceType.STACK_VARIABLE;
+	public bool IsDataSectionHandle => _Value.Instance == HandleInstanceType.DATA_SECTION || _Value.Instance == HandleInstanceType.CONSTANT_DATA_SECTION;
 	public bool IsModifier => _Value.Type == HandleType.MODIFIER;
+	public bool IsInline => _Value.Instance == HandleInstanceType.INLINE;
 	public bool IsUnsigned => Format.IsUnsigned();
 	public bool IsEmpty => _Value.Type == HandleType.NONE;
 
@@ -145,7 +146,6 @@ public class Result
 		Value = Value;
 		Format = Format;
 
-		/// TODO: Turn into automatic update?
 		foreach (var member in Others)
 		{
 			member.Instruction = Instruction;
@@ -218,7 +218,12 @@ public class Result
 		}
 
 		Value.Use(position);
-		Connections.ForEach(c => c.Lifetime = Lifetime.Clone());
+
+		foreach (var connection in Connections)
+		{
+			connection.Lifetime.Start = Lifetime.Start;
+			connection.Lifetime.End = Lifetime.End;
+		}
 	}
 
 	public override bool Equals(object? other)

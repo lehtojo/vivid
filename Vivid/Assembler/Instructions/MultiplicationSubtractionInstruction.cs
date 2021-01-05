@@ -13,13 +13,14 @@ public class MultiplicationSubtractionInstruction : Instruction
 
 	public bool Assigns { get; private set; }
 
-	public MultiplicationSubtractionInstruction(Unit unit, Result multiplicand, Result multiplier, Result minued, Format format, bool assigns) : base(unit)
+	public MultiplicationSubtractionInstruction(Unit unit, Result multiplicand, Result multiplier, Result minued, Format format, bool assigns) : base(unit, InstructionType.MULTIPLICATION_SUBTRACTION)
 	{
 		Multiplicand = multiplicand;
 		Multiplier = multiplier;
 		Minued = minued;
 		Assigns = assigns;
 		Format = format;
+		Dependencies = new[] { Multiplicand, Multiplier, Minued, Result };
 	}
 
 	public override void OnBuild()
@@ -90,20 +91,5 @@ public class MultiplicationSubtractionInstruction : Instruction
 		);
 		
 		Result.Format = Format;
-	}
-
-	public override Result GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SUBTRACT;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Multiplicand, Multiplier, Minued, Result };
 	}
 }

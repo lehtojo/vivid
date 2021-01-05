@@ -16,11 +16,15 @@ public class Parse
 
 public class ParserPhase : Phase
 {
-	private List<Exception> Errors { get; } = new List<Exception>();
+	public const string ROOT_CONTEXT_IDENTITY = "Root";
 
+	/// <summary>
+	/// Parses all types under the specified root node
+	/// </summary>
 	private void ParseTypes(Node root)
 	{
-		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>();
+		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+		var exceptions = new List<Exception>();
 
 		foreach (var type in types)
 		{
@@ -32,7 +36,7 @@ public class ParserPhase : Phase
 				}
 				catch (Exception e)
 				{
-					Errors.Add(e);
+					return Status.Error(e.Message);
 				}
 
 				return Status.OK;
@@ -117,7 +121,7 @@ public class ParserPhase : Phase
 			Run(() =>
 			{
 				var file = files[index];
-				var context = Parser.Initialize();
+				var context = Parser.Initialize(index);
 				var root = new ContextNode(context);
 
 				try
@@ -163,7 +167,7 @@ public class ParserPhase : Phase
 		}
 
 		// Merge all parsed files
-		var context = new Context();
+		var context = Context.CreateRootContext(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
 		var root = new ContextNode(context);
 
 		foreach (var file in files)
@@ -182,7 +186,7 @@ public class ParserPhase : Phase
 
 		if (function == null)
 		{
-			return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}'");
+			return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}()'");
 		}
 
 		function.Overloads.First().Implement(new List<Type>());

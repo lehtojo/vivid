@@ -6,7 +6,7 @@ public abstract class Number : Type
 
 	public int Bytes => Bits / 8;
 
-	public Number(Format type, int bits, bool unsigned, string name) : base(name, AccessModifier.PUBLIC)
+	public Number(Format type, int bits, bool unsigned, string name) : base(name, Modifier.PUBLIC)
 	{
 		Type = type;
 		Bits = bits;

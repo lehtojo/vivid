@@ -4,38 +4,48 @@
 /// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
 {
-	private const string MULTPLICATION_INSTRUCTION = "mul";
-	private const string SIGNED_MULTPLICATION_INSTRUCTION = "imul";
+	private const string X64_LONG_MULTPLICATION_INSTRUCTION = "mul";
 
 	public string Instruction { get; private set; }
 
-	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format)
+	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION)
 	{
-		Instruction = format.IsUnsigned() ? MULTPLICATION_INSTRUCTION : SIGNED_MULTPLICATION_INSTRUCTION;
+		Instruction = X64_LONG_MULTPLICATION_INSTRUCTION;
 	}
 
 	private Result CorrectDestinationOperandLocation()
 	{
-		var register = Unit.GetNumeratorRegister();
-		var location = new RegisterHandle(register);
+		var numerator = Unit.GetNumeratorRegister();
+		var location = new RegisterHandle(numerator);
 
 		if (!First.Value.Equals(location))
 		{
 			Memory.ClearRegister(Unit, location.Register);
 
-			return new MoveInstruction(Unit, new Result(location, First.Format), First)
+			return new MoveInstruction(Unit, new Result(location, Assembler.Format), First)
 			{
 				Type = MoveType.COPY
 
 			}.Execute();
 		}
 
-		return First;
+		using var numerator_lock = new RegisterLock(numerator);
+
+		// Get next register for the numerator where it will be relocated since it should not be edited
+		var register = Memory.GetNextRegister(Unit, false, Trace.GetDirectives(Unit, First));
+
+		Unit.Append(new MoveInstruction(Unit, new Result(new RegisterHandle(register), First.Format), First)
+		{
+			Type = MoveType.RELOCATE
+		});
+
+		// Even though the numerator is relocated the value is still in the register
+		return new Result(new RegisterHandle(numerator), Assembler.Format);
 	}
 
 	public override void OnBuild()
 	{
-		CorrectDestinationOperandLocation();
+		var numerator = CorrectDestinationOperandLocation();
 
 		// The remainder register must be empty since it will contain
 		var remainder = Unit.GetRemainderRegister();
@@ -50,27 +60,21 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 				Assembler.Size,
 				new InstructionParameter(
 					Result,
-					ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN,
+					ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+					HandleType.REGISTER
+				),
+				new InstructionParameter(
+					numerator,
+					ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
 					HandleType.REGISTER
 				),
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.CONSTANT,
 					HandleType.REGISTER,
 					HandleType.MEMORY
 				)
 			);
 		}
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return First;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.LONG_MULTIPLICATION;
 	}
 }

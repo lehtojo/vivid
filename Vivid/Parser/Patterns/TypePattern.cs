@@ -29,7 +29,7 @@ public class TypePattern : Pattern
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens[BODY].To<ContentToken>();
 
-		var type = new Type(context, name.Value, AccessModifier.PUBLIC, name.Position);
+		var type = new Type(context, name.Value, Modifier.PUBLIC, name.Position);
 
 		return new TypeNode(type, body.Tokens, name.Position);
 	}

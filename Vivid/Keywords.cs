@@ -4,27 +4,27 @@ public static class Keywords
 {
 	public static readonly Keyword AS = new Keyword("as");
 	public static readonly Keyword COMPILES = new Keyword("compiles");
-	public static readonly Keyword CONTINUE = new FlowKeyword("continue");
+	public static readonly Keyword CONTINUE = new Keyword("continue", KeywordType.FLOW);
 	public static readonly Keyword DEINIT = new Keyword("deinit");
-	public static readonly Keyword ELSE = new FlowKeyword("else");
-	public static readonly Keyword EXPORT = new AccessModifierKeyword("export", AccessModifier.GLOBAL);
-	public static readonly Keyword GOTO = new FlowKeyword("goto");
-	public static readonly Keyword HAS = new FlowKeyword("has");
-	public static readonly Keyword IF = new FlowKeyword("if");
-	public static readonly Keyword INLINE = new AccessModifierKeyword("inline", AccessModifier.INLINE);
-	public static readonly Keyword IS = new FlowKeyword("is");
+	public static readonly Keyword ELSE = new Keyword("else", KeywordType.FLOW);
+	public static readonly Keyword EXPORT = new ModifierKeyword("export", Modifier.GLOBAL);
+	public static readonly Keyword GOTO = new Keyword("goto", KeywordType.FLOW);
+	public static readonly Keyword HAS = new Keyword("has", KeywordType.FLOW);
+	public static readonly Keyword IF = new Keyword("if", KeywordType.FLOW);
+	public static readonly Keyword INLINE = new ModifierKeyword("inline", Modifier.INLINE);
+	public static readonly Keyword IS = new Keyword("is", KeywordType.FLOW);
 	public static readonly Keyword INIT = new Keyword("init");
-	public static readonly Keyword IMPORT = new AccessModifierKeyword("import", AccessModifier.EXTERNAL);
+	public static readonly Keyword IMPORT = new ModifierKeyword("import", Modifier.EXTERNAL);
 	public static readonly Keyword LOOP = new Keyword("loop");
-	public static readonly Keyword OUTLINE = new AccessModifierKeyword("outline", AccessModifier.OUTLINE);
-	public static readonly Keyword PRIVATE = new AccessModifierKeyword("private", AccessModifier.PRIVATE);
-	public static readonly Keyword PROTECTED = new AccessModifierKeyword("protected", AccessModifier.PROTECTED);
-	public static readonly Keyword PUBLIC = new AccessModifierKeyword("public", AccessModifier.PUBLIC);
-	public static readonly Keyword READONLY = new AccessModifierKeyword("readonly", AccessModifier.READONLY);
-	public static readonly Keyword RETURN = new FlowKeyword("return");
-	public static readonly Keyword STATIC = new AccessModifierKeyword("static", AccessModifier.STATIC);
-	public static readonly Keyword STOP = new FlowKeyword("stop");
-	public static readonly Keyword WHEN = new FlowKeyword("when");
+	public static readonly Keyword OUTLINE = new ModifierKeyword("outline", Modifier.OUTLINE);
+	public static readonly Keyword PRIVATE = new ModifierKeyword("private", Modifier.PRIVATE);
+	public static readonly Keyword PROTECTED = new ModifierKeyword("protected", Modifier.PROTECTED);
+	public static readonly Keyword PUBLIC = new ModifierKeyword("public", Modifier.PUBLIC);
+	public static readonly Keyword READONLY = new ModifierKeyword("readonly", Modifier.READONLY);
+	public static readonly Keyword RETURN = new Keyword("return", KeywordType.FLOW);
+	public static readonly Keyword STATIC = new ModifierKeyword("static", Modifier.STATIC);
+	public static readonly Keyword STOP = new Keyword("stop", KeywordType.FLOW);
+	public static readonly Keyword WHEN = new Keyword("when", KeywordType.FLOW);
 
 	private static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
 

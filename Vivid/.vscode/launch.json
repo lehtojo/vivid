@@ -15,10 +15,7 @@
 			"program": "/v.exe",
 			"args": [],
 			"cwd": ""
-		},
-
-
-		
+		},		
 		{
 			"name": "Debug",
 			"type": "coreclr",
@@ -77,7 +74,7 @@
 
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
 
-			"args": [ "${workspaceFolder}/Tests/Arithmetic.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-O1", "-f", "-arm64" ],
+			"args": [ "${workspaceFolder}/Tests/PI.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-O1" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-O1", "-f" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-a", "-v", "-f", "-arm64", "-O1" ],
@@ -108,7 +105,6 @@
 			"name": "Vivid Debug",
 			"type": "cppdbg",
 			"request": "launch",
-			"preLaunchTask": "Compile",
 			"program": "${workspaceRoot}/v.exe",
 			"args": [],
 			"stopAtEntry": false,

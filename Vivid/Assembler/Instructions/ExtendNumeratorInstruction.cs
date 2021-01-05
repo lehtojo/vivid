@@ -1,6 +1,4 @@
-﻿using System;
-
-/// <summary>
+﻿/// <summary>
 /// Extends the sign of the quentient register
 /// This instruction works only on architecture x86-64
 /// </summary>
@@ -9,25 +7,25 @@ public class ExtendNumeratorInstruction : Instruction
 	public const string X64_INSTRUCTION_32BIT_MODE = "cdq";
 	public const string X64_INSTRUCTION_64BIT_MODE = "cqo";
 
-	public ExtendNumeratorInstruction(Unit unit) : base(unit) { }
+	public ExtendNumeratorInstruction(Unit unit) : base(unit, InstructionType.EXTEND_NUMERATOR) { }
 
 	public override void OnBuild()
 	{
-		Build(Assembler.Is64bit ? X64_INSTRUCTION_64BIT_MODE : X64_INSTRUCTION_32BIT_MODE);
-	}
+		var numerator = Unit.GetNumeratorRegister();
+		var remainder = Unit.GetRemainderRegister();
 
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Extend-Numerator-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.EXTEND_NUMERATOR;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
+		Build(
+			Assembler.Is64bit ? X64_INSTRUCTION_64BIT_MODE : X64_INSTRUCTION_32BIT_MODE,
+			new InstructionParameter(
+				new Result(new RegisterHandle(remainder), Assembler.Format),
+				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				new Result(new RegisterHandle(numerator), Assembler.Format),
+				ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+				HandleType.REGISTER
+			)
+		);
 	}
 }

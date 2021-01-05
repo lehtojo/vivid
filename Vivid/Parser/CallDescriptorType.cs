@@ -8,13 +8,13 @@ public class CallDescriptorType : Type
 	public List<Type?> Parameters { get; }
 	public Type? ReturnType { get; }
 
-	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
+	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.PUBLIC)
 	{
 		Parameters = parameters;
 		ReturnType = return_type;
 	}
 
-	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, AccessModifier.PUBLIC)
+	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.PUBLIC)
 	{
 		Self = self;
 		Parameters = parameters;

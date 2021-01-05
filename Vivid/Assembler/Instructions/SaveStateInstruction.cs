@@ -9,7 +9,7 @@ public class SaveStateInstruction : Instruction
 	public Instruction Perspective { get; private set; }
 	public List<VariableState>? State { get; private set; }
 
-	public SaveStateInstruction(Unit unit) : base(unit)
+	public SaveStateInstruction(Unit unit) : base(unit, InstructionType.SAVE)
 	{
 		Perspective = this;
 	}
@@ -18,20 +18,5 @@ public class SaveStateInstruction : Instruction
 	{
 		// Get state that only contains important variables from the position of the perspective
 		State = Unit.GetState(Perspective.Position);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SAVE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

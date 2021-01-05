@@ -1,12 +1,12 @@
 /// <summary>
 /// Ensures that the specified variable has a location in the current scope
-/// This instruction is works in all architectures
+/// This instruction is works on all architectures
 /// </summary>
 public class DeclareInstruction : Instruction
 {
 	public Variable Variable { get; }
 
-	public DeclareInstruction(Unit unit, Variable variable) : base(unit)
+	public DeclareInstruction(Unit unit, Variable variable) : base(unit, InstructionType.DECLARE)
 	{
 		Variable = variable;
 	}
@@ -31,20 +31,5 @@ public class DeclareInstruction : Instruction
 				HandleType.NONE
 			)
 		);
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.DECLARE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Result;
 	}
 }

@@ -88,7 +88,7 @@ public class LambdaPattern : Pattern
 
 		var lambda = new Lambda(
 			context,
-			AccessModifier.PUBLIC,
+			Modifier.PUBLIC,
 			name,
 			body
 		);

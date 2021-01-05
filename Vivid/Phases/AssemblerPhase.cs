@@ -29,8 +29,7 @@ public class AssemblerPhase : Phase
 	private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
 	private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
 	
-
-	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style requires lower case")]
+	
 	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 
 	private static string RED = "\x1B[1;31m";
@@ -129,7 +128,7 @@ public class AssemblerPhase : Phase
 		{
 			$"-o {output_file}",
 			input_file,
-			"-g"
+			"--gdwarf2"
 		});
 
 		var status = Run(GetAssembler(), arguments);

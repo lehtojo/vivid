@@ -11,9 +11,9 @@ public class Variable
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
 
-	public bool IsConstant => Flag.Has(Modifiers, AccessModifier.CONSTANT);
-	public bool IsExternal => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
-	public bool IsStatic => Flag.Has(Modifiers, AccessModifier.STATIC);
+	public bool IsConstant => Flag.Has(Modifiers, Modifier.CONSTANT);
+	public bool IsExternal => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsSelfPointer { get; set; } = false;
 
 	public Context Context { get; set; }
@@ -35,7 +35,7 @@ public class Variable
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
-	public bool IsInlined => (Flag.Has(Modifiers, AccessModifier.INLINE) || !IsCopied) && !Flag.Has(Modifiers, AccessModifier.OUTLINE);
+	public bool IsInlined => (Flag.Has(Modifiers, Modifier.INLINE) || !IsCopied) && !Flag.Has(Modifiers, Modifier.OUTLINE);
 
 	public bool IsGenerated => Position == null;
 
@@ -58,7 +58,6 @@ public class Variable
 		}
 	}
 
-	[SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Assembly style requires lower case")]
 	public string GetStaticName()
 	{
 		return Context.GetFullname() + '_' + Name.ToLowerInvariant();

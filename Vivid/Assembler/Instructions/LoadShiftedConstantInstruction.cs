@@ -11,11 +11,12 @@ public class LoadShiftedConstantInstruction : Instruction
 	public long Value { get; private set; }
 	public int Shift { get; private set; }
 
-	public LoadShiftedConstantInstruction(Unit unit, Result destination, ushort value, int shift) : base(unit)
+	public LoadShiftedConstantInstruction(Unit unit, Result destination, ushort value, int shift) : base(unit, InstructionType.LOAD_SHIFTED_CONSTANT)
 	{
 		Destination = destination;
 		Value = value;
 		Shift = shift;
+		Dependencies = new[] { Result, Destination };
 	}
 
 	public override void OnBuild()
@@ -24,7 +25,7 @@ public class LoadShiftedConstantInstruction : Instruction
 			ARM64_LOAD_SHIFTED_CONSTANT,
 			new InstructionParameter(
 				Destination,
-				ParameterFlag.DESTINATION | ParameterFlag.NO_ATTACH | ParameterFlag.WRITE_ACCESS,
+				ParameterFlag.DESTINATION | ParameterFlag.NO_ATTACH | ParameterFlag.WRITE_ACCESS | ParameterFlag.READS,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
@@ -38,20 +39,5 @@ public class LoadShiftedConstantInstruction : Instruction
 				HandleType.MODIFIER
 			)
 		);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.LOAD_SHIFTED_CONSTANT;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result, Destination };
 	}
 }

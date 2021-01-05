@@ -15,7 +15,7 @@ public class LoopNode : Node, IResolvable, IContext
 
 	public Label? Start { get; set; } = null;
 	public Label? Exit { get; set; } = null;
-	public Guid? Identifier { get; set; }
+	public string? Identifier { get; set; }
 
 	public bool IsForeverLoop => First == Last;
 

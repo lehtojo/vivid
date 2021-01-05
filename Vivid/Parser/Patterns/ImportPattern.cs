@@ -49,8 +49,7 @@ public class ImportPattern : Pattern
 
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		var function_context = new Context();
-		function_context.Link(environment);
+		var function_context = new Context(environment);
 
 		var header = tokens[HEADER].To<FunctionToken>();
 		var parameters = header.GetParameters(function_context);
@@ -63,7 +62,8 @@ public class ImportPattern : Pattern
 
 		var function = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL,
+			environment,
+			Modifier.PUBLIC | Modifier.EXTERNAL,
 			header.Name,
 			return_type,
 			parameters.ToArray()

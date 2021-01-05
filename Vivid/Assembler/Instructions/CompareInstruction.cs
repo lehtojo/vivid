@@ -1,3 +1,7 @@
+/// <summary>
+/// This instruction compares the two specified values together and alters the CPU flags based on the comparison
+/// This instruction is works on all architectures
+/// </summary>
 public class CompareInstruction : DualParameterInstruction
 {
 	public const string SHARED_COMPARISON_INSTRUCTION = "cmp";
@@ -9,7 +13,7 @@ public class CompareInstruction : DualParameterInstruction
 
 	public const string X64_ZERO_COMPARISON_INSTRUCTION = "test";
 
-	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format) { }
+	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE) { }
 
 	public override void OnBuild()
 	{
@@ -36,7 +40,7 @@ public class CompareInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsX64 && Second.Value is ConstantHandle constant && constant.Value.Equals(0L))
+		else if (Assembler.IsX64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
 		{
 			Build(
 				X64_ZERO_COMPARISON_INSTRUCTION,
@@ -78,15 +82,5 @@ public class CompareInstruction : DualParameterInstruction
 				)
 			);
 		}
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.COMPARE;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
 	}
 }

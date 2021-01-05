@@ -21,7 +21,7 @@ public static class Lambdas
 		var required_memory = (long)captured_variables.Sum(v => v.Type!.ReferenceSize) + Assembler.Size.Bytes;
 
 		// Allocate a memory structure which stores the lambda
-		var lambda = Calls.Build(unit, Assembler.AllocationFunction!, CallingConvention.X64, Types.LINK, new NumberNode(Assembler.Format, required_memory));
+		var lambda = Calls.Build(unit, Assembler.AllocationFunction!, Types.LINK, new NumberNode(Assembler.Format, required_memory));
 
 		// Store the function pointer first
 		var function_pointer_location = new Result(new MemoryHandle(unit, lambda, 0), Assembler.Format);

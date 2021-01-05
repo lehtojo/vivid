@@ -85,120 +85,81 @@ public static class Calls
 	/// Passes the specified parameters to the function using the specified calling convention
 	/// </summary>
 	/// <returns>Returns the amount of parameters moved to stack</returns>
-	private static int PassParameters(Unit unit, CallInstruction call, CallingConvention convention, Result? self_pointer, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
+	private static int PassParameters(Unit unit, CallInstruction call, Result? self_pointer, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
 	{
 		var stack_parameter_count = 0;
+		
+		var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
+		var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
-		if (convention == CallingConvention.X64)
+		// Retrieve the this pointer if it is required and it is not loaded
+		if (self_pointer == null && is_self_pointer_required)
 		{
-			var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
-			var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
+			self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
+		}
 
-			// Retrieve the this pointer if it's required and it's not loaded
-			if (self_pointer == null && is_self_pointer_required)
+		var register = (Register?)null;
+
+		// Save the parameter instructions for inspection
+		call.ParameterInstructions.Clear();
+
+		// On Windows x64 a 'shadow space' is allocated for the first four parameters
+		var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
+
+		if (self_pointer != null)
+		{
+			register = standard_parameter_registers.Pop();
+
+			if (register != null)
 			{
-				self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
+				var destination = new RegisterHandle(register);
+
+				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
+				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer)
+				{
+					IsSafe = true
+				});
 			}
-
-			var register = (Register?)null;
-
-			// Save the parameter instructions for inspection
-			call.ParameterInstructions.Clear();
-
-			// On Windows x64 a 'shadow space' is allocated for the first four parameters
-			var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
-
-			if (self_pointer != null)
+			else
 			{
-				register = standard_parameter_registers.Pop();
-
-				if (register != null)
-				{
-					var destination = new RegisterHandle(register);
-
-					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
-					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer)
-					{
-						IsSafe = true
-					});
-				}
-				else
-				{
-					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
-					stack_position.Offset += Size.FromFormat(self_pointer.Format).Bytes;
-				}
-			}
-
-			for (var i = 0; i < parameters.Length; i++)
-			{
-				var parameter = parameters[i];
-
-				var source = References.Get(unit, parameter);
-				source = Casts.Cast(unit, source, parameter.GetType(), parameter_types[i]);
-
-				var is_decimal = Equals(parameter_types[i], Types.DECIMAL);
-
-				// Determine the parameter register
-				register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-				if (register != null)
-				{
-					var destination = new RegisterHandle(register);
-
-					// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it's easier to manage when all register values can support every format
-					var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
-
-					call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
-					{
-						IsSafe = true
-					});
-				}
-				else
-				{
-					var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
-
-					// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-					call.ParameterInstructions.Add(new MoveInstruction(unit, destination, source));
-					stack_position.Offset += Size.FromFormat(source.Format).Bytes;
-				}
+				// Since there's no more room for parameters in registers, this parameter must be pushed to stack
+				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
+				stack_position.Offset += Size.FromFormat(self_pointer.Format).Bytes;
 			}
 		}
-		else
+
+		for (var i = 0; i < parameters.Length; i++)
 		{
-			// Save the parameter instructions for inspection
-			call.ParameterInstructions.Clear();
+			var parameter = parameters[i];
 
-			for (var i = parameters.Length - 1; i >= 0; i--)
+			var source = References.Get(unit, parameter);
+			source = Casts.Cast(unit, source, parameter.GetType(), parameter_types[i]);
+
+			var is_decimal = Equals(parameter_types[i], Types.DECIMAL);
+
+			// Determine the parameter register
+			register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+			if (register != null)
 			{
-				var parameter = parameters[i];
+				var destination = new RegisterHandle(register);
 
-				var handle = References.Get(unit, parameter);
-				handle = Casts.Cast(unit, handle, parameter.GetType(), parameter_types[i]);
+				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
+				var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
 
-				var push = new PushInstruction(unit, handle);
-
-				call.ParameterInstructions.Add(push);
-				unit.Append(push);
+				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
+				{
+					IsSafe = true
+				});
 			}
-
-			// Retrieve the this pointer if it's required and it's not loaded
-			if (self_pointer == null && is_self_pointer_required)
+			else
 			{
-				self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
+				var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
+
+				// Since there's no more room for parameters in registers, this parameter must be pushed to stack
+				call.ParameterInstructions.Add(new MoveInstruction(unit, destination, source));
+				stack_position.Offset += Size.FromFormat(source.Format).Bytes;
 			}
-
-			if (self_pointer != null)
-			{
-				var push = new PushInstruction(unit, self_pointer);
-
-				call.ParameterInstructions.Add(push);
-				unit.Append(push);
-
-				stack_parameter_count++;
-			}
-
-			call.ParameterInstructions.ForEach(i => i.Execute());
 		}
 
 		return stack_parameter_count;
@@ -233,63 +194,43 @@ public static class Calls
 			throw new InvalidOperationException("The self pointer was needed but not passed among the parameters");
 		}
 
-		var call = new CallInstruction(unit, implementation.GetFullname(), implementation.Convention, implementation.ReturnType);
+		var call = new CallInstruction(unit, implementation.GetFullname(), implementation.ReturnType);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, implementation.Convention, self, false, CollectParameters(parameters), implementation.ParameterTypes);
+		var stack_parameter_count = PassParameters(unit, call, self, false, CollectParameters(parameters), implementation.ParameterTypes);
 
-		var result = call.Execute();
-
-		// Remove the passed parameters from the stack
-		StackMemoryInstruction.Shrink(unit, stack_parameter_count * Assembler.Size.Bytes, implementation.IsResponsible).Execute();
-
-		return result;
+		return call.Execute();
 	}
 
-	public static Result Build(Unit unit, Function function, CallingConvention convention, Type return_type, params Node[] parameters)
+	public static Result Build(Unit unit, Function function, Type return_type, params Node[] parameters)
 	{
 		var implementation = function.Implementations.FirstOrDefault() ?? throw new ApplicationException("Tried to create a function call but the function did not have any implementations");
-		var call = new CallInstruction(unit, implementation.GetFullname(), convention, return_type);
+		var call = new CallInstruction(unit, implementation.GetFullname(), return_type);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, convention, null, false, parameters, function.Parameters.Select(p => p.Type!).ToList());
+		var stack_parameter_count = PassParameters(unit, call, null, false, parameters, function.Parameters.Select(p => p.Type!).ToList());
 
-		var result = call.Execute();
-
-		// Remove the passed parameters from the stack
-		StackMemoryInstruction.Shrink(unit, stack_parameter_count * Assembler.Size.Bytes, function.IsResponsible).Execute();
-
-		return result;
+		return call.Execute();
 	}
 
-	public static Result Build(Unit unit, Result? self, Result function, CallingConvention convention, Type? return_type, Node parameters, List<Type> parameter_types)
+	public static Result Build(Unit unit, Result? self, Result function, Type? return_type, Node parameters, List<Type> parameter_types)
 	{
-		var call = new CallInstruction(unit, function, convention, return_type);
+		var call = new CallInstruction(unit, function, return_type);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, convention, self, true, CollectParameters(parameters), parameter_types);
+		var stack_parameter_count = PassParameters(unit, call, self, true, CollectParameters(parameters), parameter_types);
 
-		var result = call.Execute();
-
-		// Remove the passed parameters from the stack
-		StackMemoryInstruction.Shrink(unit, stack_parameter_count * Assembler.Size.Bytes, false).Execute();
-
-		return result;
+		return call.Execute();
 	}
 
 	public static void MoveParametersToStack(Unit unit)
 	{
-		if (unit.Function.Convention != CallingConvention.X64)
-		{
-			return;
-		}
-
 		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
 		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
 		var register = (Register?)null;
 
-		if ((unit.Function.IsMember || unit.Function.IsLambda) && !unit.Function.IsConstructor)
+		if ((unit.Function.IsMember || unit.Function.IsLambdaImplementation) && !unit.Function.IsConstructor)
 		{
 			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 

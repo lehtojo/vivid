@@ -31,6 +31,18 @@ public class Parameter
 
 		return $"{Name}: {(Type.IsUnresolved ? "?" : Type.ToString())}";
 	}
+
+	public override bool Equals(object? other)
+	{
+		return other is Parameter parameter &&
+				 Name == parameter.Name &&
+				 EqualityComparer<Type?>.Default.Equals(Type, parameter.Type);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Name, Type);
+	}
 }
 
 public class Function : Context
@@ -47,10 +59,10 @@ public class Function : Context
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
 	public bool IsConstructor => this is Constructor;
-	public bool IsImported => Flag.Has(Modifiers, AccessModifier.EXTERNAL);
-	public bool IsExported => Flag.Has(Modifiers, AccessModifier.GLOBAL);
-	public bool IsOutlined => Flag.Has(Modifiers, AccessModifier.OUTLINE);
-	public bool IsResponsible => Flag.Has(Modifiers, AccessModifier.RESPONSIBLE);
+	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsExported => Flag.Has(Modifiers, Modifier.GLOBAL);
+	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
+	public bool IsResponsible => Flag.Has(Modifiers, Modifier.RESPONSIBLE);
 
 	/// <summary>
 	/// Creates a unimplemented function
@@ -59,7 +71,7 @@ public class Function : Context
 	/// <param name="modifiers">Function access modifiers</param>
 	/// <param name="name">Function name</param>
 	/// <param name="blueprint">Function blueprint is used to create implementations of this function</param>
-	public Function(Context context, int modifiers, string name, List<Token> blueprint)
+	public Function(Context context, int modifiers, string name, List<Token> blueprint) : base(context)
 	{
 		Parent = context;
 		Name = name;
@@ -74,7 +86,7 @@ public class Function : Context
 	/// <param name="context">Context to link into</param>
 	/// <param name="modifiers">Function access modifiers</param>
 	/// <param name="name">Function name</param>
-	public Function(Context context, int modifiers, string name)
+	public Function(Context context, int modifiers, string name) : base(context)
 	{
 		Parent = context;
 		Name = name;
@@ -90,7 +102,7 @@ public class Function : Context
 	/// <param name="name">Function name</param>
 	/// <param name="result">Function return type</param>
 	/// <param name="parameters">Function parameters</param>
-	public Function(int modifiers, string name, Type? result, params Parameter[] parameters)
+	public Function(Context context, int modifiers, string name, Type? result, params Parameter[] parameters) : base(context)
 	{
 		Modifiers = modifiers;
 		Name = name;
@@ -98,7 +110,7 @@ public class Function : Context
 		Parameters = parameters.ToList();
 		Blueprint = new List<Token>();
 
-		var implementation = new FunctionImplementation(this, parameters.ToList(), result);
+		var implementation = new FunctionImplementation(this, parameters.ToList(), result, context);
 		Implementations.Add(implementation);
 
 		implementation.Implement(Blueprint);
@@ -116,7 +128,7 @@ public class Function : Context
 			GetTypeParent(),
 			type,
 			Function.SELF_POINTER_IDENTIFIER,
-			AccessModifier.PUBLIC
+			Modifier.PUBLIC
 
 		) { IsSelfPointer = true, Position = Position };
 	}
@@ -132,7 +144,7 @@ public class Function : Context
 		var parameters = Parameters.Zip(types, (a, b) => new Parameter(a.Name, a.Position, b)).ToList();
 
 		// Create a function implementation
-		var implementation = new FunctionImplementation(this, parameters, null, Parent);
+		var implementation = new FunctionImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
 
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)
@@ -189,7 +201,7 @@ public class Function : Context
 	/// <param name="parameter">Parameter types used in filtering</param>
 	public virtual FunctionImplementation? Get(List<Type> parameters)
 	{
-		// Implementation should not be made if any of the parameters has a fixed type but it's unresolved
+		// Implementation should not be made if any of the parameters has a fixed type but it is unresolved
 		if (Parameters.Any(i => i.Type != null && i.Type.IsUnresolved))
 		{
 			return null;

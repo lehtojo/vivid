@@ -1,14 +1,14 @@
 using System;
 
 /// <summary>
-/// Loads the specified variable into a modifiable location if it's constant
+/// Loads the specified variable into a modifiable location if it is constant
 /// This instruction works on all architectures
 /// </summary>
 public class SetModifiableInstruction : Instruction
 {
 	private Variable Variable { get; }
 
-	public SetModifiableInstruction(Unit unit, Variable variable) : base(unit)
+	public SetModifiableInstruction(Unit unit, Variable variable) : base(unit, InstructionType.SET_MODIFIABLE)
 	{
 		Variable = variable;
 		Result.Format = Variable.GetRegisterFormat();
@@ -49,20 +49,5 @@ public class SetModifiableInstruction : Instruction
 		{
 			Type = MoveType.RELOCATE
 		});
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SET_MODIFIABLE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

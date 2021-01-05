@@ -2,7 +2,7 @@ public static class Types
 {
 	public const Type UNKNOWN = null;
 
-	public static readonly Type UNIT = new Type("_", AccessModifier.PUBLIC);
+	public static readonly Type UNIT = new Type("_", Modifier.PUBLIC);
 
 	public static readonly Bool BOOL = new Bool();
 	public static readonly Link LINK = new Link();

@@ -1,6 +1,4 @@
-﻿using System;
-
-public static class Arrays
+﻿public static class Arrays
 {
 	public static Result BuildOffset(Unit unit, OffsetNode node, AccessMode mode)
 	{

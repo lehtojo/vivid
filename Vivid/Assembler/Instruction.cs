@@ -19,6 +19,7 @@ public static class ParameterFlag
 	public const int NO_ATTACH = 512;
 	public const int READS = 1024;
 	public const int ALLOW_ADDRESS = 2048;
+	public const int LOCKED = 4096;
 
 	public static int CreateBitLimit(int bits)
 	{
@@ -93,7 +94,7 @@ public class InstructionParameter
 	/// <summary>
 	/// Controls whether the size of the handle should be visible
 	/// </summary>
-	public void SetSizeVisible(bool visible)
+	public void SetPrecise(bool visible)
 	{
 		if (Value == null)
 		{
@@ -124,8 +125,10 @@ public class InstructionParameter
 		}
 
 		// Datasection address values should be moved into a register
-		if (Result.Value is DataSectionHandle handle)
+		if (Result.Value.Is(HandleInstanceType.DATA_SECTION) || Result.Value.Is(HandleInstanceType.CONSTANT_DATA_SECTION))
 		{
+			var handle = Result.Value.To<DataSectionHandle>();
+
 			if (Assembler.IsArm64)
 			{
 				return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
@@ -139,7 +142,7 @@ public class InstructionParameter
 
 	public override string ToString()
 	{
-		return Result.Value.ToString();
+		return Value?.ToString() ?? Result.Value.ToString();
 	}
 }
 
@@ -149,7 +152,7 @@ public abstract class Instruction
 	public Scope? Scope { get; set; }
 	public Result Result { get; private set; }
 	public int Position { get; set; } = -1;
-	public InstructionType Type => GetInstructionType();
+	public InstructionType Type { get; }
 
 	public string Description { get; set; } = string.Empty;
 	public string Operation { get; set; } = string.Empty;
@@ -157,18 +160,27 @@ public abstract class Instruction
 	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
 	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
 
+	public Result[]? Dependencies { get; set; }
+
 	public bool IsUsageAnalyzed { get; set; } = true;
 	public bool IsBuilt { get; private set; } = false;
 
-	public Instruction(Unit unit)
+	public Instruction(Unit unit, InstructionType type)
 	{
 		Unit = unit;
+		Type = type;
 		Result = new Result(this);
+		Dependencies = new[] { Result };
 	}
 
 	public bool Is(InstructionType type)
 	{
 		return Type == type;
+	}
+
+	public bool Is(params InstructionType[] types)
+	{
+		return types.Any(i => Type == i);
 	}
 
 	/// <summary>
@@ -400,7 +412,7 @@ public abstract class Instruction
 		{
 			if (!result.IsStandardRegister)
 			{
-				Memory.MoveToRegister(Unit, result, result.Size, false, Trace.GetDirectives(Unit, result));
+				Memory.MoveToRegister(Unit, result, Assembler.Size, false, Trace.GetDirectives(Unit, result));
 			}
 
 			locks.Add(RegisterLock.Create(result));
@@ -437,15 +449,17 @@ public abstract class Instruction
 			locks.AddRange(ValidateHandle(result.Value));
 
 			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
-			if (result.Value is RegisterHandle register_handle)
+			if (result.Value.Is(HandleInstanceType.REGISTER))
 			{
 				// Register locks have a destructor which releases the register so they are safe
-				locks.Add(new RegisterLock(register_handle.Register));
+				locks.Add(new RegisterLock(result.Value.To<RegisterHandle>().Register));
 			}
 
+			var format = result.Format;
+			
 			parameter.Result = result;
 			parameter.Value = result.Value.Finalize();
-			parameter.Value.Format = parameter.Result.Format;
+			parameter.Value.Format = format.IsDecimal() ? format : parameter.Size.ToFormat(format.IsUnsigned());
 
 			Parameters.Add(parameter);
 		}
@@ -486,34 +500,10 @@ public abstract class Instruction
 
 		var result = new StringBuilder(Operation);
 
-		// Detect whether all parameter are meant to be the same size
-		if (Parameters.All(p => !p.IsMediaRegister) && Parameters.Select(p => p.Value!.Size).Distinct().Count() == 1)
+		// Each parameter must be configured to display their sizes
+		foreach (var parameter in Parameters)
 		{
-			// Try to find the first parameter which is actually visible
-			var visible = Parameters.Find(p => !p.IsHidden);
-
-			if (visible != null)
-			{
-				// Only one parameter is required to show its size
-				visible.SetSizeVisible(true);
-			}
-
-			// Hide other parameter's sizes for cleaner output
-			foreach (var parameter in Parameters.Skip(1))
-			{
-				if (parameter != visible)
-				{
-					parameter.SetSizeVisible(false);
-				}
-			}
-		}
-		else
-		{
-			// Each parameter must be configured to display their sizes
-			foreach (var parameter in Parameters)
-			{
-				parameter.SetSizeVisible(true);
-			}
+			parameter.SetPrecise(true);
 		}
 
 		foreach (var parameter in Parameters)
@@ -534,15 +524,13 @@ public abstract class Instruction
 		// Simulate the effects of the parameter flags
 		SimulateParameterFlags();
 
-		if (Parameters.Count > 0)
+		if (Parameters.Count > 0 && Parameters.Any(i => !i.IsHidden))
 		{
 			result.Remove(result.Length - 1, 1);
 		}
 
 		Unit.Write(result.ToString());
 	}
-
-	public abstract Result? GetDestinationDependency();
 
 	public virtual void OnSimulate() { }
 	public virtual void OnBuild() { }
@@ -573,6 +561,7 @@ public abstract class Instruction
 		else
 		{
 			IsBuilt = true;
+			Unit.Reindex(this);
 			OnBuild();
 		}
 	}
@@ -582,33 +571,19 @@ public abstract class Instruction
 		return 0;
 	}
 
-	public Instruction GetRedirectionRoot()
+	public virtual Result[] GetResultReferences()
 	{
-		var instruction = this;
-
-		var previous = (Result?)null;
-		var dependency = GetDestinationDependency();
-
-		while (true)
-		{
-			if (dependency == null || dependency.Instruction == null || dependency == previous)
-			{
-				return instruction;
-			}
-
-			instruction = dependency.Instruction;
-
-			previous = dependency;
-			dependency = instruction.GetDestinationDependency();
-		}
+		return new[] { Result };
 	}
 
-	public abstract InstructionType GetInstructionType();
-	public abstract Result[] GetResultReferences();
-
-	public Result[] GetAllUsedResults()
+	public IEnumerable<Result> GetAllUsedResults()
 	{
-		return Parameters.Select(p => p.Result).Concat(GetResultReferences()).ToArray();
+		if (Dependencies == null)
+		{
+			return Parameters.Select(p => p.Result).Concat(GetResultReferences());
+		}
+
+		return Parameters.Select(p => p.Result).Concat(Dependencies);
 	}
 
 	public override string ToString()

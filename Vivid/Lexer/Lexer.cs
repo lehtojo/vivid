@@ -612,11 +612,11 @@ public static class Lexer
 			var next = tokens[i + 1];
 
 			if (current is KeywordToken current_keyword && next is KeywordToken next_keyword &&
-				current_keyword.Keyword is AccessModifierKeyword current_modifier &&
-				next_keyword.Keyword is AccessModifierKeyword next_modifier)
+				current_keyword.Keyword is ModifierKeyword current_modifier &&
+				next_keyword.Keyword is ModifierKeyword next_modifier)
 			{
 				var identifier = current_modifier.Identifier + ' ' + next_modifier.Identifier;
-				var combined = new AccessModifierKeyword(identifier, current_modifier.Modifier | next_modifier.Modifier);
+				var combined = new ModifierKeyword(identifier, current_modifier.Modifier | next_modifier.Modifier);
 
 				tokens.RemoveAt(i); tokens.RemoveAt(i);
 				tokens.Insert(i, new KeywordToken(combined));

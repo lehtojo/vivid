@@ -42,15 +42,30 @@ public class VariableState
 /// <summary>
 /// Keeps track of labels, strings and constants by generating an index for every requester
 /// </summary>
-class ResourceIndexer
+public class Indexer
 {
-	private int _Label = 0;
-	private int _String = 0;
-	private int _Constant = 0;
+	public const string LAMBDA = "Lambda";
+	public const string CONSTANT = "Constant";
+	public const string CONTEXT = "Context";
+	public const string HIDDEN = "Hidden";
+	public const string LABEL = "Label";
+	public const string SECTION = "Section";
+	public const string STRING = "String";
+	public const string UNIT = "Unit";
 
-	public int Label => _Label++;
-	public int String => _String++;
-	public int Constant => _Constant++;
+	private Dictionary<string, int> Indices { get; set; } = new Dictionary<string, int>();
+
+	public int Next(string category)
+	{
+		var value = Indices.GetValueOrDefault(category, 0);
+		Indices[category] = value + 1;
+		return value;
+	}
+
+	public int this[string category]
+	{
+		get => Next(category);
+	}
 }
 
 public class Unit
@@ -66,10 +81,10 @@ public class Unit
 	public List<Instruction> Instructions { get; } = new List<Instruction>();
 
 	private StringBuilder Builder { get; } = new StringBuilder();
-	public Dictionary<Guid, SymmetryStartInstruction> Loops { get; } = new Dictionary<Guid, SymmetryStartInstruction>();
+	public Dictionary<string, SymmetryStartInstruction> Loops { get; } = new Dictionary<string, SymmetryStartInstruction>();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
 
-	private ResourceIndexer Indexer { get; set; } = new ResourceIndexer();
+	private Indexer Indexer { get; set; } = new Indexer();
 	public Variable? Self { get; set; }
 
 	private Instruction? Anchor { get; set; }
@@ -443,12 +458,12 @@ public class Unit
 
 	public Label GetNextLabel()
 	{
-		return new Label(Function.GetFullname() + $"_L{Indexer.Label}");
+		return new Label(Function.GetFullname() + $"_L{Indexer[Indexer.LABEL]}");
 	}
 
 	public string GetNextString()
 	{
-		return Function.GetFullname() + $"_S{Indexer.String}";
+		return Function.GetFullname() + $"_S{Indexer[Indexer.STRING]}";
 	}
 
 	public string GetNextConstantIdentifier(object constant)
@@ -458,7 +473,7 @@ public class Unit
 			return identifier;
 		}
 
-		identifier = Function.GetFullname() + $"_C{Indexer.Constant}";
+		identifier = Function.GetFullname() + $"_C{Indexer[Indexer.CONSTANT]}";
 
 		Constants.Add(constant, identifier);
 		return identifier;
@@ -773,21 +788,37 @@ public class Unit
 			instruction.Position = Position++;
 		}
 
+		var dependencies = Instructions.Select(i => i.GetAllUsedResults()).ToArray();
+
 		// Reset all lifetimes
-		foreach (var result in Instructions.SelectMany(instruction => instruction.GetAllUsedResults()).Where(i => i != null))
+		foreach (var iterator in dependencies)
 		{
-			result.Lifetime.Reset();
+			foreach (var dependency in iterator)
+			{
+				dependency.Lifetime.Reset();
+			}
 		}
 
 		// Calculate lifetimes
-		for (var i = 0; i < Instructions.Count; i++)
+		for (var i = 0; i < dependencies.Length; i++)
 		{
 			var instruction = Instructions[i];
+			var iterator = dependencies[i];
 
-			foreach (var result in instruction.GetAllUsedResults())
+			foreach (var dependency in iterator)
 			{
-				result.Use(i);
+				dependency.Use(i);
 			}
+		}
+	}
+
+	public void Reindex(Instruction instruction)
+	{
+		var dependencies = instruction.GetAllUsedResults();
+
+		foreach (var dependency in dependencies)
+		{
+			dependency.Use(Position);
 		}
 	}
 
@@ -808,7 +839,11 @@ public class Unit
 		return true;
 	}
 
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1308", Justification = "Lower invariant is needed here because of styling")]
+	public string GetNextIdentity()
+	{
+		return Indexer.UNIT.ToLowerInvariant() + '.' + Function.Identity + '.' + Indexer[Indexer.UNIT];
+	}
+
 	public override string ToString()
 	{
 		var occupied_register = Registers.Where(r => r.Handle != null);

@@ -1,6 +1,11 @@
 using System;
 using System.Linq;
 
+/// <summary>
+/// This instruction divides the two specified operand together and outputs a result.
+/// This instruction can act as a remainder operation.
+/// This instruction is works on all architectures
+/// </summary>
 public class DivisionInstruction : DualParameterInstruction
 {
 	private const string X64_SIGNED_INTEGER_DIVISION_INSTRUCTION = "idiv";
@@ -20,7 +25,7 @@ public class DivisionInstruction : DualParameterInstruction
 	public bool Assigns { get; private set; }
 	public bool Unsigned { get; private set; }
 
-	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns, bool unsigned) : base(unit, first, second, format)
+	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns, bool unsigned) : base(unit, first, second, format, InstructionType.DIVISION)
 	{
 		Modulus = modulus;
 		Unsigned = unsigned;
@@ -44,10 +49,19 @@ public class DivisionInstruction : DualParameterInstruction
 				Memory.ClearRegister(Unit, destination.Register);
 			}
 
-			// NOTE: The destination operand must be copied if it's a memory address and this instruction assigns
-			return new MoveInstruction(Unit, new Result(destination, First.Format), First)
+			if (Assigns && !First.IsMemoryAddress)
 			{
-				Type = Assigns && !First.IsMemoryAddress ? MoveType.RELOCATE : MoveType.COPY
+				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
+				{
+					Type = MoveType.RELOCATE
+				});
+
+				return First;
+			}
+
+			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
+			{
+				Type = MoveType.COPY
 
 			}.Execute();
 		}
@@ -58,7 +72,7 @@ public class DivisionInstruction : DualParameterInstruction
 				Memory.ClearRegister(Unit, destination.Register);
 			}
 
-			return new Result(destination, First.Format);
+			return new Result(destination, Assembler.Format);
 		}
 
 		return First;
@@ -92,14 +106,15 @@ public class DivisionInstruction : DualParameterInstruction
 	/// </summary>
 	private void BuildModulus(Result numerator)
 	{
-		var destination = new RegisterHandle(Unit.Registers.Find(r => Flag.Has(r.Flags, RegisterFlag.REMAINDER))!);
+		var remainder = new RegisterHandle(Unit.GetRemainderRegister());
+		var flags = ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS | ParameterFlag.LOCKED;
 
 		Build(
 			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
-				ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS,
+				flags | ParameterFlag.RELOCATE_TO_DESTINATION,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
@@ -109,8 +124,8 @@ public class DivisionInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			),
 			new InstructionParameter(
-				new Result(destination, Assembler.Format),
-				ParameterFlag.WRITE_ACCESS | ParameterFlag.DESTINATION | ParameterFlag.HIDDEN,
+				new Result(remainder, Assembler.Format),
+				flags | ParameterFlag.DESTINATION,
 				HandleType.REGISTER
 			)
 		);
@@ -121,12 +136,15 @@ public class DivisionInstruction : DualParameterInstruction
 	/// </summary>
 	private void BuildDivision(Result numerator)
 	{
+		var remainder = new RegisterHandle(Unit.GetRemainderRegister());
+		var flags = ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS | ParameterFlag.LOCKED;
+
 		Build(
 			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
-				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS,
+				(Assigns ? ParameterFlag.NO_ATTACH : ParameterFlag.NONE) | flags,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
@@ -134,6 +152,11 @@ public class DivisionInstruction : DualParameterInstruction
 				ParameterFlag.NONE,
 				HandleType.REGISTER,
 				HandleType.MEMORY
+			),
+			new InstructionParameter(
+				new Result(remainder, Assembler.Format),
+				ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+				HandleType.REGISTER
 			)
 		);
 	}
@@ -434,15 +457,5 @@ public class DivisionInstruction : DualParameterInstruction
 		}
 
 		return false;
-	}
-
-	public override Result GetDestinationDependency()
-	{
-		return First;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.DIVISION;
 	}
 }

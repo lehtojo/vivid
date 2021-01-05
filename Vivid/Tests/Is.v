@@ -172,6 +172,8 @@ init() {
 	array[2] = car
 	array[3] = banana
 
+	can_use(john, banana)
+
 	vehicles = get_reliable_vehicles(array, 10)
 
 	choose_vehicle(john, vehicles, 7000)

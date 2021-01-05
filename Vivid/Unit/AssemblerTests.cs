@@ -10,6 +10,174 @@ using System.Diagnostics.CodeAnalysis;
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
+public struct Foo : IEquatable<Foo>
+{
+	[FieldOffset(8)] public byte A;
+	[FieldOffset(9)] public short B;
+
+	public override bool Equals(object? other)
+	{
+		return other is Foo foo && Equals(foo);
+	}
+
+	public bool Equals(Foo other)
+	{
+		return A == other.A && B == other.B;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(A, B);
+	}
+
+	public static bool operator ==(Foo left, Foo right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Foo left, Foo right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct Bar : IEquatable<Bar>
+{
+	[FieldOffset(8)] public int C;
+	[FieldOffset(12)] public long D;
+
+	public override bool Equals(object? other)
+	{
+		return other is Bar bar && Equals(bar);
+	}
+
+	public bool Equals(Bar other)
+	{
+		return C == other.C && D == other.D;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(C, D);
+	}
+
+	public static bool operator ==(Bar left, Bar right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Bar left, Bar right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct Baz : IEquatable<Baz>
+{
+	[FieldOffset(8)] public byte A;
+	[FieldOffset(9)] public short B;
+	[FieldOffset(19)] public int C;
+	[FieldOffset(23)] public long D;
+	[FieldOffset(39)] public double E;
+
+	public override bool Equals(object? other)
+	{
+		return other is Baz baz && Equals(baz);
+	}
+
+	public bool Equals(Baz other)
+	{
+		return A == other.A && B == other.B && C == other.C && D == other.D && E == other.E;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(C, D);
+	}
+
+	public static bool operator ==(Baz left, Baz right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Baz left, Baz right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct B : IEquatable<B>
+{
+	[FieldOffset(8)] public long X;
+	[FieldOffset(16)] public short Y;
+	[FieldOffset(18)] public double Z;
+
+	public override bool Equals(object? other)
+	{
+		return other is B b && Equals(b);
+	}
+
+	public bool Equals(B other)
+	{
+		return X == other.X && Y == other.Y && Z == other.Z;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(X, Y, Z);
+	}
+
+	public static bool operator ==(B left, B right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(B left, B right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
+public struct A : IEquatable<A>
+{
+	[FieldOffset(8)] public IntPtr B;
+
+	public override bool Equals(object? other)
+	{
+		return other is A a && Equals(a);
+	}
+
+	public bool Equals(A other)
+	{
+		return B == other.B;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(B);
+	}
+
+	public static bool operator ==(A left, A right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(A left, A right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
 public struct Holder : IEquatable<Holder>
 {
 	[FieldOffset(8)] public int Normal;
@@ -83,9 +251,9 @@ public struct Apple : IEquatable<Apple>
 [StructLayout(LayoutKind.Explicit)]
 public struct Car : IEquatable<Car>
 {
-	[FieldOffset(8)] public double Price;
-	[FieldOffset(16)] public long Weight;
-	[FieldOffset(24)] public IntPtr Brand;
+	[FieldOffset(8)] public long Weight;
+	[FieldOffset(16)] public IntPtr Brand;
+	[FieldOffset(24)] public double Price;
 
 	public override bool Equals(object? other)
 	{
@@ -508,6 +676,261 @@ namespace Vivid.Unit
 			Decimals_Test();
 		}
 
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern double _V27automatic_number_conversionx_rd(long a);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern double _V7casts_1x_rd(long a);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V7casts_2d_rx(double a);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern byte _V7casts_3x_rb(long a);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V7casts_4d_rP3Baz(double a);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V7casts_5P3Baz_rP3Foo(IntPtr baz);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V7casts_6P3Baz_rP3Bar(IntPtr baz);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V16automatic_cast_1P3Baz_rP3Bar(IntPtr baz);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern double _V16automatic_cast_2P3Baz_rd(IntPtr baz);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V22automatic_conversion_1Ph_rx(IntPtr bytes);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V22automatic_conversion_2Ps_rx(IntPtr shorts);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V22automatic_conversion_3Pi_rx(IntPtr ints);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V22automatic_conversion_4Px_rx(IntPtr longs);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V22automatic_conversion_5Pd_rx(IntPtr doubles);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V17assign_addition_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V20assign_subtraction_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V23assign_multiplication_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V17assign_division_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V18assign_remainder_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V20assign_bitwise_and_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V19assign_bitwise_or_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V20assign_bitwise_xor_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V23assign_multiplication_2xxxxP1AS0_S0_S0__rx(long a, long b, long c, long d, IntPtr i, IntPtr j, IntPtr k, IntPtr l);
+
+		
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern long _V17assign_division_2xxxxP1AS0_S0_S0__rx(long a, long b, long c, long d, IntPtr i, IntPtr j, IntPtr k, IntPtr l);
+
+		private static void Conversions_Test()
+		{
+			Assert.AreEqual(6.0, _V27automatic_number_conversionx_rd(3));
+			Assert.AreEqual(-15.0, _V27automatic_number_conversionx_rd(-15));
+			Assert.AreEqual(1.0, _V27automatic_number_conversionx_rd(0));
+
+			Assert.AreEqual(7.0, _V7casts_1x_rd(7));
+			Assert.AreEqual(123, _V7casts_2d_rx(123.456));
+			Assert.AreEqual(100, _V7casts_3x_rb(100));
+
+			var result = Marshal.PtrToStructure<Baz>(_V7casts_4d_rP3Baz(100));
+			Assert.AreEqual(100, result.A);
+			Assert.AreEqual(101, result.B);
+			Assert.AreEqual(102, result.C);
+			Assert.AreEqual(103, result.D);
+			Assert.AreEqual(104.0, result.E);
+
+			var baz = Marshal.AllocHGlobal(47); // sizeof(Baz) = 47
+			Assert.AreEqual(baz, _V7casts_5P3Baz_rP3Foo(baz));
+			Assert.AreEqual(baz + 11, _V7casts_6P3Baz_rP3Bar(baz));
+
+			Marshal.WriteInt64(baz, 39, BitConverter.DoubleToInt64Bits(-3.0)); // baz.e = -3.0
+			Assert.AreNotEqual(baz + 11, _V16automatic_cast_1P3Baz_rP3Bar(baz));
+
+			Marshal.WriteInt64(baz, 39, BitConverter.DoubleToInt64Bits(2.5)); // baz.e = 2.5
+			Assert.AreEqual(baz + 11, _V16automatic_cast_1P3Baz_rP3Bar(baz));
+
+			Marshal.WriteByte(baz, 8, 10); // baz.a = 10
+			Marshal.WriteInt16(baz, 9, 1000); // baz.b = 1000
+
+			Marshal.WriteInt32(baz, 19, 505); // baz.c = 505
+			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505 !!!!!!!!!!!!!!!!Test!!!!!!!!!!!!!!
+
+			Assert.AreEqual(1010.0, _V16automatic_cast_2P3Baz_rd(baz));
+
+			Marshal.WriteInt32(baz, 19, 0); // baz.c = 0
+			Assert.AreEqual(505.0, _V16automatic_cast_2P3Baz_rd(baz));
+
+			var bytes = BitConverter.GetBytes(3.14159);
+			Marshal.WriteInt64(baz, 0, BitConverter.DoubleToInt64Bits(3.14159));
+
+			Assert.AreEqual((long)bytes[0], _V22automatic_conversion_1Ph_rx(baz));
+			Assert.AreEqual(BitConverter.ToInt16(bytes), _V22automatic_conversion_2Ps_rx(baz));
+			Assert.AreEqual(BitConverter.ToInt32(bytes), _V22automatic_conversion_3Pi_rx(baz));
+			Assert.AreEqual(BitConverter.ToInt64(bytes), _V22automatic_conversion_4Px_rx(baz));
+			Assert.AreEqual(3L, _V22automatic_conversion_5Pd_rx(baz));
+
+			Assert.AreEqual(0L, _V22automatic_conversion_1Ph_rx(IntPtr.Zero));
+			Assert.AreEqual(0L, _V22automatic_conversion_2Ps_rx(IntPtr.Zero));
+			Assert.AreEqual(0L, _V22automatic_conversion_3Pi_rx(IntPtr.Zero));
+			Assert.AreEqual(0L, _V22automatic_conversion_4Px_rx(IntPtr.Zero));
+			Assert.AreEqual(0L, _V22automatic_conversion_5Pd_rx(IntPtr.Zero));
+
+			var b = Marshal.AllocHGlobal(26);
+			Marshal.WriteInt64(b, 8, 66);
+			Marshal.WriteInt16(b, 16, 33);
+			Marshal.WriteInt64(b, 18, BitConverter.DoubleToInt64Bits(99.99));
+
+			var a = Marshal.AllocHGlobal(16);
+			Marshal.WriteIntPtr(a, 8, b);
+
+			Assert.AreEqual(8L, _V17assign_addition_1xxP1Ax_rx(3, 5, a, 2));
+			Assert.AreEqual(66L + 2, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(33L + 2, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(99.99 + 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+
+			Assert.AreEqual(-13L, _V20assign_subtraction_1xxP1Ax_rx(-3, 10, a, 2));
+			Assert.AreEqual(66L, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(33L, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(99.99, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+
+			Assert.AreEqual(143, _V23assign_multiplication_1xxP1Ax_rx(11, 13, a, -144));
+			Assert.AreEqual(66L * -144, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(33L * -144, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(99.99 * -144, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+
+			Assert.AreEqual(-17, _V17assign_division_1xxP1Ax_rx(493, -29, a, -48));
+			Assert.AreEqual(66L * 3, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(33L * 3, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(99.99 * -144 / -48, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+
+			Assert.AreEqual(2, _V18assign_remainder_1xxP1Ax_rx(11, 3, a, 10));
+			Assert.AreEqual(198 % 10, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(99 % 10, Marshal.ReadInt16(b, 16));
+
+			Assert.AreEqual((1010L << 16) | 101L, _V19assign_bitwise_or_1xxP1Ax_rx(1010L << 16, 101L, a, 0x4992));
+			Assert.AreEqual(8L | 0x4992, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(9L | 0x4992, Marshal.ReadInt16(b, 16));
+
+			Assert.AreEqual((123L << 32) & (321 << 16), _V20assign_bitwise_and_1xxP1Ax_rx(123L << 32, 321 << 16, a, 0x2112));
+			Assert.AreEqual((8L | 0x4992) & 0x2112, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual((9L | 0x4992) & 0x2112, Marshal.ReadInt16(b, 16));
+
+			Assert.AreEqual(1, _V20assign_bitwise_xor_1xxP1Ax_rx(0x3E7C, 0x3E7D, a, 0x0112));
+			Assert.AreEqual(0L, Marshal.ReadInt64(b, 8));
+			Assert.AreEqual(0L, Marshal.ReadInt16(b, 16));
+
+			var ib = Marshal.AllocHGlobal(26);
+			Marshal.WriteInt64(ib, 8, 9);
+			Marshal.WriteInt16(ib, 16, 16);
+			Marshal.WriteInt64(ib, 18, BitConverter.DoubleToInt64Bits(9.16));
+
+			var i = Marshal.AllocHGlobal(16);
+			Marshal.WriteIntPtr(i, 8, ib);
+
+			var jb = Marshal.AllocHGlobal(26);
+			Marshal.WriteInt64(jb, 8, 36);
+			Marshal.WriteInt16(jb, 16, 49);
+			Marshal.WriteInt64(jb, 18, BitConverter.DoubleToInt64Bits(36.49));
+
+			var j = Marshal.AllocHGlobal(16);
+			Marshal.WriteIntPtr(j, 8, jb);
+
+			var kb = Marshal.AllocHGlobal(26);
+			Marshal.WriteInt64(kb, 8, 2809);
+			Marshal.WriteInt16(kb, 16, 2916);
+			Marshal.WriteInt64(kb, 18, BitConverter.DoubleToInt64Bits(2809.2916));
+
+			var k = Marshal.AllocHGlobal(16);
+			Marshal.WriteIntPtr(k, 8, kb);
+
+			var lb = Marshal.AllocHGlobal(26);
+			Marshal.WriteInt64(lb, 8, 49);
+			Marshal.WriteInt16(lb, 16, 36);
+			Marshal.WriteInt64(lb, 18, BitConverter.DoubleToInt64Bits(49.36));
+
+			var l = Marshal.AllocHGlobal(16);
+			Marshal.WriteIntPtr(l, 8, lb);
+
+			Assert.AreEqual(9L * 2 * 36L * 5 * 2809L * 51 * 49L * -8, _V23assign_multiplication_2xxxxP1AS0_S0_S0__rx(9, 36, 2809, 49, i, j, k, l));
+			
+			Assert.AreEqual(9L * 2, Marshal.ReadInt64(ib, 8));
+			Assert.AreEqual(16L * 2, Marshal.ReadInt16(ib, 16));
+			Assert.AreEqual(9.16 * 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, 18)));
+
+			Assert.AreEqual(36L * 5, Marshal.ReadInt64(jb, 8));
+			Assert.AreEqual(49L * 5, Marshal.ReadInt16(jb, 16));
+			Assert.AreEqual(36.49 * 5, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, 18)));
+
+			Assert.AreEqual(2809L * 51, Marshal.ReadInt64(kb, 8));
+			Assert.AreEqual(unchecked((short)(2916L * 51)), Marshal.ReadInt16(kb, 16));
+			Assert.AreEqual(2809.2916 * 51, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, 18)));
+
+			Assert.AreEqual(49L * -8, Marshal.ReadInt64(lb, 8));
+			Assert.AreEqual(36L * -8, Marshal.ReadInt16(lb, 16));
+			Assert.AreEqual(49.36 * -8, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, 18)));
+
+			Assert.AreEqual(50L * 8L * 7L * -8L, _V17assign_division_2xxxxP1AS0_S0_S0__rx(100, 40, 357, 64, i, j, k, l));
+
+			Assert.AreEqual(9L, Marshal.ReadInt64(ib, 8));
+			Assert.AreEqual(16L, Marshal.ReadInt16(ib, 16));
+			Assert.AreEqual(9.16, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, 18)));
+
+			Assert.AreEqual(36L, Marshal.ReadInt64(jb, 8));
+			Assert.AreEqual(49L, Marshal.ReadInt16(jb, 16));
+			Assert.AreEqual(36.49, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, 18)));
+
+			Assert.AreEqual(2809L, Marshal.ReadInt64(kb, 8));
+			Assert.AreEqual((short)(unchecked((short)(2916L * 51)) / 51), Marshal.ReadInt16(kb, 16));
+			Assert.AreEqual(2809.2916 * 51.0 / 51.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, 18)));
+
+			Assert.AreEqual(49L, Marshal.ReadInt64(lb, 8));
+			Assert.AreEqual(36L, Marshal.ReadInt16(lb, 16));
+			Assert.AreEqual(49.36, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, 18)));
+		}
+
+		public static void Conversions()
+		{
+			if (!Compile("Conversions", new[] { "Conversions.v" }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Conversions_Test();
+		}
+
 		private static void Conditionals_Test()
 		{
 			var result = _V12conditionalsxx_rx(100, 999);
@@ -653,7 +1076,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
 
 			var assembly = LoadAssemblyOutput("ConstantPermanence");
-			Assert.True(Regex.IsMatch(assembly, "\\[3\\+[a-z0-9]*\\]"));
+			Assert.True(Regex.IsMatch(assembly, "\\[\\w+\\+3\\]"));
 		}
 
 		public static void ConstantPermanenceAndArrayCopy()
@@ -761,7 +1184,7 @@ namespace Vivid.Unit
 		{
 			Assert.AreEqual(-10799508, _V20register_utilizationxxxxxxx_rx(90, 7, 1, 1, 1, 1, 1));
 
-			// Ensure the assembly function has exactly one memory address since otherwise the compiler wouldn't be utilizing registers as much as it should
+			// Ensure the assembly function has exactly one memory address since otherwise the compiler would not be utilizing registers as much as it should
 			Assert.AreEqual(1, GetMemoryAddressCount(LoadAssemblyFunction("RegisterUtilization.RegisterUtilization", "_V20register_utilizationxxxxxxx_rx")));
 		}
 
@@ -1222,7 +1645,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(4, salmon.hunger);
 			Assert.AreEqual(true, salmon.is_hiding);
 
-			// The fish should not move since it's hiding
+			// The fish should not move since it is hiding
 			_V10fish_movesP4Fish(GetFishPointer(salmon_pointer));
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
@@ -1453,6 +1876,24 @@ namespace Vivid.Unit
 			}
 
 			Is_Test();
+		}
+
+		public static void ExpressionVariables_Test()
+		{
+			string actual = Execute("ExpressionVariables");
+			string expected = System.IO.File.ReadAllText(GetProjectFile("ExpressionVariables_Output.txt", TESTS)).Replace("\r\n", "\n");
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void ExpressionVariables()
+		{
+			if (!CompileExecutable("ExpressionVariables", new[] { "ExpressionVariables.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			ExpressionVariables_Test();
 		}
 	}
 }

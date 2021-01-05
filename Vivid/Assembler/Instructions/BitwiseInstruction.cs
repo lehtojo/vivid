@@ -1,5 +1,10 @@
 using System;
+using System.Linq;
 
+/// <summary>
+/// This instruction does the specified bitwise operation between the two specified operand together and outputs a result.
+/// This instruction is works on all architectures
+/// </summary>
 public class BitwiseInstruction : DualParameterInstruction
 {
 	public const string SHARED_AND_INSTRUCTION = "and";
@@ -53,7 +58,7 @@ public class BitwiseInstruction : DualParameterInstruction
 		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_SHIFT_RIGHT_INSTRUCTION : X64_SHIFT_RIGHT_INSTRUCTION, first, second, format, assigns);
 	}
 
-	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
+	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.BITWISE)
 	{
 		Instruction = instruction;
 		Description = "Executes bitwise XOR-operation between the operands";
@@ -89,7 +94,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 			}.Execute();
 
-			// Lock the shift register since it's very important it doesn't get relocated
+			// Lock the shift register since it is very important it doesn't get relocated
 			LockStateInstruction.Lock(Unit, register).Execute();
 			unlock = LockStateInstruction.Unlock(Unit, register);
 		}
@@ -113,6 +118,7 @@ public class BitwiseInstruction : DualParameterInstruction
 				)
 			);
 
+			// Finally, if a unlock operation is specified, output it since this instruction is over
 			if (unlock != null)
 			{
 				Unit.Append(unlock, true);
@@ -136,6 +142,7 @@ public class BitwiseInstruction : DualParameterInstruction
 			)
 		);
 
+		// Finally, if a unlock operation is specified, output it since this instruction is over
 		if (unlock != null)
 		{
 			Unit.Append(unlock, true);
@@ -275,13 +282,24 @@ public class BitwiseInstruction : DualParameterInstruction
 		);
 	}
 
-	public override Result GetDestinationDependency()
+	public bool RedirectArm64(Handle handle)
 	{
-		return First;
+		if (!handle.Is(HandleType.REGISTER))
+		{
+			return false;
+		}
+
+		Parameters.First().Value = handle;
+		return true;
 	}
 
-	public override InstructionType GetInstructionType()
+	public override bool Redirect(Handle handle)
 	{
-		return InstructionType.BITWISE;
+		if (Assembler.IsArm64)
+		{
+			return RedirectArm64(handle);
+		}
+
+		return false;
 	}
 }

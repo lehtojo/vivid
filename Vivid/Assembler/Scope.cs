@@ -204,7 +204,7 @@ public sealed class Scope : IDisposable
 		{
 			unit.Append(new SetModifiableInstruction(unit, variable)
 			{
-				Description = $"Loads the variable '{variable.Name}' into a register or memory if it's a constant"
+				Description = $"Loads the variable '{variable.Name}' into a register or memory if it is a constant"
 			});
 		}
 	}
@@ -268,7 +268,6 @@ public sealed class Scope : IDisposable
 
 	public int StackOffset { get; set; } = 0;
 
-
 	public bool AppendFinalizers { get; set; } = true;
 
 	/// <summary>
@@ -327,9 +326,9 @@ public sealed class Scope : IDisposable
 		Variables[variable] = transferer;
 
 		// If the transferer is a register, the transferer value must be attached there
-		if (transferer.Value is RegisterHandle value)
+		if (transferer.Value.Is(HandleInstanceType.REGISTER))
 		{
-			value.Register.Handle = transferer;
+			transferer.Value.To<RegisterHandle>().Register.Handle = transferer;
 		}
 
 		return transferer;
@@ -408,7 +407,7 @@ public sealed class Scope : IDisposable
 				register.Reset();
 			}
 		}
-		else if (unit.Function.Convention == CallingConvention.X64)
+		else
 		{
 			// Move all parameters to their expected registers since this is the first scope
 			var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
@@ -416,7 +415,7 @@ public sealed class Scope : IDisposable
 
 			var register = (Register?)null;
 
-			if (unit.Function.IsMember || unit.Function.IsLambda)
+			if (unit.Function.IsMember || unit.Function.IsLambdaImplementation)
 			{
 				var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 

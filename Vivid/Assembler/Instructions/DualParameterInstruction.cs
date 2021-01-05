@@ -7,11 +7,13 @@ public abstract class DualParameterInstruction : Instruction
 
 	public Format Format => Result.Format;
 
-	public DualParameterInstruction(Unit unit, Result first, Result second, Format format) : base(unit)
+	public DualParameterInstruction(Unit unit, Result first, Result second, Format format, InstructionType type) : base(unit, type)
 	{
 		First = first;
 		Second = second;
 		Result.Format = format;
+
+		Dependencies = new[] { Result, First, Second };
 	}
 
 	public override Result[] GetResultReferences()

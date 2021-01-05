@@ -42,7 +42,7 @@ public class ShortFunctionPattern : Pattern
 			blueprint = tokens.Last().To<ContentToken>().Tokens;
 		}
 
-		var function = new Function(context, AccessModifier.PUBLIC, header.Name) { Position = header.Position };
+		var function = new Function(context, Modifier.PUBLIC, header.Name) { Position = header.Position };
 		function.Parameters.AddRange(header.GetParameters(function));
 		context.Declare(function);
 
@@ -58,7 +58,7 @@ public class ShortFunctionPattern : Pattern
 
 			if (!Common.ConsumeBlock(function, state, blueprint))
 			{
-				throw Errors.Get(header.Position, "Short function has an empty body");
+				throw Errors.Get(header.Position, "Expected a short function body");
 			}
 
 			tokens.AddRange(blueprint);

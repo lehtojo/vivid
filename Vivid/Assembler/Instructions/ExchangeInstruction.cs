@@ -8,7 +8,7 @@ public class ExchangeInstruction : DualParameterInstruction
 
 	public bool IsSafe { get; private set; }
 
-	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second, first.Format)
+	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second, first.Format, InstructionType.EXCHANGE)
 	{
 		IsSafe = is_safe;
 		IsUsageAnalyzed = false;
@@ -30,15 +30,5 @@ public class ExchangeInstruction : DualParameterInstruction
 				HandleType.REGISTER
 			)
 		);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.EXCHANGE;
 	}
 }

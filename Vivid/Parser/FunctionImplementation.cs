@@ -3,15 +3,9 @@ using System.Linq;
 using System;
 using System.Globalization;
 
-public enum CallingConvention
-{
-	X64
-}
-
 public class FunctionImplementation : Context
 {
 	public Function Metadata { get; set; }
-	public CallingConvention Convention { get; set; } = CallingConvention.X64;
 
 	public VirtualFunction? VirtualFunction { get; set; }
 	public Variable? Self { get; protected set; }
@@ -49,8 +43,8 @@ public class FunctionImplementation : Context
 
 	public bool IsVirtual => Metadata is VirtualFunction;
 	public bool IsConstructor => Metadata is Constructor;
-	public bool IsStatic => Flag.Has(Metadata!.Modifiers, AccessModifier.STATIC);
-	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, AccessModifier.RESPONSIBLE);
+	public bool IsStatic => Flag.Has(Metadata!.Modifiers, Modifier.STATIC);
+	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, Modifier.RESPONSIBLE);
 
 	protected override void OnMangle(Mangle mangle)
 	{
@@ -86,7 +80,7 @@ public class FunctionImplementation : Context
 	/// Optionally links this function to some context
 	/// </summary>
 	/// <param name="context">Context to link into</param>
-	public FunctionImplementation(Function metadata, List<Parameter> parameters, Type? return_type = null, Context? context = null)
+	public FunctionImplementation(Function metadata, List<Parameter> parameters, Type? return_type, Context context) : base(context)
 	{
 		Metadata = metadata;
 		ReturnType = return_type;
@@ -113,7 +107,7 @@ public class FunctionImplementation : Context
 	{
 		foreach (var properties in parameters)
 		{
-			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, AccessModifier.PUBLIC, false)
+			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, Modifier.PUBLIC, false)
 			{
 				Position = properties.Position
 			};
@@ -135,7 +129,7 @@ public class FunctionImplementation : Context
 				Metadata.GetTypeParent(),
 				VariableCategory.PARAMETER,
 				Function.SELF_POINTER_IDENTIFIER,
-				AccessModifier.PUBLIC
+				Modifier.PUBLIC
 
 			) { IsSelfPointer = true, Position = Metadata.Position };
 		}
@@ -252,17 +246,9 @@ public class FunctionImplementation : Context
 	public override int GetHashCode()
 	{
 		HashCode hash = new HashCode();
-		hash.Add(Subcontexts);
-		hash.Add(Variables);
-		hash.Add(Functions);
-		hash.Add(Types);
-		hash.Add(Labels);
-		hash.Add(Metadata?.Name);
+		hash.Add(Name);
 		hash.Add(Parameters);
 		hash.Add(ParameterTypes);
-		hash.Add(Locals);
-		hash.Add(LocalMemorySize);
-		hash.Add(References.Count);
 		hash.Add(ReturnType);
 		return hash.ToHashCode();
 	}

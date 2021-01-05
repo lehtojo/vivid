@@ -1,14 +1,12 @@
-using System;
-
 /// <summary>
 /// Ensures that variables and values which are required later are moved to locations which are not affected by call instructions for example
-/// This instruction is works in all architectures
+/// This instruction is works on all architectures
 /// </summary>
 public class EvacuateInstruction : Instruction
 {
 	public Instruction Perspective { get; private set; }
 
-	public EvacuateInstruction(Unit unit, Instruction perspective) : base(unit)
+	public EvacuateInstruction(Unit unit, Instruction perspective) : base(unit, InstructionType.EVACUATE)
 	{
 		Perspective = perspective;
 	}
@@ -62,20 +60,5 @@ public class EvacuateInstruction : Instruction
 
 			Unit.Release(source);
 		});
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Evacuate-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.EVACUATE;
 	}
 }

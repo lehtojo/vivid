@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,9 +10,10 @@ public class SymmetryEndInstruction : Instruction
 	public SymmetryStartInstruction Start { get; private set; }
 	private List<Result> Sources { get; set; } = new List<Result>();
 
-	public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit)
+	public SymmetryEndInstruction(Unit unit, SymmetryStartInstruction start) : base(unit, InstructionType.SYMMETRY_END)
 	{
 		Start = start;
+		Dependencies = null;
 	}
 
 	public void Append()
@@ -31,7 +31,7 @@ public class SymmetryEndInstruction : Instruction
 			var source = Sources[Start.Actives.IndexOf(Start.Variables[i])];
 			var destination = new Result(Start.Handles[i], source.Format);
 
-			// There are situation where the variable is constant in the outer scope and it's loaded into a register in the current scope so it should not be relocated
+			// There are situation where the variable is constant in the outer scope and it is loaded into a register in the current scope so it should not be relocated
 			if (destination.IsConstant)
 			{
 				continue;
@@ -46,16 +46,6 @@ public class SymmetryEndInstruction : Instruction
 		}
 
 		Unit.Append(Memory.Align(Unit, moves), true);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Symmetry-End-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SYMMETRY_END;
 	}
 
 	public override Result[] GetResultReferences()

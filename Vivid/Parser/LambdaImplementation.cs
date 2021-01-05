@@ -6,7 +6,7 @@ public class LambdaImplementation : FunctionImplementation
 	public List<CapturedVariable> Captures { get; private set; } = new List<CapturedVariable>();
 	public Type? Type { get; private set; }
 
-	public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type = null, Context? context = null)
+	public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type, Context context)
 	   : base(metadata, parameters, return_type, context)
 	{
 		Prefix = "_";
@@ -37,7 +37,7 @@ public class LambdaImplementation : FunctionImplementation
 			Type,
 			VariableCategory.PARAMETER,
 			Lambda.SELF_POINTER_IDENTIFIER,
-			AccessModifier.PUBLIC
+			Modifier.PUBLIC
 
 		) { IsSelfPointer = true };
 
@@ -73,7 +73,7 @@ public class LambdaImplementation : FunctionImplementation
 			return null;
 		}
 
-		// The variable can be captured only if it's a local variable or a parameter and it's resolved
+		// The variable can be captured only if it is a local variable or a parameter and it is resolved
 		if (variable.IsPredictable && variable.IsResolved && !variable.IsConstant)
 		{
 			var captured = CapturedVariable.Create(this, variable);
@@ -91,7 +91,7 @@ public class LambdaImplementation : FunctionImplementation
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(this, string.Empty, AccessModifier.PUBLIC);
+		Type = new Type(this, string.Empty, Modifier.PUBLIC);
 		Node = new ImplementationNode(this, Metadata.Position);
 
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);

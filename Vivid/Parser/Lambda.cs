@@ -32,7 +32,7 @@ public class Lambda : Function
 		var parameters = Parameters.Zip(types, (a, b) => new Parameter(a.Name, a.Position, b)).ToList();
 
 		// Create a function implementation
-		var implementation = new LambdaImplementation(this, parameters, null, Parent);
+		var implementation = new LambdaImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
 
 		// Constructors must be set to return a link to the created object manually
 		if (IsConstructor)

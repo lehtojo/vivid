@@ -29,8 +29,10 @@ public class LinkNode : OperatorNode, IResolvable, IType
 			return null;
 		}
 
-		if (Right is UnresolvedFunction function)
+		if (Right.Is(NodeType.UNRESOLVED_FUNCTION))
 		{
+			var function = Right.To<UnresolvedFunction>();
+
 			// First, try to resolve the function normally
 			var resolved = function.Solve(environment, primary);
 

@@ -28,7 +28,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 			Destination = destination;
 		}
 
-		var function = new Function(Destination, AccessModifier.PUBLIC, Descriptor.Name, Body)
+		var function = new Function(Destination, Modifier.PUBLIC, Descriptor.Name, Body)
 		{
 			Position = Position
 		};

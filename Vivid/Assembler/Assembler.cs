@@ -29,6 +29,7 @@ public static class Assembler
 
 	private const string SECTION_DIRECTIVE = ".section";
 	private const string SECREL_DIRECTIVE = ".secrel";
+	private const string EXPORT_DIRECTIVE = ".global";
 	private const string TEXT_SECTION_DIRECTIVE = SECTION_DIRECTIVE + " .text";
 	private const string SYNTAX_REQUIREMENT_DIRECTIVE = ".intel_syntax noprefix";
 	private const string FILE_DIRECTIVE = ".file";
@@ -142,6 +143,8 @@ public static class Assembler
 
 				instruction.References.Add(handle);
 			}
+
+			instruction.Dependencies = instruction.References.Concat(new[] { instruction.Result }).ToArray();
 		});
 	}
 
@@ -151,13 +154,13 @@ public static class Assembler
 
 		foreach (var implementation in function.Implementations)
 		{
-			if (implementation.IsInlined || implementation.IsEmpty)
+			if (implementation.IsInlined)
 			{
 				continue;
 			}
 
 			// Ensure this function is visible to other units
-			builder.AppendLine($".global {implementation.GetFullname()}");
+			builder.AppendLine($"{EXPORT_DIRECTIVE} {implementation.GetFullname()}");
 
 			var fullname = implementation.GetFullname();
 			var unit = new Unit(implementation);
@@ -172,6 +175,7 @@ public static class Assembler
 					AppendVirtualFunctionHeader(unit, implementation, fullname);
 				}
 
+				// Append the function name to the output as a label
 				unit.Append(new LabelInstruction(unit, new Label(fullname)));
 
 				// Initialize this function
@@ -180,7 +184,7 @@ public static class Assembler
 				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
 				var parameters = unit.Function.Parameters;
 
-				if (unit.Function.Metadata!.IsMember || implementation.IsLambda)
+				if (unit.Function.Metadata!.IsMember || implementation.IsLambdaImplementation)
 				{
 					parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
 				}
@@ -246,6 +250,8 @@ public static class Assembler
 
 			var name = variable.GetStaticName();
 			var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
+			
+			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 
 			if (Assembler.IsArm64)
 			{
@@ -379,6 +385,8 @@ public static class Assembler
 		}
 		else
 		{
+			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + table.Name);
+
 			if (Assembler.IsArm64)
 			{
 				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
@@ -481,9 +489,9 @@ public static class Assembler
 
 				var name = node.Identifier;
 				var allocator = Size.BYTE.Allocator;
-
-				// Align every data label for now since some instructions need them to be that way
-				builder.AppendLine($"{BYTE_ALIGNMENT_DIRECTIVE} 16");
+				
+				builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
+				builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 				builder.AppendLine($"{name}:");
 				builder.AppendLine(AllocateString(node.Text));
 			}
@@ -551,8 +559,8 @@ public static class Assembler
 				allocator = constant.Size.Allocator;
 			}
 
-			// Align every data label for now since some instructions need them to be that way
-			builder.AppendLine($"{BYTE_ALIGNMENT_DIRECTIVE} 16");
+			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
+			builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 			builder.AppendLine($"{name}:");
 			builder.AppendLine($"{allocator} {text}");
 		}
@@ -629,7 +637,8 @@ public static class Assembler
 		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
 
 		// Concat all functions with lambdas, which can be found inside the collected functions
-		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i))).Distinct().ToArray();
+		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
+			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
 	}
 
 	/// <summary>

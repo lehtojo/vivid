@@ -48,6 +48,8 @@ public class RuntimeConfiguration
 
 	public Variable Variable { get; private set; }
 
+	public bool IsCompleted { get; set; } = false;
+
 	private string GetFullname(Type type, bool start = false)
 	{
 		var a = type.Name;
@@ -103,7 +105,7 @@ public class Type : Context
 	public Position? Position { get; set; }
 
 	public bool IsUnresolved => !IsResolved();
-	public bool IsTemplateType => Flag.Has(Modifiers, AccessModifier.TEMPLATE_TYPE);
+	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	
 	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
@@ -126,16 +128,35 @@ public class Type : Context
 		if (!Constructors.Overloads.Any() || !((Constructor)Constructors.Overloads.First()).IsDefault)
 		{
 			Constructors.Add(constructor);
+			Declare(constructor);
 			return;
 		}
 
-		Constructors.Overloads.Remove(Constructors.Overloads.First());
+		// Remove the default constructor
+		Functions[Keywords.INIT.Identifier].Overloads.Clear();
+		Constructors.Overloads.Clear();
+
 		Constructors.Add(constructor);
+
+		Declare(constructor);
 	}
 
-	public void AddDestructor(Function destructor)
+	public void AddDestructor(Destructor destructor)
 	{
+		if (!Destructors.Overloads.Any() || !((Destructor)Destructors.Overloads.First()).IsDefault)
+		{
+			Destructors.Add(destructor);
+			Declare(destructor);
+			return;
+		}
+
+		// Remove the default destructor
+		Functions[Keywords.DEINIT.Identifier].Overloads.Clear();
+		Destructors.Overloads.Clear();
+		
 		Destructors.Add(destructor);
+
+		Declare(destructor);
 	}
 
 	public FunctionList GetConstructors()
@@ -148,7 +169,7 @@ public class Type : Context
 		return Destructors;
 	}
 
-	public Type(Context context, string name, int modifiers, Position position)
+	public Type(Context context, string name, int modifiers, Position position) : base(name)
 	{
 		Name = name;
 		Identifier = Name;
@@ -158,13 +179,14 @@ public class Type : Context
 		Supertypes = new List<Type>();
 		OnAddDefinition = OnAddDefaultDefinition;
 
-		Constructors.Add(Constructor.Empty(this, position));
+		AddConstructor(Constructor.Empty(this, position));
+		AddDestructor(Destructor.Empty(this, position));
 
 		Link(context);
 		context.Declare(this);
 	}
 
-	public Type(Context context, string name, int modifiers)
+	public Type(Context context, string name, int modifiers) : base(name)
 	{
 		Name = name;
 		Identifier = Name;
@@ -177,7 +199,7 @@ public class Type : Context
 		context.Declare(this);
 	}
 
-	public Type(string name, int modifiers)
+	public Type(string name, int modifiers) : base(name)
 	{
 		Name = name;
 		Identifier = Name;
@@ -186,7 +208,7 @@ public class Type : Context
 		OnAddDefinition = OnAddDefaultDefinition;
 	}
 
-	public Type(Context context)
+	public Type(Context context) : base(context)
 	{
 		Prefix = "N";
 		Identifier = Name;
@@ -295,12 +317,12 @@ public class Type : Context
 
 	public override bool IsLocalFunctionDeclared(string name)
 	{
-		return base.IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name);
+		return base.IsLocalFunctionDeclared(name);
 	}
 
 	public override bool IsLocalVariableDeclared(string name)
 	{
-		return base.IsLocalVariableDeclared(name) || IsSuperVariableDeclared(name);
+		return base.IsLocalVariableDeclared(name);
 	}
 
 	public override bool IsFunctionDeclared(string name)
@@ -511,7 +533,7 @@ public class Type : Context
 		return other is Type type &&
 			   Name == type.Name &&
 			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, type.Subcontexts) &&
-			   IsFunction == type.IsFunction &&
+			   IsImplementation == type.IsImplementation &&
 			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, type.Variables) &&
 			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, type.Functions) &&
 			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, type.Types) &&
@@ -529,7 +551,6 @@ public class Type : Context
 		HashCode hash = new HashCode();
 		hash.Add(Name);
 		hash.Add(Subcontexts);
-		hash.Add(IsFunction);
 		hash.Add(Variables);
 		hash.Add(Functions);
 		hash.Add(Types);

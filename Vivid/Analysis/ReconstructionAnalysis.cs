@@ -249,8 +249,7 @@ public static class ReconstructionAnalysis
 				expression.Object
 			);
 
-			var assignment_context = new Context();
-			assignment_context.Link(expression_context);
+			var assignment_context = new Context(expression_context);
 
 			// Create a condition which passes if the inspected object is the expected type
 			var condition = CreateTypeCondition(new VariableNode(object_variable), expression.Type);
@@ -364,10 +363,8 @@ public static class ReconstructionAnalysis
 			// Replace the operation with the result
 			var inline = new InlineNode(instance.Position);
 			instance.Replace(inline);
-			//var replacement = new VariableNode(destination);
 
-			var context = new Context();
-			context.Link(environment);
+			var context = new Context(environment);
 
 			// The destination is edited inside the following statement
 			var assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -387,7 +384,7 @@ public static class ReconstructionAnalysis
 		}
 	}
 
-	private static bool IsValueUsed(Node value)
+	public static bool IsValueUsed(Node value)
 	{
 		return value.Parent!.Is(
 			NodeType.CAST,
@@ -660,11 +657,66 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Rewrites supertypes accesses so that they can be compiled
+	/// Example:
+	/// Base Inheritor {
+	/// 	a: large
+	/// 
+	/// 	init() {
+	/// 		Base.a = 1
+	/// 		# The expression is rewritten as:
+	/// 		this.a = 1
+	/// 		# The rewritten expression still refers to the same member variable even though Inheritor has its own member variable a
+	/// 	}
+	/// }
+	/// </summary>
+	public static void RewriteSupertypeAccessors(Node root)
+	{
+		var links = root.FindTop(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
+
+		foreach (var link in links)
+		{
+			if (!link.Left.Is(NodeType.TYPE))
+			{
+				continue;
+			}
+
+			if (link.Right.Is(NodeType.FUNCTION))
+			{
+				var function = link.Right.To<FunctionNode>();
+
+				if (!function.Function.IsMember)
+				{
+					continue;
+				}
+
+				var self = link.GetParentContext().GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+
+				link.Left.Replace(new VariableNode(self, link.Left.Position));
+			}
+			else if (link.Right.Is(NodeType.VARIABLE))
+			{
+				var variable = link.Right.To<VariableNode>();
+
+				if (!variable.Variable.IsMember)
+				{
+					continue;
+				}
+
+				var self = link.GetParentContext().GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+
+				link.Left.Replace(new VariableNode(self, link.Left.Position));
+			}
+		}
+	}
+
 	public static void Reconstruct(Node root)
 	{
 		RemoveRedundantParenthesis(root);
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
+		RewriteSupertypeAccessors(root);
 		RewriteIsExpressions(root);
 		RewriteConstructionExpressions(root);
 		OutlineBooleanValues(root);

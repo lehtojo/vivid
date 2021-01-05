@@ -9,7 +9,7 @@ public class SetVariableInstruction : Instruction
 	public Variable Variable { get; private set; }
 	public Result Value { get; private set; }
 
-	public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit)
+	public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit, InstructionType.SET_VARIABLE)
 	{
 		if (!variable.IsPredictable)
 		{
@@ -19,13 +19,9 @@ public class SetVariableInstruction : Instruction
 		Variable = variable;
 		Value = value;
 		Description = $"Updates the value of the variable '{variable.Name}'";
+		Dependencies = new[] { Result, Value };
 
 		Result.Format = Value.Format;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Set-Variable-Instruction");
 	}
 
 	public override void OnSimulate()
@@ -35,22 +31,14 @@ public class SetVariableInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		if (Unit.Scope!.Variables.TryGetValue(Variable, out Result? current) && current.IsAnyRegister)
+		if (!Unit.Scope!.Variables.TryGetValue(Variable, out Result? current) || !current.IsAnyRegister)
 		{
-			Unit.Append(new MoveInstruction(Unit, current, Value)
-			{
-				Type = MoveType.RELOCATE
-			});
+			return;
 		}
-	}
 
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SET_VARIABLE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result, Value };
+		Unit.Append(new MoveInstruction(Unit, current!, Value)
+		{
+			Type = MoveType.RELOCATE
+		});
 	}
 }

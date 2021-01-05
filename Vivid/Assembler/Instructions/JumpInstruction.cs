@@ -3,6 +3,7 @@ using System;
 
 /// <summary>
 /// Jumps to the specified label and optionally checks a condition
+/// This instruction works on all architectures
 /// </summary>
 public class JumpInstruction : Instruction
 {
@@ -37,7 +38,7 @@ public class JumpInstruction : Instruction
 	public bool IsConditional => Comparator != null;
 	public bool IsSigned { get; private set; } = true;
 
-	public JumpInstruction(Unit unit, Label label) : base(unit)
+	public JumpInstruction(Unit unit, Label label) : base(unit, InstructionType.JUMP)
 	{
 		if (Instructions.Count == 0)
 		{
@@ -48,7 +49,7 @@ public class JumpInstruction : Instruction
 		Comparator = null;
 	}
 
-	public JumpInstruction(Unit unit, ComparisonOperator comparator, bool invert, bool signed, Label label) : base(unit)
+	public JumpInstruction(Unit unit, ComparisonOperator comparator, bool invert, bool signed, Label label) : base(unit, InstructionType.JUMP)
 	{
 		if (Instructions.Count == 0)
 		{
@@ -70,20 +71,5 @@ public class JumpInstruction : Instruction
 		var instruction = Comparator == null ? (Assembler.IsArm64 ? ARM64_CONDITIONLESS_JUMP : X64_CONDITIONLESS_JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
 
 		Build($"{instruction} {Label.GetName()}");
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.JUMP;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Jump-Instruction");
 	}
 }

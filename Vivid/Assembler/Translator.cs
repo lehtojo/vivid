@@ -24,8 +24,10 @@ public static class Translator
 	private static List<Variable> GetAllSavedLocalVariables(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is StackVariableHandle v && v.Variable.IsPredictable && v.Variable.LocalAlignment == null)
-			.Select(h => h.To<StackVariableHandle>().Variable)
+			.Where(i => i.Is(HandleInstanceType.STACK_VARIABLE))
+			.Cast<StackVariableHandle>()
+			.Where(i => i.Variable.IsPredictable && i.Variable.LocalAlignment == null)
+			.Select(i => i.Variable)
 			.Distinct()
 			.ToList();
 	}
@@ -33,24 +35,24 @@ public static class Translator
 	private static List<TemporaryMemoryHandle> GetAllTemporaryMemoryHandles(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is TemporaryMemoryHandle)
-			.Select(h => h.To<TemporaryMemoryHandle>())
+			.Where(i => i.Is(HandleInstanceType.TEMPORARY_MEMORY))
+			.Cast<TemporaryMemoryHandle>()
 			.ToList();
 	}
 
 	private static List<InlineHandle> GetAllInlineHandles(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is InlineHandle)
-			.Select(h => h.To<InlineHandle>())
+			.Where(i => i.Is(HandleInstanceType.INLINE))
+			.Cast<InlineHandle>()
 			.ToList();
 	}
 
 	private static List<ConstantDataSectionHandle> GetAllConstantDataSectionHandles(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(h => h is ConstantDataSectionHandle)
-			.Select(h => h.To<ConstantDataSectionHandle>())
+			.Where(i => i.Is(HandleInstanceType.CONSTANT_DATA_SECTION))
+			.Cast<ConstantDataSectionHandle>()
 			.ToList();
 	}
 
@@ -69,6 +71,7 @@ public static class Translator
 
 	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
 	{
+		// If optimization is enabled, try to optimize the generated code on instruction level
 		if (Analysis.IsInstructionAnalysisEnabled)
 		{
 			InstructionAnalysis.Optimize(unit);
@@ -86,22 +89,26 @@ public static class Translator
 			registers.Add(unit.GetBasePointer());
 		}
 
+		// Determine how much additional memory must be allocated at the start based on the generated code
 		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
 		var local_memory_top = 0;
 
 		unit.Execute(UnitPhase.BUILD_MODE, () =>
 		{
-			if (unit.Instructions.Last().Type != InstructionType.RETURN)
+			// Append a return instruction at the end if there's no return instruction present
+			if (!unit.Instructions.Last().Is(InstructionType.RETURN))
 			{
 				unit.Append(new ReturnInstruction(unit, null, Types.UNKNOWN));
 			}
 
+			// If debug information is being generated, append a debug information label at the end
 			if (Assembler.IsDebuggingEnabled)
 			{
 				unit.Append(new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name)));
 			}
 		});
 
+		// Build all initialization instructions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
 			if (!i.Is(InstructionType.INITIALIZE)) return;
@@ -112,8 +119,10 @@ public static class Translator
 			local_memory_top = initialization.LocalMemoryTop;
 		});
 		
+		// Reverse the saved registers since they must be recovered from stack when returning from the function so they must be in the reversed order
 		registers.Reverse();
 
+		// Build all return instructions
 		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
 		{
 			if (!i.Is(InstructionType.RETURN)) return;
@@ -126,6 +135,7 @@ public static class Translator
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 
+		// Translate all instructions
 		unit.Simulate(UnitPhase.BUILD_MODE, instruction =>
 		{
 			instruction.Translate();

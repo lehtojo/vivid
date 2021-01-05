@@ -100,7 +100,7 @@ public static class Assert
 		}
 	}
 
-	public static void AreEqual(object? expected, object? actual)
+	private static AssertionException? InternalAreEqual(object? expected, object? actual)
 	{
 		var a = GetIntegerValue(expected);
 		var b = GetIntegerValue(actual);
@@ -109,10 +109,10 @@ public static class Assert
 		{
 			if (a != b)
 			{
-				throw new AssertionException($"Values are not equal:\nExpected: {a}\nActual: {b}");
+				return new AssertionException($"Values are not equal:\nExpected: {a}\nActual: {b}");
 			}
 
-			return;
+			return null;
 		}
 
 		var i = GetDecimalValue(expected);
@@ -122,10 +122,10 @@ public static class Assert
 		{
 			if (i != j)
 			{
-				throw new AssertionException($"Values are not equal:\nExpected: {i}\nActual: {j}");
+				return new AssertionException($"Values are not equal:\nExpected: {i}\nActual: {j}");
 			}
 
-			return;
+			return null;
 		}
 
 		var x = expected as IEnumerable<object>;
@@ -133,13 +133,13 @@ public static class Assert
 
 		if ((x == null) != (y == null))
 		{
-			throw new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
+			return new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
 		}
 
 		if (x != null)
 		{
 			SequenceEqual(x, y!);
-			return;
+			return null;
 		}
 
 		var s = expected as Array;
@@ -147,23 +147,45 @@ public static class Assert
 
 		if ((s == null) != (t == null))
 		{
-			throw new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
+			return new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
 		}
 
 		if (s != null)
 		{
 			SequenceEqual(s, t!);
-			return;
+			return null;
 		}
 
 		if (expected == null && actual == null)
 		{
-			return;
+			return null;
 		}
 
 		if (!(expected?.Equals(actual) ?? false))
 		{
-			throw new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
+			return new AssertionException($"Values are not equal:\nExpected: {expected}\nActual: {actual}");
+		}
+
+		return null;
+	}
+
+	public static void AreEqual(object? expected, object? actual)
+	{
+		var exception = InternalAreEqual(expected, actual);
+
+		if (exception != null)
+		{
+			throw exception;
+		}
+	}
+
+	public static void AreNotEqual(object? expected, object? actual)
+	{
+		var exception = InternalAreEqual(expected, actual);
+
+		if (exception == null)
+		{
+			throw new AssertionException("Values were equal");
 		}
 	}
 

@@ -25,8 +25,8 @@ public class IncrementNode : Node, IType
 	public override bool Equals(object? other)
 	{
 		return other is IncrementNode node &&
-			   base.Equals(other) &&
-			   Post == node.Post;
+				base.Equals(other) &&
+				Post == node.Post;
 	}
 
 	public override int GetHashCode()

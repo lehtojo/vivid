@@ -18,4 +18,16 @@ public static class Errors
 
 		return new Exception($"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}error{ERROR_END}: {description}");
 	}
+
+	public static string FormatPosition(Position position)
+	{
+		var fullname = UNKNOWN_FILE;
+
+		if (position.File != null)
+		{
+			fullname = position.File.Fullname;
+		}
+
+		return $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}";
+	}
 }

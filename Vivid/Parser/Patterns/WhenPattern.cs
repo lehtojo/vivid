@@ -91,7 +91,7 @@ public class WhenPattern : Pattern
 
 		if (else_section != null)
 		{
-			// Remove the else section since it's added last and it doesn't have a condition
+			// Remove the else section since it is added last and it doesn't have a condition
 			sections.Remove(else_section);
 
 			// Remove all other else sections since they won't execute
@@ -111,7 +111,7 @@ public class WhenPattern : Pattern
 
 			if (!value.Any())
 			{
-				throw Errors.Get(body.Position, "One of the sections had an empty value as condition");
+				throw Errors.Get(body.Position, "One of the sections has an empty value as condition");
 			}
 
 			var section_condition = new OperatorNode(Operators.EQUALS).SetOperands(
@@ -123,7 +123,7 @@ public class WhenPattern : Pattern
 
 			if (!section_tokens.Any())
 			{
-				throw Errors.Get(body.Position, "One of the sections had an empty body");
+				throw Errors.Get(body.Position, "One of the sections has an empty body");
 			}
 
 			// If the first token represents a block, the body of the section is the tokens inside it
@@ -136,7 +136,7 @@ public class WhenPattern : Pattern
 
 			if (!section_body.Any())
 			{
-				throw Errors.Get(body.Position, "One of the sections had an empty body");
+				throw Errors.Get(body.Position, "One of the sections has an empty body");
 			}
 
 			// Create an assignment which stores the last value in the body into the result variable
@@ -148,8 +148,7 @@ public class WhenPattern : Pattern
 			// Replace the last value with the assignment since the assignment has the last value
 			section_body.Last!.Replace(result_assignment);
 
-			var section_context = new Context();
-			section_context.Link(context);
+			var section_context = new Context(context);
 
 			if (is_first)
 			{
@@ -170,7 +169,7 @@ public class WhenPattern : Pattern
 
 			if (!section_tokens.Any())
 			{
-				throw Errors.Get(body.Position, "Else section had an empty body");
+				throw Errors.Get(body.Position, "Else section has an empty body");
 			}
 
 			// If the first token represents a block, the body of the section is the tokens inside it
@@ -183,7 +182,7 @@ public class WhenPattern : Pattern
 
 			if (!section_body.Any())
 			{
-				throw Errors.Get(body.Position, "Else section had an empty body");
+				throw Errors.Get(body.Position, "Else section has an empty body");
 			}
 
 			// Create an assignment which stores the last value in the body into the result variable
@@ -195,8 +194,7 @@ public class WhenPattern : Pattern
 			// Replace the last value with the assignment since the assignment has the last value
 			section_body.Last!.Replace(result_assignment);
 
-			var section_context = new Context();
-			section_context.Link(context);
+			var section_context = new Context(context);
 
 			result.Add(new ElseNode(section_context, section_body));
 		}

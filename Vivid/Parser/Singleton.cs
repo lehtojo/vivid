@@ -28,6 +28,10 @@ public static class Singleton
 
 			return new VariableNode(variable, identifier.Position);
 		}
+		else if (context.IsPropertyDeclared(identifier.Value))
+		{
+			return new FunctionNode(context.GetProperty(identifier.Value)!.Get(new List<Type>())!, identifier.Position);
+		}
 		else if (context.IsTypeDeclared(identifier.Value))
 		{
 			return new TypeNode(context.GetType(identifier.Value)!, identifier.Position);
@@ -122,7 +126,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return new ConstructionNode(node, node.Position);
+				return linked ? node : (Node)new ConstructionNode(node, node.Position);
 			}
 
 			if (function.IsMember && !linked)
@@ -180,7 +184,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				return new ConstructionNode(node, node.Position);
+				return linked ? node : (Node)new ConstructionNode(node, node.Position);
 			}
 
 			if (function.IsMember && !linked)

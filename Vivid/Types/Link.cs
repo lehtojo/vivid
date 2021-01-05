@@ -17,12 +17,13 @@ public class Link : Number
 
 	public override Type GetOffsetType()
 	{
-		return TemplateArguments.FirstOrDefault() ?? global::Types.TINY;
+		return TemplateArguments.FirstOrDefault() ?? global::Types.U8;
 	}
 
 	public override void AddDefinition(Mangle mangle)
 	{
-		mangle.Value += "Ph";
+		mangle.Value += "P";
+		mangle += GetOffsetType();
 	}
 
 	public override int GetContentSize()

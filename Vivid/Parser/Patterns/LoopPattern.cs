@@ -87,11 +87,8 @@ public class LoopPattern : Pattern
 
 	public override Node Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		var body_context = new Context();
-		var steps_context = new Context();
-
-		steps_context.Link(environment);
-		body_context.Link(steps_context);
+		var steps_context = new Context(environment);
+		var body_context = new Context(steps_context);
 
 		var steps_token = tokens[STEPS];
 

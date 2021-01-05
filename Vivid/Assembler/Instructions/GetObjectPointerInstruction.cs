@@ -9,12 +9,13 @@ public class GetObjectPointerInstruction : Instruction
 	public int Offset { get; private set; }
 	public AccessMode Mode { get; private set; }
 
-	public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset, AccessMode mode) : base(unit)
+	public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset, AccessMode mode) : base(unit, InstructionType.GET_OBJECT_POINTER)
 	{
 		Variable = variable;
 		Start = start;
 		Offset = offset;
 		Mode = mode;
+		Dependencies = new[] { Result, Start };
 
 		Result.Format = Variable.Type!.Format;
 	}
@@ -43,20 +44,5 @@ public class GetObjectPointerInstruction : Instruction
 			Result.Value = new MemoryHandle(Unit, address, 0);
 			Result.Format = Variable.Type!.Format;
 		}
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result, Start };
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.GET_OBJECT_POINTER;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
 	}
 }

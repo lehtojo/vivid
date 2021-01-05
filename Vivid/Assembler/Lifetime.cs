@@ -29,13 +29,13 @@ public class Lifetime
 
 	public bool IsIntersecting(int start, int end)
 	{
-		var s1 = Start == -1 ? int.MinValue : Start;
-		var e1 = End == -1 ? int.MaxValue : End;
+		var a = Start == -1 ? int.MinValue : Start;
+		var x = End == -1 ? int.MaxValue : End;
 
-		var s2 = start == -1 ? int.MinValue : start;
-		var e2 = end == -1 ? int.MaxValue : end;
+		var b = start == -1 ? int.MinValue : start;
+		var y = end == -1 ? int.MaxValue : end;
 
-		return s1 < e2 && e1 > s2;
+		return a < y && x > b;
 	}
 
 	public Lifetime Clone()

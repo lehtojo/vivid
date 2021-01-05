@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public class Sublist<T> : IList<T>
@@ -230,7 +231,7 @@ public static class Parser
 					{
 						var pattern = option.Pattern;
 
-						// Skip this candidate if it's denylisted
+						// Skip this candidate if it is denylisted
 						if (allowlist.Any() && !allowlist.Exists(i => i == pattern.GetType()))
 						{
 							continue;
@@ -442,8 +443,7 @@ public static class Parser
 	/// <param name="tokens">Tokens to iterate</param>
 	/// <param name="min">Minimum priority for pattern filtering</param>
 	/// <param name="max">Maximum priority for pattern filtering</param>
-	public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY,
-		int max = MAX_PRIORITY)
+	public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
 	{
 		RemoveLineEndingDuplications(tokens);
 		CreateFunctionCalls(tokens);
@@ -483,7 +483,7 @@ public static class Parser
 			throw Errors.Get(tokens[i].Position, "Could not understand");
 		}
 
-		// Combine all processed tokens in order
+		// Combine all dynamic tokens in order
 		foreach (var dynamic in tokens.Where(token => token.Type == TokenType.DYNAMIC).Cast<DynamicToken>())
 		{
 			parent.Add(dynamic.Node);
@@ -491,7 +491,7 @@ public static class Parser
 	}
 
 	/// <summary>
-	/// Forms function tokens from the given tokens
+	/// Forms function tokens from the specified tokens
 	/// </summary>
 	/// <param name="tokens">Tokens to iterate</param>
 	private static void CreateFunctionCalls(List<Token> tokens)
@@ -555,14 +555,15 @@ public static class Parser
 	/// Creates a base context
 	/// </summary>
 	/// <returns>Base context</returns>
-	public static Context Initialize()
+	public static Context Initialize(int identity)
 	{
-		var context = new Context();
+		var context = Context.CreateRootContext(identity.ToString(CultureInfo.InvariantCulture));
 		Types.Inject(context);
 
 		var copy = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
+			context,
+			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
 			"copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -572,7 +573,8 @@ public static class Parser
 
 		var offset_copy = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
+			context,
+			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
 			"offset_copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -583,7 +585,8 @@ public static class Parser
 
 		var deallocate = new Function
 		(
-			AccessModifier.PUBLIC | AccessModifier.EXTERNAL | AccessModifier.RESPONSIBLE,
+			context,
+			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
 			"deallocate",
 			Types.UNIT,
 			new Parameter("address", Types.LINK),

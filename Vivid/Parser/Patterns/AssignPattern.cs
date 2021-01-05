@@ -3,7 +3,7 @@ using System;
 
 public class AssignPattern : Pattern
 {
-	public const int PRIORITY = 18;
+	public const int PRIORITY = 19;
 
 	public const int DESTINATION = 0;
 	public const int OPERATOR = 1;
@@ -36,7 +36,7 @@ public class AssignPattern : Pattern
 		{
 			if (destination.Value == Function.SELF_POINTER_IDENTIFIER || destination.Value == Lambda.SELF_POINTER_IDENTIFIER)
 			{
-				throw Errors.Get(destination.Position, $"Can not declare variable called '{destination.Value}' since the name is reserved");
+				throw Errors.Get(destination.Position, $"Can not declare variable with name '{destination.Value}' since the name is reserved");
 			}
 
 			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
@@ -48,7 +48,7 @@ public class AssignPattern : Pattern
 				Types.UNKNOWN,
 				category,
 				destination.Value,
-				AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
+				Modifier.PUBLIC | (is_constant ? Modifier.CONSTANT : 0)
 			);
 
 			variable.Position = tokens[DESTINATION].Position;

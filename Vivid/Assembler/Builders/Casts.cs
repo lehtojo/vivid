@@ -28,7 +28,7 @@ public static class Casts
 				return result;
 			}
 
-			var calculation = new ExpressionHandle(result, 1, null, base_offset);
+			var calculation = ExpressionHandle.CreateMemoryAddress(result, base_offset);
 
 			return new Result(calculation, result.Format);
 		}
@@ -42,7 +42,7 @@ public static class Casts
 				return result;
 			}
 
-			var calculation = new ExpressionHandle(result, 1, null, -base_offset);
+			var calculation = ExpressionHandle.CreateMemoryAddress(result, -base_offset);
 
 			return new Result(calculation, result.Format);
 		}

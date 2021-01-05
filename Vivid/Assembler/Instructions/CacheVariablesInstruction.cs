@@ -1,10 +1,9 @@
-using System;
 using System.Linq;
 using System.Collections.Generic;
 
 /// <summary>
 /// Prepares the specified variables by loading them in priority order
-/// This instruction is works in all architectures
+/// This instruction is works on all architectures
 /// </summary>
 public class CacheVariablesInstruction : Instruction
 {
@@ -12,7 +11,7 @@ public class CacheVariablesInstruction : Instruction
 	private Node[] Roots { get; }
 	private bool NonVolatileMode { get; }
 
-	public CacheVariablesInstruction(Unit unit, Node[] roots, List<VariableUsageDescriptor> variables, bool non_volatile_mode) : base(unit)
+	public CacheVariablesInstruction(Unit unit, Node[] roots, List<VariableUsageDescriptor> variables, bool non_volatile_mode) : base(unit, InstructionType.CACHE_VARIABLES)
 	{
 		Usages = variables;
 		Roots = roots;
@@ -52,7 +51,7 @@ public class CacheVariablesInstruction : Instruction
 		{
 			var usage = Usages[i];
 
-			// The current usage should be removed if it's linked to another variable since it would cause unnecessary move instructions
+			// The current usage should be removed if it is linked to another variable since it would cause unnecessary move instructions
 			if (Usages.GetRange(0, i).Any(u => u.Reference!.Equals(usage.Reference)))
 			{
 				Usages.RemoveAt(i);
@@ -116,10 +115,10 @@ public class CacheVariablesInstruction : Instruction
 					continue;
 				}
 
-				// Remove this variable from the remaining variables list since it's in a correct location
+				// Remove this variable from the remaining variables list since it is in a correct location
 				RemainingVariables.Remove(usage);
 
-				// The current variable occupies the register so it's not available
+				// The current variable occupies the register so it is not available
 				Occupie(register, usage);
 			}
 
@@ -149,7 +148,7 @@ public class CacheVariablesInstruction : Instruction
 			var use_media_register = usage.Reference!.Format.IsDecimal();
 			var registers = use_media_register ? AvailableMediaRegisters : AvailableStandardRegisters;
 
-			// Try to find a register which holds a value but it's not important anymore
+			// Try to find a register which holds a value but it is not important anymore
 			var register = registers.Find(r => r.IsAvailable(Unit.Position));
 
 			if (register != null)
@@ -227,20 +226,5 @@ public class CacheVariablesInstruction : Instruction
 
 		// Release the remaining variables
 		state.RemainingVariables.Skip(i).ForEach(u => state.Release(u));
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Cache-Variables-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.CACHE_VARIABLES;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

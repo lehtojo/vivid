@@ -787,7 +787,7 @@ public static class Analysis
 
 	private static LoopUnwrapDescriptor? TryGetLoopUnwrapDescriptor(LoopNode loop)
 	{
-		// First, ensure that the condition contains a comparison operator and that it's primitive.
+		// First, ensure that the condition contains a comparison operator and that it is primitive.
 		// Examples:
 		// i < 10
 		// i == 0
@@ -823,7 +823,7 @@ public static class Analysis
 			return null;
 		}
 
-		// Make sure the variable is predictable and it's an integer
+		// Make sure the variable is predictable and it is an integer
 		var variable = initialization.First!.To<VariableNode>().Variable;
 
 		if (!variable.IsPredictable ||
@@ -1157,16 +1157,24 @@ public static class Analysis
 			return;
 		}
 
-		var virtual_functions = type.GetAllVirtualFunctions();
 		var expressions = new List<OperatorNode>(type.Initialization);
 
-		if (type.Configuration != null)
-		{
-			// Complete the descriptor of the type
-			type.Configuration.Descriptor.Add(type.ContentSize);
-			type.Configuration.Descriptor.Add(type.Supertypes.Count);
+		/* Complete the descriptor of the type
+		type.Configuration.Descriptor.Add(type.ContentSize);
+		type.Configuration.Descriptor.Add(type.Supertypes.Count);
 
-			type.Supertypes.ForEach(i => type.Configuration.Descriptor.Add(i.Configuration?.Descriptor ?? throw new ApplicationException("Missing runtime configuration from a supertype")));
+		type.Supertypes.ForEach(i => type.Configuration.Descriptor.Add(i.Configuration?.Descriptor ?? throw new ApplicationException("Missing runtime configuration from a supertype")));
+
+		if (!type.Supertypes.Any())
+		{
+			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
+			// It should be possible to check whether the link represents this type or another
+			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(type.Configuration!.Variable),
+				new DataPointer(type.Configuration.Entry)
+			);
+
+			expressions.Add(initialization);
 		}
 
 		var offset = Parser.Bytes;
@@ -1224,7 +1232,7 @@ public static class Analysis
 				type.Configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
 				offset += Parser.Bytes;
 			}
-		}
+		}*/
 
 		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
 		{
@@ -1368,7 +1376,10 @@ public static class Analysis
 					new VariableNode(variable)
 				));
 
-				inline.Add(new VariableNode(variable));
+				if (ReconstructionAnalysis.IsValueUsed(operation))
+				{
+					inline.Add(new VariableNode(variable));
+				}
 			}
 			else
 			{

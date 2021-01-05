@@ -2,6 +2,10 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+/// <summary>
+/// The instruction calls the specified value (for example function label or a register).
+/// This instruction is works on all architectures
+/// </summary>
 public class CallInstruction : Instruction
 {
 	private const string X64_INSTRUCTION = "call";
@@ -9,27 +13,26 @@ public class CallInstruction : Instruction
 	private const string ARM64_CALL_REGISTER = "blr";
 
 	public Result Function { get; }
-	public CallingConvention Convention { get; }
 	public List<Instruction> ParameterInstructions { get; } = new List<Instruction>();
 
 	private bool IsParameterInstructionListExtracted => IsBuilt;
 
-	public CallInstruction(Unit unit, string function, CallingConvention convention, Type? return_type) : base(unit)
+	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
-		Convention = convention;
-		Result.Format = return_type?.Format ?? Assembler.Format;
-
+		Dependencies = null;
 		Description = "Calls function " + Function;
+		
+		Result.Format = return_type?.Format ?? Assembler.Format;
 	}
 
-	public CallInstruction(Unit unit, Result function, CallingConvention convention, Type? return_type) : base(unit)
+	public CallInstruction(Unit unit, Result function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = function;
-		Convention = convention;
-		Result.Format = return_type?.Format ?? Assembler.Format;
-
+		Dependencies = null;
 		Description = "Calls the function handle";
+
+		Result.Format = return_type?.Format ?? Assembler.Format;
 	}
 
 	/// <summary>
@@ -62,7 +65,7 @@ public class CallInstruction : Instruction
 	{
 		var registers = ExecuteParameterInstructions();
 
-		// Validate evacuation since it's very important to be correct
+		// Validate evacuation since it is very important to be correct
 		ValidateEvacuation();
 		
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
@@ -106,20 +109,10 @@ public class CallInstruction : Instruction
 		register.Handle = Result;
 	}
 
-	public override Result GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.CALL;
-	}
-
 	public override Result[] GetResultReferences()
 	{
 		// If this call follows the x64 calling convention, the parameter instructions' source values must be referenced so that they aren't overriden before this call
-		if (!IsParameterInstructionListExtracted && Convention == CallingConvention.X64)
+		if (!IsParameterInstructionListExtracted)
 		{
 			return ParameterInstructions
 				.Where(i => i.Type == InstructionType.MOVE)

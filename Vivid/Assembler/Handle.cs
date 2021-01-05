@@ -14,9 +14,28 @@ public enum HandleType
 	NONE
 }
 
+public enum HandleInstanceType
+{
+	NONE,
+	CONSTANT_DATA_SECTION,
+	DATA_SECTION,
+	CONSTANT,
+	STACK_VARIABLE,
+	MEMORY,
+	STACK_MEMORY,
+	TEMPORARY_MEMORY,
+	COMPLEX_MEMORY,
+	EXPRESSION,
+	INLINE,
+	REGISTER,
+	MODIFIER,
+	LOWER_12_BITS
+}
+
 public class Handle
 {
 	public HandleType Type { get; protected set; }
+	public HandleInstanceType Instance { get; protected set; }
 	public bool IsPrecise { get; set; } = false;
 
 	public Format Format { get; set; } = Assembler.Format;
@@ -26,16 +45,23 @@ public class Handle
 	public Handle()
 	{
 		Type = HandleType.NONE;
+		Instance = HandleInstanceType.NONE;
 	}
 
-	public Handle(HandleType type)
+	public Handle(HandleType type, HandleInstanceType instance)
 	{
 		Type = type;
+		Instance = instance;
 	}
 
 	public bool Is(HandleType type)
 	{
 		return Type == type;
+	}
+
+	public bool Is(HandleInstanceType instance)
+	{
+		return Instance == instance;
 	}
 
 	/// <summary>
@@ -79,11 +105,13 @@ public class ConstantDataSectionHandle : DataSectionHandle
 	public ConstantDataSectionHandle(ConstantHandle handle) : base(handle.ToString())
 	{
 		Value = handle.Value;
+		Instance = HandleInstanceType.CONSTANT_DATA_SECTION;
 	}
 
 	public ConstantDataSectionHandle(byte[] bytes) : base("{ " + string.Join(", ", bytes.Select(i => i.ToString(CultureInfo.InvariantCulture))) + " }")
 	{
 		Value = bytes;
+		Instance = HandleInstanceType.CONSTANT_DATA_SECTION;
 	}
 
 	public override Handle Finalize()
@@ -106,19 +134,22 @@ public class ConstantDataSectionHandle : DataSectionHandle
 
 public class DataSectionHandle : Handle
 {
+	public const string GLOBAL_OFFSET_TABLE_PREFIX = ":got:";
+
 	public string Identifier { get; set; }
 	public long Offset { get; set; } = 0;
 
 	// Address means whether to use the value of the address or not
 	public bool Address { get; set; } = false;
+	public bool GlobalOffsetTable { get; set; } = false;
 
-	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY)
+	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY, HandleInstanceType.DATA_SECTION)
 	{
 		Identifier = identifier;
 		Address = address;
 	}
 
-	public DataSectionHandle(string identifier, long offset, bool address = false) : base(HandleType.MEMORY)
+	public DataSectionHandle(string identifier, long offset, bool address = false) : base(HandleType.MEMORY, HandleInstanceType.DATA_SECTION)
 	{
 		Identifier = identifier;
 		Offset = offset;
@@ -127,11 +158,13 @@ public class DataSectionHandle : Handle
 
 	public override string ToString()
 	{
+		// If the value of the address is only required, return it
 		if (Address)
 		{
-			return Identifier;
+			return (Assembler.IsArm64 && GlobalOffsetTable) ? GLOBAL_OFFSET_TABLE_PREFIX + Identifier : Identifier;
 		}
 
+		// Apply the offset if it is not zero
 		if (Offset != 0)
 		{
 			var offset = Offset.ToString(CultureInfo.InvariantCulture);
@@ -223,7 +256,7 @@ public class ConstantHandle : Handle
 		return 8;
 	}
 
-	public ConstantHandle(object value) : base(HandleType.CONSTANT)
+	public ConstantHandle(object value) : base(HandleType.CONSTANT, HandleInstanceType.CONSTANT)
 	{
 		Value = value;
 	}
@@ -296,6 +329,8 @@ public class StackVariableHandle : StackMemoryHandle
 		{
 			throw new ArgumentException("Tried to create stack variable handle for a variable which is not stored in the stack");
 		}
+
+		Instance = HandleInstanceType.STACK_VARIABLE;
 	}
 
 	public override string ToString()
@@ -336,7 +371,7 @@ public class MemoryHandle : Handle
 
 	private int AbsoluteOffset => GetAbsoluteOffset();
 
-	public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY)
+	public MemoryHandle(Unit unit, Result start, int offset) : base(HandleType.MEMORY, HandleInstanceType.MEMORY)
 	{
 		Unit = unit;
 		Start = start;
@@ -358,28 +393,28 @@ public class MemoryHandle : Handle
 		var start = Start.Value;
 		var offset = AbsoluteOffset;
 
-		if (Start.Value is InlineHandle inline)
+		if (Start.IsInline)
 		{
 			start = new RegisterHandle(Unit.GetStackPointer());
-			offset += inline.AbsoluteOffset;
+			offset += Start.Value.To<InlineHandle>().AbsoluteOffset;
 		}
 
 		var constant = string.Empty;
 
 		if (Assembler.IsArm64)
 		{
-			if (AbsoluteOffset != 0)
+			if (offset != 0)
 			{
 				constant = $", #{offset}";
 			}
 		}
 		else
 		{
-			if (AbsoluteOffset > 0)
+			if (offset > 0)
 			{
 				constant = $"+{offset}";
 			}
-			else if (AbsoluteOffset < 0)
+			else if (offset < 0)
 			{
 				constant = offset.ToString(CultureInfo.InvariantCulture);
 			}
@@ -404,7 +439,7 @@ public class MemoryHandle : Handle
 
 	public override Result[] GetRegisterDependentResults()
 	{
-		if (Start.Value is InlineHandle)
+		if (Start.IsInline)
 		{
 			return Array.Empty<Result>();
 		}
@@ -419,7 +454,7 @@ public class MemoryHandle : Handle
 
 	public override Handle Finalize()
 	{
-		if (Start.IsStandardRegister || Start.IsConstant || Start.Value is InlineHandle)
+		if (Start.IsStandardRegister || Start.IsConstant || Start.IsInline)
 		{
 			return new MemoryHandle(Unit, new Result(Start.Value, Start.Format), Offset);
 		}
@@ -430,7 +465,7 @@ public class MemoryHandle : Handle
 	public override bool Equals(object? other)
 	{
 		return other is MemoryHandle handle &&
-			  EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
+			  Equals(Start.Value, handle.Start.Value) &&
 			  Offset == handle.Offset;
 	}
 
@@ -447,6 +482,7 @@ public class StackMemoryHandle : MemoryHandle
 	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer()), Assembler.Format), offset)
 	{ 
 		IsAbsolute = absolute;
+		Instance = HandleInstanceType.STACK_MEMORY;
 	}
 
 	public override int GetAbsoluteOffset()
@@ -473,7 +509,7 @@ public class StackMemoryHandle : MemoryHandle
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
 		hash.Add(IsAbsolute);
 		return hash.ToHashCode();
@@ -482,11 +518,12 @@ public class StackMemoryHandle : MemoryHandle
 
 public class TemporaryMemoryHandle : StackMemoryHandle
 {
-	public Guid Identifier { get; private set; }
+	public string Identifier { get; private set; }
 
 	public TemporaryMemoryHandle(Unit unit) : base(unit, 0)
 	{
-		Identifier = Guid.NewGuid();
+		Identifier = unit.GetNextIdentity();
+		Instance = HandleInstanceType.TEMPORARY_MEMORY;
 	}
 
 	public override Handle Finalize()
@@ -498,7 +535,7 @@ public class TemporaryMemoryHandle : StackMemoryHandle
 	{
 		return other is TemporaryMemoryHandle handle &&
 			  base.Equals(other) &&
-			  EqualityComparer<Guid>.Default.Equals(Identifier, handle.Identifier);
+			  Equals(Identifier, handle.Identifier);
 	}
 
 	public override int GetHashCode()
@@ -513,7 +550,7 @@ public class ComplexMemoryHandle : Handle
 	public Result Offset { get; private set; }
 	public int Stride { get; private set; }
 
-	public ComplexMemoryHandle(Result start, Result offset, int stride) : base(HandleType.MEMORY)
+	public ComplexMemoryHandle(Result start, Result offset, int stride) : base(HandleType.MEMORY, HandleInstanceType.COMPLEX_MEMORY)
 	{
 		Start = start;
 		Offset = offset;
@@ -541,8 +578,10 @@ public class ComplexMemoryHandle : Handle
 				offset = "+" + Offset.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
 			}
 		}
-		else if (Offset.Value is ConstantHandle constant)
+		else if (Offset.Value.Is(HandleInstanceType.CONSTANT))
 		{
+			var constant = Offset.Value.To<ConstantHandle>();
+
 			var index = (long)constant.Value;
 			var value = index * Stride;
 
@@ -570,7 +609,7 @@ public class ComplexMemoryHandle : Handle
 			return string.Empty;
 		}
 
-		if (Start.Value.Type == HandleType.REGISTER || Start.Value.Type == HandleType.CONSTANT)
+		if (Start.IsStandardRegister || Start.IsConstant)
 		{
 			var address = $"[{Start.Value}{offset}]";
 
@@ -615,8 +654,8 @@ public class ComplexMemoryHandle : Handle
 	public override bool Equals(object? other)
 	{
 		return other is ComplexMemoryHandle handle &&
-			  EqualityComparer<Result>.Default.Equals(Start, handle.Start) &&
-			  EqualityComparer<Result>.Default.Equals(Offset, handle.Offset) &&
+			  Equals(Start.Value, handle.Start.Value) &&
+			  Equals(Offset.Value, handle.Offset.Value) &&
 			  Stride == handle.Stride;
 	}
 
@@ -645,6 +684,11 @@ public class ExpressionHandle : Handle
 
 	public static ExpressionHandle CreateMemoryAddress(Result start, int offset)
 	{
+		if (Assembler.IsArm64)
+		{
+			return new ExpressionHandle(start, 1, new Result(new ConstantHandle((long)offset), Assembler.Format), 0);
+		}
+
 		return new ExpressionHandle(start, 1, null, offset);
 	}
 
@@ -653,7 +697,7 @@ public class ExpressionHandle : Handle
 		return new ExpressionHandle(offset, stride, start, 0);
 	}
 
-	public ExpressionHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.EXPRESSION)
+	public ExpressionHandle(Result multiplicand, int multiplier, Result? addition, int constant) : base(HandleType.EXPRESSION, HandleInstanceType.EXPRESSION)
 	{
 		Multiplicand = multiplicand;
 		Multiplier = multiplier;
@@ -669,38 +713,52 @@ public class ExpressionHandle : Handle
 
 	private void Validate()
 	{
-		if ((Multiplicand.Value.Type != HandleType.REGISTER && Multiplicand.Value.Type != HandleType.CONSTANT) ||
-			(Addition != null && (Addition.Value.Type != HandleType.REGISTER && Addition.Value.Type != HandleType.CONSTANT)) ||
-			  Multiplier <= 0)
+		if ((!Multiplicand.IsStandardRegister && !Multiplicand.IsConstant) || (Addition != null && (!Addition.IsStandardRegister && !Addition.IsConstant)) || Multiplier <= 0)
 		{
-			throw new ApplicationException("Detected an invalid calculation handle");
+			throw new ApplicationException("Detected an invalid expression handle");
 		}
 	}
 
 	public string ToStringX64()
 	{
-		var result = Multiplicand.ToString();
+		var result = string.Empty;
+		var constant = (long)Constant;
 
-		if (Multiplier > 1)
+		if (Multiplicand.IsConstant)
 		{
-			result += "*" + Multiplier.ToString(CultureInfo.InvariantCulture);
+			constant += (long)Multiplicand.Value.To<ConstantHandle>().Value * Multiplier;
+		}
+		else
+		{
+			result = Multiplicand.ToString();
+
+			if (Multiplier > 1)
+			{
+				result += "*" + Multiplier.ToString(CultureInfo.InvariantCulture);
+			}
 		}
 
 		if (Addition != null)
 		{
-			if (Addition.IsConstant && Numbers.IsNegative(Addition.Value.To<ConstantHandle>().Value))
+			if (Addition.IsConstant)
 			{
-				result += Addition.ToString();
+				constant += (long)Addition.Value.To<ConstantHandle>().Value;
 			}
-			else
+			else if (!string.IsNullOrEmpty(result))
 			{
 				result += "+" + Addition.ToString();
 			}
+			else
+			{
+				result += Addition.ToString();
+			}
 		}
 
-		if (Constant != 0)
+		var empty = string.IsNullOrEmpty(result);
+
+		if (constant != 0 || empty)
 		{
-			result += (Constant > 0 ? "+" : "") + Constant;
+			result += (constant > 0 && !empty ? "+" : "") + constant;
 		}
 
 		return '[' + result + ']';
@@ -708,7 +766,7 @@ public class ExpressionHandle : Handle
 
 	public string ToStringArm64()
 	{
-		if (Addition != null && Constant != 0)
+		if (Constant != 0 && !Multiplicand.IsConstant)
 		{
 			throw new ApplicationException("Complex expression handles are not supported on architecture Arm64");
 		}
@@ -717,30 +775,43 @@ public class ExpressionHandle : Handle
 		// x0, x1
 		// x0, #1
 		// x0, x1, lsl #2
-		
-		var result = Multiplicand.ToString();
-		var constant = (long)Constant;
+		var result = string.Empty;
 
 		if (Addition != null)
 		{
-			if (Addition.IsConstant)
+			result = Addition.ToString();
+		}
+		else
+		{
+			/// TODO: Append the zero register (formalize)
+			result = "xzr";
+		}
+		
+		var constant = (long)Constant;
+
+		if (Multiplicand.IsConstant)
+		{
+			constant += (long)Multiplicand.Value.To<ConstantHandle>().Value * Multiplier;
+		}
+		else
+		{
+			result += ", " + Multiplicand.ToString();
+
+			if (Multiplier > 1)
 			{
-				constant += (Addition.Value.To<ConstantHandle>().Value as long?) ?? throw new ApplicationException("Constant was not an integer");
+				result += $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #" + (long)Math.Log2(Multiplier);
 			}
-			else
-			{
-				result += ", " + Addition.ToString();
-			}
+
+			return result;
 		}
 
-		if (Multiplier > 1)
+		if (constant != 0)
 		{
-			result += $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #" + Multiplier;
+			result += ", #" + constant;
 		}
-
-		if (Constant != 0)
+		else
 		{
-			result += ", #" + Constant;
+			result += ", xzr";
 		}
 
 		return result;
@@ -762,13 +833,13 @@ public class ExpressionHandle : Handle
 	{
 		var result = new List<Result>();
 
-		if (Multiplicand.Value.Type != HandleType.CONSTANT)
+		if (!Multiplicand.IsConstant)
 		{
 			result.Add(Multiplicand);
 		}
 
 		/// TODO: Bit limit
-		if (Addition != null && Addition.Value.Type != HandleType.CONSTANT)
+		if (Addition != null && (Assembler.IsArm64 || !Addition.IsConstant))
 		{
 			result.Add(Addition);
 		}
@@ -797,15 +868,15 @@ public class ExpressionHandle : Handle
 	public override bool Equals(object? other)
 	{
 		return other is ExpressionHandle handle &&
-			EqualityComparer<Result>.Default.Equals(Multiplicand, handle.Multiplicand) &&
+			Equals(Multiplicand.Value, handle.Multiplicand.Value) &&
 			Multiplier == handle.Multiplier &&
-			EqualityComparer<Result?>.Default.Equals(Addition, handle.Addition) &&
+			Equals(Addition?.Value, handle.Addition?.Value) &&
 			Constant == handle.Constant;
 	}
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(Type);
 		hash.Add(Multiplicand);
 		hash.Add(Multiplier);
@@ -817,7 +888,7 @@ public class ExpressionHandle : Handle
 
 public class InlineHandle : Handle
 {
-	public Guid Identifier { get; private set; }
+	public string Identity { get; private set; }
 
 	public Unit Unit { get; private set; }
 
@@ -829,9 +900,10 @@ public class InlineHandle : Handle
 	public InlineHandle(Unit unit, int bytes)
 	{ 
 		Unit = unit;
-		Identifier = Guid.NewGuid();
+		Identity = unit.GetNextIdentity();
 		Bytes = bytes;
 		Type = HandleType.EXPRESSION;
+		Instance = HandleInstanceType.INLINE;
 	}
 
 	public override Handle Finalize()
@@ -869,7 +941,7 @@ public class InlineHandle : Handle
 				 Format == handle.Format &&
 				 Offset == handle.Offset &&
 				 Bytes == handle.Bytes &&
-				 EqualityComparer<Guid>.Default.Equals(Identifier, handle.Identifier);
+				 Equals(Identity, handle.Identity);
 	}
 
 	public override int GetHashCode()
@@ -882,7 +954,7 @@ public class RegisterHandle : Handle
 {
 	public Register Register { get; private set; }
 
-	public RegisterHandle(Register register) : base(register.IsMediaRegister ? HandleType.MEDIA_REGISTER : HandleType.REGISTER)
+	public RegisterHandle(Register register) : base(register.IsMediaRegister ? HandleType.MEDIA_REGISTER : HandleType.REGISTER, HandleInstanceType.REGISTER)
 	{
 		Register = register;
 	}
@@ -917,7 +989,7 @@ public class ModifierHandle : Handle
 {
 	public string Modifier { get; private set; }
 
-	public ModifierHandle(string modifier) : base(HandleType.MODIFIER)
+	public ModifierHandle(string modifier) : base(HandleType.MODIFIER, HandleInstanceType.MODIFIER)
 	{
 		Modifier = modifier;
 	}
@@ -946,15 +1018,19 @@ public class ModifierHandle : Handle
 public class Lower12Bits : Handle
 {
 	private const string LOWER_12_BITS = ":lo12:";
+	private const string GLOBAL_OFFSET_TABLE_LOWER_12_BITS = ":got_lo12:";
 
 	private Result Handle { get; set; }
+	private bool GlobalOffsetTable { get; set; }
 
-	public Lower12Bits(DataSectionHandle handle) : base(HandleType.MODIFIER)
+	public Lower12Bits(DataSectionHandle handle, bool global_offset_table) : base(HandleType.MODIFIER, HandleInstanceType.LOWER_12_BITS)
 	{
 		var copy = (DataSectionHandle)handle.Finalize();
+		copy.GlobalOffsetTable = false;
 		copy.Address = true;
 
 		Handle = new Result(copy, Assembler.Format);
+		GlobalOffsetTable = global_offset_table;
 	}
 
 	public override Result[] GetInnerResults()
@@ -964,6 +1040,16 @@ public class Lower12Bits : Handle
 
 	public override string ToString()
 	{
-		return LOWER_12_BITS + Handle.Value;
+		return (GlobalOffsetTable ? GLOBAL_OFFSET_TABLE_LOWER_12_BITS : LOWER_12_BITS) + Handle.Value;
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is Lower12Bits bits && base.Equals(other) && EqualityComparer<Result>.Default.Equals(Handle, bits.Handle);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Handle);
 	}
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System;
 
 /// <summary>
 /// Relocates variables so that their locations match the state of the outer scope
@@ -7,7 +6,7 @@ using System;
 /// </summary>
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit) : base(unit) { }
+	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE) { }
 
 	private Result GetVariableStackHandle(Variable variable)
 	{
@@ -50,20 +49,5 @@ public class MergeScopeInstruction : Instruction
 		}
 
 		Unit.Append(Memory.Align(Unit, moves), true);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to redirect Merge-Scope-Instruction");
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.MERGE_SCOPE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

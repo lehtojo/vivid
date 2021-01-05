@@ -4,6 +4,7 @@ using System.Linq;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
+/// This instruction works on all architectures
 /// </summary>
 public class InitializeInstruction : Instruction
 {
@@ -12,13 +13,17 @@ public class InitializeInstruction : Instruction
 	public const string ARM64_STORE_REGISTER_PAIR_INSTRUCTION = "stp";
 	public const string ARM64_STORE_REGISTER_INSTRUCTION = "str";
 
+	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
+	public const string DEBUG_HEADER_START = ".cfi_def_cfa_offset 16\n.cfi_offset 6, -16";
+	public const string DEBUG_HEADER_END = ".cfi_def_cfa_register 6";
+
 	public int StackMemoryChange { get; private set; }
 	public int LocalMemoryTop { get; private set; }
 
 	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64bit;
 	private static bool IsStackAligned => Assembler.Is64bit;
 
-	public InitializeInstruction(Unit unit) : base(unit) { }
+	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) { }
 
 	private static int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
 	{
@@ -162,7 +167,7 @@ public class InitializeInstruction : Instruction
 		if (Assembler.IsDebuggingEnabled)
 		{
 			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!));
-			builder.AppendLine(".cfi_startproc");
+			builder.AppendLine(DEBUG_FUNCTION_START);
 		}
 
 		if (Assembler.IsArm64 && calls.Any())
@@ -183,10 +188,9 @@ public class InitializeInstruction : Instruction
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.AppendLine(".cfi_def_cfa_offset 16");
-			builder.AppendLine(".cfi_offset 6, -16");
+			builder.AppendLine(DEBUG_HEADER_START);
 			builder.AppendLine(MoveInstruction.SHARED_MOVE_INSTRUCTION + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
-			builder.AppendLine(".cfi_def_cfa_register 6");
+			builder.AppendLine(DEBUG_HEADER_END);
 		}
 
 		// Local variables in memory start now
@@ -246,20 +250,5 @@ public class InitializeInstruction : Instruction
 	public override int GetStackOffsetChange()
 	{
 		return StackMemoryChange;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.INITIALIZE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

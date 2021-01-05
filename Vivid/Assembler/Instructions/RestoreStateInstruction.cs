@@ -8,7 +8,7 @@ public class RestoreStateInstruction : Instruction
 {
 	public SaveStateInstruction Save { get; private set; }
 
-	public RestoreStateInstruction(Unit unit, SaveStateInstruction save) : base(unit)
+	public RestoreStateInstruction(Unit unit, SaveStateInstruction save) : base(unit, InstructionType.RESTORE)
 	{
 		Save = save;
 	}
@@ -21,20 +21,5 @@ public class RestoreStateInstruction : Instruction
 		}
 
 		Unit.Set(Save.State);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.RESTORE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result };
 	}
 }

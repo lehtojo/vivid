@@ -104,7 +104,7 @@ public static class Conditionals
 				return result;
 			}
 
-			default: throw new ApplicationException("Successor of an if-statement wasn't an else-if-statement or an else-statement");
+			default: throw new ApplicationException("Successor of an if-statement was not an else-if-statement or an else-statement");
 		}
 	}
 
@@ -185,7 +185,7 @@ public static class Conditionals
 			// Check if any jump instruction uses the current label
 			if (!jumps.Any(j => j.Label == label.Label))
 			{
-				// Since the label isn't used, it can be removed
+				// Since the label is not used, it can be removed
 				instructions.Remove(label);
 			}
 		}
@@ -210,7 +210,7 @@ public static class Conditionals
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit)
+		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
 		{
 			Comparison = comparison;
 		}
@@ -246,11 +246,6 @@ public static class Conditionals
 
 			// Recover the previous state
 			Unit.Append(new RestoreStateInstruction(Unit, recovery));
-		}
-
-		public override InstructionType GetInstructionType()
-		{
-			return InstructionType.TEMPORARY_COMPARE;
 		}
 	}
 

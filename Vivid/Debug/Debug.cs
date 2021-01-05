@@ -497,11 +497,11 @@ public class Debug
 		Entry.Add(GetLine(variable));
 		Entry.Add(variable.LocalAlignment!);
 
-		if (Flag.Has(variable.Modifiers, AccessModifier.PRIVATE))
+		if (Flag.Has(variable.Modifiers, Modifier.PRIVATE))
 		{
 			Entry.Add(DWARF_ACCESS_PRIVATE);
 		}
-		else if (Flag.Has(variable.Modifiers, AccessModifier.PROTECTED))
+		else if (Flag.Has(variable.Modifiers, Modifier.PROTECTED))
 		{
 			Entry.Add(DWARF_ACCESS_PROTECTED);
 		}

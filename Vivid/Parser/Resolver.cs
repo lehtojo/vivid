@@ -4,8 +4,11 @@ using System.Linq;
 
 public static class Resolver
 {
+	private static string YELLOW = "\x1B[1;33m";
+	private static string RESET = "\x1B[0m";
+
 	/// <summary>
-	/// Tries to resolve the specified type if it's unresolved
+	/// Tries to resolve the specified type if it is unresolved
 	/// </summary>
 	public static Type? Resolve(Context context, Type type)
 	{
@@ -70,7 +73,7 @@ public static class Resolver
 		{
 			ResolveVariables(implementation);
 
-			// Check if the implementation has a return type and if it's unresolved
+			// Check if the implementation has a return type and if it is unresolved
 			if (implementation.ReturnType != Types.UNKNOWN)
 			{
 				if (implementation.ReturnType.IsUnresolved)
@@ -114,9 +117,16 @@ public static class Resolver
 			{
 				return resolvable.Resolve(context) ?? node;
 			}
-			catch
+			catch (Exception e)
 			{
-				Console.WriteLine("Warning: Resolvable threw an exception");
+				if (node.Position != null)
+				{
+					Console.WriteLine($"{YELLOW}Internal warning{RESET}: {Errors.FormatPosition(node.Position)} {e.Message}");
+				}
+				else
+				{
+					Console.WriteLine($"{YELLOW}Internal warning{RESET}: {e.Message}");
+				}
 			}
 
 			return null;

@@ -2,7 +2,7 @@ public class Bool : Type
 {
 	private const int BYTES = 1;
 
-	public Bool() : base("bool", AccessModifier.PUBLIC)
+	public Bool() : base("bool", Modifier.PUBLIC)
 	{
 		Identifier = "b";
 	}

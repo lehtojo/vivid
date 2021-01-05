@@ -18,7 +18,7 @@ public static class Builders
 
 				var function_pointer = References.Get(unit, call.Pointer);
 
-				return Calls.Build(unit, self, function_pointer, CallingConvention.X64, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+				return Calls.Build(unit, self, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
 			}
 
 			case NodeType.FUNCTION:

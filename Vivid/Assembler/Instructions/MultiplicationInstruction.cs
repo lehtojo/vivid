@@ -3,6 +3,7 @@ using System.Linq;
 
 /// <summary>
 /// Multiplicates to specified values together
+/// This instruction works on all architectures
 /// </summary>
 public class MultiplicationInstruction : DualParameterInstruction
 {
@@ -24,7 +25,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public bool Assigns { get; private set; }
 
-	public MultiplicationInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
+	public MultiplicationInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.MULTIPLICATION)
 	{
 		Assigns = assigns;
 	}
@@ -112,6 +113,44 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (multiplication != null && multiplication.Constant > 0)
 		{
+			if (!Assigns && IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= 8 && !First.IsExpiring(Unit.Position))
+			{
+				Memory.GetResultRegisterFor(Unit, Result, false);
+
+				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
+
+				// Example:
+				// mov rax, rcx
+				// imul rax, 4
+				// =>
+				// lea ..., [rax*4]
+
+				var calculation = new ExpressionHandle
+				(
+					result,
+					(int)multiplication.Constant,
+					null,
+					0
+				);
+
+				Build(
+					X64_EXTENDED_MULTIPLICATION_INSTRUCTION,
+					Assembler.Size,
+					new InstructionParameter(
+						Result,
+						ParameterFlag.DESTINATION,
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						new Result(calculation, Assembler.Format),
+						ParameterFlag.NONE,
+						HandleType.EXPRESSION
+					)
+				);
+
+				return;
+			}
+
 			if (IsPowerOfTwo(multiplication.Constant))
 			{
 				var count = new ConstantHandle((long)Math.Log2(multiplication.Constant));
@@ -138,12 +177,26 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 			if (IsConstantValidForExtendedMultiplication(multiplication.Constant - 1))
 			{
+				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
+
+				var destination = (Result?)null;
+
+				if (Assigns)
+				{
+					destination = result;
+				}
+				else
+				{
+					Memory.GetResultRegisterFor(Unit, Result, false);
+					destination = Result;
+				}
+				
 				// Example: imul rax, 3 => lea ..., [rax*2+rax]
 				var calculation = new ExpressionHandle
 				(
-					multiplication.Multiplicand,
+					result,
 					(int)multiplication.Constant - 1,
-					multiplication.Multiplicand,
+					result,
 					0
 				);
 
@@ -151,8 +204,8 @@ public class MultiplicationInstruction : DualParameterInstruction
 					X64_EXTENDED_MULTIPLICATION_INSTRUCTION,
 					Assembler.Size,
 					new InstructionParameter(
-						Result,
-						ParameterFlag.DESTINATION,
+						destination,
+						ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | (Assigns ? ParameterFlag.NO_ATTACH : ParameterFlag.NONE),
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
@@ -192,7 +245,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 	{
 		if (Assigns)
 		{
-			// If the destination operand is assigned and it's a memory address, load it, calculate and store it lastly
+			// If the destination operand is assigned and it is a memory address, load it, calculate and store it lastly
 			var result = Memory.LoadOperand(Unit, First, false, Assigns);
 		
 			// Example:
@@ -290,7 +343,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (Assigns)
 		{
-			// If the destination operand is assigned and it's a memory address, load it, calculate and store it lastly
+			// If the destination operand is assigned and it is a memory address, load it, calculate and store it lastly
 			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
 
 			Build(
@@ -341,26 +394,20 @@ public class MultiplicationInstruction : DualParameterInstruction
 		return;
 	}
 
-	public override Result GetDestinationDependency()
-	{
-		if (Result.Format.IsDecimal())
-		{
-			return First;
-		}
-
-		var constant_multiplication = TryGetConstantMultiplication();
-
-		if (constant_multiplication != null && constant_multiplication.Constant > 0 && IsConstantValidForExtendedMultiplication(constant_multiplication.Constant - 1))
-		{
-			return Result;
-		}
-
-		return First;
-	}
-
 	public bool RedirectX64(Handle handle)
 	{
-		if (Operation != X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION || Assigns)
+		if (Operation == X64_EXTENDED_MULTIPLICATION_INSTRUCTION)
+		{
+			if (!handle.Is(HandleType.REGISTER))
+			{
+				return false;
+			}
+
+			Destination!.Value = handle;
+			return true;
+		}
+
+		if (Operation != X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION)
 		{
 			return false;
 		}
@@ -385,7 +432,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public bool RedirectArm64(Handle handle)
 	{
-		if (Operation == ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		if ((Operation == ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION || Operation == ARM64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION) && handle.Is(HandleType.REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;
@@ -408,10 +455,5 @@ public class MultiplicationInstruction : DualParameterInstruction
 		}
 
 		return RedirectX64(handle);
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.MULTIPLICATION;
 	}
 }

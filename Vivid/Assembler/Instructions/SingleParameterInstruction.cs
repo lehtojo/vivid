@@ -36,10 +36,12 @@ public class SingleParameterInstruction : Instruction
 		};
 	}
 
-	private SingleParameterInstruction(Unit unit, string instruction, Result target) : base(unit)
+	private SingleParameterInstruction(Unit unit, string instruction, Result target) : base(unit, InstructionType.SINGLE_PARAMATER)
 	{
 		Instruction = instruction;
 		Target = target;
+		Dependencies = new[] { Result, Target };
+
 		Result.Format = Target.Format;
 	}
 
@@ -81,20 +83,5 @@ public class SingleParameterInstruction : Instruction
 				HandleType.REGISTER
 			)
 		);
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Target;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SINGLE_PARAMATER;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result, Target };
 	}
 }

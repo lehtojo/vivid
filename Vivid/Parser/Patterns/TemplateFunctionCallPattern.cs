@@ -23,7 +23,7 @@ public class TemplateFunctionCallPattern : Pattern
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
-		var descriptor = new FunctionToken(name, tokens.Last()?.To<ContentToken>() ?? throw new ApplicationException("Tried to create a template function call but the syntax was invalid"));
+		var descriptor = new FunctionToken(name, tokens.Last()?.To<ContentToken>() ?? throw new ApplicationException("Tried to create a template function call but the parameters were missing"));
 		var template_arguments = Common.ReadTemplateArguments(context, new Queue<Token>(tokens.Skip(1)));
 
 		return Singleton.GetFunction(context, context, descriptor, template_arguments);

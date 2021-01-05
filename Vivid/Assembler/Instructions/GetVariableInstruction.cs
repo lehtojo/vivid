@@ -11,13 +11,18 @@ public class GetVariableInstruction : Instruction
 
 	public GetVariableInstruction(Unit unit, Variable variable, AccessMode mode) : this(unit, null, null, variable, mode) {}
 
-	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable, AccessMode mode) : base(unit)
+	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable, AccessMode mode) : base(unit, InstructionType.GET_VARIABLE)
 	{
 		Self = self;
 		SelfType = self_type;
 		Variable = variable;
 		Mode = mode;
 		Description = $"Get the current handle of variable '{variable.Name}'";
+
+		if (Self != null)
+		{
+			Dependencies = new[] { Result, Self };
+		}
 
 		Result.Value = References.CreateVariableHandle(unit, Self, self_type, variable);
 		Result.Format = variable.Type!.Format;
@@ -38,25 +43,5 @@ public class GetVariableInstruction : Instruction
 	public override void OnBuild()
 	{
 		OnSimulate();
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return Result;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.GET_VARIABLE;
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		if (Self != null)
-		{
-			return new[] { Result, Self };
-		}
-
-		return new[] { Result };
 	}
 }

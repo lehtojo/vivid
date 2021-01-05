@@ -4,7 +4,7 @@ public static class Links
 {
 	public static Result GetMemberFunctionCall(Unit unit, FunctionNode function, Node self_node, Type self_type)
 	{
-		// Static functions can't access any instance data
+		// Static functions can not access any instance data
 		if (function.Function.IsStatic)
 		{
 			return Calls.Build(unit, function);

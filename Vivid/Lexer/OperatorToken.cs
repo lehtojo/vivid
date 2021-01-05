@@ -15,10 +15,10 @@ public class OperatorToken : Token
 		Operator = operation;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is OperatorToken token &&
-			   base.Equals(obj) &&
+		return other is OperatorToken token &&
+			   base.Equals(other) &&
 			   EqualityComparer<Operator>.Default.Equals(Operator, token.Operator);
 	}
 

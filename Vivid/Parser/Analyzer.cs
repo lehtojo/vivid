@@ -142,7 +142,7 @@ public static class Analyzer
 		foreach (var type in context.Types.Values)
 		{
 			foreach (var variable in type.Variables.Values
-				.Where(variable => Flag.Has(variable.Modifiers, AccessModifier.STATIC)))
+				.Where(variable => Flag.Has(variable.Modifiers, Modifier.STATIC)))
 			{
 				// Static variables should be treated like global variables
 				variable.Category = VariableCategory.GLOBAL;
@@ -173,7 +173,7 @@ public static class Analyzer
 			{
 				if (assignment.Right.Is(NodeType.NUMBER) || assignment.Right.Is(NodeType.STRING))
 				{
-					var value = (assignment.Right as ICloneable) ?? throw new NotImplementedException("Constant value didn't support cloning");
+					var value = (assignment.Right as ICloneable) ?? throw new NotImplementedException("Constant value did not support cloning");
 
 					foreach (var reference in constant.Reads)
 					{

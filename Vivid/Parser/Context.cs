@@ -161,6 +161,7 @@ public class Mangle
 public class Context
 {
 	private Mangle? Mangled { get; set; }
+	public string Identity { get; private set; }
 
 	public string Identifier { get; set; } = string.Empty;
 	public string Name { get; protected set; } = string.Empty;
@@ -173,11 +174,12 @@ public class Context
 
 	public bool IsGlobal => GetTypeParent() == null;
 	public bool IsMember => GetTypeParent() != null;
-	public bool IsLambda => this is LambdaImplementation;
 	public bool IsType => this is Type;
-	public bool IsFunction => this is FunctionImplementation;
+	public bool IsFunction => this is Function;
+	public bool IsImplementation => this is FunctionImplementation;
+	public bool IsLambdaImplementation => this is LambdaImplementation;
 
-	public bool IsInsideFunction => IsFunction || GetFunctionParent() != null;
+	public bool IsInsideFunction => IsImplementation || IsFunction || GetImplementationParent() != null || GetFunctionParent() != null;
 	public bool IsInsideType => IsType || GetTypeParent() != null;
 
 	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
@@ -185,22 +187,33 @@ public class Context
 	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
 	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
-	public List<Variable> Locals => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL).Concat(Subcontexts.SelectMany(c => c.Locals)).ToList();
+	public List<Variable> Locals => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
+		.Concat(Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction).SelectMany(c => c.Locals)).ToList();
 
-	private int Lambdas { get; set; } = 0;
-	private int Hiddens { get; set; } = 0;
-	private int Sections { get; set; } = 0;
+	protected Indexer Indexer { get; set; } = new Indexer();
 
 	/// <summary>
-	/// Create a new context
+	/// Create a new root context
 	/// </summary>
-	public Context() {}
+	public static Context CreateRootContext(string identity)
+	{
+		return new Context(identity);
+	}
+
+	/// <summary>
+	/// Create a new root context
+	/// </summary>
+	public Context(string identity) 
+	{
+		Identity = identity;
+	}
 
 	/// <summary>
 	/// Create a new context and link it to the specified parent
 	/// </summary>
 	public Context(Context parent)
 	{
+		Identity = parent.Identity + '.' + parent.Indexer[Indexer.CONTEXT];
 		Link(parent);
 	}
 
@@ -401,7 +414,7 @@ public class Context
 		}
 
 		// When a variable is created this way it is automatically declared into this context
-		Variable.Create(this, type, category, name, AccessModifier.PUBLIC);
+		Variable.Create(this, type, category, name, Modifier.PUBLIC);
 	}
 
 	/// <summary>
@@ -409,7 +422,7 @@ public class Context
 	/// </summary>
 	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, category, $".{Hiddens++}_{Guid.NewGuid()}", AccessModifier.PUBLIC);
+		return Variable.Create(this, type, category, $"{Indexer.HIDDEN.ToLowerInvariant()}.{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.PUBLIC);
 	}
 
 	/// <summary>
@@ -464,6 +477,11 @@ public class Context
 		return Variables.ContainsKey(name) || (Parent != null && Parent.IsVariableDeclared(name));
 	}
 
+	public virtual bool IsPropertyDeclared(string name)
+	{
+		return (IsFunctionDeclared(name) && GetFunction(name)!.GetOverload(new List<Type>()) != null) || (Parent != null && Parent.IsPropertyDeclared(name));
+	}
+
 	public virtual bool IsTypeDeclared(string name)
 	{
 		return Types.ContainsKey(name) || (Parent != null && Parent.IsTypeDeclared(name));
@@ -516,6 +534,11 @@ public class Context
 		}
 	}
 
+	public virtual Function? GetProperty(string name)
+	{
+		return GetFunction(name)!.GetOverload(new List<Type>());
+	}
+
 	public virtual Variable? GetVariable(string name)
 	{
 		if (Variables.ContainsKey(name))
@@ -534,7 +557,7 @@ public class Context
 
 	public virtual Label GetLabel()
 	{
-		return new Label(GetFullname() + "_I" + Sections++);
+		return new Label(GetFullname() + "_I" + Indexer[Indexer.SECTION]);
 	}
 
 	public virtual Variable? GetSelfPointer()
@@ -552,14 +575,24 @@ public class Context
 		return Parent?.GetTypeParent();
 	}
 
-	public FunctionImplementation? GetFunctionParent()
+	public Function? GetFunctionParent()
 	{
 		if (IsFunction)
+		{
+			return (Function)this;
+		}
+
+		return Parent?.GetFunctionParent();
+	}
+
+	public FunctionImplementation? GetImplementationParent()
+	{
+		if (IsImplementation)
 		{
 			return (FunctionImplementation)this;
 		}
 
-		return Parent?.GetFunctionParent();
+		return Parent?.GetImplementationParent();
 	}
 
 	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
@@ -579,7 +612,7 @@ public class Context
 
 	public int GetNextLambda()
 	{
-		return Lambdas++;
+		return Indexer[Indexer.LAMBDA];
 	}
 
 	public void Destroy()
@@ -588,13 +621,13 @@ public class Context
 		Parent = null;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Context context &&
+		return other is Context context &&
 			   Name == context.Name &&
 			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, context.Subcontexts) &&
 			   IsType == context.IsType &&
-			   IsFunction == context.IsFunction &&
+			   IsImplementation == context.IsImplementation &&
 			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, context.Variables) &&
 			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, context.Functions) &&
 			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, context.Types) &&
@@ -607,7 +640,7 @@ public class Context
 		hash.Add(Name);
 		hash.Add(Subcontexts);
 		hash.Add(IsType);
-		hash.Add(IsFunction);
+		hash.Add(IsImplementation);
 		hash.Add(Variables);
 		hash.Add(Functions);
 		hash.Add(Types);

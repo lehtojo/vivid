@@ -5,7 +5,7 @@ using System.Linq;
 public class UnresolvedFunction : Node, IResolvable, IType
 {
 	public string Name { get; }
-	public Type[] TemplateArguments { get; }
+	public Type[] Arguments { get; }
 
 	/// <summary>
 	/// Creates an unresolved function with a function name to look for
@@ -14,7 +14,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 	public UnresolvedFunction(string name, Position? position)
 	{
 		Name = name;
-		TemplateArguments = Array.Empty<Type>();
+		Arguments = Array.Empty<Type>();
 		Position = position;
 	}
 
@@ -25,7 +25,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 	public UnresolvedFunction(string name, Type[] template_arguments, Position? position)
 	{
 		Name = name;
-		TemplateArguments = template_arguments;
+		Arguments = template_arguments;
 		Position = position;
 	}
 
@@ -153,6 +153,8 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 	public Node? Solve(Context environment, Context primary)
 	{
+		var linked = environment != primary;
+
 		// Try to solve all the parameters
 		foreach (var parameter in this)
 		{
@@ -177,10 +179,10 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		}
 
 		// Try to find a suitable function by name and parameter types
-		var function = Singleton.GetFunctionByName(primary, Name, types, TemplateArguments);
+		var function = Singleton.GetFunctionByName(primary, Name, types, Arguments);
 
 		// First, ensure this function can be a virtual or a lambda call
-		if (function == null && primary == environment && !TemplateArguments.Any())
+		if (function == null && primary == environment && !Arguments.Any())
 		{
 			// Try to form a virtual function call
 			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
@@ -210,12 +212,12 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 		if (function.IsConstructor)
 		{
-			return new ConstructionNode(node, node.Position);
+			return linked ? node : (Node)new ConstructionNode(node, node.Position);
 		}
 
 		// When the environment context is the same as the current context it means that this function is not part of a link
 		// When the function is a member function and the this function is not part of a link it means that the function needs the self pointer
-		if (function.IsMember && environment == primary)
+		if (function.IsMember && !linked)
 		{
 			var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
@@ -242,7 +244,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 
 	public Status GetStatus()
 	{
-		var template_parameters = string.Join(", ", TemplateArguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
+		var template_parameters = string.Join(", ", Arguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
 		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
 
 		descriptor += $"({string.Join(", ", ((IEnumerable<Node>)this).Select(p => p.TryGetType()?.ToString() ?? "?"))})";

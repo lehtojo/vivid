@@ -454,7 +454,173 @@ public static class Common
 		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
 	}
 
+	public static KeyValuePair<Type, DataPointer>[] CopyTypeDescriptors(Type type, List<Type> supertypes)
+	{
+		if (type.Configuration == null)
+		{
+			return Array.Empty<KeyValuePair<Type, DataPointer>>();;
+		}
+
+		var configuration = type.Configuration;
+		var descriptor_count = type.Supertypes.Any() ? supertypes.Count : supertypes.Count + 1;
+		var descriptors = new KeyValuePair<Type, DataPointer>[descriptor_count];
+
+		if (!configuration.IsCompleted)
+		{
+			// Complete the descriptor of the type
+			configuration.Descriptor.Add(type.ContentSize);
+			configuration.Descriptor.Add(type.Supertypes.Count);
+
+			type.Supertypes.ForEach(i => configuration.Descriptor.Add(i.Configuration?.Descriptor ?? throw new ApplicationException("Missing runtime configuration from a supertype")));
+		}
+
+		if (!type.Supertypes.Any())
+		{
+			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
+			// It should be possible to check whether the link represents this type or another
+			descriptors[descriptors.Length - 1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry, 0));
+		}
+
+		var offset = Parser.Bytes;
+
+		for (var i = 0; i < supertypes.Count; i++)
+		{
+			var supertype = supertypes[i];
+
+			// Append configuration information only if it is not generated
+			if (!configuration.IsCompleted)
+			{
+				// Begin a new section inside the configuration table
+				configuration.Entry.Add(configuration.Descriptor);
+			}
+			
+			// Types should not inherited types which do not have runtime configurations such as standard integers
+			if (supertype.Configuration == null)
+			{
+				throw new ApplicationException("Type inherited a type which did not have runtime configuration");
+			}
+
+			descriptors[i] = new KeyValuePair<Type, DataPointer>(supertype, new DataPointer(configuration.Entry, offset));
+			offset += Parser.Bytes;
+
+			// Interate all virtual functions of this supertype and connect their implementations
+			foreach (var virtual_function in supertype.GetAllVirtualFunctions())
+			{
+				// Find all possible implementations of the virtual function inside the specified type
+				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
+
+				if (overloads == null)
+				{
+					continue;
+				}
+
+				// Retrieve all parameter types of the virtual function declaration
+				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
+
+				// Try to find a suitable implementation for the virtual function from the specified type
+				FunctionImplementation? implementation = null;
+
+				foreach (var overload in overloads)
+				{
+					var actual = overload.Parameters.Select(i => i.Type).ToList();
+
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
+					{
+						continue;
+					}
+
+					implementation = overload.Get(expected!);
+					break;
+				}
+
+				if (implementation == null)
+				{
+					// It seems there is no implementation for this virtual function
+					continue;
+				}
+
+				// Append configuration information only if it is not generated
+				if (!configuration.IsCompleted)
+				{
+					configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
+				}
+				
+				offset += Parser.Bytes;
+			}
+		}
+
+		configuration.IsCompleted = true;
+		return descriptors;
+	}
+
 	public static Node CreateHeapConstruction(FunctionNode constructor)
+	{
+		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+
+		var environment = constructor.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+
+		var allocation_size = Math.Max(1L, type.ContentSize);
+		var instance = inline.Context.DeclareHidden(type);
+
+		var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(instance),
+			new CastNode(
+				new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(allocation_parameters),
+				new TypeNode(type)
+			)
+		));
+
+		var supertypes = type.GetAllSupertypes();
+		var descriptors = CopyTypeDescriptors(type, supertypes);
+
+		foreach (var iterator in descriptors)
+		{
+			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+				iterator.Value
+			));
+		}
+
+		inline.Add(new LinkNode(new VariableNode(instance), constructor));
+		return inline;
+	}
+
+	public static Node CreateStackConstruction(FunctionNode constructor)
+	{
+		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+
+		var environment = constructor.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+
+		var allocation_size = Math.Max(1, type.ContentSize);
+		var instance = inline.Context.DeclareHidden(type);
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(instance),
+			new CastNode(new StackAddressNode(allocation_size), new TypeNode(type))
+		));
+
+		var supertypes = type.GetAllSupertypes();
+		var descriptors = CopyTypeDescriptors(type, supertypes);
+
+		foreach (var iterator in descriptors)
+		{
+			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+				iterator.Value
+			));
+		}
+
+		inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+		inline.Add(new VariableNode(instance));
+
+		return inline;
+	}
+
+	/*public static Node CreateHeapConstruction(FunctionNode constructor)
 	{
 		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
 
@@ -467,26 +633,5 @@ public static class Common
 		);
 
 		return new LinkNode(allocation, constructor, constructor.Position);
-	}
-
-	public static Node CreateStackConstruction(FunctionNode constructor)
-	{
-		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
-
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
-
-		var allocation_size = Math.Max(1, type.ContentSize);
-		var temporary = inline.Context.DeclareHidden(type);
-
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(temporary),
-			new CastNode(new StackAddressNode(allocation_size), new TypeNode(type))
-		));
-
-		inline.Add(new LinkNode(new VariableNode(temporary), constructor, constructor.Position));
-		inline.Add(new VariableNode(temporary));
-
-		return inline;
-	}
+	}*/
 }

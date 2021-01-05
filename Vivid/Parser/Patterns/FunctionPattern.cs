@@ -25,12 +25,12 @@ class FunctionPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[MODIFIERS].Type == TokenType.NONE || tokens[MODIFIERS]?.To<KeywordToken>().Keyword is AccessModifierKeyword;
+		return tokens[MODIFIERS].Type == TokenType.NONE || tokens[MODIFIERS]?.To<KeywordToken>().Keyword.Type == KeywordType.MODIFIER;
 	}
 
 	private static int GetModifiers(List<Token> tokens)
 	{
-		return tokens[MODIFIERS].Type == TokenType.NONE ? AccessModifier.PUBLIC : tokens[MODIFIERS].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier;
+		return tokens[MODIFIERS].Type == TokenType.NONE ? Modifier.PUBLIC : tokens[MODIFIERS].To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)

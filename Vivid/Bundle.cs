@@ -48,7 +48,7 @@ public class Bundle : Dictionary<string, object>
 			return (T)value;
 		}
 
-		throw new ArgumentException($"Bundle didn't contain key '{name}'");
+		throw new ArgumentException($"Bundle did not contain key '{name}'");
 	}
 
 	public bool Contains(string name)

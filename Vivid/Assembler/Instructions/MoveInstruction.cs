@@ -18,7 +18,8 @@ public enum MoveType
 
 /// <summary>
 /// Moves the second operand to the location of the first operand
-/// This function also acts as a conversion function
+/// This instruction also acts as a conversion instruction
+/// This instruction works on all architectures
 /// </summary>
 public class MoveInstruction : DualParameterInstruction
 {
@@ -79,7 +80,7 @@ public class MoveInstruction : DualParameterInstruction
 	public bool IsSafe { get; set; } = false;
 	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size); 
 
-	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format)
+	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
 	{
 		IsUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
 	}
@@ -785,13 +786,13 @@ public class MoveInstruction : DualParameterInstruction
 	{
 		UpdateResultFormat();
 
-		// Move shouldn't happen if the source is the same as the destination
+		// Move should not happen if the source is the same as the destination
 		if (IsRedundant)
 		{
 			return;
 		}
 
-		// Ensure the destination is available if it's a register
+		// Ensure the destination is available if it is a register
 		if (IsSafe && First.IsAnyRegister)
 		{
 			Memory.ClearRegister(Unit, First.Value.To<RegisterHandle>().Register);
@@ -917,7 +918,7 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsX64 && Second.Value is DataSectionHandle && Second.Value.To<DataSectionHandle>().Address)
+		else if (Assembler.IsX64 && Second.IsDataSectionHandle && Second.Value.To<DataSectionHandle>().Address)
 		{
 			Second.Value.To<DataSectionHandle>().Address = false;
 
@@ -938,7 +939,7 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsArm64 && Second.Value is DataSectionHandle)
+		else if (Assembler.IsArm64 && Second.IsDataSectionHandle)
 		{
 			var handle = Second.Value.To<DataSectionHandle>();
 
@@ -947,12 +948,16 @@ public class MoveInstruction : DualParameterInstruction
 				// Example:
 				// [S0] => x0
 				//
-				// adrp x0, S0
-				// ldr x0, [x0, :lo12:S0]
+				// adrp x0, :got:S0
+				// ldr x0, [x0, :got_lo12:S0]
+				// ldr x0, [x0]
 
-				var address = new GetRelativeAddressInstruction(Unit, handle).Execute();
+				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+				var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
+				var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
 
-				Second.Value = new ComplexMemoryHandle(address, new Result(new Lower12Bits(handle), Assembler.Format), 1);
+				// Since the address is evaluated the second must use it
+				Second.Value = new MemoryHandle(Unit, address, (int)handle.Offset);
 
 				Build(
 					ARM64_LOAD_INSTRUCTION,
@@ -970,36 +975,42 @@ public class MoveInstruction : DualParameterInstruction
 
 				return;
 			}
-
-			handle.Address = true;
-
-			// Example:
-			// S0 => x0
-			//
-			// adrp x0, S0
-			// add x0, x0, :lo12:S0
-
-			Build(
-				GetRelativeAddressInstruction.ARM64_RELATIVE_ADDRESS_INSTRUCTION,
-				new InstructionParameter(
-					First,
-					flags_first,
-					HandleType.REGISTER
-				),
-				new InstructionParameter(
-					Second,
-					flags_second | ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
-					HandleType.MEMORY
-				)
-			);
-
-			// Add the lower 12 bits of the handle to the result of the instruction above
-			Unit.Append(new AdditionInstruction(Unit, First, new Result(new Lower12Bits(handle), Assembler.Format), Assembler.Format, true), true);
-
-			if (handle.Offset != 0)
+			else
 			{
-				// Add the handle offset
-				Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+				// Example:
+				// S0 => x0
+				//
+				// adrp x0, :got:S0
+				// ldr x0, [x0, :got_lo12:S0]
+
+				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+				Second.Value = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
+
+				Build(
+					ARM64_LOAD_INSTRUCTION,
+					new InstructionParameter(
+						First,
+						flags_first,
+						HandleType.REGISTER
+					),
+					new InstructionParameter(
+						Second,
+						flags_second,
+						HandleType.MEMORY
+					)
+				);
+
+				// Example:
+				// S0 + 8 => x0
+				//
+				// adrp x0, :got:S0
+				// ldr x0, [x0, :got_lo12:S0]
+				// add x0, x0, #8
+				if (handle.Offset != 0)
+				{
+					// Add the handle offset
+					Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+				}
 			}
 		}
 		else if (Second.IsExpression)
@@ -1091,7 +1102,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 		else
 		{
-			if (Assembler.IsArm64 && Second.Value is ConstantHandle handle && handle.Bits > 16 && handle.Value is long constant)
+			if (Assembler.IsArm64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Bits > 16 && Second.Value.To<ConstantHandle>().Value is long constant)
 			{
 				LoadConstantArm64(constant, flags_first, flags_second);
 				return;
@@ -1124,6 +1135,12 @@ public class MoveInstruction : DualParameterInstruction
 
 	public void OnPostBuildX64()
 	{
+		// Skip decimal formats since they are correct by default
+		if (Destination!.Value!.Format.IsDecimal() || Source!.Value!.Format.IsDecimal())
+		{
+			return;
+		}
+
 		var is_source_memory_address = Source!.Value?.Type == HandleType.MEMORY;
 		var is_destination_memory_address = Destination!.Value?.Type == HandleType.MEMORY;
 
@@ -1369,13 +1386,19 @@ public class MoveInstruction : DualParameterInstruction
 	{
 		if (Assembler.IsX64)
 		{
-			if (Source!.IsMemoryAddress)
+			if (Operation == SHARED_MOVE_INSTRUCTION && (handle.Is(HandleType.REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress && (!Source.IsConstant || Source.Value!.To<ConstantHandle>().Bits <= 32))))
 			{
-				return false;
+				Destination!.Value = handle;
+				return true;
 			}
 
-			Destination!.Value = handle;
-			return true;
+			if ((Operation == X64_SINGLE_PRECISION_MOVE || Operation == X64_DOUBLE_PRECISION_MOVE) && (handle.Is(HandleType.MEDIA_REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress)))
+			{
+				Destination!.Value = handle;
+				return true;
+			}
+
+			return false;
 		}
 
 		if (Operation == SHARED_MOVE_INSTRUCTION && handle.Is(HandleType.REGISTER))
@@ -1385,15 +1408,5 @@ public class MoveInstruction : DualParameterInstruction
 		}
 
 		return false;
-	}
-
-	public override Result GetDestinationDependency()
-	{
-		return First;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.MOVE;
 	}
 }

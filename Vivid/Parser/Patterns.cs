@@ -83,6 +83,7 @@ public class Patterns
 	{
 		Add(new AssignPattern());
 		Add(new CastPattern());
+		Add(new CommandPattern());
 		Add(new CompilesPattern());
 		Add(new ConstructorPattern());
 		Add(new ElseIfPattern());
@@ -95,21 +96,21 @@ public class Patterns
 		Add(new InheritancePattern());
 		Add(new IsPattern());
 		Add(new LambdaPattern());
-		Add(new PostIncrementAndDecrementPattern());
-		Add(new PreIncrementAndDecrementPattern());
 		Add(new LinkPattern());
 		Add(new ListPattern());
-		Add(new CommandPattern());
 		Add(new LoopPattern());
-		Add(new SpecificModificationPattern());
+		Add(new ModifierSectionPattern());
 		Add(new NotPattern());
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());
+		Add(new PostIncrementAndDecrementPattern());
+		Add(new PreIncrementAndDecrementPattern());
+		Add(new ExpressionVariablePattern());
 		Add(new ReturnPattern());
-		Add(new ModifierSectionPattern());
 		Add(new SectionModificationPattern());
 		Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
+		Add(new SpecificModificationPattern());
 		Add(new TemplateFunctionCallPattern());
 		Add(new TemplateFunctionPattern());
 		Add(new TemplateTypePattern());

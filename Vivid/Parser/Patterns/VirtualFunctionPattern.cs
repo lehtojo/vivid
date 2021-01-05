@@ -47,7 +47,7 @@ public class VirtualFunctionPattern : Pattern
 			}
 		}
 
-		var type = context.GetTypeParent() ?? throw Errors.Get(tokens.First().Position, "Missing virtual function type parent");
+		var type = context.GetTypeParent() ?? throw Errors.Get(tokens.First().Position, "Missing uncompleted function type parent");
 		var descriptor = tokens.First().To<FunctionToken>();
 
 		if (type.IsVirtualFunctionDeclared(descriptor.Name))

@@ -20,7 +20,7 @@ public class SpecificModificationPattern : Pattern
 	{
 		var modifier = tokens[MODIFIER].To<KeywordToken>();
 
-		if (modifier.Keyword.Type != KeywordType.ACCESS_MODIFIER)
+		if (modifier.Keyword.Type != KeywordType.MODIFIER)
 		{
 			return false;
 		}
@@ -30,7 +30,7 @@ public class SpecificModificationPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<AccessModifierKeyword>().Modifier;
+		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
 
 		switch (tokens[OBJECT].To<DynamicToken>().Node)
 		{

@@ -11,13 +11,14 @@ public class GetMemoryAddressInstruction : Instruction
 	public Result Offset { get; private set; }
 	public int Stride { get; private set; }
 
-	public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Format format, Result start, Result offset, int stride) : base(unit)
+	public GetMemoryAddressInstruction(Unit unit, AccessMode mode, Format format, Result start, Result offset, int stride) : base(unit, InstructionType.GET_MEMORY_ADDRESS)
 	{
 		Mode = mode;
 		Start = start;
 		Offset = offset;
 		Stride = stride;
 		Format = format;
+		Dependencies = new[] { Result, Start, Offset };
 
 		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
 		Result.Format = Format;
@@ -47,20 +48,5 @@ public class GetMemoryAddressInstruction : Instruction
 			Result.Value = new MemoryHandle(Unit, address, 0);
 			Result.Format = Format;
 		}
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		return new[] { Result, Start, Offset };
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.GET_MEMORY_ADDRESS;
-	}
-
-	public override Result? GetDestinationDependency()
-	{
-		return null;
 	}
 }

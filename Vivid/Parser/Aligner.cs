@@ -59,7 +59,7 @@ public static class Aligner
 			temporary_handle.Offset = position;
 		}
 
-		foreach (var iterator in inline_handles.GroupBy(i => i.Identifier))
+		foreach (var iterator in inline_handles.GroupBy(i => i.Identity))
 		{
 			position -= iterator.First().Bytes;
 

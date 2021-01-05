@@ -110,7 +110,7 @@ public class VariableDeclarationPattern : Pattern
 			var return_type = Types.UNIT;
 
 			// Underscore here indicates no return type
-			if (return_type_name != "_")
+			if (return_type_name != Types.UNIT.Identifier)
 			{
 				return_type = context.GetType(return_type_name) ?? new UnresolvedType(context, return_type_name);
 			}
@@ -173,7 +173,7 @@ public class VariableDeclarationPattern : Pattern
 
 		if (name.Value == Function.SELF_POINTER_IDENTIFIER || name.Value == Lambda.SELF_POINTER_IDENTIFIER)
 		{
-			throw Errors.Get(name.Position, $"Cannot declare variable called '{name.Value}' since the name is reserved");
+			throw Errors.Get(name.Position, $"Can not declare variable called '{name.Value}' since the name is reserved");
 		}
 
 		var type = ResolveType(context, tokens);
@@ -187,7 +187,7 @@ public class VariableDeclarationPattern : Pattern
 			type,
 			category,
 			name.Value,
-			AccessModifier.PUBLIC | (is_constant ? AccessModifier.CONSTANT : 0)
+			Modifier.PUBLIC | (is_constant ? Modifier.CONSTANT : 0)
 		);
 
 		variable.Position = tokens[NAME].Position;

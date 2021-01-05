@@ -2,17 +2,7 @@ using System;
 
 public abstract class TemporaryInstruction : Instruction
 {
-	public TemporaryInstruction(Unit unit) : base(unit) { }
-
-	public override Result? GetDestinationDependency()
-	{
-		throw new ApplicationException("Tried to build a temporary instruction");
-	}
-
-	public override Result[] GetResultReferences()
-	{
-		throw new ApplicationException("Tried to build a temporary instruction");
-	}
+	public TemporaryInstruction(Unit unit, InstructionType type) : base(unit, type) { }
 
 	public override int GetStackOffsetChange()
 	{

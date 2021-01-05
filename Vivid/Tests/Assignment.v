@@ -14,10 +14,18 @@ export assignment(target: Holder) {
 	target.Small = 12345
 }
 
-init() {
-	=> 1
-	
-	# Dummy for type resolvation
-	t = Holder()
-	assignment(t)
+MemoryAddressHolder {
+	address: link<decimal>
+
+	pop() {
+		value = address[0]
+		address += sizeof(decimal)
+		=> value
+	}
 }
+
+export memory_address_assignment(holder: MemoryAddressHolder) {
+	holder.address[1] = holder.pop() + 0.5
+}
+
+init() => true

@@ -2,6 +2,7 @@ using System.Linq;
 
 /// <summary>
 /// Substracts the specified values together
+/// This instruction works on all architectures
 /// </summary>
 public class SubtractionInstruction : DualParameterInstruction
 {
@@ -18,7 +19,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public bool Assigns { get; private set; }
 
-	public SubtractionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format)
+	public SubtractionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.SUBTRACT)
 	{
 		Assigns = assigns;
 	}
@@ -42,7 +43,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			if (First.IsMemoryAddress)
+			if (Assigns && First.IsMemoryAddress)
 			{
 				Unit.Append(new MoveInstruction(Unit, First, Result), true);
 			}
@@ -177,7 +178,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
-		if (Operation == X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION || Assigns)
+		if (Operation == X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION)
 		{
 			return false;
 		}
@@ -227,15 +228,5 @@ public class SubtractionInstruction : DualParameterInstruction
 		}
 
 		return RedirectX64(handle);
-	}
-
-	public override Result GetDestinationDependency()
-	{
-		return First;
-	}
-
-	public override InstructionType GetInstructionType()
-	{
-		return InstructionType.SUBTRACT;
 	}
 }
