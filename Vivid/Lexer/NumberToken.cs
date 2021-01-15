@@ -85,8 +85,10 @@ public class NumberToken : Token
 		if (IsDecimal(text))
 		{
 			// Calculate the value
-			var number_part = GetNumberPart(text);
-			var value = double.Parse(number_part, CultureInfo.InvariantCulture);
+			if (!double.TryParse(GetNumberPart(text), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+			{
+				throw new LexerException(position, "Could not resolve the number");
+			}
 
 			/// TODO: Detect too large exponent
 			value *= Math.Pow(10, exponent);
@@ -98,7 +100,10 @@ public class NumberToken : Token
 		else
 		{
 			// Calculate the value
-			var value = long.Parse(GetNumberPart(text), CultureInfo.InvariantCulture);
+			if (!long.TryParse(GetNumberPart(text), NumberStyles.Float, CultureInfo.InvariantCulture, out long value))
+			{
+				throw new LexerException(position, "Could not resolve the number");
+			}
 
 			/// TODO: Detect too large exponent
 			value *= (long)Math.Pow(10, exponent);

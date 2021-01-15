@@ -35,7 +35,7 @@ Vector {
 }
 
 Animal {
-	action: (Animal) => Vector
+	action: (Animal) -> Vector
 
 	type: large
 	position: Vector
@@ -54,7 +54,7 @@ Animal Dog {
 		position = Vector(0, 0)
 		type = ANIMAL_DOG
 
-		action = (other: Animal) => {
+		action = (other: Animal) -> {
 			dx = position.x - other.position.x
 			dy = position.y - other.position.y
 			distance = sqrt(dx * dx + dy * dy)
@@ -86,7 +86,7 @@ Animal Cat {
 		position = Vector(0, 0)
 		type = ANIMAL_CAT
 
-		action = (other: Animal) => {
+		action = (other: Animal) -> {
 			meow()
 
 			=> (other.position - position) * CAT_SPEED
@@ -97,39 +97,39 @@ Animal Cat {
 }
 
 export create_default_action() {
-	=> () => println('Hi there!')
+	=> () -> println('Hi there!')
 }
 
-export execute_default_action(action: () => _) {
+export execute_default_action(action: () -> _) {
 	action()
 }
 
 export create_number_action() {
-	=> (n: large) => println(to_string(n))
+	=> (n: large) -> println(to_string(n))
 }
 
-export execute_number_action(action: (large) => _, number: large) {
+export execute_number_action(action: (large) -> _, number: large) {
 	action(number)
 }
 
 export create_sum_function() {
-	=> (a: large, b: large) => a + b
+	=> (a: large, b: large) -> a + b
 }
 
-export execute_sum_function(function: (large, large) => large, a: large, b: large) {
+export execute_sum_function(function: (large, large) -> large, a: large, b: large) {
 	=> function(a, b)
 }
 
 export create_capturing_function(x: tiny, y: small, z: normal, w: large, i: decimal) {
-	=> () => x + y + z + w + i
+	=> () -> x + y + z + w + i
 }
 
-export execute_capturing_function(function: () => decimal) {
+export execute_capturing_function(function: () -> decimal) {
 	=> function()
 }
 
 export create_capturing_function_with_parameter(dog: Dog, cat: Cat) {
-	=> (n: decimal) => {
+	=> (n: decimal) -> {
 		h = n / 2.0
 
 		dog.position = Vector(1, 1) * h
@@ -140,7 +140,7 @@ export create_capturing_function_with_parameter(dog: Dog, cat: Cat) {
 	}
 }
 
-export execute_capturing_function_with_parameter(function: (decimal) => _, distance: decimal) {
+export execute_capturing_function_with_parameter(function: (decimal) -> _, distance: decimal) {
 	function(distance)
 }
 

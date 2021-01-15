@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class NumberNode : Node, IType, ICloneable
+public class NumberNode : Node, ICloneable
 {
 	public Format Type { get; }
 	public object Value { get; set; }
@@ -43,7 +43,7 @@ public class NumberNode : Node, IType, ICloneable
 		return this;
 	}
 
-	public new Type GetType()
+	public override Type? TryGetType()
 	{
 		return Numbers.Get(Type);
 	}

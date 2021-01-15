@@ -1,4 +1,7 @@
-public class CastNode : Node, IType, IResolvable
+/// <summary>
+/// Represents a cast node which is used for converting types to other types
+/// </summary>
+public class CastNode : Node, IResolvable
 {
 	public Node Object => First!;
 
@@ -9,7 +12,7 @@ public class CastNode : Node, IType, IResolvable
 		Add(type);
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Last?.TryGetType();
 	}

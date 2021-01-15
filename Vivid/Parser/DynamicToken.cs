@@ -10,4 +10,9 @@ public class DynamicToken : Token
 	{
 		Node = node;
 	}
+
+	public override object Clone()
+	{
+		return new DynamicToken(Node.Clone());
+	}
 }

@@ -415,6 +415,12 @@ public static class Parser
 			}
 		}
 
+		// Return an empty list if nothing was consumed
+		if (state.End >= clone.Count)
+		{
+			return new List<Token>();
+		}
+
 		List<Token>? consumed;
 
 		if (clone[state.End].Type == TokenType.DYNAMIC)
@@ -563,7 +569,7 @@ public static class Parser
 		var copy = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
+			Modifier.PUBLIC | Modifier.EXTERNAL,
 			"copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -574,7 +580,7 @@ public static class Parser
 		var offset_copy = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
+			Modifier.PUBLIC | Modifier.EXTERNAL,
 			"offset_copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -586,7 +592,7 @@ public static class Parser
 		var deallocate = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL | Modifier.RESPONSIBLE,
+			Modifier.PUBLIC | Modifier.EXTERNAL,
 			"deallocate",
 			Types.UNIT,
 			new Parameter("address", Types.LINK),

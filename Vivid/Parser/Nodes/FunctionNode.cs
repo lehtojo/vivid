@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System;
 
-public class FunctionNode : Node, IType
+public class FunctionNode : Node
 {
 	public FunctionImplementation Function { get; private set; }
 	public List<Token> Tokens { get; private set; }
@@ -44,7 +44,7 @@ public class FunctionNode : Node, IType
 		return this;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Function.ReturnType;
 	}

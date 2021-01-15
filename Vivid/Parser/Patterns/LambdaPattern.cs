@@ -11,17 +11,16 @@ public class LambdaPattern : Pattern
 	private const int BODY = 3;
 
 	// Examples:
-	// (a: num, b) => [\n] a + b - 10
-	// x => [\n] x * x
-	// y: System => [\n] y.start()
-	// (z) => [\n] { if z > 0 { => 1 } else => -1 }
+	// (a: num, b) -> [\n] a + b - 10
+	// x -> [\n] x * x
+	// y: System -> [\n] y.start()
+	// (z) -> [\n] { if z > 0 { => 1 } else => -1 }
 	public LambdaPattern() : base
 	(
 		 TokenType.CONTENT | TokenType.IDENTIFIER,
 		 TokenType.OPERATOR,
 		 TokenType.END | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	private static bool TryConsumeBody(Context context, PatternState state)
 	{
@@ -54,7 +53,7 @@ public class LambdaPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS) || !tokens[OPERATOR].Is(Operators.IMPLICATION))
+		if ((tokens[PARAMETERS].Is(TokenType.CONTENT) && !tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS)) || !tokens[OPERATOR].Is(Operators.ARROW))
 		{
 			return false;
 		}
@@ -71,11 +70,11 @@ public class LambdaPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var body = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
+		var blueprint = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
 		
 		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			body.Insert(0, new OperatorToken(Operators.IMPLICATION));
+			blueprint.Insert(0, new OperatorToken(Operators.IMPLICATION) { Position = tokens[OPERATOR].Position });
 		}
 
 		var name = context.GetNextLambda().ToString(CultureInfo.InvariantCulture);
@@ -90,7 +89,7 @@ public class LambdaPattern : Pattern
 			context,
 			Modifier.PUBLIC,
 			name,
-			body
+			blueprint
 		);
 
 		lambda.Position = tokens[PARAMETERS].Position;
@@ -98,7 +97,9 @@ public class LambdaPattern : Pattern
 
 		if (lambda.Parameters.All(p => p.Type != null && !p.Type.IsUnresolved))
 		{
-			lambda.Implement(lambda.Parameters.Select(p => p.Type!));
+			var implementation = lambda.Implement(lambda.Parameters.Select(p => p.Type!));
+
+			return new LambdaNode(implementation, tokens[PARAMETERS].Position);
 		}
 
 		return new LambdaNode(lambda, tokens[PARAMETERS].Position);

@@ -149,7 +149,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var number_type = operation.GetType()!.To<Number>().Type;
+		var number_type = operation.GetType().To<Number>().Type;
 
 		var result = new AdditionInstruction(unit, left, right, number_type, assigns).Execute();
 
@@ -165,7 +165,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var number_type = operation.GetType()!.To<Number>().Type;
+		var number_type = operation.GetType().To<Number>().Type;
 
 		var result = new SubtractionInstruction(unit, left, right, number_type, assigns).Execute();
 
@@ -181,7 +181,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var number_type = operation.GetType()!.To<Number>().Type;
+		var number_type = operation.GetType().To<Number>().Type;
 
 		var result = new MultiplicationInstruction(unit, left, right, number_type, assigns).Execute();
 
@@ -193,7 +193,7 @@ public static class Arithmetic
 	/// </summary>
 	private static bool IsNonPowerOfTwoIntegerDivisionPossible(OperatorNode operation)
 	{
-		var format = operation.GetType()!.To<Number>().Type;
+		var format = operation.GetType().To<Number>().Type;
 
 		// 1. This algorithm is only responsible for integer divisions
 		// 2. This divisor must be a constant integer
@@ -214,7 +214,7 @@ public static class Arithmetic
 	/// </summary>
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
 	{
-		var format = operation.GetType()!.To<Number>().Type;
+		var format = operation.GetType().To<Number>().Type;
 
 		if (Assembler.IsX64 && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
@@ -265,7 +265,7 @@ public static class Arithmetic
 		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
 		var right = References.Get(unit, operation.Right);
 
-		var number_type = operation.GetType()!.To<Number>().Type;
+		var number_type = operation.GetType().To<Number>().Type;
 		var result = (Result?)null;
 
 		if (operation.Is(Operators.BITWISE_AND) || operation.Is(Operators.ASSIGN_AND))

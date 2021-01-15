@@ -1,4 +1,4 @@
-public class ConstructionNode : Node, IType
+public class ConstructionNode : Node
 {
 	public FunctionNode Constructor => First!.To<FunctionNode>();
 
@@ -8,7 +8,7 @@ public class ConstructionNode : Node, IType
 		Add(constructor);
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Constructor.TryGetType();
 	}

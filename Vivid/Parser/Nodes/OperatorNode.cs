@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class OperatorNode : Node, IType, IResolvable
+public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
 
@@ -29,54 +29,29 @@ public class OperatorNode : Node, IType, IResolvable
 
 	private Type? GetClassicType()
 	{
-		Type? left;
+		var left = Left.TryGetType();
 
-		if (Left is IType a)
+		if (Operator is not ClassicOperator operation)
 		{
-			var type = a.GetType();
-
-			if (!(Operator is ClassicOperator operation))
-			{
-				throw new InvalidOperationException("Invalid operator given");
-			}
-
-			if (!operation.IsShared)
-			{
-				return type;
-			}
-
-			left = type;
-		}
-		else
-		{
-			return Types.UNKNOWN;
+			throw new InvalidOperationException("Operator was being processed as a classical operator but it was not one");
 		}
 
-		Type? right;
+		if (!operation.IsShared)
+		{
+			return left;
+		}
 
-		if (Right is IType b)
-		{
-			right = b.GetType();
-		}
-		else
-		{
-			return Types.UNKNOWN;
-		}
+		var right = Right.TryGetType();
 
 		return Resolver.GetSharedType(left, right);
 	}
 
 	private Type? GetActionType()
 	{
-		if (Left is IType type)
-		{
-			return type.GetType();
-		}
-
-		return Types.UNKNOWN;
+		return Left.TryGetType();
 	}
 
-	public virtual new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Operator.Type switch
 		{
@@ -119,7 +94,6 @@ public class OperatorNode : Node, IType, IResolvable
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
-
 		var operator_function = operator_functions.GetImplementation(parameter_types);
 
 		if (operator_function == null)
@@ -198,8 +172,65 @@ public class OperatorNode : Node, IType, IResolvable
 		return CreateOperatorFunctionCall(Left, operator_function_name, parameters);
 	}
 
+	private Status GetActionStatus(Type left, Type right)
+	{
+		// Assign operator is a special operator since it is a little bit unsafe
+		if (Operator == Operators.ASSIGN)
+		{
+			return Status.OK;
+		}
+
+		return GetClassicStatus(left, right);
+	}
+
+	private Status GetClassicStatus(Type left, Type right)
+	{
+		if (left is not Number)
+		{
+			// Allow operations such as comparing whether an object is a null pointer or not
+			if (right is not Number)
+			{
+				return Status.Error(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
+			}
+			
+			return Status.OK;
+		}
+
+		return right is Number ? Status.OK : Status.Error("Could not resolve the type of the operation");
+	}
+
+	private Status GetLogicStatus(Type left, Type right)
+	{
+		if (left != Types.BOOL)
+		{
+			return Status.Error(Left.Position, $"The type of the operand must be '{Types.BOOL.Identifier}' since its parent is a logical operator");
+		}
+
+		if (right != Types.BOOL)
+		{
+			return Status.Error(Right.Position, $"The type of the operand must be '{Types.BOOL.Identifier}' since its parent is a logical operator");
+		}
+
+		return Status.OK;
+	}
+
 	public virtual Status GetStatus()
 	{
-		return Status.OK;
+		var left = Left.TryGetType();
+		var right = Right.TryGetType();
+
+		if (left == Types.UNKNOWN || right == Types.UNKNOWN)
+		{
+			return Status.Error(Position, "Could not resolve the type of the operation");
+		}
+
+		return Operator.Type switch
+		{
+			OperatorType.ACTION => GetActionStatus(left, right),
+			OperatorType.CLASSIC => GetClassicStatus(left, right),
+			OperatorType.COMPARISON => GetClassicStatus(left, right),
+			OperatorType.LOGIC => GetLogicStatus(left, right),
+			_ => Status.OK
+		};
 	}
 }

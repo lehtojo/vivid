@@ -93,15 +93,15 @@ public class Node : IEnumerable, IEnumerable<Node>
 	{
 		return (T)this ?? throw new ApplicationException($"Could not convert 'Node' to '{typeof(T).Name}'");
 	}
-
+	
 	public new Type GetType()
 	{
-		return (this as IType)?.GetType() ?? throw new ApplicationException($"Could not get type from {Enum.GetName(typeof(NodeType), GetNodeType())}");
+		return TryGetType() ?? throw new ApplicationException(Position == null  ? "Could not resolve type of a node" : $"Could not resolve type of a node at {Errors.FormatPosition(Position)}");
 	}
 
-	public Type? TryGetType()
+	public virtual Type? TryGetType()
 	{
-		return (this as IType ?? throw new InvalidOperationException("Tried to get type from a node which did not represent a typed object")).GetType();
+		return null;
 	}
 
 	public Node? FindParent(Predicate<Node> filter)

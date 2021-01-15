@@ -10,9 +10,9 @@ public class ListPattern : Pattern
 
 	public ListPattern() : base
 	(
-		TokenType.ANY,
+		TokenType.OBJECT,
 		TokenType.OPERATOR,
-		TokenType.ANY
+		TokenType.OBJECT
 	)
 	{ }
 

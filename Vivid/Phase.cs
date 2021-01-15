@@ -12,7 +12,7 @@ public abstract class Phase
 	private List<Task<Status>> Tasks { get; } = new List<Task<Status>>();
 	public bool Multithread { get; set; }
 
-	public bool Failed => Tasks.Any(t => !t.IsCompleted || t.Result.IsProblematic);
+	public bool Failed => Tasks.Any(i => !i.IsCompleted || i.Result.IsProblematic);
 
 	/// <summary>
 	/// Executes the phase with the given data 
@@ -57,8 +57,10 @@ public abstract class Phase
 
 		while (i < Tasks.Count)
 		{
-			Tasks[i++].Wait();
+			Tasks[i++]?.Wait();
 		}
+
+		Tasks.RemoveAll(i => !i.Result.IsProblematic);
 	}
 
 	/// <summary>

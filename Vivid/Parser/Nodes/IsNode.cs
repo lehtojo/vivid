@@ -1,4 +1,4 @@
-﻿public class IsNode : Node, IResolvable, IType
+﻿public class IsNode : Node, IResolvable
 {
 	public Node Object => First!;
 	public Type Type { get; private set; }
@@ -19,7 +19,7 @@
 		}
 	}
 
-	public new Type GetType()
+	public override Type? TryGetType()
 	{
 		return Types.BOOL;
 	}

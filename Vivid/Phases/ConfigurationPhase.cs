@@ -283,7 +283,11 @@ public class ConfigurationPhase : Phase
 
 				if (file.Exists)
 				{
-					if (file.Extension == EXTENSION)
+					Files.Add(file.FullName);
+					continue;
+
+					#warning Revert back the changes
+					/*if (file.Extension == EXTENSION)
 					{
 						Files.Add(file.FullName);
 						continue;
@@ -291,7 +295,7 @@ public class ConfigurationPhase : Phase
 					else
 					{
 						return Status.Error($"Source file must have '{EXTENSION}' extension");
-					}
+					}*/
 				}
 
 				var directory = new DirectoryInfo(element);

@@ -26,7 +26,7 @@ public class Parameter
 	{
 		if (Type == null)
 		{
-			return $"{Name}: _";
+			return $"{Name}: any";
 		}
 
 		return $"{Name}: {(Type.IsUnresolved ? "?" : Type.ToString())}";
@@ -62,8 +62,7 @@ public class Function : Context
 	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
 	public bool IsExported => Flag.Has(Modifiers, Modifier.GLOBAL);
 	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
-	public bool IsResponsible => Flag.Has(Modifiers, Modifier.RESPONSIBLE);
-
+	
 	/// <summary>
 	/// Creates a unimplemented function
 	/// </summary>
@@ -187,15 +186,6 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Tries to find function implementation with the given parameter
-	/// </summary>
-	/// <param name="parameter">Parameter type used in filtering</param>
-	public FunctionImplementation? Get(Type parameter)
-	{
-		return Get(new List<Type> { parameter });
-	}
-
-	/// <summary>
 	/// Tries to find function implementation with the given parameters
 	/// </summary>
 	/// <param name="parameter">Parameter types used in filtering</param>
@@ -230,7 +220,7 @@ public class Function : Context
 
 	public override string ToString()
 	{
-		return (IsImported ? "import" : string.Empty) + Name + $"({string.Join(", ", Parameters)})";
+		return Name + $"({string.Join(", ", Parameters)})";
 	}
 
 	public override bool Equals(object? other)

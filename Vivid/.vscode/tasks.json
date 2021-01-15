@@ -62,7 +62,7 @@
 		},
 		{
 			"label": "Compile",
-			"command": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Vivid.exe",
+			"command": "${workspaceFolder}/bin/Debug/net5.0/Vivid.exe",
 			"type": "process",
 			"args": [
 				"${workspaceFolder}/Examples/Sandbox.v",

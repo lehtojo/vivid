@@ -351,7 +351,7 @@ public static class Lexer
 
 		if (i == -1 || j != -1 && j < i)
 		{
-			throw Errors.Get(start, error);
+			throw new LexerException(start, error);
 		}
 
 		var length = (i + 1) - start.Local;

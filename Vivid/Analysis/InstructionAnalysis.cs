@@ -18,11 +18,13 @@ public class SequentialPair
 {
 	public Handle Low { get; set; }
 	public Handle High { get; set; }
+	public bool Flipped { get; set; } = false;
 
-	public SequentialPair(Handle low, Handle high)
+	public SequentialPair(Handle low, Handle high, bool flipped)
 	{
 		Low = low;
 		High = high;
+		Flipped = flipped;
 	}
 }
 
@@ -37,6 +39,22 @@ public static class InstructionAnalysis
 			if (instruction == ignore)
 			{
 				continue;
+			}
+
+			if (instruction.Is(InstructionType.RETURN) && register == instruction.To<ReturnInstruction>().ReturnRegister)
+			{
+				return true;
+			}
+
+			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
+			{
+				var parameters = instruction.To<CallInstruction>().ParameterInstructions.SelectMany(i => i.Parameters).Select(i => i.Value!);
+				var handle = new RegisterHandle(register);
+
+				if (parameters.Any(i => i.Equals(handle)))
+				{
+					return true;
+				}
 			}
 
 			if (Reads(instruction, new RegisterHandle(register)) || instruction.Is(InstructionType.CALL, InstructionType.JUMP, InstructionType.LABEL))
@@ -242,7 +260,7 @@ public static class InstructionAnalysis
 		}
 	}
 
-	private static bool IsEditedBetween(List<Instruction> instructions, int start, int end, Handle handle, Instruction ignore)
+	private static bool IsEditedBetween(List<Instruction> instructions, int start, int end, Handle handle, Instruction? ignore)
 	{
 		for (var i = start; i <= end; i++)
 		{
@@ -548,7 +566,9 @@ public static class InstructionAnalysis
 
 		unit.Reindex();
 
-		//Combine(unit.Instructions);
+		Combine(unit, unit.Instructions);
+		
+		unit.Reindex();
 	}
 
 	public static bool IsIntersectionPossible(Handle i, Handle j)
@@ -680,7 +700,7 @@ public static class InstructionAnalysis
 	{
 		if (!start.Source!.IsAnyRegister)
 		{
-			return new Pair<Handle, Instruction?>(start.Second!.Value, null);
+			return new Pair<Handle, Instruction?>(start.Source!.Value!, null);
 		}
 
 		var source = start.Source!.Value!;
@@ -710,7 +730,7 @@ public static class InstructionAnalysis
 
 				var usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, i);
 				
-				if (usages.Any(i => i != start))
+				if (usages == null || usages.Any(i => i != start))
 				{
 					return null;
 				}
@@ -722,17 +742,65 @@ public static class InstructionAnalysis
 		return null;
 	}
 
+	private static bool IsRegisterAvailable(List<Instruction> instructions, Register register, int position)
+	{
+		var handle = new RegisterHandle(register);
+
+		for (var i = position; i < instructions.Count; i++)
+		{
+			var instruction = instructions[i];
+
+			if (string.IsNullOrEmpty(instruction.Operation))
+			{
+				continue;
+			}
+
+			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
+			{
+				return !instruction.To<CallInstruction>().ParameterInstructions.SelectMany(i => i.Parameters).Any(i => i.Value!.Equals(handle));
+			}
+
+			if (instruction.Is(InstructionType.JUMP, InstructionType.LABEL))
+			{
+				return false;
+			}
+
+			if (Reads(instruction, handle))
+			{
+				return false;
+			}
+
+			/// NOTE: It is important write-check comes after the read-check since intermediates can both read and write
+			if (Writes(instruction, handle))
+			{
+				return true;
+			}
+		}
+
+		return true;
+	}
+
+	public static Register? TryGetNextMediaRegister(Unit unit, List<Instruction> instructions, int position)
+	{
+		return unit.MediaRegisters.Where(i => IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
+	}
+
+	public static Register? TryGetNextRegister(Unit unit, List<Instruction> instructions, int position)
+	{
+		return unit.Registers.Where(i => !i.IsReserved && IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
+	}
+
 	public static SequentialPair? TryGetSequentialPair(Handle first, Handle second)
 	{
 		// Ensure both of the handles are either memory addresses or constants
-		if (first.Type != second.Type)
+		if (first.Instance != second.Instance)
 		{
 			return null;
 		}
 
 		if (first.Is(HandleType.CONSTANT))
 		{
-			return new SequentialPair(first, second);
+			return new SequentialPair(first, second, false);
 		}
 		
 		// Ensure both of the handles are memory addresses
@@ -741,38 +809,79 @@ public static class InstructionAnalysis
 			return null;
 		}
 
-		var low = first.To<MemoryHandle>();
-		var high = second.To<MemoryHandle>();
+		var low = (Handle?)null;
+		var high = (Handle?)null;
+		var low_offset = 0L;
+		var high_offset = 0L;
 
-		// Ensure the moves have the same starting address
-		if (!low.Start.Value.Equals(high.Start.Value))
+		if (first.Is(HandleInstanceType.MEMORY))
+		{
+			var a = first.To<MemoryHandle>();
+			var b = second.To<MemoryHandle>();
+
+			low = a;
+			high = b;
+
+			// Require that the handles have the same starting address
+			if (!a.Start.Value.Equals(b.Start.Value))
+			{
+				return null;
+			}
+
+			low_offset = a.Offset;
+			high_offset = b.Offset;
+		}
+		else if (first.Is(HandleInstanceType.DATA_SECTION))
+		{
+			var a = first.To<DataSectionHandle>();
+			var b = second.To<DataSectionHandle>();
+
+			low = a;
+			high = b;
+
+			// Require that the handles have the same starting address
+			if (a.Identifier != b.Identifier)
+			{
+				return null;
+			}
+
+			low_offset = a.Offset;
+			high_offset = b.Offset;
+		}
+		else
 		{
 			return null;
 		}
 
+		var flipped = low_offset > high_offset;
+
 		// Exchange the instruction so that the low actually represents the lower address
-		if (low.Offset > high.Offset)
+		if (flipped)
 		{
-			var temporary = low;
+			var temporary_handle = low;
 			low = high;
-			high = temporary;
+			high = temporary_handle;
+
+			var temporary_offset = low_offset;
+			low_offset = high_offset;
+			high_offset = temporary_offset;
 		}
 
 		// Ensure the moves are sequential
-		if (low.Offset + low.Size.Bytes != high.Offset)
+		if (low_offset + low.Size.Bytes != high_offset)
 		{
 			return null;
 		}
 
-		return new SequentialPair(low, high);
+		return new SequentialPair(low, high, flipped);
 	}
 
-	public static void Combine(List<Instruction> instructions)
+	public static void Combine(Unit unit, List<Instruction> instructions)
 	{
 		for (var i = 0; i < instructions.Count; i++)
 		{
 			// Try to find two sequential move instructions
-			if (!instructions[i].Is(InstructionType.MOVE))
+			if (!instructions[i].Is(InstructionType.MOVE) || string.IsNullOrEmpty(instructions[i].Operation))
 			{
 				continue;
 			}
@@ -795,14 +904,13 @@ public static class InstructionAnalysis
 
 			for (var j = i + 1; j < instructions.Count; j++)
 			{
-				/// TODO: Dependencies
 				if (instructions[j].Is(InstructionType.CALL, InstructionType.JUMP, InstructionType.LABEL))
 				{
 					break;
 				}
 
 				// Try to find the next move instruction
-				if (!instructions[j].Is(InstructionType.MOVE))
+				if (!instructions[j].Is(InstructionType.MOVE) || string.IsNullOrEmpty(instructions[j].Operation))
 				{
 					continue;
 				}
@@ -815,7 +923,7 @@ public static class InstructionAnalysis
 					continue;
 				}
 
-				var second_source = TryGetIndependentSource(instructions, second_move, i);
+				var second_source = TryGetIndependentSource(instructions, second_move, j);
 
 				// Skip this move if its source is used in multiple locations or if it is a register
 				if (second_source == null || second_source.First.Is(HandleType.REGISTER))
@@ -829,6 +937,36 @@ public static class InstructionAnalysis
 				// Ensure sequential destinations and sources were found and ensure the sizes match each other
 				if (destination == null || source == null || destination.High.Size != destination.Low.Size || source.High.Size != source.High.Size)
 				{
+					// If the moves might intersect even a little bit, both the first and the second move should be left alone
+					if (IsIntersectionPossible(first_move.Destination.Value!, second_move.Destination.Value!))
+					{
+						break;
+					}
+
+					continue;
+				}
+
+				// Ensure the order stays the same
+				if (destination.Flipped != source.Flipped)
+				{
+					// Constants still can be flipped over
+					if (source.Low.Type != HandleType.CONSTANT)
+					{
+						continue;
+					}
+
+					var temporary = source.High;
+					source.High = source.Low;
+					source.Low = temporary;
+				}
+
+				// Find all registers which the moves use since if one of them is edited the moves might become unsequential
+				var dependencies = GetAllInputRegisters(first_move.Destination).Concat(GetAllInputRegisters(first_source.First));
+				var start = first_source.Second == null ? i : instructions.IndexOf(first_source.Second);
+				var end = j;
+
+				if (dependencies.Any(i => IsEditedBetween(instructions, start, end, new RegisterHandle(i), null)))
+				{
 					continue;
 				}
 
@@ -838,11 +976,13 @@ public static class InstructionAnalysis
 				// If the low part of the source is a constant, it means that the high is also a constant
 				if (source.Low.Is(HandleType.CONSTANT))
 				{
-					/// TODO: Support this
-					if (inline_destination_size >= 8)
+					if (inline_destination_size > 8)
 					{
 						continue;
 					}
+					
+					var load = first_move;
+					var store = second_move;
 
 					var low_constant_value = source.Low.To<ConstantHandle>().Value as long?;
 					var high_constant_value = source.High.To<ConstantHandle>().Value as long?;
@@ -872,29 +1012,107 @@ public static class InstructionAnalysis
 
 					var constant = (high_constant_value << destination.Low.Size.Bits) | low_constant_value;
 
-					second_move.Destination!.Value = destination.Low;
-					second_move.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
+					if (inline_destination_size == 8)
+					{
+						var register = TryGetNextRegister(unit, instructions, i);
+
+						if (register == null)
+						{
+							continue;
+						}
+
+						load.Destination!.Value = new RegisterHandle(register);
+						load.Destination!.Value.Format = Assembler.Format;
+
+						load.Source!.Value = new ConstantHandle(constant);
+						load.Source!.Value.Format = Assembler.Format;
+
+						load.OnPostBuild();
+						
+						store.Source!.Value = new RegisterHandle(register);
+						store.Source!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
+					}
+					else
+					{
+						store.Source!.Value = new ConstantHandle(constant);
+						store.Source!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
+
+						instructions.RemoveAt(i);
+					}
+
+					store.Destination!.Value = destination.Low;
+					store.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
 					
-					second_move.Source!.Value = new ConstantHandle(constant);
-					second_move.Source!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
+					store.OnPostBuild();
 					
-					second_move.OnPostBuild();
+					/// NOTE: There will not be source instructions, so no need to remove them
+					/// NOTE: Index i is incremented always after the following assignment
+					i = -1;
+					break;
 				}
 				else
 				{
-					/// TODO: Support this
-					if (inline_source_size > 8)
+					/// NOTE: Both of the sources must be registers since the destination is a memory address
+					var first_register = first_move.Source!.Value!.To<RegisterHandle>().Register;
+					var second_register = second_move.Source!.Value!.To<RegisterHandle>().Register;
+
+					if (IsUsedAfterwards(instructions, first_register, instructions.IndexOf(first_source.Second!), first_move) || IsUsedAfterwards(instructions, second_register, instructions.IndexOf(second_source.Second!), second_move))
 					{
 						continue;
 					}
 
-					second_move.Destination!.Value = destination.Low;
-					second_move.Destination!.Size = Size.FromBytes(inline_destination_size);
+					var load = first_source.Second;
+					var store = second_move;
+
+					if (load == null || inline_source_size > 32 || inline_destination_size > 32)
+					{
+						continue;
+					}
+
+					var load_register = (Register?)null;
+					var load_format = Assembler.Format;
+
+					if (load.Destination!.IsAnyRegister)
+					{
+						load_register = load.Destination.Value!.To<RegisterHandle>().Register;
+
+						// If the source size has grown past eight bytes, a media register is required
+						if (inline_source_size > 8)
+						{
+							load_register = TryGetNextMediaRegister(unit, instructions, i);
+
+							if (load_register != null)
+							{
+								load_format = Size.FromBytes(inline_source_size).ToFormat();
+							}
+						}
+					}
+
+					if (load_register == null)
+					{
+						continue;
+					}
+
+					load.Destination.Value = new RegisterHandle(load_register);
+					load.Destination.Value.Format = load_format;
+					load.Destination.Size = Size.FromFormat(load_format);
+
+					load.Source!.Value!.Format = Size.FromBytes(inline_source_size).ToFormat();
+					load.Source!.Size = Size.FromBytes(inline_source_size);
 					
-					second_move.Source!.Value = source.Low;
-					second_move.Source!.Size = Size.FromBytes(inline_source_size);
+					store.Destination!.Value = destination.Low;
+					store.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
+					store.Destination!.Size = Size.FromBytes(inline_destination_size);
+
+					store.Source!.Value = new RegisterHandle(load_register);
+					store.Source!.Value!.Format = load_format;
+					store.Source!.Size = Size.FromFormat(load_format);
 					
-					second_move.OnPostBuild();
+					load.OnPostBuild();
+					store.OnPostBuild();
+
+					// Do not remove the first source
+					first_source.Second = null;
 				}
 
 				instructions.RemoveAt(i);
@@ -908,6 +1126,10 @@ public static class InstructionAnalysis
 				{
 					instructions.Remove(second_source.Second);
 				}
+
+				/// NOTE: Index i is incremented always after the following assignment
+				i = -1;
+				break;
 			}
 		}
 	}
@@ -939,15 +1161,22 @@ public static class InstructionAnalysis
 	private static bool IsRedundantMove(Unit unit, List<Instruction> instructions, MoveInstruction move, int position)
 	{
 		var destination = move.Destination!;
+		var dependencies = GetAllInputRegisters(destination).Select(i => new RegisterHandle(i)).ToArray();
 
 		for (var i = position + 1; i < instructions.Count; i++)
 		{
 			var instruction = instructions[i];
 
 			// If the instruction reads from the destination of the specified move instruction, the move instruction can not be redundant
-			if (Reads(instruction, destination.Value!))
+			if (Reads(instruction, destination.Value!) || dependencies.Any(i => Writes(instruction, i)))
 			{
 				return false;
+			}
+
+			// If the instruction writes to the same destination as the specified move, the move must be redundant
+			if (Writes(instruction, destination.Value!))
+			{
+				return true;
 			}
 			
 			// If any of the memory addresses in the instruction can intersect with the destination, the move instruction might not be redundant
@@ -976,12 +1205,6 @@ public static class InstructionAnalysis
 			if (instruction.Is(InstructionType.JUMP, InstructionType.LABEL))
 			{
 				return false;
-			}
-
-			// Finally, if the instruction writes to the same destination as the specified move, the move must be redundant
-			if (Writes(instruction, destination.Value!))
-			{
-				return true;
 			}
 		}
 

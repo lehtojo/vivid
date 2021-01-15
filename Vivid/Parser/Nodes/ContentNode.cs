@@ -1,14 +1,13 @@
-public class ContentNode : Node, IType
+public class ContentNode : Node
 {
 	public ContentNode(Position? position = null) 
 	{
 		Position = position;
 	}
 	
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
-		var type = First as IType;
-		return type?.GetType();
+		return First?.TryGetType();
 	}
 
 	public override NodeType GetNodeType()

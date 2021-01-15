@@ -17,10 +17,10 @@ public static class Singleton
 
 			if (variable.IsMember && !linked)
 			{
-				var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+				var self = Common.GetSelfPointer(context, identifier.Position);
 
 				return new LinkNode(
-					new VariableNode(self, identifier.Position),
+					self,
 					new VariableNode(variable, identifier.Position),
 					identifier.Position
 				);
@@ -118,6 +118,18 @@ public static class Singleton
 			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
 		}
 
+		if (!linked)
+		{
+			// Try to form a lambda function call
+			var result = Common.TryGetLambdaCall(environment, descriptor);
+
+			if (result != null)
+			{
+				result.Position = descriptor.Position;
+				return result;
+			}
+		}
+
 		var function = GetFunctionByName(primary, descriptor.Name, types);
 
 		if (function != null)
@@ -131,27 +143,19 @@ public static class Singleton
 
 			if (function.IsMember && !linked)
 			{
-				var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+				var self = Common.GetSelfPointer(environment, descriptor.Position);
 
-				return new LinkNode(new VariableNode(self, descriptor.Position), node, descriptor.Position);
+				return new LinkNode(self, node, descriptor.Position);
 			}
 
 			return node;
 		}
 
+		// Lastly, try to form a virtual function call if this function call is not linked
 		if (!linked)
 		{
 			// Try to form a virtual function call
 			var result = Common.TryGetVirtualFunctionCall(environment, descriptor);
-
-			if (result != null)
-			{
-				result.Position = descriptor.Position;
-				return result;
-			}
-
-			// Try to form a lambda function call
-			result = Common.TryGetLambdaCall(environment, descriptor);
 
 			if (result != null)
 			{
@@ -189,9 +193,9 @@ public static class Singleton
 
 			if (function.IsMember && !linked)
 			{
-				var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+				var self = Common.GetSelfPointer(environment, descriptor.Position);
 
-				return new LinkNode(new VariableNode(self, descriptor.Position), node, descriptor.Position);
+				return new LinkNode(self, node, descriptor.Position);
 			}
 
 			return node;
@@ -272,7 +276,7 @@ public static class Singleton
 			}
 		}
 
-		throw new NotImplementedException("Could not parse the node");
+		throw new ApplicationException(Errors.Format(token.Position, "Could not understand the token"));
 	}
 
 	public static Node GetUnresolved(Context environment, Token token)

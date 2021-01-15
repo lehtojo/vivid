@@ -453,6 +453,28 @@ public class Type : Context
 			.SelectMany(f => f.Implementations));
 	}
 
+	public bool IsInheritingAllowed(Type inheritant)
+	{
+		// Type inheriting itself is not allowed
+		if (inheritant == this)
+		{
+			return false;
+		}
+		
+		// The inheritant should not have this type as its supertype
+		var inheritant_supertypes = inheritant.GetAllSupertypes();
+
+		if (inheritant_supertypes.Contains(this))
+		{
+			return false;
+		}
+
+		// Deny the inheritance if supertypes already contain the inheritant or if any supertype would be duplicated
+		var inheritor_supertypes = GetAllSupertypes();
+
+		return !inheritor_supertypes.Contains(inheritant) && !inheritant_supertypes.Any(i => inheritor_supertypes.Contains(i));
+	}
+
 	public virtual Format GetFormat()
 	{
 		return Size.FromBytes(ReferenceSize).ToFormat();

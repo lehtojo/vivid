@@ -34,7 +34,14 @@ public class FunctionList
 
 			if (!pass)
 			{
-				throw new InvalidOperationException("Function overload can be confused with another");
+				if (conflict.Position != null)
+				{
+					throw Errors.Get(function.Position, $"Function overload can be confused with another function overload at {Errors.FormatPosition(conflict.Position)}");
+				}
+				else
+				{
+					throw Errors.Get(function.Position, $"Function overload can be confused with another function overload");
+				}
 			}
 		}
 
@@ -43,8 +50,7 @@ public class FunctionList
 
 	public override bool Equals(object? other)
 	{
-		return other is FunctionList list &&
-			   EqualityComparer<List<Function>>.Default.Equals(Overloads, list.Overloads);
+		return other is FunctionList list && EqualityComparer<List<Function>>.Default.Equals(Overloads, list.Overloads);
 	}
 
 	public override int GetHashCode()
@@ -84,7 +90,7 @@ public class FunctionList
 		}
 		else
 		{
-			var candidates = Overloads.FindAll(i => !(i is TemplateFunction) && i.Passes(parameters));
+			var candidates = Overloads.FindAll(i => i is not TemplateFunction && i.Passes(parameters));
 
 			if (candidates.Count <= 1)
 			{

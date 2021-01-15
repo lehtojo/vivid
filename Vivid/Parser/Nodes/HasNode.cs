@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class HasNode : Node, IType, IResolvable
+public class HasNode : Node, IResolvable
 {
 	public const string RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER = "has_value";
 	public const string RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER = "get_value";
@@ -94,7 +94,7 @@ public class HasNode : Node, IType, IResolvable
 		};
 	}
 
-	public new Type GetType()
+	public override Type? TryGetType()
 	{
 		return Types.BOOL;
 	}

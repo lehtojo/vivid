@@ -54,6 +54,11 @@ public class InheritancePattern : Pattern
 			throw Errors.Get(inheritant_tokens.First().Position, "Could not resolve the inherited type");
 		}
 
+		if (!inheritor.IsInheritingAllowed(inheritant_type))
+		{
+			throw Errors.Get(inheritant_tokens.First().Position, "Could not inherit the type since it would have caused a cyclic inheritance");
+		}
+
 		inheritor.Supertypes.Insert(0, inheritant_type);
 		return inheritor_node;
 	}

@@ -6,7 +6,7 @@ public class ShortFunctionPattern : Pattern
 	public const int PRIORITY = 20;
 
 	public const int HEADER = 0;
-	public const int OPERATOR = 1;
+	public const int IMPLICATION = 1;
 	public const int BODY = 2;
 
 	// a-z (...) => ...
@@ -23,7 +23,7 @@ public class ShortFunctionPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[OPERATOR].Is(Operators.IMPLICATION))
+		if (!tokens[IMPLICATION].Is(Operators.IMPLICATION))
 		{
 			return false;
 		}
@@ -54,7 +54,7 @@ public class ShortFunctionPattern : Pattern
 
 		if (blueprint == null)
 		{
-			blueprint = new List<Token> { new OperatorToken(Operators.IMPLICATION) };
+			blueprint = new List<Token> { tokens[IMPLICATION] };
 
 			if (!Common.ConsumeBlock(function, state, blueprint))
 			{

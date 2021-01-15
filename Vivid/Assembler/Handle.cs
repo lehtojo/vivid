@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-public enum HandleType
+public enum HandleType : int
 {
-	MEMORY,
-	CONSTANT,
-	REGISTER,
-	MEDIA_REGISTER,
-	EXPRESSION,
-	MODIFIER,
-	NONE
+	MEMORY = 1,
+	CONSTANT = 2,
+	REGISTER = 4,
+	MEDIA_REGISTER = 8,
+	EXPRESSION = 16,
+	MODIFIER = 32,
+	NONE = 64
 }
 
 public enum HandleInstanceType

@@ -1,4 +1,7 @@
-public class CallNode : Node, IType
+/// <summary>
+/// Represents a manual call node which is used for lambda and virtual function calls
+/// </summary>
+public class CallNode : Node
 {
 	public Node Self => First!;
 	public Node Pointer => First!.Next!;
@@ -19,7 +22,7 @@ public class CallNode : Node, IType
 		}
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Descriptor.ReturnType;
 	}

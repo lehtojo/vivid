@@ -31,20 +31,32 @@ public class SpecificModificationPattern : Pattern
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
+		var destination = tokens[OBJECT].To<DynamicToken>().Node;
 
-		switch (tokens[OBJECT].To<DynamicToken>().Node)
+		switch (destination.GetNodeType())
 		{
-			case VariableNode x:
-				x.Variable.Modifiers = modifiers;
-				return x;
+			case NodeType.VARIABLE:
+			{
+				destination.To<VariableNode>().Variable.Modifiers = modifiers;
+				return destination;
+			}
 
-			case FunctionDefinitionNode y:
-				y.Function.Modifiers = modifiers;
-				return y;
+			case NodeType.FUNCTION_DEFINITION:
+			{
+				if (Flag.Has(Modifier.EXTERNAL, modifiers))
+				{
+					throw Errors.Get(tokens[MODIFIER].Position, "Can not add external modifier to the function definition since it is a definition");
+				}
 
-			case TypeNode z:
-				z.Type.Modifiers = modifiers;
-				return z;
+				destination.To<FunctionDefinitionNode>().Function.Modifiers = modifiers;
+				return destination;
+			}
+
+			case NodeType.TYPE:
+			{
+				destination.To<TypeNode>().Type.Modifiers = modifiers;
+				return destination;
+			}
 
 			default: return tokens[OBJECT].To<DynamicToken>().Node;
 		}

@@ -64,6 +64,11 @@ public class Chain
 					return false;
 				}
 			}
+			catch (SourceException e)
+			{
+				Console.Error.WriteLine(e.Message);
+				return false;
+			}
 			catch (Exception e)
 			{
 				Console.Error.WriteLine("Internal error: " + e.Message);

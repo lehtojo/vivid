@@ -160,11 +160,11 @@ public static class Analyzer
 		{
 			if (constant.Edits.Count == 0)
 			{
-				throw new Exception($"Value for the constant '{constant.Name}' is never assigned");
+				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
 			}
 			else if (constant.Edits.Count > 1)
 			{
-				throw new Exception($"Value for the constant '{constant.Name}' is assigned twice or more");
+				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned twice or more");
 			}
 
 			var edit = constant.Edits.First().Parent;
@@ -182,12 +182,12 @@ public static class Analyzer
 				}
 				else
 				{
-					throw new Exception($"Value assigned to constant '{constant.Name}' is not a constant");
+					throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
 				}
 			}
 			else
 			{
-				throw new Exception($"Invalid value assignment for constant '{constant.Name}'");
+				throw Errors.Get(constant.Position, $"Invalid value assignment for constant '{constant.Name}'");
 			}
 		}
 

@@ -14,7 +14,7 @@ public class VariableDeclarationPattern : Pattern
 	public const int TYPE = 2;
 
 	public const int LAMBDA_TYPE_PARAMETERS = 2;
-	public const int LAMBDA_TYPE_IMPLICATION = 3;
+	public const int LAMBDA_TYPE_ARROW = 3;
 	public const int LAMBDA_TYPE_RETURN_TYPE = 4;
 
 	public const int TEMPLATE_TYPE_PARAMETERS = 3;
@@ -23,7 +23,7 @@ public class VariableDeclarationPattern : Pattern
 	// views: num
 	// apples: num[]
 	// players: List<Player>
-	// predicate: (num) => bool
+	// predicate: (num) -> bool
 	public VariableDeclarationPattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.OPERATOR
@@ -43,7 +43,7 @@ public class VariableDeclarationPattern : Pattern
 		}
 
 		// Examples:
-		// (num) => bool
+		// (num) -> bool
 		if (Consume(state, out List<Token> consumed, TokenType.CONTENT, TokenType.OPERATOR, TokenType.IDENTIFIER))
 		{
 			if (!consumed.First().Is(ParenthesisType.PARENTHESIS))
@@ -52,7 +52,7 @@ public class VariableDeclarationPattern : Pattern
 			}
 
 			// Ensure the consumed operator is the implication operator
-			return consumed[1].Is(Operators.IMPLICATION);
+			return consumed[1].Is(Operators.ARROW);
 		}
 
 		// Examples:
@@ -63,7 +63,7 @@ public class VariableDeclarationPattern : Pattern
 
 	private static bool IsTypeLambda(List<Token> tokens)
 	{
-		return tokens.Count >= LAMBDA_MIN_TOKEN_COUNT && tokens[LAMBDA_TYPE_IMPLICATION].Is(Operators.IMPLICATION);
+		return tokens.Count >= LAMBDA_MIN_TOKEN_COUNT && tokens[LAMBDA_TYPE_ARROW].Is(Operators.ARROW);
 	}
 
 	private static bool IsTemplateType(List<Token> tokens)
@@ -139,8 +139,11 @@ public class VariableDeclarationPattern : Pattern
 			{
 				return template_type.GetVariant(template_arguments);
 			}
-			else
+			
+			// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
+			if (type.IsTemplateType)
 			{
+				// Clone the type since it is shared and add the template types
 				type = type.Clone();
 				type.TemplateArguments = template_arguments;
 				return type;
@@ -156,7 +159,7 @@ public class VariableDeclarationPattern : Pattern
 				break;
 			}
 
-			default: throw new ApplicationException("Unsupported variable declaration syntax");
+			default: throw Errors.Get(tokens[TYPE].Position, "Unsupported variable declaration syntax");
 		}
 
 		return type;

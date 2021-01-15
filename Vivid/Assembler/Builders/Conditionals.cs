@@ -281,8 +281,8 @@ public static class Conditionals
 
 	private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)
 	{
-		var x = condition.Left.GetType() ?? throw new ApplicationException("Could not get the type of left operand");
-		var y = condition.Right.GetType() ?? throw new ApplicationException("Could not get the type of right operand");
+		var x = condition.Left.GetType();
+		var y = condition.Right.GetType();
 		var unsigned = (x.Format.IsDecimal() || y.Format.IsDecimal()) || (x.Format.IsUnsigned() && y.Format.IsUnsigned());
 
 		return new List<Instruction>

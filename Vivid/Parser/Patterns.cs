@@ -69,7 +69,7 @@ public class Patterns
 
 	public Patterns? Navigate(int type)
 	{
-		return Branches.GetValueOrDefault(type, null);
+		return Branches.GetValueOrDefault(type);
 	}
 
 	public static readonly Patterns Root = new Patterns();

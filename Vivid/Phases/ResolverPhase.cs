@@ -5,29 +5,22 @@ using System.Text;
 
 public class ResolverPhase : Phase
 {
-	private static void Complain(string report)
+	public static void Complain(string report)
 	{
 		Console.Error.WriteLine(report);
 	}
 
-	private static string GetFunctionReport(FunctionImplementation implementation)
+	public static string GetFunctionReport(FunctionImplementation implementation)
 	{
 		var builder = new StringBuilder();
 
-		if (implementation.IsMember)
-		{
-			builder.Append($"Function {implementation.GetHeader()}:\n");
-		}
-		else
-		{
-			builder.Append($"Function {implementation.GetHeader()}:\n");
-		}
+		builder.Append($"Function {implementation.GetHeader()}:\n");
 
 		var errors = new List<Status>();
 
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			errors.Add(Status.Error(implementation.Metadata.Position, "Could not resolve return type"));
+			errors.Add(Status.Error(implementation.Metadata.Position, "Could not resolve the return type"));
 		}
 
 		if (!Equals(implementation.Node, null))
@@ -59,7 +52,7 @@ public class ResolverPhase : Phase
 		return builder.ToString();
 	}
 
-	private static string GetReport(Context context)
+	public static string GetReport(Context context)
 	{
 		var variables = new StringBuilder();
 
@@ -67,11 +60,11 @@ public class ResolverPhase : Phase
 		{
 			if (variable.Context.IsType)
 			{
-				variables.Append($"ERROR: Could not resolve type of member variable '{variable.Name}' of type '{(Type)variable.Context}'");
+				variables.Append(Errors.Format(variable.Position, $"Could not resolve the type of the member variable '{variable.Name}'"));
 			}
 			else if (variable.Context.Parent == null)
 			{
-				variables.Append($"ERROR: Could not resolve type of global variable '{variable.Name}'");
+				variables.Append(Errors.Format(variable.Position, $"Could not resolve the type of the global variable '{variable.Name}'"));
 			}
 
 			variables.AppendLine();
@@ -81,6 +74,11 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
+			{
+				types.AppendLine(Errors.Format(type.Position, $"Type '{type.Name}' could not inherit type '{supertype.Name}' since either it was not found or it would have caused a cyclic inheritance"));
+			}
+
 			var report = GetReport(type);
 
 			if (string.IsNullOrEmpty(report))
@@ -93,6 +91,26 @@ public class ResolverPhase : Phase
 		}
 
 		var functions = new StringBuilder();
+
+		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads))
+		{
+			if (overload.Parameters.All(i => i.Type == null || !i.Type.IsUnresolved))
+			{
+				continue;
+			}
+
+			if (functions.Length > 0)
+			{
+				functions.AppendLine();
+			}
+
+			functions.AppendLine($"Function {overload.ToString()}:");
+
+			foreach (var parameter in overload.Parameters)
+			{
+				functions.AppendLine(Errors.Format(parameter.Position, $"Could not resolve the type of the parameter '{parameter.Name}'"));
+			}
+		}
 
 		foreach (var implementation in context.GetFunctionImplementations())
 		{
@@ -134,7 +152,7 @@ public class ResolverPhase : Phase
 		return final.ToString();
 	}
 
-	private static void RegisterDefaultFunctions(Context context)
+	public static void RegisterDefaultFunctions(Context context)
 	{
 		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing allocation function");
 		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing inheritance function");

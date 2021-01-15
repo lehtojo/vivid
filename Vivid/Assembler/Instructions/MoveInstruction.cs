@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 public enum MoveType
 {
@@ -33,6 +34,8 @@ public class MoveInstruction : DualParameterInstruction
 
 	public const string X64_SINGLE_PRECISION_MOVE = "movss";
 	public const string X64_DOUBLE_PRECISION_MOVE = "movsd";
+	public const string X64_UNALIGNED_XMMWORD_MOVE = "movups";
+	public const string X64_UNALIGNED_YMMWORD_MOVE = "vmovups";
 
 	public const string ARM64_DECIMAL_MOVE_INSTRUCTION = "fmov";
 
@@ -1133,8 +1136,68 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
+	private class Variant
+	{
+		public Format[] InputDestinationFormats;
+		public Format[] InputSourceFormats;
+		public HandleType InputDestinationTypes;
+		public HandleType InputSourceTypes;
+		public string Operation;
+		public Size OutputDestinationSize;
+		public Size OutputSourceSize;
+
+		public Variant(Format input_destination_format, Format input_source_format, HandleType input_destination_types, HandleType input_source_types, string operation, Size output_destination_size, Size output_source_size)
+		{
+			InputDestinationFormats = new[] { input_destination_format };
+			InputSourceFormats = new[] { input_source_format };
+			InputDestinationTypes = input_destination_types;
+			InputSourceTypes = input_source_types;
+			Operation = operation;
+			OutputDestinationSize = output_destination_size;
+			OutputSourceSize = output_source_size;
+		}
+
+		public Variant(Size input_destination_size, Size input_source_size, HandleType input_destination_types, HandleType input_source_types, string operation, Size output_destination_size, Size output_source_size)
+		{
+			InputDestinationFormats = new[] { input_destination_size.ToFormat(), input_destination_size.ToFormat(false) };
+			InputSourceFormats = new[] { input_source_size.ToFormat(), input_source_size.ToFormat(false) };
+			InputDestinationTypes = input_destination_types;
+			InputSourceTypes = input_source_types;
+			Operation = operation;
+			OutputDestinationSize = output_destination_size;
+			OutputSourceSize = output_source_size;
+		}
+	}
+
+	private static readonly Variant[] Variants = new Variant[]
+	{
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, X64_UNALIGNED_XMMWORD_MOVE, Size.XMMWORD, Size.XMMWORD),
+		new(Size.YMMWORD, Size.YMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, X64_UNALIGNED_YMMWORD_MOVE, Size.YMMWORD, Size.YMMWORD),
+	};
+
+	private Variant? TryGetVariant()
+	{
+		return Variants.Where(i =>
+			i.InputDestinationFormats.Contains(Destination!.Value!.Format) &&
+			i.InputSourceFormats.Contains(Source!.Value!.Format) &&
+			Flag.Has((int)i.InputDestinationTypes, (int)Destination!.Value!.Type) &&
+			Flag.Has((int)i.InputSourceTypes, (int)Source!.Value!.Type)
+
+		).FirstOrDefault();
+	}
+
 	public void OnPostBuildX64()
 	{
+		var variant = TryGetVariant();
+
+		if (variant != null)
+		{
+			Operation = variant.Operation;
+			Destination!.Value!.Format = variant.OutputDestinationSize.ToFormat();
+			Source!.Value!.Format = variant.OutputSourceSize.ToFormat();
+			return;
+		}
+
 		// Skip decimal formats since they are correct by default
 		if (Destination!.Value!.Format.IsDecimal() || Source!.Value!.Format.IsDecimal())
 		{

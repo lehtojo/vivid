@@ -53,8 +53,8 @@ public static class Casts
 
 	public static Result Build(Unit unit, CastNode node, AccessMode mode)
 	{
-		var from = node.Object.GetType() ?? throw new ApplicationException("Object of a cast node was not resolved properly");
-		var to = node.GetType() ?? throw new ApplicationException("Cast node was not resolved properly");
+		var from = node.Object.GetType();
+		var to = node.GetType();
 
 		var result = References.Get(unit, node.Object, mode);
 		result.Format = to.Format;

@@ -65,7 +65,7 @@ public class FunctionToken : Token
 			}
 			else if (parameter.Is(Operators.ASSIGN))
 			{
-				throw new NotImplementedException("Parameter default values are not supported yet");
+				throw Errors.Get(parameter.Position, "Default parameter values are not supported");
 			}
 			else if (parameter is UnresolvedIdentifier name)
 			{
@@ -73,7 +73,7 @@ public class FunctionToken : Token
 			}
 			else
 			{
-				throw new NotImplementedException("Unknown parameter syntax");
+				throw Errors.Get(parameter.Position, "Can not resolve the parameter declaration");
 			}
 		}
 

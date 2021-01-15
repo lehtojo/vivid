@@ -24,7 +24,6 @@ public class ParserPhase : Phase
 	private void ParseTypes(Node root)
 	{
 		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
-		var exceptions = new List<Exception>();
 
 		foreach (var type in types)
 		{

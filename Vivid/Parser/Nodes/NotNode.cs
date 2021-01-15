@@ -1,4 +1,4 @@
-public class NotNode : Node, IType
+public class NotNode : Node
 {
 	public Node Object => First!;
 
@@ -8,9 +8,9 @@ public class NotNode : Node, IType
 		Position = position;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
-		return Object is IType x ? x.GetType() : Types.UNKNOWN;
+		return Object.TryGetType();
 	}
 
 	public override NodeType GetNodeType()

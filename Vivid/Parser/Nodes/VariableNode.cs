@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class VariableNode : Node, IType
+public class VariableNode : Node
 {
 	public Variable Variable { get; set; }
 
@@ -18,7 +18,7 @@ public class VariableNode : Node, IType
 		Position = position;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Variable.Type;
 	}

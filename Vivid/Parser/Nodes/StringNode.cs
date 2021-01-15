@@ -1,6 +1,6 @@
 using System;
 
-public class StringNode : Node, IType, ICloneable
+public class StringNode : Node, ICloneable
 {
 	public string Text { get; private set; }
 	public string? Identifier { get; private set; }
@@ -16,7 +16,7 @@ public class StringNode : Node, IType, ICloneable
 		return Identifier ??= unit.GetNextString() ?? throw new ApplicationException("String did not have an identifier");
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Types.LINK;
 	}

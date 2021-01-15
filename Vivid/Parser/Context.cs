@@ -176,9 +176,11 @@ public class Context
 	public bool IsMember => GetTypeParent() != null;
 	public bool IsType => this is Type;
 	public bool IsFunction => this is Function;
+	public bool IsLambda => this is Lambda;
 	public bool IsImplementation => this is FunctionImplementation;
 	public bool IsLambdaImplementation => this is LambdaImplementation;
 
+	public bool IsInsideLambda => IsLambdaImplementation || IsLambda || GetImplementationParent() is LambdaImplementation || GetFunctionParent() is Lambda;
 	public bool IsInsideFunction => IsImplementation || IsFunction || GetImplementationParent() != null || GetFunctionParent() != null;
 	public bool IsInsideType => IsType || GetTypeParent() != null;
 
@@ -359,7 +361,7 @@ public class Context
 	{
 		if (IsLocalTypeDeclared(type.Name))
 		{
-			throw new Exception($"Type '{type.Name}' already exists in this context");
+			throw Errors.Get(type.Position, $"Type '{type.Name}' already exists in this context");
 		}
 
 		Types.Add(type.Name, type);
@@ -393,7 +395,7 @@ public class Context
 	{
 		if (IsLocalVariableDeclared(variable.Name))
 		{
-			throw new Exception($"Variable '{variable.Name}' already exists in this context");
+			throw Errors.Get(variable.Position, $"Variable '{variable.Name}' already exists in this context");
 		}
 
 		// Update variable context
@@ -410,7 +412,7 @@ public class Context
 	{
 		if (IsLocalVariableDeclared(name))
 		{
-			throw new Exception($"Variable '{name}' already exists in this context");
+			throw Errors.Get(null, $"Variable '{name}' already exists in this context");
 		}
 
 		// When a variable is created this way it is automatically declared into this context
@@ -433,7 +435,7 @@ public class Context
 	{
 		if (IsLocalLabelDeclared(label.GetName()))
 		{
-			throw new Exception($"Label '{label.GetName()}' already exists in this context");
+			throw Errors.Get(null, $"Label '{label.GetName()}' already exists in this context");
 		}
 
 		Labels.Add(label.GetName(), label);

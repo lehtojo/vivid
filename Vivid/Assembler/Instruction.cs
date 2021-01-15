@@ -159,6 +159,7 @@ public abstract class Instruction
 
 	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
 	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
+	public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
 
 	public Result[]? Dependencies { get; set; }
 

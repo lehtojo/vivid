@@ -83,7 +83,7 @@ public class AssemblerPhase : Phase
 
 		try
 		{
-			var process = Process.Start(configuration);
+			var process = Process.Start(configuration) ?? throw new ApplicationException($"Could not start process '{executable}'");
 			process.WaitForExit();
 
 			var output = string.Empty;

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class UnresolvedFunction : Node, IResolvable, IType
+public class UnresolvedFunction : Node, IResolvable
 {
 	public string Name { get; }
 	public Type[] Arguments { get; }
@@ -40,28 +40,6 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		}
 
 		return this;
-	}
-
-	/// <summary>
-	/// Returns all parameters as pairs containing the parameter type and the node
-	/// </summary>
-	private List<(Type Type, Node Node)>? GetParameterTypes()
-	{
-		var types = new List<(Type, Node)>();
-
-		foreach (var parameter in this)
-		{
-			var type = parameter.TryGetType();
-
-			if (type == Types.UNKNOWN)
-			{
-				return null;
-			}
-
-			types.Add((type, parameter));
-		}
-
-		return types;
 	}
 
 	/// <summary>
@@ -103,12 +81,12 @@ public class UnresolvedFunction : Node, IResolvable, IType
 				var actual = types[i];
 
 				// Skip all parameter types which don't represent lambda types
-				if (expected == null || !(actual is CallDescriptorType))
+				if (expected == null || actual is not CallDescriptorType)
 				{
 					continue;
 				}
 
-				if (!(expected is CallDescriptorType))
+				if (expected is not CallDescriptorType)
 				{
 					// Since the actual parameter type is lambda type and the expected is not, the current candidate can be removed
 					candidates.RemoveAt(c);
@@ -129,7 +107,7 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		for (var i = 0; i < expected_types.Length; i++)
 		{
 			// Skip all parameter types which don't represent lambda types
-			if (!(expected_types[i] is CallDescriptorType expected))
+			if (expected_types[i] is not CallDescriptorType expected)
 			{
 				continue;
 			}
@@ -146,7 +124,117 @@ public class UnresolvedFunction : Node, IResolvable, IType
 			// Since none of the parameters conflicted with the expected parameters types, the expected parameter types can be transfered
 			for (var j = 0; j < expected.Parameters.Count; j++)
 			{
-				parameters[i].Node.To<LambdaNode>().Lambda.Parameters[j].Type = expected.Parameters[j];
+				parameters[i].Node.To<LambdaNode>().Function.Parameters[j].Type = expected.Parameters[j];
+			}
+		}
+	}
+
+	/// <summary>
+	/// Tries to resolve any typeless short functions inside the parameters of this unresolved function
+	/// </summary>
+	private void TryResolveShortFunctionParameters(Context primary, List<(Type? Type, Node Node)> parameters)
+	{
+		// Collect all the parameters which are unresolved
+		var unresolved = parameters.Where(p => p.Type == null || p.Type.IsUnresolved).ToArray();
+
+		// Ensure all the unresolved parameter types represent lambda types
+		if (!unresolved.All(p => p.Node.Is(NodeType.LAMBDA)) || !primary.IsFunctionDeclared(Name))
+		{
+			return;
+		}
+
+		// Collect all parameter types leaving all lambda types as nulls
+		var actual_types = parameters.Select(i => i.Type).ToList();
+
+		// Find all the functions overloads with the name of this unresolved function
+		var functions = primary.GetFunction(Name)!;
+		var candidates = (List<Function>?)null;
+
+		/// TODO: This structure could be unified
+		if (Arguments.Any())
+		{
+			var overloads = functions.Overloads.Where(i => i is TemplateFunction).Cast<TemplateFunction>();
+
+			// Find all the function overloads that could accept the currently resolved parameter types
+			candidates = overloads.Where(i => {
+				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
+				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!, Arguments);
+
+			}).Cast<Function>().ToList();
+		}
+		else
+		{
+			var overloads = functions.Overloads.Where(i => i is not TemplateFunction);
+
+			// Find all the function overloads that could accept the currently resolved parameter types
+			candidates = overloads.Where(i => {
+				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
+				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!);
+
+			}).Cast<Function>().ToList();
+		}
+
+		// Collect all parameter types but this time filling the unresolved lambda types with incomplete call descriptor types
+		actual_types = parameters.Select(i => i.Type ?? i.Node.To<LambdaNode>().GetIncompleteType()).ToList()!;
+
+		Type?[] expected_types;
+
+		// Filter out all candidates where the type of the parameter matching the unresolved lambda type is not a lambda type
+		for (var i = candidates.Count - 1; i >= 0; i--)
+		{
+			expected_types = candidates[i].Parameters.Select(p => p.Type).ToArray();
+
+			for (var j = 0; j < expected_types.Length; j++)
+			{
+				var expected = expected_types[j];
+				var actual = actual_types[j];
+
+				// Skip all parameter types which do not represent lambda types
+				if (expected == null || actual is not CallDescriptorType)
+				{
+					continue;
+				}
+
+				if (expected is not CallDescriptorType)
+				{
+					// Since the actual parameter type is lambda type and the expected is not, the current candidate can be removed
+					candidates.RemoveAt(i);
+					break;
+				}
+			}
+		}
+
+		// Resolve the lambda type only if there's only one option left since the analysis would go too complex
+		if (candidates.Count != 1)
+		{
+			return;
+		}
+
+		var match = candidates.First();
+		expected_types = match.Parameters.Select(p => p.Type).ToArray();
+
+		for (var i = 0; i < expected_types.Length; i++)
+		{
+			// Skip all parameter types which do not represent lambda types
+			/// NOTE: It is ensured that when the expected type is a call descriptor the actual type is as well
+			if (expected_types[i] is not CallDescriptorType expected)
+			{
+				continue;
+			}
+
+			var actual = (CallDescriptorType)actual_types[i]!;
+
+			// Ensure the parameter types do not conflict
+			if (expected.Parameters.Count != actual.Parameters.Count ||
+				!expected.Parameters.Zip(actual.Parameters).All(i => i.Second == null || i.Second == i.First))
+			{
+				return;
+			}
+
+			// Since none of the parameters conflicted with the expected parameters types, the expected parameter types can be transfered
+			for (var j = 0; j < expected.Parameters.Count; j++)
+			{
+				parameters[i].Node.To<LambdaNode>().Function.Parameters[j].Type = expected.Parameters[j];
 			}
 		}
 	}
@@ -162,39 +250,36 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		}
 
 		// Get parameter types
-		var parameters = GetParameterTypes();
+		var parameters = this.Select(i => (Type: i.TryGetType(), Node: i)).ToList();
+		var types = parameters.Select(i => i.Type).ToList();
 
-		// Parameter types must be known
-		if (parameters == null)
+		if (types.Any(i => i == null || i.IsUnresolved))
 		{
+			TryResolveShortFunctionParameters(primary, parameters);
 			return null;
 		}
-
-		var types = parameters.Select(p => p.Type).ToList();
-
-		if (types.Any(t => t.IsUnresolved))
+		
+		// First, ensure this function can be a lambda call
+		if (!linked && !Arguments.Any())
 		{
-			TryResolveShortFunctionParameters(environment, parameters, types);
-			return null;
-		}
-
-		// Try to find a suitable function by name and parameter types
-		var function = Singleton.GetFunctionByName(primary, Name, types, Arguments);
-
-		// First, ensure this function can be a virtual or a lambda call
-		if (function == null && primary == environment && !Arguments.Any())
-		{
-			// Try to form a virtual function call
-			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
+			// Try to form a lambda function call
+			var result = Common.TryGetLambdaCall(environment, Name, this, types!);
 
 			if (result != null)
 			{
 				result.Position = Position;
 				return result;
 			}
+		}
 
-			// Try to form a lambda function call
-			result = Common.TryGetLambdaCall(environment, Name, this, types!);
+		// Try to find a suitable function by name and parameter types
+		var function = Singleton.GetFunctionByName(primary, Name, types!, Arguments);
+
+		// Lastly, try to form a virtual function call if the function could not be found
+		if (function == null && !linked && !Arguments.Any())
+		{
+			// Try to form a virtual function call
+			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
 
 			if (result != null)
 			{
@@ -219,15 +304,15 @@ public class UnresolvedFunction : Node, IResolvable, IType
 		// When the function is a member function and the this function is not part of a link it means that the function needs the self pointer
 		if (function.IsMember && !linked)
 		{
-			var self = environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+			var self = Common.GetSelfPointer(environment, Position);
 
-			return new LinkNode(new VariableNode(self, Position), node, Position);
+			return new LinkNode(self, node, Position);
 		}
 
 		return node;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Types.UNKNOWN;
 	}

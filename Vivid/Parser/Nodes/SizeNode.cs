@@ -1,4 +1,4 @@
-public class SizeNode : Node, IType
+public class SizeNode : Node
 {
 	public Type Type { get; private set; }
 
@@ -7,7 +7,7 @@ public class SizeNode : Node, IType
 		Type = type;
 	}
 
-	public new Type GetType()
+	public override Type? TryGetType()
 	{
 		return Types.LARGE;
 	}

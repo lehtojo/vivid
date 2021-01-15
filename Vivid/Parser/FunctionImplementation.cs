@@ -44,7 +44,6 @@ public class FunctionImplementation : Context
 	public bool IsVirtual => Metadata is VirtualFunction;
 	public bool IsConstructor => Metadata is Constructor;
 	public bool IsStatic => Flag.Has(Metadata!.Modifiers, Modifier.STATIC);
-	public bool IsResponsible => Flag.Has(Metadata!.Modifiers, Modifier.RESPONSIBLE);
 
 	protected override void OnMangle(Mangle mangle)
 	{
@@ -111,6 +110,11 @@ public class FunctionImplementation : Context
 			{
 				Position = properties.Position
 			};
+
+			if (Variables.ContainsKey(parameter.Name))
+			{
+				throw Errors.Get(parameter.Position, $"Variable '{parameter.Name}' already exists in this context");
+			}
 
 			Variables.Add(parameter.Name, parameter);
 		}

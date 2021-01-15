@@ -38,10 +38,9 @@ public class LinkPattern : Pattern
 			return false;
 		}
 
-		// When left token is dynamic, it must be contextable
-		if (tokens[LEFT].Type == TokenType.DYNAMIC)
+		if (tokens[LEFT].Is(TokenType.DYNAMIC))
 		{
-			return tokens[LEFT].To<DynamicToken>().Node is IType;
+			return true;
 		}
 
 		// Try to consume a template function call, therefore an identifier token in the right hand side

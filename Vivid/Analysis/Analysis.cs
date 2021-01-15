@@ -1159,84 +1159,9 @@ public static class Analysis
 
 		var expressions = new List<OperatorNode>(type.Initialization);
 
-		/* Complete the descriptor of the type
-		type.Configuration.Descriptor.Add(type.ContentSize);
-		type.Configuration.Descriptor.Add(type.Supertypes.Count);
-
-		type.Supertypes.ForEach(i => type.Configuration.Descriptor.Add(i.Configuration?.Descriptor ?? throw new ApplicationException("Missing runtime configuration from a supertype")));
-
-		if (!type.Supertypes.Any())
-		{
-			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
-			// It should be possible to check whether the link represents this type or another
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(type.Configuration!.Variable),
-				new DataPointer(type.Configuration.Entry)
-			);
-
-			expressions.Add(initialization);
-		}
-
-		var offset = Parser.Bytes;
-
-		foreach (var supertype in type.GetAllSupertypes())
-		{
-			// Begin a new section inside the configuration table
-			type.Configuration!.Entry.Add(type.Configuration.Descriptor);
-
-			if (supertype.Configuration == null)
-			{
-				throw new ApplicationException("Type inherited a type which did not have runtime configuration");
-			}
-
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(supertype.Configuration.Variable),
-				new DataPointer(type.Configuration.Entry, offset)
-			);
-
-			expressions.Add(initialization);
-
-			offset += Parser.Bytes;
-
-			foreach (var virtual_function in supertype.GetAllVirtualFunctions())
-			{
-				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
-
-				if (overloads == null)
-				{
-					continue;
-				}
-
-				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
-
-				FunctionImplementation? implementation = null;
-
-				foreach (var overload in overloads)
-				{
-					var actual = overload.Parameters.Select(i => i.Type).ToList();
-
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
-					{
-						continue;
-					}
-
-					implementation = overload.Get(expected!);
-					break;
-				}
-
-				if (implementation == null)
-				{
-					continue;
-				}
-
-				type.Configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
-				offset += Parser.Bytes;
-			}
-		}*/
-
 		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
 		{
-			var self = constructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer in a constructor");
+			var self = Common.GetSelfPointer(constructor, null);
 
 			foreach (var iterator in expressions)
 			{
@@ -1245,7 +1170,7 @@ public static class Analysis
 
 				foreach (var member in members)
 				{
-					member.Replace(new LinkNode(new VariableNode(self), member.Clone()));
+					member.Replace(new LinkNode(self.Clone(), member.Clone()));
 				}
 
 				var position = constructor.Node!.First;
@@ -1262,10 +1187,10 @@ public static class Analysis
 
 			foreach (var return_statement in constructor.Node!.FindAll(i => i.Is(NodeType.RETURN)))
 			{
-				return_statement.Replace(new ReturnNode(new VariableNode(self), return_statement.Position));
+				return_statement.Replace(new ReturnNode(self.Clone(), return_statement.Position));
 			}
 
-			constructor.Node!.Add(new ReturnNode(new VariableNode(self)));
+			constructor.Node!.Add(new ReturnNode(self));
 		}
 	}
 

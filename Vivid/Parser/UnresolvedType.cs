@@ -61,17 +61,22 @@ public class UnresolvedType : Type, IResolvable
 		{
 			return new TypeNode(template_type.GetVariant(TemplateArguments));
 		}
-		else
+
+		// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
+		if (type.IsTemplateType)
 		{
+			// Clone the type since it is shared and add the template types
 			type = type.Clone();
 			type.TemplateArguments = TemplateArguments;
 			return new TypeNode(type);
 		}
+
+		return null;
 	}
 
 	public Type? TryResolveType(Context context)
 	{
-		return Resolve(context)?.GetType();
+		return Resolve(context)?.TryGetType();
 	}
 
 	public Status GetStatus()

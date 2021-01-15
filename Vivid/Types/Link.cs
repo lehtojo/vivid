@@ -5,6 +5,7 @@ public class Link : Number
 	public Link() : base(Parser.Format, Parser.Size.Bits, true, "link")
 	{
 		Identifier = "Ph";
+		Modifiers |= Modifier.TEMPLATE_TYPE;
 	}
 
 	public override Type Clone()

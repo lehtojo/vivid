@@ -1,6 +1,6 @@
 using System.Linq;
 
-public class LinkNode : OperatorNode, IResolvable, IType
+public class LinkNode : OperatorNode, IResolvable
 {
 	public Node Object => First!;
 	public Node Member => Last!;
@@ -70,7 +70,7 @@ public class LinkNode : OperatorNode, IResolvable, IType
 		return null;
 	}
 
-	public override Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Right.TryGetType();
 	}

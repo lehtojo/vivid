@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class IncrementNode : Node, IType
+public class IncrementNode : Node, IResolvable
 {
 	public bool Post { get; private set; }
 	public Node Object => First!;
@@ -12,7 +12,7 @@ public class IncrementNode : Node, IType
 		Post = post;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Object.TryGetType();
 	}
@@ -20,6 +20,18 @@ public class IncrementNode : Node, IType
 	public override NodeType GetNodeType()
 	{
 		return NodeType.INCREMENT;
+	}
+
+	public Node? Resolve(Context context)
+	{
+		Resolver.Resolve(context, Object);
+		return null;
+	}
+
+	public Status GetStatus()
+	{
+		// Ensure the object is a number
+		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Could not resolve the increment operation");
 	}
 
 	public override bool Equals(object? other)

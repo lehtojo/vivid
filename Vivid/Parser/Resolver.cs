@@ -29,6 +29,35 @@ public static class Resolver
 	}
 
 	/// <summary>
+	/// Tries to resolve supertypes which were not found previously
+	/// </summary>
+	private static void ResolveSupertypes(Context context, Type type)
+	{
+		for (var i = type.Supertypes.Count - 1; i >= 0; i--)
+		{
+			var supertype = type.Supertypes[i];
+
+			// Skip supertypes which are already resolved
+			if (!supertype.IsUnresolved)
+			{
+				continue;
+			}
+
+			var resolved = Resolve(context, supertype);
+
+			// Skip the supertype if it could not be resolved or if it is not allowed to be inherited
+			if (resolved == Types.UNKNOWN || !type.IsInheritingAllowed(resolved))
+			{
+				continue;
+			}
+
+			// Replace the old unresolved supertype with the resolved one
+			type.Supertypes.RemoveAt(i);
+			type.Supertypes.Insert(i, resolved);
+		}
+	}
+
+	/// <summary>
 	/// Tries to resolve the problems in the given context
 	/// </summary>
 	public static void ResolveContext(Context context)
@@ -39,6 +68,7 @@ public static class Resolver
 
 		foreach (var type in types)
 		{
+			ResolveSupertypes(context, type);
 			ResolveVariables(type);
 			ResolveContext(type);
 
@@ -263,23 +293,15 @@ public static class Resolver
 
 		while (iterator != null)
 		{
-			if (iterator is IType x)
-			{
-				var type = x.GetType();
+			var type = iterator.TryGetType();
 
-				if (type == Types.UNKNOWN || type.IsUnresolved)
-				{
-					// This operation must be aborted since type list cannot contain unresolved types
-					return null;
-				}
-
-				types.Add(type);
-			}
-			else
+			if (type == Types.UNKNOWN || type.IsUnresolved)
 			{
 				// This operation must be aborted since type list cannot contain unresolved types
 				return null;
 			}
+
+			types.Add(type);
 
 			iterator = iterator.Next;
 		}
@@ -295,10 +317,9 @@ public static class Resolver
 		var operation = assign.To<OperatorNode>();
 
 		// Try to resolve type via contextable right side of the assign operator
-		if (operation.Operator == Operators.ASSIGN &&
-			operation.Right is IType x)
+		if (operation.Operator == Operators.ASSIGN)
 		{
-			return x.GetType();
+			return operation.Right.TryGetType();
 		}
 
 		return Types.UNKNOWN;

@@ -1,4 +1,4 @@
-public class StackAddressNode : Node, IType
+public class StackAddressNode : Node
 {
 	public int Alignment { get; set; }
 	public int Bytes { get; set; }
@@ -9,7 +9,7 @@ public class StackAddressNode : Node, IType
 		Bytes = bytes;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Types.LINK;
 	}

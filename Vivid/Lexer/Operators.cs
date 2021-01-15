@@ -51,7 +51,7 @@ public static class Operators
 	public static readonly IndependentOperator INCREMENT = new IndependentOperator("++");
 	public static readonly IndependentOperator DECREMENT = new IndependentOperator("--");
 
-	public static readonly IndependentOperator CAST = new IndependentOperator("->");
+	public static readonly IndependentOperator ARROW = new IndependentOperator("->");
 	public static readonly IndependentOperator IMPLICATION = new IndependentOperator("=>");
 
 	public static readonly IndependentOperator END = new IndependentOperator("\n");
@@ -115,7 +115,7 @@ public static class Operators
 		Add(INCREMENT);
 		Add(DECREMENT);
 
-		Add(CAST);
+		Add(ARROW);
 		Add(IMPLICATION);
 
 		Add(COLON);

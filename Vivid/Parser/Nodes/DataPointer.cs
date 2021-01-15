@@ -1,4 +1,4 @@
-﻿public class DataPointer : Node, IType
+﻿public class DataPointer : Node
 {
 	public object Data { get; private set; }
 	public long Offset { get; private set; }
@@ -9,7 +9,7 @@
 		Offset = offset;
 	}
 
-	public new Type GetType()
+	public override Type? TryGetType()
 	{
 		return Types.LINK;
 	}

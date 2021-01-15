@@ -1,23 +1,38 @@
 using System.Linq;
+using System;
 
-public class LambdaNode : Node, IResolvable, IType
+public class LambdaNode : Node, IResolvable
 {
 	private Status Status { get; set; }
 
-	public Lambda Lambda { get; private set; }
+	public Function Function { get; private set; }
+	public FunctionImplementation? Implementation { get; set; }
 
-	public LambdaNode(Lambda lambda, Position position)
+	public LambdaNode(Function lambda, Position position)
 	{
-		Lambda = lambda;
+		Function = lambda;
 		Position = position;
 		Status = Status.Error(Position, "Could not resolve parameter types of the short function");
 	}
 
-	public new Type? GetType()
+	public LambdaNode(FunctionImplementation implementation, Position position)
 	{
-		if (Lambda.Implementations.Any() && Lambda.Implementation.ReturnType != null)
+		Implementation = implementation;
+		Function = implementation.Metadata ?? throw new ApplicationException("Missing function implementation metadata");
+		Position = position;
+		Status = Status.OK;
+	}
+
+	public CallDescriptorType GetIncompleteType()
+	{
+		return new CallDescriptorType(Function.Parameters.Select(p => p.Type).ToList(), Implementation?.ReturnType);
+	}
+
+	public override Type? TryGetType()
+	{
+		if (Implementation != null && Implementation.ReturnType != null)
 		{
-			return new CallDescriptorType(Lambda.Parameters.Select(p => p.Type).ToList(), Lambda.Implementation.ReturnType);
+			return new CallDescriptorType(Function.Parameters.Select(p => p.Type).ToList(), Implementation.ReturnType);
 		}
 
 		return null;
@@ -30,14 +45,14 @@ public class LambdaNode : Node, IResolvable, IType
 
 	public Node? Resolve(Context context)
 	{
-		if (Lambda.Implementations.Any())
+		if (Implementation != null)
 		{
 			Status = Status.OK;
 			return null;
 		}
 
 		// Try to resolve all parameter types
-		foreach (var parameter in Lambda.Parameters)
+		foreach (var parameter in Function.Parameters)
 		{
 			if (parameter.Type == null)
 			{
@@ -56,13 +71,13 @@ public class LambdaNode : Node, IResolvable, IType
 			}
 		}
 
-		if (Lambda.Parameters.Any(p => p.Type == null || p.Type.IsUnresolved))
+		if (Function.Parameters.Any(p => p.Type == null || p.Type.IsUnresolved))
 		{
 			return null;
 		}
 
 		Status = Status.OK;
-		Lambda.Implement(Lambda.Parameters.Select(p => p.Type!));
+		Implementation = Function.Implement(Function.Parameters.Select(p => p.Type!));
 
 		return null;
 	}

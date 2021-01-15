@@ -1,4 +1,4 @@
-public class NegateNode : Node, IType
+public class NegateNode : Node, IResolvable
 {
 	public Node Object => First!;
 
@@ -8,13 +8,25 @@ public class NegateNode : Node, IType
 		Position = position;
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
-		return Object is IType x ? x.GetType() : Types.UNKNOWN;
+		return Object.TryGetType();
 	}
 
 	public override NodeType GetNodeType()
 	{
 		return NodeType.NEGATE;
+	}
+
+	public Node? Resolve(Context context)
+	{
+		Resolver.Resolve(context, Object);
+		return null;
+	}
+
+	public Status GetStatus()
+	{
+		// Ensure the object is a number
+		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Could not resolve the negation operation");
 	}
 }

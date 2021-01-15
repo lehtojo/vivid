@@ -7,8 +7,8 @@ public class Size
 	public static readonly Size WORD = new Size("word", ".short", 2);
 	public static readonly Size DWORD = new Size("dword", ".long", 4);
 	public static readonly Size QWORD = new Size("qword", ".quad", 8);
-	public static readonly Size OWORD = new Size("oword", "?", 16);
-	public static readonly Size YWORD = new Size("yword", "?", 32);
+	public static readonly Size XMMWORD = new Size("xmmword", ".xword", 16);
+	public static readonly Size YMMWORD = new Size("ymmword", ".yword", 32);
 
 	public string Identifier { get; private set; }
 	public string Allocator { get; private set; }	
@@ -30,8 +30,8 @@ public class Size
 			2 => WORD,
 			4 => DWORD,
 			8 => QWORD,
-			16 => OWORD,
-			32 => YWORD,
+			16 => XMMWORD,
+			32 => YMMWORD,
 			_ => throw new ApplicationException("Invalid instruction parameter size given"),
 		};
 	}
@@ -44,8 +44,8 @@ public class Size
 			2 => WORD,
 			4 => DWORD,
 			8 => QWORD,
-			16 => OWORD,
-			32 => YWORD,
+			16 => XMMWORD,
+			32 => YMMWORD,
 			_ => null,
 		};
 	}
@@ -67,10 +67,10 @@ public class Size
 			case Format.UINT64: return QWORD;
 
 			case Format.INT128:
-			case Format.UINT128: return OWORD;
+			case Format.UINT128: return XMMWORD;
 
 			case Format.INT256:
-			case Format.UINT256: return YWORD;
+			case Format.UINT256: return YMMWORD;
 
 			case Format.DECIMAL: return Assembler.Size;
 

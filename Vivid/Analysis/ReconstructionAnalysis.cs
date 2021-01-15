@@ -690,10 +690,6 @@ public static class ReconstructionAnalysis
 				{
 					continue;
 				}
-
-				var self = link.GetParentContext().GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
-
-				link.Left.Replace(new VariableNode(self, link.Left.Position));
 			}
 			else if (link.Right.Is(NodeType.VARIABLE))
 			{
@@ -703,11 +699,9 @@ public static class ReconstructionAnalysis
 				{
 					continue;
 				}
-
-				var self = link.GetParentContext().GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
-
-				link.Left.Replace(new VariableNode(self, link.Left.Position));
 			}
+
+			link.Left.Replace(Common.GetSelfPointer(link.GetParentContext(), link.Left.Position));
 		}
 	}
 

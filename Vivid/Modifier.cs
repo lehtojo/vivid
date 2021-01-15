@@ -6,10 +6,9 @@ public static class Modifier
 	public const int STATIC = 8;
 	public const int EXTERNAL = 16;
 	public const int READONLY = 32;
-	public const int RESPONSIBLE = 64;
-	public const int GLOBAL = 128;
-	public const int CONSTANT = 256;
-	public const int TEMPLATE_TYPE = 512;
-	public const int OUTLINE = 1024;
-	public const int INLINE = 2048;
+	public const int GLOBAL = 64;
+	public const int CONSTANT = 128;
+	public const int TEMPLATE_TYPE = 256;
+	public const int OUTLINE = 512;
+	public const int INLINE = 1024;
 }

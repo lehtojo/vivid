@@ -503,7 +503,7 @@ namespace Vivid.Unit
 
 			try
 			{
-				var process = Process.Start(configuration);
+				var process = Process.Start(configuration) ?? throw new ApplicationException($"Could not start process '{configuration.FileName}'");
 				process.WaitForExit();
 
 				var output = process.StandardOutput.ReadToEnd();

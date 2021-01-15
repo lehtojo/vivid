@@ -76,7 +76,7 @@ public static class Common
 			return null;
 		}
 
-		var self = new VariableNode(environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer"));
+		var self = Common.GetSelfPointer(environment, null);
 
 		return TryGetVirtualFunctionCall(self, type, name, parameters, parameter_types);
 	}
@@ -98,7 +98,7 @@ public static class Common
 			return null;
 		}
 
-		var self = new VariableNode(environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer"));
+		var self = Common.GetSelfPointer(environment, null);
 
 		return TryGetVirtualFunctionCall(environment, self, type, descriptor);
 	}
@@ -158,7 +158,7 @@ public static class Common
 
 		if (variable.IsMember)
 		{
-			var self_pointer = new VariableNode(environment.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer"));
+			var self_pointer = Common.GetSelfPointer(environment, null);
 
 			self = new LinkNode(self_pointer, new VariableNode(variable));
 		}
@@ -275,8 +275,11 @@ public static class Common
 				{
 					return template_type.GetVariant(template_arguments);
 				}
-				else
+				
+				// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
+				if (type.IsTemplateType)
 				{
+					// Clone the type since it is shared and add the template types
 					type = type.Clone();
 					type.TemplateArguments = template_arguments;
 					return type;
@@ -295,7 +298,7 @@ public static class Common
 	/// </summary>
 	public static List<Token>? ReadTypeArgumentTokens(Queue<Token> tokens)
 	{
-		if (!tokens.Peek().Is(TokenType.IDENTIFIER))
+		if (!tokens.Any() || !tokens.Peek().Is(TokenType.IDENTIFIER))
 		{
 			return null;
 		}
@@ -321,7 +324,7 @@ public static class Common
 
 		if (opening.Operator != Operators.LESS_THAN)
 		{
-			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+			throw Errors.Get(opening.Position, "Could not understand the template arguments");
 		}
 
 		var parameters = new List<Type>();
@@ -338,11 +341,9 @@ public static class Common
 			}
 		}
 
-		var closing = tokens.Dequeue().To<OperatorToken>();
-
-		if (closing.Operator != Operators.GREATER_THAN)
+		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
 		{
-			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+			throw Errors.Get(opening.Position, "Could not understand the template arguments");
 		}
 
 		return parameters.ToArray();
@@ -359,7 +360,7 @@ public static class Common
 
 		if (opening.Operator != Operators.LESS_THAN)
 		{
-			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+			throw Errors.Get(opening.Position, "Could not understand the template arguments");
 		}
 
 		while (true)
@@ -373,17 +374,15 @@ public static class Common
 
 			result.AddRange(type_argument_tokens);
 
-			if (tokens.Peek().Is(Operators.COMMA))
+			if (tokens.Any() && tokens.Peek().Is(Operators.COMMA))
 			{
 				result.Add(tokens.Dequeue());
 			}
 		}
 
-		var closing = tokens.Dequeue().To<OperatorToken>();
-
-		if (closing.Operator != Operators.GREATER_THAN)
+		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
 		{
-			throw new InvalidOperationException("Tried to read template parameters but its syntax was invalid");
+			throw Errors.Get(opening.Position, "Could not understand the template arguments");
 		}
 
 		result.Add(closing);
@@ -555,7 +554,7 @@ public static class Common
 
 	public static Node CreateHeapConstruction(FunctionNode constructor)
 	{
-		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+		var type = constructor.GetType();
 
 		var environment = constructor.GetParentContext();
 		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
@@ -590,7 +589,7 @@ public static class Common
 
 	public static Node CreateStackConstruction(FunctionNode constructor)
 	{
-		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+		var type = constructor.GetType();
 
 		var environment = constructor.GetParentContext();
 		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
@@ -620,18 +619,82 @@ public static class Common
 		return inline;
 	}
 
-	/*public static Node CreateHeapConstruction(FunctionNode constructor)
+	/// <summary>
+	/// Returns whether the specified node is part of a function call argument
+	/// </summary>
+	public static bool IsCallArgument(Node node)
 	{
-		var type = constructor.GetType() ?? throw new ApplicationException("Could not get constructor type");
+		var result = node.FindParent(i => !i.Is(NodeType.CONTENT, NodeType.CAST));
 
-		var allocation_size = Math.Max(1L, type.ContentSize);
-		var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
+		return result != null && result.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION);
+	}
 
-		var allocation = new CastNode(
-			new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(allocation_parameters),
-			new TypeNode(type)
-		);
+	/// <summary>
+	/// Tries to return the type of the parameter that the specified node influences
+	/// </summary>
+	public static Type? TryGetParameterType(Node argument)
+	{
+		var iterator = argument;
 
-		return new LinkNode(allocation, constructor, constructor.Position);
-	}*/
+		while (iterator != null)
+		{
+			if (iterator.Parent == null)
+			{
+				return null;
+			}
+
+			if (iterator.Parent.Is(NodeType.FUNCTION))
+			{
+				// The specified node is part of standard function call
+				var function = iterator.Parent.To<FunctionNode>().Function;
+				var index = iterator.Parent.ToList().IndexOf(iterator);
+
+				// Ensure there are enough function parameters
+				if (function.ParameterTypes.Count <= index)
+				{
+					throw Errors.Get(iterator.Parent.Position, "Found a function call which takes too many arguments");
+				}
+
+				return function.ParameterTypes[index];
+			}
+			else if (iterator.Parent.Is(NodeType.CALL))
+			{
+				// The specified node is part of a manual function call
+				var descriptor = iterator.Parent.To<CallNode>().Descriptor;
+				var index = iterator.Parent.ToList().IndexOf(iterator);
+
+				// Ensure there are enough function parameters
+				if (descriptor.Parameters.Count <= index)
+				{
+					throw Errors.Get(iterator.Parent.Position, "Found a function call which takes too many arguments");
+				}
+
+				return descriptor.Parameters[index];
+			}
+			else if (iterator is not IContext)
+			{
+				// The parent node represents a typed object so it can be part of a function call
+				/// NOTE: Loops and such are context objects, so the condition should work
+				iterator = iterator.Parent;
+			}
+			else
+			{
+				return null;
+			}
+		}
+		
+		return null;
+	}
+
+	public static Node GetSelfPointer(Context context, Position? position)
+	{
+		var self = context.GetSelfPointer();
+
+		if (self != null)
+		{
+			return new VariableNode(self, position);
+		}
+
+		return new UnresolvedIdentifier(context.IsInsideLambda ? Lambda.SELF_POINTER_IDENTIFIER : Function.SELF_POINTER_IDENTIFIER, position);
+	}
 }

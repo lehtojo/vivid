@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class TypeNode : Node, IType, IContext
+public class TypeNode : Node, IContext
 {
 	public Type Type { get; private set; }
 	public bool IsDefinition { get; set; } = false;
@@ -41,7 +41,7 @@ public class TypeNode : Node, IType, IContext
 		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Type;
 	}

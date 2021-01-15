@@ -1,6 +1,6 @@
 using System;
 
-public class OffsetNode : Node, IType, IResolvable
+public class OffsetNode : Node, IResolvable
 {
 	public Node Start => First!;
 	public Node Offset => Last!;
@@ -37,7 +37,7 @@ public class OffsetNode : Node, IType, IResolvable
 			return (int)Stride;
 		}
 
-		var type = GetType() ?? throw new ApplicationException("Type of offset node could not be retrieved");
+		var type = GetType();
 
 		return Equals(type, Types.LINK) ? 1 : type.ReferenceSize;
 	}
@@ -49,7 +49,7 @@ public class OffsetNode : Node, IType, IResolvable
 			return (Format)Format;
 		}
 
-		var type = GetType() ?? throw new ApplicationException("Type of offset node could not be retrieved");
+		var type = GetType();
 
 		return Equals(type, Types.LINK) ? global::Format.UINT8 : type.Format;
 	}
@@ -64,9 +64,7 @@ public class OffsetNode : Node, IType, IResolvable
 			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		var operator_functions = target.GetType().GetFunction(function) ??
-			throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
-
+		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
 		var operator_function = operator_functions.GetImplementation(parameter_types);
 
 		if (operator_function == null)
@@ -105,7 +103,7 @@ public class OffsetNode : Node, IType, IResolvable
 		return TryResolveAsIndexedGetter(type);
 	}
 
-	public new Type? GetType()
+	public override Type? TryGetType()
 	{
 		return Start.TryGetType()?.GetOffsetType();
 	}
@@ -129,6 +127,6 @@ public class OffsetNode : Node, IType, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.OK;
+		return TryGetType() == null ? Status.Error(Position, "Could not resolve the type of the accessor") : Status.OK;
 	}
 }

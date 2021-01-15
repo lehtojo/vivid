@@ -60,10 +60,10 @@ public class AssignPattern : Pattern
 
 		if (variable.IsMember)
 		{
-			var self = context.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+			var self = Common.GetSelfPointer(context, destination.Position);
 
 			return new LinkNode(
-				new VariableNode(self, destination.Position),
+				self,
 				new VariableNode(variable, destination.Position),
 				destination.Position
 			);

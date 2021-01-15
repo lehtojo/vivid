@@ -21,7 +21,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Build",
-			"program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Debug/net5.0/Vivid.dll",
 
 			//"args": [ "${workspaceFolder}/Examples/SpamHelloWorld.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st"],
 			//"args": [ "${workspaceFolder}/Examples/StaticVariable.v", "--asm", "--time", "-st" ],
@@ -74,7 +74,7 @@
 
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
 
-			"args": [ "${workspaceFolder}/Tests/PI.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-O1" ],
+			"args": [ "${workspaceFolder}/Examples/Donut.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-st" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-O1", "-f" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-a", "-v", "-f", "-arm64", "-O1" ],
@@ -93,7 +93,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Units",
-			"program": "${workspaceFolder}/bin/Units/netcoreapp3.1/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Units/net5.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"stopAtEntry": false,
