@@ -32,7 +32,7 @@ public class Size
 			8 => QWORD,
 			16 => XMMWORD,
 			32 => YMMWORD,
-			_ => throw new ApplicationException("Invalid instruction parameter size given"),
+			_ => throw new ApplicationException("Could not resolve size"),
 		};
 	}
 
@@ -52,30 +52,17 @@ public class Size
 
 	public static Size FromFormat(Format type)
 	{
-		switch (type)
+		return type switch
 		{
-			case Format.INT8:
-			case Format.UINT8: return BYTE;
-
-			case Format.INT16:
-			case Format.UINT16: return WORD;
-
-			case Format.INT32:
-			case Format.UINT32: return DWORD;
-
-			case Format.INT64:
-			case Format.UINT64: return QWORD;
-
-			case Format.INT128:
-			case Format.UINT128: return XMMWORD;
-
-			case Format.INT256:
-			case Format.UINT256: return YMMWORD;
-
-			case Format.DECIMAL: return Assembler.Size;
-
-			default: throw new ArgumentException("Unknown number type given to convert");
-		}
+			Format.INT8 or Format.UINT8 => BYTE,
+			Format.INT16 or Format.UINT16 => WORD,
+			Format.INT32 or Format.UINT32 => DWORD,
+			Format.INT64 or Format.UINT64 => QWORD,
+			Format.INT128 or Format.UINT128 => XMMWORD,
+			Format.INT256 or Format.UINT256 => YMMWORD,
+			Format.DECIMAL => Assembler.Size,
+			_ => throw new ArgumentException("Could not convert format to size"),
+		};
 	}
 
 	public Format ToFormat(bool unsigned = true)

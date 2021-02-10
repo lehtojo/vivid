@@ -50,6 +50,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_SUBTRACTION_INSTRUCTION : X64_DOUBLE_PRECISION_SUBTRACTION_INSTRUCTION;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
+			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			Build(
 				instruction,
@@ -61,8 +62,7 @@ public class SubtractionInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
+					types
 				)
 			);
 
@@ -96,12 +96,7 @@ public class SubtractionInstruction : DualParameterInstruction
 			Assembler.Size,
 			new InstructionParameter(
 				First,
-				ParameterFlag.READS | ParameterFlag.DESTINATION,
-				HandleType.REGISTER
-			),
-			new InstructionParameter(
-				First,
-				ParameterFlag.HIDDEN,
+				ParameterFlag.DESTINATION | ParameterFlag.READS,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(

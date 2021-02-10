@@ -107,14 +107,14 @@ public class DivisionInstruction : DualParameterInstruction
 	private void BuildModulus(Result numerator)
 	{
 		var remainder = new RegisterHandle(Unit.GetRemainderRegister());
-		var flags = ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS | ParameterFlag.LOCKED;
+		var flags = ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.WRITES | ParameterFlag.READS | ParameterFlag.LOCKED | (Assigns ? ParameterFlag.RELOCATE_TO_DESTINATION : ParameterFlag.NONE);
 
 		Build(
 			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
-				flags | ParameterFlag.RELOCATE_TO_DESTINATION,
+				flags,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
@@ -155,7 +155,7 @@ public class DivisionInstruction : DualParameterInstruction
 			),
 			new InstructionParameter(
 				new Result(remainder, Assembler.Format),
-				ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+				ParameterFlag.HIDDEN | ParameterFlag.LOCKED | ParameterFlag.WRITES,
 				HandleType.REGISTER
 			)
 		);
@@ -201,6 +201,7 @@ public class DivisionInstruction : DualParameterInstruction
 			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_DIVISION_INSTRUCTION : X64_DOUBLE_PRECISION_DIVISION_INSTRUCTION;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
+			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			Build(
 				instruction,
@@ -212,8 +213,7 @@ public class DivisionInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
+					types
 				)
 			);
 

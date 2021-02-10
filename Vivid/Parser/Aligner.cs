@@ -74,7 +74,7 @@ public static class Aligner
 	/// Aligns member variables, function and subtypes
 	/// </summary>
 	/// <param name="type">Type to scan through</param>
-	private static void Align(Type type)
+	public static void Align(Type type)
 	{
 		var position = 0;
 
@@ -156,11 +156,6 @@ public static class Aligner
 	/// <param name="offset">Base offset to apply to all variables</param>
 	private static void Align(FunctionImplementation function, int offset)
 	{
-		if (function is LambdaImplementation lambda)
-		{
-			lambda.Seal();
-		}
-
 		// Align all lambdas
 		Align(function);
 

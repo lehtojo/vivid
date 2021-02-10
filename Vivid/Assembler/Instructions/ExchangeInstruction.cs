@@ -26,7 +26,7 @@ public class ExchangeInstruction : DualParameterInstruction
 			),
 			new InstructionParameter(
 				Second,
-				ParameterFlag.SOURCE | ParameterFlag.RELOCATE_TO_DESTINATION | ParameterFlag.READS,
+				ParameterFlag.SOURCE | ParameterFlag.RELOCATE_TO_DESTINATION | ParameterFlag.WRITES | ParameterFlag.READS,
 				HandleType.REGISTER
 			)
 		);

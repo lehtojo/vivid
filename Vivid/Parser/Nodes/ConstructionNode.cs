@@ -5,16 +5,12 @@ public class ConstructionNode : Node
 	public ConstructionNode(FunctionNode constructor, Position? position = null)
 	{
 		Position = position;
+		Instance = NodeType.CONSTRUCTION;
 		Add(constructor);
 	}
 
 	public override Type? TryGetType()
 	{
 		return Constructor.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.CONSTRUCTION;
 	}
 }

@@ -12,11 +12,6 @@ public class ContentToken : Token
 
 	public new ParenthesisType Type { get; set; }
 
-	public int GetSectionCount()
-	{
-		return Math.Max(1, Tokens.Count(i => i.Type == TokenType.OPERATOR && i.To<OperatorToken>().Operator == Operators.COMMA));
-	}
-
 	public List<List<Token>> GetSections()
 	{
 		var sections = new List<List<Token>>();

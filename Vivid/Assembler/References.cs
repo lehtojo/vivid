@@ -109,7 +109,7 @@ public static class References
 
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)
 	{
-		switch (node.GetNodeType())
+		switch (node.Instance)
 		{
 			case NodeType.DATA_POINTER:
 			{

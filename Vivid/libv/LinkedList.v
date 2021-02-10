@@ -1,76 +1,76 @@
 LinkedListElement<T> {
-    next: LinkedListElement<T>
-    value: T
+	next: LinkedListElement<T>
+	value: T
 
-    init(value: T) {
-        this.value = value
-    }
+	init(value: T) {
+		this.value = value
+	}
 }
 
 LinkedList<T> {
-    private:
-    head: LinkedListElement<T> = none
-    tail: LinkedListElement<T> = none
+	private:
+	head: LinkedListElement<T> = none
+	tail: LinkedListElement<T> = none
 
-    public:
+	public:
 
-    add(value: T) {
-        element = LinkedListElement<T>(value)
+	add(value: T) {
+		element = LinkedListElement<T>(value)
 
-        if tail == none {
-            head = element
-            tail = element
-            return
-        }
+		if tail == none {
+			head = element
+			tail = element
+			return
+		}
 
-        tail.next = element
-        tail = element
-    }
+		tail.next = element
+		tail = element
+	}
 
-    remove(value: T) {
-        iterator = head
-        previous: LinkedListElement<T> = 0
+	remove(value: T) {
+		iterator = head
+		previous: LinkedListElement<T> = 0
 
-        loop (iterator) {
-            if iterator.value == value {
-                remove(previous, iterator)
-                => true
-            }
+		loop (iterator) {
+			if iterator.value == value {
+					remove(previous, iterator)
+					=> true
+			}
 
-            iterator = iterator.next
-            previous = iterator
-        }
+			iterator = iterator.next
+			previous = iterator
+		}
 
-        => false
-    }
+		=> false
+	}
 
-    remove(previous: LinkedListElement<T>, iterator: LinkedListElement<T>) {
-        if previous {
-            previous.next = iterator.next
-        }
-        else {
-            head = iterator.next
-        }
+	remove(previous: LinkedListElement<T>, iterator: LinkedListElement<T>) {
+		if previous {
+			previous.next = iterator.next
+		}
+		else {
+			head = iterator.next
+		}
 
-        if iterator.next == none {
-            tail = previous
-        }
+		if iterator.next == none {
+			tail = previous
+		}
 
-        #deallocate(iterator as link, sizeof(T))
-    }
+		#deallocate(iterator as link, sizeof(T))
+	}
 
-    size() {
-        size = 0
-        
-        loop (iterator = head, iterator, iterator = iterator.next) {
-            size++
-        }
+	size() {
+		size = 0
+		
+		loop (iterator = head, iterator, iterator = iterator.next) {
+			size++
+		}
 
-        => size
-    }
+		=> size
+	}
 
-    first() => head
-    last() => tail
+	first() => head
+	last() => tail
 
-    iterator() => head
+	iterator() => head
 }

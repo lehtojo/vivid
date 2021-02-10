@@ -1,3 +1,5 @@
+using System;
+
 public class SizeNode : Node
 {
 	public Type Type { get; private set; }
@@ -5,6 +7,7 @@ public class SizeNode : Node
 	public SizeNode(Type type)
 	{
 		Type = type;
+		Instance = NodeType.SIZE;
 	}
 
 	public override Type? TryGetType()
@@ -12,8 +15,8 @@ public class SizeNode : Node
 		return Types.LARGE;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.SIZE;
+		return HashCode.Combine(Instance, Position, Type.Identity);
 	}
 }

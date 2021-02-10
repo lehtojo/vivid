@@ -13,5 +13,6 @@ public class RequireVariablesInstruction : Instruction
 	{
 		Variables = variables;
 		References = new List<Result>();
+		IsAbstract = true;
 	}
 }

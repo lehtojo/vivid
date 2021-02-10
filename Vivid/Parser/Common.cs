@@ -42,8 +42,12 @@ public static class Common
 		}
 
 		var function_pointer = OffsetNode.CreateConstantOffset(new LinkNode(self.Clone(), new VariableNode(self_type.Configuration.Variable)), overload.Alignment, 1, Parser.Format);
-
 		var required_self_type = overload.GetTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
+
+		if (self_type != required_self_type)
+		{
+			self = new CastNode(self, new TypeNode(required_self_type), self.Position);
+		}
 
 		return new CallNode(self, function_pointer, parameters, new CallDescriptorType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType));
 	}
@@ -477,7 +481,7 @@ public static class Common
 		{
 			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
 			// It should be possible to check whether the link represents this type or another
-			descriptors[descriptors.Length - 1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry, 0));
+			descriptors[^1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry, 0));
 		}
 
 		var offset = Parser.Bytes;
@@ -696,5 +700,41 @@ public static class Common
 		}
 
 		return new UnresolvedIdentifier(context.IsInsideLambda ? Lambda.SELF_POINTER_IDENTIFIER : Function.SELF_POINTER_IDENTIFIER, position);
+	}
+
+	public static OperatorNode GetCondition(Context environment, Token token)
+	{
+		var node = Singleton.Parse(environment, token);
+
+		if (node.Is(NodeType.OPERATOR))
+		{
+			return node.To<OperatorNode>();
+		}
+
+		return new OperatorNode(Operators.NOT_EQUALS, node.Position).SetOperands(node, new NumberNode(Parser.Format, 0L, node.Position));
+	}
+
+	public static OperatorNode GetCondition(Context environment, List<Token> tokens)
+	{
+		var result = Parser.Parse(environment, tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+
+		if (result.Count() == 1)
+		{
+			var node = result.First();
+
+			if (node.Is(NodeType.OPERATOR))
+			{
+				return result.First().To<OperatorNode>();
+			}
+
+			return new OperatorNode(Operators.NOT_EQUALS, node.Position).SetOperands(node, new NumberNode(Parser.Format, 0L, node.Position));
+		}
+
+		return new OperatorNode(Operators.NOT_EQUALS, result.Position).SetOperands(result, new NumberNode(Parser.Format, 0L, result.Position));
+	}
+
+	public static Node FindCondition(Node start)
+	{
+		return start.GetRightWhile(i => i.Is(NodeType.CONTEXT, NodeType.INLINE, NodeType.NORMAL, NodeType.CONTENT)) ?? throw new ApplicationException("Conditional statement did not have a condition");
 	}
 }

@@ -28,7 +28,7 @@ public static class Translator
 			.Cast<StackVariableHandle>()
 			.Where(i => i.Variable.IsPredictable && i.Variable.LocalAlignment == null)
 			.Select(i => i.Variable)
-			.Distinct()
+			.Distinct(new ReferenceEqualityComparer<Variable>())
 			.ToList();
 	}
 
@@ -71,10 +71,13 @@ public static class Translator
 
 	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
 	{
+		// Take only the instructions which are actual assembly instructions
+		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
+
 		// If optimization is enabled, try to optimize the generated code on instruction level
 		if (Analysis.IsInstructionAnalysisEnabled)
 		{
-			InstructionAnalysis.Optimize(unit);
+			InstructionAnalysis.Optimize(unit, instructions);
 		}
 		
 		var registers = GetAllUsedNonVolatileRegisters(unit);
@@ -93,42 +96,45 @@ public static class Translator
 		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
 		var local_memory_top = 0;
 
-		unit.Execute(UnitPhase.BUILD_MODE, () =>
+		// Append a return instruction at the end if there is no return instruction present
+		if (!instructions.Any() || !instructions.Last().Is(InstructionType.RETURN))
 		{
-			// Append a return instruction at the end if there's no return instruction present
-			if (!unit.Instructions.Last().Is(InstructionType.RETURN))
-			{
-				unit.Append(new ReturnInstruction(unit, null, Types.UNKNOWN));
-			}
+			instructions.Add(new ReturnInstruction(unit, null, Types.UNKNOWN));
+		}
 
-			// If debug information is being generated, append a debug information label at the end
-			if (Assembler.IsDebuggingEnabled)
-			{
-				unit.Append(new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name)));
-			}
-		});
+		// If debug information is being generated, append a debug information label at the end
+		if (Assembler.IsDebuggingEnabled)
+		{
+			instructions.Add(new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name)));
+		}
 
 		// Build all initialization instructions
-		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
+		foreach (var instruction in instructions)
 		{
-			if (!i.Is(InstructionType.INITIALIZE)) return;
+			if (!instruction.Is(InstructionType.INITIALIZE))
+			{
+				continue;
+			}
 
-			var initialization = i.To<InitializeInstruction>();
+			var initialization = instruction.To<InitializeInstruction>();
 
 			initialization.Build(registers, required_local_memory);
 			local_memory_top = initialization.LocalMemoryTop;
-		});
+		}
 		
 		// Reverse the saved registers since they must be recovered from stack when returning from the function so they must be in the reversed order
 		registers.Reverse();
 
 		// Build all return instructions
-		unit.Simulate(UnitPhase.READ_ONLY_MODE, i =>
+		foreach (var instruction in instructions)
 		{
-			if (!i.Is(InstructionType.RETURN)) return;
+			if (!instruction.Is(InstructionType.RETURN))
+			{
+				continue;
+			}
 
-			i.To<ReturnInstruction>().Build(registers, local_memory_top);
-		});
+			instruction.To<ReturnInstruction>().Build(registers, local_memory_top);
+		}
 
 		// Align all used local variables
 		Aligner.AlignLocalMemory(local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
@@ -136,10 +142,7 @@ public static class Translator
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 
 		// Translate all instructions
-		unit.Simulate(UnitPhase.BUILD_MODE, instruction =>
-		{
-			instruction.Translate();
-		});
+		instructions.ForEach(i => i.Translate());
 
 		// Remove duplicates
 		constants.AddRange(constant_handles.Distinct());

@@ -74,9 +74,9 @@
 
 			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
 
-			"args": [ "${workspaceFolder}/Examples/Donut.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Inlines.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-st", "-O1" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-O1", "-f" ],
+			"args": [ "${workspaceFolder}/Examples/Repetition.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-f", "-O2" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-a", "-v", "-f", "-arm64", "-O1" ],
 
 			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "--asm", "--debug" ],
@@ -96,6 +96,7 @@
 			"program": "${workspaceFolder}/bin/Units/net5.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
+			"args": [ "-O2" ],
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false

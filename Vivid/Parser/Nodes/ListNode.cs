@@ -3,6 +3,7 @@
 	public ListNode(Position? position, params Node[] nodes)
 	{
 		Position = position;
+		Instance = NodeType.LIST;
 		
 		foreach (var node in nodes)
 		{

@@ -6,16 +6,12 @@ public class NegateNode : Node, IResolvable
 	{
 		Add(target);
 		Position = position;
+		Instance = NodeType.NEGATE;
 	}
 
 	public override Type? TryGetType()
 	{
 		return Object.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.NEGATE;
 	}
 
 	public Node? Resolve(Context context)

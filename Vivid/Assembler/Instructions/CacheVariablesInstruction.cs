@@ -17,6 +17,7 @@ public class CacheVariablesInstruction : Instruction
 		Roots = roots;
 		NonVolatileMode = non_volatile_mode;
 		Description = "Prepares the stored variables based on their usage";
+		IsAbstract = true;
 
 		// Load all the variables before caching
 		Usages.ForEach(u => u.Reference = References.GetVariable(unit, u.Variable, AccessMode.READ));
@@ -39,7 +40,7 @@ public class CacheVariablesInstruction : Instruction
 				continue;
 			}
 
-			// There's no need to move variables to registers that aren't edited in the body and are constants
+			// There is no need to move variables to registers that aren't edited in the body and are constants
 			if (Roots.All(i => !usage.Variable.IsEditedInside(i)) && usage.Reference.IsConstant)
 			{
 				Usages.RemoveAt(i);
@@ -96,8 +97,8 @@ public class CacheVariablesInstruction : Instruction
 			Unit = unit;
 
 			// Retrieve available registers matching the configured mode
-			AvailableStandardRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileRegisters : unit.NonReservedRegisters);
-			AvailableMediaRegisters = non_volatile_only ? unit.MediaRegisters.Where(r => !r.IsVolatile).ToList() : new List<Register>(unit.MediaRegisters);
+			AvailableStandardRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileStandardRegisters : unit.StandardRegisters);
+			AvailableMediaRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileMediaRegisters : unit.MediaRegisters);
 
 			// Pack all register together for simple iteration
 			var registers = AvailableStandardRegisters.Concat(AvailableMediaRegisters).ToList();

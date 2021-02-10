@@ -6,69 +6,27 @@ public static class Inlines
 {
 	public static void Build(Node root)
 	{
-		var batch = root.FindAll(n => n is FunctionNode f && f.Function.IsInlineable());
+		var context = root.Is(NodeType.IMPLEMENTATION) 
+			? root.To<ImplementationNode>().Context
+			: root.FindParent(i => i.Is(NodeType.IMPLEMENTATION))!.To<ImplementationNode>().Context;
 
 		while (true)
 		{
-			// Inline all references contained in the batch
-			foreach (var function in batch)
-			{
-				Inline(function.To<FunctionNode>().Function, function.To<FunctionNode>());
-			}
+			var call = (FunctionNode?)root.Find(i => i.Is(NodeType.FUNCTION) && i.To<FunctionNode>().Function.IsInlineable());
 
-			// Since inlining can create new function references, they must be searched
-			batch = root.FindAll(n => n is FunctionNode f && f.Function.IsInlineable());
-
-			// Stop if there are no function references
-			if (!batch.Any())
+			if (call == null)
 			{
 				break;
 			}
+
+			Inline(call.Function, call);
+			Analysis.CaptureContextLeaks(context, root);
 		}
 	}
 
-	/// <summary>
-	/// Inlines all implementations defined in the specified context
-	/// </summary>
-	/// <param name="context">Context to go through</param>
-	public static void Build(Context context)
+	private static void UnwrapSubcontexts(Context context, Node start, Node root)
 	{
-		foreach (var implementation in context.GetImplementedFunctions())
-		{
-			var batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsConstructor &&
-				!f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, Modifier.OUTLINE));
-
-			while (true)
-			{
-				// Inline all references contained in the batch
-				foreach (var function in batch)
-				{
-					Inline(function.To<FunctionNode>().Function, function.To<FunctionNode>());
-				}
-
-				// Since inlining can create new function references, they must be searched
-				batch = implementation.Node!.FindAll(n => n is FunctionNode f && !f.Function.Metadata.IsImported && !Flag.Has(f.Function.Metadata.Modifiers, Modifier.OUTLINE));
-
-				// Stop if there are no function references
-				if (!batch.Any())
-				{
-					break;
-				}
-			}
-
-			// The implementation is inlined completely only if it is not exported
-			//implementation.IsInlined = !implementation.Metadata.IsExported; 
-		}
-
-		foreach (var type in context.Types.Values)
-		{
-			Build(type);
-		}
-	}
-
-	private static void UnwrapSubcontexts(Context context, Node root)
-	{
-		foreach (var iterator in root)
+		foreach (var iterator in start)
 		{
 			if (iterator is IContext subcontext && !iterator.Is(NodeType.TYPE))
 			{
@@ -85,21 +43,24 @@ public static class Inlines
 
 					// Create a new variable which represents the original variable and redirect all the usages of the original variable
 					var replacement_variable = replacement_context.DeclareHidden(local.Type!);
-					var usages = root.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable == local).Select(i => i.To<VariableNode>());
 
-					usages.ForEach(i => i.Variable = replacement_variable);
+					var usages = root.FindAll(i => i.Is(local));
+					usages.Cast<VariableNode>().ForEach(i => i.Variable = replacement_variable);
+
+					usages = root.FindAll(i => i.Is(NodeType.DECLARE) && i.To<DeclareNode>().Variable == local);
+					usages.Cast<DeclareNode>().ForEach(i => i.Variable = replacement_variable);
 				}
 
 				// Update the context of the node
 				subcontext.SetContext(replacement_context);
 
 				// Now unwrap all subcontexts under the current subcontext
-				UnwrapSubcontexts(replacement_context, (Node)subcontext);
+				UnwrapSubcontexts(replacement_context, (Node)subcontext, root);
 			}
 			else
 			{
 				// Now unwrap all subcontexts under the current iterator 
-				UnwrapSubcontexts(context, iterator);
+				UnwrapSubcontexts(context, iterator, root);
 			}
 		}
 	}
@@ -108,14 +69,40 @@ public static class Inlines
 	{
 		var body = implementation.Node!.Clone();
 
-		foreach (var (parameter, value) in implementation.Parameters.Zip((IEnumerable<Node>)reference))
+		foreach (var (parameter, value) in implementation.Parameters.Zip((IEnumerable<Node>)reference).Reverse())
 		{
+			var is_cast_required = value.GetType() != parameter.Type!;
+
 			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(parameter),
-				value
+				is_cast_required ? new CastNode(value, new TypeNode(parameter.Type!), value.Position) : value
 			);
 
 			body.Insert(body.First, initialization);
+		}
+
+		// Wrap labels of the inline body
+		var labels = body.FindAll(i => i.Is(NodeType.LABEL)).Cast<LabelNode>();
+		var jumps = body.FindAll(i => i.Is(NodeType.JUMP)).Cast<JumpNode>().ToList();
+
+		foreach (var label in labels)
+		{
+			var replacement = context.GetLabel();
+
+			for (var i = jumps.Count - 1; i >= 0; i--)
+			{
+				var jump = jumps[i];
+
+				if (jump.Label != label.Label)
+				{
+					continue;
+				}
+
+				jump.Label = replacement;
+				jumps.RemoveAt(i);
+			}
+			
+			label.Label = replacement;
 		}
 
 		foreach (var local in implementation.Variables.Values)
@@ -126,12 +113,15 @@ public static class Inlines
 			}
 
 			var replacement = context.DeclareHidden(local.Type!);
-			var usages = body.FindAll(i => i.Is(local)).Select(i => i.To<VariableNode>());
 
-			usages.ForEach(i => i.Variable = replacement);
+			var usages = body.FindAll(i => i.Is(local));
+			usages.Cast<VariableNode>().ForEach(i => i.Variable = replacement);
+
+			usages = body.FindAll(i => i.Is(NodeType.DECLARE) && i.To<DeclareNode>().Variable == local);
+			usages.Cast<DeclareNode>().ForEach(i => i.Variable = replacement);
 		}
 
-		UnwrapSubcontexts(context, body);
+		UnwrapSubcontexts(context, body, body);
 
 		if (WrapMemberAccess(context, reference, body))
 		{
@@ -142,26 +132,7 @@ public static class Inlines
 			destination = reference;
 		}
 
-		ReconstructionAnalysis.Reconstruct(body);
 		return body;
-	}
-
-	/// <summary>
-	/// Returns a node representing a position where the inlined body can be inserted
-	/// </summary>
-	/// <param name="reference">The call reference which should be inlined</param>
-	public static Node GetInlineInsertPosition(Node reference)
-	{
-		var iterator = reference.Parent!;
-		var position = reference;
-
-		while (!(iterator is IContext || iterator.Is(NodeType.NORMAL)))
-		{
-			position = iterator;
-			iterator = iterator.Parent!;
-		}
-
-		return position;
 	}
 
 	/// <summary>
@@ -212,6 +183,7 @@ public static class Inlines
 
 			destination.Replace(inline);
 
+			ReconstructionAnalysis.Reconstruct(inline);
 			return;
 		}
 		else
@@ -224,7 +196,16 @@ public static class Inlines
 				var end = implementation.GetLabel();
 
 				// Replace each return statement with a jump node which goes to the end of the inlined body
-				return_statements.ForEach(i => i.Replace(new JumpNode(end)));
+				foreach (var return_statement in return_statements)
+				{
+					var jump = new JumpNode(end);
+					return_statement.Replace(jump);
+
+					if (return_statement.Value != null)
+					{
+						jump.Insert(return_statement.Value);
+					}
+				}
 
 				body.Add(new LabelNode(end));
 			}
@@ -233,6 +214,8 @@ public static class Inlines
 			body.ForEach(i => inline.Add(i));
 
 			destination.Replace(inline);
+
+			ReconstructionAnalysis.Reconstruct(inline);
 		}
 	}
 

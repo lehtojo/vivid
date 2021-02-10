@@ -3,11 +3,11 @@ using System.Text;
 using System;
 using System.Linq;
 
-public enum UnitPhase
+public enum UnitMode
 {
-	READ_ONLY_MODE,
-	APPEND_MODE,
-	BUILD_MODE
+	DEFAULT,
+	APPEND,
+	BUILD
 }
 
 public class VariableState
@@ -70,18 +70,29 @@ public class Indexer
 
 public class Unit
 {
+	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
+	public const string DEBUG_FUNCTION_END = ".cfi_endproc";
+
 	public FunctionImplementation Function { get; private set; }
 
 	public List<Register> Registers { get; }
-	public List<Register> NonVolatileRegisters { get; }
-	public List<Register> VolatileRegisters { get; }
-	public List<Register> NonReservedRegisters { get; }
+
+	public List<Register> StandardRegisters { get; }
 	public List<Register> MediaRegisters { get; }
+
+	public List<Register> VolatileRegisters { get; }
+	public List<Register> VolatileStandardRegisters { get; }
+	public List<Register> VolatileMediaRegisters { get; }
+
+	public List<Register> NonVolatileRegisters { get; }
+	public List<Register> NonVolatileStandardRegisters { get; }
+	public List<Register> NonVolatileMediaRegisters { get; }
+
+	public List<Register> NonReservedRegisters { get; }
 
 	public List<Instruction> Instructions { get; } = new List<Instruction>();
 
 	private StringBuilder Builder { get; } = new StringBuilder();
-	public Dictionary<string, SymmetryStartInstruction> Loops { get; } = new Dictionary<string, SymmetryStartInstruction>();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
 
 	private Indexer Indexer { get; set; } = new Indexer();
@@ -90,14 +101,10 @@ public class Unit
 	private Instruction? Anchor { get; set; }
 	public int Position { get; private set; } = -1;
 
-	public int StackOffset
-	{
-		get => Scope?.StackOffset ?? 0;
-		set => Scope!.StackOffset = value;
-	}
+	public int StackOffset { get; set; } = 0;
 
 	public Scope? Scope { get; set; }
-	private UnitPhase Phase { get; set; } = UnitPhase.READ_ONLY_MODE;
+	public UnitMode Mode { get; private set; } = UnitMode.DEFAULT;
 
 	public Unit(FunctionImplementation function)
 	{
@@ -115,13 +122,19 @@ public class Unit
 			LoadArhitectureArm64();
 		}
 
+		StandardRegisters = Registers.FindAll(r => !r.IsMediaRegister && !r.IsReserved);
+		MediaRegisters = Registers.FindAll(r => r.IsMediaRegister && !r.IsReserved);
+
+		VolatileRegisters = Registers.FindAll(r => r.IsVolatile && !r.IsReserved);
+		VolatileStandardRegisters = VolatileRegisters.FindAll(i => !i.IsMediaRegister);
+		VolatileMediaRegisters = VolatileRegisters.FindAll(i => i.IsMediaRegister);
+
 		NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
-		VolatileRegisters = Registers.FindAll(r => r.IsVolatile);
+		NonVolatileStandardRegisters = NonVolatileRegisters.FindAll(i => !i.IsMediaRegister);
+		NonVolatileMediaRegisters = NonVolatileRegisters.FindAll(i => i.IsMediaRegister);
 
 		NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
 		NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
-
-		MediaRegisters = Registers.FindAll(r => r.IsMediaRegister);
 	}
 
 	private void LoadArhitectureX64()
@@ -140,22 +153,22 @@ public class Unit
 			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
 			new Register(Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-			new Register(Size.YMMWORD, new string[] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED | RegisterFlag.DECIMAL_RETURN),
-			new Register(Size.YMMWORD, new string[] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED),
-			new Register(Size.YMMWORD, new string[] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.RESERVED)
+			new Register(Size.YMMWORD, new string[] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
+			new Register(Size.YMMWORD, new string[] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(Size.YMMWORD, new string[] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE)
 		});
 
 		if (Assembler.Size == Size.QWORD)
@@ -195,7 +208,7 @@ public class Unit
 
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Size.FromFormat(Types.DECIMAL.Format), new [] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA | RegisterFlag.RESERVED);
+			var register = new Register(Size.FromFormat(Types.DECIMAL.Format), new [] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
 			
 			if (i < 19)
 			{
@@ -213,14 +226,6 @@ public class Unit
 		Registers.Add(new Register(Size.QWORD, new [] { "x30", "w30", "w30", "w30" }, RegisterFlag.RESERVED | RegisterFlag.RETURN_ADDRESS));
 		Registers.Add(new Register(Size.QWORD, new [] { "xzr", "wzr", "szr", "bzr" }, RegisterFlag.ZERO | RegisterFlag.VOLATILE));
 		Registers.Add(new Register(Size.QWORD, new [] { "sp", "sp", "sp", "sp" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER));
-	}
-
-	public void ExpectMode(UnitPhase expected)
-	{
-		if (Phase != expected)
-		{
-			throw new InvalidOperationException("Unit mode did not match the expected");
-		}
 	}
 
 	/// <summary>
@@ -274,7 +279,7 @@ public class Unit
 		instruction.Scope = Scope;
 		instruction.Result.Lifetime.Start = instruction.Position;
 
-		if (Phase != UnitPhase.BUILD_MODE)
+		if (Mode != UnitMode.BUILD)
 		{
 			return;
 		}
@@ -314,7 +319,7 @@ public class Unit
 			return;
 		}
 
-		if (Phase != UnitPhase.BUILD_MODE)
+		if (Mode != UnitMode.BUILD)
 		{
 			throw new ApplicationException("Appending a range of instructions only works in build mode since it uses reindexing");
 		}
@@ -349,7 +354,7 @@ public class Unit
 
 		Reindex();
 
-		if (Phase != UnitPhase.BUILD_MODE)
+		if (Mode != UnitMode.BUILD)
 		{
 			return;
 		}
@@ -381,30 +386,8 @@ public class Unit
 
 	public void Write(string instruction)
 	{
-		ExpectMode(UnitPhase.BUILD_MODE);
-
 		Builder.Append(instruction);
 		Builder.AppendLine();
-	}
-
-	public RegisterHandle? TryGetCached(Result handle)
-	{
-		var register = Registers
-			.Find(r => !r.IsMediaRegister && (r.Handle != null) && r.Handle.Value == handle.Value);
-
-		if (register != null)
-		{
-			return new RegisterHandle(register);
-		}
-
-		return null;
-	}
-
-	public RegisterHandle? TryGetCachedMediaRegister(Result handle)
-	{
-		var register = MediaRegisters.Find(r => (r.Handle != null) && r.Handle.Value == handle.Value);
-
-		return register != null ? new RegisterHandle(register) : null;
 	}
 
 	/// <summary>
@@ -479,23 +462,16 @@ public class Unit
 		return identifier;
 	}
 
-	public Register? GetNextNonVolatileRegister(int start, int end)
+	public Register? GetNextNonVolatileRegister(bool media_register, bool release = true)
 	{
-		var register = NonVolatileRegisters.Find(r => (r.Handle == null || !r.Handle.Lifetime.IsIntersecting(start, end)) && !r.IsReserved);
-
-		return register;
-	}
-
-	public Register? GetNextNonVolatileRegister(bool release = true)
-	{
-		var register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		var register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && r.IsMediaRegister == media_register);
 
 		if (register != null || !release)
 		{
 			return register;
 		}
 
-		register = NonVolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = NonVolatileRegisters.Find(r => r.IsReleasable(this) && r.IsMediaRegister == media_register);
 
 		if (register != null)
 		{
@@ -512,7 +488,7 @@ public class Unit
 	public Register GetNextRegister()
 	{
 		// Try to find the next fully available volatile register
-		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		var register = VolatileStandardRegisters.Find(r => r.IsAvailable(Position));
 
 		if (register != null)
 		{
@@ -520,7 +496,7 @@ public class Unit
 		}
 
 		// Try to find the next fully available non-volatile register
-		register = NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = NonVolatileStandardRegisters.Find(r => r.IsAvailable(Position));
 
 		if (register != null)
 		{
@@ -528,7 +504,7 @@ public class Unit
 		}
 
 		// Try to find the next volatile register which contains a value that has a corresponding memory location
-		register = VolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = VolatileStandardRegisters.Find(r => r.IsReleasable(this));
 
 		if (register != null)
 		{
@@ -537,7 +513,7 @@ public class Unit
 		}
 
 		// Try to find the next volatile register which contains a value that has a corresponding memory location
-		register = NonVolatileRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		register = NonVolatileStandardRegisters.Find(r => r.IsReleasable(this));
 
 		if (register != null)
 		{
@@ -549,11 +525,11 @@ public class Unit
 		// NOTE: Some registers may be locked which prevents them from being used, but not all registers should be locked, otherwise something very strange has happened
 
 		// Find the next register which is not locked
-		register = NonReservedRegisters.Find(r => !r.IsReserved && !r.IsLocked && !(Function.Returns && r.IsReturnRegister));
+		register = StandardRegisters.Find(r => !r.IsLocked);
 
 		if (register == null)
 		{
-			// NOTE: This usually happens when there's a flaw in the algorithm and the compiler doesn't know how to handle a value for example
+			// NOTE: This usually happens when there is a flaw in the algorithm and the compiler does not know how to handle a value for example
 			throw new ApplicationException("All registers were locked or reserved, this should not happen");
 		}
 
@@ -567,14 +543,14 @@ public class Unit
 	/// </summary>
 	public Register GetNextMediaRegister()
 	{
-		var register = MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
+		var register = MediaRegisters.Find(r => r.IsAvailable(Position));
 
 		if (register != null)
 		{
 			return register;
 		}
 
-		register = MediaRegisters.Find(r => r.IsReleasable(this) && !(Function.Returns && r.IsReturnRegister));
+		register = MediaRegisters.Find(r => r.IsReleasable(this));
 
 		if (register != null)
 		{
@@ -590,9 +566,9 @@ public class Unit
 	/// </summary>
 	public Register? GetNextRegisterWithoutReleasing()
 	{
-		var register = VolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		var register = VolatileStandardRegisters.Find(r => r.IsAvailable(Position));
 
-		return register ?? NonVolatileRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		return register ?? NonVolatileStandardRegisters.Find(r => r.IsAvailable(Position));
 	}
 
 	/// <summary>
@@ -600,11 +576,9 @@ public class Unit
 	/// </summary>
 	public Register? GetNextRegisterWithoutReleasing(Register[] exclude)
 	{
-		var register = VolatileRegisters.Where(r => !exclude.Contains(r)).ToList()
-			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		var register = VolatileStandardRegisters.Where(r => !exclude.Contains(r)).ToList().Find(r => r.IsAvailable(Position));
 
-		return register ?? NonVolatileRegisters.Where(r => !exclude.Contains(r)).ToList()
-			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister) && !r.IsReserved);
+		return register ?? NonVolatileStandardRegisters.Where(r => !exclude.Contains(r)).ToList().Find(r => r.IsAvailable(Position));
 	}
 
 	/// <summary>
@@ -612,7 +586,7 @@ public class Unit
 	/// </summary>
 	public Register? GetNextMediaRegisterWithoutReleasing()
 	{
-		return MediaRegisters.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
+		return MediaRegisters.Find(r => r.IsAvailable(Position));
 	}
 
 	/// <summary>
@@ -620,8 +594,7 @@ public class Unit
 	/// </summary>
 	public Register? GetNextMediaRegisterWithoutReleasing(Register[] exclude)
 	{
-		return MediaRegisters.Where(r => !exclude.Contains(r)).ToList()
-			.Find(r => r.IsAvailable(Position) && !(Function.Returns && r.IsReturnRegister));
+		return MediaRegisters.Where(r => !exclude.Contains(r)).ToList().Find(r => r.IsAvailable(Position));
 	}
 
 	public Register GetStackPointer()
@@ -674,9 +647,9 @@ public class Unit
 		Registers.ForEach(r => r.Reset(true));
 	}
 
-	public void Execute(UnitPhase mode, Action action)
+	public void Execute(UnitMode mode, Action action)
 	{
-		Phase = mode;
+		Mode = mode;
 		Position = -1;
 
 		try
@@ -688,12 +661,12 @@ public class Unit
 			throw new ApplicationException($"ERROR: Unit execution failed: {e}");
 		}
 
-		Phase = UnitPhase.READ_ONLY_MODE;
+		Mode = UnitMode.DEFAULT;
 	}
 
-	public void Simulate(UnitPhase mode, Action<Instruction> action)
+	public void Simulate(UnitMode mode, Action<Instruction> action)
 	{
-		Phase = mode;
+		Mode = mode;
 		Position = 0;
 		StackOffset = 0;
 		Scope = null;
@@ -715,38 +688,22 @@ public class Unit
 
 				if (Scope != instruction.Scope)
 				{
-					var back = false;
-
-					// Detect if the program is exiting the current scope
-					if (Scope?.Outer == instruction.Scope)
-					{
-						Scope?.Exit();
-						back = true;
-					}
-
-					// Scope enter function is designed for entering not for falling back
-					if (back)
-					{
-						Scope = instruction.Scope;
-					}
-					else
-					{
-						instruction.Scope.Enter(this);
-					}
+					instruction.Scope.Enter(this);
 				}
 
 				action(instruction);
 
 				instruction.OnSimulate();
 
-				// Simulate the stack size change
-				StackOffset += instruction.GetStackOffsetChange();
+				// Exit the current scope if its end is reached
+				if (instruction == Scope?.End)
+				{
+					Scope.Exit();
+				}
 			}
 			catch (Exception e)
 			{
-				var name = Enum.GetName(typeof(InstructionType), instruction.Type);
-
-				throw new ApplicationException($"ERROR: Unit simulation failed while processing {name}-instruction at position {Position}: {e}");
+				throw new ApplicationException($"ERROR: Unit simulation failed: {e}");
 			}
 
 			Position = instruction.Position;
@@ -760,7 +717,7 @@ public class Unit
 		}
 
 		// Reset the state after this simulation
-		Phase = UnitPhase.READ_ONLY_MODE;
+		Mode = UnitMode.DEFAULT;
 	}
 
 	public Result? GetCurrentVariableHandle(Variable variable)
@@ -772,7 +729,7 @@ public class Unit
 	{
 		if (Assembler.IsDebuggingEnabled)
 		{
-			Builder.AppendLine(".cfi_endproc");
+			Builder.AppendLine(DEBUG_FUNCTION_END);
 		}
 		
 		return Builder.ToString();
@@ -780,6 +737,8 @@ public class Unit
 
 	public void Reindex()
 	{
+		var temporary = Position;
+
 		Position = 0;
 
 		// Reindex all instructions
@@ -810,16 +769,23 @@ public class Unit
 				dependency.Use(i);
 			}
 		}
+
+		Position = temporary;
 	}
 
 	public void Reindex(Instruction instruction)
 	{
+		var temporary = Position;
 		var dependencies = instruction.GetAllUsedResults();
+
+		Position = instruction.Position;
 
 		foreach (var dependency in dependencies)
 		{
 			dependency.Use(Position);
 		}
+
+		Position = temporary;
 	}
 
 	public bool TryAppendPosition(Node node)

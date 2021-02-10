@@ -42,7 +42,7 @@ public class VariableComponent : Component
 				return new NumberComponent(0L);
 			}
 
-			return new VariableComponent(Variable, coefficient);
+			return new VariableComponent(Variable, coefficient, Order);
 		}
 
 		return null;

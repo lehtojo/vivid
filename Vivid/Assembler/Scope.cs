@@ -29,6 +29,8 @@ public class VariableUsageDescriptor
 
 public sealed class Scope : IDisposable
 {
+	public const int CIRCULAR_SCOPE_THRESHOLD = 1000000;
+
 	/// <summary>
 	/// Returns whether the given variable is a non-local variable
 	/// </summary>
@@ -46,8 +48,10 @@ public sealed class Scope : IDisposable
 
 		foreach (var iterator in root)
 		{
-			if (iterator is VariableNode node && IsNonLocalVariable(node.Variable, local_contexts))
+			if (iterator.Is(NodeType.VARIABLE) && IsNonLocalVariable(iterator.To<VariableNode>().Variable, local_contexts))
 			{
+				var node = iterator.To<VariableNode>();
+
 				if (node.Variable.IsPredictable)
 				{
 					variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
@@ -56,7 +60,7 @@ public sealed class Scope : IDisposable
 				{
 					if (unit.Self == null)
 					{
-						throw new ApplicationException("Detected an use of the this pointer but it was missing");
+						throw new ApplicationException("Missing self pointer");
 					}
 
 					variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
@@ -75,7 +79,7 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
-	/// Returns info about variable usage in the given loop
+	/// Returns information about variable usage in the specified loop
 	/// </summary>
 	private static List<VariableUsageDescriptor> GetAllVariableUsages(Unit unit, Node[] roots, Context[] contexts)
 	{
@@ -95,7 +99,8 @@ public sealed class Scope : IDisposable
 			}
 		}
 		
-		var descriptors = result.Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
+		// Take only those variables which are initialized
+		var descriptors = result.Where(i => unit.Scope!.Variables.ContainsKey(i.Key)).Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
 
 		// Sort the variables based on their number of usages (most used variable first)
 		descriptors.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
@@ -111,7 +116,7 @@ public sealed class Scope : IDisposable
 		var variables = GetAllVariableUsages(unit, new[] { node }, new[] { node.Body.Context });
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
-		// (Otherwise there would be a lot of register moves trying to save the cached variables)
+		// NOTE: Otherwise there would be a lot of register moves trying to save the cached variables
 		var non_volatile_mode = node.Find(n => n.Is(NodeType.FUNCTION, NodeType.CALL)) != null;
 
 		unit.Append(new CacheVariablesInstruction(unit, new[] { node }, variables, non_volatile_mode));
@@ -120,9 +125,12 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Tries to move most used loop variables into registers
 	/// </summary>
-	public static void Cache(Unit unit, Node[] roots, Context[] contexts)
+	public static void Cache(Unit unit, Node[] roots, Context[] contexts, Context current)
 	{
 		var variables = GetAllVariableUsages(unit, roots, contexts);
+
+		// Ensure the variables are declared in the current context or in one of its parents
+		variables = variables.Where(i => current.IsInside(i.Variable.Context)).ToList();
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
 		// (Otherwise there would be a lot of register moves trying to save the cached variables)
@@ -142,83 +150,67 @@ public sealed class Scope : IDisposable
 				 .Distinct();
 	}
 
-	/// <summary>
-	/// Retrieves all variables that are visible to the specified context and are inside the current function
 	/// </summary>
-	private static List<Variable> GetAllContextVariables(Context? current)
+	/// Returns all variables that the scope must take care of
+	/// </summary>
+	public static List<Variable> GetAllActiveVariables(Unit unit, Node[] roots)
 	{
-		var variables = new List<Variable>();
+		var actives = new List<Variable>();
 
-		while (current != null && !current.IsType)
+		foreach (var variable in unit.Scope!.Variables.Keys)
 		{
-			variables.AddRange(current.Variables.Values);
-			current = current.Parent;
+			if (variable.References.Any(i => roots.Any(j => i.IsUnder(j))) || roots.Any(j => Analysis.IsUsedLater(variable, j)))
+			{
+				actives.Add(variable);
+			}
 		}
 
-		return variables;
+		return actives;
+	}
+
+	/// </summary>
+	/// Returns all variables that the scope must take care of
+	/// </summary>
+	public static List<Variable> GetAllActiveVariables(Unit unit, Node root)
+	{
+		return GetAllActiveVariables(unit, new[] { root });
+	}
+
+	private static Context[] GetTopLocalContexts(Node root)
+	{
+		return root.FindTop(i => i.Is(NodeType.INLINE)).Where(i => i.To<InlineNode>().IsContext).Cast<ContextInlineNode>().Select(i => i.Context).ToArray();
 	}
 
 	/// <summary>
-	/// Returns all variables in the given context that are used before the current instruction position
+	/// Loads constants which might be edited inside the specified root
 	/// </summary>
-	private static IEnumerable<Variable> GetAllActiveContextVariables(Unit unit, Context context, Node[] roots)
+	public static void LoadConstants(Unit unit, Node root, params Context[] contexts)
 	{
-		return GetAllContextVariables(context).Where(v => unit.Instructions.Exists(i =>
-		   (i is GetVariableInstruction x && x.Variable == v) ||
-		   (i is RequireVariablesInstruction r && r.Variables.Contains(v))
+		var local_contexts = GetTopLocalContexts(root).Concat(contexts).ToArray();
 
-		)).Where(i => roots.Any(r => Analysis.IsUsedLater(i, r)));
-		
-		// Legacy: .Where(v => v.References.Any(reference => roots.Any(root => !reference.IsBefore(root))));
-	}
-
-	/// </summary>
-	/// Returns all variables that the scope must take care of
-	/// </summary>
-	public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node[] roots, Context current_context, params Context[] scope_contexts)
-	{
-		return GetAllActiveContextVariables(unit, current_context, roots)
-			  .Concat(GetAllNonLocalVariables(roots, scope_contexts))
-			  .Concat(unit.Scope!.Actives)
-			  .Distinct();
-	}
-
-	/// </summary>
-	/// Returns all variables that the scope must take care of
-	/// </summary>
-	public static IEnumerable<Variable> GetAllActiveVariablesForScope(Unit unit, Node root, Context current_context, params Context[] scope_contexts)
-	{
-		return GetAllActiveContextVariables(unit, current_context, new[] { root })
-			  .Concat(GetAllNonLocalVariables(new[] { root }, scope_contexts))
-			  .Concat(unit.Scope!.Actives)
-			  .Distinct();
-	}
-
-	public static void PrepareConditionallyChangingConstants(Unit unit, Node root, params Context[] local_contexts)
-	{
 		// Find all variables inside the root node which are edited
 		var edited_variables = GetAllNonLocalVariables(new Node[] { root }, local_contexts).Where(v => v.IsEditedInside(root));
 
 		// All edited variables that are constants must be moved to registers or into memory
 		foreach (var variable in edited_variables)
 		{
-			unit.Append(new SetModifiableInstruction(unit, variable)
-			{
-				Description = $"Loads the variable '{variable.Name}' into a register or memory if it is a constant"
-			});
+			unit.Append(new SetModifiableInstruction(unit, variable));
 		}
 	}
 
-	public static void PrepareConditionallyChangingConstants(Unit unit, IfNode root)
+	/// <summary>
+	/// Loads constants which might be edited inside the specified root
+	/// </summary>
+	public static void LoadConstants(Unit unit, IfNode root)
 	{
 		var edited_variables = new List<Variable>();
 		var iterator = (Node?)root;
-		var context = root.Context;
+		var local_contexts = GetTopLocalContexts(root);
 
 		while (iterator != null)
 		{
 			// Find all variables inside the root node which are edited
-			edited_variables.AddRange(GetAllNonLocalVariables(new Node[] { iterator }, context).Where(v => v.IsEditedInside(iterator)));
+			edited_variables.AddRange(GetAllNonLocalVariables(new Node[] { iterator }, local_contexts).Where(i => i.IsEditedInside(iterator)));
 
 			if (iterator.Is(NodeType.ELSE_IF))
 			{
@@ -227,14 +219,7 @@ public sealed class Scope : IDisposable
 				// Retrieve the context of the successor
 				if (iterator != null)
 				{
-					if (iterator.Is(NodeType.ELSE_IF))
-					{
-						context = iterator.To<ElseIfNode>().Context;
-					}
-					else
-					{
-						context = iterator.To<ElseNode>().Context;
-					}
+					local_contexts = GetTopLocalContexts(iterator);
 				}
 			}
 			else
@@ -261,14 +246,9 @@ public sealed class Scope : IDisposable
 	public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
 	public Dictionary<Variable, Result> Transferers { get; } = new Dictionary<Variable, Result>();
 
-	public Dictionary<object, List<Result>> Constants { get; } = new Dictionary<object, List<Result>>();
-
 	public Unit? Unit { get; private set; }
+	public Instruction? End { get; private set; }
 	public Scope? Outer { get; private set; } = null;
-
-	public int StackOffset { get; set; } = 0;
-
-	public bool AppendFinalizers { get; set; } = true;
 
 	/// <summary>
 	/// Creates a scope with variables that are returned to their original locations once the scope is exited
@@ -288,20 +268,20 @@ public sealed class Scope : IDisposable
 		// Try to get the most recently used handle of the variable
 		var current = GetCurrentVariableHandle(variable);
 
-		// If there's no handle of the variable, it means that the outer scope doesn't have it either
+		// If there is no handle of the variable, it means that the outer scope does not have it either
 		if (current == null)
 		{
 			return false;
 		}
 
 		// Check if the handle is used later or if the outer scope uses the variable later
-		return current.Lifetime.End > Unit!.Position || (Outer?.IsUsedLater(variable) ?? false);
+		return current.Lifetime.End > Unit!.Position || (Outer != null && Outer.IsUsedLater(variable));
 	}
 
 	/// <summary>
 	/// Sets or creates the handle for the specified variable
 	/// </summary>
-	private Result SetOrCreateTransitionHandle(Variable variable, Handle handle)
+	private Result SetOrCreateTransitionHandle(Variable variable, Handle handle, Format format)
 	{
 		if (!variable.IsPredictable)
 		{
@@ -313,11 +293,10 @@ public sealed class Scope : IDisposable
 		if (Transferers.TryGetValue(variable, out Result? transferer))
 		{
 			transferer.Value = handle;
+			transferer.Format = format;
 		}
 		else
 		{
-			var format = variable.Type! == Types.DECIMAL ? Format.DECIMAL : Assembler.Format;
-
 			transferer = new Result(handle, format);
 			Transferers.Add(variable, transferer);
 		}
@@ -335,14 +314,48 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
+	/// Finds an index where a finalizer can be inserted
+	/// </summary>
+	private int GetFinalizerIndex()
+	{
+		/// NOTE: There must be an instruction which is under this scope since this scope could not have activated without such instruction
+		if (Unit == null || End == null || Unit.Mode != UnitMode.BUILD)
+		{
+			return -1;
+		}
+
+		// Find the last instruction which is under this scope
+		return Unit.Instructions.IndexOf(End);
+	}
+
+	/// <summary>
+	/// Ensure that the current scope is not circular by iterating parent scopes for limited number of times
+	/// </summary>
+	public void CaptureCircularScopes() 
+	{
+		/// TODO: This should be disabled in release mode since there could be nested scopes more than the allowed limit
+		var iterator = this;
+		var limit = CIRCULAR_SCOPE_THRESHOLD;
+
+		while (iterator != null)
+		{
+			iterator = iterator.Outer;
+			
+			if (iterator == this || limit-- == 0)
+			{
+				throw new ApplicationException("Captured a circular scope");
+			}
+		}
+	}
+
+	/// <summary>
 	/// Switches the current scope to this scope
 	/// </summary>
 	public void Enter(Unit unit)
 	{
 		Unit = unit;
-		StackOffset = Unit.StackOffset;
 
-		// Remove old variable data
+		// Reset variable data
 		Reset();
 
 		// Save the outer scope so that this scope can be exited later
@@ -372,6 +385,22 @@ public sealed class Scope : IDisposable
 			}
 		}
 
+		if (Unit.Mode == UnitMode.BUILD)
+		{
+			// Load all memory handles into registers which do not use the stack
+			foreach (var load in Loads)
+			{
+				var reference = load.Reference;
+
+				if (!reference.IsMemoryAddress || reference.Value.Is(HandleInstanceType.STACK_MEMORY, HandleInstanceType.STACK_VARIABLE, HandleInstanceType.TEMPORARY_MEMORY))
+				{
+					continue;
+				}
+
+				Memory.MoveToRegister(Unit, reference, Assembler.Size, reference.Format.IsDecimal(), Trace.GetDirectives(Unit, reference));
+			}
+		}
+
 		// Switch the current unit scope to be this scope
 		Unit.Scope = this;
 
@@ -380,28 +409,60 @@ public sealed class Scope : IDisposable
 		{
 			for (var i = 0; i < Actives.Count; i++)
 			{
+				var finalizer_index = GetFinalizerIndex();
+
 				var variable = Actives[i];
 				var external_handle = Loads[i].Reference;
 
 				if (external_handle != null)
 				{
-					SetOrCreateTransitionHandle(variable, external_handle.Value);
+					SetOrCreateTransitionHandle(variable, external_handle.Value, external_handle.Format);
 				}
 
 				if (!Initializers.Contains(variable))
 				{
 					// The current variable is an active one so it must stay protected during the whole scope
-					References.GetVariable(unit, variable, AccessMode.READ).Instruction!.Description = $"Registers variable '{variable.Name}' as active";
+					var instruction = new GetVariableInstruction(unit, variable, AccessMode.READ)
+					{
+						Description = $"Registers variable '{variable.Name}' as active"
+					};
+					
+					instruction.Execute();
 
 					Initializers.Add(variable);
+
+					// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
+					Unit.Reindex(instruction);
+
+					// The finalizer index has a negative value if finalizers can not be inserted
+					if (finalizer_index != -1)
+					{
+						instruction = new GetVariableInstruction(unit, variable, AccessMode.READ)
+						{
+							Description = $"Requires the variable '{variable.Name}' to be active through out the scope",
+							Scope = this
+						};
+
+						// Add the instruction manually and reindex the instructions
+						Unit.Instructions.Insert(finalizer_index, instruction);
+						Unit.Reindex();
+
+						// Build the instruction now since the variable needs to be referenced
+						instruction.Build();
+
+						Finalizers.Add(variable);
+
+						// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
+						Unit.Reindex(instruction);
+					}
 				}
 			}
 
 			// Get all the register which hold any active variable
-			var denylist = Variables.Values.Where(i => i.Value.Is(HandleType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
+			var denylist = Variables.Values.Where(i => i.Value.Is(HandleInstanceType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
 			var registers = Unit.NonReservedRegisters.Where(r => !denylist.Contains(r));
 
-			// All register which don't hold active variables must be reset since they would disturb the execution of the scope
+			// All register which do not hold active variables must be reset since they would disturb the execution of the scope
 			foreach (var register in registers)
 			{
 				register.Reset();
@@ -423,7 +484,7 @@ public sealed class Scope : IDisposable
 
 				if (register != null)
 				{
-					register.Handle = SetOrCreateTransitionHandle(self, new RegisterHandle(register));
+					register.Handle = SetOrCreateTransitionHandle(self, new RegisterHandle(register), Assembler.Format);
 				}
 				else
 				{
@@ -437,16 +498,21 @@ public sealed class Scope : IDisposable
 
 				if (register != null)
 				{
-					register.Handle = SetOrCreateTransitionHandle(parameter, new RegisterHandle(register));
+					register.Handle = SetOrCreateTransitionHandle(parameter, new RegisterHandle(register), parameter.GetRegisterFormat());
 				}
 				else
 				{
-					SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, parameter));
+					SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, parameter), parameter.GetRegisterFormat());
 				}
 			}
 		}
+
+		CaptureCircularScopes();
 	}
 
+	/// <summary>
+	/// Returns the current handle of the specified variable, if one is present
+	/// </summary>
 	public Result? GetCurrentVariableHandle(Variable variable)
 	{
 		// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
@@ -489,24 +555,55 @@ public sealed class Scope : IDisposable
 			throw new ApplicationException("Unit was not assigned to a scope or the scope was never entered");
 		}
 
-		if (AppendFinalizers)
+		foreach (var variable in Actives)
 		{
-			foreach (var variable in Actives)
+			if (Finalizers.Contains(variable))
 			{
-				if (!Finalizers.Contains(variable))
-				{
-					// The current variable is an active one so it must stay protected during the whole scope lifetime
-					References.GetVariable(Unit, variable, AccessMode.READ).Instruction!.Description = "Keep variable active";
-
-					Finalizers.Add(variable);
-				}
+				continue;
 			}
+
+			// The current variable is an active one so it must stay protected during the whole scope
+			var instruction = new GetVariableInstruction(Unit, variable, AccessMode.READ)
+			{
+				Description = $"Requires the variable '{variable.Name}' to be active through out the scope"
+			};
+			
+			instruction.Execute();
+
+			Finalizers.Add(variable);
+
+			// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
+			Unit.Reindex(instruction);
+		}
+
+		if (End == null)
+		{
+			End = new Instruction(Unit, InstructionType.NORMAL) { Description = "Marks the end of a scope" };
+			End.IsAbstract = true;
+			End.Execute();
 		}
 
 		// Exit to the outer scope
 		Unit.Scope = Outer ?? this;
+		
+		// Reset all registers
+		Unit.Registers.ForEach(r => r.Reset());
+
+		// Attach all the variables before entering back to their registers
+		foreach (var load in Loads)
+		{
+			if (!load.Reference.IsAnyRegister)
+			{
+				continue;
+			}
+
+			load.Reference.Value.To<RegisterHandle>().Register.Handle = load.Reference;
+		}
 	}
 
+	/// <summary>
+	/// Clears all data regarding variables
+	/// </summary>
 	public void Reset()
 	{
 		Variables.Clear();

@@ -17,6 +17,7 @@ public class GetVariableInstruction : Instruction
 		SelfType = self_type;
 		Variable = variable;
 		Mode = mode;
+		IsAbstract = true;
 		Description = $"Get the current handle of variable '{variable.Name}'";
 
 		if (Self != null)

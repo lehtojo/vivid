@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
@@ -214,6 +215,38 @@ public struct Holder : IEquatable<Holder>
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
+public struct Sequence : IEquatable<Sequence>
+{
+	[FieldOffset(8)] public IntPtr Address;
+
+	public override bool Equals(object? other)
+	{
+		return other is Sequence sequence && Equals(sequence);
+	}
+
+	public bool Equals(Sequence other)
+	{
+		return Address == other.Address;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Address);
+	}
+
+	public static bool operator ==(Sequence left, Sequence right)
+	{
+		return left.Equals(right);
+	}
+
+	public static bool operator !=(Sequence left, Sequence right)
+	{
+		return !(left == right);
+	}
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[StructLayout(LayoutKind.Explicit)]
 public struct Apple : IEquatable<Apple>
 {
 	[FieldOffset(8)] public long Weight;
@@ -342,7 +375,7 @@ namespace Vivid.Unit
 {
 	public static class AssemblerTests
 	{
-		public static bool IsOptimizationEnabled { get; set; } = false;
+		public static int OptimizationLevel { get; set; } = 0;
 
 		private static string Prefix => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libUnit_" : "Unit_";
 
@@ -360,9 +393,6 @@ namespace Vivid.Unit
 
 		[DllImport("Unit_Evacuation", ExactSpelling = true)]
 		private static extern long _V33basic_call_evacuation_with_memoryxx_rx(long a, long b);
-
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern void _V10assignmentP6Holder(ref Holder target);
 
 		[DllImport("Unit_ConditionallyChangingConstant", ExactSpelling = true)]
 		private static extern long _V49conditionally_changing_constant_with_if_statementxx_rx(long a, long b);
@@ -443,9 +473,9 @@ namespace Vivid.Unit
 			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
 
 			#pragma warning disable 162
-			if (IsOptimizationEnabled)
+			if (OptimizationLevel > 0)
 			{
-				arguments.Add("-O1");
+				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
 			}
 			#pragma warning restore 162
 
@@ -474,11 +504,11 @@ namespace Vivid.Unit
 			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
 
 			#pragma warning disable 162
-			if (IsOptimizationEnabled)
+			if (OptimizationLevel > 0)
 			{
 				// The condition depends on the constant boolean which is used manually to control the optimization of the tests
 				// NOTE: This is practically redundant since this could be automated
-				arguments.Add("-O1");
+				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
 			}
 			#pragma warning restore 162
 
@@ -1018,16 +1048,55 @@ namespace Vivid.Unit
 			Evacuation_Test();
 		}
 
+		[DllImport("Unit_Assignment", ExactSpelling = true)]
+		private static extern void _V12assignment_1P6Holder(ref Holder instance);
+
+		[DllImport("Unit_Assignment", ExactSpelling = true)]
+		private static extern void _V12assignment_2P8Sequence(ref Sequence instance);
+
+		[DllImport("Unit_Assignment", ExactSpelling = true)]
+		private static extern void _V9preload_1P8Sequencex(ref Sequence instance, long i);
+
+		[DllImport("Unit_Assignment", ExactSpelling = true)]
+		private static extern IntPtr _V9preload_2P8Sequence_rPd(ref Sequence instance);
+
+		[DllImport("Unit_Assignment", ExactSpelling = true)]
+		private static extern long _V9preload_3Px_rPx(IntPtr address);
+
 		private static void Assignment_Test()
 		{
-			var target = new Holder();
-			_V10assignmentP6Holder(ref target);
+			var holder = new Holder();
+			_V12assignment_1P6Holder(ref holder);
 
-			Assert.AreEqual(64, target.Tiny);
-			Assert.AreEqual(12345, target.Small);
-			Assert.AreEqual(314159265, target.Normal);
-			Assert.AreEqual(-2718281828459045, target.Large);
-			Assert.AreEqual(1.414, target.Double);
+			Assert.AreEqual(64, holder.Tiny);
+			Assert.AreEqual(12345, holder.Small);
+			Assert.AreEqual(314159265, holder.Normal);
+			Assert.AreEqual(-2718281828459045, holder.Large);
+			Assert.AreEqual(1.414, holder.Double);
+
+			var buffer = Marshal.AllocHGlobal(sizeof(double) * 3);
+			Marshal.WriteInt64(buffer, sizeof(double) * 0, BitConverter.DoubleToInt64Bits(0.0));
+			Marshal.WriteInt64(buffer, sizeof(double) * 1, BitConverter.DoubleToInt64Bits(0.0));
+			Marshal.WriteInt64(buffer, sizeof(double) * 2, BitConverter.DoubleToInt64Bits(0.0));
+
+			var sequence = new Sequence() { Address = buffer };
+			_V12assignment_2P8Sequence(ref sequence);
+
+			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456), Marshal.ReadInt64(sequence.Address, sizeof(double) * 0));
+			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-987.654), Marshal.ReadInt64(sequence.Address, sizeof(double) * 1));
+			Assert.AreEqual(BitConverter.DoubleToInt64Bits(101.010), Marshal.ReadInt64(sequence.Address, sizeof(double) * 2));
+
+			_V9preload_1P8Sequencex(ref sequence, 1);
+
+			Assert.AreEqual(buffer + sizeof(double), sequence.Address);
+			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456 + 0.5), Marshal.ReadInt64(sequence.Address));
+
+			var previous = sequence.Address;
+			Assert.AreEqual(previous, _V9preload_2P8Sequence_rPd(ref sequence));
+			Assert.AreEqual(previous + sizeof(double), sequence.Address);
+
+			Assert.AreEqual(sequence.Address + 1, _V9preload_3Px_rPx(sequence.Address));
+			Assert.AreEqual(sequence.Address + 1, Marshal.ReadIntPtr(sequence.Address));
 		}
 
 		public static void Assignment()
@@ -1215,7 +1284,7 @@ namespace Vivid.Unit
 			// The last part of this test is supposed to run when optimization is disabled
 			#pragma warning disable 162
 			
-			if (IsOptimizationEnabled)
+			if (OptimizationLevel > 0)
 			{
 				Assert.Pass("Special multiplications are not tested when optimization is enabled");
 				return;

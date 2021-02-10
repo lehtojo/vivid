@@ -6,15 +6,11 @@ public class CompilesNode : Node
 	public CompilesNode(Position? position = null)
 	{
 		Position = position;
+		Instance = NodeType.COMPILES;
 	}
 
 	public override Type? TryGetType()
 	{
 		return Types.BOOL;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.COMPILES;
 	}
 }

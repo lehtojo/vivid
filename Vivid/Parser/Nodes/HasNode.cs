@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 public class HasNode : Node, IResolvable
 {
@@ -15,6 +14,7 @@ public class HasNode : Node, IResolvable
 	public HasNode(Node source, VariableNode result, Position position)
 	{
 		Position = position;
+		Instance = NodeType.HAS;
 		
 		Add(source);
 		Add(result);
@@ -52,9 +52,8 @@ public class HasNode : Node, IResolvable
 
 		// Declare the result variable at the start of the function
 		var declaration = new DeclareNode(Result.Variable);
-		var root = FindParent(i => i.Parent == null) ?? throw Errors.Get(Position!, "Could not find the root node");
 
-		root.First().Insert(declaration);
+		ReconstructionAnalysis.GetInsertPosition(this).Insert(declaration);
 
 		// Set the result variable equal to false
 		var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -97,11 +96,6 @@ public class HasNode : Node, IResolvable
 	public override Type? TryGetType()
 	{
 		return Types.BOOL;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.HAS;
 	}
 
 	public Status GetStatus()

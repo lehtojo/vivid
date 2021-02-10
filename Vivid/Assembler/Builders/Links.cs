@@ -25,18 +25,28 @@ public static class Links
 
 	public static Result Build(Unit unit, LinkNode node, AccessMode mode)
 	{
-		var self_type = node.Object.GetType();
+		var self_type = node.Left.GetType();
 
-		return node.Member switch
+		if (node.Right.Is(NodeType.VARIABLE))
 		{
-			VariableNode member when member.Variable.Category == VariableCategory.GLOBAL => References.GetVariable(unit,
-				member.Variable, mode),
+			var variable = node.Right.To<VariableNode>().Variable;
 
-			VariableNode member => new GetObjectPointerInstruction(unit, member.Variable, References.Get(unit, node.Object), member.Variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned"), mode).Execute(),
+			if (variable.Category == VariableCategory.GLOBAL)
+			{
+				return References.GetVariable(unit, variable, mode);
+			}
 
-			FunctionNode function => GetMemberFunctionCall(unit, function, node.Object, self_type),
+			var start = References.Get(unit, node.Left);
+			var alignment = variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
 
-			_ => throw new NotImplementedException("Unsupported member node")
-		};
+			return new GetObjectPointerInstruction(unit, variable, start, alignment, mode).Execute();
+		}
+
+		if (!node.Right.Is(NodeType.FUNCTION))
+		{
+			throw new NotImplementedException("Unsupported member node");
+		}
+
+		return GetMemberFunctionCall(unit, node.Right.To<FunctionNode>(), node.Left, self_type);
 	}
 }

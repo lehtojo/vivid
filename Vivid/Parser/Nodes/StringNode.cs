@@ -9,6 +9,7 @@ public class StringNode : Node, ICloneable
 	{
 		Text = text;
 		Position = position;
+		Instance = NodeType.STRING;
 	}
 
 	public string GetIdentifier(Unit unit)
@@ -26,11 +27,6 @@ public class StringNode : Node, ICloneable
 		return new StringNode(Text, Position?.Clone()) { Identifier = Identifier };
 	}
 
-	public override NodeType GetNodeType()
-	{
-		return NodeType.STRING;
-	}
-
 	public override bool Equals(object? other)
 	{
 		return other is StringNode node &&
@@ -40,9 +36,6 @@ public class StringNode : Node, ICloneable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Text);
-		return hash.ToHashCode();
+		return HashCode.Combine(Instance, Position, Text);
 	}
 }

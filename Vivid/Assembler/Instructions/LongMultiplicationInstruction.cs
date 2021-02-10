@@ -43,38 +43,46 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		return new Result(new RegisterHandle(numerator), Assembler.Format);
 	}
 
+	private Register ClearRemainderRegister()
+	{
+		var numerator = Unit.GetNumeratorRegister();
+		var remainder = Unit.GetRemainderRegister();
+
+		using var numerator_lock = new RegisterLock(numerator);
+
+		Memory.ClearRegister(Unit, remainder);
+
+		return remainder;
+	}
+
 	public override void OnBuild()
 	{
 		var numerator = CorrectDestinationOperandLocation();
+		var remainder = ClearRemainderRegister();
 
-		// The remainder register must be empty since it will contain
-		var remainder = Unit.GetRemainderRegister();
-		Memory.ClearRegister(Unit, remainder);
+		using var remainder_lock = new RegisterLock(remainder);
+		
+		Result.Value = new RegisterHandle(remainder);
 
-		using (RegisterLock.Create(remainder))
-		{
-			Result.Value = new RegisterHandle(remainder);
-
-			Build(
-				Instruction,
-				Assembler.Size,
-				new InstructionParameter(
-					Result,
-					ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
-					HandleType.REGISTER
-				),
-				new InstructionParameter(
-					numerator,
-					ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
-					HandleType.REGISTER
-				),
-				new InstructionParameter(
-					Second,
-					ParameterFlag.NONE,
-					HandleType.REGISTER,
-					HandleType.MEMORY
-				)
-			);
-		}
+		Build(
+			Instruction,
+			Assembler.Size,
+			new InstructionParameter(
+				Result,
+				ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				numerator,
+				ParameterFlag.HIDDEN | ParameterFlag.LOCKED | ParameterFlag.WRITES,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER,
+				HandleType.MEMORY
+			)
+		);
 	}
 }

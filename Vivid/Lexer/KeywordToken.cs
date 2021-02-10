@@ -15,10 +15,10 @@ public class KeywordToken : Token
 		Keyword = keyword;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is KeywordToken token &&
-			   base.Equals(obj) &&
+		return other is KeywordToken token &&
+			   base.Equals(other) &&
 			   EqualityComparer<Keyword>.Default.Equals(Keyword, token.Keyword);
 	}
 

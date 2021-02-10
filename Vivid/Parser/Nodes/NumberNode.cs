@@ -10,8 +10,9 @@ public class NumberNode : Node, ICloneable
 	{
 		Type = type;
 		Value = value;
+		Instance = NodeType.NUMBER;
 
-		if (!(Value is long || Value is double))
+		if (Value is not long && Value is not double)
 		{
 			throw new ArgumentException("Number node received a number which was not in the correct format");
 		}
@@ -22,8 +23,9 @@ public class NumberNode : Node, ICloneable
 		Type = type;
 		Value = value;
 		Position = position;
+		Instance = NodeType.NUMBER;
 
-		if (!(Value is long || Value is double))
+		if (Value is not long && Value is not double)
 		{
 			throw new ArgumentException("Number node received a number which was not in the correct format");
 		}
@@ -48,11 +50,6 @@ public class NumberNode : Node, ICloneable
 		return Numbers.Get(Type);
 	}
 
-	public override NodeType GetNodeType()
-	{
-		return NodeType.NUMBER;
-	}
-
 	public new object Clone()
 	{
 		return new NumberNode(Type, Value, Position?.Clone());
@@ -68,10 +65,6 @@ public class NumberNode : Node, ICloneable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Type);
-		hash.Add(Value);
-		return hash.ToHashCode();
+		return HashCode.Combine(Instance, Position, Type, Value);
 	}
 }

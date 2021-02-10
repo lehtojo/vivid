@@ -4,11 +4,6 @@ public abstract class TemporaryInstruction : Instruction
 {
 	public TemporaryInstruction(Unit unit, InstructionType type) : base(unit, type) { }
 
-	public override int GetStackOffsetChange()
-	{
-		throw new ApplicationException("Tried to build a temporary instruction");
-	}
-
 	public override void OnBuild()
 	{
 		throw new ApplicationException("Tried to build a temporary instruction");

@@ -27,26 +27,6 @@ public class Lifetime
 		return IsActive(position) && Start != position && End != position;
 	}
 
-	public bool IsIntersecting(int start, int end)
-	{
-		var a = Start == -1 ? int.MinValue : Start;
-		var x = End == -1 ? int.MaxValue : End;
-
-		var b = start == -1 ? int.MinValue : start;
-		var y = end == -1 ? int.MaxValue : end;
-
-		return a < y && x > b;
-	}
-
-	public Lifetime Clone()
-	{
-		return new Lifetime()
-		{
-			Start = Start,
-			End = End
-		};
-	}
-
 	public override string ToString()
 	{
 		if (Start == -1 && End == -1)

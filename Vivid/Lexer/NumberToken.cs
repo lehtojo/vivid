@@ -64,16 +64,31 @@ public class NumberToken : Token
 			return 0;
 		}
 
-		var exponent = new string(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToArray());
+		if (text.Length == ++index)
+		{
+			throw new LexerException(Position, "Invalid number exponent");
+		}
+
+		var sign = 1;
+
+		if (text[index] == '-')
+		{
+			sign = -1;
+			index++;
+		}
+		else if (text[index] == '+')
+		{
+			index++;
+		}
+
+		var exponent = new string(text.Skip(index).TakeWhile(c => char.IsDigit(c)).ToArray());
 
 		if (int.TryParse(exponent, out int result))
 		{
-			return result;
+			return sign * result;
 		}
-		else
-		{
-			throw new LexerException(Position, $"Invalid number exponent: '{text}'");
-		}
+		
+		throw new LexerException(Position, "Invalid number exponent");
 	}
 
 	public NumberToken(string text, Position position) : base(TokenType.NUMBER)
@@ -112,7 +127,7 @@ public class NumberToken : Token
 			GetType(text, out int bits, out bool unsigned);
 
 			Value = value;
-			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format: '{text}'");
+			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format");
 			Bits = bits;
 		}
 	}

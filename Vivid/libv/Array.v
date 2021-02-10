@@ -19,7 +19,7 @@ Array<T> {
 	count: large
 	
 	init(count: large) {
-		require(count >= 0, 'Tried to create a standard array but its size was a negative value')
+		require(count >= 0, 'Invalid array size')
 		
 		this.data = allocate(count * sizeof(T))
 		this.count = count
@@ -48,7 +48,7 @@ Sheet<T> {
 	height: large
 	
 	init(width: large, height: large) {
-		require(width >= 0 and height >= 0, 'Tried to create a sheet but its width or height was a negative value')
+		require(width >= 0 and height >= 0, 'Invalid sheet size')
 		
 		this.data = allocate(width * height * sizeof(T))
 		this.width = width
@@ -77,7 +77,7 @@ Box<T> {
 	depth: large
 		
 	init(width: large, height: large, depth: large) {
-		require(width >= 0 and height >= 0 and depth >= 0, 'Tried to create a box but its width, height or depth was a negative value')
+		require(width >= 0 and height >= 0 and depth >= 0, 'Invalid box size')
 			
 		this.data = allocate(width * height * depth)
 		this.width = width

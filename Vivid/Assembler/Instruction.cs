@@ -6,7 +6,7 @@ using System;
 public static class ParameterFlag
 {
 	public const int NONE = 0;
-	public const int DESTINATION = 1;
+	public const int DESTINATION = WRITES | 1;
 	public const int SOURCE = 2;
 	public const int WRITE_ACCESS = 4;
 	public const int ATTACH_TO_DESTINATION = 8;
@@ -17,9 +17,10 @@ public static class ParameterFlag
 	public const int BIT_LIMIT = 256;
 	public const int BIT_LIMIT_64 = BIT_LIMIT | (64 << 24);
 	public const int NO_ATTACH = 512;
-	public const int READS = 1024;
-	public const int ALLOW_ADDRESS = 2048;
-	public const int LOCKED = 4096;
+	public const int WRITES = 1024;
+	public const int READS = 2048;
+	public const int ALLOW_ADDRESS = 4096;
+	public const int LOCKED = 8192;
 
 	public static int CreateBitLimit(int bits)
 	{
@@ -46,6 +47,7 @@ public class InstructionParameter
 	public bool IsSource => Flag.Has(Flags, ParameterFlag.SOURCE);
 	public bool IsProtected => !Flag.Has(Flags, ParameterFlag.WRITE_ACCESS);
 	public bool IsAttachable => !Flag.Has(Flags, ParameterFlag.NO_ATTACH);
+	public bool Writes => Flag.Has(Flags, ParameterFlag.WRITES);
 
 	public bool IsAnyRegister => Value?.Type == HandleType.REGISTER || Value?.Type == HandleType.MEDIA_REGISTER;
 	public bool IsStandardRegister => Value?.Type == HandleType.REGISTER;
@@ -146,7 +148,7 @@ public class InstructionParameter
 	}
 }
 
-public abstract class Instruction
+public class Instruction
 {
 	public Unit Unit { get; private set; }
 	public Scope? Scope { get; set; }
@@ -163,8 +165,14 @@ public abstract class Instruction
 
 	public Result[]? Dependencies { get; set; }
 
+	// Controls whether the unit is allowed to load operands into registers while respecting the constraints
 	public bool IsUsageAnalyzed { get; set; } = true;
+	
+	// Tells whether this instructions is built 
 	public bool IsBuilt { get; private set; } = false;
+
+	// Tells whether the instruction is abstract. Abstract instructions will not translate into real assembly instructions
+	public bool IsAbstract { get; set; } = false;
 
 	public Instruction(Unit unit, InstructionType type)
 	{
@@ -195,10 +203,10 @@ public abstract class Instruction
 
 	public T To<T>() where T : Instruction
 	{
-		return (T)this ?? throw new ApplicationException($"Could not convert 'Instruction' to '{typeof(T).Name}'");
+		return (T)this;
 	}
 
-	private Result Convert(InstructionParameter parameter)
+	public Result Convert(InstructionParameter parameter)
 	{
 		var protect = parameter.IsDestination && parameter.IsProtected;
 		var directives = parameter.IsDestination ? Trace.GetDirectives(Unit, Result) : Trace.GetDirectives(Unit, parameter.Result);
@@ -210,17 +218,6 @@ public abstract class Instruction
 
 			if (options.Contains(HandleType.REGISTER))
 			{
-				// No need to worry about required size since registers are always in the right format
-				var cached = Unit.TryGetCached(parameter.Result);
-
-				if (cached != null)
-				{
-					return new Result(this, cached)
-					{
-						Format = parameter.Result.Format
-					};
-				}
-
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
 				{
@@ -229,17 +226,6 @@ public abstract class Instruction
 			}
 			else if (options.Contains(HandleType.MEDIA_REGISTER))
 			{
-				// No need to worry about required size since registers are always in the right format
-				var cached = Unit.TryGetCachedMediaRegister(parameter.Result);
-
-				if (cached != null)
-				{
-					return new Result(this, cached)
-					{
-						Format = parameter.Result.Format
-					};
-				}
-
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
 				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
 				{
@@ -404,7 +390,7 @@ public abstract class Instruction
 	/// <returns>
 	/// Returns a list of register locks which must be active while the handle is in use
 	/// </returns>
-	private List<RegisterLock> ValidateHandle(Handle handle)
+	public List<RegisterLock> ValidateHandle(Handle handle)
 	{
 		var results = handle.GetRegisterDependentResults();
 		var locks = new List<RegisterLock>();
@@ -489,7 +475,7 @@ public abstract class Instruction
 		{
 			if (parameter.Value == null)
 			{
-				throw new ApplicationException("During translation one instruction parameter was in incorrect format");
+				throw new ApplicationException("Instruction parameter did not have a value");
 			}
 
 			if (parameter.IsDestination)
@@ -529,7 +515,7 @@ public abstract class Instruction
 		{
 			result.Remove(result.Length - 1, 1);
 		}
-
+		
 		Unit.Write(result.ToString());
 	}
 
@@ -565,11 +551,16 @@ public abstract class Instruction
 			Unit.Reindex(this);
 			OnBuild();
 		}
-	}
 
-	public virtual int GetStackOffsetChange()
-	{
-		return 0;
+		// Extend all inner results to last at least as long as their parents
+		/// NOTE: This fixes the issue where for example a memory address is created but the lifetime of the starting address is not extended so its register could be stolen
+		foreach (var iterator in GetAllUsedResults())
+		{
+			foreach (var inner in iterator.Value.GetInnerResults())
+			{
+				inner.Use(iterator.Lifetime.End);
+			}
+		}
 	}
 
 	public virtual Result[] GetResultReferences()

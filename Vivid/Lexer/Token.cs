@@ -3,7 +3,6 @@ using System;
 public class Token : ICloneable
 {
 	public int Type { get; private set; }
-	public bool IsFirst { get; set; } = false;
 	public Position Position { get; set; } = new Position();
 
 	public Token(int type)
@@ -31,7 +30,6 @@ public class Token : ICloneable
 	{
 		return new Token(Type)
 		{
-			IsFirst = IsFirst,
 			Position = Position.Clone()
 		};
 	}

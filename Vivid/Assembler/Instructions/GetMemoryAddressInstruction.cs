@@ -18,14 +18,29 @@ public class GetMemoryAddressInstruction : Instruction
 		Offset = offset;
 		Stride = stride;
 		Format = format;
+		IsAbstract = true;
 		Dependencies = new[] { Result, Start, Offset };
 
 		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
 		Result.Format = Format;
 	}
 
+	private void ValidateHandle()
+	{
+		// Ensure the start value is a contant or in a register
+		if (!Start.IsConstant && !Start.IsInline && !Start.IsStandardRegister)
+		{
+			Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
+		}
+	}
+
 	public override void OnBuild()
 	{
+		ValidateHandle();
+		
+		// Fixes situations where a memory address is requested by not immediately loaded into a register, so another instruction might affect the value before loading
+		/// Example: address[0] + call(address)
+		/// NOTE: In the example above the first operand requests the memory address but does not necessarily load it so the function call might modify the contents of the address
 		if (!Trace.IsLoadingRequired(Unit, Result))
 		{
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);

@@ -225,7 +225,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var is_unsigned = operation.Left.GetType() is Number number ? number.IsUnsigned : true;
+		var is_unsigned = operation.Left.GetType() is not Number number || number.IsUnsigned;
 
 		var result = new DivisionInstruction(unit, modulus, left, right, format, assigns, is_unsigned).Execute();
 

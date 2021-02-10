@@ -8,6 +8,7 @@ public class DecrementNode : Node, IResolvable
 	public DecrementNode(Node destination, Position? position, bool post = false)
 	{
 		Add(destination);
+		Instance = NodeType.DECREMENT;
 		Position = position;
 		Post = post;
 	}
@@ -15,11 +16,6 @@ public class DecrementNode : Node, IResolvable
 	public override Type? TryGetType()
 	{
 		return Object.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.DECREMENT;
 	}
 
 	public Node? Resolve(Context context)

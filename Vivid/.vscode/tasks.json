@@ -7,11 +7,12 @@
 			"type": "process",
 			"args": [
 				"build",
-				"${workspaceFolder}/Vivid.csproj",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
+				"${workspaceFolder}/Vivid.csproj"
 			],
 			"problemMatcher": "$msCompile",
+			"presentation": {
+				"reveal": "silent"
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -25,51 +26,12 @@
 				"build",
 				"${workspaceFolder}/Vivid.csproj",
 				"-c",
-				"Units",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
+				"Units"
 			],
 			"problemMatcher": "$msCompile",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"label": "Publish",
-			"command": "dotnet",
-			"type": "process",
-			"args": [
-				"publish",
-				"${workspaceFolder}/Vivid.csproj",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary",
-			],
-			"problemMatcher": "$msCompile"
-		},
-		{
-			"label": "Watch",
-			"command": "dotnet",
-			"type": "process",
-			"args": [
-				"watch",
-				"run",
-				"${workspaceFolder}/Vivid.csproj",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
-			],
-			"problemMatcher": "$msCompile"
-		},
-		{
-			"label": "Compile",
-			"command": "${workspaceFolder}/bin/Debug/net5.0/Vivid.exe",
-			"type": "process",
-			"args": [
-				"${workspaceFolder}/Examples/Sandbox.v",
-				"${workspaceFolder}/libv/Core.v",
-				"-d",
-				"-a"
-			],
+			"presentation": {
+				"reveal": "silent"
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true

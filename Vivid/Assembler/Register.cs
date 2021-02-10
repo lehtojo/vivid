@@ -51,17 +51,6 @@ public class Register
 		Flags = Flag.Combine(flags);
 	}
 
-	public void Attach(Result value)
-	{
-		if (Handle != null)
-		{
-			Handle.Value = new Handle();
-		}
-
-		Handle = value;
-		value.Value = new RegisterHandle(this);
-	}
-
 	public string GetDescription()
 	{
 		return _Value == null ? "Empty" : "Occupied";

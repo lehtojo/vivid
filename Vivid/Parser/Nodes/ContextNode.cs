@@ -5,11 +5,7 @@ public class ContextNode : Node, IResolvable, IContext
 	public ContextNode(Context context)
 	{
 		Context = context;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.CONTEXT;
+		Instance = NodeType.CONTEXT;
 	}
 
 	public Context GetContext()

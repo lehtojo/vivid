@@ -1,3 +1,5 @@
+using System;
+
 public class SectionNode : Node
 {
 	public int Modifiers { get; private set; }
@@ -6,10 +8,11 @@ public class SectionNode : Node
 	{
 		Modifiers = modifiers;
 		Position = position;
+		Instance = NodeType.SECTION;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.SECTION;
+		return HashCode.Combine(Instance, Position, Modifiers);
 	}
 }

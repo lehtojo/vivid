@@ -4,8 +4,8 @@ using System.Linq;
 
 public static class Resolver
 {
-	private static string YELLOW = "\x1B[1;33m";
-	private static string RESET = "\x1B[0m";
+	private const string YELLOW = "\x1B[1;33m";
+	private const string RESET = "\x1B[0m";
 
 	/// <summary>
 	/// Tries to resolve the specified type if it is unresolved
@@ -339,7 +339,7 @@ public static class Resolver
 
 			if (parent == null) continue;
 
-			if (parent.GetNodeType() == NodeType.OPERATOR) // Locals
+			if (parent.Instance == NodeType.OPERATOR) // Locals
 			{
 				// Reference must be the destination in assign operation in order to resolve the type
 				if (parent.First != reference)
@@ -354,7 +354,7 @@ public static class Resolver
 					types.Add(type);
 				}
 			}
-			else if (parent.GetNodeType() == NodeType.LINK) // Members
+			else if (parent.Instance == NodeType.LINK) // Members
 			{
 				// Reference must be the destination in assign operation in order to resolve the type
 				if (parent.Last != reference)

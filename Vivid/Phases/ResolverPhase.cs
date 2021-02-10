@@ -104,7 +104,7 @@ public class ResolverPhase : Phase
 				functions.AppendLine();
 			}
 
-			functions.AppendLine($"Function {overload.ToString()}:");
+			functions.AppendLine($"Function {overload}:");
 
 			foreach (var parameter in overload.Parameters)
 			{
@@ -140,14 +140,14 @@ public class ResolverPhase : Phase
 			final.AppendLine();
 		}
 
-		final.Append(types.ToString());
+		final.Append(types);
 
 		if (final.Length > 0)
 		{
 			final.AppendLine();
 		}
 
-		final.Append(functions.ToString());
+		final.Append(functions);
 
 		return final.ToString();
 	}

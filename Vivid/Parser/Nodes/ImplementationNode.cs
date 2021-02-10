@@ -1,4 +1,6 @@
-﻿public class ImplementationNode : Node, IContext
+﻿using System;
+
+public class ImplementationNode : Node, IContext
 {
 	public Context Context { get; private set; }
 
@@ -6,11 +8,7 @@
 	{
 		Context = implementation;
 		Position = position;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.IMPLEMENTATION;
+		Instance = NodeType.IMPLEMENTATION;
 	}
 
 	public void SetContext(Context context)
@@ -21,5 +19,10 @@
 	public Context GetContext()
 	{
 		return Context;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Instance, Position, Context.Identity);
 	}
 }

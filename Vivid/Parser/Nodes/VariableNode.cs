@@ -8,12 +8,14 @@ public class VariableNode : Node
 	public VariableNode(Variable variable)
 	{
 		Variable = variable;
+		Instance = NodeType.VARIABLE;
 		Variable.References.Add(this);
 	}
 
 	public VariableNode(Variable variable, Position? position)
 	{
 		Variable = variable;
+		Instance = NodeType.VARIABLE;
 		Variable.References.Add(this);
 		Position = position;
 	}
@@ -21,11 +23,6 @@ public class VariableNode : Node
 	public override Type? TryGetType()
 	{
 		return Variable.Type;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.VARIABLE;
 	}
 
 	public override bool Equals(object? other)

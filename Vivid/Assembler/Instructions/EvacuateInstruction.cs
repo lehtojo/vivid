@@ -9,28 +9,23 @@ public class EvacuateInstruction : Instruction
 	public EvacuateInstruction(Unit unit, Instruction perspective) : base(unit, InstructionType.EVACUATE)
 	{
 		Perspective = perspective;
+		IsAbstract = true;
 	}
 
 	public override void OnBuild()
 	{
-		// Save all imporant values in normal volatile registers
+		// Save all imporant values in the standard volatile registers
 		Unit.VolatileRegisters.ForEach(source =>
 		{
-			// Skip values which aren't needed after the call instruction
-			if (source.IsAvailable(Perspective.Position + 1))
+			// Skip values which are not needed after the call instruction
+			/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
+			if (source.Handle == null || !source.Handle.IsValid(Perspective.Position + 1) || source.IsHandleCopy())
 			{
-				return;
-			}
-
-			// Media registers must be released to memory
-			if (source.IsMediaRegister)
-			{
-				Unit.Release(source);
 				return;
 			}
 
 			var destination = (Handle?)null;
-			var register = Unit.GetNextNonVolatileRegister(false);
+			var register = Unit.GetNextNonVolatileRegister(source.IsMediaRegister, false);
 
 			if (register != null)
 			{
@@ -47,18 +42,6 @@ public class EvacuateInstruction : Instruction
 				Description = $"Evacuate an important value in '{destination}'",
 				Type = MoveType.RELOCATE
 			});
-		});
-
-		// Save all important values inside media registers by releasing them to memory
-		Unit.MediaRegisters.ForEach(source =>
-		{
-			// Skip values which aren't needed after the call instruction
-			if (source.IsAvailable(Perspective.Position))
-			{
-				return;
-			}
-
-			Unit.Release(source);
 		});
 	}
 }

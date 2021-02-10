@@ -1,3 +1,5 @@
+using System;
+
 public class StackAddressNode : Node
 {
 	public int Alignment { get; set; }
@@ -5,6 +7,7 @@ public class StackAddressNode : Node
 
 	public StackAddressNode(int bytes)
 	{
+		Instance = NodeType.STACK_ADDRESS;
 		Alignment = 0;
 		Bytes = bytes;
 	}
@@ -14,8 +17,8 @@ public class StackAddressNode : Node
 		return Types.LINK;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.STACK_ADDRESS;
+		return HashCode.Combine(Instance, Position, Alignment, Bytes);
 	}
 }

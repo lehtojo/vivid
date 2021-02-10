@@ -47,6 +47,7 @@ public class AdditionInstruction : DualParameterInstruction
 
 			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_ADDITION_INSTRUCTION : X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
+			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			// NOTE: Changed the parameter flag to none because any attachment could override the contents of the destination register and the variable should move to an appropriate register attaching the variable there
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
@@ -61,8 +62,7 @@ public class AdditionInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
+					types
 				)
 			);
 

@@ -13,6 +13,7 @@ public class LambdaNode : Node, IResolvable
 		Function = lambda;
 		Position = position;
 		Status = Status.Error(Position, "Could not resolve parameter types of the short function");
+		Instance = NodeType.LAMBDA;
 	}
 
 	public LambdaNode(FunctionImplementation implementation, Position position)
@@ -21,6 +22,7 @@ public class LambdaNode : Node, IResolvable
 		Function = implementation.Metadata ?? throw new ApplicationException("Missing function implementation metadata");
 		Position = position;
 		Status = Status.OK;
+		Instance = NodeType.LAMBDA;
 	}
 
 	public CallDescriptorType GetIncompleteType()
@@ -36,11 +38,6 @@ public class LambdaNode : Node, IResolvable
 		}
 
 		return null;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.LAMBDA;
 	}
 
 	public Node? Resolve(Context context)
@@ -85,5 +82,10 @@ public class LambdaNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		return Status;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Instance, Position, Function);
 	}
 }

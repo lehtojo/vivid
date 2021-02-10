@@ -498,7 +498,7 @@ public class Type : Context
 
 	private Type[] GetTemplateArguments(string name)
 	{
-		if (!(GetType(name) is TemplateType template_type))
+		if (GetType(name) is not TemplateType template_type)
 		{
 			throw new ApplicationException("The base class of a template type variant was not a template type");
 		}

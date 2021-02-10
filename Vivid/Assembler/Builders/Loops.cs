@@ -4,6 +4,9 @@ using System;
 
 public static class Loops
 {
+	/// <summary>
+	/// Builds a loop control instruction such as continue and stop
+	/// </summary>
 	public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
 	{
 		if (node.Loop == null)
@@ -15,29 +18,15 @@ public static class Loops
 		{
 			var exit = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
 
-			var symmetry_start = unit.Loops[node.Loop.Identifier!] ?? throw new ApplicationException("Loop was not registered to unit");
-			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
-
-			// Restore the state after the body
-			symmetry_end.Append();
-
-			// Restore the state after the body
-			unit.Append(symmetry_end);
+			unit.Append(new MergeScopeInstruction(unit));
 
 			return new JumpInstruction(unit, exit).Execute();
 		}
 		else if (node.Instruction == Keywords.CONTINUE)
 		{
-			var start = node.Loop.Start ?? throw new ApplicationException("Missing loop exit label");
-
-			var symmetry_start = unit.Loops[node.Loop.Identifier!] ?? throw new ApplicationException("Loop was not registered to unit");
-			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
-
-			// Restore the state after the body
-			symmetry_end.Append();
-
-			// Restore the state after the body
-			unit.Append(symmetry_end);
+			var start = node.Loop.Continue ?? throw new ApplicationException("Missing loop continue label");
+			
+			unit.Append(new MergeScopeInstruction(unit));
 
 			return new JumpInstruction(unit, start).Execute();
 		}
@@ -47,9 +36,12 @@ public static class Loops
 		}
 	}
 
+	/// <summary>
+	/// Builds the body of the specified loop without any of the steps
+	/// </summary>
 	private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
 	{
-		var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.Body.Context.Parent!, loop.Body.Context);
+		var active_variables = Scope.GetAllActiveVariables(unit, loop);
 
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
@@ -59,23 +51,10 @@ public static class Loops
 			// Append the label where the loop will start
 			unit.Append(start);
 
-			var symmetry_start = new SymmetryStartInstruction(unit, active_variables);
-			unit.Append(symmetry_start);
-
-			// Register loop to the unit
-			loop.Identifier = unit.GetNextIdentity();
-			unit.Loops.Add(loop.Identifier, symmetry_start);
-
 			// Build the loop body
 			result = Builders.Build(unit, loop.Body);
 
-			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
-
-			// Restore the state after the body
-			symmetry_end.Append();
-
-			// Restore the state after the body
-			unit.Append(symmetry_end);
+			unit.Append(new MergeScopeInstruction(unit));
 		}
 
 		unit.Set(state);
@@ -83,10 +62,11 @@ public static class Loops
 		return result;
 	}
 
-	private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
+	/// <summary>
+	/// Builds the body of the specified loop with its steps
+	/// </summary>
+	private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start, List<Variable> active_variables)
 	{
-		var active_variables = Scope.GetAllActiveVariablesForScope(unit, new Node[] { loop }, loop.Body.Context.Parent!, loop.Body.Context);
-
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
 
@@ -94,13 +74,6 @@ public static class Loops
 		{
 			// Append the label where the loop will start
 			unit.Append(start);
-
-			var symmetry_start = new SymmetryStartInstruction(unit, active_variables);
-			unit.Append(symmetry_start);
-
-			// Register loop to the unit
-			loop.Identifier = unit.GetNextIdentity();
-			unit.Loops.Add(loop.Identifier, symmetry_start);
 
 			// Build the loop body
 			result = Builders.Build(unit, loop.Body);
@@ -111,23 +84,17 @@ public static class Loops
 				Builders.Build(unit, loop.Action);
 			}
 
-			scope.AppendFinalizers = false;
+			unit.Append(new MergeScopeInstruction(unit));
 
-			var symmetry_end = new SymmetryEndInstruction(unit, symmetry_start);
+			// Build the nodes around the actual condition by disabling the condition temporarily
+			var instance = loop.Condition.Instance;
+			loop.Condition.Instance = NodeType.DISABLED;
 
-			// Restore the state after the body
-			symmetry_end.Append();
-
-			// Restore the state after the body
-			unit.Append(symmetry_end);
-
-			// Initialize the condition
-			loop.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
+			Builders.Build(unit, loop.Initialization.Next!);
+			
+			loop.Condition.Instance = instance;
 
 			BuildEndCondition(unit, loop.Condition, start.Label);
-
-			// Keep all scope variables which are needed later active
-			active_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i, AccessMode.READ)));
 		}
 
 		unit.Set(state);
@@ -135,13 +102,12 @@ public static class Loops
 		return result;
 	}
 
+	/// <summary>
+	/// Builds the specified forever-loop
+	/// </summary>
 	private static Result BuildForeverLoop(Unit unit, LoopNode node)
 	{
 		var start = unit.GetNextLabel();
-
-		// Get the current state of the unit for later recovery
-		var recovery = new SaveStateInstruction(unit);
-		unit.Append(recovery);
 
 		if (!Assembler.IsDebuggingEnabled)
 		{
@@ -149,10 +115,12 @@ public static class Loops
 			Scope.Cache(unit, node);
 		}
 
-		Scope.PrepareConditionallyChangingConstants(unit, node, node.Context, node.Body.Context);
+		// Load constants which might be edited inside the loop
+		Scope.LoadConstants(unit, node, node.Context, node.Body.Context);
 
 		// Register the start and exit label to the loop for control keywords
 		node.Start = unit.GetNextLabel();
+		node.Continue = node.Start;
 		node.Exit = unit.GetNextLabel();
 
 		// Append the start label
@@ -164,15 +132,15 @@ public static class Loops
 		// Jump to the start of the loop
 		unit.Append(new JumpInstruction(unit, start));
 
-		// Recover the previous state
-		unit.Append(new RestoreStateInstruction(unit, recovery));
-
 		// Append the exit label
 		unit.Append(new LabelInstruction(unit, node.Exit));
 
 		return result;
 	}
 
+	/// <summary>
+	/// Builds the specified loop
+	/// </summary>
 	public static Result Build(Unit unit, LoopNode node)
 	{
 		unit.TryAppendPosition(node);
@@ -199,30 +167,42 @@ public static class Loops
 			Scope.Cache(unit, node);
 		}
 
-		Scope.PrepareConditionallyChangingConstants(unit, node, node.Body.Context);
+		// Load constants which might be edited inside the loop
+		Scope.LoadConstants(unit, node, node.Body.Context);
+		
+		// Try to find a loop control node which targets the current loop
+		if (node.Body.Find(i => i.Is(NodeType.LOOP_CONTROL) && i.To<LoopControlNode>().Instruction == Keywords.CONTINUE && i.To<LoopControlNode>().Loop == node) != null)
+		{
+			// Append a label which can be used by the continue-commands
+			node.Continue = unit.GetNextLabel();
+			unit.Append(new LabelInstruction(unit, node.Continue));
+		}
 
-		// Initialize the condition
-		node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
+		// Build the nodes around the actual condition by disabling the condition temporarily
+		var instance = node.Condition.Instance;
+		node.Condition.Instance = NodeType.DISABLED;
+
+		Builders.Build(unit, node.Initialization.Next!);
+		
+		node.Condition.Instance = instance;
+
+		var active_variables = Scope.GetAllActiveVariables(unit, node);
 
 		// Jump to the end based on the comparison
-		Conditionals.BuildCondition(unit, node.Context.Parent!, node.Condition, end);
-
-		// Get the current state of the unit for later recovery
-		var recovery = new SaveStateInstruction(unit);
-		unit.Append(recovery);
+		Conditionals.BuildCondition(unit, node.Condition, end, active_variables);
 
 		// Build the loop body
-		var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start));
+		var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start), active_variables);
 
 		// Append the label where the loop ends
 		unit.Append(new LabelInstruction(unit, end));
 
-		// Recover the previous state
-		unit.Append(new RestoreStateInstruction(unit, recovery));
-
 		return result;
 	}
 
+	/// <summary>
+	/// Builds the the specified condition which should be placed at the end of a loop
+	/// </summary>
 	private static void BuildEndCondition(Unit unit, Node condition, Label success)
 	{
 		var failure = unit.GetNextLabel();
@@ -315,10 +295,6 @@ public static class Loops
 
 		public void Append()
 		{
-			// Get the current state of the unit for later recovery
-			var recovery = new SaveStateInstruction(Unit);
-			Unit.Append(recovery);
-
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
@@ -339,9 +315,6 @@ public static class Loops
 			}
 
 			Unit.Set(state);
-
-			// Recover the previous state
-			Unit.Append(new RestoreStateInstruction(Unit, recovery));
 		}
 	}
 

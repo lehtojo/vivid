@@ -10,11 +10,7 @@ public class LoopControlNode : Node
 	{
 		Instruction = instruction;
 		Position = position;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.LOOP_CONTROL;
+		Instance = NodeType.LOOP_CONTROL;
 	}
 
 	public override bool Equals(object? other)

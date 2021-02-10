@@ -65,10 +65,11 @@ public sealed class NodeEnumerator : IEnumerator, IEnumerator<Node>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1710")]
 public class Node : IEnumerable, IEnumerable<Node>
 {
+	public NodeType Instance { get; set; } = NodeType.NORMAL;
+
 	public Position? Position { get; set; }
 
 	public Node? Parent { get; set; }
-	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>());
 
 	public Node? Previous { get; private set; }
 	public Node? Next { get; private set; }
@@ -76,22 +77,26 @@ public class Node : IEnumerable, IEnumerable<Node>
 	public Node? First { get; protected set; }
 	public Node? Last { get; protected set; }
 
+	public Node Left => First!;
+	public Node Right => Last!;
+
+	public IEnumerable<Node> Path => new List<Node> { this }.Concat(Parent != null ? Parent.Path : new List<Node>());
+
 	public bool IsEmpty => First == null;
 
 	public bool Is(NodeType type)
 	{
-		return GetNodeType() == type;
+		return Instance == type;
 	}
 
 	public bool Is(params NodeType[] types)
 	{
-		var actual = GetNodeType();
-		return types.Any(type => actual == type);
+		return types.Contains(Instance);
 	}
 
 	public T To<T>() where T : Node
 	{
-		return (T)this ?? throw new ApplicationException($"Could not convert 'Node' to '{typeof(T).Name}'");
+		return (T)this;
 	}
 	
 	public new Type GetType()
@@ -416,10 +421,10 @@ public class Node : IEnumerable, IEnumerable<Node>
 			Add(iterator);
 		}
 
-		node.Destroy();
+		node.Detach();
 	}
 
-	public void Destroy()
+	public void Detach()
 	{
 		Parent = null;
 		Previous = null;
@@ -434,7 +439,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 		Last = null;
 	}
 
-	public static Node? GetSharedParent(Node a, Node b)
+	public static Node? GetSharedNode(Node a, Node b, bool c = true)
 	{
 		var x = a.Path.Reverse().ToArray();
 		var y = b.Path.Reverse().ToArray();
@@ -450,8 +455,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 			}
 		}
 
-		// Second condition: This scenario means that one of the nodes is parent of the other
-		if (i == 0 || i == count)
+		if (i == 0 || (c && i == count))
 		{
 			return null;
 		}
@@ -667,6 +671,9 @@ public class Node : IEnumerable, IEnumerable<Node>
 	public Node Clone()
 	{
 		var result = (Node)MemberwiseClone();
+		result.Parent = null;
+		result.Next = null;
+		result.Previous = null;
 		result.First = null;
 		result.Last = null;
 
@@ -679,11 +686,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 		}
 
 		return result;
-	}
-
-	public virtual NodeType GetNodeType()
-	{
-		return NodeType.NORMAL;
 	}
 
 	IEnumerator IEnumerable.GetEnumerator()
@@ -703,7 +705,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public override bool Equals(object? other)
 	{
-		if (other is Node node && GetNodeType() == node.GetNodeType())
+		if (other is Node node && Instance == node.Instance)
 		{
 			var a = Count();
 			var b = node.Count();
@@ -735,14 +737,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(GetNodeType());
-
-		foreach (var iterator in this)
-		{
-			hash.Add(iterator);
-		}
-
-		return hash.ToHashCode();
+		return HashCode.Combine(Instance, Position);
 	}
 }

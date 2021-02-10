@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public class Variable
@@ -126,6 +125,7 @@ public class Variable
 		hash.Add(References.Count);
 		hash.Add(Edits.Count);
 		hash.Add(Reads.Count);
+		hash.Add(Context.Identity);
 		return hash.ToHashCode();
 	}
 }

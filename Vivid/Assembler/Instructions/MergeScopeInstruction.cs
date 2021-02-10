@@ -6,7 +6,11 @@ using System.Collections.Generic;
 /// </summary>
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE) { }
+	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE) 
+	{
+		Description = "Relocates values so that their locations match the state of the outer scope";
+		IsAbstract = true;
+	}
 
 	private Result GetVariableStackHandle(Variable variable)
 	{
@@ -32,20 +36,20 @@ public class MergeScopeInstruction : Instruction
 			var source = Unit.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
 
 			// Copy the destination value to prevent any relocation leaks
-			var destination = new Result(GetDestinationHandle(variable).Value, variable.GetRegisterFormat());
-
-			// When the destination is a memory handle, it most likely means it won't be used later
-			if (destination.IsMemoryAddress && !IsUsedLater(variable))
-			{
-				continue;
-			}
+			var handle = GetDestinationHandle(variable);
+			var destination = new Result(handle.Value, handle.Format);
 
 			if (destination.IsConstant)
 			{
 				continue;
 			}
 
-			moves.Add(new MoveInstruction(Unit, destination, source));
+			moves.Add(new MoveInstruction(Unit, destination, source)
+			{
+				IsSafe = true,
+				Description = "Relocates the source value to merge the current scope with the outer scope",
+				Type = MoveType.RELOCATE
+			});
 		}
 
 		Unit.Append(Memory.Align(Unit, moves), true);

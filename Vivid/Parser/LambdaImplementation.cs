@@ -5,6 +5,7 @@ public class LambdaImplementation : FunctionImplementation
 {
 	public List<CapturedVariable> Captures { get; private set; } = new List<CapturedVariable>();
 	public Type? Type { get; private set; }
+	public Variable? Function { get; private set; }
 
 	public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type, Context context)
 	   : base(metadata, parameters, return_type, context)
@@ -40,8 +41,9 @@ public class LambdaImplementation : FunctionImplementation
 			Modifier.PUBLIC
 
 		) { IsSelfPointer = true };
-
-		Type.Declare(global::Types.LINK, VariableCategory.MEMBER, ".function");
+		
+		// Declare the function pointer as the first member
+		Function = Type.DeclareHidden(global::Types.LINK, VariableCategory.MEMBER);
 
 		// Change all captured variables into member variables so that they are retrieved using the self pointer of this lambda
 		Captures.ForEach(c => c.Category = VariableCategory.MEMBER);
@@ -51,6 +53,17 @@ public class LambdaImplementation : FunctionImplementation
 
 		// Move all the captured variables to the lambda object's type
 		Captures.ForEach(c => Type.Declare(c));
+
+		// Add the self pointer to all of the usages of the captured variables
+		var usages = Node!.FindAll(i => i.Is(NodeType.VARIABLE) && Captures.Contains(i.To<VariableNode>().Variable));
+
+		foreach (var usage in usages)
+		{
+			usage.Replace(new LinkNode(new VariableNode(Self), usage.Clone()));
+		}
+
+		// Align the member variables
+		Aligner.Align(Type);
 	}
 
 	public override bool IsVariableDeclared(string name)
@@ -92,6 +105,10 @@ public class LambdaImplementation : FunctionImplementation
 	public override void Implement(List<Token> blueprint)
 	{
 		Type = new Type(this, string.Empty, Modifier.PUBLIC);
+		
+		Type.AddConstructor(Constructor.Empty(Type, Metadata.Position!));
+		Type.AddDestructor(Destructor.Empty(Type, Metadata.Position!));
+
 		Node = new ImplementationNode(this, Metadata.Position);
 
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
@@ -99,6 +116,6 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override Variable? GetSelfPointer()
 	{
-		return Self ?? GetVariable(Function.SELF_POINTER_IDENTIFIER);
+		return Self ?? GetVariable(global::Function.SELF_POINTER_IDENTIFIER);
 	}
 }

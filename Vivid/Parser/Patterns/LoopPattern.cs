@@ -41,44 +41,53 @@ public class LoopPattern : Pattern
 			return null;
 		}
 
-		var steps = new Node();
+		var steps = (Node?)null;
 		var sections = content.GetSections();
-
-		foreach (var section in sections)
-		{
-			// Parse the tokens of the step and add them under a normal node
-			var step = new Node();
-			Parser.Parse(step, context, section, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
-
-			steps.Add(step);
-		}
 
 		switch (sections.Count)
 		{
 			case WHILE_LOOP:
 			{
-				// Padding: ([Added], Condition, [Added])
-				steps.Insert(steps.First!, new Node());
+				// Create root of the steps with an empty initialization step
+				steps = new Node { new Node() };
+
+				// Add the condition
+				steps.Add(Parser.Parse(context, sections[0], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY));
+
+				// Add an empty action step
 				steps.Add(new Node());
 				break;
 			}
 
 			case SHORT_FOR_LOOP:
 			{
-				// Padding: ([Added], Initialization, Action)
-				steps.Insert(steps.First!, new Node());
+				// Create root of the steps with an empty initialization step
+				steps = new Node { new Node() };
+
+				// Add the condition
+				steps.Add(Parser.Parse(context, sections[0], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY));
+
+				// Add the action step
+				steps.Add(Parser.Parse(context, sections[1], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY));
 				break;
 			}
 
 			case FOR_LOOP:
 			{
-				// Padding: (Initialization, Condition, Action)
+				// Create root of the steps with the initialization step
+				steps = new Node { Parser.Parse(context, sections[0], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY) };
+
+				// Add the condition
+				steps.Add(Parser.Parse(context, sections[1], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY));
+
+				// Add an empty action node
+				steps.Add(Parser.Parse(context, sections[2], Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY));
 				break;
 			}
 
 			default:
 			{
-				throw Errors.Get(content.Position, "Invalid loop");
+				throw Errors.Get(content.Position, "The loop has too many sections");
 			}
 		}
 

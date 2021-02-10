@@ -4,9 +4,101 @@ using System;
 
 public static class ReconstructionAnalysis
 {
-	public static Node? TryRewriteAsActionOperation(Node edit, bool force = false)
+	/// <summary>
+	/// Returns the first position where a statement can be placed outside the scope of the specified node
+	/// </summary>
+	public static Node GetInsertPosition(Node reference)
 	{
-		if (!edit.Is(NodeType.INCREMENT, NodeType.DECREMENT) || (!force && IsValueUsed(edit)))
+		var iterator = reference.Parent!;
+		var position = reference;
+
+		while (!iterator.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION))
+		{
+			position = iterator;
+			iterator = iterator.Parent!;
+		}
+
+		// If the position happens to become a conditional statement, the insert position should become before it
+		if (position.Is(NodeType.ELSE_IF))
+		{
+			position = position.To<ElseIfNode>().GetRoot();
+		}
+		else if (position.Is(NodeType.ELSE))
+		{
+			position = position.To<ElseNode>().GetRoot();
+		}
+
+		return position;
+	}
+
+	/// <summary>
+	/// Returns the first position where a statement can be placed outside the scope of the specified node
+	/// </summary>
+	public static Node GetInsertPosition(Node reference, Node scope)
+	{
+		var iterator = reference.Parent!;
+		var position = reference;
+
+		while (iterator != scope)
+		{
+			position = iterator;
+			iterator = iterator.Parent!;
+		}
+
+		// If the position happens to become a conditional statement, the insert position should become before it
+		if (position.Is(NodeType.ELSE_IF))
+		{
+			position = position.To<ElseIfNode>().GetRoot();
+		}
+		else if (position.Is(NodeType.ELSE))
+		{
+			position = position.To<ElseNode>().GetRoot();
+		}
+
+		return position;
+	}
+
+	/// <summary>
+	/// Finds the most inner scope that covers all of the specified nodes
+	/// </summary>
+	public static Node? GetSharedScope(Node[] nodes)
+	{
+		if (!nodes.Any())
+		{
+			return null;
+		}
+
+		if (nodes.Length == 1)
+		{
+			return nodes.First().FindParent(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION));
+		}
+
+		var shared = nodes[0];
+
+		for (var i = 1; i < nodes.Length; i++)
+		{
+			shared = Node.GetSharedNode(shared, nodes[i], false);
+
+			if (shared == null)
+			{
+				return null;
+			}
+		}
+
+		return shared.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION) ? shared : shared.FindParent(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION));
+	}
+
+	/// <summary>
+	/// Tries to build an action operator out of the specified edit
+	/// Examples:
+	/// x++ => x += 1
+	/// x-- => x -= 1
+	/// a = 2 * a => a *= 2
+	/// x = x / y => x /= y
+	/// </summary>
+	public static OperatorNode? TryRewriteAsActionOperation(Node edit, bool force = false)
+	{
+		if (!edit.Is(NodeType.INCREMENT, NodeType.DECREMENT, NodeType.OPERATOR) || (!force && IsValueUsed(edit)))
 		{
 			return null;
 		}
@@ -33,9 +125,54 @@ public static class ReconstructionAnalysis
 			);
 		}
 
-		return null;
+		// Require the edit to be a standard assignment
+		if (edit is not OperatorNode assignment || !assignment.Is(Operators.ASSIGN))
+		{
+			return null;
+		}
+
+		// Look for patterns such as: a = a + 1, x = x / 2
+		if (assignment.Right is not OperatorNode operation)
+		{
+			return null;
+		}
+
+		var value = (Node?)null;
+
+		// 1. Ensure either the left or the right operand is the same as the destination of the assignment
+		// 2. If the operation is division, modulus or subtraction, the order of the operands matter, therefore require the destination variable to be on the left side of the operation in these instances
+		if (operation.Left.Equals(assignment.Left))
+		{
+			value = operation.Right.Clone();
+		}
+		else if (operation.Right.Equals(assignment.Left) && operation.Operator != Operators.DIVIDE && operation.Operator != Operators.MODULUS && operation.Operator != Operators.SUBTRACT)
+		{
+			value = operation.Left.Clone();
+		}
+
+		if (value == null)
+		{
+			return null;
+		}
+
+		var action_operator = Operators.GetActionOperator(operation.Operator);
+
+		if (action_operator == null)
+		{
+			return null;
+		}
+
+		return new OperatorNode(action_operator, assignment.Position).SetOperands(assignment.Left.Clone(), value);
 	}
 
+	/// <summary>
+	/// Tries to build an assignment operator out of the specified edit
+	/// Examples:
+	/// x++ => x = x + 1
+	/// x-- => x = x - 1
+	/// a *= 2 => a = a * 2
+	/// b[i] /= 10 => b[i] = b[i] / 10
+	/// </summary>
 	public static Node? TryRewriteAsAssignOperation(Node edit, bool force = false)
 	{
 		if (!force && IsValueUsed(edit))
@@ -228,8 +365,7 @@ public static class ReconstructionAnalysis
 			);
 
 			// The result variable must be initialized outside the condition
-			var scope = (Node)expression.FindContext();
-			scope.Insert(scope.First, initialization);
+			ReconstructionAnalysis.GetInsertPosition(expression).Insert(initialization);
 
 			// Get the context of the expression
 			var expression_context = expression.GetParentContext();
@@ -241,7 +377,7 @@ public static class ReconstructionAnalysis
 			// Object variable should be declared
 			initialization = new DeclareNode(object_variable);
 
-			scope.Insert(scope.First, initialization);
+			ReconstructionAnalysis.GetInsertPosition(expression).Insert(initialization);
 
 			// Load the inspected object
 			var load = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -271,6 +407,33 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Returns if stack construction should be used
+	/// </summary>
+	private static bool IsStackConstructionPreferred(Node root, Node value)
+	{
+		var editor = Analyzer.TryGetEditor(value);
+
+		if (editor == null)
+		{
+			return false;
+		}
+
+		var edited = Analyzer.GetEdited(editor);
+
+		if (!edited.Is(NodeType.VARIABLE))
+		{
+			return false;
+		}
+
+		var variable = edited.To<VariableNode>().Variable;
+
+		// Refresh the usages of the variable in order to analyze whether this variable is inlinable
+		Analyzer.FindUsages(variable, root);
+
+		return variable.IsInlined && variable.IsPredictable;
+	}
+
+	/// <summary>
 	/// Rewrites construction expressions so that they use nodes which can be compiled
 	/// </summary>
 	private static void RewriteConstructionExpressions(Node root)
@@ -279,23 +442,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var construction in constructions)
 		{
-			var editor = Analyzer.TryGetEditor(construction);
-
-			if (editor == null)
-			{
-				continue;
-			}
-
-			var edited = Analyzer.GetEdited(editor);
-
-			if (!edited.Is(NodeType.VARIABLE))
-			{
-				continue;
-			}
-
-			var variable = edited.To<VariableNode>().Variable;
-
-			if (!variable.IsInlined || !variable.IsPredictable)
+			if (!IsStackConstructionPreferred(root, construction))
 			{
 				continue;
 			}
@@ -313,37 +460,33 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Finds expressions which do not represent statement conditions and can be evaluated to booleans values
+	/// Example:
+	/// element.is_visible = element.color.alpha > 0
+	/// </summary>
 	private static List<OperatorNode> FindBooleanValues(Node root)
 	{
-		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON || i.To<OperatorNode>().Operator.Type == OperatorType.LOGIC)).Cast<OperatorNode>();
+		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.Is(OperatorType.COMPARISON) || i.Is(OperatorType.LOGIC))).Cast<OperatorNode>();
 
 		return candidates.Where(candidate =>
 		{
-			var parent = candidate.FindParent(i => !i.Is(NodeType.CONTENT))!;
+			var node = candidate.FindParent(i => !i.Is(NodeType.CONTENT))!;
 
-			if (!parent.Is(
-				NodeType.CAST,
-				NodeType.DECREMENT,
-				NodeType.ELSE_IF,
-				NodeType.ELSE,
-				NodeType.FUNCTION,
-				NodeType.INCREMENT,
-				NodeType.LINK,
-				NodeType.LOOP,
-				NodeType.NEGATE,
-				NodeType.NOT,
-				NodeType.OFFSET,
-				NodeType.RETURN
-			))
+			if (ReconstructionAnalysis.IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate))
 			{
 				return false;
 			}
 
-			return !(parent is OperatorNode operation && (operation.Operator.Type == OperatorType.COMPARISON || operation.Operator.Type == OperatorType.LOGIC));
+			// Ensure the parent is not a comparison or a logical operator
+			return node is not OperatorNode operation || (operation.Operator.Type != OperatorType.COMPARISON && operation.Operator.Type != OperatorType.LOGIC);
 
 		}).ToList();
 	}
 
+	/// <summary>
+	/// Finds all the boolean values under the specified node and rewrites them using conditional statements
+	/// </summary>
 	private static void OutlineBooleanValues(Node root)
 	{
 		var instances = FindBooleanValues(root);
@@ -351,7 +494,7 @@ public static class ReconstructionAnalysis
 		foreach (var instance in instances)
 		{
 			// Declare a hidden variable which represents the result
-			var environment = instance.FindContext()?.GetContext() ?? throw new ApplicationException("Could not find the current context");
+			var environment = instance.GetParentContext();
 			var destination = environment.DeclareHidden(Types.BOOL);
 
 			// Initialize the result with value 'false'
@@ -384,6 +527,9 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Returns whether a value is expected to return from the specified node
+	/// </summary>
 	public static bool IsValueUsed(Node value)
 	{
 		return value.Parent!.Is(
@@ -399,6 +545,60 @@ public static class ReconstructionAnalysis
 			NodeType.OPERATOR,
 			NodeType.RETURN
 		);
+	}
+
+	/// <summary>
+	/// Returns true if the specified node represents a statement
+	/// </summary>
+	public static bool IsStatement(Node node)
+	{
+		return node.Is(
+			NodeType.ELSE,
+			NodeType.ELSE_IF,
+			NodeType.IF,
+			NodeType.IMPLEMENTATION,
+			NodeType.LOOP,
+			NodeType.CONTEXT
+		);
+	}
+
+	/// <summary>
+	/// Returns true if the specified node represents a condition
+	/// </summary>
+	public static bool IsCondition(Node node)
+	{
+		var statement = node.FindParent(i => i.Is(NodeType.ELSE_IF, NodeType.IF, NodeType.LOOP));
+
+		if (statement == null)
+		{
+			return false;
+		}
+
+		if (statement.Is(NodeType.IF))
+		{
+			return ReferenceEquals(statement.To<IfNode>().Condition, node);
+		}
+		
+		if (statement.Is(NodeType.ELSE_IF))
+		{
+			return ReferenceEquals(statement.To<ElseIfNode>().Condition, node);
+		}
+
+		if (statement.Is(NodeType.LOOP))
+		{
+			return ReferenceEquals(statement.To<LoopNode>().Condition, node);
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Returns true if the specified node influences a call argument.
+	/// This is determined by looking for a parent which represents a call
+	/// </summary>
+	public static bool IsPartOfCallArgument(Node node)
+	{
+		return node.FindParent(i => i.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION)) != null;
 	}
 
 	/// <summary>
@@ -427,6 +627,9 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Ensures all the edits under the specified node are assignment operations
+	/// </summary>
 	private static void RewriteAllEditsAsAssignOperations(Node root)
 	{
 		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || (i is OperatorNode x && x.Operator.Type == OperatorType.ACTION));
@@ -543,107 +746,468 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void SubstituteInlineNodes(Node root)
 	{
-		var inlines = root.FindAll(i => i.Is(NodeType.INLINE));
+		var inlines = root.FindAll(i => i.Is(NodeType.INLINE)).Cast<InlineNode>();
 
 		foreach (var inline in inlines)
 		{
 			// If the inline node contains only one child node, the inline node can be replaced with it
-			if (inline.Count() == 1)
+			if (inline.Count() != 1)
 			{
-				inline.Replace(inline.First!);
+				continue;
+			}
+
+			inline.Replace(inline.Left);
+
+			if (inline.IsContext)
+			{
+				var environment = inline.GetParentContext();
+				environment.Merge(inline.To<ContextInlineNode>().Context);
 			}
 		}
 	}
 
-	public static void LiftupInlineNodes(Node root)
+	/// <summary>
+	/// Performs an inlinement to a destination operand
+	/// </summary>
+	private static Node[] InlineDestination(ContextInlineNode environment, Node destination)
 	{
-		var inlines = root.FindAll(i => i.Is(NodeType.INLINE));
-
-		foreach (var inline in inlines)
+		// Primitive destinations do not need inlinement
+		if (Analysis.IsPrimitive(destination))
 		{
-			while (true)
+			return Array.Empty<Node>();
+		}
+
+		var type = destination.Left.GetType();
+
+		// Example:
+		// x.y.z = f(0)
+		// =>
+		// a = x.y
+		// b = f(0)
+		// a.z = b
+		if (destination.Is(NodeType.LINK))
+		{
+			// Take the left side of the link and remove it
+			var left = destination.Left;
+			left.Remove();
+
+			// Load the left side into a variable
+			var left_variable = environment.Context.DeclareHidden(type);
+			var left_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(left_variable),
+				left
+			);
+
+			// Replace the left side with the loaded variable
+			destination.Left.Insert(new VariableNode(left_variable));
+
+			return new[] { left_assignment };
+		}
+
+		if (!destination.Is(NodeType.OFFSET))
+		{
+			throw new ApplicationException("Could not inline the destination");
+		}
+
+		// Example:
+		// x.y.z[g(i)] = f(0)
+		// =>
+		// a = x.y.z
+		// b = g(i)
+		// c = f(0)
+		// a[b] = c
+		var operation = destination.To<OffsetNode>();
+		var start = operation.Start;
+		var offset = operation.Offset;
+
+		// Load the start into a variable
+		var start_variable = environment.Context.DeclareHidden(type);
+		var start_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(start_variable),
+			start
+		);
+
+		type = offset.GetType();
+
+		// Load the offset into a variable
+		var offset_variable = environment.Context.DeclareHidden(type);
+		var offset_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(offset_variable),
+			offset
+		);
+
+		// Replace the destination with a new offset operation using the loaded variables
+		destination.Detach();
+		destination.Add(new VariableNode(start_variable));
+		destination.Add(new ContentNode { new VariableNode(offset_variable) });
+
+		return new[] { start_assignment, offset_assignment };
+	}
+
+	/// <summary>
+	/// Moves and merges the specified inline node so that it is not in the middle of an expression
+	/// </summary>
+	private static void LiftupInlineNode(InlineNode inline)
+	{
+		while (true)
+		{
+			var parent = inline.Parent!;
+
+			// Lifting should be stopped when a statement is encountered, since it can not be inlined
+			if (IsStatement(parent))
 			{
-				var parent = inline.Parent!;
-
-				/// TODO: Casting is a problem
-				if (!parent.Is(NodeType.OPERATOR) || inline.Last == null)
+				// Merge the context of the current inline node with the parent context
+				if (inline.IsContext)
 				{
-					break;
+					var environment = inline.GetParentContext();
+					environment.Merge(inline.To<ContextInlineNode>().Context);
 				}
 
-				Node? operation;
+				// Replace the inline node with its child nodes and then stop
+				inline.ReplaceWithChildren(inline);
+				break;
+			}
+			
+			// 1. Normal node indicates a section which should not be moved
+			// 2. Logical operators create conditional sections, therefore lifting should be stopped
+			// 3. If there is no value in the inline node, do nothing, since this situation is spooky
+			if (parent.Is(NodeType.NORMAL, NodeType.LIST) || parent.Is(OperatorType.LOGIC) || inline.Last == null)
+			{
+				break;
+			}
+
+			if (parent.Is(NodeType.INLINE))
+			{
+				if (inline.IsContext)
+				{
+					if (parent.To<InlineNode>().IsContext)
+					{
+						// Transfer the contents of the inline context to the context of the parent
+						parent.To<ContextInlineNode>().Context.Merge(inline.To<ContextInlineNode>().Context);
+
+						// Replace the inline node with its child nodes
+						inline.ReplaceWithChildren(inline);
+
+						// Continue with the destination node
+						inline = parent.To<ContextInlineNode>();
+					}
+					else
+					{
+						// Transfer all the child nodes of the inline to the parent node for a while
+						inline.ReplaceWithChildren(inline);
+
+						// Now take all the child nodes from the parent node
+						parent.ForEach(inline.Add);
+
+						// Replace the parent with the inline node and continue
+						parent.Replace(inline);
+					}
+				}
+				else
+				{
+					// Transfer all the child nodes of the inline to the parent node
+					inline.ReplaceWithChildren(inline);
+
+					// Continue with the destination node
+					inline = parent.To<InlineNode>();
+				}
+
+				continue;
+			}
+
+			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.SIZE, NodeType.CONTENT))
+			{
+				// Take out the value of the inline node
 				var value = inline.Last;
-
-				if (parent.First == inline)
-				{
-					operation = parent.Clone();
-					operation.RemoveChildren();
-
-					inline.Remove(value);
-
-					operation.Add(value);
-					operation.Add(parent.Last!);
-
-					inline.Add(operation);
-
-					parent.Replace(inline);
-					continue;
-				}
-
-				/// TODO: It's possible the continue but the execution order must be preserved using hidden variables
-				if (!Analysis.IsPrimitive(parent.First!))
-				{
-					break;
-				}
-
-				operation = parent.Clone();
-				operation.RemoveChildren();
-
 				inline.Remove(value);
 
-				operation.Add(parent.First!);
+				var operation = parent.Clone();
+				operation.Detach();
+
 				operation.Add(value);
 
 				inline.Add(operation);
 
 				parent.Replace(inline);
+				continue;
+			}
+
+			if (IsPartOfCallArgument(inline))
+			{
+				// Example:
+				// f(g(), { a = 0, if x > 0 { a = 1 }, a })
+				// =>
+				// { x = g(), y = { a = 0, if x > 0 { a = 1 }, a }, f(x, y) }
+
+				var context = inline.GetParentContext();
+				var environment = new ContextInlineNode(new Context(context), inline.Position);
+
+				// Find the call
+				var call = inline.FindParent(i => i.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION))!;
+
+				var parameters = call;
+				var root = call;
+
+				// Handle manual function calls by loading the self node and the pointer node into variables
+				if (call.Is(NodeType.CALL))
+				{
+					var node = call.To<CallNode>();
+					var self = node.Self;
+					var pointer = node.Pointer;
+
+					self.Remove();
+					pointer.Remove();
+
+					parameters = node.Parameters;
+
+					// Load the self pointer into a variable
+					var self_variable = environment.Context.DeclareHidden(self.GetType());
+					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+						new VariableNode(self_variable),
+						self
+					));
+					
+					// Load the function pointer into a variable
+					var pointer_variable = environment.Context.DeclareHidden(pointer.GetType());
+					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+						new VariableNode(pointer_variable),
+						pointer
+					));
+
+					call.Left.Insert(new VariableNode(pointer_variable));
+					call.Left.Insert(new VariableNode(self_variable));
+				}
+
+				// Handle member function calls by loading the instance into a variable before anything else
+				if (call.Parent!.Is(NodeType.LINK))
+				{
+					// Load the instance into a variable
+					var instance = call.Parent.Left;
+					instance.Remove();
+
+					var instance_variable = environment.Context.DeclareHidden(call.Parent.Left.GetType());
+					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+						new VariableNode(instance_variable),
+						instance
+					));
+
+					// Replace the left side of the link with the loaded variable
+					call.Parent.Left.Insert(new VariableNode(instance_variable));
+
+					// Since the call is a member function call the root is the link
+					root = call.Parent;
+				}
+
+				var arguments = new List<Node>();
+
+				// Extract its arguments to temporary variables
+				while (parameters.Any())
+				{
+					// Take out the first argument
+					var argument = parameters.Left;
+					argument.Remove();
+
+					var variable = environment.Context.DeclareHidden(argument.GetType());
+					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+						new VariableNode(variable),
+						argument
+					));
+
+					arguments.Add(new VariableNode(variable));
+				}
+
+				// Add all the loaded variables as arguments to the call node
+				arguments.ForEach(parameters.Add);
+
+				root.Replace(environment);
+				environment.Add(root);
+
+				// Liftup the created inline node and after that continue lifting up the current inline node
+				LiftupInlineNode(environment);
+				continue;
+			}
+
+			if (parent.First == inline)
+			{
+				// Example:
+				// { ..., a[i] } = f()
+				// { ..., a[i] = f() }
+
+				var value = inline.Last;
+
+				var operation = parent.Clone();
+				operation.Detach();
+
+				inline.Remove(value);
+
+				operation.Add(value);
+				operation.Add(parent.Right.Clone());
+
+				inline.Add(operation);
+
+				parent.Replace(inline);
+				parent.Detach();
+			}
+			else if (Analysis.IsPrimitive(parent.Left))
+			{
+				// Example:
+				// a = { ..., 1 + 2 }
+				// { ... a = 1 + 2 }
+
+				var value = inline.Last;
+
+				var operation = parent.Clone();
+				operation.Detach();
+
+				inline.Remove(value);
+
+				operation.Add(parent.Left.Clone());
+				operation.Add(value);
+
+				inline.Add(operation);
+
+				parent.Replace(inline);
+				parent.Detach();
+			}
+			else if (Analyzer.IsEdited(parent.Left))
+			{
+				// Example:
+				// x.y.z[i] = { a = i, i++, a }
+				// =>
+				// { m = x.y.z, n = i, a = i, i++, m[n] = a }
+
+				var context = inline.GetParentContext();
+				var environment = new ContextInlineNode(new Context(context), inline.Position);
+
+				// Handle the inlinement of the destination node
+				InlineDestination(environment, parent.Left).ForEach(i => environment.Add(i));
+
+				// Load the right side of the operation into a variable
+				var type = parent.Right.GetType();
+				var value = environment.Context.DeclareHidden(type);
+
+				environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+					new VariableNode(value),
+					parent.Right
+				));
+
+				// Finally, clone the parent and ensure it does not have any child nodes
+				var operation = parent.Clone();
+				operation.Detach();
+
+				operation.Add(parent.Left);
+				operation.Add(new VariableNode(value));
+
+				// Add the operation to the new inline node
+				environment.Add(operation);
+
+				parent.Replace(environment);
+
+				inline = environment;
+			}
+			else
+			{
+				// Example:
+				// f(x) + { a = f(x + 1), b = f(x + 2), a + b }
+				// =>
+				// { i = f(x), a = f(x + 1), b = f(x + 2), i + a + b }
+
+				// Take out the value of the inline node
+				var value = inline.Last;
+				inline.Remove(value);
+
+				var context = inline.GetParentContext();
+				var environment = new ContextInlineNode(new Context(context), inline.Position);
+
+				// Get the type of the left side
+				var type = parent.Left.GetType();
+
+				// Load the left side into a variable and execute it before the right side
+				var left = environment.Context.DeclareHidden(type);
+				environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+					new VariableNode(left),
+					parent.Left
+				));
+
+				// Transfer all child nodes to the environment node
+				inline.ForEach(environment.Add);
+
+				// Finally, clone the parent and ensure it does not have any child nodes
+				var operation = parent.Clone();
+				operation.Detach();
+
+				operation.Add(new VariableNode(left));
+				operation.Add(value);
+
+				// Add the operation in order to make it the return value of the new inline node 
+				environment.Add(operation);
+
+				parent.Replace(environment);
+
+				inline = environment;
 			}
 		}
 	}
 
+	/// <summary>
+	/// Moves and merges inlines nodes so that they are not in the middle of an expression
+	/// </summary>
+	private static void LiftupInlineNodes(Node root)
+	{
+		while (true)
+		{
+			// Try to find the next inline node which can be lifted up
+			var inline = root.Find(i => i.Is(NodeType.INLINE) && !IsStatement(i.Parent!) && !i.Parent!.Is(NodeType.NORMAL) && !i.Parent.Is(OperatorType.LOGIC) && i.Any());
+
+			if (inline == null)
+			{
+				break;
+			}
+
+			LiftupInlineNode(inline.To<InlineNode>());
+		}
+	}
+
+	/// <summary>
+	/// Rewrites the specified remainder operation where the divisor is an integer constant as:
+	/// Formula: a % c = a - (a / c) * c
+	/// </summary>
 	private static void RewriteRemainderOperation(OperatorNode remainder)
 	{
+		if (!remainder.Right.Is(NodeType.NUMBER))
+		{
+			throw new InvalidOperationException("Rewriting a remainder operation requires the divisor to be an integer constant");
+		}
+
 		var environment = remainder.GetParentContext();
 		var inline = new ContextInlineNode(new Context(environment), remainder.Position);
 
 		var a = inline.Context.DeclareHidden(remainder.Left.GetType());
-		var b = inline.Context.DeclareHidden(remainder.Right.GetType());
 
 		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 			new VariableNode(a),
 			remainder.Left.Clone()
 		));
 
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(b),
-			remainder.Right.Clone()
-		));
-
-		// Formula: a % b = a - (a / b) * b
+		// Formula: a % c = a - (a / c) * c
 		inline.Add(new OperatorNode(Operators.SUBTRACT).SetOperands(
 			new VariableNode(a),
 			new OperatorNode(Operators.MULTIPLY).SetOperands(
 				new OperatorNode(Operators.DIVIDE).SetOperands(
 					new VariableNode(a),
-					new VariableNode(b)
+					remainder.Right.Clone()
 				),
-				new VariableNode(b)
+				remainder.Right.Clone()
 			)
 		));
 
 		remainder.Replace(inline);
 	}
 
+	/// <summary>
+	/// Rewrites remainder operations which have a constant divisors as:
+	/// Formula: a % b = a - (a / b) * b
+	/// </summary>
 	public static void RewriteRemainderOperations(Node root)
 	{
 		var remainders = root.FindAll(i => i.Is(Operators.MODULUS)).Cast<OperatorNode>();
@@ -705,6 +1269,103 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Casts called objects to match the expected self pointer type
+	/// </summary>
+	public static void CastMemberCalls(Node root)
+	{
+		var calls = root.FindAll(i => i.Is(NodeType.LINK) && i.Last!.Is(NodeType.FUNCTION)).Cast<LinkNode>();
+
+		foreach (var call in calls)
+		{
+			var left = call.Left;
+
+			var function = call.Right.To<FunctionNode>();
+			var expected = function.Function.Metadata.GetTypeParent() ?? throw new ApplicationException("Missing parent type");
+			var actual = left.GetType();
+			
+			if (actual == expected || actual.GetSupertypeBaseOffset(expected) == 0)
+			{
+				continue;
+			}
+
+			left.Remove();
+
+			call.Right.Insert(new CastNode(
+				left,
+				new TypeNode(expected)
+			));
+		}
+	}
+
+	/// <summary>
+	/// Rewrites lambda nodes using simpler nodes
+	/// </summary>
+	public static void RewriteLambdaConstructions(Node root)
+	{
+		var lambdas = root.FindAll(i => i.Is(NodeType.LAMBDA)).Cast<LambdaNode>();
+
+		foreach (var lambda in lambdas)
+		{
+			var environment = lambda.GetParentContext();
+			var inline = new ContextInlineNode(new Context(environment));
+
+			var lambda_implementation = (LambdaImplementation)lambda.Implementation!;
+
+			lambda_implementation.Seal();
+
+			var type = lambda_implementation.Type!;
+			var allocator = (Node?)null;
+
+			if (IsStackConstructionPreferred(root, lambda))
+			{
+				allocator = new CastNode(new StackAddressNode(type.ContentSize), new TypeNode(type));
+			}
+			else
+			{
+				allocator = new CastNode(
+					new FunctionNode(Parser.AllocationFunction!, lambda.Position).SetParameters(new Node { new NumberNode(Parser.Format, (long)type.ContentSize) }),
+					new TypeNode(type)
+				);
+			}
+
+			var container = inline.Context.DeclareHidden(type);
+			var allocation = new OperatorNode(Operators.ASSIGN).SetOperands
+			(
+				new VariableNode(container),
+				allocator
+			);
+
+			inline.Add(allocation);
+
+			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN).SetOperands
+			(
+				new LinkNode(new VariableNode(container), new VariableNode(lambda_implementation.Function!)),
+				new DataPointer(lambda_implementation)
+			);
+
+			inline.Add(function_pointer_assignment);
+
+			foreach (var capture in lambda_implementation.Captures)
+			{
+				var assignment = new OperatorNode(Operators.ASSIGN).SetOperands
+				(
+					new LinkNode(new VariableNode(container), new VariableNode(capture)),
+					new VariableNode(capture.Captured)
+				);
+
+				inline.Add(assignment);
+			}
+
+			inline.Add(new VariableNode(container));
+
+			lambda.Replace(inline);
+		}
+	}
+
+	/// <summary>
+	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
+	/// </summary>
 	public static void Reconstruct(Node root)
 	{
 		RemoveRedundantParenthesis(root);
@@ -712,24 +1373,34 @@ public static class ReconstructionAnalysis
 		RemoveCancellingNots(root);
 		RewriteSupertypeAccessors(root);
 		RewriteIsExpressions(root);
+		RewriteLambdaConstructions(root);
 		RewriteConstructionExpressions(root);
 		OutlineBooleanValues(root);
 		RewriteDiscardedIncrements(root);
 		RewriteIncrements(root);
 		RewriteAllEditsAsAssignOperations(root);
-		SubstituteInlineNodes(root);
-		//LiftupInlineNodes(root);
 		RewriteRemainderOperations(root);
+		CastMemberCalls(root);
 		
 		if (Analysis.IsFunctionInliningEnabled)
 		{
-			//Inlines.Build(root);
+			Inlines.Build(root);
 		}
+		
+		SubstituteInlineNodes(root);
+		LiftupInlineNodes(root);
 	}
 
+	/// <summary>
+	/// Do some finishing touches to the nodes under the specified node
+	/// </summary>
 	public static void Finish(Node root)
 	{
 		ConstructActionOperations(root);
 		SubstituteInlineNodes(root);
+		RewriteRemainderOperations(root);
+
+		/// NOTE: Inline nodes can be directly under logical operators now, so outline possible booleans values which represent conditions
+		OutlineBooleanValues(root);
 	}
 }

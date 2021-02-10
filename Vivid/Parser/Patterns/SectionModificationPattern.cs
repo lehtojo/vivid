@@ -41,22 +41,22 @@ public class SectionModificationPattern : Pattern
 		switch (tokens[OBJECT].To<DynamicToken>().Node)
 		{
 			case VariableNode x:
-				x.Variable.Modifiers = section.Modifiers;
+				x.Variable.Modifiers |= section.Modifiers;
 				section.Add(x);
 				return section;
 
 			case FunctionDefinitionNode y:
-				y.Function.Modifiers = section.Modifiers;
+				y.Function.Modifiers |= section.Modifiers;
 				section.Add(y);
 				return section;
 
 			case TypeNode z:
-				z.Type.Modifiers = section.Modifiers;
+				z.Type.Modifiers |= section.Modifiers;
 				section.Add(z);
 				return section;
 
 			case OperatorNode w:
-				w.Left.To<VariableNode>().Variable.Modifiers = section.Modifiers;
+				w.Left.To<VariableNode>().Variable.Modifiers |= section.Modifiers;
 				section.Add(w);
 				return section;
 

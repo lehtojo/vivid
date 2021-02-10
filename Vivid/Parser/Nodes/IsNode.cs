@@ -1,4 +1,6 @@
-﻿public class IsNode : Node, IResolvable
+﻿using System;
+
+public class IsNode : Node, IResolvable
 {
 	public Node Object => First!;
 	public Type Type { get; private set; }
@@ -10,6 +12,7 @@
 	{
 		Type = type;
 		Position = position;
+		Instance = NodeType.IS;
 		
 		Add(source);
 
@@ -50,8 +53,8 @@
 		return Object is IResolvable y ? y.GetStatus() : Status.OK;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.IS;
+		return HashCode.Combine(Instance, Position, Type);
 	}
 }

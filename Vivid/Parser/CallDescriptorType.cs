@@ -50,7 +50,7 @@ public class CallDescriptorType : Type
 
 	public override bool Equals(object? other)
 	{
-		if (!(other is CallDescriptorType type) || Parameters.Count != type.Parameters.Count)
+		if (other is not CallDescriptorType type || Parameters.Count != type.Parameters.Count)
 		{
 			return false;
 		}

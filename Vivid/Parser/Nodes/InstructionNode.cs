@@ -9,11 +9,7 @@ public class InstructionNode : Node
 	{
 		Instruction = instruction;
 		Position = position;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.INSTRUCTION;
+		Instance = NodeType.INSTRUCTION;
 	}
 
 	public override bool Equals(object? other)
@@ -25,6 +21,6 @@ public class InstructionNode : Node
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Instruction);
+		return HashCode.Combine(Instance, Position, Instruction);
 	}
 }

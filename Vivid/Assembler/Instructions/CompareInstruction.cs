@@ -13,7 +13,10 @@ public class CompareInstruction : DualParameterInstruction
 
 	public const string X64_ZERO_COMPARISON_INSTRUCTION = "test";
 
-	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE) { }
+	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE) 
+	{
+		Description = "Compares two values";
+	}
 
 	public override void OnBuild()
 	{

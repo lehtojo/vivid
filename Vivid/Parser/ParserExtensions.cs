@@ -9,7 +9,7 @@ public static class ParserExtensions
 
 	public static bool Is(this Node node, Variable variable)
 	{
-		return node.Is(NodeType.VARIABLE) && node.To<VariableNode>().Variable == variable;
+		return node.Is(NodeType.VARIABLE) && ReferenceEquals(node.To<VariableNode>().Variable, variable);
 	}
 
 	public static bool Is(this Node node, Operator operation)

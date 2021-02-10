@@ -10,9 +10,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 	private const string X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION = "imul";
 	private const string ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION = "mul";
 
-	private const int SIGNED_INTEGER_MULTIPLICATION_FIRST = 0;
-	private const int SIGNED_INTEGER_MULTIPLICATION_SECOND = 1;
-
 	private const string X64_SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulss";
 	private const string X64_DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulsd";
 
@@ -88,7 +85,8 @@ public class MultiplicationInstruction : DualParameterInstruction
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
 			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION : X64_DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION;
-			
+			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
+
 			result = Memory.LoadOperand(Unit, First, true, Assigns);
 
 			Build(
@@ -101,8 +99,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.NONE,
-					HandleType.MEDIA_REGISTER,
-					HandleType.MEMORY
+					types
 				)
 			);
 
@@ -396,6 +393,44 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
+		var first = Parameters[0];
+		var second = Parameters[1];
+
+		if (Operation == X64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION)
+		{
+			if (!second.IsConstant)
+			{
+				return false;
+			}
+
+			// Example:
+			// sal rax, 2 => lea rcx, [rax*4]
+
+			var shift = (long)second.Value!.To<ConstantHandle>().Value;
+
+			// Maximum multiplier is eight so the exponent must be three or less
+			if (shift > 3)
+			{
+				return false;
+			}
+
+			var expression = new ExpressionHandle
+			(
+				new Result(first.Value!, Assembler.Format),
+				(int)Math.Pow(2, shift),
+				null,
+				0
+			);
+
+			Operation = X64_EXTENDED_MULTIPLICATION_INSTRUCTION;
+
+			Parameters.Clear();
+			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));
+			Parameters.Add(new InstructionParameter(expression, ParameterFlag.NONE));
+
+			return true;
+		}
+
 		if (Operation == X64_EXTENDED_MULTIPLICATION_INSTRUCTION)
 		{
 			if (!handle.Is(HandleType.REGISTER))
@@ -411,9 +446,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 		{
 			return false;
 		}
-
-		var first = Parameters[SIGNED_INTEGER_MULTIPLICATION_FIRST];
-		var second = Parameters[SIGNED_INTEGER_MULTIPLICATION_SECOND];
 
 		if (handle.Type == HandleType.REGISTER && (first.IsMemoryAddress || first.IsStandardRegister) && second.IsConstant)
 		{

@@ -15,6 +15,7 @@ public class FunctionNode : Node
 		Function.References.Add(this);
 		Position = position;
 		Tokens = new List<Token>();
+		Instance = NodeType.FUNCTION;
 	}
 
 	public FunctionNode SetParameters(Node parameters)
@@ -49,8 +50,8 @@ public class FunctionNode : Node
 		return Function.ReturnType;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.FUNCTION;
+		return HashCode.Combine(Instance, Position, Function.Identity);
 	}
 }

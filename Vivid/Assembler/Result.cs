@@ -107,21 +107,9 @@ public class Result
 		Instruction = instruction;
 	}
 
-	public Result(Instruction instruction, Handle value)
-	{
-		_Value = value;
-		Instruction = instruction;
-	}
-
 	public Result(Handle value, Format format)
 	{
 		_Value = value;
-		Format = format;
-	}
-
-	public Result(Format format)
-	{
-		_Value = new Handle();
 		Format = format;
 	}
 

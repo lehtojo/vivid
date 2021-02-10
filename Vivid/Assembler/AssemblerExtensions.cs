@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 
 public static class AssemblerExtensions
@@ -27,19 +26,9 @@ public static class AssemblerExtensions
 		return element;
 	}
 
-	public static Size GetSize(this Type type)
-	{
-		return Size.FromBytes(type.ReferenceSize);
-	}
-
 	public static string ToString(this Size size)
 	{
 		return (Enum.GetName(typeof(Size), size) ?? throw new ApplicationException("Could not get identifier for instruction parameter size")).ToLowerInvariant();
-	}
-
-	public static bool IsVisible(this Size size)
-	{
-		return size != Size.NONE;
 	}
 
 	public static bool IsDecimal(this Format format)

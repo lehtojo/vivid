@@ -30,7 +30,20 @@ public static class Singleton
 		}
 		else if (context.IsPropertyDeclared(identifier.Value))
 		{
-			return new FunctionNode(context.GetProperty(identifier.Value)!.Get(new List<Type>())!, identifier.Position);
+			var implementation = context.GetProperty(identifier.Value)!.Get(new List<Type>())!;
+
+			if (implementation.IsMember && !linked)
+			{
+				var self = Common.GetSelfPointer(context, identifier.Position);
+
+				return new LinkNode(
+					self,
+					new FunctionNode(implementation, identifier.Position),
+					identifier.Position
+				);
+			}
+
+			return new FunctionNode(implementation, identifier.Position);
 		}
 		else if (context.IsTypeDeclared(identifier.Value))
 		{

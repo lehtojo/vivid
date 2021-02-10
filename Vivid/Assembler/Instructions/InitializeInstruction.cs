@@ -13,7 +13,6 @@ public class InitializeInstruction : Instruction
 	public const string ARM64_STORE_REGISTER_PAIR_INSTRUCTION = "stp";
 	public const string ARM64_STORE_REGISTER_INSTRUCTION = "str";
 
-	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
 	public const string DEBUG_HEADER_START = ".cfi_def_cfa_offset 16\n.cfi_offset 6, -16";
 	public const string DEBUG_HEADER_END = ".cfi_def_cfa_register 6";
 
@@ -162,12 +161,11 @@ public class InitializeInstruction : Instruction
 		var calls = Unit.Instructions.FindAll(i => i.Type == InstructionType.CALL).Select(i => (CallInstruction)i);
 
 		var builder = new StringBuilder();
-		var start = Unit.StackOffset;
 
 		if (Assembler.IsDebuggingEnabled)
 		{
 			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!));
-			builder.AppendLine(DEBUG_FUNCTION_START);
+			builder.AppendLine(Unit.DEBUG_FUNCTION_START);
 		}
 
 		if (Assembler.IsArm64 && calls.Any())
@@ -204,13 +202,12 @@ public class InitializeInstruction : Instruction
 
 		// Apply the additional memory to the stack and calculate the change from the start
 		Unit.StackOffset += additional_memory;
-		StackMemoryChange = Unit.StackOffset - start;
 
 		// Microsoft x64 and some other calling conventions need the stack to be aligned
 		if (IsStackAligned)
 		{
 			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
-			var total = StackMemoryChange + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
+			var total = Unit.StackOffset + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
 
 			if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
 			{
@@ -241,14 +238,6 @@ public class InitializeInstruction : Instruction
 			builder.Remove(builder.Length - 1, 1);
 		}
 
-		StackMemoryChange = Unit.StackOffset - start;
-		Unit.StackOffset = start; // Instruction system will take care of the stack offset
-
 		Build(builder.ToString());
-	}
-
-	public override int GetStackOffsetChange()
-	{
-		return StackMemoryChange;
 	}
 }

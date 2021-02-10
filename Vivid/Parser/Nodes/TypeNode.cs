@@ -13,6 +13,7 @@ public class TypeNode : Node, IContext
 	{
 		Type = type;
 		Body = new List<Token>();
+		Instance = NodeType.TYPE;
 	}
 
 	public TypeNode(Type type, Position? position)
@@ -20,6 +21,7 @@ public class TypeNode : Node, IContext
 		Type = type;
 		Body = new List<Token>();
 		Position = position;
+		Instance = NodeType.TYPE;
 	}
 
 	public TypeNode(Type type, List<Token> body, Position? position)
@@ -28,6 +30,7 @@ public class TypeNode : Node, IContext
 		Body = body;
 		Position = position;
 		IsDefinition = true;
+		Instance = NodeType.TYPE;
 	}
 
 	public void Parse()
@@ -44,11 +47,6 @@ public class TypeNode : Node, IContext
 	public override Type? TryGetType()
 	{
 		return Type;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.TYPE;
 	}
 
 	public override bool Equals(object? other)

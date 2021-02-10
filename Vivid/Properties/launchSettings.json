@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "Vivid": {
-      "commandName": "Project",
-      "commandLineArgs": "Tests/Is.v libv/Core.v libv/String.v libv/Console.v libv/Math.v libv/Array.v libv/List.v -O1 -f -a",
-      "workingDirectory": "C:\\Users\\joona\\vivid\\Vivid"
-    }
-  }
-}

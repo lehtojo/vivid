@@ -54,7 +54,7 @@ pidigits(digits) {
 			carry = q * num
 		}
 
-		pi[i] = x[l-1] / 10
+		pi[i] = x[l - 1] / 10
 
 		r[l - 1] = x[l - 1] % 10
 

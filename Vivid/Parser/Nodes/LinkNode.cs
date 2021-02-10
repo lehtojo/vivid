@@ -2,17 +2,16 @@ using System.Linq;
 
 public class LinkNode : OperatorNode, IResolvable
 {
-	public Node Object => First!;
-	public Node Member => Last!;
-
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
 	{
 		SetOperands(left, right);
+		Instance = NodeType.LINK;
 	}
 
 	public LinkNode(Node left, Node right, Position? position) : base(Operators.DOT, position)
 	{
 		SetOperands(left, right);
+		Instance = NodeType.LINK;
 	}
 
 	public override Node? Resolve(Context environment)
@@ -73,11 +72,6 @@ public class LinkNode : OperatorNode, IResolvable
 	public override Type? TryGetType()
 	{
 		return Right.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.LINK;
 	}
 
 	public override Status GetStatus()

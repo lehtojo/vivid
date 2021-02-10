@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 
 public class LoopNode : Node, IResolvable, IContext
 {
@@ -9,12 +8,12 @@ public class LoopNode : Node, IResolvable, IContext
 	public ContextNode Body => Last!.To<ContextNode>();
 
 	public Node Initialization => Steps.First!;
-	public Node Condition => Initialization!.Next!.Last!;
+	public Node Condition => Common.FindCondition(Initialization.Next!);
 	public Node Action => Steps.Last!;
 
+	public Label? Continue { get; set; } = null;
 	public Label? Start { get; set; } = null;
 	public Label? Exit { get; set; } = null;
-	public string? Identifier { get; set; }
 
 	public bool IsForeverLoop => First == Last;
 
@@ -22,6 +21,7 @@ public class LoopNode : Node, IResolvable, IContext
 	{
 		Context = context;
 		Position = position;
+		Instance = NodeType.LOOP;
 
 		if (steps != null)
 		{
@@ -31,9 +31,31 @@ public class LoopNode : Node, IResolvable, IContext
 		Add(body);
 	}
 
-	public IEnumerable<Node> GetConditionInitialization()
+	/// <summary>
+	/// Returns the nodes which are executed during condition step except the actual condition.
+	/// NOTE: Use this function only for building since this function returns copies of the executed nodes
+	/// </summary>
+	public Node GetConditionInitialization()
 	{
-		return Initialization.Next!.Where(i => i != Condition).ToArray();
+		// Clone all the nodes under the condition step
+		var node = Initialization.Next!.Clone();
+		node.Parent = this;
+
+		// Remove the condition from the initialization since it is built separately
+		if (!Common.FindCondition(node).Remove())
+		{
+			throw new ApplicationException("Could not remove the condition from the condition step initialization");
+		}
+
+		return node;
+	}
+
+	/// <summary>
+	/// Returns all the nodes which are executed during the condition step
+	/// </summary>
+	public Node GetConditionStep()
+	{
+		return Initialization.Next!;
 	}
 
 	public Node? Resolve(Context context)
@@ -55,11 +77,6 @@ public class LoopNode : Node, IResolvable, IContext
 		return Status.OK;
 	}
 
-	public override NodeType GetNodeType()
-	{
-		return NodeType.LOOP;
-	}
-
 	public void SetContext(Context context)
 	{
 		Context = context;
@@ -68,5 +85,10 @@ public class LoopNode : Node, IResolvable, IContext
 	public Context GetContext()
 	{
 		return Context;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Instance, Position, Context.Identity, Body.Context.Identity, IsForeverLoop);
 	}
 }

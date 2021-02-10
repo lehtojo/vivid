@@ -19,9 +19,13 @@ public class SetVariableInstruction : Instruction
 		Variable = variable;
 		Value = value;
 		Description = $"Updates the value of the variable '{variable.Name}'";
+		IsAbstract = true;
 		Dependencies = new[] { Result, Value };
 
 		Result.Format = Value.Format;
+
+		// Register the value right away since scopes need information which variables have been encountered
+		Unit.Scope!.Variables[Variable] = Value;
 	}
 
 	public override void OnSimulate()
@@ -29,16 +33,5 @@ public class SetVariableInstruction : Instruction
 		Unit.Scope!.Variables[Variable] = Value;
 	}
 
-	public override void OnBuild()
-	{
-		if (!Unit.Scope!.Variables.TryGetValue(Variable, out Result? current) || !current.IsAnyRegister)
-		{
-			return;
-		}
-
-		Unit.Append(new MoveInstruction(Unit, current!, Value)
-		{
-			Type = MoveType.RELOCATE
-		});
-	}
+	public override void OnBuild() {}
 }

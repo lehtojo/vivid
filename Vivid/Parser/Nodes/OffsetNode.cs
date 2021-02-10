@@ -21,6 +21,7 @@ public class OffsetNode : Node, IResolvable
 	{
 		Add(start);
 		Add(offset);
+		Instance = NodeType.OFFSET;
 	}
 
 	public OffsetNode(Node start, Node offset, Position? position)
@@ -28,6 +29,7 @@ public class OffsetNode : Node, IResolvable
 		Add(start);
 		Add(offset);
 		Position = position;
+		Instance = NodeType.OFFSET;
 	}
 
 	public int GetStride()
@@ -108,11 +110,6 @@ public class OffsetNode : Node, IResolvable
 		return Start.TryGetType()?.GetOffsetType();
 	}
 
-	public override NodeType GetNodeType()
-	{
-		return NodeType.OFFSET;
-	}
-
 	public override bool Equals(object? other)
 	{
 		return other is OffsetNode && base.Equals(other);
@@ -120,9 +117,7 @@ public class OffsetNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		return hash.ToHashCode();
+		return HashCode.Combine(Instance, Position, Stride, Format);
 	}
 
 	public Status GetStatus()

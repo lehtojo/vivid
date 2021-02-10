@@ -4,7 +4,7 @@ public static class Builders
 {
 	public static Result Build(Unit unit, Node node)
 	{
-		switch (node.GetNodeType())
+		switch (node.Instance)
 		{
 			case NodeType.CALL:
 			{
@@ -110,6 +110,8 @@ public static class Builders
 			{
 				return new AllocateStackInstruction(unit, node.To<StackAddressNode>().Bytes).Execute();
 			}
+
+			case NodeType.DISABLED: return new Result();
 
 			default:
 			{

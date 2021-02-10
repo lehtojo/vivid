@@ -12,6 +12,7 @@ public class GetConstantInstruction : Instruction
 		Value = value;
 		Format = is_decimal ? Format.DECIMAL : Assembler.Format;
 		Description = $"Get a handle for constant '{value}'";
+		IsAbstract = true;
 
 		Result.Value = References.CreateConstantNumber(value);
 		Result.Format = Format;

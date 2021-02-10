@@ -31,25 +31,34 @@ public static class Trace
 			directives.Add(new NonVolatilityDirective());
 		}
 
-		for (var i = start; i <= end; i++)
-		{
-			if (!unit.Instructions[i].Is(InstructionType.RETURN))
-			{
-				continue;
-			}
-			
-			var instruction = unit.Instructions[i].To<ReturnInstruction>();
-
-			if (!instruction.Object?.Equals(result) ?? true)
-			{
-				continue;
-			}
-
-			directives.Add(new SpecificRegisterDirective(instruction.ReturnRegister));
-			break;
-		}
-
 		var avoid = new List<Register>();
+
+		if (unit.Function.ReturnType != Types.UNIT)
+		{
+			for (var i = start; i < unit.Instructions.Count; i++)
+			{
+				if (!unit.Instructions[i].Is(InstructionType.RETURN))
+				{
+					continue;
+				}
+				
+				var instruction = unit.Instructions[i].To<ReturnInstruction>();
+
+				if (instruction.Object == null)
+				{
+					continue;
+				}
+
+				if (!instruction.Object.Equals(result))
+				{
+					avoid.Add(instruction.ReturnRegister);
+					break;
+				}
+
+				directives.Add(new SpecificRegisterDirective(instruction.ReturnRegister));
+				break;
+			}
+		}
 
 		if (Assembler.IsX64)
 		{

@@ -6,6 +6,8 @@ public class ReturnNode : InstructionNode, IResolvable
 
 	public ReturnNode(Node? node) : base(Keywords.RETURN, null)
 	{
+		Instance = NodeType.RETURN;
+
 		if (node != null)
 		{
 			Add(node);
@@ -14,6 +16,8 @@ public class ReturnNode : InstructionNode, IResolvable
 
 	public ReturnNode(Node? node, Position? position) : base(Keywords.RETURN, position)
 	{
+		Instance = NodeType.RETURN;
+
 		if (node != null)
 		{
 			Add(node);
@@ -41,11 +45,6 @@ public class ReturnNode : InstructionNode, IResolvable
 		}
 
 		return null;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.RETURN;
 	}
 
 	public Status GetStatus()

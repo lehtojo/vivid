@@ -11,6 +11,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 	{
 		Value = value;
 		Position = position;
+		Instance = NodeType.UNRESOLVED_IDENTIFIER;
 	}
 
 	private Node? CreateLambdaByCopyingFunction(Context context, Function function, List<Type> types)
@@ -110,11 +111,6 @@ public class UnresolvedIdentifier : Node, IResolvable
 	public override Type? TryGetType()
 	{
 		return Types.UNKNOWN;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.UNRESOLVED_IDENTIFIER;
 	}
 
 	public Status GetStatus()

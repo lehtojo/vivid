@@ -64,6 +64,11 @@ public class Handle
 		return Instance == instance;
 	}
 
+	public bool Is(params HandleInstanceType[] instances)
+	{
+		return instances.Contains(Instance);
+	}
+
 	/// <summary>
 	/// Returns all results which the handle requires to be in registers
 	/// </summary>
@@ -571,7 +576,7 @@ public class ComplexMemoryHandle : Handle
 		{
 			if (Assembler.IsArm64)
 			{
-				offset = $", {Offset.ToString()}" + (Stride == 1 ? string.Empty : $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #{(long)Math.Log2(Stride)}");
+				offset = $", {Offset}" + (Stride == 1 ? string.Empty : $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #{(long)Math.Log2(Stride)}");
 			}
 			else
 			{

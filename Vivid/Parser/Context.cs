@@ -265,30 +265,34 @@ public class Context
 	{
 		foreach (var variable in Variables.Values)
 		{
-			if (variable.IsUnresolved)
+			if (!variable.IsUnresolved)
 			{
-				var resolvable = (IResolvable?)variable.Type;
+				continue;
+			}
 
-				if (resolvable != null)
-				{
-					// Try to solve the type
-					var node = resolvable.Resolve(this);
-					var type = node?.TryGetType();
+			var resolvable = (IResolvable?)variable.Type;
 
-					if (type != null)
-					{
-						variable.Type = type;
-					}
-				}
+			if (resolvable == null)
+			{
+				continue;
+			}
+
+			// Try to solve the type
+			var node = resolvable.Resolve(this);
+			var type = node?.TryGetType();
+
+			if (type != null)
+			{
+				variable.Type = type;
 			}
 		}
-
-		foreach (var type in Types.Values)
+		
+		foreach (var type in new List<Type>(Types.Values))
 		{
 			type.Update();
 		}
 
-		foreach (var subcontext in Subcontexts)
+		foreach (var subcontext in new List<Context>(Subcontexts))
 		{
 			subcontext.Update();
 		}
@@ -306,46 +310,38 @@ public class Context
 	}
 
 	/// <summary>
-	/// Moves all types, functions and variables from the given context to this context, and then destroyes the given context
+	/// Moves all types, functions and variables from the specified context to this context
+	/// NOTE: This function does not copy constructors or lambdas for example since this function should be used with normal contexts
 	/// </summary>
 	public void Merge(Context context)
 	{
 		foreach (var (key, value) in context.Types)
 		{
 			Types.TryAdd(key, value);
+			value.Parent = this;
 		}
 
 		foreach (var (key, value) in context.Functions)
 		{
 			Functions.TryAdd(key, value);
+
+			value.Overloads.ForEach(i => i.Parent = this);
 		}
 
 		foreach (var (key, value) in context.Variables)
 		{
 			Variables.TryAdd(key, value);
+			value.Context = this;
 		}
 
-		foreach (var type in context.Types.Values)
+		foreach (var subcontext in context.Subcontexts)
 		{
-			type.Parent = this;
-		}
+			subcontext.Parent = this;
 
-		foreach (var function in context.Functions.Values)
-		{
-			foreach (var overload in function.Overloads)
+			if (!Subcontexts.Contains(subcontext))
 			{
-				overload.Parent = this;
-
-				foreach (var implementation in overload.Implementations)
-				{
-					implementation.Parent = this;
-				}
+				Subcontexts.Add(subcontext);
 			}
-		}
-
-		foreach (var variable in context.Variables.Values)
-		{
-			variable.Context = this;
 		}
 
 		Update();

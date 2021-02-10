@@ -10,16 +10,12 @@ public class IncrementNode : Node, IResolvable
 		Add(destination);
 		Position = position;
 		Post = post;
+		Instance = NodeType.INCREMENT;
 	}
 
 	public override Type? TryGetType()
 	{
 		return Object.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.INCREMENT;
 	}
 
 	public Node? Resolve(Context context)

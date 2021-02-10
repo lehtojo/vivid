@@ -49,10 +49,7 @@ public class ImportPattern : Pattern
 
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		var function_context = new Context(environment);
-
 		var header = tokens[HEADER].To<FunctionToken>();
-		var parameters = header.GetParameters(function_context);
 		var return_type = Types.UNIT;
 
 		if (tokens[RETURN_TYPE].Type != TokenType.NONE)
@@ -64,14 +61,19 @@ public class ImportPattern : Pattern
 		(
 			environment,
 			Modifier.PUBLIC | Modifier.EXTERNAL,
-			header.Name,
-			return_type,
-			parameters.ToArray()
+			header.Name
 		);
 
 		function.Position = header.Position;
 
-		function.Merge(function_context);
+		var parameters = header.GetParameters(function);
+		function.Parameters.AddRange(parameters);
+
+		var implementation = new FunctionImplementation(function, parameters, return_type, environment);
+		function.Implementations.Add(implementation);
+
+		implementation.Implement(function.Blueprint);
+
 		environment.Declare(function);
 
 		return null;

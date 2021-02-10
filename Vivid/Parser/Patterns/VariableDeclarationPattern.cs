@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -181,8 +180,8 @@ public class VariableDeclarationPattern : Pattern
 
 		var type = ResolveType(context, tokens);
 
-		var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
 		var is_constant = !context.IsInsideFunction && !context.IsInsideType;
+		var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
 
 		var variable = new Variable
 		(

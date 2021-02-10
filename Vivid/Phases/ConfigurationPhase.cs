@@ -32,12 +32,14 @@ public class ConfigurationPhase : Phase
 			}
 		}
 
-		if (recursive)
+		if (!recursive)
 		{
-			foreach (var item in folder.GetDirectories())
-			{
-				Collect(bundle, item);
-			}
+			return;
+		}
+
+		foreach (var item in folder.GetDirectories())
+		{
+			Collect(bundle, item);
 		}
 	}
 
@@ -63,22 +65,22 @@ public class ConfigurationPhase : Phase
 			{
 				var options = new Option[]
 				{
-					new Option() { Command = "-help",											Description = "Displays this information" },
-					new Option() { Command = "-r <folder> / -recursive <folder>",		Description = "Includes source files (.v) from the specified folder and its subfolders"},
-					new Option() { Command = "-d / -debug",									Description = "Generates the output binary with debug information" },
-					new Option() { Command = "-o <filename> / -output <filename>",		Description = "Sets the output filename (Default: v.asm, v.o, v, ...)" },
-					new Option() { Command = "-l <library> / -library <library>",		Description = "Includes a library to the compilation process" },
-					new Option() { Command = "-a / -assembly",								Description = "Exports the generated assembly to a file" },
-					new Option() { Command = "-shared / -dynamic / -dll",					Description = "Sets the output type to shared library (.dll or .so)" },
-					new Option() { Command = "-static",											Description = "Sets the output type to static library (.lib or .a)"},
-					new Option() { Command = "-st / -single-thread",						Description = "Compiles on a single thread instead of multiple threads" },
-					new Option() { Command = "-q / -quiet",									Description = "Suppresses the console output" },
-					new Option() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
-					new Option() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
-					new Option() { Command = "-time",											Description = "Displays information about the length of the compilation" },
-					new Option() { Command = "-O, -O1, -optimize",							Description = "Optimizes the output" },
-					new Option() { Command = "-x64",												Description = "Compile for architecture x64" },
-					new Option() { Command = "-arm64",											Description = "Compile for architecture arm64" },
+					new() { Command = "-help",												Description = "Displays this information" },
+					new() { Command = "-r <folder> / -recursive <folder>",		Description = "Includes source files (.v) from the specified folder and its subfolders"},
+					new() { Command = "-d / -debug",										Description = "Generates the output binary with debug information" },
+					new() { Command = "-o <filename> / -output <filename>",		Description = "Sets the output filename (Default: v.asm, v.o, v, ...)" },
+					new() { Command = "-l <library> / -library <library>",		Description = "Includes a library to the compilation process" },
+					new() { Command = "-a / -assembly",									Description = "Exports the generated assembly to a file" },
+					new() { Command = "-shared / -dynamic / -dll",					Description = "Sets the output type to shared library (.dll or .so)" },
+					new() { Command = "-static",											Description = "Sets the output type to static library (.lib or .a)"},
+					new() { Command = "-st / -single-thread",							Description = "Compiles on a single thread instead of multiple threads" },
+					new() { Command = "-q / -quiet",										Description = "Suppresses the console output" },
+					new() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
+					new() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
+					new() { Command = "-time",												Description = "Displays information about the length of the compilation" },
+					new() { Command = "-O, -O1, -O2",									Description = "Optimizes the output" },
+					new() { Command = "-x64",												Description = "Compile for architecture x64" },
+					new() { Command = "-arm64",											Description = "Compile for architecture arm64" },
 				};
 
 				Console.WriteLine
@@ -212,7 +214,24 @@ public class ConfigurationPhase : Phase
 
 			case "-O":
 			case "-O1":
-			case "-optimize":
+			{
+				if (Assembler.IsDebuggingEnabled)
+				{
+					return Status.Error("Optimization and debugging can not be enabled at the same time");
+				}
+
+				IsOptimizationEnabled = true;
+
+				Analysis.IsInstructionAnalysisEnabled = true;
+				Analysis.IsMathematicalAnalysisEnabled = true;
+				Analysis.IsRepetitionAnalysisEnabled = true;
+				Analysis.IsUnwrapAnalysisEnabled = true;
+				Analysis.IsFunctionInliningEnabled = false;
+
+				return Status.OK;
+			}
+
+			case "-O2":
 			{
 				if (Assembler.IsDebuggingEnabled)
 				{
@@ -283,11 +302,7 @@ public class ConfigurationPhase : Phase
 
 				if (file.Exists)
 				{
-					Files.Add(file.FullName);
-					continue;
-
-					#warning Revert back the changes
-					/*if (file.Extension == EXTENSION)
+					if (file.Extension == EXTENSION)
 					{
 						Files.Add(file.FullName);
 						continue;
@@ -295,7 +310,7 @@ public class ConfigurationPhase : Phase
 					else
 					{
 						return Status.Error($"Source file must have '{EXTENSION}' extension");
-					}*/
+					}
 				}
 
 				var directory = new DirectoryInfo(element);
@@ -322,7 +337,7 @@ public class ConfigurationPhase : Phase
 
 		if (!Assembler.IsX64 && !Assembler.IsArm64)
 		{
-			return Status.Error("This compiler only supports architectures x64 and arm64");
+			return Status.Error("This compiler only supports architectures x64 and Arm64");
 		}
 
 		return Status.OK;

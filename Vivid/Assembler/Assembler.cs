@@ -123,7 +123,7 @@ public static class Assembler
 
 	private static void RegisterRequiredVariables(Unit unit)
 	{
-		unit.Simulate(UnitPhase.APPEND_MODE, i =>
+		unit.Simulate(UnitMode.APPEND, i =>
 		{
 			if (!i.Is(InstructionType.REQUIRE_VARIABLES))
 			{
@@ -165,7 +165,7 @@ public static class Assembler
 			var fullname = implementation.GetFullname();
 			var unit = new Unit(implementation);
 
-			unit.Execute(UnitPhase.APPEND_MODE, () =>
+			unit.Execute(UnitMode.APPEND, () =>
 			{
 				// Create the most outer scope where all instructions will be placed
 				using var scope = new Scope(unit);
@@ -202,7 +202,7 @@ public static class Assembler
 			RegisterRequiredVariables(unit);
 
 			unit.Reindex();
-			unit.Simulate(UnitPhase.BUILD_MODE, instruction => { instruction.Build(); });
+			unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });
 
 			builder.Append(Translator.Translate(unit, constants));
 			builder.AppendLine();

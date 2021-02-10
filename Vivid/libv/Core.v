@@ -9,13 +9,12 @@ none = 0
 PAGE_SIZE = 1000000
 
 Page {
-    address: link
-    position: large
+	address: link
+	position: large
 }
 
 Allocation {
-    static:
-    current: Page
+	static current: Page
 }
 
 # Safe: allocate(bytes: large) => internal_allocate(bytes)

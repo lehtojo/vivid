@@ -19,7 +19,7 @@ public class VariableProductComponent : Component
 
 	private bool Equals(Component other)
 	{
-		if (!(other is VariableProductComponent product) || Variables.Count != product.Variables.Count)
+		if (other is not VariableProductComponent product || Variables.Count != product.Variables.Count)
 		{
 			return false;
 		}

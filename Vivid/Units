@@ -5,8 +5,12 @@ echo "Optimization is disabled"
 echo ""
 ./bin/Units/net5.0/Vivid
 echo ""
-echo "Optimization is enabled"
+echo "Optimization level 1"
 echo ""
-./bin/Units/net5.0/Vivid -O
+./bin/Units/net5.0/Vivid -O1
+echo ""
+echo "Optimization level 2"
+echo ""
+./bin/Units/net5.0/Vivid -O2
 
 rm libUnit_*

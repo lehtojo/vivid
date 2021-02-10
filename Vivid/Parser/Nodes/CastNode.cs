@@ -8,8 +8,18 @@ public class CastNode : Node, IResolvable
 	public CastNode(Node target, Node type, Position? position = null)
 	{
 		Position = position;
+		Instance = NodeType.CAST;
+		
 		Add(target);
 		Add(type);
+	}
+
+	public bool IsFree()
+	{
+		var from = Object.GetType();
+		var to = GetType();
+
+		return from.GetSupertypeBaseOffset(to) == 0 || to.GetSupertypeBaseOffset(from) == 0;
 	}
 
 	public override Type? TryGetType()
@@ -28,11 +38,6 @@ public class CastNode : Node, IResolvable
 		Resolve(context, Last!);
 
 		return null;
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.CAST;
 	}
 
 	public Status GetStatus()

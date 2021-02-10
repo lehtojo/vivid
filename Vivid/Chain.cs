@@ -25,7 +25,7 @@ public class Chain
 
 			try
 			{
-				if (!(Activator.CreateInstance(template) is Phase phase))
+				if (Activator.CreateInstance(template) is not Phase phase)
 				{
 					throw new ApplicationException("Could not create the next phase");
 				}

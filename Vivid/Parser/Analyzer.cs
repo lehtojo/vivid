@@ -77,6 +77,27 @@ public static class Analyzer
 		ResetVariableUsages(context);
 	}
 
+	public static void FindUsages(Variable variable, Node root)
+	{
+		variable.References.Clear();
+		variable.Edits.Clear();
+		variable.Reads.Clear();
+
+		foreach (var iterator in root.FindAll(n => n.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
+		{
+			variable.References.Add(iterator);
+
+			if (IsEdited(iterator))
+			{
+				variable.Edits.Add(iterator);
+			}
+			else
+			{
+				variable.Reads.Add(iterator);
+			}
+		}
+	}
+
 	private static void AnalyzeVariableUsages(Node root)
 	{
 		foreach (var iterator in root.FindAll(n => n.Is(NodeType.VARIABLE)).Select(n => n.To<VariableNode>()))

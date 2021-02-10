@@ -141,7 +141,7 @@ public static class Analysis
 	{
 		if (component is NumberComponent number_component)
 		{
-			return new NumberNode(Assembler.Format, number_component.Value);
+			return new NumberNode(number_component.Value is long ? Assembler.Format : Format.DECIMAL, number_component.Value);
 		}
 
 		if (component is VariableComponent variable_component)
@@ -586,7 +586,7 @@ public static class Analysis
 
 	private static bool EvaluateConditionalStatement(IfNode root)
 	{
-		if (!(root.Condition is NumberNode condition) || root.GetConditionInitialization().Any())
+		if (root.Condition is not NumberNode condition || root.GetConditionInitialization().Any())
 		{
 			return false;
 		}
@@ -604,7 +604,7 @@ public static class Analysis
 			else
 			{
 				// Since there is a branch before the root node, the root can be replaced with an else statement
-				root.Replace(new ElseNode(root.Context, root.Body.Clone(), root.Position));
+				root.Replace(new ElseNode(root.Body.Context, root.Body.Clone(), root.Position));
 			}
 		}
 		else if (root.Successor == null || root.Predecessor != null)
@@ -615,7 +615,7 @@ public static class Analysis
 		{
 			if (root.Successor is ElseIfNode x)
 			{
-				root.Replace(new IfNode(x.Context, x.Condition, x.Body, x.Position));
+				root.Replace(new IfNode(x.Body.Context, x.Condition, x.Body, x.Position));
 				x.Remove();
 				return true;
 			}
@@ -708,7 +708,7 @@ public static class Analysis
 						var successor = statement.Successor.To<ElseIfNode>();
 
 						// Create a conditional statement identical to the successor but as an if-statement
-						var replacement = new IfNode(successor.Context);
+						var replacement = new IfNode();
 						successor.ForEach(i => replacement.Add(i));
 
 						iterator = replacement;
@@ -745,10 +745,14 @@ public static class Analysis
 					// Basically if the number node represents a non-zero value it means the loop should be reconstructed as a forever loop
 					if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
 					{
-						statement.Parent!.Insert(statement, statement.Initialization);
+						var parent = statement.Parent!;
+
+						parent.Insert(statement, statement.Initialization);
 
 						var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
-						statement.Parent!.Insert(statement, replacement);
+						parent.Insert(statement, replacement);
+
+						statement.Remove();
 
 						iterator = replacement.Next;
 					}
@@ -878,6 +882,16 @@ public static class Analysis
 				return null;
 			}
 
+			if (statement.Operator == Operators.ASSIGN)
+			{
+				statement = ReconstructionAnalysis.TryRewriteAsActionOperation(statement);
+
+				if (statement == null)
+				{
+					return null;
+				}
+			}
+
 			if (statement.Operator == Operators.ASSIGN_ADD)
 			{
 				step_value = CollectComponents(statement.Right);
@@ -946,7 +960,7 @@ public static class Analysis
 		{
 			var x = right[i];
 
-			if (!(x is VariableComponent a) || a.Variable != variable)
+			if (x is not VariableComponent a || a.Variable != variable)
 			{
 				continue;
 			}
@@ -1070,6 +1084,14 @@ public static class Analysis
 			else if (iterator.Is(NodeType.LINK, NodeType.OFFSET))
 			{
 				result += 10;
+			}
+			else if (iterator.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE))
+			{
+				result += 50;
+			}
+			else if (iterator.Is(NodeType.LOOP))
+			{
+				result += 100;
 			}
 
 			result += GetCost(iterator);
@@ -1225,23 +1247,87 @@ public static class Analysis
 		}
 	}
 
-	public static void Analyze(Context context)
+	public static void CaptureContextLeaks(Context context, Node root)
 	{
-		foreach (var type in context.Types.Values)
+		var variables = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+
+		// Try to find variables whose parent context is not defined inside the implementation, if even one is found it means something has leaked
+		if (variables.Any())
 		{
-			Analyze(type);
+			throw new ApplicationException("Found a context leak");
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		var declarations =root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+
+		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
+		if (declarations.Any())
 		{
+			throw new ApplicationException("Found a context leak");
+		}
+
+		var subcontexts = root.FindAll(i => i is IContext && !i.Is(NodeType.TYPE)).Cast<IContext>().Where(i => !i.GetContext().IsInside(context));
+
+		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
+		if (subcontexts.Any())
+		{
+			throw new ApplicationException("Found a context leak");
+		}
+	}
+	
+	/// <summary>
+	/// Collects all types and subtypes from the specified context
+	/// </summary>
+	public static List<Type> GetAllTypes(Context context)
+	{
+		var result = context.Types.Values.ToList();
+		result.AddRange(result.SelectMany(i => GetAllTypes(i)));
+
+		return result;
+	}
+
+	/// <summary>
+	/// Collects all function implementations from the specified context
+	/// </summary>
+	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
+	{
+		var types = GetAllTypes(context);
+		
+		// Collect all functions, constructors, destructors and virtual functions
+		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
+		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
+		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
+		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
+
+		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
+
+		// Concat all functions with lambdas, which can be found inside the collected functions
+		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
+			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+	}
+
+	public static void Analyze(Context context)
+	{
+		var implementations = GetAllFunctionImplementations(context).OrderByDescending(i => i.References.Count).ToList();
+
+		for (var i = 0; i < implementations.Count; i++)
+		{
+			var implementation = implementations[i];
+
 			ReconstructionAnalysis.Reconstruct(implementation.Node!);
 
+			CaptureContextLeaks(implementation, implementation.Node!);
+
 			implementation.Node = GeneralAnalysis.Optimize(implementation, implementation.Node!);
-			
+
 			ReconstructionAnalysis.Finish(implementation.Node!);
 
-			// Analyze lambdas for example
-			Analyze(implementation);
+			if (implementation is LambdaImplementation lambda)
+			{
+				lambda.Seal();
+			}
+
+			//Console.WriteLine($"Analysis {i}/{implementations.Count}");
 		}
 	}
 
@@ -1279,52 +1365,62 @@ public static class Analysis
 		}
 	}
 
-	private static void ReplaceRepetition(Node repetition, Variable variable, bool store = false)
+	private static Node ReplaceRepetition(Node repetition, Variable variable, bool store = false)
 	{
 		if (Analyzer.IsEdited(repetition))
 		{
 			var edit = Analyzer.GetEditor(repetition);
 
-			if (edit is OperatorNode operation && operation.Operator == Operators.ASSIGN)
+			if (edit.Is(Operators.ASSIGN))
 			{
+				// Store the value of the assignment to the specified variable
 				var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
 					new VariableNode(variable),
-					operation.Right
+					edit.Right
 				);
 
 				var inline = new InlineNode(edit.Position) { initialization };
-
+				
 				edit.Replace(inline);
 
+				// Store the value into the repetition
 				inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 					repetition.Clone(),
 					new VariableNode(variable)
 				));
 
-				if (ReconstructionAnalysis.IsValueUsed(operation))
+				// Add a result to the inline node if the return value of the edit is used
+				if (ReconstructionAnalysis.IsValueUsed(edit))
 				{
 					inline.Add(new VariableNode(variable));
 				}
+
+				return inline;
 			}
-			else
-			{
-				// Increments, decrements and special assignment operators should be unwrapped before unrepetition
-				throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
-			}
+
+			// Increments, decrements and special assignment operators should be unwrapped before unrepetition
+			throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
 		}
-		else if (store)
+		
+		if (store)
 		{
+			// Store the value of the repetition to the specified variable
 			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(variable),
 				repetition.Clone()
 			);
+			
+			// Replace the repetition with the initialization
+			var inline = new InlineNode(repetition.Position) { initialization, new VariableNode(variable) };
+			repetition.Replace(inline);
 
-			repetition.Replace(new InlineNode(repetition.Position) { initialization, new VariableNode(variable) });
+			return inline;
 		}
-		else
-		{
-			repetition.Replace(new VariableNode(variable));
-		}
+
+		var result = new VariableNode(variable);
+		repetition.Replace(result);
+
+		return result;
 	}
 
 	private static List<Node> FindTop(Node root, Predicate<Node> filter)
@@ -1399,7 +1495,7 @@ public static class Analysis
 		var start = links.First();
 
 		// Collect all parts of the start node which can be edited
-		var editables = GetEditables(start);
+		var dependencies = GetEditables(start);
 
 		for (var j = links.Count - 1; j >= 1; j--)
 		{
@@ -1447,8 +1543,16 @@ public static class Analysis
 		var variable = context.DeclareHidden(start.GetType());
 
 		// Initialize the variable
-		root.Insert(root.First!, new DeclareNode(variable));
+		var scope = ReconstructionAnalysis.GetSharedScope(repetitions.Concat(new[] { start }).ToArray());
 
+		if (scope == null)
+		{
+			throw new ApplicationException("Repetitions did not have a shared scope");
+		}
+
+		// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
+		ReconstructionAnalysis.GetInsertPosition(start, scope).Insert(new DeclareNode(variable));
+		
 		ReplaceRepetition(start, variable, true);
 
 		foreach (var repetition in repetitions)
@@ -1458,17 +1562,19 @@ public static class Analysis
 			// Find all edits between the start and the repetition
 			var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ACTION) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
 
-			// If any of the edits contain a destination which matches any of the editables, a store is required
+			// If any of the edits contain a destination which matches any of the dependencies, a store is required
 			foreach (var edit in edits)
 			{
 				var edited = Analyzer.GetEdited(edit);
 
-				if (editables.Contains(edited))
+				if (!dependencies.Contains(edited))
 				{
-					start = repetition;
-					store = true;
-					break;
+					continue;
 				}
+
+				start = repetition;
+				store = true;
+				break;
 			}
 
 			// 1. If there are function calls between the start and the repetition, the function calls could edit the repetition, so a store is required

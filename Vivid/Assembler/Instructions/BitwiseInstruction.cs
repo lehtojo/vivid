@@ -282,6 +282,17 @@ public class BitwiseInstruction : DualParameterInstruction
 		);
 	}
 
+	public bool RedirectX64(Handle handle)
+	{
+		if (!handle.Is(HandleType.REGISTER) || (Operation != X64_SHIFT_LEFT_INSTRUCTION && Operation != X64_SHIFT_RIGHT_INSTRUCTION))
+		{
+			return false;
+		}
+
+		Parameters.First().Value = handle;
+		return true;
+	}
+
 	public bool RedirectArm64(Handle handle)
 	{
 		if (!handle.Is(HandleType.REGISTER))
@@ -299,7 +310,9 @@ public class BitwiseInstruction : DualParameterInstruction
 		{
 			return RedirectArm64(handle);
 		}
-
-		return false;
+		else
+		{
+			return RedirectX64(handle);
+		}
 	}
 }

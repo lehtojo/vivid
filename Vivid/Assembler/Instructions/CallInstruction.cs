@@ -42,7 +42,8 @@ public class CallInstruction : Instruction
 	{
 		foreach (var register in Unit.VolatileRegisters)
 		{
-			if (register.IsAvailable(Position + 1))
+			/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
+			if (register.Handle == null || !register.Handle.IsValid(Position + 1) || register.IsHandleCopy())
 			{
 				continue;
 			}
@@ -56,7 +57,6 @@ public class CallInstruction : Instruction
 		var moves = ParameterInstructions.Select(i => i.To<MoveInstruction>()).ToList();
 
 		Unit.Append(Memory.Align(Unit, moves, out List<Register> registers));
-		Unit.Append(new EvacuateInstruction(Unit, this));
 
 		return registers;
 	}
@@ -64,15 +64,19 @@ public class CallInstruction : Instruction
 	public override void OnBuild()
 	{
 		var registers = ExecuteParameterInstructions();
-
-		// Validate evacuation since it is very important to be correct
-		ValidateEvacuation();
 		
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
 
 		if (Assembler.IsArm64)
 		{
 			var is_address = Function.IsDataSectionHandle && Function.Value.To<DataSectionHandle>().Address;
+
+			if (!is_address)
+			{
+				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
+			}
+			
+			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			Build(
 				is_address ? ARM64_CALL_LABEL : ARM64_CALL_REGISTER,
@@ -85,17 +89,30 @@ public class CallInstruction : Instruction
 		}
 		else
 		{
+			if (Function.IsMemoryAddress)
+			{
+				ValidateHandle(Function.Value);
+			}
+			else if (!Function.IsStandardRegister)
+			{
+				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
+			}
+
+			Unit.Append(new EvacuateInstruction(Unit, this));
+
 			Build(
 				X64_INSTRUCTION,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
-					HandleType.CONSTANT,
 					HandleType.REGISTER,
 					HandleType.MEMORY
 				)
 			);
 		}
+
+		// Validate evacuation since it is very important to be correct
+		ValidateEvacuation();
 
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
 

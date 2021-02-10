@@ -1,36 +1,57 @@
 using System.Collections.Generic;
-using System.Linq;
+using System;
 
 public class IfNode : Node, IResolvable
 {
-	public Context Context { get; set; }
 	public Node? Successor => (Next?.Is(NodeType.ELSE_IF, NodeType.ELSE) ?? false) ? Next : null;
 	public Node? Predecessor => (Is(NodeType.ELSE_IF) && (Previous?.Is(NodeType.IF, NodeType.ELSE_IF) ?? false)) ? Previous : null;
 
-	public Node Condition => First!.Last!;
-	public Node Body => Last!;
+	public Node Condition => Common.FindCondition(First!);
+	public ContextNode Body => Last!.To<ContextNode>();
 
 	public IfNode(Context context, Node condition, Node body, Position? position = null)
 	{
-		Context = context;
 		Position = position;
+		Instance = NodeType.IF;
 
 		Add(new Node());
-		Add(new ContextNode(Context));
+		Add(new ContextNode(context));
 
 		body.ForEach(i => Body.Add(i));
 
 		First!.Add(condition);
 	}
 
-	public IfNode(Context context)
+	public IfNode() 
 	{
-		Context = context;
+		Instance = NodeType.IF;
 	}
 
-	public IEnumerable<Node> GetConditionInitialization()
+	/// <summary>
+	/// Returns the nodes which are executed during condition step except the actual condition.
+	/// NOTE: Use this function only for building since this function returns copies of the executed nodes
+	/// </summary>
+	public Node GetConditionInitialization()
 	{
-		return First!.Where(i => i != Condition).ToArray();
+		// Clone all the nodes under the condition step
+		var node = First!.Clone();
+		node.Parent = this;
+
+		// Remove the condition from the initialization since it is built separately
+		if (!Common.FindCondition(node).Remove())
+		{
+			throw new ApplicationException("Could not remove the condition from the condition step initialization");
+		}
+
+		return node;
+	}
+
+	/// <summary>
+	/// Returns all the nodes which are executed during the condition step
+	/// </summary>
+	public Node GetConditionStep()
+	{
+		return First!;
 	}
 
 	public List<Node> GetSuccessors()
@@ -79,7 +100,7 @@ public class IfNode : Node, IResolvable
 	public Node? Resolve(Context context)
 	{
 		Resolver.Resolve(context, Condition);
-		Resolver.Resolve(Context, Body);
+		Resolver.Resolve(Body.Context, Body);
 
 		if (Successor != null)
 		{
@@ -94,8 +115,8 @@ public class IfNode : Node, IResolvable
 		return Status.OK;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.IF;
+		return HashCode.Combine(Instance, Position, Body.Context.Identity);
 	}
 }

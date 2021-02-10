@@ -1,3 +1,5 @@
+using System;
+
 /// <summary>
 /// Represents a manual call node which is used for lambda and virtual function calls
 /// </summary>
@@ -11,6 +13,7 @@ public class CallNode : Node
 	public CallNode(Node self, Node pointer, Node parameters, CallDescriptorType descriptor)
 	{
 		Descriptor = descriptor;
+		Instance = NodeType.CALL;
 
 		Add(self);
 		Add(pointer);
@@ -27,8 +30,8 @@ public class CallNode : Node
 		return Descriptor.ReturnType;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.CALL;
+		return HashCode.Combine(Instance, Position, Descriptor.Identity);
 	}
 }

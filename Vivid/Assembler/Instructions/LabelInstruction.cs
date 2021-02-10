@@ -9,6 +9,7 @@ public class LabelInstruction : Instruction
 	public LabelInstruction(Unit unit, Label label) : base(unit, InstructionType.LABEL)
 	{
 		Label = label;
+		Description = $"{Label.GetName()}:";
 	}
 
 	public override void OnBuild()

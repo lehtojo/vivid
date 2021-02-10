@@ -2,9 +2,12 @@
 
 public class InlineNode : Node
 {
+	public bool IsContext { get; protected set; } = false;
+
 	public InlineNode(Position? position = null)
 	{
 		Position = position;
+		Instance = NodeType.INLINE;
 	}
 
 	public override Type? TryGetType()
@@ -12,8 +15,8 @@ public class InlineNode : Node
 		return Last?.TryGetType();
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.INLINE;
+		return HashCode.Combine(Instance, Position, IsContext);
 	}
 }

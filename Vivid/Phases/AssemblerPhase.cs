@@ -32,10 +32,10 @@ public class AssemblerPhase : Phase
 	
 	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 
-	private static string RED = "\x1B[1;31m";
-	private static string GREEN = "\x1B[1;32m";
-	private static string CYAN = "\x1B[1;36m";
-	private static string RESET = "\x1B[0m";
+	private const string RED = "\x1B[1;31m";
+	private const string GREEN = "\x1B[1;32m";
+	private const string CYAN = "\x1B[1;36m";
+	private const string RESET = "\x1B[0m";
 
 	/// <summary>
 	/// Returns the executable name of the assembler based on the current settings

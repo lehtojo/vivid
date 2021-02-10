@@ -410,7 +410,7 @@ public static class Lexer
 			throw new LexerException(position, $"Could not understand string command '{command}'");
 		}
 
-		var hexadecimal = text.Substring(2);
+		var hexadecimal = text[2..];
 		
 		if (hexadecimal.Length != length)
 		{
@@ -687,11 +687,6 @@ public static class Lexer
 		}
 
 		JoinModifiers(tokens);
-
-		if (tokens.Count > 0)
-		{
-			tokens.First().IsFirst = true;
-		}
 
 		return tokens;
 	}

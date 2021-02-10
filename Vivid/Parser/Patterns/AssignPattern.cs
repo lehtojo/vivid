@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System;
 
 public class AssignPattern : Pattern
 {
@@ -7,12 +6,11 @@ public class AssignPattern : Pattern
 
 	public const int DESTINATION = 0;
 	public const int OPERATOR = 1;
-	public const int SOURCE = 2;
 
 	// (a-z) = ...
 	public AssignPattern() : base
 	(
-		TokenType.IDENTIFIER, TokenType.OPERATOR, TokenType.OBJECT
+		TokenType.IDENTIFIER, TokenType.OPERATOR
 	)
 	{ }
 
@@ -39,8 +37,8 @@ public class AssignPattern : Pattern
 				throw Errors.Get(destination.Position, $"Can not declare variable with name '{destination.Value}' since the name is reserved");
 			}
 
-			var category = context.IsType ? VariableCategory.MEMBER : VariableCategory.LOCAL;
 			var is_constant = !context.IsInsideFunction && !context.IsInsideType;
+			var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
 
 			variable = new Variable
 			(

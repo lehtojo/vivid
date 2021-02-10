@@ -11,6 +11,9 @@ public class SetModifiableInstruction : Instruction
 	public SetModifiableInstruction(Unit unit, Variable variable) : base(unit, InstructionType.SET_MODIFIABLE)
 	{
 		Variable = variable;
+		Description = $"Loads the variable '{variable.Name}' into a register or memory if it is a constant";
+		IsAbstract = true;
+		
 		Result.Format = Variable.GetRegisterFormat();
 	}
 

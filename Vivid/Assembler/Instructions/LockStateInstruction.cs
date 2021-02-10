@@ -21,6 +21,7 @@ public class LockStateInstruction : Instruction
 	{
 		Register = register;
 		IsLocked = locked;
+		IsAbstract = true;
 		Description = (IsLocked ? "Lock" : "Unlock") + $" '{register.Partitions[0]}'";
 	}
 

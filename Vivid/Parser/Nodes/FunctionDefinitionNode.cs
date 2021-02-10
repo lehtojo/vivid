@@ -1,3 +1,5 @@
+using System;
+
 public class FunctionDefinitionNode : Node
 {
 	public Function Function { get; private set; }
@@ -6,10 +8,11 @@ public class FunctionDefinitionNode : Node
 	{
 		Function = function;
 		Position = position;
+		Instance = NodeType.FUNCTION_DEFINITION;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.FUNCTION_DEFINITION;
+		return HashCode.Combine(Instance, Position, Function);
 	}
 }

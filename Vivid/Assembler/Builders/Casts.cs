@@ -28,9 +28,9 @@ public static class Casts
 				return result;
 			}
 
-			var calculation = ExpressionHandle.CreateMemoryAddress(result, base_offset);
+			var expression = ExpressionHandle.CreateMemoryAddress(result, base_offset);
 
-			return new Result(calculation, result.Format);
+			return new Result(expression, result.Format);
 		}
 
 		if (to.IsTypeInherited(from)) // Determine whether the cast is a up cast
@@ -42,9 +42,9 @@ public static class Casts
 				return result;
 			}
 
-			var calculation = ExpressionHandle.CreateMemoryAddress(result, -base_offset);
+			var expression = ExpressionHandle.CreateMemoryAddress(result, -base_offset);
 
-			return new Result(calculation, result.Format);
+			return new Result(expression, result.Format);
 		}
 
 		// This means that the cast is unsafe since the types have nothing in common

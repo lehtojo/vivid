@@ -242,7 +242,7 @@ public static class Memory
 	{
 		return directive.Type switch
 		{
-			DirectiveType.NON_VOLATILITY => unit.GetNextNonVolatileRegister(false),
+			DirectiveType.NON_VOLATILITY => unit.GetNextNonVolatileRegister(media_register, false),
 			DirectiveType.AVOID_REGISTERS => media_register ? unit.GetNextMediaRegisterWithoutReleasing(directive.To<AvoidRegistersDirective>().Registers) : unit.GetNextRegisterWithoutReleasing(directive.To<AvoidRegistersDirective>().Registers),
 			DirectiveType.SPECIFIC_REGISTER => directive.To<SpecificRegisterDirective>().Register,
 			_ => throw new ArgumentException("Unknown directive type encountered")

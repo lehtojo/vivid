@@ -5,18 +5,17 @@ public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
 
-	public Node Left => First!;
-	public Node Right => Last!;
-
 	public OperatorNode(Operator operation)
 	{
 		Operator = operation;
+		Instance = NodeType.OPERATOR;
 	}
 
 	public OperatorNode(Operator operation, Position? position)
 	{
 		Operator = operation;
 		Position = position;
+		Instance = NodeType.OPERATOR;
 	}
 
 	public OperatorNode SetOperands(Node left, Node right)
@@ -43,6 +42,12 @@ public class OperatorNode : Node, IResolvable
 
 		var right = Right.TryGetType();
 
+		// Return the left type only if it represents a link and it is modified with a number type
+		if (left is Link && right is Number && right != Types.DECIMAL && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
+		{
+			return left;
+		}
+
 		return Resolver.GetSharedType(left, right);
 	}
 
@@ -61,26 +66,6 @@ public class OperatorNode : Node, IResolvable
 			OperatorType.LOGIC => Types.BOOL,
 			_ => throw new Exception("Independent operator should not be processed here")
 		};
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.OPERATOR;
-	}
-
-	public override bool Equals(object? other)
-	{
-		return other is OperatorNode node &&
-				base.Equals(other) &&
-				EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
-	}
-
-	public override int GetHashCode()
-	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Operator);
-		return hash.ToHashCode();
 	}
 
 	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node parameters)
@@ -232,5 +217,17 @@ public class OperatorNode : Node, IResolvable
 			OperatorType.LOGIC => GetLogicStatus(left, right),
 			_ => Status.OK
 		};
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is OperatorNode node &&
+				base.Equals(other) &&
+				EqualityComparer<Operator>.Default.Equals(Operator, node.Operator);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Instance, Position, Operator.Identifier);
 	}
 }

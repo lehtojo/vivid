@@ -33,7 +33,7 @@ public class SpecificModificationPattern : Pattern
 		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
 		var destination = tokens[OBJECT].To<DynamicToken>().Node;
 
-		switch (destination.GetNodeType())
+		switch (destination.Instance)
 		{
 			case NodeType.VARIABLE:
 			{

@@ -5,7 +5,7 @@ public static class Preprocessor
 {
 	private static object? GetValue(Node node)
 	{
-		return node.GetNodeType() switch
+		return node.Instance switch
 		{
 			NodeType.NUMBER => node.To<NumberNode>().Value,
 			NodeType.STRING => node.To<StringNode>().Text,
@@ -16,7 +16,7 @@ public static class Preprocessor
 
 	private static object? TryGetValue(Node node)
 	{
-		return node.GetNodeType() switch
+		return node.Instance switch
 		{
 			NodeType.NUMBER => node.To<NumberNode>().Value,
 			NodeType.STRING => node.To<StringNode>().Text,
@@ -137,19 +137,19 @@ public static class Preprocessor
 		throw new ArgumentException("Unsupported comparison");
 	}
 
-	private static Context? Evaluate(IfNode conditional_node)
+	private static Context? Evaluate(IfNode statement)
 	{
-		var value = Convert.ToInt64(GetValue(conditional_node.Condition), CultureInfo.InvariantCulture);
+		var value = Convert.ToInt64(GetValue(statement.Condition), CultureInfo.InvariantCulture);
 
 		if (value != 0)
 		{
 			// Evaluate the body of the if-statement
-			EvaluateNode(conditional_node.Context, conditional_node.Body);
+			EvaluateNode(statement.Body.Context, statement.Body);
 
-			return conditional_node.Context;
+			return statement.Body.Context;
 		}
 
-		var successor = conditional_node.Successor;
+		var successor = statement.Successor;
 
 		if (successor != null)
 		{
@@ -158,9 +158,9 @@ public static class Preprocessor
 				var node = successor.To<ElseNode>();
 
 				// Evaluate the body of the else-statement
-				EvaluateNode(node.Context, node.Body);
+				EvaluateNode(node.Body.Context, node.Body);
 
-				return node.Context;
+				return node.Body.Context;
 			}
 
 			return Evaluate((IfNode)successor);

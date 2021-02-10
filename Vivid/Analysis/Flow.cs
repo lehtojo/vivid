@@ -151,189 +151,216 @@ public class Flow
 
 	private void LinearizeCondition(IfNode statement, Label failure)
 	{
-		statement.GetConditionInitialization().ForEach(i => Linearize(i));
+		var condition = statement.Condition;
+		var parent = condition.Parent!;
+		
+		// Remove the condition for a while
+		if (!condition.Remove())
+		{
+			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
+		}
+		
+		// Linearize all the nodes under the condition step except the actual condition
+		statement.GetConditionStep().ForEach(i => Linearize(i));
 
-		if (statement.Condition is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
+		// Add the condition back
+		parent.Add(condition);
+
+		if (condition.Is(OperatorType.LOGIC))
 		{
 			var success = new Label();
-			LinearizeLogicalOperator(x, success, failure);
+			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
 			Add(new LabelNode(success));
 		}
 		else
 		{
-			Linearize(statement.Condition);
+			Linearize(condition);
 			Add(new JumpNode(failure, true));
 		}
 	}
 
 	private void LinearizeCondition(LoopNode statement, Label failure)
 	{
-		statement.GetConditionInitialization().ForEach(i => Linearize(i));
+		var condition = statement.Condition;
+		var parent = condition.Parent!;
+		
+		// Remove the condition for a while
+		if (!condition.Remove())
+		{
+			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
+		}
+		
+		// Linearize all the nodes under the condition step except the actual condition
+		statement.GetConditionStep().ForEach(i => Linearize(i));
 
-		if (statement.Condition is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
+		// Add the condition back
+		parent.Add(condition);
+
+		if (condition.Is(OperatorType.LOGIC))
 		{
 			var success = new Label();
-			LinearizeLogicalOperator(x, success, failure);
+			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
 			Add(new LabelNode(success));
 		}
 		else
 		{
-			Linearize(statement.Condition);
+			Linearize(condition);
 		}
 	}
 
 	private void Linearize(Node node)
 	{
-		switch (node.GetNodeType())
+		switch (node.Instance)
 		{
 			case NodeType.OPERATOR:
+			{
+				var operation = node.To<OperatorNode>();
+
+				if (operation.Operator == Operators.AND || operation.Operator == Operators.OR)
 				{
-					var operation = node.To<OperatorNode>();
+					throw new ApplicationException("Flow analysis encountered wild logical operator");
+				}
 
-					if (operation.Operator == Operators.AND || operation.Operator == Operators.OR)
-					{
-						throw new ApplicationException("Flow analysis encountered wild logical operator");
-					}
-
-					if (operation.Operator.Type == OperatorType.ACTION)
-					{
-						// Action operators are processed the other way around
-						node.Reverse().ForEach(i => Linearize(i));
-						Add(node);
-						break;
-					}
-
+				if (operation.Operator.Type == OperatorType.ACTION)
+				{
+					// Action operators are processed the other way around
+					// node.Reverse().ForEach(i => Linearize(i));
 					node.ForEach(i => Linearize(i));
 					Add(node);
 					break;
 				}
 
+				node.ForEach(i => Linearize(i));
+				Add(node);
+				break;
+			}
+
 			case NodeType.IF:
+			{
+				var statement = node.To<IfNode>();
+				var intermediate = new Label();
+				var end = new Label();
+
+				LinearizeCondition(statement, intermediate);
+
+				// The body may be executed based on the condition. If it executes, it jumps to the end label
+				Linearize(statement.Body);
+				Add(new JumpNode(end));
+				Add(new LabelNode(intermediate));
+
+				foreach (var successor in statement.GetSuccessors())
 				{
-					var statement = node.To<IfNode>();
-					var intermediate = new Label();
-					var end = new Label();
-
-					LinearizeCondition(statement, intermediate);
-
-					// The body may be executed based on the condition. If it executes, it jumps to the end label
-					Linearize(statement.Body);
-					Add(new JumpNode(end));
-					Add(new LabelNode(intermediate));
-
-					foreach (var successor in statement.GetSuccessors())
+					if (successor is ElseIfNode x)
 					{
-						if (successor is ElseIfNode x)
-						{
-							intermediate = new Label();
+						intermediate = new Label();
 
-							LinearizeCondition(x, intermediate);
+						LinearizeCondition(x, intermediate);
 
-							// The body may be executed based on the condition. If it executes, it jumps to the end label
-							Linearize(x.Body);
-							Add(new JumpNode(end));
+						// The body may be executed based on the condition. If it executes, it jumps to the end label
+						Linearize(x.Body);
+						Add(new JumpNode(end));
 
-							Add(new LabelNode(intermediate));
-						}
-						else if (successor is ElseNode y)
-						{
-							// The body always executes and jumps to the end label
-							Linearize(y.Body);
-						}
+						Add(new LabelNode(intermediate));
 					}
-
-					Add(new LabelNode(end));
-
-					break;
+					else if (successor is ElseNode y)
+					{
+						// The body always executes and jumps to the end label
+						Linearize(y.Body);
+					}
 				}
+
+				Add(new LabelNode(end));
+
+				break;
+			}
 
 			case NodeType.LOOP:
+			{
+				var statement = node.To<LoopNode>();
+				var start = new Label();
+				var end = new Label();
+
+				Loops.Add(statement, new LoopDescriptor(start, end));
+
+				if (statement.IsForeverLoop)
 				{
-					var statement = node.To<LoopNode>();
-					var start = new Label();
-					var end = new Label();
-
-					Loops.Add(statement, new LoopDescriptor(start, end));
-
-					if (statement.IsForeverLoop)
-					{
-						Add(new LabelNode(start));
-						Linearize(statement.Body);
-						Add(new JumpNode(start));
-						Add(new LabelNode(end));
-						break;
-					}
-
-					Linearize(statement.Initialization);
-
 					Add(new LabelNode(start));
-
-					LinearizeCondition(statement, end);
-
-					Add(new JumpNode(end, true));
-
 					Linearize(statement.Body);
-					Linearize(statement.Action);
-
 					Add(new JumpNode(start));
 					Add(new LabelNode(end));
-
 					break;
 				}
+
+				Linearize(statement.Initialization);
+
+				Add(new LabelNode(start));
+
+				LinearizeCondition(statement, end);
+
+				Add(new JumpNode(end, true));
+
+				Linearize(statement.Body);
+				Linearize(statement.Action);
+
+				Add(new JumpNode(start));
+				Add(new LabelNode(end));
+
+				break;
+			}
 
 			case NodeType.LOOP_CONTROL:
+			{
+				var instruction = node.To<LoopControlNode>().Instruction;
+
+				if (instruction == Keywords.CONTINUE)
 				{
-					var instruction = node.To<LoopControlNode>().Instruction;
+					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
 
-					if (instruction == Keywords.CONTINUE)
-					{
-						var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var start = Loops[loop.To<LoopNode>()].Start;
 
-						var start = Loops[loop.To<LoopNode>()].Start;
-
-						Add(new JumpNode(start));
-						Add(node);
-					}
-					else if (instruction == Keywords.STOP)
-					{
-						var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
-
-						var end = Loops[loop.To<LoopNode>()].End;
-
-						Add(new JumpNode(end));
-						Add(node);
-					}
-					else
-					{
-						throw new ApplicationException("Invalid loop control node");
-					}
-
-					break;
+					Add(new JumpNode(start));
+					Add(node);
 				}
+				else if (instruction == Keywords.STOP)
+				{
+					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+
+					var end = Loops[loop.To<LoopNode>()].End;
+
+					Add(new JumpNode(end));
+					Add(node);
+				}
+				else
+				{
+					throw new ApplicationException("Invalid loop control node");
+				}
+
+				break;
+			}
 
 			case NodeType.RETURN:
-				{
-					node.ForEach(i => Linearize(i));
-					Add(new JumpNode(End));
-					break;
-				}
+			{
+				node.ForEach(i => Linearize(i));
+				Add(new JumpNode(End));
+				break;
+			}
 
 			case NodeType.ELSE:
 			case NodeType.ELSE_IF:
-				{
-					break;
-				}
+			{
+				break;
+			}
 
 			default:
+			{
+				foreach (var iterator in node)
 				{
-					foreach (var iterator in node)
-					{
-						Linearize(iterator);
-					}
-
-					Add(node);
-					break;
+					Linearize(iterator);
 				}
+
+				Add(node);
+				break;
+			}
 		}
 	}
 
@@ -554,29 +581,119 @@ public class Flow
 		return Approach(i + 1, i);
 	}
 
-	public bool IsReachableWithoutExecuting(Node node, Node from, Node[] obstacles)
+	/// <summary>
+	/// Finds the positions which can be reached starting from the specified position while avoiding the specified obstacles
+	/// NOTE: Provide a copy of the positions since this function edits the specified list
+	/// </summary>
+	public List<int> GetExecutablePositions(int start, int[] obstacles, List<int> positions, SortedSet<int> denylist)
+	{
+		var executable = new List<int>(positions.Count);
+
+		Start:
+
+		// Try to find the closest obstacle which is ahead of the current position
+		var closest_obstacle = int.MaxValue;
+
+		foreach (var obstacle in obstacles)
+		{
+			if (obstacle > start && obstacle < closest_obstacle)
+			{
+				closest_obstacle = obstacle;
+				break;
+			}
+		}
+
+		// Try to find the closest jump which is ahead of the current position
+		var closest_jump = int.MaxValue;
+		var closest_jump_node = (JumpNode?)null;
+
+		foreach (var jump in Jumps)
+		{
+			if (jump.Value > start)
+			{
+				closest_jump = jump.Value;
+				closest_jump_node = jump.Key;
+				break;
+			}
+		}
+
+		// Determine whether an obstacle or a jump is closer
+		var closest = Math.Min(closest_obstacle, closest_jump);
+
+		// Register all positions which fall between the closest obstacle or jump and the current position
+		for (var i = positions.Count - 1; i >= 0; i--)
+		{
+			var position = positions[i];
+
+			if (position >= start && position < closest)
+			{
+				executable.Add(position);
+				positions.RemoveAt(i);
+			}
+		}
+
+		// 1. Return if there are no positions to be reached
+		// 2. If the closest has the value of the maximum integer, it means there is no jump or obstacle ahead
+		// 3. Return from the call if an obstacle is hit
+		// 4. The closest value must represent a jump so ensure it is not visited before
+		if (!positions.Any() || closest == int.MaxValue || closest == closest_obstacle || denylist.Contains(closest))
+		{
+			return executable;
+		}
+
+		// Do not visit this jump again
+		denylist.Add(closest_jump);
+
+		if (closest_jump_node!.IsConditional)
+		{
+			// Visit the jump destination and try to reach the positions there
+			var destination = Labels[closest_jump_node.Label];
+			executable.AddRange(GetExecutablePositions(destination, obstacles, positions, denylist));
+
+			// Do not continue if all positions have been reached already
+			if (!positions.Any())
+			{
+				return executable;
+			}
+
+			// Fall through the conditional jump
+			start = closest + 1;
+		}
+		else
+		{
+			// Since the jump is not conditional go to its label
+			start = Labels[closest_jump_node.Label];
+		}
+
+		goto Start;
+	}
+
+	public bool IsReachableWithoutExecuting(Node node, Node from, IEnumerable<Node> obstacles)
 	{
 		if (node == from)
 		{
 			return true;
 		}
 
-		var i = Indices.GetValueOrDefault(node, -1);
-		var j = Indices.GetValueOrDefault(from, -1);
+		var i = Indices[node];
+		var j = Indices[from];
 
-		if (i == -1 || j == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		var indices = obstacles.Select(i => Indices.GetValueOrDefault(i, -1)).ToArray();
-
-		if (indices.Any(i => i == -1))
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
+		var indices = obstacles.Select(i => Indices[i]).ToArray();
 
 		return Approach(j, i, indices);
+	}
+
+	public bool IsReachableWithoutExecuting(Node node, Node from, int[] obstacles)
+	{
+		if (node == from)
+		{
+			return true;
+		}
+
+		var i = Indices[node];
+		var j = Indices[from];
+
+		return Approach(j, i, obstacles);
 	}
 
 	/// <summary>
@@ -585,13 +702,8 @@ public class Flow
 	/// </summary>
 	public bool IsExecutedBefore(Node node, Node position)
 	{
-		var i = Indices.GetValueOrDefault(node, -1);
-		var j = Indices.GetValueOrDefault(position, -1);
-
-		if (i == -1 || j == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
+		var i = Indices[node];
+		var j = Indices[position];
 
 		if (i > j)
 		{
@@ -615,13 +727,8 @@ public class Flow
 	/// </summary>
 	public bool IsAlwaysExecutedBefore(Node node, Node position)
 	{
-		var i = Indices.GetValueOrDefault(node, -1);
-		var j = Indices.GetValueOrDefault(position, -1);
-
-		if (i == -1 || j == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
+		var i = Indices[node];
+		var j = Indices[position];
 
 		if (i > j)
 		{
@@ -639,26 +746,12 @@ public class Flow
 
 	public bool Between(Node from, Node to, Func<Node, bool> filter)
 	{
-		var i = Indices.GetValueOrDefault(from, -1);
-
-		if (i == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		return Indices.Keys.Skip(i).TakeWhile(j => j != to).Any(filter);
+		return Indices.Keys.Skip(Indices[from]).TakeWhile(i => i != to).Any(filter);
 	}
 
 	public IEnumerable<Node> FindBetween(Node from, Node to, Func<Node, bool> filter)
 	{
-		var i = Indices.GetValueOrDefault(from, -1);
-
-		if (i == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		return Indices.Keys.Skip(i).TakeWhile(j => j != to).Where(filter);
+		return Indices.Keys.Skip(Indices[from]).TakeWhile(i => i != to).Where(filter);
 	}
 
 	/// <summary>
@@ -666,15 +759,7 @@ public class Flow
 	/// </summary>
 	public bool IsBefore(Node a, Node b)
 	{
-		var i = Indices.GetValueOrDefault(a, -1);
-		var j = Indices.GetValueOrDefault(b, -1);
-
-		if (i == -1 || j == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		return i < j;
+		return Indices[a] < Indices[b];
 	}
 
 	/// <summary>
@@ -682,29 +767,13 @@ public class Flow
 	/// </summary>
 	public bool IsAfter(Node a, Node b)
 	{
-		var i = Indices.GetValueOrDefault(a, -1);
-		var j = Indices.GetValueOrDefault(b, -1);
-
-		if (i == -1 || j == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		return i > j;
+		return Indices[a] > Indices[b];
 	}
 
 	public bool IsBetween(Node node, Node from, Node to)
 	{
-		var x = Indices.GetValueOrDefault(node, -1);
+		var x = Indices[node];
 
-		var a = Indices.GetValueOrDefault(from, -1);
-		var b = Indices.GetValueOrDefault(to, -1);
-
-		if (x == -1 || a == -1 || b == -1)
-		{
-			throw new ApplicationException("Flow analysis was passed a node which was not part of the flow");
-		}
-
-		return x > a && x < b;
+		return x > Indices[from] && x < Indices[to];
 	}
 }

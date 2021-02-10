@@ -7,18 +7,14 @@ public static class Conditionals
 	/// <summary>
 	/// Builds the body of an if-statement or an else-if-statement
 	/// </summary>
-	private static Result BuildBody(Unit unit, Context local_context, Node body)
+	private static Result BuildBody(Unit unit, Node body, List<Variable> active_variables)
 	{
-		var active_variables = Scope.GetAllActiveVariablesForScope(unit, body, local_context.Parent!, local_context);
-
 		var state = unit.GetState(unit.Position);
 		Result? result;
 
 		// Since this is a body of some statement is also has a scope
 		using (var scope = new Scope(unit, active_variables))
 		{
-			scope.AppendFinalizers = false;
-
 			// Merges all changes that happen in the scope with the outer scope
 			var merge = new MergeScopeInstruction(unit);
 
@@ -30,8 +26,6 @@ public static class Conditionals
 
 			// Keep all scope variables which are needed later active
 			var required_variables = active_variables.Where(i => Analysis.IsUsedLater(i, body)).ToList();
-
-			required_variables.ForEach(i => unit.Append(new GetVariableInstruction(unit, i, AccessMode.READ)));
 		}
 
 		unit.Set(state);
@@ -44,24 +38,24 @@ public static class Conditionals
 	/// </summary>
 	private static Result Build(Unit unit, IfNode node, Node condition, LabelInstruction end)
 	{
-		// Set the next label to be the end label if there's no successor since then there wont be any other comparisons
+		// Set the next label to be the end label if there is no successor since then there wont be any other comparisons
 		var interphase = node.Successor == null ? end.Label : unit.GetNextLabel();
 
-		// Initialize the condition
-		node.GetConditionInitialization().ForEach(i => Builders.Build(unit, i));
+		// Build the nodes around the actual condition by disabling the condition temporarily
+		var instance = node.Condition.Instance;
+		node.Condition.Instance = NodeType.DISABLED;
+
+		Builders.Build(unit, node.Left);
+		
+		node.Condition.Instance = instance;
+
+		var active_variables = Scope.GetAllActiveVariables(unit, node);
 
 		// Jump to the next label based on the comparison
-		BuildCondition(unit, node.Context.Parent!, condition, interphase);
-
-		// Get the current state of the unit for later recovery
-		var recovery = new SaveStateInstruction(unit);
-		unit.Append(recovery);
+		BuildCondition(unit, condition, interphase, active_variables);
 
 		// Build the body of this if-statement
-		var result = BuildBody(unit, node.Context, node.Body);
-
-		// Recover the previous state
-		unit.Append(new RestoreStateInstruction(unit, recovery));
+		var result = BuildBody(unit, node.Body, active_variables);
 
 		// If the body of the if-statement is executed it must skip the potential successors
 		if (node.Successor == null)
@@ -92,14 +86,8 @@ public static class Conditionals
 			{
 				unit.TryAppendPosition(y);
 
-				// Get the current state of the unit for later recovery
-				var recovery = new SaveStateInstruction(unit);
-				unit.Append(recovery);
-
-				var result = BuildBody(unit, y.Context, y.Body);
-
-				// Recover the previous state
-				unit.Append(new RestoreStateInstruction(unit, recovery));
+				var active_variables = Scope.GetAllActiveVariables(unit, node);
+				var result = BuildBody(unit, y.Body, active_variables);
 
 				return result;
 			}
@@ -110,11 +98,12 @@ public static class Conditionals
 
 	public static Result Start(Unit unit, IfNode node)
 	{
-		var roots = node.GetBranches().ToArray();
-		var contexts = roots.Select(i => i is IfNode x ? x.Context : i.To<ElseNode>().Context).ToArray();
-		Scope.Cache(unit, roots, contexts);
+		var branches = node.GetBranches().ToArray();
+		var contexts = branches.Select(i => i is IfNode x ? x.Body.Context : i.To<ElseNode>().Body.Context).ToArray();
 
-		Scope.PrepareConditionallyChangingConstants(unit, node);
+		Scope.Cache(unit, branches, contexts, node.GetParentContext());
+
+		Scope.LoadConstants(unit, node);
 
 		var end = new LabelInstruction(unit, unit.GetNextLabel());
 		var result = Build(unit, node, end);
@@ -123,10 +112,11 @@ public static class Conditionals
 		return result;
 	}
 
-	public static void BuildCondition(Unit unit, Context current_context, Node condition, Label failure)
+	public static void BuildCondition(Unit unit, Node condition, Label failure, List<Variable> active_variables)
 	{
-		// Conditions sometimes edit variable so entering must be prepared
-		Scope.PrepareConditionallyChangingConstants(unit, condition);
+		// Load constants which might be edited inside the condition
+		Scope.LoadConstants(unit, condition);
+
 		var success = unit.GetNextLabel();
 
 		var instructions = BuildCondition(unit, condition, success, failure);
@@ -195,7 +185,7 @@ public static class Conditionals
 		{
 			if (instruction.Is(InstructionType.TEMPORARY_COMPARE))
 			{
-				instruction.To<TemporaryCompareInstruction>().Append(current_context);
+				instruction.To<TemporaryCompareInstruction>().Append(active_variables);
 			}
 			else
 			{
@@ -215,14 +205,8 @@ public static class Conditionals
 			Comparison = comparison;
 		}
 
-		public void Append(Context current_context)
+		public void Append(List<Variable> active_variables)
 		{
-			// Get the current state of the unit for later recovery
-			var recovery = new SaveStateInstruction(Unit);
-			Unit.Append(recovery);
-
-			var active_variables = Scope.GetAllActiveVariablesForScope(Unit, Comparison, current_context);
-
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
@@ -243,9 +227,6 @@ public static class Conditionals
 			}
 
 			Unit.Set(state);
-
-			// Recover the previous state
-			Unit.Append(new RestoreStateInstruction(Unit, recovery));
 		}
 	}
 

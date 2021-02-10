@@ -4,10 +4,10 @@ using Vivid.Unit;
 
 public static class Units
 {
-	private static string RED = "\x1B[1;31m";
-	private static string GREEN = "\x1B[1;32m";
-	private static string RESET = "\x1B[0m";
-	private static string CYAN = "\x1B[1;36m";
+	private const string RED = "\x1B[1;31m";
+	private const string GREEN = "\x1B[1;32m";
+	private const string RESET = "\x1B[0m";
+	private const string CYAN = "\x1B[1;36m";
 
 	private static void PrintSuccess(string name, string description)
 	{
@@ -68,9 +68,13 @@ public static class Units
 
 	public static void Main(string[] arguments)
 	{
-		if (arguments.Any(i => i.Contains("-O")))
+		if (arguments.Any(i => i == "-O1"))
 		{
-			AssemblerTests.IsOptimizationEnabled = true;
+			AssemblerTests.OptimizationLevel = 1;
+		}
+		else if (arguments.Any(i => i == "-O2"))
+		{
+			AssemblerTests.OptimizationLevel = 2;
 		}
 
 		StartSection("Assembler");

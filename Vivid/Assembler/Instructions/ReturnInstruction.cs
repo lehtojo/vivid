@@ -42,7 +42,8 @@ public class ReturnInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		// Ensure that if there's a value to return it is in a return register
+		// 1. Skip if there is no return value
+		// 2. Ensure the return value is in the correct register
 		if (Object == null || IsValueInReturnRegister())
 		{
 			return;

@@ -1,4 +1,6 @@
-﻿public class DataPointer : Node
+﻿using System;
+
+public class DataPointer : Node
 {
 	public object Data { get; private set; }
 	public long Offset { get; private set; }
@@ -7,6 +9,7 @@
 	{
 		Data = data;
 		Offset = offset;
+		Instance = NodeType.DATA_POINTER;
 	}
 
 	public override Type? TryGetType()
@@ -14,8 +17,8 @@
 		return Types.LINK;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.DATA_POINTER;
+		return HashCode.Combine(Instance, Position, Data, Offset);
 	}
 }

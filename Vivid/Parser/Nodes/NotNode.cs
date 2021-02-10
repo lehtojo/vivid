@@ -6,15 +6,11 @@ public class NotNode : Node
 	{
 		Add(target);
 		Position = position;
+		Instance = NodeType.NOT;
 	}
 
 	public override Type? TryGetType()
 	{
 		return Object.TryGetType();
-	}
-
-	public override NodeType GetNodeType()
-	{
-		return NodeType.NOT;
 	}
 }

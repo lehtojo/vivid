@@ -12,6 +12,7 @@ public class ConvertInstruction : Instruction
 		Number = number;
 		Dependencies = new[] { Number, Result };
 		Integer = to_integer;
+		IsAbstract = true;
 
 		Result.Format = Integer ? Assembler.Format : Format.DECIMAL;
 	}

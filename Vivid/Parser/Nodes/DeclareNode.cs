@@ -1,14 +1,17 @@
+using System;
+
 public class DeclareNode : Node
 {
-	public Variable Variable { get; }
+	public Variable Variable { get; set; }
 
 	public DeclareNode(Variable variable)
 	{
 		Variable = variable;
+		Instance = NodeType.DECLARE;
 	}
 
-	public override NodeType GetNodeType()
+	public override int GetHashCode()
 	{
-		return NodeType.DECLARE;
+		return HashCode.Combine(Instance, Position, Variable);
 	}
 }

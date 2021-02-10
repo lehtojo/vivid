@@ -32,6 +32,7 @@ public class MoveInstruction : DualParameterInstruction
 	public const string X64_SIGNED_CONVERSION = "movsx";
 	public const string X64_SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE = "movsxd";
 
+	public const string X64_RAW_MEDIA_REGISTER_MOVE = "movq";
 	public const string X64_SINGLE_PRECISION_MOVE = "movss";
 	public const string X64_DOUBLE_PRECISION_MOVE = "movsd";
 	public const string X64_UNALIGNED_XMMWORD_MOVE = "movups";
@@ -182,13 +183,13 @@ public class MoveInstruction : DualParameterInstruction
 					return;
 				}
 
-				// Ensure the source value is in decimal format
-				Second.Value.To<ConstantHandle>().Convert(Format.DECIMAL);
-				Second.Value = new ConstantDataSectionHandle(Second.Value.To<ConstantHandle>());
-				Second.Format = Format.DECIMAL;
-
 				if (Assembler.IsArm64)
 				{
+					// Ensure the source value is in decimal format
+					Second.Value.To<ConstantHandle>().Convert(Format.DECIMAL);
+					Second.Value = new ConstantDataSectionHandle(Second.Value.To<ConstantHandle>());
+					Second.Format = Format.DECIMAL;
+
 					// Example:
 					// adrp x0, C0 (C0: 10.0)
 					// ldr d0, [x0, :lo12:C0]
@@ -210,24 +211,7 @@ public class MoveInstruction : DualParameterInstruction
 					return;
 				}
 
-				instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_MOVE : X64_DOUBLE_PRECISION_MOVE;
-
-				// Example:
-				// movsd xmm0, qword [C0] (C0: 10.0)
-
-				Build(
-					instruction,
-					new InstructionParameter(
-						First,
-						flags_first,
-						HandleType.MEDIA_REGISTER
-					),
-					new InstructionParameter(
-						Second,
-						flags_second,
-						HandleType.MEMORY
-					)
-				);
+				BuildDecimalConstantMoveX64(flags_first, flags_second);
 			}
 			else if (Assembler.IsArm64)
 			{
@@ -654,6 +638,12 @@ public class MoveInstruction : DualParameterInstruction
 
 		if (Second.IsConstant)
 		{
+			if (Assembler.IsX64)
+			{
+				BuildDecimalConstantMoveX64(flags_first, flags_second);
+				return;
+			}
+
 			// Move the source value to the data section so that it can be loaded to a media register
 			Second.Value = new ConstantDataSectionHandle(Second.Value.To<ConstantHandle>());
 		}
@@ -704,7 +694,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		var types = new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY };
+		var types = new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER, HandleType.MEMORY };
 		
 		if (Assembler.IsArm64)
 		{
@@ -743,6 +733,59 @@ public class MoveInstruction : DualParameterInstruction
 				types
 			)
 		);
+	}
+
+	/// <summary>
+	/// Moves the second operand which must be a constant to the destination whose format must be decimal
+	/// </summary>
+	private void BuildDecimalConstantMoveX64(int flags_first, int flags_second)
+	{
+		var handle = Second.Value.To<ConstantHandle>();
+
+		var previous_format = Second.Format;
+		var previous_handle_format = handle.Format;
+		var previous_handle_value = handle.Value;
+
+		// Ensure the source value is in decimal format
+		if (Second.Format.IsDecimal())
+		{
+			handle.Value = BitConverter.DoubleToInt64Bits((double)previous_handle_value);
+			handle.Format = Assembler.Format;
+		}
+		else
+		{
+			handle.Value = BitConverter.DoubleToInt64Bits((double)(long)previous_handle_value);
+			handle.Format = Assembler.Format;
+		}
+
+		Second.Format = Assembler.Format;
+
+		// Example:
+		// xmm0 <- 10.0
+		// movq xmm0, 0x4024000000000000
+
+		Build(
+			First.IsMemoryAddress ? SHARED_MOVE_INSTRUCTION : X64_RAW_MEDIA_REGISTER_MOVE,
+			new InstructionParameter(
+				First,
+				flags_first,
+				HandleType.MEDIA_REGISTER,
+				HandleType.MEMORY
+			),
+			new InstructionParameter(
+				Second,
+				flags_second | ParameterFlag.BIT_LIMIT_64,
+				HandleType.REGISTER
+			)
+		);
+
+		// Restore the previous values to the second operand if this is not a relocation move
+		if (Type != MoveType.RELOCATE)
+		{
+			handle.Value = previous_handle_value;
+			handle.Format = previous_handle_format;
+			Second.Format = previous_format;
+		}
 	}
 
 	private void LoadConstantArm64(long value, int flags_first, int flags_second)
@@ -923,7 +966,10 @@ public class MoveInstruction : DualParameterInstruction
 		}
 		else if (Assembler.IsX64 && Second.IsDataSectionHandle && Second.Value.To<DataSectionHandle>().Address)
 		{
-			Second.Value.To<DataSectionHandle>().Address = false;
+			var handle = Second.Value.To<DataSectionHandle>();
+			var address = handle.Address;
+			
+			handle.Address = false;
 
 			// Example:
 			// mov rax, function_f_S0 => lea rax, [rip+function_f_S0]
@@ -941,6 +987,8 @@ public class MoveInstruction : DualParameterInstruction
 					HandleType.MEMORY
 				)
 			);
+
+			handle.Address = address;
 		}
 		else if (Assembler.IsArm64 && Second.IsDataSectionHandle)
 		{
@@ -1455,7 +1503,7 @@ public class MoveInstruction : DualParameterInstruction
 				return true;
 			}
 
-			if ((Operation == X64_SINGLE_PRECISION_MOVE || Operation == X64_DOUBLE_PRECISION_MOVE) && (handle.Is(HandleType.MEDIA_REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress)))
+			if ((Operation == X64_SINGLE_PRECISION_MOVE || Operation == X64_DOUBLE_PRECISION_MOVE || Operation == X64_RAW_MEDIA_REGISTER_MOVE) && (handle.Is(HandleType.MEDIA_REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress)))
 			{
 				Destination!.Value = handle;
 				return true;
