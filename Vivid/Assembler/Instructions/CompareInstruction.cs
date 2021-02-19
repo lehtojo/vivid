@@ -4,15 +4,6 @@
 /// </summary>
 public class CompareInstruction : DualParameterInstruction
 {
-	public const string SHARED_COMPARISON_INSTRUCTION = "cmp";
-
-	public const string X64_SINGLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION = "comiss";
-	public const string X64_DOUBLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION = "comisd";
-
-	public const string ARM64_DECIMAL_COMPARISON_INSTRUCTION = "fcmp";
-
-	public const string X64_ZERO_COMPARISON_INSTRUCTION = "test";
-
 	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE) 
 	{
 		Description = "Compares two values";
@@ -22,11 +13,11 @@ public class CompareInstruction : DualParameterInstruction
 	{
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is64bit ? X64_DOUBLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION : X64_SINGLE_PRECISION_DECIMAL_COMPARISON_INSTRUCTION;
+			var instruction = Assembler.Is64bit ? Instructions.X64.DOUBLE_PRECISION_COMPARE : Instructions.X64.SINGLE_PRECISION_COMPARE;
 
 			if (Assembler.IsArm64)
 			{
-				instruction = ARM64_DECIMAL_COMPARISON_INSTRUCTION;
+				instruction = Instructions.Arm64.DECIMAL_COMPARE;
 			}
 
 			Build(
@@ -46,7 +37,7 @@ public class CompareInstruction : DualParameterInstruction
 		else if (Assembler.IsX64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
 		{
 			Build(
-				X64_ZERO_COMPARISON_INSTRUCTION,
+				Instructions.X64.TEST,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -71,7 +62,7 @@ public class CompareInstruction : DualParameterInstruction
 			}
 
 			Build(
-				SHARED_COMPARISON_INSTRUCTION,
+				Instructions.Shared.COMPARE,
 				Assembler.Size,
 				new InstructionParameter(
 					First,

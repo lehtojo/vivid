@@ -56,29 +56,64 @@ public static class Preprocessor
 		}
 
 		// The following comparisons need the left and right side values to be comparable
-		if (!(left is IComparable x && right is IComparable y))
+		if (left is not IComparable x || right is not IComparable y)
 		{
 			return null;
 		}
 
-		if (comparison.Operator == Operators.GREATER_THAN)
+		try
 		{
-			return x.CompareTo(y) > 0;
-		}
-		if (comparison.Operator == Operators.LESS_THAN)
-		{
-			return x.CompareTo(y) < 0;
-		}
-		if (comparison.Operator == Operators.GREATER_OR_EQUAL)
-		{
-			return x.CompareTo(y) >= 0;
-		}
-		if (comparison.Operator == Operators.LESS_OR_EQUAL)
-		{
-			return x.CompareTo(y) <= 0;
-		}
+			if (left is double || right is double)
+			{
+				var a = Convert.ToDouble(left, CultureInfo.InvariantCulture);
+				var b = Convert.ToDouble(right, CultureInfo.InvariantCulture);
 
-		return null;
+				if (comparison.Operator == Operators.GREATER_THAN)
+				{
+					return a > b;
+				}
+				if (comparison.Operator == Operators.LESS_THAN)
+				{
+					return a < b;
+				}
+				if (comparison.Operator == Operators.GREATER_OR_EQUAL)
+				{
+					return a >= b;
+				}
+				if (comparison.Operator == Operators.LESS_OR_EQUAL)
+				{
+					return a <= b;
+				}
+			}
+			else
+			{
+				var a = Convert.ToInt64(left, CultureInfo.InvariantCulture);
+				var b = Convert.ToInt64(right, CultureInfo.InvariantCulture);
+
+				if (comparison.Operator == Operators.GREATER_THAN)
+				{
+					return a > b;
+				}
+				if (comparison.Operator == Operators.LESS_THAN)
+				{
+					return a < b;
+				}
+				if (comparison.Operator == Operators.GREATER_OR_EQUAL)
+				{
+					return a >= b;
+				}
+				if (comparison.Operator == Operators.LESS_OR_EQUAL)
+				{
+					return a <= b;
+				}
+			}
+
+			return null;
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	public static bool? EvaluateOperator(OperatorNode comparison)

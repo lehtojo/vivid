@@ -8,11 +8,6 @@ using System.Linq;
 /// </summary>
 public class InitializeInstruction : Instruction
 {
-	public const string X64_STORE_REGISTER_INSTRUCTION = "push";
-
-	public const string ARM64_STORE_REGISTER_PAIR_INSTRUCTION = "stp";
-	public const string ARM64_STORE_REGISTER_INSTRUCTION = "str";
-
 	public const string DEBUG_HEADER_START = ".cfi_def_cfa_offset 16\n.cfi_offset 6, -16";
 	public const string DEBUG_HEADER_END = ".cfi_def_cfa_register 6";
 
@@ -67,7 +62,7 @@ public class InitializeInstruction : Instruction
 
 		if (registers.Count == 1)
 		{
-			builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {registers.First()}, [{stack_pointer}, #{-bytes}]!");
+			builder.AppendLine($"{Instructions.Arm64.STORE} {registers.First()}, [{stack_pointer}, #{-bytes}]!");
 			return;
 		}
 
@@ -85,12 +80,12 @@ public class InitializeInstruction : Instruction
 			{
 				if (!allocated)
 				{
-					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
 					allocated = true;
 				}
 				else
 				{
-					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 				}
 
 				position++;
@@ -99,12 +94,12 @@ public class InitializeInstruction : Instruction
 
 			if (!allocated)
 			{
-				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
 				allocated = true;
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			position += 2;
@@ -118,12 +113,12 @@ public class InitializeInstruction : Instruction
 			{
 				if (!allocated)
 				{
-					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{-bytes}]!");
 					allocated = true;
 				}
 				else
 				{
-					builder.AppendLine($"{ARM64_STORE_REGISTER_INSTRUCTION} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 				}
 
 				i++;
@@ -133,12 +128,12 @@ public class InitializeInstruction : Instruction
 
 			if (!allocated)
 			{
-				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{-bytes}]!");
 				allocated = true;
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_STORE_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			i += 2;
@@ -151,7 +146,7 @@ public class InitializeInstruction : Instruction
 		// Save all used non-volatile rgisters
 		foreach (var register in registers)
 		{
-			builder.AppendLine($"{X64_STORE_REGISTER_INSTRUCTION} {register}");
+			builder.AppendLine($"{Instructions.X64.PUSH} {register}");
 			Unit.StackOffset += Assembler.Size.Bytes;
 		}
 	}
@@ -187,7 +182,7 @@ public class InitializeInstruction : Instruction
 		if (Assembler.IsDebuggingEnabled)
 		{
 			builder.AppendLine(DEBUG_HEADER_START);
-			builder.AppendLine(MoveInstruction.SHARED_MOVE_INSTRUCTION + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
+			builder.AppendLine(Instructions.Shared.MOVE + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
 			builder.AppendLine(DEBUG_HEADER_END);
 		}
 
@@ -225,11 +220,11 @@ public class InitializeInstruction : Instruction
 
 			if (Assembler.IsX64)
 			{
-				builder.Append($"{SubtractionInstruction.SHARED_STANDARD_SUBTRACTION_INSTRUCTION} {stack_pointer}, {additional_memory}");
+				builder.Append($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {additional_memory}");
 			}
 			else
 			{
-				builder.Append($"{SubtractionInstruction.SHARED_STANDARD_SUBTRACTION_INSTRUCTION} {stack_pointer}, {stack_pointer}, #{additional_memory}");
+				builder.Append($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {stack_pointer}, #{additional_memory}");
 			}
 		}
 		else if (save_registers.Count > 0)

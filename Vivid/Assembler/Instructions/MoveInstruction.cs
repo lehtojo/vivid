@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 public enum MoveType
 {
@@ -24,50 +25,28 @@ public enum MoveType
 /// </summary>
 public class MoveInstruction : DualParameterInstruction
 {
-	public const string SHARED_MOVE_INSTRUCTION = "mov";
-	public const string SHARED_BITWISE_AND_INSTRUCTION = "and";
+	private static readonly Dictionary<ComparisonOperator, string[]> Conditionals = new Dictionary<ComparisonOperator, string[]>();
 
-	public const string X64_LOAD_ADDRESS_INSTRUCTION = "lea";
-	public const string X64_UNSIGNED_CONVERSION = "movzx";
-	public const string X64_SIGNED_CONVERSION = "movsx";
-	public const string X64_SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE = "movsxd";
+	public static void Initialize()
+	{
+		if (Assembler.IsArm64)
+		{
+			Conditionals.Add(Operators.GREATER_THAN, 		new[] { "gt" });
+			Conditionals.Add(Operators.GREATER_OR_EQUAL,	new[] { "ge" });
+			Conditionals.Add(Operators.LESS_THAN, 			new[] { "lt" });
+			Conditionals.Add(Operators.LESS_OR_EQUAL,		new[] { "le" });
+			Conditionals.Add(Operators.EQUALS,				new[] { "eq" });
+			Conditionals.Add(Operators.NOT_EQUALS,			new[] { "ne" });
+			return;
+		}
 
-	public const string X64_RAW_MEDIA_REGISTER_MOVE = "movq";
-	public const string X64_SINGLE_PRECISION_MOVE = "movss";
-	public const string X64_DOUBLE_PRECISION_MOVE = "movsd";
-	public const string X64_UNALIGNED_XMMWORD_MOVE = "movups";
-	public const string X64_UNALIGNED_YMMWORD_MOVE = "vmovups";
-
-	public const string ARM64_DECIMAL_MOVE_INSTRUCTION = "fmov";
-
-	public const string X64_CONVERT_SINGLE_PRECISION_TO_INTEGER = "cvttss2si";
-	public const string X64_CONVERT_DOUBLE_PRECISION_TO_INTEGER = "cvttsd2si";
-
-	public const string ARM64_CONVERT_DECIMAL_TO_INTEGER = "fcvtzs";
-
-	public const string X64_CONVERT_INTEGER_TO_SINGLE_PRECISION = "cvtsi2ss";
-	public const string X64_CONVERT_INTEGER_TO_DOUBLE_PRECISION = "cvtsi2sd";
-
-	public const string ARM64_CONVERT_INTEGER_TO_DECIMAL = "scvtf";
-
-	public const string X64_MEDIA_REGISTER_BITWISE_XOR = "pxor";
-	public const string X64_BITWISE_XOR_INSTRUCTION = "xor";
-
-	public const string ARM64_STORE_INSTRUCTION = "str";
-	public const string ARM64_LOAD_INSTRUCTION = "ldr";
-
-	public const string ARM64_LOAD_UINT8_INSTRUCTION = "ldrb";
-	public const string ARM64_LOAD_UINT16_INSTRUCTION = "ldrh";
-	public const string ARM64_LOAD_INT8_INSTRUCTION = "ldrsb";
-	public const string ARM64_LOAD_INT16_INSTRUCTION = "ldrsh";
-	public const string ARM64_LOAD_INT32_INSTRUCTION = "ldrsw";
-	
-	public const string ARM64_STORE_UINT8_INSTRUCTION = "strb";
-	public const string ARM64_STORE_UINT16_INSTRUCTION = "strh";
-
-	public const string ARM64_CONVERT_INT8_TO_INT64 = "sxtb";
-	public const string ARM64_CONVERT_INT16_TO_INT64 = "sxth";
-	public const string ARM64_CONVERT_INT32_TO_INT64 = "sxtw";
+		Conditionals.Add(Operators.GREATER_THAN, 		new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN,						Instructions.X64.CONDITIONAL_MOVE_ABOVE,				Instructions.X64.CONDITIONAL_SET_GREATER_THAN,						Instructions.X64.CONDITIONAL_SET_ABOVE });
+		Conditionals.Add(Operators.GREATER_OR_EQUAL,	new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS,	Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS,	Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS });
+		Conditionals.Add(Operators.LESS_THAN, 			new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN,							Instructions.X64.CONDITIONAL_MOVE_BELOW,				Instructions.X64.CONDITIONAL_SET_LESS_THAN,							Instructions.X64.CONDITIONAL_SET_BELOW });
+		Conditionals.Add(Operators.LESS_OR_EQUAL,		new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS,			Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS,			Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS });
+		Conditionals.Add(Operators.EQUALS,				new[] { Instructions.X64.CONDITIONAL_MOVE_EQUALS,						Instructions.X64.CONDITIONAL_MOVE_ZERO,				Instructions.X64.CONDITIONAL_SET_EQUALS,						Instructions.X64.CONDITIONAL_SET_ZERO });
+		Conditionals.Add(Operators.NOT_EQUALS,			new[] { Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS,					Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO,			Instructions.X64.CONDITIONAL_SET_NOT_EQUALS,					Instructions.X64.CONDITIONAL_SET_NOT_ZERO });
+	}
 
 	private MoveType _Type = MoveType.COPY;
 	public new MoveType Type
@@ -84,9 +63,22 @@ public class MoveInstruction : DualParameterInstruction
 	public bool IsSafe { get; set; } = false;
 	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size); 
 
+	public Condition? Condition { get; private set; }
+
 	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
 	{
-		IsUsageAnalyzed = false; // Important: Prevents a future usage cycle (maybe)
+		IsUsageAnalyzed = false;
+	}
+
+	public MoveInstruction(Unit unit, Result first, Result second, Condition? condition) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
+	{
+		Condition = condition;
+		IsUsageAnalyzed = false;
+
+		if (Condition != null)
+		{
+			Dependencies = new[] { Result, First, Second, Condition.Left, Condition.Right };
+		}
 	}
 
 	private void UpdateResultFormat()
@@ -140,7 +132,7 @@ public class MoveInstruction : DualParameterInstruction
 						// fmov d0, xzr
 
 						Build(
-							ARM64_DECIMAL_MOVE_INSTRUCTION,
+							Instructions.Arm64.DECIMAL_MOVE,
 							new InstructionParameter(
 								First,
 								flags_first,
@@ -162,7 +154,7 @@ public class MoveInstruction : DualParameterInstruction
 					}
 
 					Build(
-						X64_MEDIA_REGISTER_BITWISE_XOR,
+						Instructions.X64.MEDIA_REGISTER_BITWISE_XOR,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -195,7 +187,7 @@ public class MoveInstruction : DualParameterInstruction
 					// ldr d0, [x0, :lo12:C0]
 
 					Build(
-						ARM64_LOAD_INSTRUCTION,
+						Instructions.Arm64.LOAD,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -218,7 +210,7 @@ public class MoveInstruction : DualParameterInstruction
 				// Example:
 				// scvtf d0, x0
 
-				instruction = ARM64_CONVERT_INTEGER_TO_DECIMAL;
+				instruction = Instructions.Arm64.CONVERT_INTEGER_TO_DECIMAL;
 
 				Build(
 					instruction,
@@ -240,7 +232,7 @@ public class MoveInstruction : DualParameterInstruction
 				// cvtsi2ss xmm0, rax
 				// cvtsi2sd xmm1, qword ptr [rbx]
 
-				instruction = Assembler.Is32bit ? X64_CONVERT_INTEGER_TO_SINGLE_PRECISION : X64_CONVERT_INTEGER_TO_DOUBLE_PRECISION;
+				instruction = Assembler.Is32bit ? Instructions.X64.CONVERT_INTEGER_TO_SINGLE_PRECISION : Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION;
 
 				Build(
 					instruction,
@@ -288,7 +280,7 @@ public class MoveInstruction : DualParameterInstruction
 				Second.Value.To<ConstantHandle>().Convert(First.Format);
 				Second.Format = First.Format;
 
-				instruction = SHARED_MOVE_INSTRUCTION;
+				instruction = Instructions.Shared.MOVE;
 
 				Build(
 					instruction,
@@ -311,7 +303,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Example:
 					// fcvtzs x0, d0
 
-					instruction = ARM64_CONVERT_DECIMAL_TO_INTEGER;
+					instruction = Instructions.Arm64.CONVERT_DECIMAL_TO_INTEGER;
 
 					Build(
 						instruction,
@@ -330,7 +322,7 @@ public class MoveInstruction : DualParameterInstruction
 					return;
 				}
 
-				instruction = Assembler.Is32bit ? X64_CONVERT_SINGLE_PRECISION_TO_INTEGER : X64_CONVERT_DOUBLE_PRECISION_TO_INTEGER;
+				instruction = Assembler.Is32bit ? Instructions.X64.CONVERT_SINGLE_PRECISION_TO_INTEGER : Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER;
 
 				Build(
 					instruction,
@@ -382,7 +374,7 @@ public class MoveInstruction : DualParameterInstruction
 						// str x0, [sp, #16]
 
 						Build(
-							ARM64_STORE_INSTRUCTION,
+							Instructions.Arm64.STORE,
 							new InstructionParameter(
 								Second,
 								flags_second,
@@ -403,7 +395,7 @@ public class MoveInstruction : DualParameterInstruction
 					// mov qword ptr [rsp+16], 3
 
 					Build(
-						SHARED_MOVE_INSTRUCTION,
+						Instructions.Shared.MOVE,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -426,7 +418,7 @@ public class MoveInstruction : DualParameterInstruction
 						// str x0, [sp, #16]
 
 						Build(
-							ARM64_STORE_INSTRUCTION,
+							Instructions.Arm64.STORE,
 							new InstructionParameter(
 								Second,
 								flags_second,
@@ -448,7 +440,7 @@ public class MoveInstruction : DualParameterInstruction
 					// mov qword ptr [rsp+16], rax
 
 					Build(
-						SHARED_MOVE_INSTRUCTION,
+						Instructions.Shared.MOVE,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -490,7 +482,7 @@ public class MoveInstruction : DualParameterInstruction
 						// str x1, [x0]
 
 						Build(
-							ARM64_STORE_INSTRUCTION,
+							Instructions.Arm64.STORE,
 							new InstructionParameter(
 								Second,
 								flags_second,
@@ -512,7 +504,7 @@ public class MoveInstruction : DualParameterInstruction
 					// mov [rax], rcx
 
 					Build(
-						SHARED_MOVE_INSTRUCTION,
+						Instructions.Shared.MOVE,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -535,7 +527,7 @@ public class MoveInstruction : DualParameterInstruction
 						// str d0, [sp, #8]
 
 						Build(
-							ARM64_STORE_INSTRUCTION,
+							Instructions.Arm64.STORE,
 							new InstructionParameter(
 								Second,
 								flags_second,
@@ -551,7 +543,7 @@ public class MoveInstruction : DualParameterInstruction
 						return;
 					}
 
-					instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_MOVE : X64_DOUBLE_PRECISION_MOVE;
+					instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
 
 					Build(
 						instruction,
@@ -587,7 +579,7 @@ public class MoveInstruction : DualParameterInstruction
 				// fmov d0, xzr
 
 				Build(
-					ARM64_DECIMAL_MOVE_INSTRUCTION,
+					Instructions.Arm64.DECIMAL_MOVE,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -613,7 +605,7 @@ public class MoveInstruction : DualParameterInstruction
 			// pxor xmm0, xmm0
 
 			Build(
-				X64_MEDIA_REGISTER_BITWISE_XOR,
+				Instructions.X64.MEDIA_REGISTER_BITWISE_XOR,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -634,7 +626,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_MOVE : X64_DOUBLE_PRECISION_MOVE;
+		var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
 
 		if (Second.IsConstant)
 		{
@@ -655,7 +647,7 @@ public class MoveInstruction : DualParameterInstruction
 				// Examples:
 				// ldr d0, [x0, #-8]
 
-				instruction = ARM64_STORE_INSTRUCTION;
+				instruction = Instructions.Arm64.STORE;
 
 				Build(
 					instruction,
@@ -706,12 +698,12 @@ public class MoveInstruction : DualParameterInstruction
 
 			if (Second.IsMemoryAddress)
 			{
-				instruction = ARM64_LOAD_INSTRUCTION;
+				instruction = Instructions.Arm64.LOAD;
 				types = new[] { HandleType.MEMORY };
 			}
 			else
 			{
-				instruction = ARM64_DECIMAL_MOVE_INSTRUCTION;
+				instruction = Instructions.Arm64.DECIMAL_MOVE;
 				types = new[] { HandleType.MEDIA_REGISTER };
 			}
 		}
@@ -765,7 +757,7 @@ public class MoveInstruction : DualParameterInstruction
 		// movq xmm0, 0x4024000000000000
 
 		Build(
-			First.IsMemoryAddress ? SHARED_MOVE_INSTRUCTION : X64_RAW_MEDIA_REGISTER_MOVE,
+			First.IsMemoryAddress ? Instructions.Shared.MOVE : Instructions.X64.RAW_MEDIA_REGISTER_MOVE,
 			new InstructionParameter(
 				First,
 				flags_first,
@@ -801,7 +793,7 @@ public class MoveInstruction : DualParameterInstruction
 		var section = sections[0];
 
 		Build(
-			SHARED_MOVE_INSTRUCTION,
+			Instructions.Shared.MOVE,
 			new InstructionParameter(
 				First,
 				flags_first,
@@ -826,6 +818,67 @@ public class MoveInstruction : DualParameterInstruction
 
 			Unit.Append(new LoadShiftedConstantInstruction(Unit, First, section, i * 16), true);
 		}
+	}
+
+	private void BuildConditionalMoveArm64(int flags_first)
+	{		
+		Memory.MoveToRegister(Unit, First, Assembler.Size, false, Trace.GetDirectives(Unit, First));
+		Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, First));
+
+		Arithmetic.BuildCondition(Unit, Condition!);
+
+		var condition = Conditionals[Condition!.Operator].First();
+
+		Build(
+			Instructions.Arm64.CONDITIONAL_MOVE,
+			Assembler.Size,
+			new InstructionParameter(
+				First,
+				flags_first | ParameterFlag.NO_ATTACH | ParameterFlag.READS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				First,
+				ParameterFlag.READS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				new Result(new ModifierHandle(condition), Assembler.Format),
+				ParameterFlag.NONE,
+				HandleType.MODIFIER
+			)
+		);
+	}
+
+	private void BuildConditionalMoveX64(int flags_first)
+	{
+		Memory.MoveToRegister(Unit, First, Assembler.Size, false, Trace.GetDirectives(Unit, First));
+		Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, First));
+
+		Arithmetic.BuildCondition(Unit, Condition!);
+
+		var options = Conditionals[Condition!.Operator];
+		var instruction = options[Condition.IsDecimal ? 1 : 0];
+
+		Build(
+			instruction,
+			Assembler.Size,
+			new InstructionParameter(
+				First,
+				flags_first | ParameterFlag.NO_ATTACH | ParameterFlag.READS,
+				HandleType.REGISTER
+			),
+			new InstructionParameter(
+				Second,
+				ParameterFlag.NONE,
+				HandleType.REGISTER
+			)
+		);
 	}
 
 	public override void OnBuild()
@@ -870,6 +923,23 @@ public class MoveInstruction : DualParameterInstruction
 			}
 		}
 
+		if (First.Format.IsDecimal() && Condition != null)
+		{
+			throw new InvalidOperationException("Conditional media register moves are not supported");
+		}
+		
+		if (Condition != null)
+		{
+			if (Assembler.IsArm64)
+			{
+				BuildConditionalMoveArm64(flags_first);
+				return;
+			}
+
+			BuildConditionalMoveX64(flags_first);
+			return;
+		}
+
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
 			OnBuildDecimalMoves(flags_first, flags_second);
@@ -884,7 +954,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				// Example: mov x0, xzr
 				Build(
-					SHARED_MOVE_INSTRUCTION,
+					Instructions.Shared.MOVE,
 					Assembler.Size,
 					new InstructionParameter(
 						First,
@@ -903,7 +973,7 @@ public class MoveInstruction : DualParameterInstruction
 
 			// Example: xor rax, rax
 			Build(
-				X64_BITWISE_XOR_INSTRUCTION,
+				Instructions.X64.XOR,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -930,7 +1000,7 @@ public class MoveInstruction : DualParameterInstruction
 				// str x0, [x1]
 				// str x0, [sp, #8]
 				Build(
-					ARM64_STORE_INSTRUCTION,
+					Instructions.Arm64.STORE,
 					new InstructionParameter(
 						Second,
 						flags_second,
@@ -950,7 +1020,7 @@ public class MoveInstruction : DualParameterInstruction
 			// mov [rsp+8], 314159
 			// mov [rdi], -1
 			Build(
-				SHARED_MOVE_INSTRUCTION,
+				Instructions.Shared.MOVE,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -975,7 +1045,7 @@ public class MoveInstruction : DualParameterInstruction
 			// mov rax, function_f_S0 => lea rax, [rip+function_f_S0]
 
 			Build(
-				X64_LOAD_ADDRESS_INSTRUCTION,
+				Instructions.X64.EVALUATE,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -1011,7 +1081,7 @@ public class MoveInstruction : DualParameterInstruction
 				Second.Value = new MemoryHandle(Unit, address, (int)handle.Offset);
 
 				Build(
-					ARM64_LOAD_INSTRUCTION,
+					Instructions.Arm64.LOAD,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -1038,7 +1108,7 @@ public class MoveInstruction : DualParameterInstruction
 				Second.Value = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
 
 				Build(
-					ARM64_LOAD_INSTRUCTION,
+					Instructions.Arm64.LOAD,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -1075,7 +1145,7 @@ public class MoveInstruction : DualParameterInstruction
 				// add x0, x0, x1, lsl #1
 
 				Build(
-					AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION,
+					Instructions.Shared.ADD,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -1095,7 +1165,7 @@ public class MoveInstruction : DualParameterInstruction
 			// lea rcx, [rbx+16]
 			// lea rax, [rcx*4+rbx-1]
 			Build(
-				X64_LOAD_ADDRESS_INSTRUCTION,
+				Instructions.X64.EVALUATE,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -1115,7 +1185,7 @@ public class MoveInstruction : DualParameterInstruction
 				// Examples:
 				// ldr x0, [x20, #16]
 				Build(
-					ARM64_LOAD_INSTRUCTION,
+					Instructions.Arm64.LOAD,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -1136,7 +1206,7 @@ public class MoveInstruction : DualParameterInstruction
 			// Examples:
 			// mov rax, [rsp+8]
 			Build(
-				SHARED_MOVE_INSTRUCTION,
+				Instructions.Shared.MOVE,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -1168,7 +1238,7 @@ public class MoveInstruction : DualParameterInstruction
 			// mov x20, x0
 			//
 			Build(
-				SHARED_MOVE_INSTRUCTION,
+				Instructions.Shared.MOVE,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -1219,8 +1289,8 @@ public class MoveInstruction : DualParameterInstruction
 
 	private static readonly Variant[] Variants = new Variant[]
 	{
-		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, X64_UNALIGNED_XMMWORD_MOVE, Size.XMMWORD, Size.XMMWORD),
-		new(Size.YMMWORD, Size.YMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, X64_UNALIGNED_YMMWORD_MOVE, Size.YMMWORD, Size.YMMWORD),
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_XMMWORD_MOVE, Size.XMMWORD, Size.XMMWORD),
+		new(Size.YMMWORD, Size.YMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_YMMWORD_MOVE, Size.YMMWORD, Size.YMMWORD),
 	};
 
 	private Variant? TryGetVariant()
@@ -1232,6 +1302,21 @@ public class MoveInstruction : DualParameterInstruction
 			Flag.Has((int)i.InputSourceTypes, (int)Source!.Value!.Type)
 
 		).FirstOrDefault();
+	}
+
+	private bool IsMoveInstructionX64()
+	{
+		return Operation == Instructions.Shared.MOVE || Operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE || Operation == Instructions.X64.SIGNED_CONVERSION_MOVE || Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE;
+	}
+
+	private bool IsStoreInstructionArm64()
+	{
+		return Operation == Instructions.Arm64.STORE || Operation == Instructions.Arm64.STORE_UINT16 || Operation == Instructions.Arm64.STORE_UINT8;
+	}
+
+	private bool IsLoadInstructionArm64()
+	{
+		return Operation == Instructions.Arm64.LOAD || Operation == Instructions.Arm64.LOAD_INT8 || Operation == Instructions.Arm64.LOAD_INT16 || Operation == Instructions.Arm64.LOAD_INT32 || Operation == Instructions.Arm64.LOAD_UINT8 || Operation == Instructions.Arm64.LOAD_UINT16;
 	}
 
 	public void OnPostBuildX64()
@@ -1248,6 +1333,11 @@ public class MoveInstruction : DualParameterInstruction
 
 		// Skip decimal formats since they are correct by default
 		if (Destination!.Value!.Format.IsDecimal() || Source!.Value!.Format.IsDecimal())
+		{
+			return;
+		}
+
+		if (!IsMoveInstructionX64())
 		{
 			return;
 		}
@@ -1269,6 +1359,7 @@ public class MoveInstruction : DualParameterInstruction
 		// Return if no conversion is needed
 		if (Source!.Value!.Size.Bytes == Destination!.Value!.Size.Bytes || Source.Value.Is(HandleType.CONSTANT))
 		{
+			Operation = Instructions.Shared.MOVE;
 			return;
 		}
 
@@ -1301,14 +1392,14 @@ public class MoveInstruction : DualParameterInstruction
 			//
 			// movzx ax, cl (16 <- 8)
 
-			Operation = X64_UNSIGNED_CONVERSION;
+			Operation = Instructions.X64.UNSIGNED_CONVERSION_MOVE;
 			return;
 		}
 
 		if (Destination.Value.Size == 64 && Source.Value.Size == 32)
 		{
 			// Example: movsxd rax, ecx (64 <- 32)
-			Operation = X64_SIGNED_CONVERSION_FROM_DWORD_IN_64_BIT_MODE;
+			Operation = Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE;
 			return;
 		}
 
@@ -1321,7 +1412,7 @@ public class MoveInstruction : DualParameterInstruction
 		//
 		// movsx ax, cl (16 <- 8)
 
-		Operation = X64_SIGNED_CONVERSION;
+		Operation = Instructions.X64.SIGNED_CONVERSION_MOVE;
 	}
 
 	public void OnPostBuildArm64()
@@ -1335,16 +1426,16 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		var is_load = Operation == ARM64_LOAD_INSTRUCTION;
-		var is_store = Operation == ARM64_STORE_INSTRUCTION;
+		var is_load = IsLoadInstructionArm64();
+		var is_store = IsStoreInstructionArm64();
 
 		// NOTE: When a value is moved to 32-bit register, the higher bits are zeroed out
 		if (is_load || is_store)
 		{
-			var inspected = is_load ? Source! : Destination!;
-			var value = is_load ? Destination! : Source!;
+			var inspected = is_load ? source : destination;
+			var value = is_load ? destination : source;
 
-			if (inspected.Value!.IsUnsigned)
+			if (inspected.IsUnsigned)
 			{
 				// Examples:
 				// 
@@ -1358,22 +1449,22 @@ public class MoveInstruction : DualParameterInstruction
 				// str w0, [x1] ([8, 16, 32, 64] -> 32)
 				// str x0, [x1] ([8, 16, 32, 64] -> 64)
 
-				Operation = inspected.Size!.Bits switch
+				Operation = inspected.Size.Bits switch
 				{
-					8 => is_load ? ARM64_LOAD_UINT8_INSTRUCTION : ARM64_STORE_UINT8_INSTRUCTION,
-					16 => is_load ? ARM64_LOAD_UINT16_INSTRUCTION : ARM64_STORE_UINT16_INSTRUCTION,
-					32 => is_load ? ARM64_LOAD_INSTRUCTION : ARM64_STORE_INSTRUCTION,
-					64 => is_load ? ARM64_LOAD_INSTRUCTION : ARM64_STORE_INSTRUCTION,
+					8 => is_load ? Instructions.Arm64.LOAD_UINT8 : Instructions.Arm64.STORE_UINT8,
+					16 => is_load ? Instructions.Arm64.LOAD_UINT16 : Instructions.Arm64.STORE_UINT16,
+					32 => is_load ? Instructions.Arm64.LOAD : Instructions.Arm64.STORE,
+					64 => is_load ? Instructions.Arm64.LOAD : Instructions.Arm64.STORE,
 					_ => throw new ApplicationException("Could not resolve the size of source value")
 				};
 
-				if (inspected.Size!.Bits == 64)
+				if (inspected.Size.Bits == 64)
 				{
-					value.Value!.Format = Size.QWORD.ToFormat();
+					value.Format = Size.QWORD.ToFormat();
 				}
 				else
 				{
-					value.Value!.Format = Size.DWORD.ToFormat();
+					value.Format = Size.DWORD.ToFormat();
 				}
 
 				return;
@@ -1396,22 +1487,22 @@ public class MoveInstruction : DualParameterInstruction
 			// str w0, [x1] ([8, 16, 32, 64] -> 32)
 			// str x0, [x1] ([8, 16, 32, 64] -> 64) 
 
-			Operation = inspected.Size!.Bits switch
+			Operation = inspected.Size.Bits switch
 			{
-				8 => is_load ? ARM64_LOAD_INT8_INSTRUCTION : ARM64_STORE_UINT8_INSTRUCTION,
-				16 => is_load ? ARM64_LOAD_INT16_INSTRUCTION : ARM64_STORE_UINT16_INSTRUCTION,
-				32 => is_load ? (Destination!.Size!.Bits == 64 ? ARM64_LOAD_INT32_INSTRUCTION : ARM64_LOAD_INSTRUCTION) : ARM64_STORE_INSTRUCTION,
-				64 => is_load ? ARM64_LOAD_INSTRUCTION : ARM64_STORE_INSTRUCTION,
+				8 => is_load ? Instructions.Arm64.LOAD_INT8 : Instructions.Arm64.STORE_UINT8,
+				16 => is_load ? Instructions.Arm64.LOAD_INT16 : Instructions.Arm64.STORE_UINT16,
+				32 => is_load ? (destination.Size.Bits == 64 ? Instructions.Arm64.LOAD_INT32 : Instructions.Arm64.LOAD) : Instructions.Arm64.STORE,
+				64 => is_load ? Instructions.Arm64.LOAD : Instructions.Arm64.STORE,
 				_ => throw new ApplicationException("Could not resolve the size of source value")
 			};
 
-			if (inspected.Size!.Bits == 64 || is_load && Destination!.Size!.Bits == 64)
+			if (inspected.Size.Bits == 64 || is_load && destination.Size.Bits == 64)
 			{
-				value.Value!.Format = Size.QWORD.ToFormat();
+				value.Format = Size.QWORD.ToFormat();
 			}
 			else
 			{
-				value.Value!.Format = Size.DWORD.ToFormat();
+				value.Format = Size.DWORD.ToFormat();
 			}
 
 			return;
@@ -1446,9 +1537,9 @@ public class MoveInstruction : DualParameterInstruction
 
 			Operation = source.Size.Bits switch
 			{
-				8 => ARM64_CONVERT_INT8_TO_INT64,
-				16 => ARM64_CONVERT_INT16_TO_INT64,
-				32 => ARM64_CONVERT_INT32_TO_INT64,
+				8 => Instructions.Arm64.CONVERT_INT8_TO_INT64,
+				16 => Instructions.Arm64.CONVERT_INT16_TO_INT64,
+				32 => Instructions.Arm64.CONVERT_INT32_TO_INT64,
 				_ => throw new ApplicationException("Could not resolve the size of source value")
 			};
 
@@ -1477,7 +1568,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		mask_parameter.Value = mask_parameter.Result.Value;
 
-		Operation = SHARED_BITWISE_AND_INSTRUCTION;
+		Operation = Instructions.Shared.AND;
 		Parameters.Add(mask_parameter);
 	}
 
@@ -1497,13 +1588,13 @@ public class MoveInstruction : DualParameterInstruction
 	{
 		if (Assembler.IsX64)
 		{
-			if (Operation == SHARED_MOVE_INSTRUCTION && (handle.Is(HandleType.REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress && (!Source.IsConstant || Source.Value!.To<ConstantHandle>().Bits <= 32))))
+			if (Operation == Instructions.Shared.MOVE && (handle.Is(HandleType.REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress && (!Source.IsConstant || Source.Value!.To<ConstantHandle>().Bits <= 32))))
 			{
 				Destination!.Value = handle;
 				return true;
 			}
 
-			if ((Operation == X64_SINGLE_PRECISION_MOVE || Operation == X64_DOUBLE_PRECISION_MOVE || Operation == X64_RAW_MEDIA_REGISTER_MOVE) && (handle.Is(HandleType.MEDIA_REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress)))
+			if ((Operation == Instructions.X64.SINGLE_PRECISION_MOVE || Operation == Instructions.X64.DOUBLE_PRECISION_MOVE || Operation == Instructions.X64.RAW_MEDIA_REGISTER_MOVE) && (handle.Is(HandleType.MEDIA_REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress)))
 			{
 				Destination!.Value = handle;
 				return true;
@@ -1512,7 +1603,7 @@ public class MoveInstruction : DualParameterInstruction
 			return false;
 		}
 
-		if (Operation == SHARED_MOVE_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		if (Operation == Instructions.Shared.MOVE && handle.Is(HandleType.REGISTER))
 		{
 			Destination!.Value = handle;
 			return true;

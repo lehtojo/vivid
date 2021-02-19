@@ -98,6 +98,11 @@ public static class Conditionals
 
 	public static Result Start(Unit unit, IfNode node)
 	{
+		if (!Assembler.IsDebuggingEnabled && TryBuildBranchlessExecution(unit, node))
+		{
+			return new Result();
+		}
+
 		var branches = node.GetBranches().ToArray();
 		var contexts = branches.Select(i => i is IfNode x ? x.Body.Context : i.To<ElseNode>().Body.Context).ToArray();
 
@@ -297,5 +302,209 @@ public static class Conditionals
 		}
 
 		return instructions;
+	}
+
+	/// <summary>
+	/// Determines whether the specified node tree can be built without branching
+	/// </summary>
+	private static bool IsBranchlessExecutionPossible(Node root)
+	{
+		// If the specified node contains a function call, branchless execution is not possible
+		return root.Find(i => i.Is(NodeType.FUNCTION, NodeType.CALL, NodeType.IF, NodeType.RETURN)) == null;
+	}
+
+	/// <summary>
+	/// Updates the specified edit so that it is executed conditionally
+	/// </summary>
+	private static void SetConditional(Node edit, Condition condition)
+	{
+		if (edit.Is(Operators.ASSIGN))
+		{
+			edit.To<OperatorNode>().Condition = condition;
+			return;
+		}
+
+		throw new ArgumentException("Invalid edit node passed as a parameter");
+	}
+
+	/// <summary>
+	/// Returns whether the edit can be conditional
+	/// </summary>
+	private static bool IsValidBranchlessExecutionEdit(Node edit)
+	{
+		/// TODO: Allow other action operators as well
+		if (!edit.Is(Operators.ASSIGN))
+		{
+			return false;
+		}
+
+		// Ensure the edited node is a variable node
+		var edited = Analyzer.GetEdited(edit);
+
+		if (!edited.Is(NodeType.VARIABLE))
+		{
+			return false;
+		}
+
+		var variable = edited.To<VariableNode>().Variable;
+
+		// Ensure the variable is predictable
+		return variable.IsPredictable;
+	}
+
+	private static bool TryBuildBranchlessExecution(Unit unit, IfNode statement)
+	{
+		// Require the condition to be single comparison for now
+		if (!statement.Condition.Is(OperatorType.COMPARISON))
+		{
+			return false;
+		}
+
+		if ((statement.Successor != null && statement.Successor.Is(NodeType.ELSE_IF)) || !IsBranchlessExecutionPossible(statement.Body))
+		{
+			return false;
+		}
+
+		var operation = (ComparisonOperator)statement.Condition.To<OperatorNode>().Operator;
+
+		// NOTE: There can not be increments and decrements operations since they can not be processed in the back end
+
+		// Since there will not be function calls, the only meaningfull nodes currently are edits
+		var a = statement.Body.FindAll(i => i.Is(OperatorType.ACTION));
+
+		// If the specified node contains memory edits, branchless execution should not be built
+		if (a.Any(i => !IsValidBranchlessExecutionEdit(i)))
+		{
+			return false;
+		}
+
+		// Take the edits whose destination is an external variable looking from the perspective of the statement
+		a = a.Where(i => !Analyzer.GetEdited(i).To<VariableNode>().Variable.Context.IsInside(statement.Body.Context)).ToList();
+
+		// If any of the edits require conditional decimal moves, that will not be happening (at least on x64)
+		if (a.Any(i => Analyzer.GetEdited(i).To<VariableNode>().Variable.GetRegisterFormat() == Format.DECIMAL))
+		{
+			return false;
+		}
+
+		/// NOTE: There can not be nested scopes inside the branches since they are not allowed while building a branchless version of conditional statement
+
+		if (statement.Successor != null)
+		{
+			var b = statement.Successor.To<ElseNode>().Body.FindAll(i => i.Is(OperatorType.ACTION));
+
+			// If the specified node contains memory edits, branchless execution should not be built
+			if (b.Any(i => !IsValidBranchlessExecutionEdit(i)))
+			{
+				return false;
+			}
+
+			// Take the edits whose destination is an external variable looking from the perspective of the successor
+			b = b.Where(i => !Analyzer.GetEdited(i).To<VariableNode>().Variable.Context.IsInside(statement.Successor.To<ElseNode>().Body.Context)).ToList();
+
+			// If any of the edits require conditional decimal moves, that will not be happening (at least on x64)
+			if (b.Any(i => Analyzer.GetEdited(i).To<VariableNode>().Variable.GetRegisterFormat() == Format.DECIMAL))
+			{
+				return false;
+			}
+
+			// Situation 1:
+			// if ... { a = 1 } else { a = -1 }
+			// =>
+			// a = -1
+			// a ?= -1
+
+			// Situation 2:
+			// if ... { a = 1 } else { b = 1 }
+			// =>
+			// a ?= 1
+			// b ?= 1
+
+			// Situation 3:
+			// b = 0, if ... { a = 1, b = 1 } else { a = b + 1 }
+			// =>
+			// a = 1
+			// b ?= 1
+			// a ?= b + 1
+
+			// Situation 4:
+			// b = 0, if ... { a = 1, b = 1 } else { b = b + 1 }
+			// =>
+			// a ?= 1
+			// b ?= 1
+			// b ?= b + 1
+			
+			// Build the nodes around the actual condition by disabling the condition temporarily
+			var instance = statement.Condition.Instance;
+			statement.Condition.Instance = NodeType.DISABLED;
+
+			Builders.Build(unit, statement.Left);
+			
+			statement.Condition.Instance = instance;
+	
+			var left = References.Get(unit, statement.Condition.Left);
+			var right = References.Get(unit, statement.Condition.Right);
+
+			var condition = new Condition(left, right, operation);
+			var inverse_condition = new Condition(left, right, operation.Counterpart!);
+
+			var x = a.GroupBy(i => Analyzer.GetEdited(i).To<VariableNode>().Variable);
+			var y = b.GroupBy(i => Analyzer.GetEdited(i).To<VariableNode>().Variable).ToDictionary(i => i.Key, i => i.ToList());
+
+			foreach (var iterator in x)
+			{
+				if (!y.ContainsKey(iterator.Key))
+				{
+					iterator.ForEach(i => SetConditional(i, condition));
+					continue;
+				}
+
+				var assignments = y[iterator.Key];
+
+				// If there is an usage which is not an edit before any of the edits in the successor, the edits in the if-statement must be conditional
+				if (statement.Successor.Find(i => i.Is(iterator.Key) && !Analyzer.IsEdited(i) && assignments.All(j => j.IsAfter(i) || i.IsUnder(j))) != null)
+				{
+					iterator.ForEach(i => SetConditional(i, condition));
+				}
+
+				assignments.ForEach(i => SetConditional(i, inverse_condition));
+
+				y.Remove(iterator.Key);
+			}
+
+			y.Values.SelectMany(i => i).ForEach(i => SetConditional(i, inverse_condition));
+
+			statement.Body.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+			statement.Successor.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = inverse_condition);
+		}
+		else
+		{
+			// Build the nodes around the actual condition by disabling the condition temporarily
+			var instance = statement.Condition.Instance;
+			statement.Condition.Instance = NodeType.DISABLED;
+
+			Builders.Build(unit, statement.Left);
+			
+			statement.Condition.Instance = instance;
+	
+			var left = References.Get(unit, statement.Condition.Left);
+			var right = References.Get(unit, statement.Condition.Right);
+
+			var condition = new Condition(left, right, operation);
+
+			// Set every assignment to be conditional
+			a.ForEach(i => SetConditional(i, condition));
+
+			statement.Body.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+		}
+		
+		Builders.Build(unit, statement.Body);
+		
+		if (statement.Successor != null)
+		{
+			Builders.Build(unit, statement.Successor.To<ElseNode>().Body);
+		}
+
+		return true;
 	}
 }

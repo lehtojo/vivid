@@ -8,19 +8,6 @@ using System.Linq;
 /// </summary>
 public class DivisionInstruction : DualParameterInstruction
 {
-	private const string X64_SIGNED_INTEGER_DIVISION_INSTRUCTION = "idiv";
-	private const string ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION = "sdiv";
-
-	private const string X64_SINGLE_PRECISION_DIVISION_INSTRUCTION = "divss";
-	private const string X64_DOUBLE_PRECISION_DIVISION_INSTRUCTION = "divsd";
-
-	private const string ARM64_DECIMAL_DIVISION_INSTRUCTION = "fdiv";
-
-	private const string X64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION = "sar";
-	private const string ARM64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION = "asr";
-
-	public const string ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION = "msub";
-
 	public bool Modulus { get; private set; }
 	public bool Assigns { get; private set; }
 	public bool Unsigned { get; private set; }
@@ -110,7 +97,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var flags = ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.WRITES | ParameterFlag.READS | ParameterFlag.LOCKED | (Assigns ? ParameterFlag.RELOCATE_TO_DESTINATION : ParameterFlag.NONE);
 
 		Build(
-			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			Instructions.X64.SIGNED_DIVIDE,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -140,7 +127,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var flags = ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS | ParameterFlag.LOCKED;
 
 		Build(
-			X64_SIGNED_INTEGER_DIVISION_INSTRUCTION,
+			Instructions.X64.SIGNED_DIVIDE,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -198,7 +185,7 @@ public class DivisionInstruction : DualParameterInstruction
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_DIVISION_INSTRUCTION : X64_DOUBLE_PRECISION_DIVISION_INSTRUCTION;
+			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_DIVIDE : Instructions.X64.DOUBLE_PRECISION_DIVIDE;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
@@ -231,7 +218,7 @@ public class DivisionInstruction : DualParameterInstruction
 				var result = Memory.LoadOperand(Unit, division.Dividend, false, Assigns);
 
 				Build(
-					X64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION,
+					Instructions.X64.SHIFT_RIGHT,
 					Assembler.Size,
 					new InstructionParameter(
 						result,
@@ -286,7 +273,7 @@ public class DivisionInstruction : DualParameterInstruction
 		if (Assigns)
 		{
 			Build(
-				ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+				Instructions.Arm64.MULTIPLY_SUBTRACT,
 				new InstructionParameter(
 					first,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -315,7 +302,7 @@ public class DivisionInstruction : DualParameterInstruction
 		Memory.GetResultRegisterFor(Unit, Result, false);
 
 		Build(
-			ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+			Instructions.Arm64.MULTIPLY_SUBTRACT,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,
@@ -345,7 +332,7 @@ public class DivisionInstruction : DualParameterInstruction
 	public void OnBuildArm64()
 	{
 		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
-		var instruction = is_decimal ? ARM64_DECIMAL_DIVISION_INSTRUCTION : ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION;
+		var instruction = is_decimal ? Instructions.Arm64.DECIMAL_DIVIDE : Instructions.Arm64.SIGNED_DIVIDE;
 		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.REGISTER };
 
@@ -356,7 +343,7 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			second = new Result(new ConstantHandle((long)Math.Log2(division.Constant)), Assembler.Format);
 			types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
-			instruction = ARM64_DIVIDE_BY_POWER_OF_TWO_INSTRUCTION;
+			instruction = Instructions.Arm64.SHIFT_RIGHT;
 		}
 
 		if (Assigns)
@@ -434,13 +421,13 @@ public class DivisionInstruction : DualParameterInstruction
 
 	public bool RedirectArm64(Handle handle)
 	{
-		if (Operation == ARM64_SIGNED_INTEGER_DIVISION_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		if (Operation == Instructions.Arm64.SIGNED_DIVIDE && handle.Is(HandleType.REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;
 		}
 
-		if (Operation == ARM64_DECIMAL_DIVISION_INSTRUCTION && handle.Is(HandleType.MEDIA_REGISTER))
+		if (Operation == Instructions.Arm64.DECIMAL_DIVIDE && handle.Is(HandleType.MEDIA_REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;

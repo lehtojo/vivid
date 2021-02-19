@@ -224,7 +224,7 @@ public class Unit
 		}
 
 		Registers.Add(new Register(Size.QWORD, new [] { "x30", "w30", "w30", "w30" }, RegisterFlag.RESERVED | RegisterFlag.RETURN_ADDRESS));
-		Registers.Add(new Register(Size.QWORD, new [] { "xzr", "wzr", "szr", "bzr" }, RegisterFlag.ZERO | RegisterFlag.VOLATILE));
+		Registers.Add(new Register(Size.QWORD, new [] { "xzr", "wzr", "wzr", "wzr" }, RegisterFlag.RESERVED | RegisterFlag.ZERO | RegisterFlag.VOLATILE));
 		Registers.Add(new Register(Size.QWORD, new [] { "sp", "sp", "sp", "sp" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER));
 	}
 

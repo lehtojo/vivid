@@ -4,8 +4,6 @@
 /// </summary>
 public class MultiplicationSubtractionInstruction : Instruction
 {
-	public const string ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION = "msub";
-
 	public Result Multiplicand { get; private set; }
 	public Result Multiplier { get; private set; }
 	public Result Minued { get; private set; }
@@ -30,7 +28,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 			var result = Memory.LoadOperand(Unit, Minued, false, Assigns);
 
 			Build(
-				ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+				Instructions.Arm64.MULTIPLY_SUBTRACT,
 				Assembler.Size,
 				new InstructionParameter(
 					result,
@@ -66,7 +64,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 		Memory.GetResultRegisterFor(Unit, Result, false);
 
 		Build(
-			ARM64_MULTIPLICATION_SUBTRACTION_INSTRUCTION,
+			Instructions.Arm64.MULTIPLY_SUBTRACT,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,

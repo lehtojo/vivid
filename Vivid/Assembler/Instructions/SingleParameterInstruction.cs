@@ -6,12 +6,6 @@ using System;
 /// </summary>
 public class SingleParameterInstruction : Instruction
 {
-	private const string SHARED_NEGATE_INSTRUCTION = "neg";
-	private const string ARM64_DECIMAL_NEGATE_INSTRUCTION = "fneg";
-
-	private const string X64_NOT_INSTRUCTION = "not";
-	private const string ARM64_NOT_INSTRUCTION = "mvn";
-
 	public string Instruction { get; private set; }
 	public Result Target { get; private set; }
 
@@ -22,7 +16,7 @@ public class SingleParameterInstruction : Instruction
 			throw new InvalidOperationException("Negating decimal value using single parameter instruction on architecture x64 is not allowed");
 		}
 
-		return new SingleParameterInstruction(unit, is_decimal ? ARM64_DECIMAL_NEGATE_INSTRUCTION : SHARED_NEGATE_INSTRUCTION, target)
+		return new SingleParameterInstruction(unit, is_decimal ? Instructions.Arm64.DECIMAL_NEGATE : Instructions.Shared.NEGATE, target)
 		{
 			Description = "Negates the target value"
 		};
@@ -30,7 +24,7 @@ public class SingleParameterInstruction : Instruction
 
 	public static SingleParameterInstruction Not(Unit unit, Result target)
 	{
-		return new SingleParameterInstruction(unit, Assembler.IsArm64 ? ARM64_NOT_INSTRUCTION : X64_NOT_INSTRUCTION, target)
+		return new SingleParameterInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.NOT : Instructions.X64.NOT, target)
 		{
 			Description = "Performs bitwise not operation to the target value"
 		};

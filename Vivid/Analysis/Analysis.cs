@@ -660,114 +660,136 @@ public static class Analysis
 
 	public static bool UnwrapStatements(Node root)
 	{
-		var iterator = root.First;
 		var unwrapped = false;
+		var statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
 
-		while (iterator != null)
+		while (statements.Any())
 		{
+			var iterator = statements.Dequeue();
+
 			if (iterator.Is(NodeType.IF))
 			{
 				var statement = iterator.To<IfNode>();
 
-				if (statement.Condition.Is(NodeType.NUMBER))
+				if (!statement.Condition.Is(NodeType.NUMBER))
 				{
-					var successors = statement.GetSuccessors();
-
-					if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
-					{
-						// Disconnect all the successors
-						successors.ForEach(s => s.Remove());
-
-						iterator = statement.Next;
-
-						// Replace the conditional statement with the body
-						statement.ReplaceWithChildren(statement.Body);
-
-						unwrapped = true;
-					}
-					else
-					{
-						if (statement.Successor == null)
-						{
-							iterator = statement.Next;
-							statement.Remove();
-							continue;
-						}
-
-						if (statement.Successor.Is(NodeType.ELSE))
-						{
-							iterator = statement.Successor.Next;
-
-							// Replace the conditional statement with the body of the successor
-							statement.ReplaceWithChildren(statement.Successor.To<ElseNode>().Body);
-
-							unwrapped = true;
-							continue;
-						}
-
-						var successor = statement.Successor.To<ElseIfNode>();
-
-						// Create a conditional statement identical to the successor but as an if-statement
-						var replacement = new IfNode();
-						successor.ForEach(i => replacement.Add(i));
-
-						iterator = replacement;
-
-						successor.Remove();
-
-						statement.Replace(replacement);
-
-						unwrapped = true;
-					}
-
 					continue;
 				}
+
+				var successors = statement.GetSuccessors();
+
+				if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
+				{
+					// Disconnect all the successors
+					successors.ForEach(i => i.Remove());
+
+					// Replace the conditional statement with the body
+					statement.ReplaceWithChildren(statement.Body);
+
+					unwrapped = true;
+					continue;
+				}
+
+				// If there is no successor, this statement can be removed completely
+				if (statement.Successor == null)
+				{
+					statement.Remove();
+					continue;
+				}
+
+				if (statement.Successor.Is(NodeType.ELSE))
+				{
+					// Replace the conditional statement with the body of the successor
+					statement.ReplaceWithChildren(statement.Successor.To<ElseNode>().Body);
+
+					unwrapped = true;
+					continue;
+				}
+
+				var successor = statement.Successor.To<ElseIfNode>();
+
+				// Create a conditional statement identical to the successor but as an if-statement
+				var replacement = new IfNode();
+				successor.ForEach(i => replacement.Add(i));
+
+				// Process the replacement later
+				statements.Enqueue(replacement);
+
+				// Since the statement will not be executed, replace it with its successor
+				successor.Remove();
+				statement.Replace(replacement);
+
+				unwrapped = true;
 			}
 			else if (iterator.Is(NodeType.LOOP))
 			{
 				var statement = iterator.To<LoopNode>();
 
-				if (!statement.IsForeverLoop)
+				if (statement.IsForeverLoop)
 				{
-					if (!statement.Condition.Is(NodeType.NUMBER))
+					continue;
+				}
+
+				if (!statement.Condition.Is(NodeType.NUMBER))
+				{
+					if (TryUnwrapLoop(statement))
 					{
-						iterator = statement.Next;
-
-						if (TryUnwrapLoop(statement))
-						{
-							unwrapped = true;
-						}
-
-						continue;
+						// Statements must be reloaded, since the unwrap was successful
+						unwrapped = true;
+						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
 					}
 
-					// NOTE: Here the condition of the loop must be a number node
-					// Basically if the number node represents a non-zero value it means the loop should be reconstructed as a forever loop
-					if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
+					continue;
+				}
+
+				// NOTE: Here the condition of the loop must be a number node
+				// Basically if the number node represents a non-zero value it means the loop should be reconstructed as a forever loop
+				if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
+				{
+					// If there are nodes which are executed before the condition, insert them as well
+					var initialization = statement.GetConditionInitialization();
+
+					// Even though the loop will not be executed the initialization will be
+					statement.Insert(statement.Initialization);
+
+					if (!initialization.IsEmpty)
 					{
-						var parent = statement.Parent!;
+						statement.Insert(initialization);
+					}
 
-						parent.Insert(statement, statement.Initialization);
+					var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
+					
+					statement.Insert(replacement);
+					statement.Remove();
 
-						var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
-						parent.Insert(statement, replacement);
+					if (!initialization.IsEmpty)
+					{
+						// Reload is needed, since the condition initialization is cloned
+						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+					}
+				}
+				else
+				{
+					// If there are nodes which are executed before the condition, insert them as well
+					var initialization = statement.GetConditionInitialization();
 
-						statement.Remove();
+					// Even though the loop will not be executed the initialization will be
+					statement.Insert(statement.Initialization);
 
-						iterator = replacement.Next;
+					if (!initialization.IsEmpty)
+					{
+						// Reload is needed, since the condition initialization is cloned
+						statement.Replace(initialization);
+						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
 					}
 					else
 					{
-						statement.Replace(statement.Initialization);
-						iterator = statement.Initialization;
+						statement.Remove();
 					}
-
-					unwrapped = true;
-					continue;
 				}
-			}
 
-			iterator = iterator.Next;
+				unwrapped = true;
+			}
 		}
 
 		return unwrapped;

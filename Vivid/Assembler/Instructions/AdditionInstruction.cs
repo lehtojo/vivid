@@ -6,16 +6,8 @@ using System.Linq;
 /// </summary>
 public class AdditionInstruction : DualParameterInstruction
 {
-	public const string SHARED_STANDARD_ADDITION_INSTRUCTION = "add";
-
 	private const int STANDARD_ADDITION_FIRST = 0;
 	private const int STANDARD_ADDITION_SECOND = 1;
-
-	private const string X64_EXTENDED_ADDITION_INSTRUCTION = "lea";
-	private const string X64_SINGLE_PRECISION_ADDITION_INSTRUCTION = "addss";
-	private const string X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION = "addsd";
-
-	public const string ARM64_DECIMAL_ADDITION_INSTRUCTION = "fadd";
 
 	public bool Assigns { get; private set; }
 
@@ -45,7 +37,7 @@ public class AdditionInstruction : DualParameterInstruction
 				Unit.Append(new MoveInstruction(Unit, First, Result), true);
 			}
 
-			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_ADDITION_INSTRUCTION : X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION;
+			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_ADD : Instructions.X64.DOUBLE_PRECISION_ADD;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
@@ -72,7 +64,7 @@ public class AdditionInstruction : DualParameterInstruction
 		if (Assigns)
 		{
 			Build(
-				SHARED_STANDARD_ADDITION_INSTRUCTION,
+				Instructions.Shared.ADD,
 				First.Size,
 				new InstructionParameter(
 					First,
@@ -94,7 +86,7 @@ public class AdditionInstruction : DualParameterInstruction
 		if (First.IsExpiring(Position))
 		{
 			Build(
-				SHARED_STANDARD_ADDITION_INSTRUCTION,
+				Instructions.Shared.ADD,
 				Assembler.Size,
 				new InstructionParameter(
 					First,
@@ -116,7 +108,7 @@ public class AdditionInstruction : DualParameterInstruction
 		var calculation = ExpressionHandle.CreateAddition(First, Second);
 
 		Build(
-			X64_EXTENDED_ADDITION_INSTRUCTION,
+			Instructions.X64.EVALUATE,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,
@@ -134,7 +126,7 @@ public class AdditionInstruction : DualParameterInstruction
 	public void OnBuildArm64()
 	{
 		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
-		var instruction = is_decimal ? ARM64_DECIMAL_ADDITION_INSTRUCTION : SHARED_STANDARD_ADDITION_INSTRUCTION;
+		var instruction = is_decimal ? Instructions.Arm64.DECIMAL_ADD : Instructions.Shared.ADD;
 		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER, HandleType.MODIFIER };
 
@@ -195,12 +187,12 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
-		if (Operation == X64_SINGLE_PRECISION_ADDITION_INSTRUCTION || Operation == X64_DOUBLE_PRECISION_ADDITION_INSTRUCTION)
+		if (Operation == Instructions.X64.SINGLE_PRECISION_ADD || Operation == Instructions.X64.DOUBLE_PRECISION_ADD)
 		{
 			return false;
 		}
 
-		if (Operation == X64_EXTENDED_ADDITION_INSTRUCTION)
+		if (Operation == Instructions.X64.EVALUATE)
 		{
 			if (!handle.Is(HandleType.REGISTER))
 			{
@@ -216,7 +208,7 @@ public class AdditionInstruction : DualParameterInstruction
 
 		if (handle.Type == HandleType.REGISTER && first.IsAnyRegister && (second.IsAnyRegister || second.IsConstant))
 		{
-			Operation = X64_EXTENDED_ADDITION_INSTRUCTION;
+			Operation = Instructions.X64.EVALUATE;
 
 			var calculation = ExpressionHandle.CreateAddition(first.Value!, second.Value!);
 
@@ -232,13 +224,13 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public bool RedirectArm64(Handle handle)
 	{
-		if (Operation == SHARED_STANDARD_ADDITION_INSTRUCTION && handle.Is(HandleType.REGISTER))
+		if (Operation == Instructions.Shared.ADD && handle.Is(HandleType.REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;
 		}
 
-		if (Operation == ARM64_DECIMAL_ADDITION_INSTRUCTION && handle.Is(HandleType.MEDIA_REGISTER))
+		if (Operation == Instructions.Arm64.DECIMAL_ADD && handle.Is(HandleType.MEDIA_REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;

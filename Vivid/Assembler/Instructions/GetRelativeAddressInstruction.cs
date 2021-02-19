@@ -4,8 +4,6 @@
 /// </summary>
 public class GetRelativeAddressInstruction : Instruction
 {
-	public const string ARM64_RELATIVE_ADDRESS_INSTRUCTION = "adrp";
-
 	public DataSectionHandle Handle { get; private set; }
 
 	public GetRelativeAddressInstruction(Unit unit, DataSectionHandle handle) : base(unit, InstructionType.GET_RELATIVE_ADDRESS)
@@ -24,7 +22,7 @@ public class GetRelativeAddressInstruction : Instruction
 		Result.Format = Assembler.Format;
 
 		Build(
-			ARM64_RELATIVE_ADDRESS_INSTRUCTION,
+			Instructions.Arm64.LOAD_RELATIVE_ADDRESS,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,

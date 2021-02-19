@@ -4,24 +4,19 @@
 /// </summary>
 public class ExchangeInstruction : DualParameterInstruction
 {
-	public const string INSTRUCTION = "xchg";
-
-	public bool IsSafe { get; private set; }
-
-	public ExchangeInstruction(Unit unit, Result first, Result second, bool is_safe) : base(unit, first, second, first.Format, InstructionType.EXCHANGE)
+	public ExchangeInstruction(Unit unit, Result first, Result second) : base(unit, first, second, first.Format, InstructionType.EXCHANGE)
 	{
-		IsSafe = is_safe;
 		IsUsageAnalyzed = false;
 	}
 
 	public override void OnBuild()
 	{
 		Build(
-			INSTRUCTION,
+			Instructions.X64.EXCHANGE,
 			Assembler.Size,
 			new InstructionParameter(
 				First,
-				ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_SOURCE | ParameterFlag.READS | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS),
+				ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_SOURCE | ParameterFlag.READS | ParameterFlag.WRITE_ACCESS,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(

@@ -14,26 +14,34 @@ public static class Loops
 			throw new ApplicationException("Loop control instruction was not inside a loop");
 		}
 
+		if (node.Condition != null)
+		{
+			Arithmetic.BuildCondition(unit, node.Condition);
+		}
+
+		var label = (Label?)null;
+
+		unit.Append(new MergeScopeInstruction(unit));
+
 		if (node.Instruction == Keywords.STOP)
 		{
-			var exit = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
-
-			unit.Append(new MergeScopeInstruction(unit));
-
-			return new JumpInstruction(unit, exit).Execute();
+			label = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
 		}
 		else if (node.Instruction == Keywords.CONTINUE)
 		{
-			var start = node.Loop.Continue ?? throw new ApplicationException("Missing loop continue label");
-			
-			unit.Append(new MergeScopeInstruction(unit));
-
-			return new JumpInstruction(unit, start).Execute();
+			label = node.Loop.Continue ?? throw new ApplicationException("Missing loop continue label");
 		}
 		else
 		{
 			throw new NotImplementedException("Unknown loop control instruction");
 		}
+
+		if (node.Condition != null)
+		{
+			return new JumpInstruction(unit, node.Condition.Operator, false, !node.Condition.IsDecimal, label).Execute();
+		}
+
+		return new JumpInstruction(unit, label).Execute();
 	}
 
 	/// <summary>

@@ -7,6 +7,8 @@ using System.Linq;
 
 public class ConfigurationPhase : Phase
 {
+	public const string COMPILER_VERSION = "1.0";
+
 	public const string ARGUMENTS = "arguments";
 	public const string FILES = "filenames";
 	public const string LIBRARIES = "libraries";
@@ -68,7 +70,7 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-help",												Description = "Displays this information" },
 					new() { Command = "-r <folder> / -recursive <folder>",		Description = "Includes source files (.v) from the specified folder and its subfolders"},
 					new() { Command = "-d / -debug",										Description = "Generates the output binary with debug information" },
-					new() { Command = "-o <filename> / -output <filename>",		Description = "Sets the output filename (Default: v.asm, v.o, v, ...)" },
+					new() { Command = "-o <filename> / -output <filename>",		Description = "Sets the output filename (Default: v.exe, v, v.dll, v.so, v.lib, v.a)" },
 					new() { Command = "-l <library> / -library <library>",		Description = "Includes a library to the compilation process" },
 					new() { Command = "-a / -assembly",									Description = "Exports the generated assembly to a file" },
 					new() { Command = "-shared / -dynamic / -dll",					Description = "Sets the output type to shared library (.dll or .so)" },
@@ -80,7 +82,8 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-time",												Description = "Displays information about the length of the compilation" },
 					new() { Command = "-O, -O1, -O2",									Description = "Optimizes the output" },
 					new() { Command = "-x64",												Description = "Compile for architecture x64" },
-					new() { Command = "-arm64",											Description = "Compile for architecture arm64" },
+					new() { Command = "-arm64",											Description = "Compile for architecture Arm64" },
+					new() { Command = "-version",											Description = "Outputs the version of the compiler" },
 				};
 
 				Console.WriteLine
@@ -258,6 +261,14 @@ public class ConfigurationPhase : Phase
 			case "-arm64":
 			{
 				Assembler.Architecture = Architecture.Arm64;
+				return Status.OK;
+			}
+
+			case "-version":
+			{
+				Console.WriteLine($"Vivid version {COMPILER_VERSION}");
+				Environment.Exit(0);
+
 				return Status.OK;
 			}
 

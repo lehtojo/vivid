@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class LoopControlNode : Node
 {
 	public Keyword Instruction { get; private set; }
+	public Condition? Condition { get; set; }
 	public LoopNode? Loop => (LoopNode?)FindParent(p => p.Is(NodeType.LOOP));
 
 	public LoopControlNode(Keyword instruction, Position? position = null)

@@ -714,6 +714,12 @@ public static class Assembler
 		if (Assembler.IsArm64)
 		{
 			Comment = ARM64_COMMENT;
+			
+			Instructions.Arm64.Initialize();
+		}
+		else
+		{
+			Instructions.X64.Initialize();
 		}
 
 		var result = new Dictionary<File, string>();

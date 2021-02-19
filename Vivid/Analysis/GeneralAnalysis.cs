@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System;
 
@@ -27,10 +28,11 @@ public class VariableDescriptor
 	}
 }
 
+[SuppressMessage("Microsoft.Maintainability", "CA1815", Justification = "This functionality is not needed")]
 public struct RedundantAssignment
 {
-	public Node Node;
-	public Variable? Declaration;
+	public Node Node { get; set; }
+	public Variable? Declaration { get; set; }
 }
 
 public static class GeneralAnalysis

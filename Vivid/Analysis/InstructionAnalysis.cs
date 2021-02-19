@@ -30,6 +30,9 @@ public class SequentialPair
 
 public static class InstructionAnalysis
 {
+	/// <summary>
+	/// Returns if the value of the specified register is used after the specified position
+	/// </summary>
 	public static bool IsUsedAfterwards(List<Instruction> instructions, Register register, int position, Instruction ignore)
 	{
 		for (var i = position + 1; i < instructions.Count; i++)
@@ -429,6 +432,8 @@ public static class InstructionAnalysis
 			}
 		}
 
+		/// NOTE: The root can not be a conditional move since it is an intermediate
+
 		// 1. If no root can be found, try to use the captured intermediates
 		// 2. If the root is a copy, do not redirect it, instead try to use the intermediates
 		// 3. If the root is one of the enforced instructions, it should not be disturbed
@@ -543,7 +548,7 @@ public static class InstructionAnalysis
 
 		for (var i = 0; i < instructions.Count; i++)
 		{
-			if (!instructions[i].Is(InstructionType.MOVE))
+			if (!instructions[i].Is(InstructionType.MOVE) || instructions[i].To<MoveInstruction>().Condition != null)
 			{
 				continue;
 			}
@@ -659,6 +664,12 @@ public static class InstructionAnalysis
 			while (true)
 			{
 				var obstacle = instructions[position - 1];
+
+				// If the current instruction is dependent on the CPU-flags and the obstacle modifies them, the current instruction can not be placed above the obstacle
+				if (Instructions.IsConditional(instruction) && Instructions.ModifiesFlags(obstacle))
+				{
+					break;
+				}
 
 				// If the obstacle represents an instruction which affects the execution heavily, this instruction should not be moved above it
 				if (obstacle.Is(InstructionType.CALL, InstructionType.INITIALIZE, InstructionType.JUMP, InstructionType.LABEL, InstructionType.DIVISION, InstructionType.RETURN))
@@ -830,6 +841,31 @@ public static class InstructionAnalysis
 			low_offset = a.Offset;
 			high_offset = b.Offset;
 		}
+		else if (first.Is(HandleInstanceType.COMPLEX_MEMORY))
+		{
+			var a = first.To<ComplexMemoryHandle>();
+			var b = second.To<ComplexMemoryHandle>();
+
+			low = a;
+			high = b;
+
+			// Require that the handles have the same starting address and stride
+			if (!Equals(a.Start.Value, b.Start.Value) || a.Stride != b.Stride || !a.Offset.IsConstant || !b.Offset.IsConstant)
+			{
+				return null;
+			}
+
+			var x = a.Offset.Value.To<ConstantHandle>();
+			var y = b.Offset.Value.To<ConstantHandle>();
+
+			if (x.Format.IsDecimal() || y.Format.IsDecimal())
+			{
+				return null;
+			}
+
+			low_offset = (long)x.Value;
+			high_offset = (long)y.Value;
+		}
 		else if (first.Is(HandleInstanceType.DATA_SECTION))
 		{
 			var a = first.To<DataSectionHandle>();
@@ -980,9 +1016,6 @@ public static class InstructionAnalysis
 						continue;
 					}
 					
-					var load = first_move;
-					var store = second_move;
-
 					var low_constant_value = source.Low.To<ConstantHandle>().Value as long?;
 					var high_constant_value = source.High.To<ConstantHandle>().Value as long?;
 
@@ -1011,28 +1044,71 @@ public static class InstructionAnalysis
 
 					var constant = (high_constant_value << destination.Low.Size.Bits) | low_constant_value;
 
-					if (inline_destination_size == 8)
-					{
-						var register = TryGetNextStandardRegister(unit, instructions, i);
+					var load = (Instruction?)null;
+					var store = (Instruction?)null;
 
-						if (register == null)
+					if (Assembler.IsArm64)
+					{
+						// Allow constants between 0-65535
+						if (constant < 0 || constant > ushort.MaxValue)
 						{
 							continue;
 						}
 
-						load.Destination!.Value = new RegisterHandle(register) { Format = Assembler.Format };
+						// Both of the moves use registers to move the constant to the destination memory
+						// Ensure both of the registers are not used after the moves
+						var first_register = first_move.Source!.Value!.To<RegisterHandle>().Register;
+						var second_register = second_move.Source!.Value!.To<RegisterHandle>().Register;
+
+						if (IsUsedAfterwards(instructions, first_register, instructions.IndexOf(first_source.Second!), first_move) || IsUsedAfterwards(instructions, second_register, instructions.IndexOf(second_source.Second!), second_move))
+						{
+							continue;
+						}
+
+						if (first_source.Second == null || second_source.Second == null)
+						{
+							throw new ApplicationException("Constants were not loaded with instructions");
+						}
+
+						load = second_source.Second!;
+						store = second_move;
+
+						load.Destination!.Value = new RegisterHandle(first_register) { Format = Assembler.Format };
 						load.Source!.Value = new ConstantHandle(constant) { Format = Assembler.Format };
 
-						load.OnPostBuild();
+						store.Source!.Value = new RegisterHandle(first_register) { Format = Size.FromBytes(inline_destination_size).ToFormat() };
 
-						store.Source!.Value = new RegisterHandle(register) { Format = Size.FromBytes(inline_destination_size).ToFormat() };
+						instructions.Remove(first_source.Second);
+						instructions.Remove(first_move);
 					}
 					else
 					{
-						store.Source!.Value = new ConstantHandle(constant) { Format = Size.FromBytes(inline_destination_size).ToFormat() };
+						load = first_move;
+						store = second_move;
 
-						instructions.RemoveAt(i);
+						if (inline_destination_size == 8)
+						{
+							var register = TryGetNextStandardRegister(unit, instructions, i);
+
+							if (register == null)
+							{
+								continue;
+							}
+
+							load.Destination!.Value = new RegisterHandle(register) { Format = Assembler.Format };
+							load.Source!.Value = new ConstantHandle(constant) { Format = Assembler.Format };
+
+							store.Source!.Value = new RegisterHandle(register) { Format = Size.FromBytes(inline_destination_size).ToFormat() };
+						}
+						else
+						{
+							store.Source!.Value = new ConstantHandle(constant) { Format = Size.FromBytes(inline_destination_size).ToFormat() };
+
+							instructions.RemoveAt(i);
+						}
 					}
+
+					load.OnPostBuild();
 
 					store.Destination!.Value = destination.Low;
 					store.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();

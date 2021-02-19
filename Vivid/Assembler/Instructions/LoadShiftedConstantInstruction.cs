@@ -4,9 +4,6 @@
 /// </summary>
 public class LoadShiftedConstantInstruction : Instruction
 {
-	public const string ARM64_LOGICAL_SHIFT_LEFT = "lsl";
-	public const string ARM64_LOAD_SHIFTED_CONSTANT = "movk";
-
 	public new Result Destination { get; private set; }
 	public long Value { get; private set; }
 	public int Shift { get; private set; }
@@ -22,7 +19,7 @@ public class LoadShiftedConstantInstruction : Instruction
 	public override void OnBuild()
 	{
 		Build(
-			ARM64_LOAD_SHIFTED_CONSTANT,
+			Instructions.Arm64.LOAD_SHIFTED_CONSTANT,
 			new InstructionParameter(
 				Destination,
 				ParameterFlag.DESTINATION | ParameterFlag.NO_ATTACH | ParameterFlag.WRITE_ACCESS | ParameterFlag.READS,
@@ -34,7 +31,7 @@ public class LoadShiftedConstantInstruction : Instruction
 				HandleType.CONSTANT
 			),
 			new InstructionParameter(
-				new Result(new ModifierHandle($"{ARM64_LOGICAL_SHIFT_LEFT} #{Shift}"), Assembler.Format),
+				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{Shift}"), Assembler.Format),
 				ParameterFlag.NONE,
 				HandleType.MODIFIER
 			)

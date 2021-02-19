@@ -10,13 +10,6 @@ public class ReturnInstruction : Instruction
 {
 	private const string DEBUG_FOOTER = ".cfi_def_cfa 7, 8";
 
-	private const string SHARED_RETURN_INSTRUCTION = "ret";
-
-	public const string X64_LOAD_REGISTER_INSTRUCTION = "pop";
-
-	public const string ARM64_LOAD_REGISTER_PAIR_INSTRUCTION = "ldp";
-	public const string ARM64_LOAD_REGISTER_INSTRUCTION = "ldr";
-
 	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 	private Handle ReturnRegisterHandle => new RegisterHandle(ReturnRegister);
 
@@ -78,7 +71,7 @@ public class ReturnInstruction : Instruction
 
 		if (registers.Count == 1)
 		{
-			builder.AppendLine($"{ARM64_LOAD_REGISTER_INSTRUCTION} {registers.First()}, [{stack_pointer}], #{bytes}");
+			builder.AppendLine($"{Instructions.Arm64.LOAD} {registers.First()}, [{stack_pointer}], #{bytes}");
 			return;
 		}
 
@@ -93,11 +86,11 @@ public class ReturnInstruction : Instruction
 
 			if (!standard_registers.Any() && media_registers.Count == 1)
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_INSTRUCTION} {media_registers.First()}, [{stack_pointer}], #{bytes}");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {media_registers.First()}, [{stack_pointer}], #{bytes}");
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_INSTRUCTION} {media_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {media_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			media_registers.Pop();
@@ -111,11 +104,11 @@ public class ReturnInstruction : Instruction
 
 			if (!standard_registers.Any() && i + 2 == media_registers.Count)
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}], #{bytes}");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}], #{bytes}");
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_PAIR_INSTRUCTION} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			i += 2;
@@ -127,11 +120,11 @@ public class ReturnInstruction : Instruction
 
 			if (standard_registers.Count == 1)
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_INSTRUCTION} {standard_registers.First()}, [{stack_pointer}], #{bytes}");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {standard_registers.First()}, [{stack_pointer}], #{bytes}");
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_INSTRUCTION} {standard_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {standard_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			standard_registers.Pop();
@@ -145,11 +138,11 @@ public class ReturnInstruction : Instruction
 
 			if (i + 2 == standard_registers.Count)
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_PAIR_INSTRUCTION} {batch[1]}, {batch[0]}, [{stack_pointer}], #{bytes}");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[1]}, {batch[0]}, [{stack_pointer}], #{bytes}");
 			}
 			else
 			{
-				builder.AppendLine($"{ARM64_LOAD_REGISTER_PAIR_INSTRUCTION} {batch[1]}, {batch[0]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[1]}, {batch[0]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
 			}
 
 			i += 2;
@@ -161,7 +154,7 @@ public class ReturnInstruction : Instruction
 		// Save all used non-volatile rgisters
 		foreach (var register in registers)
 		{
-			builder.AppendLine($"{X64_LOAD_REGISTER_INSTRUCTION} {register}");
+			builder.AppendLine($"{Instructions.X64.POP} {register}");
 		}
 	}
 
@@ -176,11 +169,11 @@ public class ReturnInstruction : Instruction
 
 			if (Assembler.IsX64)
 			{
-				builder.AppendLine($"{AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION} {stack_pointer}, {allocated_local_memory}");
+				builder.AppendLine($"{Instructions.Shared.ADD} {stack_pointer}, {allocated_local_memory}");
 			}
 			else
 			{
-				builder.AppendLine($"{AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION} {stack_pointer}, {stack_pointer}, #{allocated_local_memory}");
+				builder.AppendLine($"{Instructions.Shared.ADD} {stack_pointer}, {stack_pointer}, #{allocated_local_memory}");
 			}
 		}
 
@@ -199,7 +192,7 @@ public class ReturnInstruction : Instruction
 			RestoreRegistersArm64(builder, recover_registers);
 		}
 
-		builder.Append(SHARED_RETURN_INSTRUCTION);
+		builder.Append(Instructions.Shared.RETURN);
 
 		Build(builder.ToString());
 	}

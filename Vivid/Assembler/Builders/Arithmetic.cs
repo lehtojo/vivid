@@ -86,6 +86,14 @@ public static class Arithmetic
 	}
 
 	/// <summary>
+	/// Builds a manual condition
+	/// </summary>
+	public static Result BuildCondition(Unit unit, Condition condition)
+	{
+		return new CompareInstruction(unit, condition.Left, condition.Right).Execute();
+	}
+
+	/// <summary>
 	/// Builds a left shift operation which can not assign
 	/// </summary>
 	public static Result BuildShiftLeft(Unit unit, OperatorNode shift)
@@ -240,7 +248,7 @@ public static class Arithmetic
 		var left = References.Get(unit, node.Left, AccessMode.WRITE);
 		var right = References.Get(unit, node.Right);
 
-		if (node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
+		if (node.Condition == null && node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
 		{
 			var variable = node.Left.To<VariableNode>().Variable;
 
@@ -254,7 +262,7 @@ public static class Arithmetic
 		}
 
 		// Externally used variables need an immediate update 
-		return new MoveInstruction(unit, left, right).Execute();
+		return new MoveInstruction(unit, left, right, node.Condition).Execute();
 	}
 
 	/// <summary>

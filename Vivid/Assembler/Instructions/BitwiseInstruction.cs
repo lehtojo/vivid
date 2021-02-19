@@ -7,55 +7,38 @@ using System.Linq;
 /// </summary>
 public class BitwiseInstruction : DualParameterInstruction
 {
-	public const string SHARED_AND_INSTRUCTION = "and";
-
-	public const string X64_XOR_INSTRUCTION = "xor";
-	public const string ARM64_XOR_INSTRUCTION = "eor";
-
-	public const string X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorps";
-	public const string X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION = "xorpd";
-
-	public const string X64_OR_INSTRUCTION = "or";
-	public const string ARM64_OR_INSTRUCTION = "orr";
-
-	public const string X64_SHIFT_LEFT_INSTRUCTION = "sal";
-	public const string X64_SHIFT_RIGHT_INSTRUCTION = "sar";
-
-	public const string ARM64_SHIFT_LEFT_INSTRUCTION = "lsl";
-	public const string ARM64_SHIFT_RIGHT_INSTRUCTION = "asr";
-
 	public string Instruction { get; private set; }
 
 	public bool Assigns { get; set; } = false;
 
 	public static BitwiseInstruction And(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, SHARED_AND_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Instructions.Shared.AND, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction Xor(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
 		if (format.IsDecimal())
 		{
-			return new BitwiseInstruction(unit, Assembler.Is64bit ? X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION : X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION, first, second, format, assigns);
+			return new BitwiseInstruction(unit, Assembler.Is64bit ? Instructions.X64.DOUBLE_PRECISION_XOR : Instructions.X64.SINGLE_PRECISION_XOR, first, second, format, assigns);
 		}
 
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_XOR_INSTRUCTION : X64_XOR_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.XOR : Instructions.X64.XOR, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction Or(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_OR_INSTRUCTION : X64_OR_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.OR : Instructions.X64.OR, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction ShiftLeft(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_SHIFT_LEFT_INSTRUCTION : X64_SHIFT_LEFT_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_LEFT : Instructions.X64.SHIFT_LEFT, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction ShiftRight(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? ARM64_SHIFT_RIGHT_INSTRUCTION : X64_SHIFT_RIGHT_INSTRUCTION, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_RIGHT : Instructions.X64.SHIFT_RIGHT, first, second, format, assigns);
 	}
 
 	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.BITWISE)
@@ -151,7 +134,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public void OnBuildX64()
 	{
-		if (Instruction == X64_SINGLE_PRECISION_MEDIA_XOR_INSTRUCTION || Instruction == X64_DOUBLE_PRECISION_MEDIA_XOR_INSTRUCTION)
+		if (Instruction == Instructions.X64.SINGLE_PRECISION_XOR || Instruction == Instructions.X64.DOUBLE_PRECISION_XOR)
 		{
 			if (Assigns)
 			{
@@ -176,7 +159,7 @@ public class BitwiseInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (Instruction == X64_SHIFT_LEFT_INSTRUCTION || Instruction == X64_SHIFT_RIGHT_INSTRUCTION)
+		if (Instruction == Instructions.X64.SHIFT_LEFT || Instruction == Instructions.X64.SHIFT_RIGHT)
 		{
 			BuildShiftX64();
 			return;
@@ -284,7 +267,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
-		if (!handle.Is(HandleType.REGISTER) || (Operation != X64_SHIFT_LEFT_INSTRUCTION && Operation != X64_SHIFT_RIGHT_INSTRUCTION))
+		if (!handle.Is(HandleType.REGISTER) || (Operation != Instructions.X64.SHIFT_LEFT && Operation != Instructions.X64.SHIFT_RIGHT))
 		{
 			return false;
 		}

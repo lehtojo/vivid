@@ -3,7 +3,7 @@ using System.Linq;
 
 public class CastPattern : Pattern
 {
-	public const int PRIORITY = 18;
+	public const int PRIORITY = 19;
 
 	private const int OBJECT = 0;
 	private const int CAST = 1;

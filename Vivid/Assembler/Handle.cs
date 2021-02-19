@@ -576,7 +576,7 @@ public class ComplexMemoryHandle : Handle
 		{
 			if (Assembler.IsArm64)
 			{
-				offset = $", {Offset}" + (Stride == 1 ? string.Empty : $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #{(long)Math.Log2(Stride)}");
+				offset = $", {Offset}" + (Stride == 1 ? string.Empty : $", {Instructions.Arm64.SHIFT_LEFT} #{(long)Math.Log2(Stride)}");
 			}
 			else
 			{
@@ -804,7 +804,7 @@ public class ExpressionHandle : Handle
 
 			if (Multiplier > 1)
 			{
-				result += $", {BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #" + (long)Math.Log2(Multiplier);
+				result += $", {Instructions.Arm64.SHIFT_LEFT} #" + (long)Math.Log2(Multiplier);
 			}
 
 			return result;

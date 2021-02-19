@@ -470,7 +470,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output, "-arm64" };
 
 			#pragma warning disable 162
 			if (OptimizationLevel > 0)
@@ -501,7 +501,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output, "-arm64" };
 
 			#pragma warning disable 162
 			if (OptimizationLevel > 0)

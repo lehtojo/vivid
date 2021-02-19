@@ -4,9 +4,6 @@
 /// </summary>
 public class ExtendNumeratorInstruction : Instruction
 {
-	public const string X64_INSTRUCTION_32BIT_MODE = "cdq";
-	public const string X64_INSTRUCTION_64BIT_MODE = "cqo";
-
 	public ExtendNumeratorInstruction(Unit unit) : base(unit, InstructionType.EXTEND_NUMERATOR) { }
 
 	public override void OnBuild()
@@ -15,7 +12,7 @@ public class ExtendNumeratorInstruction : Instruction
 		var remainder = Unit.GetRemainderRegister();
 
 		Build(
-			Assembler.Is64bit ? X64_INSTRUCTION_64BIT_MODE : X64_INSTRUCTION_32BIT_MODE,
+			Assembler.Is64bit ? Instructions.X64.EXTEND_QWORD : Instructions.X64.EXTEND_DWORD,
 			new InstructionParameter(
 				new Result(new RegisterHandle(remainder), Assembler.Format),
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,

@@ -7,30 +7,27 @@ using System;
 /// </summary>
 public class JumpInstruction : Instruction
 {
-	public const string X64_CONDITIONLESS_JUMP = "jmp";
-	public const string ARM64_CONDITIONLESS_JUMP = "b";
-
 	private static readonly Dictionary<ComparisonOperator, string[]> Instructions = new Dictionary<ComparisonOperator, string[]>();
 
-	private static void Initialize()
+	public static void Initialize()
 	{
 		if (Assembler.IsArm64)
 		{
-			Instructions.Add(Operators.GREATER_THAN, new[] { "b.gt", "b.gt" });
-			Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { "b.ge", "b.ge" });
-			Instructions.Add(Operators.LESS_THAN, new[] { "b.lt", "b.lt" });
-			Instructions.Add(Operators.LESS_OR_EQUAL, new[] { "b.le", "b.le" });
-			Instructions.Add(Operators.EQUALS, new[] { "b.eq", "b.eq" });
-			Instructions.Add(Operators.NOT_EQUALS, new[] { "b.ne", "b.ne" });
+			Instructions.Add(Operators.GREATER_THAN,		new[] { global::Instructions.Arm64.JUMP_GREATER_THAN,					global::Instructions.Arm64.JUMP_GREATER_THAN });
+			Instructions.Add(Operators.GREATER_OR_EQUAL,	new[] { global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS,	global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
+			Instructions.Add(Operators.LESS_THAN,			new[] { global::Instructions.Arm64.JUMP_LESS_THAN,						global::Instructions.Arm64.JUMP_LESS_THAN });
+			Instructions.Add(Operators.LESS_OR_EQUAL,		new[] { global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS,		global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS });
+			Instructions.Add(Operators.EQUALS,				new[] { global::Instructions.Arm64.JUMP_EQUALS,							global::Instructions.Arm64.JUMP_EQUALS });
+			Instructions.Add(Operators.NOT_EQUALS,			new[] { global::Instructions.Arm64.JUMP_NOT_EQUALS,					global::Instructions.Arm64.JUMP_NOT_EQUALS });
 			return;
 		}
 
-		Instructions.Add(Operators.GREATER_THAN, new[] { "jg", "ja" });
-		Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { "jge", "jae" });
-		Instructions.Add(Operators.LESS_THAN, new[] { "jl", "jb" });
-		Instructions.Add(Operators.LESS_OR_EQUAL, new[] { "jle", "jbe" });
-		Instructions.Add(Operators.EQUALS, new[] { "je", "jz" });
-		Instructions.Add(Operators.NOT_EQUALS, new[] { "jne", "jnz" });
+		Instructions.Add(Operators.GREATER_THAN,		new[] { global::Instructions.X64.JUMP_GREATER_THAN,				global::Instructions.X64.JUMP_ABOVE });
+		Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { global::Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS,	global::Instructions.X64.JUMP_ABOVE_OR_EQUALS });
+		Instructions.Add(Operators.LESS_THAN,			new[] { global::Instructions.X64.JUMP_LESS_THAN,							global::Instructions.X64.JUMP_BELOW });
+		Instructions.Add(Operators.LESS_OR_EQUAL,		new[] { global::Instructions.X64.JUMP_LESS_THAN_OR_EQUALS,				global::Instructions.X64.JUMP_BELOW_OR_EQUALS });
+		Instructions.Add(Operators.EQUALS,				new[] { global::Instructions.X64.JUMP_EQUALS,						global::Instructions.X64.JUMP_ZERO });
+		Instructions.Add(Operators.NOT_EQUALS,			new[] { global::Instructions.X64.JUMP_NOT_EQUALS,					global::Instructions.X64.JUMP_NOT_ZERO });
 	}
 
 	public Label Label { get; set; }
@@ -68,7 +65,7 @@ public class JumpInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var instruction = Comparator == null ? (Assembler.IsArm64 ? ARM64_CONDITIONLESS_JUMP : X64_CONDITIONLESS_JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
+		var instruction = Comparator == null ? (Assembler.IsArm64 ? global::Instructions.Arm64.JUMP : global::Instructions.X64.JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
 
 		Build($"{instruction} {Label.GetName()}");
 	}

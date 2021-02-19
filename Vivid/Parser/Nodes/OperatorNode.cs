@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
+	public Condition? Condition { get; set; }
 
 	public OperatorNode(Operator operation)
 	{

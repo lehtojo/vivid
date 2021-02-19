@@ -4,14 +4,7 @@
 /// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
 {
-	private const string X64_LONG_MULTPLICATION_INSTRUCTION = "mul";
-
-	public string Instruction { get; private set; }
-
-	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION)
-	{
-		Instruction = X64_LONG_MULTPLICATION_INSTRUCTION;
-	}
+	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION) {}
 
 	private Result CorrectDestinationOperandLocation()
 	{
@@ -65,7 +58,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		Result.Value = new RegisterHandle(remainder);
 
 		Build(
-			Instruction,
+			Instructions.X64.UNSIGNED_MULTIPLY,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,

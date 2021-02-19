@@ -7,19 +7,6 @@ using System.Linq;
 /// </summary>
 public class MultiplicationInstruction : DualParameterInstruction
 {
-	private const string X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION = "imul";
-	private const string ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION = "mul";
-
-	private const string X64_SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulss";
-	private const string X64_DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION = "mulsd";
-
-	private const string ARM64_DECIMAL_MULTIPLICATION_INSTRUCTION = "fmul";
-
-	public const string X64_EXTENDED_MULTIPLICATION_INSTRUCTION = "lea";
-	public const string X64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION = "sal";
-
-	public const string ARM64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION = "lsl";
-
 	public bool Assigns { get; private set; }
 
 	public MultiplicationInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.MULTIPLICATION)
@@ -84,7 +71,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		// Handle decimal multiplication separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32bit ? X64_SINGLE_PRECISION_MULTIPLICATION_INSTRUCTION : X64_DOUBLE_PRECISION_MULTIPLICATION_INSTRUCTION;
+			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MULTIPLY : Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			result = Memory.LoadOperand(Unit, First, true, Assigns);
@@ -131,7 +118,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				);
 
 				Build(
-					X64_EXTENDED_MULTIPLICATION_INSTRUCTION,
+					Instructions.X64.EVALUATE,
 					Assembler.Size,
 					new InstructionParameter(
 						Result,
@@ -155,7 +142,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
 
 				Build(
-					X64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION,
+					Instructions.X64.SHIFT_LEFT,
 					Assembler.Size,
 					new InstructionParameter(
 						result,
@@ -189,7 +176,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				}
 				
 				// Example: imul rax, 3 => lea ..., [rax*2+rax]
-				var calculation = new ExpressionHandle
+				var expression = new ExpressionHandle
 				(
 					result,
 					(int)multiplication.Constant - 1,
@@ -198,7 +185,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				);
 
 				Build(
-					X64_EXTENDED_MULTIPLICATION_INSTRUCTION,
+					Instructions.X64.EVALUATE,
 					Assembler.Size,
 					new InstructionParameter(
 						destination,
@@ -206,7 +193,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(calculation, Assembler.Format),
+						new Result(expression, Assembler.Format),
 						ParameterFlag.NONE,
 						HandleType.EXPRESSION
 					)
@@ -219,7 +206,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		result = Memory.LoadOperand(Unit, First, false, Assigns);
 
 		Build(
-			X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION,
+			Instructions.X64.SIGNED_MULTIPLY,
 			Assembler.Size,
 			new InstructionParameter(
 				result,
@@ -253,7 +240,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			// add x0, x0, x0, lsl #3
 
 			Build(
-				AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION,
+				Instructions.Shared.ADD,
 				Assembler.Size,
 				new InstructionParameter(
 					result,
@@ -271,7 +258,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 					HandleType.REGISTER
 				),
 				new InstructionParameter(
-					new Result(new ModifierHandle($"{BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #{shift}"), Assembler.Format),
+					new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Assembler.Format),
 					ParameterFlag.NONE,
 					HandleType.MODIFIER
 				)
@@ -283,7 +270,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		Memory.GetResultRegisterFor(Unit, Result, false);
 
 		Build(
-			AdditionInstruction.SHARED_STANDARD_ADDITION_INSTRUCTION,
+			Instructions.Shared.ADD,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,
@@ -301,7 +288,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				new Result(new ModifierHandle($"{BitwiseInstruction.ARM64_SHIFT_LEFT_INSTRUCTION} #{shift}"), Assembler.Format),
+				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Assembler.Format),
 				ParameterFlag.NONE,
 				HandleType.MODIFIER
 			)
@@ -313,7 +300,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 	public void OnBuildArm64()
 	{
 		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
-		var instruction = is_decimal ? ARM64_DECIMAL_MULTIPLICATION_INSTRUCTION : ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION;
+		var instruction = is_decimal ? Instructions.Arm64.DECIMAL_MULTIPLY : Instructions.Arm64.SIGNED_MULTIPLY;
 		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.REGISTER };
 
@@ -329,7 +316,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				first = multiplication.Multiplicand;
 				second = new Result(new ConstantHandle((long)Math.Log2(multiplication.Constant)), Assembler.Format);
 				types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
-				instruction = ARM64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION;
+				instruction = Instructions.Arm64.SHIFT_LEFT;
 			}
 			else if (IsConstantValidForExtendedMultiplication(multiplication.Constant - 1))
 			{
@@ -396,7 +383,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		var first = Parameters[0];
 		var second = Parameters[1];
 
-		if (Operation == X64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION)
+		if (Operation == Instructions.X64.SHIFT_LEFT)
 		{
 			if (!second.IsConstant)
 			{
@@ -422,7 +409,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				0
 			);
 
-			Operation = X64_EXTENDED_MULTIPLICATION_INSTRUCTION;
+			Operation = Instructions.X64.EVALUATE;
 
 			Parameters.Clear();
 			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));
@@ -431,7 +418,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			return true;
 		}
 
-		if (Operation == X64_EXTENDED_MULTIPLICATION_INSTRUCTION)
+		if (Operation == Instructions.X64.EVALUATE)
 		{
 			if (!handle.Is(HandleType.REGISTER))
 			{
@@ -442,14 +429,14 @@ public class MultiplicationInstruction : DualParameterInstruction
 			return true;
 		}
 
-		if (Operation != X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION)
+		if (Operation != Instructions.X64.SIGNED_MULTIPLY)
 		{
 			return false;
 		}
 
 		if (handle.Type == HandleType.REGISTER && (first.IsMemoryAddress || first.IsStandardRegister) && second.IsConstant)
 		{
-			Operation = X64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION;
+			Operation = Instructions.X64.SIGNED_MULTIPLY;
 
 			Parameters.Clear();
 			Parameters.Add(new InstructionParameter(handle, ParameterFlag.DESTINATION));
@@ -464,13 +451,13 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public bool RedirectArm64(Handle handle)
 	{
-		if ((Operation == ARM64_SIGNED_INTEGER_MULTIPLICATION_INSTRUCTION || Operation == ARM64_MULTIPLY_BY_POWER_OF_TWO_INSTRUCTION) && handle.Is(HandleType.REGISTER))
+		if ((Operation == Instructions.Arm64.SIGNED_MULTIPLY || Operation == Instructions.Arm64.SHIFT_LEFT) && handle.Is(HandleType.REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;
 		}
 
-		if (Operation == ARM64_DECIMAL_MULTIPLICATION_INSTRUCTION && handle.Is(HandleType.MEDIA_REGISTER))
+		if (Operation == Instructions.Arm64.DECIMAL_MULTIPLY && handle.Is(HandleType.MEDIA_REGISTER))
 		{
 			Parameters.First().Value = handle;
 			return true;

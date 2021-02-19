@@ -8,10 +8,6 @@ using System.Collections.Generic;
 /// </summary>
 public class CallInstruction : Instruction
 {
-	private const string X64_INSTRUCTION = "call";
-	private const string ARM64_CALL_LABEL = "bl";
-	private const string ARM64_CALL_REGISTER = "blr";
-
 	public Result Function { get; }
 	public List<Instruction> ParameterInstructions { get; } = new List<Instruction>();
 
@@ -79,7 +75,7 @@ public class CallInstruction : Instruction
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			Build(
-				is_address ? ARM64_CALL_LABEL : ARM64_CALL_REGISTER,
+				is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.ALLOW_ADDRESS,
@@ -101,7 +97,7 @@ public class CallInstruction : Instruction
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			Build(
-				X64_INSTRUCTION,
+				Instructions.X64.CALL,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,

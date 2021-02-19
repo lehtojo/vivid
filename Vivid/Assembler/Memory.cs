@@ -52,7 +52,7 @@ public static class Memory
 
 					if (current.First.Value.Equals(other.Second.Value) && current.Second.Value.Equals(other.First.Value))
 					{
-						exchanges.Add(new ExchangeInstruction(unit, current.Second, other.Second, false));
+						exchanges.Add(new ExchangeInstruction(unit, current.Second, other.Second));
 						exchanged_indices.Add(i);
 						exchanged_indices.Add(j);
 						break;
