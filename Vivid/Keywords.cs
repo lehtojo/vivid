@@ -11,6 +11,7 @@ public static class Keywords
 	public static readonly Keyword GOTO = new Keyword("goto", KeywordType.FLOW);
 	public static readonly Keyword HAS = new Keyword("has", KeywordType.FLOW);
 	public static readonly Keyword IF = new Keyword("if", KeywordType.FLOW);
+	public static readonly Keyword IN = new Keyword("in");
 	public static readonly Keyword INLINE = new ModifierKeyword("inline", Modifier.INLINE);
 	public static readonly Keyword IS = new Keyword("is", KeywordType.FLOW);
 	public static readonly Keyword INIT = new Keyword("init");
@@ -38,6 +39,7 @@ public static class Keywords
 		Values.Add(GOTO.Identifier, GOTO);
 		Values.Add(HAS.Identifier, HAS);
 		Values.Add(IF.Identifier, IF);
+		Values.Add(IN.Identifier, IN);
 		Values.Add(INLINE.Identifier, INLINE);
 		Values.Add(IS.Identifier, IS);
 		Values.Add(IMPORT.Identifier, IMPORT);

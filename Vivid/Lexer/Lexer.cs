@@ -183,7 +183,7 @@ public static class Lexer
 	/// <param name="previous_symbol">Previous character</param>
 	/// <param name="current_symbol">Current character</param>
 	/// <returns>True if the character is part of the progressing token</returns>
-	private static bool IsPartOf(AreaType previous, AreaType current, char previous_symbol, char current_symbol)
+	private static bool IsPartOf(AreaType previous, AreaType current, char previous_symbol, char current_symbol, char next_symbol)
 	{
 		if (IsIndependentOperator(previous_symbol) && IsIndependentOperator(current_symbol))
 		{
@@ -204,7 +204,7 @@ public static class Lexer
 
 			case AreaType.NUMBER:
 			{
-				return current_symbol == DECIMAL_SEPARATOR || // Example: 7.0
+				return (current_symbol == DECIMAL_SEPARATOR && char.IsDigit(next_symbol)) || // Example: 7.0
 					current_symbol == EXPONENT_SEPARATOR || // Example: 100e0
 					current_symbol == SIGNED_TYPE_SEPARATOR || // Example 0i8
 					current_symbol == UNSIGNED_TYPE_SEPARATOR || // Example 0u32
@@ -540,9 +540,11 @@ public static class Lexer
 			}
 
 			var type = GetType(current_symbol);
-			var previous_symbol = position.Local == 0 ? (char)0 : text[position.Local - 1];
 
-			if (!IsPartOf(area.Type, type, previous_symbol, current_symbol))
+			var previous_symbol = position.Local == 0 ? (char)0 : text[position.Local - 1];
+			var next_symbol = position.Local + 1 >= text.Length ? (char)0 : text[position.Local + 1];
+
+			if (!IsPartOf(area.Type, type, previous_symbol, current_symbol, next_symbol))
 			{
 				break;
 			}

@@ -404,7 +404,7 @@ public class Context
 	/// <summary>
 	/// Declares a variable into the context
 	/// </summary>
-	public void Declare(Type? type, VariableCategory category, string name)
+	public Variable Declare(Type? type, VariableCategory category, string name)
 	{
 		if (IsLocalVariableDeclared(name))
 		{
@@ -412,7 +412,7 @@ public class Context
 		}
 
 		// When a variable is created this way it is automatically declared into this context
-		Variable.Create(this, type, category, name, Modifier.PUBLIC);
+		return Variable.Create(this, type, category, name, Modifier.PUBLIC);
 	}
 
 	/// <summary>

@@ -1,3 +1,25 @@
+MemoryIterator<T> {
+	elements: link<T>
+	position: normal
+	count: normal
+
+	init(elements: link<T>, count: large) {
+		this.elements = elements
+		this.position = -1
+		this.count = count
+	}
+
+	value() => elements[position]
+
+	next() {
+		=> ++position < count
+	}
+
+	reset() {
+		position = -1
+	}
+}
+
 List<T> {
 
 	private:
@@ -72,4 +94,8 @@ List<T> {
 	}
 
 	size() => position
+
+	iterator() {
+		=> MemoryIterator<T>(elements, position)
+	}
 }

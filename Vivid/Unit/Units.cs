@@ -92,6 +92,7 @@ public static class Units
 		Run("Fibonacci", AssemblerTests.Fibonacci);
 		Run("Inheritance", AssemblerTests.Inheritance);
 		Run("Is", AssemblerTests.Is);
+		Run("Iteration", AssemblerTests.Iteration);
 		Run("Lambdas", AssemblerTests.Lambdas);
 		Run("LargeFunctions", AssemblerTests.LargeFunctions);
 		Run("Linkage", AssemblerTests.Linkage);

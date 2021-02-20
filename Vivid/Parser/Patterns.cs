@@ -95,6 +95,7 @@ public class Patterns
 		Add(new ImportPattern());
 		Add(new InheritancePattern());
 		Add(new IsPattern());
+		Add(new IterationLoopPattern());
 		Add(new LambdaPattern());
 		Add(new LinkPattern());
 		Add(new ListPattern());
@@ -105,6 +106,7 @@ public class Patterns
 		Add(new OperatorPattern());
 		Add(new PostIncrementAndDecrementPattern());
 		Add(new PreIncrementAndDecrementPattern());
+		Add(new RangePattern());
 		Add(new ExpressionVariablePattern());
 		Add(new ReturnPattern());
 		Add(new SectionModificationPattern());

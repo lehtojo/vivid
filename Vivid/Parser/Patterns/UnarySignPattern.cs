@@ -25,7 +25,7 @@ public class UnarySignPattern : Pattern
 			return false;
 		}
 
-		return state.Start == 0 || state.Tokens[state.Start - 1].Is(TokenType.OPERATOR);
+		return state.Start == 0 || state.Tokens[state.Start - 1].Is(TokenType.OPERATOR, TokenType.KEYWORD);
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)

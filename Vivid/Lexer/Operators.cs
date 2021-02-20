@@ -28,6 +28,8 @@ public static class Operators
 	public static readonly ClassicOperator BITWISE_XOR = new ClassicOperator("¤", 6);
 	public static readonly ClassicOperator BITWISE_OR = new ClassicOperator("|", 5);
 
+	public static readonly IndependentOperator RANGE = new IndependentOperator("..");
+
 	public static readonly LogicOperator AND = new LogicOperator("and", 4);
 	public static readonly LogicOperator OR = new LogicOperator("or", 3);
 
@@ -92,6 +94,8 @@ public static class Operators
 		Add(BITWISE_AND);
 		Add(BITWISE_XOR);
 		Add(BITWISE_OR);
+
+		Add(RANGE);
 
 		Add(AND);
 		Add(OR);

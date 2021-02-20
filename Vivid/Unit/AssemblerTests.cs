@@ -371,6 +371,33 @@ public struct String : IEquatable<String>
 	}
 }
 
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[SuppressMessage("Microsoft.Maintainability", "CA1815")]
+[StructLayout(LayoutKind.Explicit)]
+public struct IterationArray
+{
+	[FieldOffset(8)] public IntPtr Data;
+	[FieldOffset(16)] public long Count;
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[SuppressMessage("Microsoft.Maintainability", "CA1815")]
+[StructLayout(LayoutKind.Explicit)]
+public struct IterationRange
+{
+	[FieldOffset(8)] public long Start;
+	[FieldOffset(16)] public long End;
+}
+
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[SuppressMessage("Microsoft.Maintainability", "CA1815")]
+[StructLayout(LayoutKind.Explicit)]
+public struct IterationObject
+{
+	[FieldOffset(8)] public double Value;
+	[FieldOffset(16)] public bool Flag;
+}
+
 namespace Vivid.Unit
 {
 	public static class AssemblerTests
@@ -470,7 +497,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output, "-arm64" };
+			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
 
 			#pragma warning disable 162
 			if (OptimizationLevel > 0)
@@ -501,7 +528,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output, "-arm64" };
+			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
 
 			#pragma warning disable 162
 			if (OptimizationLevel > 0)
@@ -1963,6 +1990,153 @@ namespace Vivid.Unit
 			}
 
 			ExpressionVariables_Test();
+		}
+
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern void _V11iteration_1P5ArrayIxEPx(IterationArray array, IntPtr destination);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern void _V11iteration_2Px(IntPtr destination);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern void _V11iteration_3P5RangePx(IterationRange range, IntPtr destination);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern void _V11iteration_4P5ArrayIP6ObjectE(IterationArray objects);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern void _V11iteration_5P5ArrayIP6ObjectE(IterationArray objects);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern IntPtr _V7range_1v_rP5Range();
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern IntPtr _V7range_2v_rP5Range();
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern IntPtr _V7range_3xx_rP5Range(long a, long b);
+
+		[DllImport("Unit_Iteration", ExactSpelling = true)]
+		private static extern IntPtr _V7range_4xx_rP5Range(long a, long b);
+
+		private static IntPtr GetUnmanagedObject<T>(T instance, int size)
+		{
+			var memory = Marshal.AllocHGlobal(size);
+			Marshal.StructureToPtr(instance!, memory, false);
+
+			return memory;
+		}
+
+		public static void Iteration_Test()
+		{
+			var buffer = Marshal.AllocHGlobal(sizeof(long) * 5);
+			Marshal.WriteInt64(buffer, sizeof(long) * 0, -2);
+			Marshal.WriteInt64(buffer, sizeof(long) * 1, 3);
+			Marshal.WriteInt64(buffer, sizeof(long) * 2, -5);
+			Marshal.WriteInt64(buffer, sizeof(long) * 3, 7);
+			Marshal.WriteInt64(buffer, sizeof(long) * 4, -11);
+
+			var destination = Marshal.AllocHGlobal(sizeof(long) * 5);
+
+			var array = new IterationArray();
+			array.Count = 5;
+			array.Data = buffer;
+
+			_V11iteration_1P5ArrayIxEPx(array, destination);
+
+			for (var i = 0; i < 5; i++)
+			{
+				Assert.AreEqual(Marshal.ReadInt64(buffer, sizeof(long) * i), Marshal.ReadInt64(destination, sizeof(long) * i));
+			}
+
+			Marshal.FreeHGlobal(destination);
+			destination = Marshal.AllocHGlobal(sizeof(long) * (10 + 1 + 10));
+
+			_V11iteration_2Px(destination);
+
+			for (var i = -10; i <= 10; i++)
+			{
+				Assert.AreEqual(i * i, Marshal.ReadInt64(destination, sizeof(long) * (i + 10)));
+			}
+
+			var range = new IterationRange() { Start = -7, End = -3 };
+
+			Marshal.FreeHGlobal(destination);
+			destination = Marshal.AllocHGlobal(sizeof(long) * (7 - (-3) + 1));
+
+			_V11iteration_3P5RangePx(range, destination);
+
+			for (var i = -7; i <= -3; i++)
+			{
+				Assert.AreEqual(2 * i, Marshal.ReadInt64(destination, sizeof(long) * (i + 7)));
+			}
+
+			Marshal.FreeHGlobal(buffer);
+
+			buffer = Marshal.AllocHGlobal(8 * 3); // 3 x Object
+
+			var first = GetUnmanagedObject(new IterationObject() { Value = -123.456, Flag = false }, 17);
+			var second = GetUnmanagedObject(new IterationObject() { Value = -1.333333, Flag = false }, 17);
+			var third = GetUnmanagedObject(new IterationObject() { Value = 1010, Flag = false }, 17);
+
+			Marshal.WriteIntPtr(buffer, 0, first);
+			Marshal.WriteIntPtr(buffer, 8, second);
+			Marshal.WriteIntPtr(buffer, 16, third);
+
+			array.Data = buffer;
+			array.Count = 3;
+
+			_V11iteration_4P5ArrayIP6ObjectE(array);
+
+			Assert.AreEqual((byte)1, Marshal.ReadByte(first, 16));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(second, 16));
+			Assert.AreEqual((byte)0, Marshal.ReadByte(third, 16));
+
+			Marshal.WriteInt64(first, 8, BitConverter.DoubleToInt64Bits(12.345)); // first.value = 12.345
+			Marshal.WriteByte(first, 16, 0); // first.flag = false
+
+			Marshal.WriteInt64(second, 8, BitConverter.DoubleToInt64Bits(-12.34)); // second.value = -12.34
+			Marshal.WriteByte(second, 16, 0); // second.flag = false
+
+			Marshal.WriteInt64(third, 8, BitConverter.DoubleToInt64Bits(101)); // third.value = 101
+			Marshal.WriteByte(third, 16, 0); // third.flag = false
+
+			_V11iteration_5P5ArrayIP6ObjectE(array);
+
+			Assert.AreEqual((byte)1, Marshal.ReadByte(first, 16));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(second, 16));
+			Assert.AreEqual((byte)0, Marshal.ReadByte(third, 16));
+
+			range = Marshal.PtrToStructure<IterationRange>(_V7range_1v_rP5Range());
+
+			Assert.AreEqual(1, range.Start);
+			Assert.AreEqual(10, range.End);
+
+			range = Marshal.PtrToStructure<IterationRange>(_V7range_2v_rP5Range());
+
+			Assert.AreEqual((long)-5e2, range.Start);
+			Assert.AreEqual((long)10e10, range.End);
+
+			range = Marshal.PtrToStructure<IterationRange>(_V7range_3xx_rP5Range(314159, -42));
+
+			Assert.AreEqual((long)314159, range.Start);
+			Assert.AreEqual((long)-42, range.End);
+
+			range = Marshal.PtrToStructure<IterationRange>(_V7range_4xx_rP5Range(-12, -14));
+
+			Assert.AreEqual(12 * 12, range.Start);
+			Assert.AreEqual(14 * 14, range.End);
+		}
+
+		public static void Iteration()
+		{
+			if (!Compile("Iteration", new[] { "Iteration.v" }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Iteration_Test();
 		}
 	}
 }

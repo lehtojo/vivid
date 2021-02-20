@@ -17,8 +17,6 @@ Allocation {
 	static current: Page
 }
 
-# Safe: allocate(bytes: large) => internal_allocate(bytes)
-
 outline allocate(bytes: large) {
 	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
 		position = Allocation.current.position
@@ -95,4 +93,38 @@ move(source: link, destination: link, bytes: large) {
 
 	# Delete the temporary buffer
 	#deallocate(buffer, bytes)
+}
+
+RangeIterator {
+	start: large
+	end: large
+	position: large
+
+	init(start: large, end: large) {
+		this.start = start
+		this.end = end
+		this.position = start - 1
+	}
+
+	next() {
+		=> ++position <= end
+	}
+
+	value() => position
+
+	reset() {
+		position = start - 1
+	}
+}
+
+Range {
+	start: large
+	end: large
+
+	init(start: large, end: large) {
+		this.start = start
+		this.end = end
+	}
+
+	iterator() => RangeIterator(start, end)
 }

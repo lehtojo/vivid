@@ -95,7 +95,7 @@ println(number: normal) {
 ###
 summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: large) {
+outline println(number: large) {
 	println(to_string(number))
 }
 
