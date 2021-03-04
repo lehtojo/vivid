@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.IO;
 
 public class AssemblerPhase : Phase
 {
@@ -25,17 +25,18 @@ public class AssemblerPhase : Phase
 	private const string ERROR = "Internal assembler failed";
 
 	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-	private static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
-	private static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
-	private static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
-	
-	
+	public static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
+	public static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
+	public static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
+
 	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 
 	private const string RED = "\x1B[1;31m";
 	private const string GREEN = "\x1B[1;32m";
 	private const string CYAN = "\x1B[1;36m";
 	private const string RESET = "\x1B[0m";
+
+	public const string LIBRARY_PREFIX = "lib";
 
 	/// <summary>
 	/// Returns the executable name of the assembler based on the current settings
@@ -118,9 +119,7 @@ public class AssemblerPhase : Phase
 	/// </summary>
 	private static Status Compile(Bundle bundle, string input_file, string output_file)
 	{
-		var debug = bundle.Get("debug", false);
 		var keep_assembly = bundle.Get("assembly", false);
-
 		var arguments = new List<string>();
 
 		// Add assembler format and output filename
@@ -137,7 +136,7 @@ public class AssemblerPhase : Phase
 		{
 			try
 			{
-				System.IO.File.Delete(input_file);
+				File.Delete(input_file);
 			}
 			catch
 			{
@@ -153,7 +152,7 @@ public class AssemblerPhase : Phase
 	/// </summary>
 	private static Status Windows_Link(Bundle bundle, IEnumerable<string> input_files, string output_name)
 	{
-		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
+		var output_type = bundle.Get<BinaryType>(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
 		var output_extension = output_type switch
 		{
 			BinaryType.SHARED_LIBRARY => SharedLibraryExtension,
@@ -163,12 +162,11 @@ public class AssemblerPhase : Phase
 
 		// Provide all folders in PATH to linker as library paths
 		var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
-		var library_paths = path.Split(';').Where(p => !string.IsNullOrEmpty(p)).Select(p => $"-L \"{p}\"").Select(p => p.Replace('\\', '/'));
+		var library_paths = path.Split(';').Where(i => !string.IsNullOrEmpty(i)).Select(p => $"-L \"{p}\"").Select(i => i.Replace('\\', '/'));
 
 		var arguments = new List<string>()
 		{
 			$"-o {output_name + output_extension}",
-			"-e main",
 			"-lkernel32",
 			"-luser32",
 			StandardLibrary
@@ -178,11 +176,16 @@ public class AssemblerPhase : Phase
 
 		if (output_type == BinaryType.SHARED_LIBRARY)
 		{
+			arguments.Add("-e main"); // Set the entry point to be the main function
 			arguments.Add(SHARED_LIBRARY_FLAG);
 		}
 		else if (output_type == BinaryType.STATIC_LIBRARY)
 		{
-			return Status.Error("Static libraries on Windows are not supported yet");
+			return Status.Error("Static libraries should be passed to the link function");
+		}
+		else
+		{
+			arguments.Add("-e main"); // Set the entry point to be the main function
 		}
 
 		arguments.AddRange(library_paths);
@@ -202,7 +205,12 @@ public class AssemblerPhase : Phase
 	/// </summary>
 	private static Status Linux_Link(Bundle bundle, IEnumerable<string> input_files, string output_file)
 	{
-		var output_type = bundle.Get<BinaryType>("output_type", BinaryType.EXECUTABLE);
+		var output_type = bundle.Get<BinaryType>(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
+
+		if (output_type == BinaryType.STATIC_LIBRARY)
+		{
+			return Status.Error("Static libraries should be passed to the link function");
+		}
 
 		List<string>? arguments;
 
@@ -246,34 +254,34 @@ public class AssemblerPhase : Phase
 		return Run(GetLinker(), arguments);
 	}
 
-	public static File[] GetModifiedFiles(Bundle bundle, File[] files)
+	public static SourceFile[] GetModifiedFiles(Bundle bundle, IEnumerable<SourceFile> files)
 	{
 		// If the bundle contains a flag, which forces to rebuild, just return the specified files
 		if (bundle.Get(ConfigurationPhase.REBUILD_FLAG, false))
 		{
-			return files;
+			return files.ToArray();
 		}
 
 		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
-		var modified = new List<File>();
+		var modified = new List<SourceFile>();
 
 		foreach (var file in files)
 		{
 			var object_file = output_name + '.' + file.GetFilenameWithoutExtension() + ObjectFileExtension;
 
-			if (!System.IO.File.Exists(object_file))
+			if (!File.Exists(object_file))
 			{
 				if (Assembler.IsVerboseOutputEnabled)
 				{
 					Console.WriteLine($"{file.Fullname} {CYAN}is a new file{RESET}");
 				}
-				
+
 				modified.Add(file);
 				continue;
 			}
 
-			var source_file_last_write = System.IO.File.GetLastWriteTime(file.Fullname);
-			var object_file_last_write = System.IO.File.GetLastWriteTime(object_file);
+			var source_file_last_write = File.GetLastWriteTime(file.Fullname);
+			var object_file_last_write = File.GetLastWriteTime(object_file);
 
 			if (source_file_last_write < object_file_last_write)
 			{
@@ -296,26 +304,37 @@ public class AssemblerPhase : Phase
 		return modified.ToArray();
 	}
 
+	/// <summary>
+	/// Creates the object file name which will be produced from the specified source file with output name of the current binary
+	/// </summary>
+	public static string GetObjectFileName(SourceFile source_file, string output_name)
+	{
+		return output_name + '.' + source_file.GetFilenameWithoutExtension() + ObjectFileExtension;
+	}
+
 	public override Status Execute(Bundle bundle)
 	{
-		if (!bundle.Contains("parse"))
+		if (!bundle.Contains(ParserPhase.OUTPUT))
 		{
 			return Status.Error("Nothing to assemble");
 		}
 
-		var parse = bundle.Get<Parse>("parse");
-		var files = bundle.Get(FilePhase.OUTPUT, Array.Empty<File>());
+		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
+		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
+
 		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
+		var output_type = bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
 
 		// Filter out files that have not changed since the last compilation
 		var modified = GetModifiedFiles(bundle, files);
 
 		var context = parse.Context;
-		var assemblies = new Dictionary<File, string>();
+		var assemblies = (Dictionary<SourceFile, string>?)null;
+		var exports = new Dictionary<SourceFile, List<string>>();
 
 		try
 		{
-			assemblies = Assembler.Assemble(context, modified);
+			assemblies = Assembler.Assemble(context, modified, exports, output_type);
 		}
 		catch (Exception e)
 		{
@@ -329,7 +348,7 @@ public class AssemblerPhase : Phase
 				var assembly = assemblies[file];
 				var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
 
-				System.IO.File.WriteAllText(assembly_file, assembly);
+				File.WriteAllText(assembly_file, assembly);
 			}
 		}
 		catch
@@ -342,7 +361,7 @@ public class AssemblerPhase : Phase
 		foreach (var file in modified)
 		{
 			var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
-			var object_file = output_name + '.' + file.GetFilenameWithoutExtension() + ObjectFileExtension;
+			var object_file = GetObjectFileName(file, output_name);
 
 			if ((status = Compile(bundle, assembly_file, object_file)).IsProblematic)
 			{
@@ -350,7 +369,12 @@ public class AssemblerPhase : Phase
 			}
 		}
 
-		var object_files = files.Select(i => output_name + '.' + i.GetFilenameWithoutExtension() + ObjectFileExtension).ToArray();
+		if (output_type == BinaryType.STATIC_LIBRARY)
+		{
+			return StaticLibraryFormat.Export(context, output_name, exports);
+		}
+
+		var object_files = files.Select(i => GetObjectFileName(i, output_name)).ToArray();
 
 		if (IsLinux)
 		{

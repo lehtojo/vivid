@@ -44,7 +44,7 @@ public class IfPattern : Pattern
 		if (body == null)
 		{
 			body = new List<Token>();
-			
+
 			if (!Common.ConsumeBlock(context, state, body))
 			{
 				throw Errors.Get(tokens[IF].Position, "If-statement has an empty body");

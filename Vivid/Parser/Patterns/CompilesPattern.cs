@@ -12,7 +12,8 @@ public class CompilesPattern : Pattern
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	) {}
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{

@@ -10,7 +10,7 @@ public class DeclareInstruction : Instruction
 	{
 		Variable = variable;
 	}
-	
+
 	public override void OnBuild()
 	{
 		var media_register = Variable.GetRegisterFormat().IsDecimal();

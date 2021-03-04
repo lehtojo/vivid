@@ -11,7 +11,8 @@ public class ExpressionVariablePattern : Pattern
 	(
 		TokenType.IDENTIFIER,
 		TokenType.OPERATOR
-	) {}
+	)
+	{ }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
@@ -21,10 +22,9 @@ public class ExpressionVariablePattern : Pattern
 	public override Node? Build(Context type, PatternState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
-		
+
 		// Create function which has the name of the property but has no parameters
-		var function = new Function(type, Modifier.PUBLIC, name.Value);
-		function.Position = name.Position;
+		var function = new Function(type, Modifier.DEFAULT, name.Value) { Position = name.Position };
 		function.DeclareSelfPointer();
 
 		// Collect the tokens of the body

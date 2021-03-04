@@ -37,7 +37,8 @@ public class SpecificModificationPattern : Pattern
 		{
 			case NodeType.VARIABLE:
 			{
-				destination.To<VariableNode>().Variable.Modifiers = modifiers;
+				var variable = destination.To<VariableNode>().Variable;
+				variable.Modifiers = Modifier.Combine(variable.Modifiers, modifiers);
 				return destination;
 			}
 
@@ -48,13 +49,15 @@ public class SpecificModificationPattern : Pattern
 					throw Errors.Get(tokens[MODIFIER].Position, "Can not add external modifier to the function definition since it is a definition");
 				}
 
-				destination.To<FunctionDefinitionNode>().Function.Modifiers = modifiers;
+				var function = destination.To<FunctionDefinitionNode>().Function;
+				function.Modifiers = Modifier.Combine(function.Modifiers, modifiers);
 				return destination;
 			}
 
 			case NodeType.TYPE:
 			{
-				destination.To<TypeNode>().Type.Modifiers = modifiers;
+				var type = destination.To<TypeNode>().Type;
+				type.Modifiers = Modifier.Combine(type.Modifiers, modifiers);
 				return destination;
 			}
 

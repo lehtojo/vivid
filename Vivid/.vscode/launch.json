@@ -2,84 +2,14 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "by-gdb",
-			"request": "launch",
-			"name": "Launch(gdb)",
-			"program": "${workspaceRoot}/v.exe",
-			"cwd": "${workspaceRoot}"
-		},
-		{
-			"type": "vgdb",
-			"request": "launch",
-			"name": "C/C++ Debug Launch",
-			"program": "/v.exe",
-			"args": [],
-			"cwd": ""
-		},		
-		{
 			"name": "Debug",
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Build",
 			"program": "${workspaceFolder}/bin/Debug/net5.0/Vivid.dll",
 
-			//"args": [ "${workspaceFolder}/Examples/SpamHelloWorld.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st"],
-			//"args": [ "${workspaceFolder}/Examples/StaticVariable.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Tests/ConstantPermanence.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/BasicTypeDataFields.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/TheBully.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/NullObjectCheck.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/SimpleScopeTest.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/States_Conditional.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/SimpleMath.v", "--time", "--asm" ],
-			//"args": [ "${workspaceFolder}/Examples/States_Loop.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Tests/Scopes.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Example-2.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "--asm", "--time", "-st"],
-			//"args": [ "${workspaceFolder}/Examples/BasicString.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st"],
-			//"args": [ "${workspaceFolder}/Examples/Example-4.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/BasicMathWithFunctionCalls.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/BasicDivision.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/BasicMathAndIfStatement.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/ActiveVariablesTests.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/LoopFeatureTest.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/ArrayAllocation.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Redirections.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/memcpy.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/DecimalArithmetics.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/PrimeNumbers.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Tests/PI.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st", "--debug" ],
-			//"args": [ "${workspaceFolder}/Examples/Cube.v", "--asm", "--time", "-l", "glfw3.lib", "-l", "OpenGL32.lib", "-l", "vcruntime.lib", "-l", "gdi32.lib", "-l", "ucrt.lib", "-l", "shell32.lib" ],
-			//"args": [ "${workspaceFolder}/Examples/Negations.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Templates.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/DoubleRelocationBugTest.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Lists.v", "${workspaceFolder}/libv/List.v", "--asm" ],
-			//"args": [ "${workspaceFolder}/Examples/Strings.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm" ],
-			//"args": [ "${workspaceFolder}/Tests/BasicForLoop.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/NN.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/OperatorOverload.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/TypeMemberVariableInitialization.v", "${workspaceFolder}/libv/String.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Inheritance.v", "${workspaceFolder}/libv/String.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/BitwiseOperations.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/ConstantDivision.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Algebra.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Preprocessing.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/ModifierSections.v", "${workspaceFolder}/libv/String.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Square.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Tests/ObjectCreation.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Tests/Templates.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Lambdas.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Arrays.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/External.v", "--asm", "--time", "-st" ],
-			//"args": [ "${workspaceFolder}/Examples/Inlines.v", "--asm", "--time", "-st" ],
-
-			//"args": [ "${workspaceFolder}/Tests/Is.v", "${workspaceFolder}/libv/LinkedList.v", "${workspaceFolder}/libv/Map.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Math.v", "--asm", "--debug" ],
-
-			//"args": [ "${workspaceFolder}/Examples/Inlines.v", "${workspaceFolder}/libv/Core.v", "-a", "-v", "-f", "-st", "-O1" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "--asm", "--debug" ],
-			"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "-a", "-v", "-f"  ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-a", "-v", "-f", "-arm64", "-O1" ],
-
-			//"args": [ "${workspaceFolder}/Tests/LogicalOperators.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "--asm", "--debug" ],
+			// Builds the standard library
+			//"args": [ "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Types.v", "-f", "-static" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
@@ -100,10 +30,17 @@
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false
-		  	}
+			}
 		},
 		{
+			"type": "by-gdb",
+			"request": "launch",
 			"name": "Vivid Debug",
+			"program": "${workspaceRoot}/v.exe",
+			"cwd": "${workspaceRoot}"
+		},
+		{
+			"name": "Vivid Debug (Fallback)",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceRoot}/v.exe",
@@ -113,7 +50,7 @@
 			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",
-			"miDebuggerPath": "C:/Program Files/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gdb.exe",
+			"miDebuggerPath": "gdb.exe",
 			"setupCommands": [
 				{
 					"description": "Enable pretty-printing for gdb",
@@ -122,7 +59,5 @@
 				}
 			]
 		},
-
-
 	]
 }

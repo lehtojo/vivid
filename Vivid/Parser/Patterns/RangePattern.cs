@@ -18,7 +18,8 @@ public class RangePattern : Pattern
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OBJECT
-	) {}
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{

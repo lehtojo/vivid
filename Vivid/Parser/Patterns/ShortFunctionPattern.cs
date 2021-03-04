@@ -42,7 +42,7 @@ public class ShortFunctionPattern : Pattern
 			blueprint = tokens.Last().To<ContentToken>().Tokens;
 		}
 
-		var function = new Function(context, Modifier.PUBLIC, header.Name) { Position = header.Position };
+		var function = new Function(context, Modifier.DEFAULT, header.Name) { Position = header.Position };
 		function.Parameters.AddRange(header.GetParameters(function));
 		context.Declare(function);
 

@@ -17,17 +17,29 @@ public class TemplateFunction : Function
 
 		for (var i = 0; i < TemplateArgumentNames.Count; i++)
 		{
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.PUBLIC));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
 		}
 	}
 
-	private FunctionImplementation? TryGetVariant(List<Type> parameters, Type[] template_parameters)
+	public TemplateFunction(Context context, int modifiers, string name, int argument_count) : base(context, modifiers, name)
+	{
+		TemplateArgumentNames = new List<string>();
+		TemplateArgumentTypes = new List<Type>();
+
+		for (var i = 0; i < argument_count; i++)
+		{
+			TemplateArgumentNames.Add($"T{i}");
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
+		}
+	}
+
+	private Function? TryGetVariant(Type[] template_parameters)
 	{
 		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(a => a.Name));
 
 		if (Variants.TryGetValue(identifier, out Function? variant))
 		{
-			return variant.Get(parameters);
+			return variant;
 		}
 
 		return null;
@@ -59,7 +71,7 @@ public class TemplateFunction : Function
 		}
 	}
 
-	private FunctionImplementation? CreateVariant(List<Type> parameters, Type[] template_arguments)
+	private Function? CreateVariant(Type[] template_arguments)
 	{
 		var identifier = string.Join(", ", template_arguments.Select(a => a.Name));
 
@@ -81,11 +93,7 @@ public class TemplateFunction : Function
 		var variant = result.To<FunctionDefinitionNode>().Function;
 		Variants.Add(identifier, variant);
 
-		var implementation = variant.Get(parameters)!;
-		implementation.Identifier = Name;
-		implementation.TemplateArguments = template_arguments;
-
-		return implementation;
+		return variant;
 	}
 
 	public override bool Passes(List<Type> arguments)
@@ -130,13 +138,24 @@ public class TemplateFunction : Function
 		throw new InvalidOperationException("Tried to get overload of template function without template parameters");
 	}
 
-	public FunctionImplementation? Get(List<Type> parameters, Type[] template_parameters)
+	public FunctionImplementation? Get(List<Type> parameters, Type[] template_arguments)
 	{
-		if (template_parameters.Length != TemplateArgumentNames.Count)
+		if (template_arguments.Length != TemplateArgumentNames.Count)
 		{
 			throw new ApplicationException("Missing template arguments");
 		}
 
-		return TryGetVariant(parameters, template_parameters) ?? CreateVariant(parameters, template_parameters);
+		var variant = TryGetVariant(template_arguments) ?? CreateVariant(template_arguments);
+
+		if (variant == null)
+		{
+			return null;
+		}
+
+		var implementation = variant.Get(parameters)!;
+		implementation.Identifier = Name;
+		implementation.TemplateArguments = template_arguments;
+
+		return implementation;
 	}
 }

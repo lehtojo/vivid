@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public class CallDescriptorType : Type
 {
@@ -8,13 +8,13 @@ public class CallDescriptorType : Type
 	public List<Type?> Parameters { get; }
 	public Type? ReturnType { get; }
 
-	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.PUBLIC)
+	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Parameters = parameters;
 		ReturnType = return_type;
 	}
 
-	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.PUBLIC)
+	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Self = self;
 		Parameters = parameters;
@@ -75,7 +75,7 @@ public class CallDescriptorType : Type
 		hash.Add(ReturnType);
 		return hash.ToHashCode();
 	}
-	
+
 	public override string ToString()
 	{
 		return $"({string.Join(", ", Parameters.Select(p => p?.ToString() ?? "_").ToArray())}) => {ReturnType?.ToString() ?? "_"}";

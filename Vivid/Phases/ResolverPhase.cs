@@ -5,11 +5,17 @@ using System.Text;
 
 public class ResolverPhase : Phase
 {
+	/// <summary>
+	/// Outputs the specified report to the error output
+	/// </summary>
 	public static void Complain(string report)
 	{
 		Console.Error.WriteLine(report);
 	}
 
+	/// <summary>
+	/// Returns a string which describes the state of the specified function implementation
+	/// </summary>
 	public static string GetFunctionReport(FunctionImplementation implementation)
 	{
 		var builder = new StringBuilder();
@@ -18,11 +24,13 @@ public class ResolverPhase : Phase
 
 		var errors = new List<Status>();
 
+		// Report if the return type is not resolved
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
 			errors.Add(Status.Error(implementation.Metadata.Position, "Could not resolve the return type"));
 		}
 
+		// Look for errors under the implementation node
 		if (!Equals(implementation.Node, null))
 		{
 			errors.AddRange(implementation.Node
@@ -34,11 +42,13 @@ public class ResolverPhase : Phase
 			);
 		}
 
+		// Look for variables which are not resolved
 		errors.AddRange(implementation.Variables.Values
 			.Where(v => v.IsUnresolved)
 			.Select(v => Status.Error(v.Position, $"Could not resolve type of local variable '{v.Name}'"))
 		);
 
+		// Build the report if there are errors
 		if (!errors.Any())
 		{
 			return string.Empty;
@@ -52,6 +62,9 @@ public class ResolverPhase : Phase
 		return builder.ToString();
 	}
 
+	/// <summary>
+	/// Returns a string which describes the state of the specified context
+	/// </summary>
 	public static string GetReport(Context context)
 	{
 		var variables = new StringBuilder();
@@ -133,54 +146,56 @@ public class ResolverPhase : Phase
 			}
 		}
 
-		var final = new StringBuilder(variables.ToString());
+		var builder = new StringBuilder(variables.ToString());
 
-		if (final.Length > 0)
+		if (builder.Length > 0)
 		{
-			final.AppendLine();
+			builder.AppendLine();
 		}
 
-		final.Append(types);
+		builder.Append(types);
 
-		if (final.Length > 0)
+		if (builder.Length > 0)
 		{
-			final.AppendLine();
+			builder.AppendLine();
 		}
 
-		final.Append(functions);
+		builder.Append(functions);
 
-		return final.ToString();
+		return builder.ToString();
 	}
 
+	/// <summary>
+	/// Finds the implementations of the allocation and the inheritance functions and registers them to be used
+	/// </summary>
 	public static void RegisterDefaultFunctions(Context context)
 	{
-		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing allocation function");
-		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing inheritance function");
+		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing the allocation function, please implement it or include the standard library");
+		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
 
-		var link = context.GetType("link") ?? throw new ApplicationException("Missing default link type");
-		
 		Parser.AllocationFunction = allocation_function.GetImplementation(new List<Type> { Types.LARGE });
 		Assembler.AllocationFunction = allocation_function.GetOverload(new List<Type> { Types.LARGE });
 
-		Parser.InheritanceFunction = inheritance_function.GetImplementation(new List<Type> { link, link });
+		Parser.InheritanceFunction = inheritance_function.GetImplementation(new List<Type> { Types.LINK, Types.LINK });
 	}
 
 	public override Status Execute(Bundle bundle)
 	{
-		if (!bundle.Contains("parse"))
+		if (!bundle.Contains(ParserPhase.OUTPUT))
 		{
 			return Status.Error("Nothing to resolve");
 		}
 
-		var parse = bundle.Get<Parse>("parse");
+		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
 
 		var context = parse.Context;
 		var report = GetReport(context);
 		var evaluated = false;
 
+		// Find the required functions
 		RegisterDefaultFunctions(context);
 
-		// Try to resolve as long as errors change -- errors don't always decrease since the program may expand each cycle
+		// Try to resolve as long as errors change -- errors do not always decrease since the program may expand each cycle
 		while (true)
 		{
 			var previous = report;
@@ -204,8 +219,6 @@ public class ResolverPhase : Phase
 			}
 		}
 
-		// TODO: Should check whether all required functions are implemented
-
 		// The compiler must not continue if the resolver phase has failed
 		if (report.Length > 0)
 		{
@@ -214,10 +227,8 @@ public class ResolverPhase : Phase
 			return Status.Error("Compilation error");
 		}
 
+		// Finds objects whose values should be evaluated or finalized
 		Analysis.Complete(context);
-
-		// Build inline functions
-		//Inlines.Build(context);
 
 		// Align variables in memory
 		Aligner.Align(context);

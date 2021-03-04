@@ -5,7 +5,7 @@ public static class Returns
 	public static Result Build(Unit unit, ReturnNode node)
 	{
 		unit.TryAppendPosition(node);
-		
+
 		if (node.Value != null)
 		{
 			var from = node.Value.GetType();

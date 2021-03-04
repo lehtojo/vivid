@@ -33,15 +33,11 @@ public class LambdaImplementation : FunctionImplementation
 			return;
 		}
 
-		Self = new Variable(
-			this,
-			Type,
-			VariableCategory.PARAMETER,
-			Lambda.SELF_POINTER_IDENTIFIER,
-			Modifier.PUBLIC
+		Self = new Variable(this, Type, VariableCategory.PARAMETER, Lambda.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+		{
+			IsSelfPointer = true
+		};
 
-		) { IsSelfPointer = true };
-		
 		// Declare the function pointer as the first member
 		Function = Type.DeclareHidden(global::Types.LINK, VariableCategory.MEMBER);
 
@@ -104,8 +100,8 @@ public class LambdaImplementation : FunctionImplementation
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(this, string.Empty, Modifier.PUBLIC);
-		
+		Type = new Type(this, string.Empty, Modifier.DEFAULT);
+
 		Type.AddConstructor(Constructor.Empty(Type, Metadata.Position!));
 		Type.AddDestructor(Destructor.Empty(Type, Metadata.Position!));
 

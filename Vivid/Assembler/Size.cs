@@ -11,7 +11,7 @@ public class Size
 	public static readonly Size YMMWORD = new Size("ymmword", ".yword", 32);
 
 	public string Identifier { get; private set; }
-	public string Allocator { get; private set; }	
+	public string Allocator { get; private set; }
 	public int Bytes { get; private set; }
 	public int Bits => Bytes * 8;
 

@@ -60,7 +60,7 @@ public class TemplateTypePattern : Pattern
 
 		// Optionally consume a line-ending
 		Consume(state, out Token? _, TokenType.END | TokenType.OPTIONAL);
-		
+
 		return Consume(state, out Token? parenthesis, TokenType.CONTENT) && parenthesis!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
 
@@ -74,7 +74,7 @@ public class TemplateTypePattern : Pattern
 
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 
-		var template_type = new TemplateType(context, name.Value, Modifier.PUBLIC | Modifier.TEMPLATE_TYPE, blueprint, template_argument_names, name.Position);
+		var template_type = new TemplateType(context, name.Value, Modifier.DEFAULT, blueprint, template_argument_names, name.Position);
 
 		return new TypeNode(template_type, name.Position) { IsDefinition = true };
 	}

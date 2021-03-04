@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Text;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 public enum UnitMode
 {
@@ -62,10 +62,7 @@ public class Indexer
 		return value;
 	}
 
-	public int this[string category]
-	{
-		get => Next(category);
-	}
+	public int this[string category] => Next(category);
 }
 
 public class Unit
@@ -191,7 +188,7 @@ public class Unit
 	{
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Size.QWORD, new [] { $"x{i}", $"w{i}", $"w{i}", $"w{i}" });
+			var register = new Register(Size.QWORD, new[] { $"x{i}", $"w{i}", $"w{i}", $"w{i}" });
 
 			if (i < 19)
 			{
@@ -208,8 +205,8 @@ public class Unit
 
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Size.FromFormat(Types.DECIMAL.Format), new [] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
-			
+			var register = new Register(Size.FromFormat(Types.DECIMAL.Format), new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
+
 			if (i < 19)
 			{
 				register.Flags |= RegisterFlag.VOLATILE;
@@ -223,9 +220,9 @@ public class Unit
 			Registers.Add(register);
 		}
 
-		Registers.Add(new Register(Size.QWORD, new [] { "x30", "w30", "w30", "w30" }, RegisterFlag.RESERVED | RegisterFlag.RETURN_ADDRESS));
-		Registers.Add(new Register(Size.QWORD, new [] { "xzr", "wzr", "wzr", "wzr" }, RegisterFlag.RESERVED | RegisterFlag.ZERO | RegisterFlag.VOLATILE));
-		Registers.Add(new Register(Size.QWORD, new [] { "sp", "sp", "sp", "sp" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER));
+		Registers.Add(new Register(Size.QWORD, new[] { "x30", "w30", "w30", "w30" }, RegisterFlag.RESERVED | RegisterFlag.RETURN_ADDRESS));
+		Registers.Add(new Register(Size.QWORD, new[] { "xzr", "wzr", "wzr", "wzr" }, RegisterFlag.RESERVED | RegisterFlag.ZERO | RegisterFlag.VOLATILE));
+		Registers.Add(new Register(Size.QWORD, new[] { "sp", "sp", "sp", "sp" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER));
 	}
 
 	/// <summary>
@@ -731,7 +728,7 @@ public class Unit
 		{
 			Builder.AppendLine(DEBUG_FUNCTION_END);
 		}
-		
+
 		return Builder.ToString();
 	}
 
@@ -801,7 +798,7 @@ public class Unit
 		}
 
 		Append(new AppendPositionInstruction(this, node.Position));
-		
+
 		return true;
 	}
 

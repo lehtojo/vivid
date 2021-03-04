@@ -6,7 +6,7 @@ public class AllocateStackInstruction : Instruction
 {
 	public int Bytes { get; private set; }
 
-	public AllocateStackInstruction(Unit unit, int bytes) : base(unit, InstructionType.ALLOCATE_STACK) 
+	public AllocateStackInstruction(Unit unit, int bytes) : base(unit, InstructionType.ALLOCATE_STACK)
 	{
 		Bytes = bytes;
 		IsAbstract = true;

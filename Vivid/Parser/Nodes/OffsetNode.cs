@@ -74,7 +74,7 @@ public class OffsetNode : Node, IResolvable
 			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
 		}
 
-		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters),Position);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters), Position);
 	}
 
 	private Node? TryResolveAsIndexedGetter(Type type)

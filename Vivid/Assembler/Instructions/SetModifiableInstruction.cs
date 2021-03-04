@@ -13,7 +13,7 @@ public class SetModifiableInstruction : Instruction
 		Variable = variable;
 		Description = $"Loads the variable '{variable.Name}' into a register or memory if it is a constant";
 		IsAbstract = true;
-		
+
 		Result.Format = Variable.GetRegisterFormat();
 	}
 

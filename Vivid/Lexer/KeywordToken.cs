@@ -31,4 +31,9 @@ public class KeywordToken : Token
 	{
 		return MemberwiseClone();
 	}
+
+	public override string ToString()
+	{
+		return Keyword.Identifier;
+	}
 }

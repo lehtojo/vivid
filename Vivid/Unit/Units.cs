@@ -38,7 +38,7 @@ public static class Units
 			unit();
 			PrintSuccess(name);
 		}
-		catch(AssertionException assertion)
+		catch (AssertionException assertion)
 		{
 			if (assertion.IsProblematic)
 			{
@@ -49,7 +49,7 @@ public static class Units
 				PrintSuccess(name, assertion.Message);
 			}
 		}
-		catch(Exception exception)
+		catch (Exception exception)
 		{
 			PrintFailure(name, exception.ToString());
 		}

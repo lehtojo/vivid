@@ -13,7 +13,7 @@ public class IsNode : Node, IResolvable
 		Type = type;
 		Position = position;
 		Instance = NodeType.IS;
-		
+
 		Add(source);
 
 		if (result != null)

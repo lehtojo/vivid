@@ -9,7 +9,7 @@ public class CastNode : Node, IResolvable
 	{
 		Position = position;
 		Instance = NodeType.CAST;
-		
+
 		Add(target);
 		Add(type);
 	}

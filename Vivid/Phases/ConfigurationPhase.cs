@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 public class ConfigurationPhase : Phase
 {
@@ -13,16 +13,50 @@ public class ConfigurationPhase : Phase
 	public const string FILES = "filenames";
 	public const string LIBRARIES = "libraries";
 
-	public const string OUTPUT_NAME = "output";
+	public const string OUTPUT_NAME = "output_name";
+	public const string OUTPUT_TYPE = "output_type";
+
 	public const string REBUILD_FLAG = "rebuild";
 
 	public const string EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "v";
 
+	private List<string> Folders { get; set; } = new List<string>();
 	private List<string> Libraries { get; set; } = new List<string>();
 	private List<string> Files { get; set; } = new List<string>();
 
+	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
 	private bool IsOptimizationEnabled { get; set; } = false;
+
+	private void Initialize()
+	{
+		Folders.Clear();
+		Folders.Add(Environment.CurrentDirectory.Replace('\\', '/') + '/');
+
+		if (IsLinux)
+		{
+			// Get all folders registered to the environment variable 'PATH'
+			var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+			Folders.AddRange(path.Split(':').Where(i => !string.IsNullOrEmpty(i)).Select(i => i.Replace('\\', '/')));
+		}
+		else
+		{
+			// Get all folders registered to the environment variable 'Path'
+			var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
+			Folders.AddRange(path.Split(';').Where(i => !string.IsNullOrEmpty(i)).Select(i => i.Replace('\\', '/')));
+		}
+
+		for (var i = 0; i < Folders.Count; i++)
+		{
+			var folder = Folders[i];
+
+			if (!folder.EndsWith('/'))
+			{
+				Folders[i] = folder + '/';
+			}
+		}
+	}
 
 	private void Collect(Bundle bundle, DirectoryInfo folder, bool recursive = true)
 	{
@@ -43,6 +77,33 @@ public class ConfigurationPhase : Phase
 		{
 			Collect(bundle, item);
 		}
+	}
+
+	private string? FindLibrary(string library)
+	{
+		foreach (var folder in Folders)
+		{
+			var filename = folder + library;
+
+			if (File.Exists(filename)) return filename;
+
+			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library;
+			if (File.Exists(filename)) return filename;
+
+			filename = folder + library + AssemblerPhase.StaticLibraryExtension;
+			if (File.Exists(filename)) return filename;
+
+			filename = folder + library + AssemblerPhase.SharedLibraryExtension;
+			if (File.Exists(filename)) return filename;
+
+			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library + AssemblerPhase.StaticLibraryExtension;
+			if (File.Exists(filename)) return filename;
+			
+			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library + AssemblerPhase.SharedLibraryExtension;
+			if (File.Exists(filename)) return filename;
+		}
+
+		return null;
 	}
 
 	private struct Option
@@ -141,7 +202,7 @@ public class ConfigurationPhase : Phase
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
 
-				bundle.Put("output", output);
+				bundle.Put(OUTPUT_NAME, output);
 				return Status.OK;
 			}
 
@@ -155,7 +216,14 @@ public class ConfigurationPhase : Phase
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
 
-				Libraries.Add(library);
+				var filename = FindLibrary(library);
+
+				if (filename == null)
+				{
+					return Status.Error($"Can not find the specified library '{library}'. If the library name is correct, make sure the library is visible to this compiler.");
+				}
+
+				Libraries.Add(filename);
 				return Status.OK;
 			}
 
@@ -170,13 +238,13 @@ public class ConfigurationPhase : Phase
 			case "-shared":
 			case "-dll":
 			{
-				bundle.Put("output_type", BinaryType.SHARED_LIBRARY);
+				bundle.Put(OUTPUT_TYPE, BinaryType.SHARED_LIBRARY);
 				return Status.OK;
 			}
 
 			case "-static":
 			{
-				bundle.Put("output_type", BinaryType.STATIC_LIBRARY);
+				bundle.Put(OUTPUT_TYPE, BinaryType.STATIC_LIBRARY);
 				return Status.OK;
 			}
 
@@ -286,6 +354,8 @@ public class ConfigurationPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
+		Initialize();
+
 		if (!bundle.Contains(ARGUMENTS))
 		{
 			return Status.Error("Could not configure settings");
@@ -341,9 +411,9 @@ public class ConfigurationPhase : Phase
 		bundle.Put(FILES, Files.Distinct().ToArray());
 		bundle.Put(LIBRARIES, Libraries.ToArray());
 
-		if (!bundle.Contains("output"))
+		if (!bundle.Contains(OUTPUT_NAME))
 		{
-			bundle.Put("output", DEFAULT_OUTPUT);
+			bundle.Put(OUTPUT_NAME, DEFAULT_OUTPUT);
 		}
 
 		if (!Assembler.IsX64 && !Assembler.IsArm64)

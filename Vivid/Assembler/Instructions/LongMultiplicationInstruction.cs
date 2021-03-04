@@ -4,7 +4,7 @@
 /// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
 {
-	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION) {}
+	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION) { }
 
 	private Result CorrectDestinationOperandLocation()
 	{
@@ -54,7 +54,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		var remainder = ClearRemainderRegister();
 
 		using var remainder_lock = new RegisterLock(remainder);
-		
+
 		Result.Value = new RegisterHandle(remainder);
 
 		Build(

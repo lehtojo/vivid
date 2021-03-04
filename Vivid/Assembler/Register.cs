@@ -30,10 +30,7 @@ public class Register
 		set { _Value = value; IsUsed = true; }
 	}
 
-	public string this[Size size]
-	{
-		get => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
-	}
+	public string this[Size size] => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
 
 	public int Flags { get; set; }
 

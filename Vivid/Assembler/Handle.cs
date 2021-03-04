@@ -485,7 +485,7 @@ public class StackMemoryHandle : MemoryHandle
 	public bool IsAbsolute { get; private set; }
 
 	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer()), Assembler.Format), offset)
-	{ 
+	{
 		IsAbsolute = absolute;
 		Instance = HandleInstanceType.STACK_MEMORY;
 	}
@@ -791,7 +791,7 @@ public class ExpressionHandle : Handle
 			/// TODO: Append the zero register (formalize)
 			result = "xzr";
 		}
-		
+
 		var constant = (long)Constant;
 
 		if (Multiplicand.IsConstant)
@@ -830,7 +830,7 @@ public class ExpressionHandle : Handle
 		{
 			return ToStringArm64();
 		}
-		
+
 		return ToStringX64();
 	}
 
@@ -903,7 +903,7 @@ public class InlineHandle : Handle
 	public int AbsoluteOffset => Unit.StackOffset + Offset;
 
 	public InlineHandle(Unit unit, int bytes)
-	{ 
+	{
 		Unit = unit;
 		Identity = unit.GetNextIdentity();
 		Bytes = bytes;
@@ -915,7 +915,7 @@ public class InlineHandle : Handle
 	{
 		return (Handle)MemberwiseClone();
 	}
-	
+
 	public override string ToString()
 	{
 		var stack_pointer = Unit.GetStackPointer();

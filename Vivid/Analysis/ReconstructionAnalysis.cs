@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public static class ReconstructionAnalysis
 {
@@ -311,7 +311,7 @@ public static class ReconstructionAnalysis
 	private static Node CreateTypeCondition(Node source, Type expected)
 	{
 		var type = source.GetType();
-	
+
 		if (type.Configuration == null || expected.Configuration == null)
 		{
 			// If the configuration of the type is not present, it means that the type can not be inherited
@@ -578,7 +578,7 @@ public static class ReconstructionAnalysis
 		{
 			return ReferenceEquals(statement.To<IfNode>().Condition, node);
 		}
-		
+
 		if (statement.Is(NodeType.ELSE_IF))
 		{
 			return ReferenceEquals(statement.To<ElseIfNode>().Condition, node);
@@ -716,8 +716,8 @@ public static class ReconstructionAnalysis
 				{
 					value = operation.Right;
 				}
-				else if (operation.Right.Equals(assignment.Left) && 
-					operation.Operator != Operators.DIVIDE && 
+				else if (operation.Right.Equals(assignment.Left) &&
+					operation.Operator != Operators.DIVIDE &&
 					operation.Operator != Operators.MODULUS &&
 					operation.Operator != Operators.SUBTRACT)
 				{
@@ -867,7 +867,7 @@ public static class ReconstructionAnalysis
 				inline.ReplaceWithChildren(inline);
 				break;
 			}
-			
+
 			// 1. Normal node indicates a section which should not be moved
 			// 2. Logical operators create conditional sections, therefore lifting should be stopped
 			// 3. If there is no value in the inline node, do nothing, since this situation is spooky
@@ -966,7 +966,7 @@ public static class ReconstructionAnalysis
 						new VariableNode(self_variable),
 						self
 					));
-					
+
 					// Load the function pointer into a variable
 					var pointer_variable = environment.Context.DeclareHidden(pointer.GetType());
 					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -1103,6 +1103,7 @@ public static class ReconstructionAnalysis
 
 				parent.Replace(environment);
 
+				/// NOTE: No need to worry about context leak here, since the inline node is under the environment node
 				inline = environment;
 			}
 			else
@@ -1132,6 +1133,12 @@ public static class ReconstructionAnalysis
 				// Transfer all child nodes to the environment node
 				inline.ForEach(environment.Add);
 
+				// If the inline node has a context, transfer its data to the environment context
+				if (inline.IsContext)
+				{
+					environment.Context.Merge(inline.To<ContextInlineNode>().Context);
+				}
+				
 				// Finally, clone the parent and ensure it does not have any child nodes
 				var operation = parent.Clone();
 				operation.Detach();
@@ -1283,7 +1290,7 @@ public static class ReconstructionAnalysis
 			var function = call.Right.To<FunctionNode>();
 			var expected = function.Function.Metadata.GetTypeParent() ?? throw new ApplicationException("Missing parent type");
 			var actual = left.GetType();
-			
+
 			if (actual == expected || actual.GetSupertypeBaseOffset(expected) == 0)
 			{
 				continue;
@@ -1381,12 +1388,12 @@ public static class ReconstructionAnalysis
 		RewriteAllEditsAsAssignOperations(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
-		
+
 		if (Analysis.IsFunctionInliningEnabled)
 		{
 			Inlines.Build(root);
 		}
-		
+
 		SubstituteInlineNodes(root);
 		LiftupInlineNodes(root);
 	}

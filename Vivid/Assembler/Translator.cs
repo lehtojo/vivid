@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public static class Translator
 {
@@ -17,7 +17,7 @@ public static class Translator
 	private static IEnumerable<Handle> GetAllHandles(Unit unit)
 	{
 		var handles = unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
-		
+
 		return handles.Concat(handles.SelectMany(i => GetAllHandles(i.GetInnerResults())));
 	}
 
@@ -79,18 +79,12 @@ public static class Translator
 		{
 			InstructionAnalysis.Optimize(unit, instructions);
 		}
-		
+
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
 		var inline_handles = GetAllInlineHandles(unit);
 		var constant_handles = GetAllConstantDataSectionHandles(unit);
-
-		// When debugging mode is enabled, the base pointer is reserved for saving the value of the stack pointer in the start
-		if (Assembler.IsDebuggingEnabled)
-		{
-			registers.Add(unit.GetBasePointer());
-		}
 
 		// Determine how much additional memory must be allocated at the start based on the generated code
 		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
@@ -105,7 +99,10 @@ public static class Translator
 		// If debug information is being generated, append a debug information label at the end
 		if (Assembler.IsDebuggingEnabled)
 		{
-			instructions.Add(new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name)));
+			var end = new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name));
+			end.OnBuild();
+
+			instructions.Add(end);
 		}
 
 		// Build all initialization instructions
@@ -121,7 +118,7 @@ public static class Translator
 			initialization.Build(registers, required_local_memory);
 			local_memory_top = initialization.LocalMemoryTop;
 		}
-		
+
 		// Reverse the saved registers since they must be recovered from stack when returning from the function so they must be in the reversed order
 		registers.Reverse();
 
@@ -132,6 +129,10 @@ public static class Translator
 			{
 				continue;
 			}
+
+			// Save the local memory size for later use
+			unit.Function.SizeOfLocals = unit.StackOffset - local_memory_top;
+			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Assembler.Size.Bytes;
 
 			instruction.To<ReturnInstruction>().Build(registers, local_memory_top);
 		}

@@ -53,7 +53,7 @@ TypeDescriptor {
 	}
 }
 
-typeof(object) => TypeDescriptor(object as link)
+export typeof(object) => TypeDescriptor(object as link)
 
-internal_sizeof(object) => TypeDescriptor(object as link).size()
-internal_nameof(object) => TypeDescriptor(object as link).name()
+export internal_sizeof(object) => TypeDescriptor(object as link).size()
+export internal_nameof(object) => TypeDescriptor(object as link).name()

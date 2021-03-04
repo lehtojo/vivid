@@ -98,8 +98,8 @@ public class TemplateFunctionPattern : Pattern
 
 		var parameters = tokens[template_parameters_end + PARAMETERS_OFFSET].To<ContentToken>();
 		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
-		
-		var template_function = new TemplateFunction(context, Modifier.PUBLIC, name.Value, template_parameter_names)
+
+		var template_function = new TemplateFunction(context, Modifier.DEFAULT, name.Value, template_parameter_names)
 		{
 			Position = name.Position
 		};
@@ -127,7 +127,7 @@ public class TemplateFunctionPattern : Pattern
 		template_function.Blueprint.Add(blueprint);
 
 		template_function.Parameters.AddRange(((FunctionToken)descriptor.Clone()).GetParameters(template_function));
-		
+
 		context.Declare(template_function);
 
 		return new FunctionDefinitionNode(template_function, name.Position);

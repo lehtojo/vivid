@@ -9,10 +9,10 @@ public class StringToken : Token
 		Text = text[1..^1];
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is StringToken token &&
-			   base.Equals(obj) &&
+		return other is StringToken token &&
+			   base.Equals(other) &&
 			   Text == token.Text;
 	}
 
@@ -24,5 +24,10 @@ public class StringToken : Token
 	public override object Clone()
 	{
 		return MemberwiseClone();
+	}
+
+	public override string ToString()
+	{
+		return Lexer.STRING + Text + Lexer.STRING;
 	}
 }

@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// The instruction calls the specified value (for example function label or a register).
@@ -9,7 +9,12 @@ using System.Collections.Generic;
 public class CallInstruction : Instruction
 {
 	public Result Function { get; }
-	public List<Instruction> ParameterInstructions { get; } = new List<Instruction>();
+
+	// Represents the instructions which pass the required parameters
+	public List<Instruction> Instructions { get; } = new List<Instruction>();
+	
+	// Represents the destinations where the required parameters are passed to
+	public List<Handle> Destinations { get; } = new List<Handle>();
 
 	private bool IsParameterInstructionListExtracted => IsBuilt;
 
@@ -18,7 +23,7 @@ public class CallInstruction : Instruction
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
 		Dependencies = null;
 		Description = "Calls function " + Function;
-		
+
 		Result.Format = return_type?.Format ?? Assembler.Format;
 	}
 
@@ -50,7 +55,7 @@ public class CallInstruction : Instruction
 
 	private List<Register> ExecuteParameterInstructions()
 	{
-		var moves = ParameterInstructions.Select(i => i.To<MoveInstruction>()).ToList();
+		var moves = Instructions.Select(i => i.To<MoveInstruction>()).ToList();
 
 		Unit.Append(Memory.Align(Unit, moves, out List<Register> registers));
 
@@ -60,7 +65,7 @@ public class CallInstruction : Instruction
 	public override void OnBuild()
 	{
 		var registers = ExecuteParameterInstructions();
-		
+
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
 
 		if (Assembler.IsArm64)
@@ -71,11 +76,11 @@ public class CallInstruction : Instruction
 			{
 				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
 			}
-			
+
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			Build(
-				is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER,
+				is_address ? global::Instructions.Arm64.CALL_LABEL : global::Instructions.Arm64.CALL_REGISTER,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.ALLOW_ADDRESS,
@@ -97,7 +102,7 @@ public class CallInstruction : Instruction
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			Build(
-				Instructions.X64.CALL,
+				global::Instructions.X64.CALL,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
@@ -117,7 +122,7 @@ public class CallInstruction : Instruction
 
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
-		
+
 		Result.Value = new RegisterHandle(register);
 		register.Handle = Result;
 	}
@@ -127,7 +132,7 @@ public class CallInstruction : Instruction
 		// If this call follows the x64 calling convention, the parameter instructions' source values must be referenced so that they aren't overriden before this call
 		if (!IsParameterInstructionListExtracted)
 		{
-			return ParameterInstructions
+			return Instructions
 				.Where(i => i.Type == InstructionType.MOVE)
 				.Select(i => i.To<DualParameterInstruction>().Second)
 				.Concat(new Result[] { Result, Function }).ToArray();

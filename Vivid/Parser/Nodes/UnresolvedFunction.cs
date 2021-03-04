@@ -71,7 +71,8 @@ public class UnresolvedFunction : Node, IResolvable
 			var overloads = functions.Overloads.Where(i => i is TemplateFunction).Cast<TemplateFunction>();
 
 			// Find all the function overloads that could accept the currently resolved parameter types
-			candidates = overloads.Where(i => {
+			candidates = overloads.Where(i =>
+			{
 				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
 				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!, Arguments);
 
@@ -82,7 +83,8 @@ public class UnresolvedFunction : Node, IResolvable
 			var overloads = functions.Overloads.Where(i => i is not TemplateFunction);
 
 			// Find all the function overloads that could accept the currently resolved parameter types
-			candidates = overloads.Where(i => {
+			candidates = overloads.Where(i =>
+			{
 				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
 				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!);
 
@@ -173,7 +175,7 @@ public class UnresolvedFunction : Node, IResolvable
 			TryResolveShortFunctionParameters(primary, parameters);
 			return null;
 		}
-		
+
 		// First, ensure this function can be a lambda call
 		if (!linked && !Arguments.Any())
 		{

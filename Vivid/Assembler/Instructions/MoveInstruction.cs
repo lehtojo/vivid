@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum MoveType
 {
@@ -31,21 +31,21 @@ public class MoveInstruction : DualParameterInstruction
 	{
 		if (Assembler.IsArm64)
 		{
-			Conditionals.Add(Operators.GREATER_THAN, 		new[] { "gt" });
-			Conditionals.Add(Operators.GREATER_OR_EQUAL,	new[] { "ge" });
-			Conditionals.Add(Operators.LESS_THAN, 			new[] { "lt" });
-			Conditionals.Add(Operators.LESS_OR_EQUAL,		new[] { "le" });
-			Conditionals.Add(Operators.EQUALS,				new[] { "eq" });
-			Conditionals.Add(Operators.NOT_EQUALS,			new[] { "ne" });
+			Conditionals.Add(Operators.GREATER_THAN, new[] { "gt" });
+			Conditionals.Add(Operators.GREATER_OR_EQUAL, new[] { "ge" });
+			Conditionals.Add(Operators.LESS_THAN, new[] { "lt" });
+			Conditionals.Add(Operators.LESS_OR_EQUAL, new[] { "le" });
+			Conditionals.Add(Operators.EQUALS, new[] { "eq" });
+			Conditionals.Add(Operators.NOT_EQUALS, new[] { "ne" });
 			return;
 		}
 
-		Conditionals.Add(Operators.GREATER_THAN, 		new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN,						Instructions.X64.CONDITIONAL_MOVE_ABOVE,				Instructions.X64.CONDITIONAL_SET_GREATER_THAN,						Instructions.X64.CONDITIONAL_SET_ABOVE });
-		Conditionals.Add(Operators.GREATER_OR_EQUAL,	new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS,	Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS,	Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS });
-		Conditionals.Add(Operators.LESS_THAN, 			new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN,							Instructions.X64.CONDITIONAL_MOVE_BELOW,				Instructions.X64.CONDITIONAL_SET_LESS_THAN,							Instructions.X64.CONDITIONAL_SET_BELOW });
-		Conditionals.Add(Operators.LESS_OR_EQUAL,		new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS,			Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS,			Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS });
-		Conditionals.Add(Operators.EQUALS,				new[] { Instructions.X64.CONDITIONAL_MOVE_EQUALS,						Instructions.X64.CONDITIONAL_MOVE_ZERO,				Instructions.X64.CONDITIONAL_SET_EQUALS,						Instructions.X64.CONDITIONAL_SET_ZERO });
-		Conditionals.Add(Operators.NOT_EQUALS,			new[] { Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS,					Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO,			Instructions.X64.CONDITIONAL_SET_NOT_EQUALS,					Instructions.X64.CONDITIONAL_SET_NOT_ZERO });
+		Conditionals.Add(Operators.GREATER_THAN, new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN, Instructions.X64.CONDITIONAL_MOVE_ABOVE, Instructions.X64.CONDITIONAL_SET_GREATER_THAN, Instructions.X64.CONDITIONAL_SET_ABOVE });
+		Conditionals.Add(Operators.GREATER_OR_EQUAL, new[] { Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS });
+		Conditionals.Add(Operators.LESS_THAN, new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN, Instructions.X64.CONDITIONAL_MOVE_BELOW, Instructions.X64.CONDITIONAL_SET_LESS_THAN, Instructions.X64.CONDITIONAL_SET_BELOW });
+		Conditionals.Add(Operators.LESS_OR_EQUAL, new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS });
+		Conditionals.Add(Operators.EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_EQUALS, Instructions.X64.CONDITIONAL_MOVE_ZERO, Instructions.X64.CONDITIONAL_SET_EQUALS, Instructions.X64.CONDITIONAL_SET_ZERO });
+		Conditionals.Add(Operators.NOT_EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS, Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO, Instructions.X64.CONDITIONAL_SET_NOT_EQUALS, Instructions.X64.CONDITIONAL_SET_NOT_ZERO });
 	}
 
 	private MoveType _Type = MoveType.COPY;
@@ -61,7 +61,7 @@ public class MoveInstruction : DualParameterInstruction
 	}
 
 	public bool IsSafe { get; set; } = false;
-	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size); 
+	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size);
 
 	public Condition? Condition { get; private set; }
 
@@ -687,7 +687,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 
 		var types = new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER, HandleType.MEMORY };
-		
+
 		if (Assembler.IsArm64)
 		{
 			// Examples:
@@ -821,7 +821,7 @@ public class MoveInstruction : DualParameterInstruction
 	}
 
 	private void BuildConditionalMoveArm64(int flags_first)
-	{		
+	{
 		Memory.MoveToRegister(Unit, First, Assembler.Size, false, Trace.GetDirectives(Unit, First));
 		Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, First));
 
@@ -927,7 +927,7 @@ public class MoveInstruction : DualParameterInstruction
 		{
 			throw new InvalidOperationException("Conditional media register moves are not supported");
 		}
-		
+
 		if (Condition != null)
 		{
 			if (Assembler.IsArm64)
@@ -1038,7 +1038,7 @@ public class MoveInstruction : DualParameterInstruction
 		{
 			var handle = Second.Value.To<DataSectionHandle>();
 			var address = handle.Address;
-			
+
 			handle.Address = false;
 
 			// Example:

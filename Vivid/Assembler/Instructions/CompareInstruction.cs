@@ -4,7 +4,7 @@
 /// </summary>
 public class CompareInstruction : DualParameterInstruction
 {
-	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE) 
+	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE)
 	{
 		Description = "Compares two values";
 	}

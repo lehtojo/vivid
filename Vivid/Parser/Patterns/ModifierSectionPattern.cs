@@ -12,7 +12,8 @@ public class ModifierSectionPattern : Pattern
 	(
 		TokenType.KEYWORD,
 		TokenType.OPERATOR
-	) { }
+	)
+	{ }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

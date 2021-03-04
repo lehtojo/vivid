@@ -1,9 +1,9 @@
 DECIMAL_PRECISION = 15
 
 ###
-summary: Converts the specified integer number into a string
+Summary: Converts the specified integer number into a string
 ###
-to_string(n: large) {
+export to_string(n: large) {
 	number = String('')
 	sign = String('')
 
@@ -25,9 +25,9 @@ to_string(n: large) {
 }
 
 ###
-summary: Converts the specified decimal number into a string
+Summary: Converts the specified decimal number into a string
 ###
-to_string(n: decimal) {
+export to_string(n: decimal) {
 	result = to_string(n as large)
 
 	if n < 0 {
@@ -54,16 +54,16 @@ to_string(n: decimal) {
 }
 
 ###
-summary: Converts the specified string into an integer number
+Summary: Converts the specified string into an integer number
 ###
-to_number(text: String) {
+export to_number(text: String) {
 	length = text.length()
 
 	if length == 0 {
 		=> 0
 	}
 
-	buffer = text.data() as byte
+	buffer = text.data() as link
 	sign = 1
 
 	if buffer[0] == `-` {
@@ -83,9 +83,9 @@ to_number(text: String) {
 }
 
 ###
-summary: Returns the length of the specified string
+Summary: Returns the length of the specified string
 ###
-length_of(text: link) {
+export length_of(text: link) {
 	i = 0
 
 	loop {
@@ -102,7 +102,7 @@ String {
 	}
 
 	###
-	summary: Creates a new string which has this string in the begining and the specified string added to the end
+	Summary: Creates a new string which has this string in the begining and the specified string added to the end
 	###
 	combine(other: String) {
 		a = length()
@@ -117,7 +117,7 @@ String {
 	}
 
 	###
-	summary: Creates a new string which has this string in the begining and the specified character added to the end
+	Summary: Creates a new string which has this string in the begining and the specified character added to the end
 	###
 	append(character: u8) {
 		length = length()
@@ -156,21 +156,28 @@ String {
 	}
 
 	###
-	summary: Overrides the plus operator, allowing the user to combine string using the plus operator
+	Summary: Overrides the plus operator, allowing the user to combine string using the plus operator
 	###
 	plus(other: String) {
 		=> combine(other)
 	}
 
 	###
-	summary: Overrides the indexed accessor, returning the character in the specified position
+	Summary: Overrides the plus operator, allowing the user to combine string using the plus operator
+	###
+	plus(other: link) {
+		=> combine(String(other))
+	}
+
+	###
+	Summary: Overrides the indexed accessor, returning the character in the specified position
 	###
 	get(i: large) {
 		=> text[i] as u8
 	}
 
 	###
-	summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position
+	Summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position
 	###
 	set(i: large, value: u8) {
 		text[i] = value
@@ -179,7 +186,7 @@ String {
 	data() => text
 
 	###
-	summary: Returns the length of this string
+	Summary: Returns the length of this string
 	###
 	length() {
 		i = 0

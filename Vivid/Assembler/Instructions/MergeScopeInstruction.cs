@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// </summary>
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE) 
+	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE)
 	{
 		Description = "Relocates values so that their locations match the state of the outer scope";
 		IsAbstract = true;
@@ -20,11 +20,6 @@ public class MergeScopeInstruction : Instruction
 	private Result GetDestinationHandle(Variable variable)
 	{
 		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
-	}
-
-	private bool IsUsedLater(Variable variable)
-	{
-		return Unit.Scope!.Outer?.IsUsedLater(variable) ?? false;
 	}
 
 	public override void OnBuild()

@@ -50,7 +50,7 @@ public class ElsePattern : Pattern
 		if (body == null)
 		{
 			body = new List<Token>();
-			
+
 			if (!Common.ConsumeBlock(context, state, body))
 			{
 				throw Errors.Get(tokens[ELSE].Position, "Else-statement has an empty body");

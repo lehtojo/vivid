@@ -152,7 +152,7 @@ public static class Analysis
 				return new NumberNode(Format.DECIMAL, 0.0);
 			}
 
-			if (variable_component.Coefficient  is long b && b == 0.0)
+			if (variable_component.Coefficient is long b && b == 0.0)
 			{
 				return new NumberNode(Assembler.Format, 0L);
 			}
@@ -643,7 +643,7 @@ public static class Analysis
 				{
 					iterator = iterator.Next;
 				}
-				
+
 				continue;
 			}
 			else if (iterator.Is(NodeType.ELSE))
@@ -758,7 +758,7 @@ public static class Analysis
 					}
 
 					var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
-					
+
 					statement.Insert(replacement);
 					statement.Remove();
 
@@ -1032,13 +1032,24 @@ public static class Analysis
 			return false;
 		}
 
+		var environment = loop.GetParentContext();
+
 		loop.InsertChildren(loop.Initialization.Clone());
 
 		var action = ReconstructionAnalysis.TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
 
 		for (var i = 0; i < descriptor.Steps; i++)
 		{
-			loop.InsertChildren(loop.Body.Clone());
+			// Clone the body and localize its content
+			var clone = loop.Body.Clone();
+			Inlines.LocalizeLabels(environment, clone);
+
+			loop.InsertChildren(clone);
+
+			// Clone the action and localize its content
+			clone = action.Clone();
+			Inlines.LocalizeLabels(environment, clone);
+
 			loop.Insert(action.Clone());
 		}
 
@@ -1279,7 +1290,7 @@ public static class Analysis
 			throw new ApplicationException("Found a context leak");
 		}
 
-		var declarations =root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var declarations = root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
 		if (declarations.Any())
@@ -1295,7 +1306,7 @@ public static class Analysis
 			throw new ApplicationException("Found a context leak");
 		}
 	}
-	
+
 	/// <summary>
 	/// Collects all types and subtypes from the specified context
 	/// </summary>
@@ -1313,7 +1324,7 @@ public static class Analysis
 	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
 	{
 		var types = GetAllTypes(context);
-		
+
 		// Collect all functions, constructors, destructors and virtual functions
 		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
 		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
@@ -1402,7 +1413,7 @@ public static class Analysis
 				);
 
 				var inline = new InlineNode(edit.Position) { initialization };
-				
+
 				edit.Replace(inline);
 
 				// Store the value into the repetition
@@ -1423,7 +1434,7 @@ public static class Analysis
 			// Increments, decrements and special assignment operators should be unwrapped before unrepetition
 			throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
 		}
-		
+
 		if (store)
 		{
 			// Store the value of the repetition to the specified variable
@@ -1431,7 +1442,7 @@ public static class Analysis
 				new VariableNode(variable),
 				repetition.Clone()
 			);
-			
+
 			// Replace the repetition with the initialization
 			var inline = new InlineNode(repetition.Position) { initialization, new VariableNode(variable) };
 			repetition.Replace(inline);
@@ -1502,10 +1513,9 @@ public static class Analysis
 
 	public static void Unrepeat(Node root)
 	{
-		var filtered = new Queue<Node>();
 		var links = FindTop(root, i => i.Is(NodeType.LINK, NodeType.OFFSET));
 
-		Start:
+	Start:
 		var flow = new Flow(root);
 
 		if (!links.Any())
@@ -1574,7 +1584,7 @@ public static class Analysis
 
 		// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
 		ReconstructionAnalysis.GetInsertPosition(start, scope).Insert(new DeclareNode(variable));
-		
+
 		ReplaceRepetition(start, variable, true);
 
 		foreach (var repetition in repetitions)

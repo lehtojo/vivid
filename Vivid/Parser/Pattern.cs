@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class PatternState
 {
@@ -99,7 +99,7 @@ public abstract class Pattern
 
 		state.Tokens.AddRange(tokens);
 		state.Formatted.AddRange(formatted);
-		
+
 		state.Start = start;
 		state.End = end;
 		state.Min = min;

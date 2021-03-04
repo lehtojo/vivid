@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 public class Table
 {
@@ -40,9 +40,6 @@ public class RuntimeConfiguration
 	public const string INHERITANT_SEPARATOR = "\\x01";
 	public const string FULLNAME_END = "\\x02";
 
-	public const string CONFIGURATION_TABLE_POSTFIX = "_configuration";
-	public const string DESCRIPTOR_TABLE_POSTFIX = "_descriptor";
-
 	public Table Entry { get; private set; }
 	public Table Descriptor { get; private set; }
 
@@ -54,7 +51,7 @@ public class RuntimeConfiguration
 	{
 		var a = type.Name;
 		var b = INHERITANT_SEPARATOR;
-		
+
 		b += string.Join(string.Empty, type.Supertypes.Select(i => GetFullname(i)).ToArray());
 
 		if (start)
@@ -70,8 +67,8 @@ public class RuntimeConfiguration
 	{
 		Variable = type.DeclareHidden(Types.LINK, VariableCategory.MEMBER);
 
-		Entry = new Table(type.GetFullname() + CONFIGURATION_TABLE_POSTFIX);
-		Descriptor = new Table(type.GetFullname() + DESCRIPTOR_TABLE_POSTFIX);
+		Entry = new Table(type.GetFullname() + Mangle.CONFIGURATION_COMMAND + Mangle.END_COMMAND);
+		Descriptor = new Table(type.GetFullname() + Mangle.DESCRIPTOR_COMMAND + Mangle.END_COMMAND);
 
 		Entry.Add(Descriptor);
 
@@ -104,9 +101,10 @@ public class Type : Context
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
 
+	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
 	public bool IsUnresolved => !IsResolved();
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
-	
+
 	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
@@ -153,7 +151,7 @@ public class Type : Context
 		// Remove the default destructor
 		Functions[Keywords.DEINIT.Identifier].Overloads.Clear();
 		Destructors.Overloads.Clear();
-		
+
 		Destructors.Add(destructor);
 
 		Declare(destructor);
@@ -460,7 +458,7 @@ public class Type : Context
 		{
 			return false;
 		}
-		
+
 		// The inheritant should not have this type as its supertype
 		var inheritant_supertypes = inheritant.GetAllSupertypes();
 
@@ -483,11 +481,6 @@ public class Type : Context
 	public bool Is(Type other)
 	{
 		return this == other || Supertypes.Any(i => i.Is(other));
-	}
-
-	public T To<T>() where T : Type
-	{
-		return (T)this ?? throw new ApplicationException($"Could not convert 'Type' to '{typeof(T).Name}'");
 	}
 
 	protected override void OnMangle(Mangle mangle)

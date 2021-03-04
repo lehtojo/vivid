@@ -4,7 +4,7 @@ public class DecrementNode : Node, IResolvable
 {
 	public bool Post { get; private set; }
 	public Node Object => First!;
-	
+
 	public DecrementNode(Node destination, Position? position, bool post = false)
 	{
 		Add(destination);

@@ -18,6 +18,8 @@ public class ParserPhase : Phase
 {
 	public const string ROOT_CONTEXT_IDENTITY = "Root";
 
+	public const string OUTPUT = "parse";
+
 	/// <summary>
 	/// Parses all types under the specified root node
 	/// </summary>
@@ -110,10 +112,10 @@ public class ParserPhase : Phase
 			return Status.Error("Nothing to parse");
 		}
 
-		var files = bundle.Get<File[]>(LexerPhase.OUTPUT);
+		var files = bundle.Get<List<SourceFile>>(LexerPhase.OUTPUT);
 
 		// Form the 'hull' of the code
-		for (var i = 0; i < files.Length; i++)
+		for (var i = 0; i < files.Count; i++)
 		{
 			var index = i;
 
@@ -147,7 +149,7 @@ public class ParserPhase : Phase
 		}
 
 		// Parse types, subtypes and their members
-		for (var i = 0; i < files.Length; i++)
+		for (var i = 0; i < files.Count; i++)
 		{
 			var index = i;
 
@@ -168,7 +170,19 @@ public class ParserPhase : Phase
 		// Merge all parsed files
 		var context = Context.CreateRootContext(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
 		var root = new ContextNode(context);
+		
+		// Prepare for importing libraries
+		Importer.Initialize();
 
+		// Import all the specified libraries
+		var libraries = bundle.Get(ConfigurationPhase.LIBRARIES, Array.Empty<string>());
+
+		foreach (var library in libraries)
+		{
+			Importer.Import(context, library, files);
+		}
+
+		// Now merge all the parsed source files
 		foreach (var file in files)
 		{
 			context.Merge(file.Context!);
@@ -180,17 +194,22 @@ public class ParserPhase : Phase
 
 		// Preprocess the 'hull' of the code before creating functions
 		Preprocessor.Evaluate(context, root);
-
-		var function = context.GetFunction(Keywords.INIT.Identifier);
-
-		if (function == null)
+		
+		// Implement the entry function if the output type does not represent library
+		if (bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE) != BinaryType.STATIC_LIBRARY)
 		{
-			return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}()'");
+			var function = context.GetFunction(Keywords.INIT.Identifier);
+
+			if (function == null)
+			{
+				return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}()'");
+			}
+
+			function.Overloads.First().Implement(new List<Type>());
 		}
 
-		function.Overloads.First().Implement(new List<Type>());
-
-		bundle.Put("parse", new Parse(context, root));
+		// Save the parsed result
+		bundle.Put(OUTPUT, new Parse(context, root));
 
 		return Status.OK;
 	}

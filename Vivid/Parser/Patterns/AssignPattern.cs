@@ -40,16 +40,10 @@ public class AssignPattern : Pattern
 			var is_constant = !context.IsInsideFunction && !context.IsInsideType;
 			var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
 
-			variable = new Variable
-			(
-				context,
-				Types.UNKNOWN,
-				category,
-				destination.Value,
-				Modifier.PUBLIC | (is_constant ? Modifier.CONSTANT : 0)
-			);
-
-			variable.Position = tokens[DESTINATION].Position;
+			variable = new Variable(context, Types.UNKNOWN, category, destination.Value, Modifier.DEFAULT | (is_constant ? Modifier.CONSTANT : 0))
+			{
+				Position = tokens[DESTINATION].Position
+			};
 
 			return new VariableNode(variable, destination.Position);
 		}

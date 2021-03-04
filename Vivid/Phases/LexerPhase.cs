@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 public class LexerPhase : Phase
 {
@@ -7,14 +8,14 @@ public class LexerPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
-		var files = bundle.Get(FilePhase.OUTPUT, Array.Empty<File>());
+		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
 
 		if (!files.Any())
 		{
 			return Status.Error("Nothing to tokenize");
 		}
 
-		for (var i = 0; i < files.Length; i++)
+		for (var i = 0; i < files.Count; i++)
 		{
 			var index = i;
 

@@ -233,7 +233,7 @@ public class BitwiseInstruction : DualParameterInstruction
 				new InstructionParameter(
 					Second,
 					ParameterFlag.CreateBitLimit(12),
-					HandleType.CONSTANT, 
+					HandleType.CONSTANT,
 					HandleType.REGISTER
 				)
 			);

@@ -2,63 +2,87 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Mangle
+public class MangleDefinition
 {
-	public const string LANGUAGE_TAG = "_V";
+	public Type? Type { get; set; }
+	public int Index { get; }
+	public int Pointers { get; }
 
-	private class Definition
+	private string? Hexadecimal { get; set; }
+
+	public MangleDefinition(Type? type, int index, int pointers)
 	{
-		public Type Type { get; }
-		public int Index { get; }
-		public int Pointers { get; }
-
-		private string? Hexadecimal { get; set; }
-
-		public Definition(Type type, int index, int pointers)
-		{
-			Type = type;
-			Index = index;
-			Pointers = pointers;
-		}
-
-		private const string Table = "0123456789ABCDEF";
-
-		public override string ToString()
-		{
-			if (Hexadecimal == null)
-			{
-				var n = Index - 1;
-
-				Hexadecimal = n == 0 ? "0" : string.Empty;
-
-				while (n > 0)
-				{
-					var a = n / 16;
-					var r = n - a * 16;
-					n = a;
-
-					Hexadecimal = Table[r] + Hexadecimal;
-				}
-			}
-
-			return Index == 0 ? "S_" : $"S{Hexadecimal}_";
-		}
+		Type = type;
+		Index = index;
+		Pointers = pointers;
 	}
 
-	private List<Definition> Definitions { get; set; } = new List<Definition>();
+	private const string Table = "0123456789ABCDEF";
+
+	public override string ToString()
+	{
+		if (Hexadecimal == null)
+		{
+			var n = Index - 1;
+
+			Hexadecimal = n == 0 ? "0" : string.Empty;
+
+			while (n > 0)
+			{
+				var a = n / 16;
+				var r = n - a * 16;
+				n = a;
+
+				Hexadecimal = Table[r] + Hexadecimal;
+			}
+		}
+
+		return Index == 0 ? "S_" : $"S{Hexadecimal}_";
+	}
+}
+
+public class Mangle
+{
+	public const string EXPORT_TYPE_TAG = "_T";
+	public const string VIVID_LANGUAGE_TAG = "_V";
+	public const string C_LANGUAGE_TAG = "_Z";
+
+	public const char TYPE_COMMAND = 'N';
+	public const char START_TEMPLATE_ARGUMENTS_COMMAND = 'I';
+	public const char STACK_REFERENCE_COMMAND = 'S';
+	public const char STACK_REFERENCE_END = '_';
+	public const char END_COMMAND = 'E';
+	public const char POINTER_COMMAND = 'P';
+	public const char PARAMETERS_END = '_';
+	public const char NO_PARAMETERS_COMMAND = 'v';
+	public const char START_RETURN_TYPE_COMMAND = 'r';
+	public const char STATIC_VARIABLE_COMMAND = 'A';
+
+	public const char CONFIGURATION_COMMAND = 'C';
+	public const char DESCRIPTOR_COMMAND = 'D';
+
+	public const char START_MEMBER_VARIABLE_COMMAND = 'V';
+	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
+
+	private List<MangleDefinition> Definitions { get; set; } = new List<MangleDefinition>();
 	public string Value { get; set; } = string.Empty;
 
 	public Mangle(Mangle? from)
 	{
 		if (from != null)
 		{
-			Definitions = new List<Definition>(from.Definitions);
+			Definitions = new List<MangleDefinition>(from.Definitions);
 			Value = from.Value;
 		}
 		else
 		{
-			Value = LANGUAGE_TAG;
+			Value = VIVID_LANGUAGE_TAG;
 		}
+	}
+
+	public Mangle(string value)
+	{
+		Value = value;
 	}
 
 	public static Mangle operator +(Mangle mangle, string text)
@@ -85,11 +109,11 @@ public class Mangle
 		return mangle;
 	}
 
-	private void Push(Definition last, int delta)
+	private void Push(MangleDefinition last, int delta)
 	{
 		for (var i = 0; i < delta; i++)
 		{
-			Definitions.Add(new Definition(last.Type, Definitions.Count, last.Pointers + i + 1));
+			Definitions.Add(new MangleDefinition(last.Type, Definitions.Count, last.Pointers + i + 1));
 			Value += 'P';
 		}
 
@@ -123,16 +147,16 @@ public class Mangle
 				Value += 'P';
 			}
 
-			type.AddDefinition(this);
-
 			if (!Types.IsPrimitive(type))
 			{
-				Definitions.Add(new Definition(type, Definitions.Count, 0));
+				Definitions.Add(new MangleDefinition(type, Definitions.Count, 0));
 			}
+
+			type.AddDefinition(this);
 
 			for (var j = 0; j < pointers; j++)
 			{
-				Definitions.Add(new Definition(type, Definitions.Count, j + 1));
+				Definitions.Add(new MangleDefinition(type, Definitions.Count, j + 1));
 			}
 
 			return;
@@ -153,14 +177,19 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, (Types.IsPrimitive(type) || type == Types.LINK) ? 0 : 1);
+			Add(type, (Types.IsPrimitive(type) || type is Link) ? 0 : 1);
 		}
+	}
+
+	public Mangle Clone()
+	{
+		return new Mangle(this);
 	}
 }
 
 public class Context
 {
-	private Mangle? Mangled { get; set; }
+	public Mangle? Mangled { get; private set; }
 	public string Identity { get; private set; }
 
 	public string Identifier { get; set; } = string.Empty;
@@ -205,7 +234,7 @@ public class Context
 	/// <summary>
 	/// Create a new root context
 	/// </summary>
-	public Context(string identity) 
+	public Context(string identity)
 	{
 		Identity = identity;
 	}
@@ -286,7 +315,7 @@ public class Context
 				variable.Type = type;
 			}
 		}
-		
+
 		foreach (var type in new List<Type>(Types.Values))
 		{
 			type.Update();
@@ -334,15 +363,8 @@ public class Context
 			value.Context = this;
 		}
 
-		foreach (var subcontext in context.Subcontexts)
-		{
-			subcontext.Parent = this;
-
-			if (!Subcontexts.Contains(subcontext))
-			{
-				Subcontexts.Add(subcontext);
-			}
-		}
+		context.Subcontexts.ForEach(i => i.Parent = this);
+		Subcontexts.AddRange(context.Subcontexts.Where(i => !Subcontexts.Any(j => ReferenceEquals(i, j))).ToArray());
 
 		Update();
 
@@ -412,7 +434,7 @@ public class Context
 		}
 
 		// When a variable is created this way it is automatically declared into this context
-		return Variable.Create(this, type, category, name, Modifier.PUBLIC);
+		return Variable.Create(this, type, category, name, Modifier.DEFAULT);
 	}
 
 	/// <summary>
@@ -420,7 +442,7 @@ public class Context
 	/// </summary>
 	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, category, $"{Indexer.HIDDEN.ToLowerInvariant()}.{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.PUBLIC);
+		return Variable.Create(this, type, category, $"{Indexer.HIDDEN.ToLowerInvariant()}.{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
 	}
 
 	/// <summary>
@@ -619,6 +641,11 @@ public class Context
 		Parent = null;
 	}
 
+	public T To<T>() where T : Context
+	{
+		return (T)this;
+	}
+
 	public override bool Equals(object? other)
 	{
 		return other is Context context &&
@@ -634,7 +661,7 @@ public class Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(Name);
 		hash.Add(Subcontexts);
 		hash.Add(IsType);

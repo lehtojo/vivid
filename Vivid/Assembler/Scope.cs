@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public class VariableLoad
 {
@@ -98,7 +98,7 @@ public sealed class Scope : IDisposable
 				result[j.Key] = result.GetValueOrDefault(j.Key, 0) + j.Value;
 			}
 		}
-		
+
 		// Take only those variables which are initialized
 		var descriptors = result.Where(i => unit.Scope!.Variables.ContainsKey(i.Key)).Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
 
@@ -331,7 +331,7 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Ensure that the current scope is not circular by iterating parent scopes for limited number of times
 	/// </summary>
-	public void CaptureCircularScopes() 
+	public void CaptureCircularScopes()
 	{
 		/// TODO: This should be disabled in release mode since there could be nested scopes more than the allowed limit
 		var iterator = this;
@@ -340,7 +340,7 @@ public sealed class Scope : IDisposable
 		while (iterator != null)
 		{
 			iterator = iterator.Outer;
-			
+
 			if (iterator == this || limit-- == 0)
 			{
 				throw new ApplicationException("Captured a circular scope");
@@ -426,7 +426,7 @@ public sealed class Scope : IDisposable
 					{
 						Description = $"Registers variable '{variable.Name}' as active"
 					};
-					
+
 					instruction.Execute();
 
 					Initializers.Add(variable);
@@ -567,7 +567,7 @@ public sealed class Scope : IDisposable
 			{
 				Description = $"Requires the variable '{variable.Name}' to be active through out the scope"
 			};
-			
+
 			instruction.Execute();
 
 			Finalizers.Add(variable);
@@ -585,7 +585,7 @@ public sealed class Scope : IDisposable
 
 		// Exit to the outer scope
 		Unit.Scope = Outer ?? this;
-		
+
 		// Reset all registers
 		Unit.Registers.ForEach(r => r.Reset());
 

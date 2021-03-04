@@ -87,7 +87,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 				HandleType.REGISTER
 			)
 		);
-		
+
 		Result.Format = Format;
 	}
 }

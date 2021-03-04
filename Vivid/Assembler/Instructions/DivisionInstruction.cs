@@ -349,7 +349,7 @@ public class DivisionInstruction : DualParameterInstruction
 		if (Assigns)
 		{
 			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
-			
+
 			Build(
 				instruction,
 				Assembler.Size,

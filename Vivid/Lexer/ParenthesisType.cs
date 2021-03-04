@@ -35,10 +35,10 @@ public class ParenthesisType
 		return Map.ContainsKey(opening);
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is ParenthesisType type &&
-				base.Equals(obj) &&
+		return other is ParenthesisType type &&
+				base.Equals(other) &&
 			   	Opening == type.Opening &&
 			   	Closing == type.Closing;
 	}

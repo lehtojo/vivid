@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
+using System.Text;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
@@ -8,10 +8,8 @@ using System.Linq;
 /// </summary>
 public class InitializeInstruction : Instruction
 {
-	public const string DEBUG_HEADER_START = ".cfi_def_cfa_offset 16\n.cfi_offset 6, -16";
-	public const string DEBUG_HEADER_END = ".cfi_def_cfa_register 6";
+	public const string DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET = ".cfi_def_cfa_offset 16";
 
-	public int StackMemoryChange { get; private set; }
 	public int LocalMemoryTop { get; private set; }
 
 	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64bit;
@@ -27,7 +25,7 @@ public class InitializeInstruction : Instruction
 		}
 
 		// Find all parameter move instructions which move the source value into memory
-		var parameter_instructions = calls.SelectMany(c => c.ParameterInstructions)
+		var parameter_instructions = calls.SelectMany(c => c.Instructions)
 			.Where(i => i.Type == InstructionType.MOVE).Select(i => (MoveInstruction)i)
 			.Where(m => m.Destination?.IsMemoryAddress ?? false);
 
@@ -181,9 +179,7 @@ public class InitializeInstruction : Instruction
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.AppendLine(DEBUG_HEADER_START);
-			builder.AppendLine(Instructions.Shared.MOVE + ' ' + Unit.GetBasePointer() + ", " + Unit.GetStackPointer());	
-			builder.AppendLine(DEBUG_HEADER_END);
+			builder.AppendLine(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
 		}
 
 		// Local variables in memory start now
@@ -227,12 +223,7 @@ public class InitializeInstruction : Instruction
 				builder.Append($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {stack_pointer}, #{additional_memory}");
 			}
 		}
-		else if (save_registers.Count > 0)
-		{
-			// Remove the last line ending
-			builder.Remove(builder.Length - 1, 1);
-		}
-
-		Build(builder.ToString());
+		
+		Build(builder.ToString().TrimEnd());
 	}
 }

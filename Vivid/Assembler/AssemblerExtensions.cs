@@ -3,6 +3,22 @@ using System.Collections.Generic;
 
 public static class AssemblerExtensions
 {
+	public static IDictionary<TKey, List<TValue>> Merge<TKey, TValue>(this IDictionary<TKey, List<TValue>> a, IDictionary<TKey, List<TValue>> b)
+	{
+		foreach (var i in b)
+		{
+			if (a.ContainsKey(i.Key))
+			{
+				a[i.Key].AddRange(i.Value);
+				continue;
+			}
+
+			a.Add(i);
+		}
+
+		return a;
+	}
+
 	public static Format GetRegisterFormat(this Variable variable)
 	{
 		return variable.Type! == Types.DECIMAL ? Format.DECIMAL : Assembler.Format;
@@ -45,7 +61,7 @@ public static class AssemblerExtensions
 
 		return collection;
 	}
-	
+
 	public static bool IsUnsigned(this Format type)
 	{
 		return ((short)type & 1) == 1;

@@ -1,5 +1,5 @@
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 public class InheritancePattern : Pattern
 {
@@ -24,7 +24,7 @@ public class InheritancePattern : Pattern
 
 		// Consume a line break if one is present
 		Consume(state, out Token? _, TokenType.END);
-		
+
 		return Consume(state, out Token? x, TokenType.DYNAMIC) && x is DynamicToken y && y.Node is TypeNode z && z.IsDefinition;
 	}
 
@@ -38,7 +38,7 @@ public class InheritancePattern : Pattern
 		if (inheritor.IsTemplateType)
 		{
 			var template_type = inheritor.To<TemplateType>();
-			
+
 			// If any of the inherited tokens represent a template argument, the inheritant tokens must be added to the template type
 			if (inheritant_tokens.Any(i => i is IdentifierToken x && template_type.TemplateArgumentNames.Any(j => x.Value == j)))
 			{

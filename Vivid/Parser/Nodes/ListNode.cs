@@ -4,7 +4,7 @@
 	{
 		Position = position;
 		Instance = NodeType.LIST;
-		
+
 		foreach (var node in nodes)
 		{
 			Add(node);

@@ -57,14 +57,10 @@ public class ImportPattern : Pattern
 			return_type = new UnresolvedType(environment, tokens[RETURN_TYPE].To<IdentifierToken>().Value);
 		}
 
-		var function = new Function
-		(
-			environment,
-			Modifier.PUBLIC | Modifier.EXTERNAL,
-			header.Name
-		);
-
-		function.Position = header.Position;
+		var function = new Function(environment, Modifier.DEFAULT | Modifier.EXTERNAL, header.Name)
+		{
+			Position = header.Position
+		};
 
 		var parameters = header.GetParameters(function);
 		function.Parameters.AddRange(parameters);

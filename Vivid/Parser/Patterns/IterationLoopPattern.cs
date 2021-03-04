@@ -23,7 +23,8 @@ public class IterationLoopPattern : Pattern
 		TokenType.OBJECT,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	) {}
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -56,7 +57,7 @@ public class IterationLoopPattern : Pattern
 		var iterator_position = tokens[ITERATOR].Position;
 
 		iterator.Position = iterator_position;
-		
+
 		var iterated = Singleton.Parse(environment, tokens[ITERATED]);
 
 		var initialization = new OperatorNode(Operators.ASSIGN, iterator_position).SetOperands(
@@ -64,19 +65,17 @@ public class IterationLoopPattern : Pattern
 			new LinkNode(iterated, new UnresolvedFunction(ITERATOR_FUNCTION, iterator_position))
 		);
 
-		var condition = new LinkNode(
-			new VariableNode(iterator, iterator_position),
-			new UnresolvedFunction(NEXT_FUNCTION, iterator_position)
-		);
-
-		condition.Position = tokens[IN].Position;
+		var condition = new LinkNode(new VariableNode(iterator, iterator_position), new UnresolvedFunction(NEXT_FUNCTION, iterator_position))
+		{
+			Position = tokens[IN].Position
+		};
 
 		var value = GetIterator(environment, tokens);
 
 		var load = new OperatorNode(Operators.ASSIGN, iterator_position).SetOperands(
 			new VariableNode(value, iterator_position),
 			new LinkNode(
-				new VariableNode(iterator, iterator_position), 
+				new VariableNode(iterator, iterator_position),
 				new UnresolvedFunction(VALUE_FUNCTION, iterator_position)
 			)
 		);

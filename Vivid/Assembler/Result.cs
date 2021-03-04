@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 public enum DirectiveType
@@ -26,7 +26,7 @@ public class Directive
 
 public class NonVolatilityDirective : Directive
 {
-	public NonVolatilityDirective() : base(DirectiveType.NON_VOLATILITY) {}
+	public NonVolatilityDirective() : base(DirectiveType.NON_VOLATILITY) { }
 }
 
 public class SpecificRegisterDirective : Directive

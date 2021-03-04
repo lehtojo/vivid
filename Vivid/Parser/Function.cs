@@ -22,6 +22,11 @@ public class Parameter
 		Type = type;
 	}
 
+	public string Export()
+	{
+		return Type == null ? Name : $"{Name} : {Type}";
+	}
+
 	public override string ToString()
 	{
 		if (Type == null)
@@ -59,10 +64,13 @@ public class Function : Context
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
 	public bool IsConstructor => this is Constructor;
+	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
+	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
+	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
 	public bool IsExported => Flag.Has(Modifiers, Modifier.GLOBAL);
 	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
-	
+
 	/// <summary>
 	/// Creates a unimplemented function
 	/// </summary>
@@ -122,14 +130,11 @@ public class Function : Context
 	{
 		var type = IsConstructor ? VariableCategory.LOCAL : VariableCategory.PARAMETER;
 
-		Self = new Variable(
-			this,
-			GetTypeParent(),
-			type,
-			Function.SELF_POINTER_IDENTIFIER,
-			Modifier.PUBLIC
-
-		) { IsSelfPointer = true, Position = Position };
+		Self = new Variable(this, GetTypeParent(), type, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+		{
+			IsSelfPointer = true,
+			Position = Position
+		};
 	}
 
 	/// <summary>

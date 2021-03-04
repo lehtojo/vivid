@@ -1,10 +1,10 @@
-using System.Text.RegularExpressions;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Linq;
-using System;
-using System.Globalization;
+using System.Text.RegularExpressions;
 
 public static class Assembler
 {
@@ -40,7 +40,7 @@ public static class Assembler
 	private const string X64_COMMENT = "#";
 	public static string Comment { get; set; } = X64_COMMENT;
 
-	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER = 
+	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER =
 		".global _start" + "\n" +
 		"_start:" + "\n" +
 		"call {0}" + "\n" +
@@ -53,7 +53,7 @@ public static class Assembler
 		"main:" + "\n" +
 		"jmp {0}" + SEPARATOR;
 
-	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER = 
+	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER =
 		".global _start" + "\n" +
 		"_start:" + "\n" +
 		"bl {0}" + "\n" +
@@ -68,6 +68,297 @@ public static class Assembler
 
 	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
 	private const string SEPARATOR = "\n\n";
+
+	/// <summary>
+	/// Creates a mangled text which describes the specified virtual function and appends it to the specified mangle object
+	/// </summary>
+	private static void ExportVirtualFunction(Mangle mangle, VirtualFunction function)
+	{
+		mangle += Mangle.START_MEMBER_VIRTUAL_FUNCTION_COMMAND;
+		mangle += $"{function.Name}{function.Name}";
+
+		/// NOTE: All parameters must have a type since that is a requirement for virtual functions
+		mangle += function.Parameters.Select(i => i.Type!);
+
+		if (function.ReturnType != Types.UNIT)
+		{
+			mangle += Mangle.START_RETURN_TYPE_COMMAND;
+			mangle += function.ReturnType;
+		}
+
+		mangle += Mangle.END_COMMAND;
+	}
+	
+	/// <summary>
+	/// Return true if the specified variable was produced by the compiler
+	/// </summary>
+	private static bool IsHiddenVariable(Variable variable)
+	{
+		return variable.Name.StartsWith($"{Indexer.HIDDEN.ToLowerInvariant()}.");
+	}
+
+	/// <summary>
+	/// Creates a mangled text which describes the specified type and appends it to the specified builder
+	/// </summary>
+	private static string? ExportType(StringBuilder builder, Type type)
+	{
+		// Skip template types since they will be exported in a different way
+		if (type.IsTemplateType)
+		{
+			return null;
+		}
+
+		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
+		mangle.Add(type);
+
+		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !IsHiddenVariable(i)).ToArray();
+		var virtual_functions = type.Virtuals.Values.ToArray();
+
+		var public_member_variables = member_variables.Where(i => i.IsPublic).ToArray();
+		var public_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPublic).ToArray();
+
+		var private_member_variables = member_variables.Where(i => i.IsPrivate).ToArray();
+		var private_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPrivate).ToArray();
+
+		var protected_member_variables = member_variables.Where(i => i.IsProtected).ToArray();
+		var protected_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsProtected).ToArray();
+
+		// Export all public member variables
+		foreach (var variable in public_member_variables)
+		{
+			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
+			mangle += $"{variable.Name.Length}{variable.Name}";
+			mangle += variable.Type!;
+		}
+
+		// Export all public virtual functions
+		foreach (var function in public_virtual_functions)
+		{
+			ExportVirtualFunction(mangle, (VirtualFunction)function);
+		}
+
+		var is_private_section_empty = !private_member_variables.Any() && !private_virtual_functions.Any();
+		var is_protected_section_empty = !protected_member_variables.Any() && !protected_virtual_functions.Any();
+
+		if (is_private_section_empty && is_protected_section_empty)
+		{
+			builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+			builder.AppendLine($"{mangle.Value}:");
+			return mangle.Value;
+		}
+
+		mangle += Mangle.END_COMMAND;
+
+		// Export all private member variables
+		foreach (var variable in private_member_variables)
+		{
+			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
+			mangle += $"{variable.Name.Length}{variable.Name}";
+			mangle += variable.Type!;
+		}
+
+		// Export all private virtual functions
+		foreach (var function in private_virtual_functions)
+		{
+			ExportVirtualFunction(mangle, (VirtualFunction)function);
+		}
+
+		if (is_protected_section_empty)
+		{
+			builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+			builder.AppendLine($"{mangle.Value}:");
+			return mangle.Value;
+		}
+
+		mangle += Mangle.END_COMMAND;
+
+		// Export all protected member variables
+		foreach (var variable in protected_member_variables)
+		{
+			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
+			mangle += $"{variable.Name.Length}{variable.Name}";
+			mangle += variable.Type!;
+		}
+
+		// Export all protected virtual functions
+		foreach (var function in protected_virtual_functions)
+		{
+			ExportVirtualFunction(mangle, (VirtualFunction)function);
+		}
+		
+		builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+		builder.AppendLine($"{mangle.Value}:");
+
+		return mangle.Value;
+	}
+
+	/// <summary>
+	/// Creates a template name by combining the specified name and the template argument names together
+	/// </summary>
+	private static string CreateTemplateName(string name, IEnumerable<string> template_argument_names)
+	{
+		return name + '<' + string.Join(", ", template_argument_names) + '>';
+	}
+
+	/// <summary>
+	/// Exports the specified template function which may have the specified parent type
+	/// </summary>
+	private static void ExportTemplateFunction(StringBuilder builder, TemplateFunction function)
+	{
+		/// TODO: Support modifiers
+		builder.Append(CreateTemplateName(function.Name, function.TemplateArgumentNames));
+		builder.Append(ParenthesisType.PARENTHESIS.Opening);
+		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
+		builder.Append(ParenthesisType.PARENTHESIS.Closing);
+		builder.Append(' ');
+		builder.Append(string.Join(' ', (IEnumerable<Token>)function.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
+		builder.Append(Lexer.LINE_ENDING);
+	}
+
+	/// <summary>
+	/// Exports the specified short template function which may have the specified parent type
+	/// </summary>
+	private static void ExportShortTemplateFunction(StringBuilder builder, Function function)
+	{
+		/// TODO: Support modifiers
+		builder.Append(function.Name);
+		builder.Append(ParenthesisType.PARENTHESIS.Opening);
+		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
+		builder.Append(ParenthesisType.PARENTHESIS.Closing);
+		builder.Append(' ');
+		builder.Append(ParenthesisType.CURLY_BRACKETS.Opening);
+		builder.Append(Lexer.LINE_ENDING);
+		builder.Append(string.Join(' ', function.Blueprint) + Lexer.LINE_ENDING);
+		builder.Append(ParenthesisType.CURLY_BRACKETS.Closing);
+		builder.Append(Lexer.LINE_ENDING);
+	}
+
+	/// <summary>
+	/// Exports the specified template type
+	/// </summary>
+	private static void ExportTemplateType(StringBuilder builder, TemplateType type)
+	{
+		builder.Append(CreateTemplateName(type.Name, type.TemplateArgumentNames));
+		builder.Append(string.Join(' ', (IEnumerable<Token>)type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
+		builder.Append(Lexer.LINE_ENDING);
+	}
+
+	/// <summary>
+	/// Returns true if the specified function represents an actual template function or if any of its parameter types is not defined
+	/// </summary>
+	private static bool IsTemplateFunction(Function function)
+	{
+		return function is TemplateFunction || function.Parameters.Any(i => i.Type == null);
+	}
+	
+	/// <summary>
+	/// Looks for template functions and types and exports them to string builders
+	/// </summary>
+	public static Dictionary<SourceFile, StringBuilder> GetTemplateExportFiles(Context context)
+	{
+		var files = new Dictionary<SourceFile, StringBuilder>();
+		var functions = context.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i) && i.Position?.File != null).GroupBy(i => i.Position!.File!);
+
+		foreach (var iterator in functions)
+		{
+			var builder = new StringBuilder();
+
+			foreach (var function in iterator)
+			{
+				if (function is TemplateFunction template)
+				{
+					ExportTemplateFunction(builder, template);
+				}
+				else
+				{
+					ExportShortTemplateFunction(builder, function);
+				}
+			}
+
+			files.Add(iterator.Key, builder);
+		}
+
+		var types = GetAllTypes(context).Where(i => i.Position?.File != null).GroupBy(i => i.Position!.File!);
+
+		foreach (var iterator in types)
+		{
+			foreach (var type in iterator)
+			{
+				var templates = type.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i)).ToArray();
+
+				if (!templates.Any())
+				{
+					continue;
+				}
+
+				if (!files.TryGetValue(iterator.Key, out StringBuilder? builder))
+				{
+					builder = new StringBuilder();
+					files.Add(iterator.Key, builder);
+				}
+
+				builder.Append(type.Name);
+				builder.Append(' ');
+				builder.Append(ParenthesisType.CURLY_BRACKETS.Opening);
+
+				foreach (var function in templates)
+				{
+					if (function is TemplateFunction template)
+					{
+						ExportTemplateFunction(builder, template);
+					}
+					else
+					{
+						ExportShortTemplateFunction(builder, function);
+					}
+				}
+
+				builder.Append(ParenthesisType.CURLY_BRACKETS.Closing);
+			}
+		}
+
+		foreach (var iterator in types)
+		{
+			foreach (var type in iterator)
+			{
+				if (!type.IsTemplateType)
+				{
+					continue;
+				}
+
+				if (!files.TryGetValue(iterator.Key, out StringBuilder? builder))
+				{
+					builder = new StringBuilder();
+					files.Add(iterator.Key, builder);
+				}
+
+				ExportTemplateType(builder, type.To<TemplateType>());
+			}
+		}
+
+		return files;
+	}
+
+	/// <summary>
+	/// Returns all symbols which are exported from the specified context
+	/// </summary>
+	public static Dictionary<SourceFile, List<string>> GetExportedSymbols(Context context)
+	{
+		// Collect all the types which have a file registered
+		var types = GetAllTypes(context).Where(i => i.Position?.File != null).ToArray();
+
+		// Collect all the type configuration table names and group them by their files
+		var configurations = types.Where(i => i.Configuration != null).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.Configuration!.Entry.Name).ToList());
+		
+		// Collect all the static variable names and group them by their files
+		var statics = types.SelectMany(i => i.Variables.Values).Where(i => i.IsStatic).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetStaticName()).ToList());
+		
+		// Collect all the function names and group them by their files
+		var functions = GetAllFunctionImplementations(context).Where(i => i.Metadata.Position?.File != null).GroupBy(i => i.Metadata.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
+
+		// Finally, merge all the collected symbols
+		return (Dictionary<SourceFile, List<string>>)configurations.Merge(statics).Merge(functions);
+	}
 
 	private static string GetExternalFunctions(Context context)
 	{
@@ -211,12 +502,12 @@ public static class Assembler
 		return builder.Length == 0 ? string.Empty : builder.ToString();
 	}
 
-	private static Dictionary<File, string> GetTextSections(Context context, out Dictionary<File, List<ConstantDataSectionHandle>> constant_sections)
+	private static Dictionary<SourceFile, string> GetTextSections(Context context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections)
 	{
-		constant_sections = new Dictionary<File, List<ConstantDataSectionHandle>>();
+		constant_sections = new Dictionary<SourceFile, List<ConstantDataSectionHandle>>();
 
 		var files = GetAllFunctions(context).Where(i => !i.IsImported && i.Position != null).GroupBy(i => i.Position!.File ?? throw new ApplicationException("Missing declaration file"));
-		var text_sections = new Dictionary<File, string>();
+		var text_sections = new Dictionary<SourceFile, string>();
 
 		foreach (var iterator in files)
 		{
@@ -250,7 +541,7 @@ public static class Assembler
 
 			var name = variable.GetStaticName();
 			var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
-			
+
 			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 
 			if (Assembler.IsArm64)
@@ -430,9 +721,9 @@ public static class Assembler
 	/// <summary>
 	/// Constructs file specific data sections based on the specified context
 	/// </summary>
-	private static Dictionary<File, string> GetDataSections(Context context)
+	private static Dictionary<SourceFile, string> GetDataSections(Context context, Dictionary<SourceFile, List<string>> exports)
 	{
-		var sections = new Dictionary<File, StringBuilder>();
+		var sections = new Dictionary<SourceFile, StringBuilder>();
 		var types = context.Types.Values.Where(i => i.Position != null).GroupBy(i => i.Position?.File ?? throw new ApplicationException("Missing type declaration file"));
 
 		// Append static variables
@@ -456,7 +747,7 @@ public static class Assembler
 
 			foreach (var type in iterator)
 			{
-				if (type.Configuration == null)
+				if (type.Configuration == null || type.IsImported || type.IsTemplateType)
 				{
 					continue;
 				}
@@ -488,8 +779,7 @@ public static class Assembler
 				}
 
 				var name = node.Identifier;
-				var allocator = Size.BYTE.Allocator;
-				
+
 				builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 				builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 				builder.AppendLine($"{name}:");
@@ -497,6 +787,28 @@ public static class Assembler
 			}
 
 			sections[iterator.Key] = builder;
+		}
+
+		// Append type metadata
+		foreach (var iterator in types)
+		{
+			var builder = sections[iterator.Key];
+			var symbols = new List<string>();
+
+			foreach (var type in iterator)
+			{
+				var symbol = ExportType(builder, type);
+
+				if (symbol != null)
+				{
+					symbols.Add(symbol);
+				}
+			}
+
+			if (symbols.Any())
+			{
+				exports.Add(iterator.Key, symbols);
+			}
 		}
 
 		return sections.ToDictionary(i => i.Key, i => i.Value.ToString());
@@ -597,16 +909,6 @@ public static class Assembler
 		{
 			AppendTypeDebugInfo(debug, iterator);
 		}
-
-		foreach (var iterator in type.GetImplementedFunctions())
-		{
-			if (iterator.Metadata.IsImported)
-			{
-				continue;
-			}
-			
-			AppendFunctionDebugInfo(debug, iterator);
-		}
 	}
 
 	/// <summary>
@@ -619,14 +921,14 @@ public static class Assembler
 
 		return result;
 	}
-	
+
 	/// <summary>
 	/// Collects all function implementations from the specified context
 	/// </summary>
 	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
 	{
 		var types = GetAllTypes(context);
-		
+
 		// Collect all functions, constructors, destructors and virtual functions
 		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
 		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
@@ -649,51 +951,42 @@ public static class Assembler
 		return GetAllFunctionImplementations(context).Select(i => i.Metadata!).Distinct().ToArray();
 	}
 
-	public static Dictionary<File, string> GetDebugSections(Context context)
+	public static Dictionary<SourceFile, string> GetDebugSections(Context context)
 	{
-		var sections = new Dictionary<File, string>();
+		var sections = new Dictionary<SourceFile, string>();
 
 		if (!Assembler.IsDebuggingEnabled)
 		{
 			return sections;
 		}
 
-		var all_types = GetAllTypes(context).Distinct();
+		var all_types = GetAllTypes(context).Where(i => !i.IsImported).Distinct();
 		var base_types = all_types.Where(i => i.Position == null).ToArray();
 
-		var types = all_types.Where(i => i.Position != null)
-			.GroupBy(i => i.Position!.File ?? throw new ApplicationException("Missing declaration file")).Cast<IGrouping<File, object>>();
+		var types = all_types.Where(i => i.Position != null);
 
-		var functions = GetAllFunctionImplementations(context).Where(i => i.Metadata!.Position != null)
-			.GroupBy(i => i.Metadata!.Position!.File ?? throw new ApplicationException("Missing declaration file")).Cast<IGrouping<File, object>>();
+		var functions = GetAllFunctionImplementations(context).Where(i => i.Metadata.Position != null)
+			.GroupBy(i => i.Metadata!.Position!.File ?? throw new ApplicationException("Missing declaration file"));
 
-		var files = types.Concat(functions).GroupBy(i => i.Key, i => (IEnumerable<object>)i).ToArray();
-
-		foreach (var file in files)
+		foreach (var file in functions)
 		{
 			var debug = new Debug();
 
 			debug.BeginFile(file.Key);
 
-			foreach (var iterator in file.SelectMany(i => i))
+			foreach (var implementation in file)
 			{
-				if (iterator is Type type)
+				if (implementation.Metadata!.IsImported)
 				{
-					AppendTypeDebugInfo(debug, type);
+					continue;
 				}
-				else if (iterator is FunctionImplementation implementation)
-				{
-					if (implementation.Metadata!.IsImported)
-					{
-						continue;
-					}
 
-					AppendFunctionDebugInfo(debug, implementation);
-				}
-				else
-				{
-					throw new ApplicationException("Unknown debug information element");
-				}
+				AppendFunctionDebugInfo(debug, implementation);
+			}
+
+			foreach (var type in types)
+			{
+				AppendTypeDebugInfo(debug, type);
 			}
 
 			foreach (var base_type in base_types)
@@ -709,12 +1002,12 @@ public static class Assembler
 		return sections;
 	}
 
-	public static Dictionary<File, string> Assemble(Context context, File[] files)
+	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
 			Comment = ARM64_COMMENT;
-			
+
 			Instructions.Arm64.Initialize();
 		}
 		else
@@ -722,13 +1015,18 @@ public static class Assembler
 			Instructions.X64.Initialize();
 		}
 
-		var result = new Dictionary<File, string>();
+		var result = new Dictionary<SourceFile, string>();
 
-		var entry_function = context.GetFunction(Keywords.INIT.Identifier)!.Overloads.First().Implementations.First();
-		var entry_function_file = entry_function.Metadata.Position?.File ?? throw new ApplicationException("Entry function declaration file missing");
+		var entry_function = context.GetFunction(Keywords.INIT.Identifier)?.Overloads.FirstOrDefault()?.Implementations.FirstOrDefault();
+		var entry_function_file = (SourceFile?)null;
 
-		var text_sections = GetTextSections(context, out Dictionary<File, List<ConstantDataSectionHandle>> constant_sections);
-		var data_sections = GetDataSections(context);
+		if (entry_function != null)
+		{
+			entry_function_file = entry_function.Metadata.Position?.File ?? throw new ApplicationException("Entry function declaration file missing");
+		}
+
+		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);
+		var data_sections = GetDataSections(context, exports);
 		var debug_sections = GetDebugSections(context);
 
 		foreach (var file in files)
@@ -759,7 +1057,8 @@ public static class Assembler
 				builder.AppendLine(FILE_DIRECTIVE + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
 			}
 
-			if (entry_function_file == file)
+			// Append the text section header only if the output type represents executable
+			if (output_type != BinaryType.STATIC_LIBRARY && entry_function_file == file)
 			{
 				var header = IsTargetWindows ? FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
 
@@ -768,8 +1067,7 @@ public static class Assembler
 					header = IsTargetWindows ? FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER;
 				}
 
-				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, header, entry_function.GetFullname()));
-				builder.Append(GetExternalFunctions(context));
+				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, header, entry_function!.GetFullname()));
 			}
 
 			if (text_sections.TryGetValue(file, out string? text_section))
@@ -813,10 +1111,10 @@ public static class Assembler
 				builder.Append(debug_section);
 				builder.Append(SEPARATOR);
 			}
-			
+
 			result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
 		}
-		
+
 		return result;
 	}
 }

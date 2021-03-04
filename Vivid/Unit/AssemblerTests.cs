@@ -1,13 +1,13 @@
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 using System;
-using System.Text.RegularExpressions;
-using System.IO;
-using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
@@ -499,12 +499,10 @@ namespace Vivid.Unit
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
 
-			#pragma warning disable 162
 			if (OptimizationLevel > 0)
 			{
 				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
 			}
-			#pragma warning restore 162
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
@@ -530,14 +528,12 @@ namespace Vivid.Unit
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
 			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
 
-			#pragma warning disable 162
 			if (OptimizationLevel > 0)
 			{
 				// The condition depends on the constant boolean which is used manually to control the optimization of the tests
 				// NOTE: This is practically redundant since this could be automated
 				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
 			}
-			#pragma warning restore 162
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
@@ -587,12 +583,12 @@ namespace Vivid.Unit
 
 		private static string LoadAssemblyOutput(string project, string file)
 		{
-			return System.IO.File.ReadAllText(Prefix + project + '.' + file + ".asm");
+			return File.ReadAllText(Prefix + project + '.' + file + ".asm");
 		}
 
 		private static string LoadAssemblyFunction(string output, string function)
 		{
-			var assembly = System.IO.File.ReadAllText(Prefix + output + ".asm");
+			var assembly = File.ReadAllText(Prefix + output + ".asm");
 			var start = assembly.IndexOf(function + ':');
 			var end = assembly.IndexOf("\n\n", start);
 
@@ -780,35 +776,35 @@ namespace Vivid.Unit
 
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V20assign_subtraction_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V23assign_multiplication_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V17assign_division_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V18assign_remainder_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V20assign_bitwise_and_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V19assign_bitwise_or_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V20assign_bitwise_xor_1xxP1Ax_rx(long a, long b, IntPtr i, long j);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V23assign_multiplication_2xxxxP1AS0_S0_S0__rx(long a, long b, long c, long d, IntPtr i, IntPtr j, IntPtr k, IntPtr l);
 
-		
+
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern long _V17assign_division_2xxxxP1AS0_S0_S0__rx(long a, long b, long c, long d, IntPtr i, IntPtr j, IntPtr k, IntPtr l);
 
@@ -942,7 +938,7 @@ namespace Vivid.Unit
 			Marshal.WriteIntPtr(l, 8, lb);
 
 			Assert.AreEqual(9L * 2 * 36L * 5 * 2809L * 51 * 49L * -8, _V23assign_multiplication_2xxxxP1AS0_S0_S0__rx(9, 36, 2809, 49, i, j, k, l));
-			
+
 			Assert.AreEqual(9L * 2, Marshal.ReadInt64(ib, 8));
 			Assert.AreEqual(16L * 2, Marshal.ReadInt16(ib, 16));
 			Assert.AreEqual(9.16 * 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, 18)));
@@ -1088,7 +1084,7 @@ namespace Vivid.Unit
 		private static extern IntPtr _V9preload_2P8Sequence_rPd(ref Sequence instance);
 
 		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern long _V9preload_3Px_rPx(IntPtr address);
+		private static extern long _V9preload_3Px_rS_(IntPtr address);
 
 		private static void Assignment_Test()
 		{
@@ -1122,7 +1118,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(previous, _V9preload_2P8Sequence_rPd(ref sequence));
 			Assert.AreEqual(previous + sizeof(double), sequence.Address);
 
-			Assert.AreEqual(sequence.Address + 1, _V9preload_3Px_rPx(sequence.Address));
+			Assert.AreEqual(sequence.Address + 1, _V9preload_3Px_rS_(sequence.Address));
 			Assert.AreEqual(sequence.Address + 1, Marshal.ReadIntPtr(sequence.Address));
 		}
 
@@ -1198,7 +1194,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(5, _V9linkage_3x_rx(b));
 			Assert.AreEqual(4 * b + 75, _V9linkage_4x_rx(b));
 		}
-		
+
 		public static void Linkage()
 		{
 			if (!Compile("Linkage", new[] { "Linkage.v" }))
@@ -1212,7 +1208,7 @@ namespace Vivid.Unit
 		private static void PI_Test()
 		{
 			string actual = Execute("PI");
-			string expected = System.IO.File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
+			string expected = File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1230,7 +1226,7 @@ namespace Vivid.Unit
 		private static void Fibonacci_Test()
 		{
 			string actual = Execute("Fibonacci");
-			string expected = System.IO.File.ReadAllText(GetProjectFile("Fibonacci_Output.txt", TESTS)).Replace("\r\n", "\n");
+			string expected = File.ReadAllText(GetProjectFile("Fibonacci_Output.txt", TESTS)).Replace("\r\n", "\n");
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1309,8 +1305,6 @@ namespace Vivid.Unit
 			Assert.AreEqual(1802, _V23special_multiplicationsxx_rx(7, 100));
 
 			// The last part of this test is supposed to run when optimization is disabled
-			#pragma warning disable 162
-			
 			if (OptimizationLevel > 0)
 			{
 				Assert.Pass("Special multiplications are not tested when optimization is enabled");
@@ -1332,8 +1326,6 @@ namespace Vivid.Unit
 				Assert.AreEqual(2, GetCountOf(assembly, "add.+lsl\\ #"));
 				Assert.AreEqual(1, GetCountOf(assembly, "asr.+#2"));
 			}
-
-			#pragma warning restore 162
 		}
 
 		private static void LargeFunctions_Test()
@@ -1814,7 +1806,7 @@ namespace Vivid.Unit
 		private static void Lambdas_Test()
 		{
 			string actual = Execute("Lambdas");
-			string expected = System.IO.File.ReadAllText(GetProjectFile("Lambdas.txt", TESTS));
+			string expected = File.ReadAllText(GetProjectFile("Lambdas.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1832,7 +1824,7 @@ namespace Vivid.Unit
 		private static void Virtuals_Test()
 		{
 			string actual = Execute("Virtuals");
-			string expected = System.IO.File.ReadAllText(GetProjectFile("Virtuals.txt", TESTS));
+			string expected = File.ReadAllText(GetProjectFile("Virtuals.txt", TESTS));
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -1873,12 +1865,12 @@ namespace Vivid.Unit
 
 		[DllImport("Unit_Is", ExactSpelling = true)]
 		private static extern bool _V7can_useP6EntityP6Usable_rb(IntPtr entity, IntPtr usable);
-		
+
 		[DllImport("Unit_Is", ExactSpelling = true)]
 		private static extern IntPtr _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(IntPtr usables, long min_reliability);
 
 		[DllImport("Unit_Is", ExactSpelling = true)]
-		private static extern IntPtr _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(IntPtr entity, IntPtr vehicles, long distance);
+		private static extern IntPtr _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(IntPtr entity, IntPtr vehicles, long distance);
 
 		[DllImport("Unit_Is", ExactSpelling = true)]
 		private static extern IntPtr _V10create_pigv_rP3Pig();
@@ -1908,7 +1900,7 @@ namespace Vivid.Unit
 		private static extern IntPtr _V12create_arrayx_rP5ArrayIP6UsableE(long size);
 
 		[DllImport("Unit_Is", ExactSpelling = true)]
-		private static extern void _V3setP5ArrayIP6UsableES0_x(IntPtr array, IntPtr usable, long i);
+		private static extern void _V3setP5ArrayIP6UsableES1_x(IntPtr array, IntPtr usable, long i);
 
 		[DllImport("Unit_Is", ExactSpelling = true)]
 		private static extern bool _V6is_pigP7Vehicle_rb(IntPtr vehicle);
@@ -1926,10 +1918,10 @@ namespace Vivid.Unit
 			var steve = _V12create_stevev_rP6Person();
 
 			var array = _V12create_arrayx_rP5ArrayIP6UsableE(4);
-			_V3setP5ArrayIP6UsableES0_x(array, pig + 8, 0);
-			_V3setP5ArrayIP6UsableES0_x(array, bus + 8, 1);
-			_V3setP5ArrayIP6UsableES0_x(array, car + 8, 2);
-			_V3setP5ArrayIP6UsableES0_x(array, banana, 3);
+			_V3setP5ArrayIP6UsableES1_x(array, pig + 8, 0);
+			_V3setP5ArrayIP6UsableES1_x(array, bus + 8, 1);
+			_V3setP5ArrayIP6UsableES1_x(array, car + 8, 2);
+			_V3setP5ArrayIP6UsableES1_x(array, banana, 3);
 
 			Assert.False(_V7can_useP6EntityP6Usable_rb(john, pig + 8));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(john, bus + 8));
@@ -1951,15 +1943,16 @@ namespace Vivid.Unit
 			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, car + 8));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, banana));
 
-			var all = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, long.MinValue);
+			/// TODO: Inspect all the vehicles
+			_V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, long.MinValue);
 
 			var vehicles = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, 10);
 
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(john, vehicles, 7000));
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(max, vehicles, 1000));
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(gabe, vehicles, 3000));
-			
-			var vehicle = _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS2_(steve, vehicles, 3000);
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(john, vehicles, 7000));
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(max, vehicles, 1000));
+			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(gabe, vehicles, 3000));
+
+			var vehicle = _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(steve, vehicles, 3000);
 
 			Assert.True(_V6is_pigP7Vehicle_rb(vehicle));
 		}
@@ -1977,7 +1970,7 @@ namespace Vivid.Unit
 		public static void ExpressionVariables_Test()
 		{
 			string actual = Execute("ExpressionVariables");
-			string expected = System.IO.File.ReadAllText(GetProjectFile("ExpressionVariables_Output.txt", TESTS)).Replace("\r\n", "\n");
+			string expected = File.ReadAllText(GetProjectFile("ExpressionVariables_Output.txt", TESTS)).Replace("\r\n", "\n");
 
 			Assert.AreEqual(expected, actual);
 		}
@@ -2039,9 +2032,11 @@ namespace Vivid.Unit
 
 			var destination = Marshal.AllocHGlobal(sizeof(long) * 5);
 
-			var array = new IterationArray();
-			array.Count = 5;
-			array.Data = buffer;
+			var array = new IterationArray
+			{
+				Count = 5,
+				Data = buffer
+			};
 
 			_V11iteration_1P5ArrayIxEPx(array, destination);
 

@@ -7,7 +7,6 @@ public static class Trace
 	{
 		var directives = new List<Directive>();
 		var calls = new List<CallInstruction>();
-		var returns = new List<ReturnInstruction>();
 
 		var start = result.Lifetime.Start;
 		var end = result.Lifetime.End;
@@ -41,7 +40,7 @@ public static class Trace
 				{
 					continue;
 				}
-				
+
 				var instruction = unit.Instructions[i].To<ReturnInstruction>();
 
 				if (instruction.Object == null)
@@ -62,8 +61,6 @@ public static class Trace
 
 		if (Assembler.IsX64)
 		{
-			var divisions = new List<DivisionInstruction>();
-
 			for (var i = start; i <= end; i++)
 			{
 				if (!unit.Instructions[i].Is(InstructionType.DIVISION))
@@ -88,7 +85,7 @@ public static class Trace
 
 		foreach (var call in calls)
 		{
-			foreach (var iterator in call.ParameterInstructions)
+			foreach (var iterator in call.Instructions)
 			{
 				if (!iterator.Is(InstructionType.MOVE))
 				{
@@ -106,7 +103,7 @@ public static class Trace
 			}
 		}
 
-		var registers = calls.SelectMany(i => i.ParameterInstructions).Where(i => i.Is(InstructionType.MOVE)).Cast<MoveInstruction>()
+		var registers = calls.SelectMany(i => i.Instructions).Where(i => i.Is(InstructionType.MOVE)).Cast<MoveInstruction>()
 			.Select(i => i.First).Where(i => i.IsAnyRegister).Select(i => i.Value.To<RegisterHandle>().Register).Distinct();
 
 		directives.Add(new AvoidRegistersDirective(avoid.Concat(registers).ToArray()));
@@ -153,7 +150,7 @@ public static class Trace
 		end = end == -1 ? unit.Instructions.Count : end;
 		start = start == -1 ? unit.Instructions.Count : start;
 
-		return unit.Instructions.GetRange(start, end - start).Any(i => 
+		return unit.Instructions.GetRange(start, end - start).Any(i =>
 			i.Is(InstructionType.GET_VARIABLE) && i.To<GetVariableInstruction>().Mode == AccessMode.WRITE && !i.To<GetVariableInstruction>().Result.Equals(result) ||
 			i.Is(InstructionType.GET_OBJECT_POINTER) && i.To<GetObjectPointerInstruction>().Mode == AccessMode.WRITE && !i.To<GetObjectPointerInstruction>().Result.Equals(result) ||
 			i.Is(InstructionType.GET_MEMORY_ADDRESS) && i.To<GetMemoryAddressInstruction>().Mode == AccessMode.WRITE && !i.To<GetMemoryAddressInstruction>().Result.Equals(result)

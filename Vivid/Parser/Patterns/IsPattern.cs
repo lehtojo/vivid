@@ -16,7 +16,8 @@ public class IsPattern : Pattern
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER
-	) { }
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -55,7 +56,7 @@ public class IsPattern : Pattern
 		if (has_result_variable)
 		{
 			var name = tokens.Last().To<IdentifierToken>().Value;
-			var result = new Variable(context, type, VariableCategory.LOCAL, name, Modifier.PUBLIC);
+			var result = new Variable(context, type, VariableCategory.LOCAL, name, Modifier.DEFAULT);
 
 			return new IsNode(source, type, result, tokens[IS].Position);
 		}

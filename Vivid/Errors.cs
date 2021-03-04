@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 [SuppressMessage("Microsoft.Maintainability", "CA1032")]
 public class SourceException : Exception
 {
-	public SourceException(string message) : base(message) {}
+	public SourceException(string message) : base(message) { }
 }
 
 public static class Errors

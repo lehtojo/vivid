@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class IfNode : Node, IResolvable
 {
@@ -22,7 +22,7 @@ public class IfNode : Node, IResolvable
 		First!.Add(condition);
 	}
 
-	public IfNode() 
+	public IfNode()
 	{
 		Instance = NodeType.IF;
 	}

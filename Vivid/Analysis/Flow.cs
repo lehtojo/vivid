@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
@@ -65,7 +65,7 @@ public class Flow
 			if (iterator.Key is JumpNode jump)
 			{
 				Jumps.Add(jump, iterator.Value);
-				
+
 				if (!Paths.TryGetValue(jump.Label, out List<JumpNode>? jumps))
 				{
 					jumps = new List<JumpNode>();
@@ -153,13 +153,13 @@ public class Flow
 	{
 		var condition = statement.Condition;
 		var parent = condition.Parent!;
-		
+
 		// Remove the condition for a while
 		if (!condition.Remove())
 		{
 			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
 		}
-		
+
 		// Linearize all the nodes under the condition step except the actual condition
 		statement.GetConditionStep().ForEach(i => Linearize(i));
 
@@ -183,13 +183,13 @@ public class Flow
 	{
 		var condition = statement.Condition;
 		var parent = condition.Parent!;
-		
+
 		// Remove the condition for a while
 		if (!condition.Remove())
 		{
 			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
 		}
-		
+
 		// Linearize all the nodes under the condition step except the actual condition
 		statement.GetConditionStep().ForEach(i => Linearize(i));
 
@@ -589,7 +589,7 @@ public class Flow
 	{
 		var executable = new List<int>(positions.Count);
 
-		Start:
+	Start:
 
 		// Try to find the closest obstacle which is ahead of the current position
 		var closest_obstacle = int.MaxValue;
@@ -711,9 +711,6 @@ public class Flow
 			i = j;
 			j = t;
 		}
-
-		// Find all skip routes and check whether any of the can reach labels between the node and the position
-		var labels = Labels.Where(l => l.Value > i && l.Value < j).ToArray();
 
 		// Collect all jumps that are before the specified node and jump over it
 		var skips = Jumps.Where(x => x.Value < i && Labels[x.Key.Label] > i).ToArray();

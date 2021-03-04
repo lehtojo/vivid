@@ -22,12 +22,9 @@ public class AppendPositionInstruction : Instruction
 	{
 		Position = position;
 	}
-	
+
 	public override void OnBuild()
 	{
-		var line = Position.FriendlyLine.ToString(CultureInfo.InvariantCulture);
-		var character = Position.FriendlyCharacter.ToString(CultureInfo.InvariantCulture);
-
 		Build(GetPositionInstruction(Position));
 	}
 

@@ -15,15 +15,16 @@ public class WhenPattern : Pattern
 		TokenType.CONTENT,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	) {}
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
-    {
+	{
 		return PRIORITY;
-    }
+	}
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
-    {
+	{
 		// Ensure the keyword is the when keyword
 		if (!tokens.First().Is(Keywords.WHEN))
 		{
@@ -36,7 +37,7 @@ public class WhenPattern : Pattern
 		}
 
 		return tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
-    }
+	}
 
 	/// <summary>
 	/// Returns whether the section is an else section that is whether it should be executed when other conditions in when statement fail
@@ -55,8 +56,8 @@ public class WhenPattern : Pattern
 		return section.Take(i).Any(i => i.Is(Keywords.ELSE));
 	}
 
-    public override Node? Build(Context context, PatternState state, List<Token> tokens)
-    {
+	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	{
 		var result = new InlineNode(tokens.First().Position);
 
 		// Load the inspected value into a variable
@@ -144,7 +145,7 @@ public class WhenPattern : Pattern
 				new VariableNode(result_variable),
 				section_body.Last!.Clone()
 			);
-			
+
 			// Replace the last value with the assignment since the assignment has the last value
 			section_body.Last!.Replace(result_assignment);
 
@@ -202,5 +203,5 @@ public class WhenPattern : Pattern
 		result.Add(new VariableNode(result_variable));
 
 		return result;
-    }
+	}
 }

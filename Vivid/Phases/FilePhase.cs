@@ -1,8 +1,9 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
-public class File
+public class SourceFile
 {
 	public string Fullname { get; private set; }
 	public string Filename => System.IO.Path.GetFileName(Fullname);
@@ -13,7 +14,7 @@ public class File
 	public Node? Root { get; set; }
 	public Context? Context { get; set; }
 
-	public File(string filename, string content, int index)
+	public SourceFile(string filename, string content, int index)
 	{
 		Fullname = filename;
 		Content = content;
@@ -28,7 +29,7 @@ public class File
 
 	public override bool Equals(object? other)
 	{
-		return other is File file && Fullname.Equals(file.Fullname);
+		return other is SourceFile file && Fullname.Equals(file.Fullname);
 	}
 
 	public override int GetHashCode()
@@ -53,7 +54,7 @@ public class FilePhase : Phase
 			return Status.Error("Please enter input files");
 		}
 
-		var files = new File[filenames.Length];
+		var files = new SourceFile[filenames.Length];
 
 		for (var i = 0; i < filenames.Length; i++)
 		{
@@ -65,8 +66,8 @@ public class FilePhase : Phase
 
 				try
 				{
-					var content = System.IO.File.ReadAllText(filename).Replace(CARRIAGE_RETURN_CHARACTER, ' ').Replace(TAB_CHARACTER, ' ');
-					files[index] = new File(filename, content, index + 1);
+					var content = File.ReadAllText(filename).Replace(CARRIAGE_RETURN_CHARACTER, ' ').Replace(TAB_CHARACTER, ' ');
+					files[index] = new SourceFile(filename, content, index + 1);
 				}
 				catch
 				{
@@ -77,7 +78,9 @@ public class FilePhase : Phase
 			});
 		}
 
-		bundle.Put(OUTPUT, files);
+		Sync();
+
+		bundle.Put(OUTPUT, files.ToList());
 
 		return Status.OK;
 	}

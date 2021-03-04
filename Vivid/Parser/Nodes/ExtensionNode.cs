@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 public class ExtensionFunctionNode : Node, IResolvable
 {
@@ -30,7 +30,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 			Destination = destination;
 		}
 
-		var function = new Function(Destination, Modifier.PUBLIC, Descriptor.Name, Body)
+		var function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body)
 		{
 			Position = Position
 		};

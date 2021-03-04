@@ -8,6 +8,13 @@ public class Link : Number
 		Modifiers |= Modifier.TEMPLATE_TYPE;
 	}
 
+	public Link(Type argument) : base(Parser.Format, Parser.Size.Bits, true, "link")
+	{
+		Identifier = "Ph";
+		Modifiers |= Modifier.TEMPLATE_TYPE;
+		TemplateArguments = new[] { argument };
+	}
+
 	public override Type Clone()
 	{
 		var clone = base.Clone();

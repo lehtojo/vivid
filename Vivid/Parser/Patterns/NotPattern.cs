@@ -12,7 +12,8 @@ public class NotPattern : Pattern
 	(
 		TokenType.OPERATOR,
 		TokenType.OBJECT
-	) { }
+	)
+	{ }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

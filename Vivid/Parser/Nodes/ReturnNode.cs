@@ -26,8 +26,11 @@ public class ReturnNode : InstructionNode, IResolvable
 
 	public Node? Resolve(Context context)
 	{
-		// Find the parent function where the return value can be assigned
-		var function = context.GetImplementationParent() ?? throw new ApplicationException("Return statement was not inside a function");
+		// Ensure this return node is inside a function
+		if (context.GetImplementationParent() == null)
+		{
+			throw new ApplicationException("Return statement was not inside a function");
+		}
 
 		if (Value == null)
 		{

@@ -21,7 +21,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 		var lambda = new Lambda(
 			context,
-			Modifier.PUBLIC,
+			Modifier.DEFAULT,
 			name,
 			blueprint
 		);
@@ -51,7 +51,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 		}
 
 		var overload = (Function?)null;
-		
+
 		if (function.Overloads.Count == 1)
 		{
 			overload = function.Overloads.First();
@@ -72,7 +72,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 		}
 
 		var type = Parent.To<CastNode>().TryGetType();
-		
+
 		// Require that the type of the cast is resolved
 		if (type == null || type is not CallDescriptorType descriptor)
 		{

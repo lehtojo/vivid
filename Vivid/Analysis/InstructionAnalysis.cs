@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public class Pair<T1, T2>
 {
@@ -10,7 +10,7 @@ public class Pair<T1, T2>
 	public Pair(T1 first, T2 second)
 	{
 		First = first;
-		Second = second; 
+		Second = second;
 	}
 }
 
@@ -51,7 +51,7 @@ public static class InstructionAnalysis
 
 			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
 			{
-				var parameters = instruction.To<CallInstruction>().ParameterInstructions.SelectMany(i => i.Parameters).Select(i => i.Value!);
+				var parameters = instruction.To<CallInstruction>().Instructions.SelectMany(i => i.Parameters).Select(i => i.Value!);
 				var handle = new RegisterHandle(register);
 
 				if (parameters.Any(i => i.Equals(handle)))
@@ -244,7 +244,7 @@ public static class InstructionAnalysis
 		if (result.Value!.Equals(what))
 		{
 			var format = result.Value.Format;
-			
+
 			result.Value = to.Finalize();
 			result.Value.Format = format;
 		}
@@ -362,7 +362,7 @@ public static class InstructionAnalysis
 			{
 				break;
 			}
-			
+
 			// If either the destination or the source is a division related register, inlining should be skipped just in case
 			if (instruction.Is(InstructionType.DIVISION) && (is_destination_division_register || is_source_division_register))
 			{
@@ -495,13 +495,13 @@ public static class InstructionAnalysis
 		// call ...
 		// ...
 		// mov rcx, [rdi]
-		
+
 		if ((reordered || move.Type != MoveType.RELOCATE) && is_source_register)
 		{
 			// NOTE: The usages list is not enough since it does not record instruction below the move which use the source register
 			var position = instructions.IndexOf(root);
 			usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, position);
-			
+
 			// If the usages of the root instruction could not be collected, inlining should not be done
 			if (usages == null || is_destination_memory_address)
 			{
@@ -536,7 +536,7 @@ public static class InstructionAnalysis
 	/// </summary>
 	private static Instruction[] FindEnforcedMoveInstructions(List<Instruction> instructions)
 	{
-		return instructions.FindAll(i => i.Is(InstructionType.CALL)).Cast<CallInstruction>().SelectMany(i => i.ParameterInstructions).ToArray();
+		return instructions.FindAll(i => i.Is(InstructionType.CALL)).Cast<CallInstruction>().SelectMany(i => i.Instructions).ToArray();
 	}
 
 	/// <summary>
@@ -581,7 +581,7 @@ public static class InstructionAnalysis
 		unit.Reindex();
 
 		Combine(unit, instructions);
-		
+
 		unit.Reindex();
 	}
 
@@ -617,7 +617,7 @@ public static class InstructionAnalysis
 		{
 			return true;
 		}
-		
+
 		if (i.Is(HandleInstanceType.MEMORY) && j.Is(HandleInstanceType.MEMORY))
 		{
 			var first = i.To<MemoryHandle>();
@@ -710,7 +710,7 @@ public static class InstructionAnalysis
 			{
 				continue;
 			}
-			
+
 			instructions.RemoveAt(i);
 			instructions.Insert(position, instruction);
 		}
@@ -744,7 +744,7 @@ public static class InstructionAnalysis
 				}
 
 				var usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, i);
-				
+
 				if (usages == null || usages.Any(i => i != start))
 				{
 					return null;
@@ -767,7 +767,7 @@ public static class InstructionAnalysis
 
 			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
 			{
-				return !instruction.To<CallInstruction>().ParameterInstructions.SelectMany(i => i.Parameters).Any(i => i.Value!.Equals(handle));
+				return !instruction.To<CallInstruction>().Instructions.SelectMany(i => i.Parameters).Any(i => i.Value!.Equals(handle));
 			}
 
 			if (instruction.Is(InstructionType.JUMP, InstructionType.LABEL))
@@ -812,7 +812,7 @@ public static class InstructionAnalysis
 		{
 			return new SequentialPair(first, second, false);
 		}
-		
+
 		// Ensure both of the handles are memory addresses
 		if (!first.Is(HandleType.MEMORY))
 		{
@@ -922,7 +922,7 @@ public static class InstructionAnalysis
 			}
 
 			var first_move = instructions[i].To<MoveInstruction>();
-			
+
 			// The first move is found but its destination must be a memory address
 			if (!first_move.Parameters.Any() || !first_move.Destination!.IsMemoryAddress)
 			{
@@ -970,7 +970,7 @@ public static class InstructionAnalysis
 				var source = TryGetSequentialPair(first_source.First, second_source.First);
 
 				// Ensure sequential destinations and sources were found and ensure the sizes match each other
-				if (destination == null || source == null || destination.High.Size != destination.Low.Size || source.High.Size != source.High.Size)
+				if (destination == null || source == null || destination.High.Size != destination.Low.Size || source.High.Size != source.Low.Size)
 				{
 					// If the moves might intersect even a little bit, both the first and the second move should be left alone
 					if (IsIntersectionPossible(first_move.Destination.Value!, second_move.Destination.Value!))
@@ -1015,7 +1015,7 @@ public static class InstructionAnalysis
 					{
 						continue;
 					}
-					
+
 					var low_constant_value = source.Low.To<ConstantHandle>().Value as long?;
 					var high_constant_value = source.High.To<ConstantHandle>().Value as long?;
 
@@ -1112,9 +1112,9 @@ public static class InstructionAnalysis
 
 					store.Destination!.Value = destination.Low;
 					store.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
-					
+
 					store.OnPostBuild();
-					
+
 					/// NOTE: There will not be source instructions, so no need to remove them
 					/// NOTE: Index i is incremented always after the following assignment
 					i = -1;
@@ -1163,13 +1163,12 @@ public static class InstructionAnalysis
 						continue;
 					}
 
-					load.Destination.Value = new RegisterHandle(load_register);
-					load.Destination.Value.Format = load_format;
+					load.Destination.Value = new RegisterHandle(load_register) { Format = load_format };
 					load.Destination.Size = Size.FromFormat(load_format);
 
 					load.Source!.Value!.Format = Size.FromBytes(inline_source_size).ToFormat();
 					load.Source!.Size = Size.FromBytes(inline_source_size);
-					
+
 					store.Destination!.Value = destination.Low;
 					store.Destination!.Value.Format = Size.FromBytes(inline_destination_size).ToFormat();
 					store.Destination!.Size = Size.FromBytes(inline_destination_size);
@@ -1177,7 +1176,7 @@ public static class InstructionAnalysis
 					store.Source!.Value = new RegisterHandle(load_register);
 					store.Source!.Value!.Format = load_format;
 					store.Source!.Size = Size.FromFormat(load_format);
-					
+
 					load.OnPostBuild();
 					store.OnPostBuild();
 
@@ -1191,7 +1190,7 @@ public static class InstructionAnalysis
 				{
 					instructions.Remove(first_source.Second);
 				}
-				
+
 				if (second_source.Second != null)
 				{
 					instructions.Remove(second_source.Second);
@@ -1248,7 +1247,7 @@ public static class InstructionAnalysis
 			{
 				return true;
 			}
-			
+
 			// If any of the memory addresses in the instruction can intersect with the destination, the move instruction might not be redundant
 			var instruction_memory_addresses = instruction.Parameters.Where(i => i.IsMemoryAddress).ToArray();
 
@@ -1267,7 +1266,7 @@ public static class InstructionAnalysis
 				if (destination.IsAnyRegister && destination.Value!.To<RegisterHandle>().Register.IsVolatile)
 				{
 					// If any of the call parameter instructions interact with the destination of the specified move instruction, the move instruction is not redundant
-					return instruction.To<CallInstruction>().ParameterInstructions.Any(i => i.Parameters.Any(i => i.Equals(destination.Value!)));
+					return !instruction.To<CallInstruction>().Destinations.Contains(destination.Value!);
 				}
 			}
 

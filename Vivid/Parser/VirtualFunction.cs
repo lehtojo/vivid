@@ -7,7 +7,7 @@ public class VirtualFunction : Function
 	public int Ordinal { get; set; } = -1;
 	public long Alignment => (Ordinal + 1) * Parser.Bytes;
 
-	public VirtualFunction(Type type, string name, Type return_type) : base(type, Modifier.PUBLIC, name, new List<Token>()) 
+	public VirtualFunction(Type type, string name, Type return_type) : base(type, Modifier.DEFAULT, name, new List<Token>())
 	{
 		Type = type;
 		ReturnType = return_type;

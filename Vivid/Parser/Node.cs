@@ -48,18 +48,9 @@ public sealed class NodeEnumerator : IEnumerator, IEnumerator<Node>
 		Next = null;
 	}
 
-	public Node Current
-	{
-		get => Position ?? throw new InvalidOperationException("Node enumerator out of bounds");
-	}
+	public Node Current => Position ?? throw new InvalidOperationException("Node enumerator out of bounds");
 
-	object IEnumerator.Current
-	{
-		get
-		{
-			return Position!;
-		}
-	}
+	object IEnumerator.Current => Position!;
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1710")]
@@ -98,10 +89,10 @@ public class Node : IEnumerable, IEnumerable<Node>
 	{
 		return (T)this;
 	}
-	
+
 	public new Type GetType()
 	{
-		return TryGetType() ?? throw new ApplicationException(Position == null  ? "Could not resolve type of a node" : $"Could not resolve type of a node at {Errors.FormatPosition(Position)}");
+		return TryGetType() ?? throw new ApplicationException(Position == null ? "Could not resolve type of a node" : $"Could not resolve type of a node at {Errors.FormatPosition(Position)}");
 	}
 
 	public virtual Type? TryGetType()

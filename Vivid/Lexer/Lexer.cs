@@ -43,6 +43,7 @@ public static class Lexer
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
+	public const char LINE_ENDING = '\n';
 	public const char COMMENT = '#';
 	public const string MULTILINE_COMMENT = "###";
 	public const char STRING = '\'';
@@ -167,7 +168,7 @@ public static class Lexer
 		{
 			return AreaType.CHARACTER;
 		}
-		else if (c == '\n')
+		else if (c == LINE_ENDING)
 		{
 			return AreaType.END;
 		}
@@ -259,7 +260,7 @@ public static class Lexer
 		{
 			var c = text[position.Local];
 
-			if (c == '\n')
+			if (c == LINE_ENDING)
 			{
 				position.NextLine();
 			}
@@ -315,10 +316,10 @@ public static class Lexer
 			j += MULTILINE_COMMENT.Length;
 
 			// Count how many line ending are there inside the comment
-			var lines = text[start.Local..j].Count(i => i == '\n');
+			var lines = text[start.Local..j].Count(i => i == LINE_ENDING);
 
 			// Try to resolve the character position from the last line ending inside the multiline comment
-			var k = text[start.Local..j].LastIndexOf('\n');
+			var k = text[start.Local..j].LastIndexOf(LINE_ENDING);
 
 			// If there is no line ending inside the multiline comment, it means the comment uses only one line and its length can be added to the current character position
 			var c = k != -1 ? (j - k - 1) : (start.Character + j - start.Local);
@@ -326,7 +327,7 @@ public static class Lexer
 			return new Position(start.Line + lines, c, j, j);
 		}
 
-		var i = text.IndexOf('\n', start.Local);
+		var i = text.IndexOf(LINE_ENDING, start.Local);
 
 		if (i != -1)
 		{
@@ -347,7 +348,7 @@ public static class Lexer
 	private static Position SkipClosures(char closure, string text, Position start, string error)
 	{
 		var i = text.IndexOf(closure, start.Local + 1);
-		var j = text.IndexOf('\n', start.Local + 1);
+		var j = text.IndexOf(LINE_ENDING, start.Local + 1);
 
 		if (i == -1 || j != -1 && j < i)
 		{
@@ -411,7 +412,7 @@ public static class Lexer
 		}
 
 		var hexadecimal = text[2..];
-		
+
 		if (hexadecimal.Length != length)
 		{
 			throw new LexerException(position, "Invalid character");
@@ -499,7 +500,7 @@ public static class Lexer
 			case AreaType.END:
 			{
 				area.End = position.Clone().NextLine();
-				area.Text = "\n";
+				area.Text = LINE_ENDING.ToString();
 				return area;
 			}
 
@@ -696,7 +697,7 @@ public static class Lexer
 	/// <summary>
 	/// Ensures all the tokens have a reference to the specified file
 	/// </summary>
-	public static void RegisterFile(List<Token> tokens, File file)
+	public static void RegisterFile(List<Token> tokens, SourceFile file)
 	{
 		foreach (var token in tokens)
 		{

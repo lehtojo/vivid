@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 public class FunctionImplementation : Context
 {
@@ -21,15 +21,8 @@ public class FunctionImplementation : Context
 		.Select(p => p.Type!)
 		.ToList();
 
-	public int LocalMemorySize => Variables.Values
-		.Where(v => v.Category == VariableCategory.LOCAL)
-		.Select(v => v.Type!.ReferenceSize)
-		.Sum() + Subcontexts
-		.Sum(c => c.Variables.Values
-			.Where(v => v.Category == VariableCategory.LOCAL)
-			.Select(v => v.Type!.ReferenceSize)
-			.Sum()
-		);
+	public int SizeOfLocals { get; set; } = 0;
+	public int SizeOfLocalMemory { get; set; } = 0;
 
 	public Node? Node { get; set; }
 
@@ -106,7 +99,7 @@ public class FunctionImplementation : Context
 	{
 		foreach (var properties in parameters)
 		{
-			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, Modifier.PUBLIC, false)
+			var parameter = new Variable(this, properties.Type, VariableCategory.PARAMETER, properties.Name, Modifier.DEFAULT, false)
 			{
 				Position = properties.Position
 			};
@@ -128,14 +121,11 @@ public class FunctionImplementation : Context
 	{
 		if (Metadata.IsMember)
 		{
-			Self = new Variable(
-				this,
-				Metadata.GetTypeParent(),
-				VariableCategory.PARAMETER,
-				Function.SELF_POINTER_IDENTIFIER,
-				Modifier.PUBLIC
-
-			) { IsSelfPointer = true, Position = Metadata.Position };
+			Self = new Variable(this, Metadata.GetTypeParent(), VariableCategory.PARAMETER, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+			{
+				IsSelfPointer = true,
+				Position = Metadata.Position
+			};
 		}
 
 		Node = new ImplementationNode(this, Metadata.Position);
@@ -242,7 +232,6 @@ public class FunctionImplementation : Context
 			   EqualityComparer<List<Variable>>.Default.Equals(Parameters, implementation.Parameters) &&
 			   EqualityComparer<List<Type>>.Default.Equals(ParameterTypes, implementation.ParameterTypes) &&
 			   EqualityComparer<List<Variable>>.Default.Equals(Locals, implementation.Locals) &&
-			   LocalMemorySize == implementation.LocalMemorySize &&
 			   EqualityComparer<int>.Default.Equals(References.Count, implementation.References.Count) &&
 			   EqualityComparer<Type?>.Default.Equals(ReturnType, implementation.ReturnType);
 	}

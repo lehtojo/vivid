@@ -15,7 +15,8 @@ public class CastPattern : Pattern
 		TokenType.OBJECT,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER
-	) { }
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{

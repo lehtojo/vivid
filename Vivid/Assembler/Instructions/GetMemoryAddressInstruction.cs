@@ -37,7 +37,7 @@ public class GetMemoryAddressInstruction : Instruction
 	public override void OnBuild()
 	{
 		ValidateHandle();
-		
+
 		// Fixes situations where a memory address is requested by not immediately loaded into a register, so another instruction might affect the value before loading
 		/// Example: address[0] + call(address)
 		/// NOTE: In the example above the first operand requests the memory address but does not necessarily load it so the function call might modify the contents of the address
@@ -49,7 +49,7 @@ public class GetMemoryAddressInstruction : Instruction
 		}
 
 		if (Mode == AccessMode.READ)
-		{	
+		{
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;
 

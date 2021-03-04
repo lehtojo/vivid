@@ -1,5 +1,5 @@
-using System.Linq;
 using System;
+using System.Linq;
 
 public static class Analyzer
 {
@@ -162,8 +162,7 @@ public static class Analyzer
 	{
 		foreach (var type in context.Types.Values)
 		{
-			foreach (var variable in type.Variables.Values
-				.Where(variable => Flag.Has(variable.Modifiers, Modifier.STATIC)))
+			foreach (var variable in type.Variables.Values.Where(i => i.IsStatic))
 			{
 				// Static variables should be treated like global variables
 				variable.Category = VariableCategory.GLOBAL;

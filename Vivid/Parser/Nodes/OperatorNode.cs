@@ -178,7 +178,7 @@ public class OperatorNode : Node, IResolvable
 			{
 				return Status.Error(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
 			}
-			
+
 			return Status.OK;
 		}
 

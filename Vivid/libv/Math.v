@@ -7,27 +7,27 @@ import sin(a: decimal): decimal
 import cos(a: decimal): decimal
 import tan(a: decimal): decimal
 
-min(a, b) {
+export min(a, b) {
 	if a < b => a
 	else => b
 }
 
-max(a, b) {
-	if a < b => a
+export max(a, b) {
+	if a > b => a
 	else => b
 }
 
-ceil(a: decimal) => (a + 0.5) as large
-floor(a: decimal) => a as large
+export ceil(a: decimal) => (a + 0.5) as large
+export floor(a: decimal) => a as large
 
-sign(a: decimal) {
+export sign(a: decimal) {
 	if a > 0 => 1
 	else a < 0 => -1
 	else => 0 
 }
 
-cbrt(a: large) => pow(a, 1.0 / 3.0)
-cbrt(a: decimal) => pow(a, 1.0 / 3.0)
+export cbrt(a: large) => pow(a, 1.0 / 3.0)
+export cbrt(a: decimal) => pow(a, 1.0 / 3.0)
 
 Random {
 	static:
@@ -47,7 +47,7 @@ random() {
 }
 ###
 
-random() {
+export random() {
 	b = Random.b
 	c = Random.c
 	x = Random.a + b + c + Random.n++
@@ -57,7 +57,7 @@ random() {
 	=> x
 }
 
-set_random_seed(seed: large) {
+export set_random_seed(seed: large) {
 	Random.a = seed
 	Random.b = seed
 	Random.c = seed

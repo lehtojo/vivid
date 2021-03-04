@@ -1,7 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Collections.Generic;
-using System;
 
 public static class ParameterFlag
 {
@@ -135,7 +135,7 @@ public class InstructionParameter
 			{
 				return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
 			}
-			
+
 			return Flag.Has(Flags, ParameterFlag.BIT_LIMIT_64) || !handle.Address;
 		}
 
@@ -167,7 +167,7 @@ public class Instruction
 
 	// Controls whether the unit is allowed to load operands into registers while respecting the constraints
 	public bool IsUsageAnalyzed { get; set; } = true;
-	
+
 	// Tells whether this instructions is built 
 	public bool IsBuilt { get; private set; } = false;
 
@@ -210,7 +210,7 @@ public class Instruction
 	{
 		var protect = parameter.IsDestination && parameter.IsProtected;
 		var directives = parameter.IsDestination ? Trace.GetDirectives(Unit, Result) : Trace.GetDirectives(Unit, parameter.Result);
-	
+
 		if (parameter.IsValid())
 		{
 			// Get the more preffered options for this parameter
@@ -443,7 +443,7 @@ public class Instruction
 			}
 
 			var format = result.Format;
-			
+
 			parameter.Result = result;
 			parameter.Value = result.Value.Finalize();
 			parameter.Value.Format = format.IsDecimal() ? format : parameter.Size.ToFormat(format.IsUnsigned());
@@ -515,7 +515,7 @@ public class Instruction
 		{
 			result.Remove(result.Length - 1, 1);
 		}
-		
+
 		Unit.Write(result.ToString());
 	}
 

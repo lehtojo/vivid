@@ -11,7 +11,7 @@ public class TypeInspectionPattern : Pattern
 
 	public const int PRIORITY = 18;
 
-	public TypeInspectionPattern() : base(TokenType.FUNCTION) {}
+	public TypeInspectionPattern() : base(TokenType.FUNCTION) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

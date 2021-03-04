@@ -1,7 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Globalization;
-using System;
 
 public class Offset
 {
@@ -74,7 +75,9 @@ public class Debug
 	public const byte DWARF_OFFSET_ZERO = 128;
 
 	public const byte DWARF_REGISTER_ZERO = 80;
-	public const byte DWARF_BASE_POINTER_REGISTER = 86;
+
+	public const byte X64_DWARF_STACK_POINTER_REGISTER = 87;
+	public const byte ARM64_DWARF_STACK_POINTER_REGISTER = 111;
 
 	public const byte DWARF_TAG_COMPILE_UNIT = 17;
 	public const byte DWARF_HAS_CHILDREN = 1;
@@ -140,10 +143,10 @@ public class Debug
 
 	public static object GetOffset(TableLabel from, TableLabel to)
 	{
-		return new Offset(from, to );
+		return new Offset(from, to);
 	}
 
-	public void BeginFile(File file)
+	public void BeginFile(SourceFile file)
 	{
 		Entry.Add(FileAbbrevation); // DW_TAG_compile_unit
 		Entry.Add(DWARF_PRODUCER_TEXT); // DW_AT_producer
@@ -159,8 +162,8 @@ public class Debug
 
 		Entry.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
-		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSecrel = true }); // DW_AT_stmt_list
-		
+		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSecrel = Assembler.IsX64 }); // DW_AT_stmt_list
+
 		Entry.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
 		var start = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_START, file.Index));
@@ -233,12 +236,12 @@ public class Debug
 
 		Entry.Add(GetOffset(start, GetEnd(implementation))); // DW_AT_high_pc
 
-		AppendOperation(DWARF_BASE_POINTER_REGISTER); // DW_AT_frame_base
+		AppendOperation(Assembler.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
 		Entry.Add(implementation.GetFullname()); // DW_AT_name
 		Entry.Add(file); // DW_AT_decl_file
 		Entry.Add(GetLine(implementation)); // DW_AT_decl_line
 
-		var has_children = implementation.Locals.Any();
+		var has_children = implementation.Self != null || implementation.Parameters.Any() || implementation.Locals.Any();
 
 		Abbrevation.Add(Index++);
 		Abbrevation.Add(DWARF_FUNCTION);
@@ -278,25 +281,25 @@ public class Debug
 		{
 			Entry.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!))); // DW_AT_type
 		}
-		
+
 		foreach (var local in implementation.Locals)
 		{
-			AppendLocalVariable(local, file);
+			AppendLocalVariable(local, file, implementation.SizeOfLocals);
 		}
 
 		var self = implementation.GetSelfPointer();
 
 		if (self != null)
 		{
-			AppendParameterVariable(self, file);
+			AppendParameterVariable(self, file, implementation.SizeOfLocalMemory);
 		}
 
 		foreach (var parameter in implementation.Parameters)
 		{
-			AppendParameterVariable(parameter, file);
+			AppendParameterVariable(parameter, file, implementation.SizeOfLocalMemory);
 		}
 
-		if (has_children) 
+		if (has_children)
 		{
 			Entry.Add(DWARF_END); // End Of Children Mark
 		}
@@ -317,7 +320,7 @@ public class Debug
 
 		Abbrevation.Add(DWARF_NAME); // The name of the file is added with a string pointer
 		Abbrevation.Add(DWARF_STRING);
-		
+
 		Abbrevation.Add(DWARF_LINE_NUMBER_INFORMATION); // The line number information is added with a section offset
 		Abbrevation.Add(DWARF_DATA_SECTION_OFFSET);
 
@@ -530,6 +533,8 @@ public class Debug
 			AppendMemberVariable(member);
 		}
 
+		Entry.Add(DWARF_END);
+
 		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
 		Entry.Add(PointerTypeAbbrevation);
 		Entry.Add(GetOffset(Start, GetTypeLabel(type)));
@@ -582,7 +587,62 @@ public class Debug
 		Entry.Add(type.ReferenceSize);
 	}
 
-	public void AppendLocalVariable(Variable variable, int file)
+	public static byte[] ToULEB128(int value)
+	{
+		var bytes = new List<byte>();
+
+		do
+		{
+			var x = value & 0x7F;
+			value >>= 7;
+
+			if (value != 0)
+			{
+				x |= (1 << 7);
+			}
+	
+			bytes.Add((byte)x);
+
+		} while (value != 0);
+
+		return bytes.ToArray();
+	}
+
+	public static byte[] ToSLEB128(int value)
+	{
+		var bytes = new List<byte>();
+
+		var more = true;
+		var negative = value < 0;
+
+		while (more) 
+		{
+			var x = value & 0x7F;
+			value >>= 7;
+
+			// The following is only necessary if the implementation of >>= uses a logical shift rather than an arithmetic shift for a signed left operand
+			if (negative)
+			{
+				value |= (~0 << (sizeof(int) - 7)); // Sign extend
+			}
+
+			// Sign bit of byte is second high order bit (0x40)
+			if ((value == 0 && ((x & 0x40) == 0)) || (value == -1 && ((x & 0x40) == 0x40)))
+			{
+				more = false;
+			}
+			else
+			{
+				x |= (1 << 7);
+			}
+
+			bytes.Add((byte)x);
+		}
+
+		return bytes.ToArray();
+	}
+
+	public void AppendLocalVariable(Variable variable, int file, int local_memory_size)
 	{
 		if (variable.IsGenerated)
 		{
@@ -591,8 +651,7 @@ public class Debug
 
 		Entry.Add(LocalVariableAbbrevation); // DW_TAG_variable
 
-		var offset = (byte)(DWARF_OFFSET_ZERO + variable.LocalAlignment! + variable.Type!.ReferenceSize);
-		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, offset); // DW_AT_location
+		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, ToSLEB128(local_memory_size + (int)variable.LocalAlignment!)); // DW_AT_location
 
 		Entry.Add(variable.Name); // DW_AT_name
 
@@ -602,7 +661,7 @@ public class Debug
 		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!)))); // DW_AT_type
 	}
 
-	public void AppendParameterVariable(Variable variable, int file)
+	public void AppendParameterVariable(Variable variable, int file, int local_memory_size)
 	{
 		if (variable.IsGenerated)
 		{
@@ -612,8 +671,7 @@ public class Debug
 		Entry.Add(ParameterVariableAbbrevation); // DW_TAG_variable
 
 		// Substract one pointer size from the alignment (return address size)
-		var offset = (byte)(variable.LocalAlignment! + Assembler.Size.Bytes);
-		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, offset); // DW_AT_location
+		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, ToSLEB128(local_memory_size + (int)variable.LocalAlignment!)); // DW_AT_location
 
 		Entry.Add(variable.Name); // DW_AT_name
 
@@ -634,12 +692,12 @@ public class Debug
 		End = new TableLabel("debug_info_end", Size.QWORD, true);
 
 		var version_number_label = new TableLabel("debug_info_version", Size.QWORD, true);
-		
+
 		Entry.Add(Start);
 		Entry.Add(GetOffset(version_number_label, End));
 		Entry.Add(version_number_label);
 		Entry.Add(DWARF_VERSION);
-		Entry.Add(new TableLabel(DEBUG_ABBREVATION_TABLE, Size.DWORD, false) { IsSecrel = true });
+		Entry.Add(new TableLabel(DEBUG_ABBREVATION_TABLE, Size.DWORD, false) { IsSecrel = Assembler.IsX64 });
 		Entry.Add((byte)Assembler.Size.Bytes);
 
 		Lines.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.QWORD, true));

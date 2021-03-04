@@ -1,6 +1,6 @@
-using System.Linq;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public static class Calls
 {
@@ -42,7 +42,7 @@ public static class Calls
 	public static Result Build(Unit unit, FunctionNode node)
 	{
 		unit.TryAppendPosition(node);
-		
+
 		Result? self = null;
 
 		if (IsSelfPointerRequired(unit.Function, node.Function))
@@ -67,7 +67,7 @@ public static class Calls
 		unit.TryAppendPosition(node);
 		return Build(unit, self, node.Parameters, node.Function!);
 	}
-	
+
 	private static bool IsSelfPointerRequired(FunctionImplementation current, FunctionImplementation other)
 	{
 		if (other.IsStatic || other.IsConstructor || !current.IsMember || !other.IsMember)
@@ -88,7 +88,7 @@ public static class Calls
 	private static int PassParameters(Unit unit, CallInstruction call, Result? self_pointer, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
 	{
 		var stack_parameter_count = 0;
-		
+
 		var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
 		var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
@@ -101,7 +101,8 @@ public static class Calls
 		var register = (Register?)null;
 
 		// Save the parameter instructions for inspection
-		call.ParameterInstructions.Clear();
+		call.Instructions.Clear();
+		call.Destinations.Clear();
 
 		// On Windows x64 a 'shadow space' is allocated for the first four parameters
 		var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
@@ -115,15 +116,15 @@ public static class Calls
 				var destination = new RegisterHandle(register);
 
 				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
-				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer)
-				{
-					IsSafe = true
-				});
+				call.Instructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer) { IsSafe = true });
+				call.Destinations.Add(destination);
 			}
 			else
 			{
-				// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
+				// Since there is no more room for parameters in registers, this parameter must be pushed to stack
+				call.Instructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
+				call.Destinations.Add(stack_position.Finalize());
+
 				stack_position.Offset += Size.FromFormat(self_pointer.Format).Bytes;
 			}
 		}
@@ -147,17 +148,17 @@ public static class Calls
 				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
 				var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
 
-				call.ParameterInstructions.Add(new MoveInstruction(unit, new Result(destination, format), source)
-				{
-					IsSafe = true
-				});
+				call.Instructions.Add(new MoveInstruction(unit, new Result(destination, format), source) { IsSafe = true });
+				call.Destinations.Add(destination.Finalize());
 			}
 			else
 			{
 				var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
 
-				// Since there's no more room for parameters in registers, this parameter must be pushed to stack
-				call.ParameterInstructions.Add(new MoveInstruction(unit, destination, source));
+				// Since there is no more room for parameters in registers, this parameter must be pushed to stack
+				call.Instructions.Add(new MoveInstruction(unit, destination, source));
+				call.Destinations.Add(stack_position.Finalize());
+
 				stack_position.Offset += Size.FromFormat(source.Format).Bytes;
 			}
 		}
@@ -197,7 +198,7 @@ public static class Calls
 		var call = new CallInstruction(unit, implementation.GetFullname(), implementation.ReturnType);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, self, false, CollectParameters(parameters), implementation.ParameterTypes);
+		PassParameters(unit, call, self, false, CollectParameters(parameters), implementation.ParameterTypes);
 
 		return call.Execute();
 	}
@@ -208,7 +209,7 @@ public static class Calls
 		var call = new CallInstruction(unit, implementation.GetFullname(), return_type);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, null, false, parameters, function.Parameters.Select(p => p.Type!).ToList());
+		PassParameters(unit, call, null, false, parameters, function.Parameters.Select(p => p.Type!).ToList());
 
 		return call.Execute();
 	}
@@ -218,7 +219,7 @@ public static class Calls
 		var call = new CallInstruction(unit, function, return_type);
 
 		// Pass the parameters to the function and then execute it
-		var stack_parameter_count = PassParameters(unit, call, self, true, CollectParameters(parameters), parameter_types);
+		PassParameters(unit, call, self, true, CollectParameters(parameters), parameter_types);
 
 		return call.Execute();
 	}
@@ -230,7 +231,7 @@ public static class Calls
 
 		var register = (Register?)null;
 
-		if ((unit.Function.IsMember || unit.Function.IsLambdaImplementation) && !unit.Function.IsConstructor)
+		if (unit.Function.IsMember || unit.Function.IsLambdaImplementation)
 		{
 			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 
@@ -238,8 +239,8 @@ public static class Calls
 
 			if (register != null)
 			{
-				var destination = new Result(References.CreateVariableHandle(unit, unit.Self!), unit.Self!.Type!.Format);
-				var source = new Result(new RegisterHandle(register), unit.Self!.GetRegisterFormat());
+				var destination = new Result(References.CreateVariableHandle(unit, self), self.Type!.Format);
+				var source = new Result(new RegisterHandle(register), self.GetRegisterFormat());
 
 				unit.Append(new MoveInstruction(unit, destination, source)
 				{

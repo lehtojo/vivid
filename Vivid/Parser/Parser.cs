@@ -373,9 +373,7 @@ public static class Parser
 			throw new ArgumentException("Pattern list contained a non-pattern type");
 		}
 
-		var result = new List<Token>();
 		var clone = new List<Token>(state.Tokens);
-
 		var consumption = new List<Consumption>();
 
 		for (var priority = state.Max; priority >= state.Min;)
@@ -455,7 +453,7 @@ public static class Parser
 		CreateFunctionCalls(tokens);
 
 		var denylist = new List<System.Type>();
-		
+
 		for (var priority = max; priority >= min; priority--)
 		{
 			Instance? instance;
@@ -569,7 +567,7 @@ public static class Parser
 		var copy = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL,
+			Modifier.DEFAULT | Modifier.EXTERNAL,
 			"copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -580,7 +578,7 @@ public static class Parser
 		var offset_copy = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL,
+			Modifier.DEFAULT | Modifier.EXTERNAL,
 			"offset_copy",
 			Types.UNIT,
 			new Parameter("source", Types.LINK),
@@ -592,7 +590,7 @@ public static class Parser
 		var deallocate = new Function
 		(
 			context,
-			Modifier.PUBLIC | Modifier.EXTERNAL,
+			Modifier.DEFAULT | Modifier.EXTERNAL,
 			"deallocate",
 			Types.UNIT,
 			new Parameter("address", Types.LINK),

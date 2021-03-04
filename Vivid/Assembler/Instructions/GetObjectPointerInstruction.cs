@@ -45,7 +45,7 @@ public class GetObjectPointerInstruction : Instruction
 		}
 
 		if (Mode == AccessMode.READ)
-		{	
+		{
 			Result.Value = new MemoryHandle(Unit, Start, Offset);
 			Result.Format = Variable.Type!.Format;
 

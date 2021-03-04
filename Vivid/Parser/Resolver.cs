@@ -337,7 +337,10 @@ public static class Resolver
 		{
 			var parent = reference.Parent;
 
-			if (parent == null) continue;
+			if (parent == null)
+			{
+				continue;
+			}
 
 			if (parent.Instance == NodeType.OPERATOR) // Locals
 			{

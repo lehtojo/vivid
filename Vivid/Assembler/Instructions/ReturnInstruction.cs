@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
 using System.Linq;
+using System.Text;
 
 /// <summary>
 /// Returns the specified value to the caller by exiting the current function properly
@@ -8,8 +8,6 @@ using System.Linq;
 /// </summary>
 public class ReturnInstruction : Instruction
 {
-	private const string DEBUG_FOOTER = ".cfi_def_cfa 7, 8";
-
 	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 	private Handle ReturnRegisterHandle => new RegisterHandle(ReturnRegister);
 
@@ -175,11 +173,6 @@ public class ReturnInstruction : Instruction
 			{
 				builder.AppendLine($"{Instructions.Shared.ADD} {stack_pointer}, {stack_pointer}, #{allocated_local_memory}");
 			}
-		}
-
-		if (Assembler.IsDebuggingEnabled)
-		{
-			builder.AppendLine(DEBUG_FOOTER);
 		}
 
 		// Restore all used non-volatile rgisters

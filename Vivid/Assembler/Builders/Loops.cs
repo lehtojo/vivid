@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public static class Loops
 {
@@ -99,7 +99,7 @@ public static class Loops
 			loop.Condition.Instance = NodeType.DISABLED;
 
 			Builders.Build(unit, loop.Initialization.Next!);
-			
+
 			loop.Condition.Instance = instance;
 
 			BuildEndCondition(unit, loop.Condition, start.Label);
@@ -152,7 +152,7 @@ public static class Loops
 	public static Result Build(Unit unit, LoopNode node)
 	{
 		unit.TryAppendPosition(node);
-		
+
 		if (node.IsForeverLoop)
 		{
 			return BuildForeverLoop(unit, node);
@@ -177,7 +177,7 @@ public static class Loops
 
 		// Load constants which might be edited inside the loop
 		Scope.LoadConstants(unit, node, node.Body.Context);
-		
+
 		// Try to find a loop control node which targets the current loop
 		if (node.Body.Find(i => i.Is(NodeType.LOOP_CONTROL) && i.To<LoopControlNode>().Instruction == Keywords.CONTINUE && i.To<LoopControlNode>().Loop == node) != null)
 		{
@@ -191,7 +191,7 @@ public static class Loops
 		node.Condition.Instance = NodeType.DISABLED;
 
 		Builders.Build(unit, node.Initialization.Next!);
-		
+
 		node.Condition.Instance = instance;
 
 		var active_variables = Scope.GetAllActiveVariables(unit, node);

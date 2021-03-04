@@ -7,7 +7,7 @@ public class ContentToken : Token
 	private const int OPENING = 0;
 	private const int EMPTY = 2;
 
-	public List<Token> Tokens { get; private set; }  = new List<Token>();
+	public List<Token> Tokens { get; private set; } = new List<Token>();
 	public bool IsEmpty => Tokens.Count == 0;
 
 	public new ParenthesisType Type { get; set; }
@@ -22,7 +22,7 @@ public class ContentToken : Token
 		}
 
 		var section = new List<Token>();
-		
+
 		foreach (var token in Tokens)
 		{
 			if (token.Type == TokenType.OPERATOR && token.To<OperatorToken>().Operator == Operators.COMMA)
@@ -96,5 +96,10 @@ public class ContentToken : Token
 		clone.Tokens = Tokens.Select(t => (Token)t.Clone()).ToList();
 
 		return clone;
+	}
+
+	public override string ToString()
+	{
+		return Type.Opening + string.Join(' ', Tokens) + Type.Closing;
 	}
 }

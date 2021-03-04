@@ -1,8 +1,9 @@
 public static class Modifier
 {
-	public const int PRIVATE = 1;
-	public const int PROTECTED = 2;
-	public const int PUBLIC = 4;
+	/// NOTE: Do not change the order, since the importer, for example, is dependent on it
+	public const int PUBLIC = 1;
+	public const int PRIVATE = 2;
+	public const int PROTECTED = 4;
 	public const int STATIC = 8;
 	public const int EXTERNAL = 16;
 	public const int READONLY = 32;
@@ -11,4 +12,22 @@ public static class Modifier
 	public const int TEMPLATE_TYPE = 256;
 	public const int OUTLINE = 512;
 	public const int INLINE = 1024;
+
+	public const int DEFAULT = PUBLIC;
+	
+	private static int GetExcluder(int modifier)
+	{
+		return modifier switch
+		{
+			PUBLIC => PRIVATE | PROTECTED,
+			PRIVATE => PUBLIC | PROTECTED,
+			PROTECTED => PUBLIC | PRIVATE,
+			_ => 0
+		};
+	}
+
+	public static int Combine(int modifiers, int modifier)
+	{
+		return (modifiers | modifier) & ~GetExcluder(modifier);
+	}
 }

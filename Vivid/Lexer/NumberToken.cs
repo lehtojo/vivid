@@ -87,7 +87,7 @@ public class NumberToken : Token
 		{
 			return sign * result;
 		}
-		
+
 		throw new LexerException(Position, "Invalid number exponent");
 	}
 
@@ -164,5 +164,10 @@ public class NumberToken : Token
 	public override object Clone()
 	{
 		return MemberwiseClone();
+	}
+
+	public override string ToString()
+	{
+		return Value.ToString() ?? string.Empty;
 	}
 }

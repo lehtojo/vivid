@@ -11,7 +11,10 @@ public class Variable
 	public Position? Position { get; set; }
 
 	public bool IsConstant => Flag.Has(Modifiers, Modifier.CONSTANT);
-	public bool IsExternal => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
+	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
+	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsSelfPointer { get; set; } = false;
 
@@ -59,7 +62,17 @@ public class Variable
 
 	public string GetStaticName()
 	{
-		return Context.GetFullname() + '_' + Name.ToLowerInvariant();
+		// Request the fullname in order to generate the mangled name object
+		Context.GetFullname();
+
+		var mangle = Context.Mangled!.Clone();
+		var name = Name.ToLowerInvariant();
+
+		mangle += $"{Mangle.STATIC_VARIABLE_COMMAND}{name.Length}{name}";
+		mangle += Type!;
+		mangle += Mangle.END_COMMAND;
+
+		return mangle.Value;
 	}
 
 	public bool IsEditedInside(Node node)

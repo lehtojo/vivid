@@ -15,10 +15,10 @@ public class IdentifierToken : Token
 		Position = position;
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is IdentifierToken token &&
-			   base.Equals(obj) &&
+		return other is IdentifierToken token &&
+			   base.Equals(other) &&
 			   Value == token.Value;
 	}
 
@@ -30,5 +30,10 @@ public class IdentifierToken : Token
 	public override object Clone()
 	{
 		return MemberwiseClone();
+	}
+
+	public override string ToString()
+	{
+		return Value;
 	}
 }

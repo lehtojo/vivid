@@ -102,4 +102,9 @@ public class FunctionToken : Token
 
 		return clone;
 	}
+
+	public override string ToString()
+	{
+		return Identifier.ToString() + Parameters.ToString();
+	}
 }

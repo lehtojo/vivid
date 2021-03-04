@@ -1,7 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System;
 
 public class VariableWrite
 {
@@ -125,7 +125,7 @@ public static class GeneralAnalysis
 			{
 				var start = obstacles[i];
 				var executable = flow.GetExecutablePositions(start, obstacles, new List<int>(positions), new SortedSet<int>());
-				
+
 				if (executable.Any())
 				{
 					descriptor.Value.Writes[i].Dependencies.AddRange(executable.Select(i => nodes[i]));
@@ -155,7 +155,7 @@ public static class GeneralAnalysis
 			statement.Remove();
 		}
 	}
-	
+
 	/// <summary>
 	/// Removes all the assigments which do not have any effect on the execution of the specified function
 	/// </summary>
@@ -206,10 +206,10 @@ public static class GeneralAnalysis
 					// Check whether this write is a declaration
 					var is_declaration = descriptor.Writes.First() == write && variable.IsLocal;
 
-					redundants.Add(new RedundantAssignment() 
-					{ 
+					redundants.Add(new RedundantAssignment()
+					{
 						Node = write.Node,
-						Declaration = is_declaration ? variable : null 
+						Declaration = is_declaration ? variable : null
 					});
 				}
 			}
@@ -273,7 +273,7 @@ public static class GeneralAnalysis
 
 			var variable = i.To<VariableNode>().Variable;
 			return variable.IsPredictable && !variable.IsConstant && !variable.IsSelfPointer;
-			
+
 		}).Select(i => i.To<VariableNode>().Variable).ToArray();
 	}
 
@@ -295,7 +295,7 @@ public static class GeneralAnalysis
 	/// </summary>
 	private static bool IsAssignable(Node assignment)
 	{
-		return assignment.Find(i => !i.Is(NodeType.VARIABLE, NodeType.NUMBER, NodeType.OPERATOR, NodeType.DATA_POINTER, NodeType.TYPE) && !(i.Is(NodeType.CAST) && i.To<CastNode>().IsFree())) == null; 
+		return assignment.Find(i => !i.Is(NodeType.VARIABLE, NodeType.NUMBER, NodeType.OPERATOR, NodeType.DATA_POINTER, NodeType.TYPE) && !(i.Is(NodeType.CAST) && i.To<CastNode>().IsFree())) == null;
 	}
 
 	/// <summary>
@@ -388,7 +388,7 @@ public static class GeneralAnalysis
 		var minimum_cost_snapshot = root;
 		var minimum_cost = Analysis.GetCost(root);
 		var cost = 0L;
-		
+
 		var result = (Node?)null;
 
 		while (result == null || !result.Equals(minimum_cost_snapshot))
@@ -402,7 +402,7 @@ public static class GeneralAnalysis
 				Analysis.Unrepeat(snapshot);
 			}
 
-			Start:
+		Start:
 
 			var variables = implementation.Locals.Concat(implementation.Parameters);
 
@@ -480,7 +480,7 @@ public static class GeneralAnalysis
 		{
 			RemoveRedundantAssignments(implementation, root);
 		}
-		
+
 		root = AssignVariables(implementation, root);
 
 		if (!Assembler.IsDebuggingEnabled)

@@ -15,7 +15,7 @@ public class HasNode : Node, IResolvable
 	{
 		Position = position;
 		Instance = NodeType.HAS;
-		
+
 		Add(source);
 		Add(result);
 	}

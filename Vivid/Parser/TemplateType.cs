@@ -24,13 +24,26 @@ public class TemplateType : Type
 	public List<string> TemplateArgumentNames { get; private set; }
 	public List<Token> Inherited { get; private set; } = new List<Token>();
 
-	private List<Token> Blueprint { get; set; }
+	public List<Token> Blueprint { get; private set; }
 	private Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
-	
-	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names, Position position) : base(context, name, modifiers, position)
+
+	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names, Position position) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE, position)
 	{
 		Blueprint = blueprint;
 		TemplateArgumentNames = template_argument_names;
+	}
+
+	public TemplateType(Context context, string name, int modifiers, int argument_count) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE)
+	{
+		// Create an empty type with the specified name using tokens
+		Blueprint = new List<Token> { new IdentifierToken(name), new ContentToken() { Type = ParenthesisType.CURLY_BRACKETS } };
+		TemplateArgumentNames = new List<string>();
+
+		// Generate the template arguments
+		for (var i = 0; i < argument_count; i++)
+		{
+			TemplateArgumentNames.Add($"T{i}");
+		}
 	}
 
 	private Type? TryGetVariant(Type[] arguments)
@@ -123,7 +136,7 @@ public class TemplateType : Type
 
 		// Finally, add the inherited supertypes to the variant
 		variant.Supertypes.AddRange(Supertypes);
-		
+
 		return variant;
 	}
 

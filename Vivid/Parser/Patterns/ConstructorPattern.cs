@@ -11,7 +11,8 @@ public class ConstructorPattern : Pattern
 	public ConstructorPattern() : base
 	(
 		TokenType.FUNCTION
-	) { }
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -62,13 +63,13 @@ public class ConstructorPattern : Pattern
 
 		if (descriptor.Name == Keywords.INIT.Identifier)
 		{
-			function = new Constructor(type, Modifier.PUBLIC, descriptor.Position);
+			function = new Constructor(type, Modifier.DEFAULT, descriptor.Position);
 			function.Parameters.AddRange(descriptor.GetParameters(function));
 			function.DeclareSelfPointer();
 		}
 		else
 		{
-			function = new Destructor(type, Modifier.PUBLIC, descriptor.Position);
+			function = new Destructor(type, Modifier.DEFAULT, descriptor.Position);
 			function.Parameters.AddRange(descriptor.GetParameters(function));
 			function.DeclareSelfPointer();
 		}

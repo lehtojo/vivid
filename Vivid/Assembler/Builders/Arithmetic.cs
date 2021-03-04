@@ -81,7 +81,7 @@ public static class Arithmetic
 		{
 			throw new InvalidOperationException("Found a boolean value which should have been already outlined");
 		}
-		
+
 		throw new ArgumentException($"Operator node is not implemented '{operation.Identifier}'");
 	}
 
@@ -100,7 +100,7 @@ public static class Arithmetic
 	{
 		var left = References.Get(unit, shift.Left, AccessMode.READ);
 		var right = References.Get(unit, shift.Right, AccessMode.READ);
-		
+
 		return BitwiseInstruction.ShiftLeft(unit, left, right, Assembler.Format).Execute();
 	}
 
@@ -111,7 +111,7 @@ public static class Arithmetic
 	{
 		var left = References.Get(unit, shift.Left, AccessMode.READ);
 		var right = References.Get(unit, shift.Right, AccessMode.READ);
-		
+
 		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format).Execute();
 	}
 

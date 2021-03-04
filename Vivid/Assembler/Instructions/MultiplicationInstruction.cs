@@ -174,7 +174,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 					Memory.GetResultRegisterFor(Unit, Result, false);
 					destination = Result;
 				}
-				
+
 				// Example: imul rax, 3 => lea ..., [rax*2+rax]
 				var expression = new ExpressionHandle
 				(
@@ -231,7 +231,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		{
 			// If the destination operand is assigned and it is a memory address, load it, calculate and store it lastly
 			var result = Memory.LoadOperand(Unit, First, false, Assigns);
-		
+
 			// Example:
 			// a *= 9
 			//

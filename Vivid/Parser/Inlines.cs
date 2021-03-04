@@ -4,6 +4,9 @@ using System;
 
 public static class Inlines
 {
+	/// <summary>
+	/// Finds function calls under the specified root and tries to inline them
+	/// </summary>
 	public static void Build(Node root)
 	{
 		var context = root.Is(NodeType.IMPLEMENTATION) 
@@ -24,7 +27,43 @@ public static class Inlines
 		}
 	}
 
-	private static void UnwrapSubcontexts(Context context, Node start, Node root)
+	/// <summary>
+	/// Finds all the labels under the specified root and localizes them by declaring new labels to the specified context
+	/// </summary>
+	public static void LocalizeLabels(Context context, Node root)
+	{
+		// Find all the labels and the jumps under the specified root
+		var labels = root.FindAll(i => i.Is(NodeType.LABEL)).Cast<LabelNode>();
+		var jumps = root.FindAll(i => i.Is(NodeType.JUMP)).Cast<JumpNode>().ToList();
+
+		// Go through all the labels
+		foreach (var label in labels)
+		{
+			// Create a replacement for the label
+			var replacement = context.GetLabel();
+
+			// Find all the jumps which use the current label and update them to use the replacement
+			for (var i = jumps.Count - 1; i >= 0; i--)
+			{
+				var jump = jumps[i];
+
+				if (jump.Label != label.Label)
+				{
+					continue;
+				}
+
+				jump.Label = replacement;
+				jumps.RemoveAt(i);
+			}
+			
+			label.Label = replacement;
+		}
+	}
+	
+	/// <summary>
+	/// Finds subcontexts under the specified root and localizes them by declaring new subcontexts to the specified context
+	/// </summary>
+	private static void LocalizeSubcontexts(Context context, Node start, Node root)
 	{
 		foreach (var iterator in start)
 		{
@@ -55,24 +94,107 @@ public static class Inlines
 				subcontext.SetContext(replacement_context);
 
 				// Now unwrap all subcontexts under the current subcontext
-				UnwrapSubcontexts(replacement_context, (Node)subcontext, root);
+				LocalizeSubcontexts(replacement_context, (Node)subcontext, root);
 			}
 			else
 			{
 				// Now unwrap all subcontexts under the current iterator 
-				UnwrapSubcontexts(context, iterator, root);
+				LocalizeSubcontexts(context, iterator, root);
 			}
 		}
 	}
 
+	/// <summary>
+	/// Localize the current self pointer by inspecting the specified function call
+	/// </summary>
+	private static void LocalizeCurrentSelfPointer(Context context, FunctionNode reference, Node body)
+	{
+		var self_pointer = context.GetSelfPointer();
+		var inline_self_pointer = reference.Function.GetSelfPointer();
+
+		if (self_pointer == null || inline_self_pointer == null)
+		{
+			return;
+		}
+
+		var inline_self_pointer_usages = body.FindAll(i => i.Is(NodeType.VARIABLE))
+			.Where(i => i.To<VariableNode>().Variable == inline_self_pointer)
+			.Cast<VariableNode>();
+
+		inline_self_pointer_usages.ForEach(i => i.Variable = self_pointer);
+	}
+
+	/// <summary>
+	/// Localize the self pointer by inspecting the specified function call
+	/// </summary>
+	private static bool LocalizeMemberAccess(Context context, FunctionNode reference, Node body)
+	{
+		// Try to get the self pointer from the function call
+		var self_pointer_value = GetSelfPointer(reference);
+
+		// If there is no self pointer value, try to localize the current self pointer, if one is present
+		if (self_pointer_value == null)
+		{
+			LocalizeCurrentSelfPointer(context, reference, body);
+			return false;
+		}
+		
+		var self_pointer_variable = reference.Function.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+		var self_pointer_replacement = context.DeclareHidden(self_pointer_variable.Type!);
+
+		// Load the self pointer once
+		var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(self_pointer_replacement),
+			self_pointer_value
+		);
+
+		body.Insert(body.First, initialization);
+
+		// Find all member variables which are missing the self pointer at the start
+		var usages = body.FindAll(i => i.Is(NodeType.VARIABLE) &&
+			i.To<VariableNode>().Variable.IsMember &&
+			i.Parent!.Is(NodeType.LINK) &&
+			i.Parent!.First == i
+		).Select(i => i.To<VariableNode>());
+
+		usages.ForEach(i => i.Replace(new LinkNode(new VariableNode(self_pointer_replacement), new VariableNode(i.Variable), i.Position)));
+
+		// Find all references of the original self pointer in the body and replace them
+		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable == self_pointer_variable);
+
+		self_pointers.ForEach(i => i.Replace(new VariableNode(self_pointer_replacement)));
+
+		return true;
+	}
+
+	/// <summary>
+	/// Returns the part which represents the self pointer from the specified function call
+	/// </summary>
+	private static Node? GetSelfPointer(FunctionNode reference)
+	{
+		if (reference.Parent is LinkNode link && link.Right == reference)
+		{
+			return link.Left;
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Returns a node tree which represents the body of the specified function implementation.
+	/// The returned node tree does not have any connections to the function implementation.
+	/// </summary>
 	private static Node GetInlineBody(Context context, FunctionImplementation implementation, FunctionNode reference, out Node destination)
 	{
 		var body = implementation.Node!.Clone();
 
+		// Load all the function call arguments into temporary variables
 		foreach (var (parameter, value) in implementation.Parameters.Zip((IEnumerable<Node>)reference).Reverse())
 		{
+			// Determines whether the value should be casted to match the parameter type
 			var is_cast_required = value.GetType() != parameter.Type!;
 
+			// Load the value into a temporary variable
 			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(parameter),
 				is_cast_required ? new CastNode(value, new TypeNode(parameter.Type!), value.Position) : value
@@ -81,29 +203,7 @@ public static class Inlines
 			body.Insert(body.First, initialization);
 		}
 
-		// Wrap labels of the inline body
-		var labels = body.FindAll(i => i.Is(NodeType.LABEL)).Cast<LabelNode>();
-		var jumps = body.FindAll(i => i.Is(NodeType.JUMP)).Cast<JumpNode>().ToList();
-
-		foreach (var label in labels)
-		{
-			var replacement = context.GetLabel();
-
-			for (var i = jumps.Count - 1; i >= 0; i--)
-			{
-				var jump = jumps[i];
-
-				if (jump.Label != label.Label)
-				{
-					continue;
-				}
-
-				jump.Label = replacement;
-				jumps.RemoveAt(i);
-			}
-			
-			label.Label = replacement;
-		}
+		LocalizeLabels(context, body);
 
 		foreach (var local in implementation.Variables.Values)
 		{
@@ -121,9 +221,9 @@ public static class Inlines
 			usages.Cast<DeclareNode>().ForEach(i => i.Variable = replacement);
 		}
 
-		UnwrapSubcontexts(context, body, body);
+		LocalizeSubcontexts(context, body, body);
 
-		if (WrapMemberAccess(context, reference, body))
+		if (LocalizeMemberAccess(context, reference, body))
 		{
 			destination = reference.FindParent(i => i.Is(NodeType.LINK)) ?? throw new ApplicationException("Could not find the self pointer of the inlined function from its reference");
 		}
@@ -217,70 +317,5 @@ public static class Inlines
 
 			ReconstructionAnalysis.Reconstruct(inline);
 		}
-	}
-
-	private static void WrapCurrentSelfPointer(Context context, FunctionNode reference, Node body)
-	{
-		var self_pointer = context.GetSelfPointer();
-		var inline_self_pointer = reference.Function.GetSelfPointer();
-
-		if (self_pointer == null || inline_self_pointer == null)
-		{
-			return;
-		}
-
-		var inline_self_pointer_usages = body.FindAll(i => i.Is(NodeType.VARIABLE))
-			.Where(i => i.To<VariableNode>().Variable == inline_self_pointer)
-			.Cast<VariableNode>();
-
-		inline_self_pointer_usages.ForEach(i => i.Variable = self_pointer);
-	}
-
-	private static bool WrapMemberAccess(Context context, FunctionNode reference, Node body)
-	{
-		var self_pointer_value = GetSelfPointer(reference);
-
-		if (self_pointer_value == null)
-		{
-			WrapCurrentSelfPointer(context, reference, body);
-			return false;
-		}
-		
-		var self_pointer_variable = reference.Function.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
-		var self_pointer_replacement = context.DeclareHidden(self_pointer_variable.Type!);
-
-		// Load the self pointer once
-		var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(self_pointer_replacement),
-			self_pointer_value
-		);
-
-		body.Insert(body.First, initialization);
-
-		// Find all member variables which are missing the self pointer at the start
-		var usages = body.FindAll(i => i.Is(NodeType.VARIABLE) &&
-			i.To<VariableNode>().Variable.IsMember &&
-			i.Parent!.Is(NodeType.LINK) &&
-			i.Parent!.First == i
-		).Select(i => i.To<VariableNode>());
-
-		usages.ForEach(i => i.Replace(new LinkNode(new VariableNode(self_pointer_replacement), new VariableNode(i.Variable), i.Position)));
-
-		// Find all references of the original self pointer in the body and replace them
-		var self_pointers = body.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable == self_pointer_variable);
-
-		self_pointers.ForEach(i => i.Replace(new VariableNode(self_pointer_replacement)));
-
-		return true;
-	}
-
-	private static Node? GetSelfPointer(FunctionNode reference)
-	{
-		if (reference.Parent is LinkNode link && link.Right == reference)
-		{
-			return link.Left;
-		}
-
-		return null;
 	}
 }

@@ -224,7 +224,7 @@ public static class Instructions
 			Descriptors.Add(JUMP_NOT_EQUALS, new() { IsConditional = true });
 			Descriptors.Add(JUMP_NOT_ZERO, new() { IsConditional = true });
 			Descriptors.Add(JUMP_ZERO, new() { IsConditional = true });
-			
+
 			JumpInstruction.Initialize();
 			MoveInstruction.Initialize();
 		}
@@ -303,12 +303,12 @@ public static class Instructions
 			{
 				return;
 			}
-			
+
 			Descriptors.Add(SHIFT_LEFT, new(StatusFlag.Arm64.C));
 			Descriptors.Add(SHIFT_RIGHT, new(StatusFlag.Arm64.C));
 			Descriptors.Add(CALL_LABEL, new(StatusFlag.Arm64.C, StatusFlag.Arm64.N, StatusFlag.Arm64.V, StatusFlag.Arm64.Z));
 			Descriptors.Add(CALL_REGISTER, new(StatusFlag.Arm64.C, StatusFlag.Arm64.N, StatusFlag.Arm64.V, StatusFlag.Arm64.Z));
-			
+
 			Descriptors.Add(Shared.COMPARE, new(StatusFlag.Arm64.C, StatusFlag.Arm64.N, StatusFlag.Arm64.V, StatusFlag.Arm64.Z));
 			Descriptors.Add(DECIMAL_COMPARE, new(StatusFlag.Arm64.C, StatusFlag.Arm64.N, StatusFlag.Arm64.V, StatusFlag.Arm64.Z));
 

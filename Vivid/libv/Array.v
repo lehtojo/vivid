@@ -1,13 +1,13 @@
 ﻿REQUIREMENT_EXIT_CODE = 1
 
-require(result: bool) {
+export require(result: bool) {
 	if result == false {
 		println('Requirement failed')
 		exit(REQUIREMENT_EXIT_CODE)
 	}
 }
 
-require(result: bool, message: link) {
+export require(result: bool, message: link) {
 	if result == false {
 		println(message)
 		exit(REQUIREMENT_EXIT_CODE)

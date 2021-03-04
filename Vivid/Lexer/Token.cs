@@ -15,9 +15,9 @@ public class Token : ICloneable
 		return (T)this ?? throw new ApplicationException($"Could not convert 'Token' to '{typeof(T).Name}'");
 	}
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object? other)
 	{
-		return obj is Token token &&
+		return other is Token token &&
 			   Type == token.Type;
 	}
 
@@ -32,5 +32,10 @@ public class Token : ICloneable
 		{
 			Position = Position.Clone()
 		};
+	}
+
+	public override string ToString()
+	{
+		return Type == TokenType.END ? "\n" : string.Empty;
 	}
 }

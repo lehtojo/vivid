@@ -30,7 +30,7 @@ public class SectionModificationPattern : Pattern
 			return true;
 		}
 
-		return target.Is(NodeType.OPERATOR) && target.Is(Operators.ASSIGN) && 
+		return target.Is(NodeType.OPERATOR) && target.Is(Operators.ASSIGN) &&
 			target.To<OperatorNode>().Left is VariableNode x && x.Variable.Category == VariableCategory.MEMBER;
 	}
 
@@ -41,24 +41,25 @@ public class SectionModificationPattern : Pattern
 		switch (tokens[OBJECT].To<DynamicToken>().Node)
 		{
 			case VariableNode x:
-				x.Variable.Modifiers |= section.Modifiers;
-				section.Add(x);
-				return section;
+			x.Variable.Modifiers = Modifier.Combine(x.Variable.Modifiers, section.Modifiers);
+			section.Add(x);
+			return section;
 
 			case FunctionDefinitionNode y:
-				y.Function.Modifiers |= section.Modifiers;
-				section.Add(y);
-				return section;
+			y.Function.Modifiers = Modifier.Combine(y.Function.Modifiers, section.Modifiers);
+			section.Add(y);
+			return section;
 
 			case TypeNode z:
-				z.Type.Modifiers |= section.Modifiers;
-				section.Add(z);
-				return section;
+			z.Type.Modifiers = Modifier.Combine(z.Type.Modifiers, section.Modifiers);
+			section.Add(z);
+			return section;
 
 			case OperatorNode w:
-				w.Left.To<VariableNode>().Variable.Modifiers |= section.Modifiers;
-				section.Add(w);
-				return section;
+			var variable = w.Left.To<VariableNode>().Variable;
+			variable.Modifiers = Modifier.Combine(variable.Modifiers, section.Modifiers);
+			section.Add(w);
+			return section;
 
 			default: return section;
 		}

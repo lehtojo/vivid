@@ -9,7 +9,7 @@ public class GetVariableInstruction : Instruction
 	public Variable Variable { get; private set; }
 	public AccessMode Mode { get; private set; }
 
-	public GetVariableInstruction(Unit unit, Variable variable, AccessMode mode) : this(unit, null, null, variable, mode) {}
+	public GetVariableInstruction(Unit unit, Variable variable, AccessMode mode) : this(unit, null, null, variable, mode) { }
 
 	public GetVariableInstruction(Unit unit, Result? self, Type? self_type, Variable variable, AccessMode mode) : base(unit, InstructionType.GET_VARIABLE)
 	{

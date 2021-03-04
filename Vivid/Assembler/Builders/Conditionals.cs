@@ -46,7 +46,7 @@ public static class Conditionals
 		node.Condition.Instance = NodeType.DISABLED;
 
 		Builders.Build(unit, node.Left);
-		
+
 		node.Condition.Instance = instance;
 
 		var active_variables = Scope.GetAllActiveVariables(unit, node);
@@ -78,10 +78,10 @@ public static class Conditionals
 			case IfNode x:
 			{
 				unit.TryAppendPosition(x);
-				
+
 				return Build(unit, x, x.Condition, end);
 			}
-				
+
 			case ElseNode y:
 			{
 				unit.TryAppendPosition(y);
@@ -433,15 +433,15 @@ public static class Conditionals
 			// a ?= 1
 			// b ?= 1
 			// b ?= b + 1
-			
+
 			// Build the nodes around the actual condition by disabling the condition temporarily
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
 
 			Builders.Build(unit, statement.Left);
-			
+
 			statement.Condition.Instance = instance;
-	
+
 			var left = References.Get(unit, statement.Condition.Left);
 			var right = References.Get(unit, statement.Condition.Right);
 
@@ -484,9 +484,9 @@ public static class Conditionals
 			statement.Condition.Instance = NodeType.DISABLED;
 
 			Builders.Build(unit, statement.Left);
-			
+
 			statement.Condition.Instance = instance;
-	
+
 			var left = References.Get(unit, statement.Condition.Left);
 			var right = References.Get(unit, statement.Condition.Right);
 
@@ -497,9 +497,9 @@ public static class Conditionals
 
 			statement.Body.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
 		}
-		
+
 		Builders.Build(unit, statement.Body);
-		
+
 		if (statement.Successor != null)
 		{
 			Builders.Build(unit, statement.Successor.To<ElseNode>().Body);

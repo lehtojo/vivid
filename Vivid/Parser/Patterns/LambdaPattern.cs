@@ -20,7 +20,8 @@ public class LambdaPattern : Pattern
 		 TokenType.CONTENT | TokenType.IDENTIFIER,
 		 TokenType.OPERATOR,
 		 TokenType.END | TokenType.OPTIONAL
-	) { }
+	)
+	{ }
 
 	private static bool TryConsumeBody(Context context, PatternState state)
 	{
@@ -71,7 +72,7 @@ public class LambdaPattern : Pattern
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var blueprint = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
-		
+
 		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
 		{
 			blueprint.Insert(0, new OperatorToken(Operators.IMPLICATION) { Position = tokens[OPERATOR].Position });
@@ -85,14 +86,8 @@ public class LambdaPattern : Pattern
 			GetParameterTokens(tokens)
 		);
 
-		var lambda = new Lambda(
-			context,
-			Modifier.PUBLIC,
-			name,
-			blueprint
-		);
+		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint) { Position = tokens[PARAMETERS].Position };
 
-		lambda.Position = tokens[PARAMETERS].Position;
 		lambda.Parameters.AddRange(function.GetParameters(lambda));
 
 		if (lambda.Parameters.All(p => p.Type != null && !p.Type.IsUnresolved))

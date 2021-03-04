@@ -18,7 +18,7 @@ public static class Program
 		// Pack the program arguments in the chain
 		var bundle = new Bundle();
 		bundle.Put("arguments", arguments);
-		
+
 		// Execute the chain
 		Environment.Exit(chain.Execute(bundle) ? 0 : 1);
 	}

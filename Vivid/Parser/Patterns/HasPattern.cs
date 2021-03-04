@@ -14,7 +14,8 @@ public class HasPattern : Pattern
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER
-	) { }
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -36,7 +37,7 @@ public class HasPattern : Pattern
 			throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
 		}
 
-		var variable = Variable.Create(context, Types.UNKNOWN, VariableCategory.LOCAL, name.Value, Modifier.PUBLIC);
+		var variable = Variable.Create(context, Types.UNKNOWN, VariableCategory.LOCAL, name.Value, Modifier.DEFAULT);
 		variable.Position = name.Position;
 
 		var result = new VariableNode(variable, name.Position);

@@ -4,15 +4,15 @@ import internal_read(buffer: link, length: large): large
 CONSOLE_READ_LINE_BUFFER_SIZE = 256
 
 ###
-summary: 'Reads text from the console until a line ending is encountered.
-The maximum length of the returned text is determined by the global constant CONSOLE_READ_LINE_BUFFER_SIZE.'
+Summary: Reads text from the console until a line ending is encountered.
+NOTE: The maximum length of the returned text is determined by the global constant CONSOLE_READ_LINE_BUFFER_SIZE.
 ###
-readln() {
+export readln() {
 	buffer = allocate(CONSOLE_READ_LINE_BUFFER_SIZE)
 	length = internal_read(buffer, CONSOLE_READ_LINE_BUFFER_SIZE) - 2
 
 	if length <= 0 {
-		free(buffer)
+		deallocate(buffer, CONSOLE_READ_LINE_BUFFER_SIZE)
 		=> String('')
 	}
 
@@ -24,15 +24,15 @@ readln() {
 }
 
 ###
-summary: 'Reads text from the console until a line ending is encountered.
+Summary: 'Reads text from the console until a line ending is encountered.
 The maximum length of the returned text is determined by the specified length.'
 ###
-readln(length: large) {
+export readln(length: large) {
 	buffer = allocate(length)
 	length = internal_read(buffer, length) - 2
 
 	if length <= 0 {
-		free(buffer)
+		deallocate(buffer, CONSOLE_READ_LINE_BUFFER_SIZE)
 		=> String('')
 	}
 
@@ -44,72 +44,72 @@ readln(length: large) {
 }
 
 ###
-summary: Writes the specified string to the console
+Summary: Writes the specified string to the console
 ###
-print(text: String) {
+export print(text: String) {
 	internal_print(text.data(), text.length())
 }
 
 ###
-summary: Writes the specified text to the console
+Summary: Writes the specified text to the console
 ###
-print(text: link) {
+export print(text: link) {
 	internal_print(text, length_of(text))
 }
 
 ###
-summary: Writes the specified string and a line ending to the console
+Summary: Writes the specified string and a line ending to the console
 ###
-println(text: String) {
+export println(text: String) {
 	internal_print(text.append(10).data(), text.length() + 1)
 }
 
 ###
-summary: Writes the specified text and a line ending to the console
+Summary: Writes the specified text and a line ending to the console
 ###
-println(text: link) {
+export println(text: link) {
 	print(String(text).append(10))
 }
 
 ###
-summary: Converts the specified number to a string and writes it and a line ending to the console
+Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: tiny) {
+export println(number: tiny) {
 	println(to_string(number as large))
 }
 
 ###
-summary: Converts the specified number to a string and writes it and a line ending to the console
+Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: small) {
+export println(number: small) {
 	println(to_string(number as large))
 }
 
 ###
-summary: Converts the specified number to a string and writes it and a line ending to the console
+Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: normal) {
+export println(number: normal) {
 	println(to_string(number as large))
 }
 
 ###
-summary: Converts the specified number to a string and writes it and a line ending to the console
+Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-outline println(number: large) {
+export println(number: large) {
 	println(to_string(number))
 }
 
 ###
-summary: Converts the specified number to a string and writes it and a line ending to the console
+Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-println(number: decimal) {
+export println(number: decimal) {
 	println(to_string(number))
 }
 
 ###
-summary: Writes the specified character to the console
+Summary: Writes the specified character to the console
 ###
-print_character(character: large) {
+export print_character(character: large) {
 	buffer = allocate(1)
 	buffer[0] = character
 	internal_print(buffer, 1)

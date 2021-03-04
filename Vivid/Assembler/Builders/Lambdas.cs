@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 public static class Lambdas
 {
@@ -10,11 +10,10 @@ public static class Lambdas
 		{
 			throw new ApplicationException("Missing implementation for lambda");
 		}
-		
+
 		unit.TryAppendPosition(node);
 
 		var implementation = node.Implementation;
-		var root = implementation.Node ?? throw new ApplicationException("Missing implementation for lambda");
 
 		var captured_variables = new List<CapturedVariable>();
 

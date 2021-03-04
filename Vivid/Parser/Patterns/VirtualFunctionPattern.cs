@@ -13,7 +13,8 @@ public class VirtualFunctionPattern : Pattern
 	public VirtualFunctionPattern() : base
 	(
 		TokenType.FUNCTION, TokenType.OPERATOR | TokenType.OPTIONAL
-	) { }
+	)
+	{ }
 
 	public override int GetPriority(List<Token> tokens)
 	{

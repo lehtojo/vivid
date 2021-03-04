@@ -31,4 +31,9 @@ public class OperatorToken : Token
 	{
 		return MemberwiseClone();
 	}
+
+	public override string ToString()
+	{
+		return Operator.Identifier;
+	}
 }

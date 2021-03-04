@@ -33,5 +33,5 @@ public class SetVariableInstruction : Instruction
 		Unit.Scope!.Variables[Variable] = Value;
 	}
 
-	public override void OnBuild() {}
+	public override void OnBuild() { }
 }

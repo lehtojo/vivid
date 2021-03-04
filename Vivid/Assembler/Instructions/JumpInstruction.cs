@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Jumps to the specified label and optionally checks a condition
@@ -13,21 +13,21 @@ public class JumpInstruction : Instruction
 	{
 		if (Assembler.IsArm64)
 		{
-			Instructions.Add(Operators.GREATER_THAN,		new[] { global::Instructions.Arm64.JUMP_GREATER_THAN,					global::Instructions.Arm64.JUMP_GREATER_THAN });
-			Instructions.Add(Operators.GREATER_OR_EQUAL,	new[] { global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS,	global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
-			Instructions.Add(Operators.LESS_THAN,			new[] { global::Instructions.Arm64.JUMP_LESS_THAN,						global::Instructions.Arm64.JUMP_LESS_THAN });
-			Instructions.Add(Operators.LESS_OR_EQUAL,		new[] { global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS,		global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS });
-			Instructions.Add(Operators.EQUALS,				new[] { global::Instructions.Arm64.JUMP_EQUALS,							global::Instructions.Arm64.JUMP_EQUALS });
-			Instructions.Add(Operators.NOT_EQUALS,			new[] { global::Instructions.Arm64.JUMP_NOT_EQUALS,					global::Instructions.Arm64.JUMP_NOT_EQUALS });
+			Instructions.Add(Operators.GREATER_THAN, new[] { global::Instructions.Arm64.JUMP_GREATER_THAN, global::Instructions.Arm64.JUMP_GREATER_THAN });
+			Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS, global::Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
+			Instructions.Add(Operators.LESS_THAN, new[] { global::Instructions.Arm64.JUMP_LESS_THAN, global::Instructions.Arm64.JUMP_LESS_THAN });
+			Instructions.Add(Operators.LESS_OR_EQUAL, new[] { global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS, global::Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS });
+			Instructions.Add(Operators.EQUALS, new[] { global::Instructions.Arm64.JUMP_EQUALS, global::Instructions.Arm64.JUMP_EQUALS });
+			Instructions.Add(Operators.NOT_EQUALS, new[] { global::Instructions.Arm64.JUMP_NOT_EQUALS, global::Instructions.Arm64.JUMP_NOT_EQUALS });
 			return;
 		}
 
-		Instructions.Add(Operators.GREATER_THAN,		new[] { global::Instructions.X64.JUMP_GREATER_THAN,				global::Instructions.X64.JUMP_ABOVE });
-		Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { global::Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS,	global::Instructions.X64.JUMP_ABOVE_OR_EQUALS });
-		Instructions.Add(Operators.LESS_THAN,			new[] { global::Instructions.X64.JUMP_LESS_THAN,							global::Instructions.X64.JUMP_BELOW });
-		Instructions.Add(Operators.LESS_OR_EQUAL,		new[] { global::Instructions.X64.JUMP_LESS_THAN_OR_EQUALS,				global::Instructions.X64.JUMP_BELOW_OR_EQUALS });
-		Instructions.Add(Operators.EQUALS,				new[] { global::Instructions.X64.JUMP_EQUALS,						global::Instructions.X64.JUMP_ZERO });
-		Instructions.Add(Operators.NOT_EQUALS,			new[] { global::Instructions.X64.JUMP_NOT_EQUALS,					global::Instructions.X64.JUMP_NOT_ZERO });
+		Instructions.Add(Operators.GREATER_THAN, new[] { global::Instructions.X64.JUMP_GREATER_THAN, global::Instructions.X64.JUMP_ABOVE });
+		Instructions.Add(Operators.GREATER_OR_EQUAL, new[] { global::Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS, global::Instructions.X64.JUMP_ABOVE_OR_EQUALS });
+		Instructions.Add(Operators.LESS_THAN, new[] { global::Instructions.X64.JUMP_LESS_THAN, global::Instructions.X64.JUMP_BELOW });
+		Instructions.Add(Operators.LESS_OR_EQUAL, new[] { global::Instructions.X64.JUMP_LESS_THAN_OR_EQUALS, global::Instructions.X64.JUMP_BELOW_OR_EQUALS });
+		Instructions.Add(Operators.EQUALS, new[] { global::Instructions.X64.JUMP_EQUALS, global::Instructions.X64.JUMP_ZERO });
+		Instructions.Add(Operators.NOT_EQUALS, new[] { global::Instructions.X64.JUMP_NOT_EQUALS, global::Instructions.X64.JUMP_NOT_ZERO });
 	}
 
 	public Label Label { get; set; }

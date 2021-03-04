@@ -266,7 +266,7 @@ public static class Common
 		}
 
 		var name = tokens.Dequeue().To<IdentifierToken>().Value;
-		
+
 		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
 		{
 			var template_arguments = ReadTemplateArguments(context, tokens);
@@ -279,7 +279,7 @@ public static class Common
 				{
 					return template_type.GetVariant(template_arguments);
 				}
-				
+
 				// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
 				if (type.IsTemplateType)
 				{
@@ -309,7 +309,7 @@ public static class Common
 
 		var name = tokens.Dequeue().To<IdentifierToken>();
 		var result = new List<Token> { name };
-		
+
 		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
 		{
 			result.AddRange(ReadTemplateArgumentTokens(tokens));
@@ -461,7 +461,7 @@ public static class Common
 	{
 		if (type.Configuration == null)
 		{
-			return Array.Empty<KeyValuePair<Type, DataPointer>>();;
+			return Array.Empty<KeyValuePair<Type, DataPointer>>(); ;
 		}
 
 		var configuration = type.Configuration;
@@ -496,7 +496,7 @@ public static class Common
 				// Begin a new section inside the configuration table
 				configuration.Entry.Add(configuration.Descriptor);
 			}
-			
+
 			// Types should not inherited types which do not have runtime configurations such as standard integers
 			if (supertype.Configuration == null)
 			{
@@ -547,7 +547,7 @@ public static class Common
 				{
 					configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
 				}
-				
+
 				offset += Parser.Bytes;
 			}
 		}
@@ -686,7 +686,7 @@ public static class Common
 				return null;
 			}
 		}
-		
+
 		return null;
 	}
 

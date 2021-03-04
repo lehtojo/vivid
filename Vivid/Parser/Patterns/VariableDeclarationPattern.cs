@@ -138,7 +138,7 @@ public class VariableDeclarationPattern : Pattern
 			{
 				return template_type.GetVariant(template_arguments);
 			}
-			
+
 			// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
 			if (type.IsTemplateType)
 			{
@@ -183,16 +183,10 @@ public class VariableDeclarationPattern : Pattern
 		var is_constant = !context.IsInsideFunction && !context.IsInsideType;
 		var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
 
-		var variable = new Variable
-		(
-			context,
-			type,
-			category,
-			name.Value,
-			Modifier.PUBLIC | (is_constant ? Modifier.CONSTANT : 0)
-		);
-
-		variable.Position = tokens[NAME].Position;
+		var variable = new Variable(context, type, category, name.Value, Modifier.DEFAULT | (is_constant ? Modifier.CONSTANT : 0))
+		{
+			Position = tokens[NAME].Position
+		};
 
 		return new VariableNode(variable, name.Position);
 	}
