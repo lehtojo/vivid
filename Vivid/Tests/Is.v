@@ -109,7 +109,7 @@ export get_reliable_vehicles(usables: Array<Usable>, min_reliability: large) {
 
     loop (i = vehicles.size() - 1, i >= 0, i--) {
         if vehicles[i].reliability() < min_reliability {
-            vehicles.remove(i)
+            vehicles.remove_at(i)
         }
     }
 

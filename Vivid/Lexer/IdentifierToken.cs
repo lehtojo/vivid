@@ -3,6 +3,7 @@ using System;
 public class IdentifierToken : Token
 {
 	public string Value { get; set; }
+	public Position End => Position.Translate(Value.Length);
 
 	public IdentifierToken(string value) : base(TokenType.IDENTIFIER)
 	{

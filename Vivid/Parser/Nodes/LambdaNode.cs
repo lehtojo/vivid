@@ -25,16 +25,16 @@ public class LambdaNode : Node, IResolvable
 		Instance = NodeType.LAMBDA;
 	}
 
-	public CallDescriptorType GetIncompleteType()
+	public FunctionType GetIncompleteType()
 	{
-		return new CallDescriptorType(Function.Parameters.Select(p => p.Type).ToList(), Implementation?.ReturnType);
+		return new FunctionType(Function.Parameters.Select(p => p.Type).ToList(), Implementation?.ReturnType);
 	}
 
 	public override Type? TryGetType()
 	{
 		if (Implementation != null && Implementation.ReturnType != null)
 		{
-			return new CallDescriptorType(Function.Parameters.Select(p => p.Type).ToList(), Implementation.ReturnType);
+			return new FunctionType(Function.Parameters.Select(p => p.Type).ToList(), Implementation.ReturnType);
 		}
 
 		return null;

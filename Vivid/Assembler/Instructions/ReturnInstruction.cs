@@ -156,6 +156,15 @@ public class ReturnInstruction : Instruction
 		}
 	}
 
+	/// <summary>
+	/// Removes the return instruction from all the subinstructions
+	/// </summary>
+	public void RemoveReturnInstruction()
+	{
+		var i = Operation.LastIndexOf('\n');
+		Operation = i == -1 ? string.Empty : Operation[0..i];
+	}
+
 	public void Build(List<Register> recover_registers, int local_variables_top)
 	{
 		var builder = new StringBuilder();

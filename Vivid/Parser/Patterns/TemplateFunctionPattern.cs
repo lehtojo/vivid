@@ -15,8 +15,7 @@ public class TemplateFunctionPattern : Pattern
 	public TemplateFunctionPattern() : base
 	(
 		TokenType.IDENTIFIER
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -34,7 +33,7 @@ public class TemplateFunctionPattern : Pattern
 
 		while (true)
 		{
-			if (!Consume(state, out Token? _, TokenType.IDENTIFIER))
+			if (!Consume(state, TokenType.IDENTIFIER))
 			{
 				return false;
 			}
@@ -64,7 +63,7 @@ public class TemplateFunctionPattern : Pattern
 		}
 
 		// Optionally consume a line-ending
-		Consume(state, out Token? _, TokenType.END | TokenType.OPTIONAL);
+		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		// Try to consume a function body
 		if (Common.ConsumeBody(state))
@@ -94,7 +93,7 @@ public class TemplateFunctionPattern : Pattern
 		}
 
 		var template_parameter_tokens = tokens.GetRange(TEMPLATE_PARAMETERS_START, template_parameters_end - TEMPLATE_PARAMETERS_START);
-		var template_parameter_names = Common.GetTemplateParameterNames(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS_START + 1].Position);
+		var template_parameter_names = Common.GetTemplateParameters(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS_START + 1].Position);
 
 		var parameters = tokens[template_parameters_end + PARAMETERS_OFFSET].To<ContentToken>();
 		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
@@ -105,7 +104,7 @@ public class TemplateFunctionPattern : Pattern
 		};
 
 		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
-		if (template_function.IsMember)
+		if (template_function.IsMember && !template_function.IsStatic)
 		{
 			template_function.DeclareSelfPointer();
 		}

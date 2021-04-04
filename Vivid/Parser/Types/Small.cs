@@ -7,11 +7,6 @@ public class Small : Number
 		Identifier = "s";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "s";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

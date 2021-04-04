@@ -17,6 +17,11 @@ export max(a, b) {
 	else => b
 }
 
+export abs(a) {
+	if a > 0 => a
+	else => -a
+}
+
 export ceil(a: decimal) => (a + 0.5) as large
 export floor(a: decimal) => a as large
 
@@ -37,16 +42,7 @@ Random {
 	n: large
 }
 
-###
-random() {
-	x = Random.a + Random.b + Random.c + Random.n++
-	Random.a = Random.b ¤ (Random.b |> 12)
-	Random.b = Random.c + (Random.c <| 3)
-	Random.c = ((Random.c <| 25) | (Random.c |> 39)) + x # 64 - 25 = 39
-	=> x
-}
-###
-
+# Summary: Return a random integer number
 export random() {
 	b = Random.b
 	c = Random.c
@@ -55,6 +51,16 @@ export random() {
 	Random.b = c + (c <| 3)
 	Random.c = ((c <| 25) | (c |> 39)) + x # 64 - 25 = 39
 	=> x
+}
+
+# Summary: Returns a random integer number between the specified range where a is the minimum and b the maximum.
+export random(a, b) {
+	=> a + [random() as u64] % (b - a)
+}
+
+# Summary: Returns a random integer number between the specified range where zero is the minimum and a the maximum.
+export random(a) {
+	=> [random() as u64] % a
 }
 
 export set_random_seed(seed: large) {

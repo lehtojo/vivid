@@ -6,8 +6,7 @@ public class OperatorPattern : Pattern
 	private const int OPERATOR = 2;
 	private const int RIGHT = 4;
 
-	// Pattern:
-	// ... [\n] Operator [\n] ...
+	// Pattern: ... [\n] $operator [\n] ...
 	public OperatorPattern() : base
 	(
 		TokenType.OBJECT,
@@ -15,8 +14,7 @@ public class OperatorPattern : Pattern
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

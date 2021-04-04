@@ -121,6 +121,8 @@ public class VariableComponent : Component
 
 		if (other is VariableComponent variable_component && Equals(Variable, variable_component.Variable))
 		{
+			if (Numbers.IsZero(variable_component.Coefficient)) return null;
+
 			var order = Order - variable_component.Order;
 			var coefficient = Numbers.Divide(Coefficient, variable_component.Coefficient);
 
@@ -136,7 +138,7 @@ public class VariableComponent : Component
 			}
 		}
 
-		if (other is NumberComponent number)
+		if (other is NumberComponent number && !Numbers.IsZero(number.Value))
 		{
 			// If neither one of the two coefficients is a decimal number, the dividend must be divisible by the divisor
 			if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))

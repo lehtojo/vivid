@@ -1,5 +1,12 @@
 ﻿import exit(code: large)
+
 import internal_allocate(bytes: large): link
+
+import allocate_stack(count: large): link
+import deallocate_stack(count: large)
+
+import fill(destination: link, count: large, value: large)
+import zero(destination: link, count: large)
 
 true = 1
 false = 0
@@ -27,7 +34,7 @@ outline allocate(bytes: large) {
 
 	address = internal_allocate(PAGE_SIZE)
 
-	page = internal_allocate(24) as Page
+	page = internal_allocate(32) as Page
 	page.address = address
 	page.position = bytes
 
@@ -35,6 +42,8 @@ outline allocate(bytes: large) {
 
 	=> address as link
 }
+
+outline deallocate(address: link) {}
 
 outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 
@@ -80,7 +89,7 @@ move(source: link, offset: large, destination: link, bytes: large) {
 	copy(buffer, bytes, destination)
 
 	# Delete the temporary buffer
-	#deallocate(buffer, bytes)
+	deallocate(buffer)
 }
 
 move(source: link, destination: link, bytes: large) {
@@ -92,7 +101,7 @@ move(source: link, destination: link, bytes: large) {
 	copy(buffer, bytes, destination)
 
 	# Delete the temporary buffer
-	#deallocate(buffer, bytes)
+	deallocate(buffer)
 }
 
 RangeIterator {

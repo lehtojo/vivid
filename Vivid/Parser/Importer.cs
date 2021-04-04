@@ -371,11 +371,9 @@ public static class Importer
 			return_type = result.Value.Type;
 		}
 
-		var list = context.GetFunction(name.Value.Name);
-
 		if (template_arguments.Any())
 		{
-			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types, template_arguments);
+			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types, template_arguments, false);
 
 			if (implementation != null)
 			{
@@ -394,7 +392,7 @@ public static class Importer
 		}
 		else
 		{
-			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types);
+			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types, false);
 
 			if (implementation != null)
 			{

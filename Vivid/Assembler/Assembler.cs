@@ -9,14 +9,15 @@ using System.Text.RegularExpressions;
 public static class Assembler
 {
 	public static Function? AllocationFunction { get; set; }
+	public static Function? DeallocationFunction { get; set; }
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
 	public static Architecture Architecture { get; set; } = RuntimeInformation.ProcessArchitecture;
 
-	public static bool Is32bit => Size.Bits == 32;
-	public static bool Is64bit => Size.Bits == 64;
+	public static bool Is32Bit => Size.Bits == 32;
+	public static bool Is64Bit => Size.Bits == 64;
 
 	public static bool IsTargetWindows => Target == OSPlatform.Windows;
 	public static bool IsTargetLinux => Target == OSPlatform.Linux;
@@ -88,14 +89,6 @@ public static class Assembler
 
 		mangle += Mangle.END_COMMAND;
 	}
-	
-	/// <summary>
-	/// Return true if the specified variable was produced by the compiler
-	/// </summary>
-	private static bool IsHiddenVariable(Variable variable)
-	{
-		return variable.Name.StartsWith($"{Indexer.HIDDEN.ToLowerInvariant()}.");
-	}
 
 	/// <summary>
 	/// Creates a mangled text which describes the specified type and appends it to the specified builder
@@ -111,7 +104,7 @@ public static class Assembler
 		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
 		mangle.Add(type);
 
-		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !IsHiddenVariable(i)).ToArray();
+		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !i.IsHidden).ToArray();
 		var virtual_functions = type.Virtuals.Values.ToArray();
 
 		var public_member_variables = member_variables.Where(i => i.IsPublic).ToArray();
@@ -211,7 +204,7 @@ public static class Assembler
 		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
 		builder.Append(ParenthesisType.PARENTHESIS.Closing);
 		builder.Append(' ');
-		builder.Append(string.Join(' ', (IEnumerable<Token>)function.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
+		builder.Append(string.Join(' ', function.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
 		builder.Append(Lexer.LINE_ENDING);
 	}
 
@@ -239,7 +232,7 @@ public static class Assembler
 	private static void ExportTemplateType(StringBuilder builder, TemplateType type)
 	{
 		builder.Append(CreateTemplateName(type.Name, type.TemplateArgumentNames));
-		builder.Append(string.Join(' ', (IEnumerable<Token>)type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
+		builder.Append(string.Join(' ', type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
 		builder.Append(Lexer.LINE_ENDING);
 	}
 
@@ -275,26 +268,26 @@ public static class Assembler
 				}
 			}
 
-			files.Add(iterator.Key, builder);
+			files.Add(iterator.Key!, builder);
 		}
 
-		var types = GetAllTypes(context).Where(i => i.Position?.File != null).GroupBy(i => i.Position!.File!);
+		var types = Common.GetAllTypes(context).Where(i => i.Position?.File != null).GroupBy(i => i.Position!.File!).ToArray();
 
 		foreach (var iterator in types)
 		{
 			foreach (var type in iterator)
 			{
-				var templates = type.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i)).ToArray();
+				var templates = type.Functions.Values.SelectMany(i => i.Overloads).Where(IsTemplateFunction).ToArray();
 
 				if (!templates.Any())
 				{
 					continue;
 				}
 
-				if (!files.TryGetValue(iterator.Key, out StringBuilder? builder))
+				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
 				{
 					builder = new StringBuilder();
-					files.Add(iterator.Key, builder);
+					files.Add(iterator.Key!, builder);
 				}
 
 				builder.Append(type.Name);
@@ -326,10 +319,10 @@ public static class Assembler
 					continue;
 				}
 
-				if (!files.TryGetValue(iterator.Key, out StringBuilder? builder))
+				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
 				{
 					builder = new StringBuilder();
-					files.Add(iterator.Key, builder);
+					files.Add(iterator.Key!, builder);
 				}
 
 				ExportTemplateType(builder, type.To<TemplateType>());
@@ -345,7 +338,7 @@ public static class Assembler
 	public static Dictionary<SourceFile, List<string>> GetExportedSymbols(Context context)
 	{
 		// Collect all the types which have a file registered
-		var types = GetAllTypes(context).Where(i => i.Position?.File != null).ToArray();
+		var types = Common.GetAllTypes(context).Where(i => i.Position?.File != null).ToArray();
 
 		// Collect all the type configuration table names and group them by their files
 		var configurations = types.Where(i => i.Configuration != null).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.Configuration!.Entry.Name).ToList());
@@ -354,37 +347,10 @@ public static class Assembler
 		var statics = types.SelectMany(i => i.Variables.Values).Where(i => i.IsStatic).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetStaticName()).ToList());
 		
 		// Collect all the function names and group them by their files
-		var functions = GetAllFunctionImplementations(context).Where(i => i.Metadata.Position?.File != null).GroupBy(i => i.Metadata.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Position?.File != null).GroupBy(i => i.Metadata.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
 
 		// Finally, merge all the collected symbols
 		return (Dictionary<SourceFile, List<string>>)configurations.Merge(statics).Merge(functions);
-	}
-
-	private static string GetExternalFunctions(Context context)
-	{
-		var builder = new StringBuilder();
-
-		foreach (var function in context.Functions.Values.SelectMany(l => l.Overloads))
-		{
-			if (!function.IsImported)
-			{
-				continue;
-			}
-
-			foreach (var implementation in function.Implementations)
-			{
-				if (!implementation.References.Any() && function != AllocationFunction)
-				{
-					continue;
-				}
-
-				builder.AppendLine($".extern {implementation.GetFullname()}");
-			}
-		}
-
-		builder.Append(SEPARATOR);
-
-		return builder.ToString();
 	}
 
 	private static void AppendVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
@@ -459,7 +425,7 @@ public static class Assembler
 			unit.Execute(UnitMode.APPEND, () =>
 			{
 				// Create the most outer scope where all instructions will be placed
-				using var scope = new Scope(unit);
+				using var scope = new Scope(unit, implementation.Node!, false);
 
 				if (implementation.VirtualFunction != null)
 				{
@@ -475,7 +441,7 @@ public static class Assembler
 				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
 				var parameters = unit.Function.Parameters;
 
-				if (unit.Function.Metadata!.IsMember || implementation.IsLambdaImplementation)
+				if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
 				{
 					parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
 				}
@@ -506,14 +472,14 @@ public static class Assembler
 	{
 		constant_sections = new Dictionary<SourceFile, List<ConstantDataSectionHandle>>();
 
-		var files = GetAllFunctions(context).Where(i => !i.IsImported && i.Position != null).GroupBy(i => i.Position!.File ?? throw new ApplicationException("Missing declaration file"));
+		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Position != null).GroupBy(i => i.Position!.File ?? throw new ApplicationException("Missing declaration file"));
 		var text_sections = new Dictionary<SourceFile, string>();
 
 		foreach (var iterator in files)
 		{
 			var constants = new List<ConstantDataSectionHandle>();
 			var builder = new StringBuilder();
-			var file = iterator.Key;
+			var file = iterator.Key!;
 
 			foreach (var function in iterator)
 			{
@@ -564,24 +530,6 @@ public static class Assembler
 	private static IEnumerable<StringNode> GetStringNodes(Node root)
 	{
 		return root.FindAll(n => n.Is(NodeType.STRING)).Cast<StringNode>();
-	}
-
-	private static IEnumerable<StringNode> GetStringNodes(Context context)
-	{
-		var nodes = new List<StringNode>();
-
-		foreach (var implementation in context.GetImplementedFunctions())
-		{
-			nodes.AddRange(GetStringNodes(implementation));
-			nodes.AddRange(GetStringNodes(implementation.Node!));
-		}
-
-		foreach (var type in context.Types.Values)
-		{
-			nodes.AddRange(GetStringNodes(type));
-		}
-
-		return nodes;
 	}
 
 	private static string AllocateString(string text)
@@ -724,7 +672,7 @@ public static class Assembler
 	private static Dictionary<SourceFile, string> GetDataSections(Context context, Dictionary<SourceFile, List<string>> exports)
 	{
 		var sections = new Dictionary<SourceFile, StringBuilder>();
-		var types = context.Types.Values.Where(i => i.Position != null).GroupBy(i => i.Position?.File ?? throw new ApplicationException("Missing type declaration file"));
+		var types = Common.GetAllTypes(context).Where(i => i.Position != null).GroupBy(i => i.Position?.File ?? throw new ApplicationException("Missing type declaration file")).ToArray();
 
 		// Append static variables
 		foreach (var iterator in types)
@@ -737,17 +685,20 @@ public static class Assembler
 				builder.Append(SEPARATOR);
 			}
 
-			sections.Add(iterator.Key, builder);
+			sections.Add(iterator.Key!, builder);
 		}
 
 		// Append runtime information about types
 		foreach (var iterator in types)
 		{
-			var builder = sections[iterator.Key];
+			var builder = sections[iterator.Key!];
 
 			foreach (var type in iterator)
 			{
-				if (type.Configuration == null || type.IsImported || type.IsTemplateType)
+				// 1. Skip if the runtime configuration is not created
+				// 2. Imported types are already exported
+				// 3. The template type must be a variant
+				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant))
 				{
 					continue;
 				}
@@ -757,7 +708,7 @@ public static class Assembler
 		}
 
 		// Append all strings into the data section
-		var functions = GetAllFunctionImplementations(context).Where(i => !i.Metadata!.IsImported)
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => !i.Metadata!.IsImported)
 			.GroupBy(i => i.Metadata!.Position?.File ?? throw new ApplicationException("Missing type declaration file"));
 
 		foreach (var iterator in functions)
@@ -786,13 +737,13 @@ public static class Assembler
 				builder.AppendLine(AllocateString(node.Text));
 			}
 
-			sections[iterator.Key] = builder;
+			sections[iterator.Key!] = builder;
 		}
 
 		// Append type metadata
 		foreach (var iterator in types)
 		{
-			var builder = sections[iterator.Key];
+			var builder = sections[iterator.Key!];
 			var symbols = new List<string>();
 
 			foreach (var type in iterator)
@@ -807,7 +758,7 @@ public static class Assembler
 
 			if (symbols.Any())
 			{
-				exports.Add(iterator.Key, symbols);
+				exports.Add(iterator.Key!, symbols);
 			}
 		}
 
@@ -911,46 +862,6 @@ public static class Assembler
 		}
 	}
 
-	/// <summary>
-	/// Collects all types and subtypes from the specified context
-	/// </summary>
-	public static List<Type> GetAllTypes(Context context)
-	{
-		var result = context.Types.Values.ToList();
-		result.AddRange(result.SelectMany(i => GetAllTypes(i)));
-
-		return result;
-	}
-
-	/// <summary>
-	/// Collects all function implementations from the specified context
-	/// </summary>
-	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
-	{
-		var types = GetAllTypes(context);
-
-		// Collect all functions, constructors, destructors and virtual functions
-		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
-		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
-		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
-		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
-		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
-
-		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
-
-		// Concat all functions with lambdas, which can be found inside the collected functions
-		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
-			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
-	}
-
-	/// <summary>
-	/// Collects all function implementations from the specified context
-	/// </summary>
-	public static Function[] GetAllFunctions(Context context)
-	{
-		return GetAllFunctionImplementations(context).Select(i => i.Metadata!).Distinct().ToArray();
-	}
-
 	public static Dictionary<SourceFile, string> GetDebugSections(Context context)
 	{
 		var sections = new Dictionary<SourceFile, string>();
@@ -960,19 +871,19 @@ public static class Assembler
 			return sections;
 		}
 
-		var all_types = GetAllTypes(context).Where(i => !i.IsImported).Distinct();
+		var all_types = Common.GetAllTypes(context).Where(i => !i.IsImported).Distinct().ToArray();
+		
 		var base_types = all_types.Where(i => i.Position == null).ToArray();
+		var types = all_types.Where(i => i.Position != null).ToArray();
 
-		var types = all_types.Where(i => i.Position != null);
-
-		var functions = GetAllFunctionImplementations(context).Where(i => i.Metadata.Position != null)
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Position != null)
 			.GroupBy(i => i.Metadata!.Position!.File ?? throw new ApplicationException("Missing declaration file"));
 
 		foreach (var file in functions)
 		{
 			var debug = new Debug();
 
-			debug.BeginFile(file.Key);
+			debug.BeginFile(file.Key!);
 
 			foreach (var implementation in file)
 			{
@@ -996,7 +907,7 @@ public static class Assembler
 
 			debug.EndFile();
 
-			sections.Add(file.Key, debug.Export());
+			sections.Add(file.Key!, debug.Export());
 		}
 
 		return sections;

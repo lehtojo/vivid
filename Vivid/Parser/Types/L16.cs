@@ -12,11 +12,6 @@ public class L16 : Number
 		return global::Types.SMALL;
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "Ps";
-	}
-
 	public override int GetContentSize()
 	{
 		return STRIDE;

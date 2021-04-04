@@ -34,12 +34,7 @@ public class SetModifiableInstruction : Instruction
 		var directives = Trace.GetDirectives(Unit, handle);
 		var is_media_register = handle.Format.IsDecimal();
 
-		Register? register = null;
-
-		if (directives != null)
-		{
-			register = Memory.Consider(Unit, directives, is_media_register);
-		}
+		var register = Memory.Consider(Unit, directives, is_media_register);
 
 		if (register == null)
 		{

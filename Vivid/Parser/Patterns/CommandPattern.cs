@@ -6,12 +6,11 @@ public class CommandPattern : Pattern
 
 	private const int INSTRUCTION = 0;
 
-	// Examples: stop, continue
+	// Pattern: stop/continue/return
 	public CommandPattern() : base
 	(
 		TokenType.KEYWORD
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

@@ -6,6 +6,7 @@ export bool_1(x: decimal, y: decimal) {
 }
 
 export bool_2(x: large, y: large, a: large) {
+	
 	if x > y {
 		a = 1
 	}

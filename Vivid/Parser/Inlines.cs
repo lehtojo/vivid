@@ -40,7 +40,7 @@ public static class Inlines
 		foreach (var label in labels)
 		{
 			// Create a replacement for the label
-			var replacement = context.GetLabel();
+			var replacement = context.CreateLabel();
 
 			// Find all the jumps which use the current label and update them to use the replacement
 			for (var i = jumps.Count - 1; i >= 0; i--)
@@ -189,7 +189,7 @@ public static class Inlines
 		var body = implementation.Node!.Clone();
 
 		// Load all the function call arguments into temporary variables
-		foreach (var (parameter, value) in implementation.Parameters.Zip((IEnumerable<Node>)reference).Reverse())
+		foreach (var (parameter, value) in implementation.Parameters.Zip(reference).Reverse())
 		{
 			// Determines whether the value should be casted to match the parameter type
 			var is_cast_required = value.GetType() != parameter.Type!;
@@ -257,7 +257,7 @@ public static class Inlines
 
 			if (return_statements.Any())
 			{
-				end = implementation.GetLabel();
+				end = implementation.CreateLabel();
 				body.Add(new LabelNode(end));
 			}
 
@@ -289,11 +289,11 @@ public static class Inlines
 		else
 		{
 			// Find all return statements
-			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Select(i => i.To<ReturnNode>());
+			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
 
 			if (return_statements.Any())
 			{
-				var end = implementation.GetLabel();
+				var end = implementation.CreateLabel();
 
 				// Replace each return statement with a jump node which goes to the end of the inlined body
 				foreach (var return_statement in return_statements)

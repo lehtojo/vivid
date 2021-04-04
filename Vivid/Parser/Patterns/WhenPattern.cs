@@ -15,8 +15,7 @@ public class WhenPattern : Pattern
 		TokenType.CONTENT,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

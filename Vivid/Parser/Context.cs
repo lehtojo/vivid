@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 
 public class MangleDefinition
 {
@@ -17,7 +18,7 @@ public class MangleDefinition
 		Pointers = pointers;
 	}
 
-	private const string Table = "0123456789ABCDEF";
+	private const string TABLE = "0123456789ABCDEF";
 
 	public override string ToString()
 	{
@@ -33,7 +34,7 @@ public class MangleDefinition
 				var r = n - a * 16;
 				n = a;
 
-				Hexadecimal = Table[r] + Hexadecimal;
+				Hexadecimal = TABLE[r] + Hexadecimal;
 			}
 		}
 
@@ -46,6 +47,8 @@ public class Mangle
 	public const string EXPORT_TYPE_TAG = "_T";
 	public const string VIVID_LANGUAGE_TAG = "_V";
 	public const string C_LANGUAGE_TAG = "_Z";
+
+	public const char START_LOCATION_COMMAND = 'N';
 
 	public const char TYPE_COMMAND = 'N';
 	public const char START_TEMPLATE_ARGUMENTS_COMMAND = 'I';
@@ -60,7 +63,8 @@ public class Mangle
 
 	public const char CONFIGURATION_COMMAND = 'C';
 	public const char DESCRIPTOR_COMMAND = 'D';
-
+	
+	public const char START_FUNCTION_POINTER_COMMAND = 'F';
 	public const char START_MEMBER_VARIABLE_COMMAND = 'V';
 	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
 
@@ -114,27 +118,58 @@ public class Mangle
 		for (var i = 0; i < delta; i++)
 		{
 			Definitions.Add(new MangleDefinition(last.Type, Definitions.Count, last.Pointers + i + 1));
-			Value += 'P';
+			Value += POINTER_COMMAND;
 		}
 
 		Value += last.ToString();
 	}
 
-	public void Add(Type type, int pointers = 0)
+	public void Path(IEnumerable<Type> path)
+	{
+		var components = path.Reverse().TakeWhile(i => !Definitions.Any(j => j.Type == i)).Reverse().ToArray();
+
+		foreach (var type in components)
+		{
+			// The path must consist of user defined types
+			if (!type.Destructors.Overloads.Any())
+			{
+				throw new ArgumentException("Invalid type path");
+			}
+
+			// Try to find the current type from the definitions
+			var definition = Definitions.Find(i => i.Type == type);
+
+			if (definition != null)
+			{
+				Value = definition.ToString() + Value;
+				break;
+			}
+
+			Add(type, 0, false);
+		}
+	}
+
+	/// <summary>
+	/// Adds the specified type to this mangled identifier
+	/// </summary>
+	/// <param name="pointers">How many nested pointers does this type have</param>
+	/// <param name="full">If set to true, the full location of the specified type is appended, otherwise only the name of the type and potential template arguments are appended</param>
+	public void Add(Type type, int pointers = 0, bool full = true)
 	{
 		if (pointers == 0 && Types.IsPrimitive(type))
 		{
-			type.AddDefinition(this);
+			Value += type.Identifier;
 			return;
 		}
 
+		// Try to find the specified type from the definitions
 		var i = -1;
 
 		for (var j = 0; j < Definitions.Count; j++)
 		{
-			var t = Definitions[j];
+			var definition = Definitions[j];
 
-			if (t.Type == type && t.Pointers <= pointers)
+			if (Equals(definition.Type, type) && definition.Pointers <= pointers)
 			{
 				i = j;
 			}
@@ -144,15 +179,71 @@ public class Mangle
 		{
 			for (var j = 0; j < pointers; j++)
 			{
-				Value += 'P';
+				Value += POINTER_COMMAND;
 			}
 
+			// Add the default definition without pointers if the type is not a primitive
 			if (!Types.IsPrimitive(type))
 			{
 				Definitions.Add(new MangleDefinition(type, Definitions.Count, 0));
 			}
 
-			type.AddDefinition(this);
+			if (type is FunctionType function)
+			{
+				Value += START_FUNCTION_POINTER_COMMAND;
+				Definitions.Add(new MangleDefinition(type, Definitions.Count, 1));
+
+				type = function.ReturnType!;
+
+				if (type == Types.UNIT)
+				{
+					Value += NO_PARAMETERS_COMMAND;
+				}
+				else
+				{
+					pointers = Types.IsPrimitive(type) || type is Link ? 0 : 1;
+					Add(type, pointers);
+				}
+
+				Add(function.Parameters!);
+				Value += END_COMMAND;
+				return;
+			}
+
+			if (type is Link link)
+			{
+				Value += POINTER_COMMAND;
+				
+				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
+				pointers = Types.IsPrimitive(type) || type is Link ? 0 : 1;
+				
+				Add(argument, pointers);
+				return;
+			}
+
+			// Append the full location of the specified type if that is allowed
+			var parents = type.GetParentTypes();
+
+			if (full && parents.Any())
+			{
+				Value += START_LOCATION_COMMAND;
+				Path(parents);
+			}
+
+			Value += type.Identifier.Length.ToString(CultureInfo.InvariantCulture) + type.Identifier;
+
+			if (type.IsTemplateType)
+			{
+				Value += START_TEMPLATE_ARGUMENTS_COMMAND;
+				Add(type.TemplateArguments);
+				Value += END_COMMAND;
+			}
+
+			// End the location command if there are any parents
+			if (full && parents.Any())
+			{
+				Value += END_COMMAND;
+			}
 
 			for (var j = 0; j < pointers; j++)
 			{
@@ -162,8 +253,10 @@ public class Mangle
 			return;
 		}
 
-		var d = pointers - i;
+		// Determine the amount of nested pointers needed for the best definition to match the specified type
+		var d = pointers - Definitions[i].Pointers;
 
+		// The difference should never be negative but it can be zero
 		if (d <= 0)
 		{
 			Value += Definitions[i].ToString();
@@ -177,7 +270,7 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, (Types.IsPrimitive(type) || type is Link) ? 0 : 1);
+			Add(type, Types.IsPrimitive(type) || type is Link ? 0 : 1);
 		}
 	}
 
@@ -187,7 +280,7 @@ public class Mangle
 	}
 }
 
-public class Context
+public class Context : IComparable<Context>
 {
 	public Mangle? Mangled { get; private set; }
 	public string Identity { get; private set; }
@@ -218,8 +311,9 @@ public class Context
 	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
 	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
-	public List<Variable> Locals => Variables.Values.Where(v => v.Category == VariableCategory.LOCAL)
-		.Concat(Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction).SelectMany(c => c.Locals)).ToList();
+	public List<Variable> Locals => Variables.Values.Where(i => i.IsLocal).Concat(Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction).SelectMany(i => i.Locals)).ToList();
+
+	public List<Type> Imports { get; } = new List<Type>();
 
 	protected Indexer Indexer { get; set; } = new Indexer();
 
@@ -257,9 +351,26 @@ public class Context
 	}
 
 	/// <summary>
+	/// Returns all parent contexts which are types
+	/// </summary>
+	public Type[] GetParentTypes()
+	{
+		var types = new List<Type>();
+		var iterator = Parent;
+
+		while (iterator != null && iterator.IsType)
+		{
+			types.Insert(0, (Type)iterator);
+			iterator = iterator.Parent;
+		}
+
+		return types.ToArray();
+	}
+
+	/// <summary>
 	/// Appends the current context to the specified mangled name
 	/// </summary>
-	protected virtual void OnMangle(Mangle mangle) { }
+	public virtual void OnMangle(Mangle mangle) { }
 
 	/// <summary>
 	/// Generates a mangled name for this context
@@ -271,9 +382,7 @@ public class Context
 			return;
 		}
 
-		Parent?.Mangle();
-		Mangled = new Mangle(Parent?.Mangled);
-
+		Mangled = new Mangle((Mangle?)null);
 		OnMangle(Mangled);
 	}
 
@@ -290,8 +399,27 @@ public class Context
 	/// <summary>
 	/// Updates types, function and variables when new context is linked
 	/// </summary>
-	public void Update()
+	public void Update(bool local = false)
 	{
+		for (var i = 0; i < Imports.Count; i++)
+		{
+			var import = Imports[i];
+
+			if (!import.IsUnresolved)
+			{
+				continue;
+			}
+
+			// Try to resolve the import
+			var node = ((IResolvable)import).Resolve(this);
+			var type = node?.TryGetType();
+
+			if (type != null)
+			{
+				Imports[i] = type;
+			}
+		}
+
 		foreach (var variable in Variables.Values)
 		{
 			if (!variable.IsUnresolved)
@@ -306,7 +434,7 @@ public class Context
 				continue;
 			}
 
-			// Try to solve the type
+			// Try to resolve the type
 			var node = resolvable.Resolve(this);
 			var type = node?.TryGetType();
 
@@ -314,6 +442,11 @@ public class Context
 			{
 				variable.Type = type;
 			}
+		}
+
+		if (local)
+		{
+			return;
 		}
 
 		foreach (var type in new List<Type>(Types.Values))
@@ -352,7 +485,13 @@ public class Context
 
 		foreach (var (key, value) in context.Functions)
 		{
-			Functions.TryAdd(key, value);
+			if (!Functions.TryAdd(key, value))
+			{
+				var functions = Functions[key];
+
+				// Try to add the overloads separately
+				value.Overloads.ForEach(i => functions.TryAdd(i));
+			}
 
 			value.Overloads.ForEach(i => i.Parent = this);
 		}
@@ -411,7 +550,7 @@ public class Context
 	/// <param name="variable">Variable to declare</param>
 	public void Declare(Variable variable)
 	{
-		if (IsLocalVariableDeclared(variable.Name))
+		if (Variables.ContainsKey(variable.Name))
 		{
 			throw Errors.Get(variable.Position, $"Variable '{variable.Name}' already exists in this context");
 		}
@@ -428,7 +567,7 @@ public class Context
 	/// </summary>
 	public Variable Declare(Type? type, VariableCategory category, string name)
 	{
-		if (IsLocalVariableDeclared(name))
+		if (Variables.ContainsKey(name))
 		{
 			throw Errors.Get(null, $"Variable '{name}' already exists in this context");
 		}
@@ -472,63 +611,137 @@ public class Context
 		Types.Add(alias, type);
 	}
 
+	/// <summary>
+	/// Returns whether the specified type is declared inside this context
+	/// </summary>
 	public virtual bool IsLocalTypeDeclared(string name)
 	{
 		return Types.ContainsKey(name);
 	}
 
+	/// <summary>
+	/// Returns whether the specified function is declared inside this context
+	/// </summary>
 	public virtual bool IsLocalFunctionDeclared(string name)
 	{
 		return Functions.ContainsKey(name);
 	}
 
+	/// <summary>
+	/// Returns whether the specified variable is declared inside this context
+	/// </summary>
 	public virtual bool IsLocalVariableDeclared(string name)
 	{
 		return Variables.ContainsKey(name);
 	}
 
+	/// <summary>
+	/// Returns whether the specified label is declared inside this context
+	/// </summary>
 	public virtual bool IsLocalLabelDeclared(string name)
 	{
 		return Labels.ContainsKey(name);
 	}
 
-	public virtual bool IsVariableDeclared(string name)
+	/// <summary>
+	/// Returns whether the specified property is declared inside this context
+	/// </summary>
+	public virtual bool IsLocalPropertyDeclared(string name)
 	{
-		return Variables.ContainsKey(name) || (Parent != null && Parent.IsVariableDeclared(name));
+		return IsLocalFunctionDeclared(name) && GetFunction(name)!.GetOverload() != null;
 	}
 
-	public virtual bool IsPropertyDeclared(string name)
+	/// <summary>
+	/// Returns whether the specified type is declared inside this context or in the parent contexts depending on the specified flag
+	/// </summary>
+	public virtual bool IsTypeDeclared(string name, bool local)
 	{
-		return (IsFunctionDeclared(name) && GetFunction(name)!.GetOverload(new List<Type>()) != null) || (Parent != null && Parent.IsPropertyDeclared(name));
+		return local ? IsLocalTypeDeclared(name) : IsTypeDeclared(name);
 	}
 
+	/// <summary>
+	/// Returns whether the specified function is declared inside this context or in the parent contexts depending on the specified flag
+	/// </summary>
+	public bool IsFunctionDeclared(string name, bool local)
+	{
+		return local ? IsLocalFunctionDeclared(name) : IsFunctionDeclared(name);
+	}
+
+	/// <summary>
+	/// Returns whether the specified variable is declared inside this context or in the parent contexts depending on the specified flag
+	/// </summary>
+	public bool IsVariableDeclared(string name, bool local)
+	{
+		return local ? IsLocalVariableDeclared(name) : IsVariableDeclared(name);
+	}
+
+	/// <summary>
+	/// Returns whether the specified property is declared inside this context or in the parent contexts depending on the specified flag
+	/// </summary>
+	public virtual bool IsPropertyDeclared(string name, bool local)
+	{
+		return local ? IsLocalPropertyDeclared(name) : IsPropertyDeclared(name);
+	}
+
+	/// <summary>
+	/// Returns whether the specified type is declared inside this context or in the parent contexts
+	/// </summary>
 	public virtual bool IsTypeDeclared(string name)
 	{
-		return Types.ContainsKey(name) || (Parent != null && Parent.IsTypeDeclared(name));
+		return Types.ContainsKey(name) || Imports.Any(i => i.IsLocalTypeDeclared(name)) || (Parent != null && Parent.IsTypeDeclared(name));
 	}
 
-	public virtual bool IsTemplateTypeDeclared(string name)
-	{
-		return IsTypeDeclared(name) && GetType(name)!.IsTemplateType;
-	}
-
+	/// <summary>
+	/// Returns whether the specified function is declared inside this context or in the parent contexts
+	/// </summary>
 	public virtual bool IsFunctionDeclared(string name)
 	{
-		return Functions.ContainsKey(name) || (Parent != null && Parent.IsFunctionDeclared(name));
+		return Functions.ContainsKey(name) || Imports.Any(i => i.IsLocalFunctionDeclared(name)) || (Parent != null && Parent.IsFunctionDeclared(name));
 	}
 
+	/// <summary>
+	/// Returns whether the specified variable is declared inside this context or in the parent contexts
+	/// </summary>
+	public virtual bool IsVariableDeclared(string name)
+	{
+		return Variables.ContainsKey(name) || Imports.Any(i => i.IsLocalVariableDeclared(name)) || (Parent != null && Parent.IsVariableDeclared(name));
+	}
+
+	/// <summary>
+	/// Returns whether the specified label is declared inside this context or in the parent contexts
+	/// </summary>
 	public virtual bool IsLabelDeclared(string name)
 	{
-		return Labels.ContainsKey(name) || (Parent != null && Parent.IsLabelDeclared(name));
+		return Labels.ContainsKey(name) || Imports.Any(i => i.IsLocalLabelDeclared(name)) || (Parent != null && Parent.IsLabelDeclared(name));
 	}
 
+	/// <summary>
+	/// Returns whether the specified property is declared inside this context or in the parent contexts
+	/// </summary>
+	public virtual bool IsPropertyDeclared(string name)
+	{
+		return IsFunctionDeclared(name) && GetFunction(name)!.GetOverload() != null;
+	}
+
+	/// <summary>
+	/// Returns the specified type by searching it from the local types, imports and parent types
+	/// </summary>
 	public Type? GetType(string name)
 	{
 		if (Types.ContainsKey(name))
 		{
 			return Types[name];
 		}
-		else if (Parent != null)
+
+		foreach (var import in Imports)
+		{
+			if (import.Types.ContainsKey(name))
+			{
+				return import.Types[name];
+			}
+		}
+		
+		if (Parent != null)
 		{
 			return Parent.GetType(name);
 		}
@@ -538,13 +751,25 @@ public class Context
 		}
 	}
 
+	/// <summary>
+	/// Returns the specified function by searching it from the local types, imports and parent types
+	/// </summary>
 	public virtual FunctionList? GetFunction(string name)
 	{
 		if (Functions.ContainsKey(name))
 		{
 			return Functions[name];
 		}
-		else if (Parent != null)
+
+		foreach (var import in Imports)
+		{
+			if (import.Functions.ContainsKey(name))
+			{
+				return import.Functions[name];
+			}
+		}
+
+		if (Parent != null)
 		{
 			return Parent.GetFunction(name);
 		}
@@ -554,18 +779,25 @@ public class Context
 		}
 	}
 
-	public virtual Function? GetProperty(string name)
-	{
-		return GetFunction(name)!.GetOverload(new List<Type>());
-	}
-
+	/// <summary>
+	/// Returns the specified variable by searching it from the local types, imports and parent types
+	/// </summary>
 	public virtual Variable? GetVariable(string name)
 	{
 		if (Variables.ContainsKey(name))
 		{
 			return Variables[name];
 		}
-		else if (Parent != null)
+
+		foreach (var import in Imports)
+		{
+			if (import.Variables.ContainsKey(name))
+			{
+				return import.Variables[name];
+			}
+		}
+
+		if (Parent != null)
 		{
 			return Parent.GetVariable(name);
 		}
@@ -575,16 +807,25 @@ public class Context
 		}
 	}
 
-	public virtual Label GetLabel()
+	/// <summary>
+	/// Returns the specified property by searching it from the local types, imports and parent types
+	/// </summary>
+	public virtual Function? GetProperty(string name)
 	{
-		return new Label(GetFullname() + "_I" + Indexer[Indexer.SECTION]);
+		return GetFunction(name)!.GetOverload();
 	}
 
+	/// <summary>
+	/// Tries to find the self pointer variable
+	/// </summary>
 	public virtual Variable? GetSelfPointer()
 	{
 		return Parent?.GetSelfPointer();
 	}
 
+	/// <summary>
+	/// Tries to returns the first parent context which is a type
+	/// </summary>
 	public Type? GetTypeParent()
 	{
 		if (IsType)
@@ -595,6 +836,9 @@ public class Context
 		return Parent?.GetTypeParent();
 	}
 
+	/// <summary>
+	/// Tries to returns the first parent context which is a function
+	/// </summary>
 	public Function? GetFunctionParent()
 	{
 		if (IsFunction)
@@ -605,6 +849,9 @@ public class Context
 		return Parent?.GetFunctionParent();
 	}
 
+	/// <summary>
+	/// Tries to returns the first parent context which is a function implementation
+	/// </summary>
 	public FunctionImplementation? GetImplementationParent()
 	{
 		if (IsImplementation)
@@ -630,7 +877,17 @@ public class Context
 			.SelectMany(f => f.Implementations);
 	}
 
-	public int GetNextLambda()
+	public virtual Label CreateLabel()
+	{
+		return new Label(GetFullname() + "_I" + Indexer[Indexer.SECTION]);
+	}
+
+	public string CreateStackAddress()
+	{
+		return Indexer.STACK.ToLowerInvariant() + '.' + Identity + '.' + Indexer[Indexer.STACK];
+	}
+
+	public int CreateLambda()
 	{
 		return Indexer[Indexer.LAMBDA];
 	}
@@ -671,5 +928,10 @@ public class Context
 		hash.Add(Types);
 		hash.Add(Labels);
 		return hash.ToHashCode();
+	}
+
+	public int CompareTo(Context? other)
+	{
+		return other == null ? 0 : Identity.CompareTo(other.Identity);
 	}
 }

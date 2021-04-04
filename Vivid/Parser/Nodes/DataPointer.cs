@@ -12,7 +12,7 @@ public class DataPointer : Node
 		Instance = NodeType.DATA_POINTER;
 	}
 
-	public override Type? TryGetType()
+	public override Type TryGetType()
 	{
 		return Types.LINK;
 	}

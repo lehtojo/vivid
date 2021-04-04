@@ -175,17 +175,12 @@ public class DivisionInstruction : DualParameterInstruction
 		}
 	}
 
-	private static bool IsPowerOfTwo(long x)
-	{
-		return (x & (x - 1)) == 0;
-	}
-
 	public void OnBuildX64()
 	{
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_DIVIDE : Instructions.X64.DOUBLE_PRECISION_DIVIDE;
+			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_DIVIDE : Instructions.X64.DOUBLE_PRECISION_DIVIDE;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
@@ -211,7 +206,7 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			var division = TryGetConstantDivision();
 
-			if (division != null && IsPowerOfTwo(division.Constant) && division.Constant != 0L)
+			if (division != null && Common.IsPowerOfTwo(division.Constant) && division.Constant != 0L)
 			{
 				var count = new ConstantHandle((long)Math.Log2(division.Constant));
 				var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
@@ -325,8 +320,6 @@ public class DivisionInstruction : DualParameterInstruction
 				HandleType.REGISTER
 			)
 		);
-
-		return;
 	}
 
 	public void OnBuildArm64()
@@ -339,7 +332,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var division = TryGetConstantDivision();
 		var second = Second;
 
-		if (!is_decimal && division != null && IsPowerOfTwo(division.Constant) && division.Constant != 0)
+		if (!is_decimal && division != null && Common.IsPowerOfTwo(division.Constant) && division.Constant != 0)
 		{
 			second = new Result(new ConstantHandle((long)Math.Log2(division.Constant)), Assembler.Format);
 			types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
@@ -394,8 +387,6 @@ public class DivisionInstruction : DualParameterInstruction
 				types
 			)
 		);
-
-		return;
 	}
 
 	public override void OnBuild()

@@ -12,7 +12,7 @@ public class Token : ICloneable
 
 	public T To<T>() where T : Token
 	{
-		return (T)this ?? throw new ApplicationException($"Could not convert 'Token' to '{typeof(T).Name}'");
+		return (T)this;
 	}
 
 	public override bool Equals(object? other)

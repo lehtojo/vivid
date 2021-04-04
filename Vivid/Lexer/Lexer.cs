@@ -64,13 +64,33 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Returns whether the character is an independent operator
+	/// Returns all the characters which can mix with the specified character.
+	/// If this function returns null, it means the specified character can mix with any character.
 	/// </summary>
-	/// <param name="c">Character to scan</param>
-	/// <returns>True if the character is an independent operator, otherwise false</returns>
-	private static bool IsIndependentOperator(char c)
+	private static string? GetMixingCharacters(char c)
 	{
-		return c == '<' || c == '>' || c == ',';
+		return c switch
+		{
+			'.' => ".0123456789",
+			',' => string.Empty,
+			'<' => "|=",
+			'>' => "|=-",
+			_ => null
+		};
+	}
+
+	/// <summary>
+	/// Returns whether the two specified characters can mix
+	/// </summary>
+	private static bool Mixes(char a, char b)
+	{
+		var x = GetMixingCharacters(a);
+		if (x != null) return x.Contains(b);
+
+		var y = GetMixingCharacters(b);
+		if (y != null) return y.Contains(a);
+
+		return true;
 	}
 
 	/// <summary>
@@ -186,7 +206,7 @@ public static class Lexer
 	/// <returns>True if the character is part of the progressing token</returns>
 	private static bool IsPartOf(AreaType previous, AreaType current, char previous_symbol, char current_symbol, char next_symbol)
 	{
-		if (IsIndependentOperator(previous_symbol) && IsIndependentOperator(current_symbol))
+		if (!Mixes(previous_symbol, current_symbol))
 		{
 			return false;
 		}
@@ -518,8 +538,6 @@ public static class Lexer
 				area.Type = AreaType.NUMBER;
 				return area;
 			}
-
-			default: break;
 		}
 
 		position.NextCharacter();
@@ -592,7 +610,7 @@ public static class Lexer
 			AreaType.TEXT => ParseTextToken(area.Text),
 			AreaType.NUMBER => new NumberToken(area.Text, area.Start),
 			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw new LexerException(area.Start, $"Unknown operator '{area.Text}'")),
-			AreaType.CONTENT => new ContentToken(area.Text, area.Start),
+			AreaType.CONTENT => new ContentToken(area.Text, area.Start, area.End),
 			AreaType.END => new Token(TokenType.END),
 			AreaType.STRING => new StringToken(area.Text),
 			_ => throw new LexerException(area.Start, $"Unknown token '{area.Text}'"),
@@ -602,7 +620,7 @@ public static class Lexer
 	/// <summary>
 	/// Join all sequential modifier keywords into one token
 	/// </summary>
-	public static void JoinModifiers(List<Token> tokens)
+	public static void Join(List<Token> tokens)
 	{
 		if (tokens.Count == 1)
 		{
@@ -614,15 +632,27 @@ public static class Lexer
 			var current = tokens[i];
 			var next = tokens[i + 1];
 
-			if (current is KeywordToken current_keyword && next is KeywordToken next_keyword &&
-				current_keyword.Keyword is ModifierKeyword current_modifier &&
-				next_keyword.Keyword is ModifierKeyword next_modifier)
+			if (current is KeywordToken a && next is KeywordToken b)
 			{
-				var identifier = current_modifier.Identifier + ' ' + next_modifier.Identifier;
-				var combined = new ModifierKeyword(identifier, current_modifier.Modifier | next_modifier.Modifier);
+				if (a.Keyword is ModifierKeyword x && b.Keyword is ModifierKeyword y)
+				{
+					var identifier = x.Identifier + ' ' + y.Identifier;
+					var combined = new ModifierKeyword(identifier, x.Modifier | y.Modifier);
 
-				tokens.RemoveAt(i); tokens.RemoveAt(i);
-				tokens.Insert(i, new KeywordToken(combined));
+					tokens.RemoveAt(i);
+					tokens.RemoveAt(i);
+					tokens.Insert(i, new KeywordToken(combined) { Position = a.Position });
+					continue;
+				}
+				
+				if (a.Keyword != Keywords.IS || b.Keyword != Keywords.NOT)
+				{
+					continue;
+				}
+
+				tokens.RemoveAt(i);
+				tokens.RemoveAt(i);
+				tokens.Insert(i, new KeywordToken(Keywords.IS_NOT) { Position = a.Position });
 			}
 		}
 	}
@@ -652,9 +682,9 @@ public static class Lexer
 	/// </summary>
 	/// <param name="text">Text to scan</param>
 	/// <returns>Text as a token list</returns>
-	public static List<Token> GetTokens(string text)
+	public static List<Token> GetTokens(string text, bool join = true)
 	{
-		return GetTokens(text, new Position());
+		return GetTokens(text, new Position(), join);
 	}
 
 	/// <summary>
@@ -663,7 +693,7 @@ public static class Lexer
 	/// <param name="text">Text to scan</param>
 	/// <param name="anchor">Current position</param>
 	/// <returns>Text as a token list</returns>
-	public static List<Token> GetTokens(string text, Position anchor)
+	public static List<Token> GetTokens(string text, Position anchor, bool join = true)
 	{
 		text = PreprocessSpecialCharacters(text);
 
@@ -689,8 +719,11 @@ public static class Lexer
 			position = area.End;
 		}
 
-		JoinModifiers(tokens);
-
+		if (join)
+		{
+			Join(tokens);
+		}
+		
 		return tokens;
 	}
 

@@ -35,16 +35,35 @@ public class TypeNode : Node, IContext
 
 	public void Parse()
 	{
-		Type.AddRuntimeConfiguration();
+		// Static types can not be constructed
+		if (!Type.IsStatic)
+		{
+			Type.AddRuntimeConfiguration();
+		}
 
 		Parser.Parse(this, Type, Body);
+
 		Body.Clear();
 
+		// Apply the static modifier to the parsed functions and variables
+		if (Type.IsStatic)
+		{
+			Type.Functions.Values.SelectMany(i => i.Overloads).ForEach(i => i.Modifiers |= Modifier.STATIC);
+			Type.Variables.Values.ForEach(i => i.Modifiers |= Modifier.STATIC);
+		}
+
+		// Parse all the subtypes
+		foreach (var subtype in FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition))
+		{
+			subtype.Parse();
+		}
+
 		// Find all expressions which represent type initialization
-		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
+		var expressions = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
+		Type.Initialization = Type.Initialization.Concat(expressions).ToArray();
 	}
 
-	public override Type? TryGetType()
+	public override Type TryGetType()
 	{
 		return Type;
 	}

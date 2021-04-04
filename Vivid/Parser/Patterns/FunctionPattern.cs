@@ -7,14 +7,13 @@ class FunctionPattern : Pattern
 	public const int HEADER = 0;
 	public const int BODY = 2;
 
-	// Pattern: a-z (...) [\n] {...}
+	// Pattern: $name (...) [\n] {...}
 	public FunctionPattern() : base
 	(
 		TokenType.FUNCTION,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

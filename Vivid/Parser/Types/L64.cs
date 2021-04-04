@@ -12,11 +12,6 @@ public class L64 : Number
 		return global::Types.LARGE;
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "Px";
-	}
-
 	public override int GetContentSize()
 	{
 		return STRIDE;

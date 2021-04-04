@@ -33,17 +33,25 @@ public class CacheVariablesInstruction : Instruction
 		{
 			var usage = Usages[i];
 
-			// If there's no reference, the usage should be skipped and removed
+			// If there is no reference, the usage should be skipped and removed
 			if (usage.Reference == null)
 			{
 				Usages.RemoveAt(i);
 				continue;
 			}
 
-			// There is no need to move variables to registers that aren't edited in the body and are constants
+			// There is no need to move a constant variable into register if it is not edited inside any of the roots
 			if (Roots.All(i => !usage.Variable.IsEditedInside(i)) && usage.Reference.IsConstant)
 			{
 				Usages.RemoveAt(i);
+				continue;
+			}
+
+			// If the variable is not used after the roots, there is no need to load it now, if it is not a memory address
+			if (!Analysis.IsUsedLater(usage.Variable, Roots.First(), true) && !usage.Reference.IsMemoryAddress)
+			{
+				Usages.RemoveAt(i);
+				continue;
 			}
 		}
 
@@ -53,7 +61,7 @@ public class CacheVariablesInstruction : Instruction
 			var usage = Usages[i];
 
 			// The current usage should be removed if it is linked to another variable since it would cause unnecessary move instructions
-			if (Usages.GetRange(0, i).Any(u => u.Reference!.Equals(usage.Reference)))
+			if (Usages.GetRange(0, i).Any(i => i.Reference!.Equals(usage.Reference)))
 			{
 				Usages.RemoveAt(i);
 			}
@@ -97,8 +105,8 @@ public class CacheVariablesInstruction : Instruction
 			Unit = unit;
 
 			// Retrieve available registers matching the configured mode
-			AvailableStandardRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileStandardRegisters : unit.StandardRegisters);
-			AvailableMediaRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileMediaRegisters : unit.MediaRegisters);
+			AvailableStandardRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileStandardRegisters : unit.VolatileStandardRegisters.Concat(unit.NonVolatileStandardRegisters));
+			AvailableMediaRegisters = new List<Register>(non_volatile_only ? unit.NonVolatileMediaRegisters : unit.VolatileMediaRegisters.Concat(unit.NonVolatileMediaRegisters));
 
 			// Pack all register together for simple iteration
 			var registers = AvailableStandardRegisters.Concat(AvailableMediaRegisters).ToList();

@@ -7,14 +7,12 @@ class PostIncrementAndDecrementPattern : Pattern
 	public const int OBJECT = 0;
 	public const int OPERATOR = 1;
 
-	// Examples: 
-	// $variable ++
-	// $variable --
+	// Pattern 1: $value ++
+	// Pattern 2: $value --
 	public PostIncrementAndDecrementPattern() : base
 	(
 		TokenType.DYNAMIC | TokenType.IDENTIFIER, TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

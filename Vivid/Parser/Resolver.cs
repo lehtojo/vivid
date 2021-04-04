@@ -62,6 +62,8 @@ public static class Resolver
 	/// </summary>
 	public static void ResolveContext(Context context)
 	{
+		context.Update(true);
+
 		ResolveVariables(context);
 
 		var types = new List<Type>(context.Types.Values);
@@ -78,7 +80,7 @@ public static class Resolver
 			}
 		}
 
-		var overloads = context.Functions.Values.SelectMany(f => f.Overloads).ToList();
+		var overloads = context.Functions.Values.SelectMany(i => i.Overloads).ToList();
 
 		// Resolve parameter types
 		foreach (var function in overloads)
@@ -123,7 +125,7 @@ public static class Resolver
 
 			if (implementation.Node != null)
 			{
-				if (!implementation.IsConstructor && !implementation.Metadata!.IsImported && implementation.Node.Find(i => i.Is(NodeType.RETURN)) == null)
+				if (!implementation.Metadata!.IsImported && implementation.Node.Find(i => i.Is(NodeType.RETURN)) == null)
 				{
 					implementation.ReturnType = Types.UNIT;
 				}

@@ -4,18 +4,34 @@ using System.Linq;
 
 public static class Analysis
 {
+	public const int VARIABLE_ACCESS_COST = 1;
+	public const int STANDARD_OPERATOR_COST = 10;
+
+	public const int ADDITION_COST = STANDARD_OPERATOR_COST;
+	public const int SUBTRACTION_COST = STANDARD_OPERATOR_COST;
+
+	public const int POWER_OF_TWO_MULTIPLICATION_COST = STANDARD_OPERATOR_COST;
+	public const int MULTIPLICATION_COST = 3 * STANDARD_OPERATOR_COST;
+
+	public const int POWER_OF_TWO_DIVISION_COST = STANDARD_OPERATOR_COST;
+	public const int DIVISION_COST = 100 * STANDARD_OPERATOR_COST;
+
+	public const int MEMORY_ACCESS_COST = 50 * STANDARD_OPERATOR_COST;
+	public const int CONDITIONAL_JUMP_COST = 20 * STANDARD_OPERATOR_COST;
+
 	public static bool IsInstructionAnalysisEnabled { get; set; } = false;
 	public static bool IsUnwrapAnalysisEnabled { get; set; } = false;
 	public static bool IsMathematicalAnalysisEnabled { get; set; } = false;
 	public static bool IsRepetitionAnalysisEnabled { get; set; } = false;
 	public static bool IsFunctionInliningEnabled { get; set; } = false;
+	public static bool IsGarbageCollectorEnabled { get; set; } = false;
+
+	#region Components
 
 	/// <summary>
 	/// Creates a node tree representing the specified components
 	/// </summary>
-	/// <param name="components">Components representing an expression</param>
-	/// <returns>Node tree representing the specified components</returns>
-	private static Node Recreate(List<Component> components)
+	public static Node Recreate(List<Component> components)
 	{
 		var result = Recreate(components.First());
 
@@ -109,9 +125,7 @@ public static class Analysis
 	/// <summary>
 	/// Builds a node tree representing a variable with an order
 	/// </summary>
-	/// <param name="variable">Target variable</param>
-	/// <param name="order">Order of the variable</param>
-	private static Node CreateVariableWithOrder(Variable variable, int order)
+	public static Node CreateVariableWithOrder(Variable variable, int order)
 	{
 		if (order == 0)
 		{
@@ -132,54 +146,42 @@ public static class Analysis
 
 		return result;
 	}
+	
+	/// <summary>
+	/// If the coefficient is a decimal, decimal format is returned, otherwise the default integer format is returned
+	/// </summary>
+	public static Format GetCoefficientFormat(object coefficient)
+	{
+		return coefficient is double ? Format.DECIMAL : Assembler.Format;
+	}
 
 	/// <summary>
 	/// Creates a node tree representing the specified component
 	/// </summary>
-	/// <returns>Node tree representing the specified component</returns>
-	private static Node Recreate(Component component)
+	public static Node Recreate(Component component)
 	{
 		if (component is NumberComponent number_component)
 		{
-			return new NumberNode(number_component.Value is long ? Assembler.Format : Format.DECIMAL, number_component.Value);
+			return new NumberNode(GetCoefficientFormat(number_component.Value), number_component.Value);
 		}
 
 		if (component is VariableComponent variable_component)
 		{
-			// When the coefficient is exactly zero (double), the variable can be ignored, meaning the inaccuracy of the comparison is expected
-			if (variable_component.Coefficient is double a && a == 0.0)
+			if (Numbers.IsZero(variable_component.Coefficient))
 			{
-				return new NumberNode(Format.DECIMAL, 0.0);
-			}
-
-			if (variable_component.Coefficient is long b && b == 0.0)
-			{
-				return new NumberNode(Assembler.Format, 0L);
+				return new NumberNode(GetCoefficientFormat(variable_component.Coefficient), variable_component.Coefficient);
 			}
 
 			var result = CreateVariableWithOrder(variable_component.Variable, variable_component.Order);
 
-			// When the coefficient is exactly one (double), the coefficient can be ignored, meaning the inaccuracy of the comparison is expected
-			if (variable_component.Coefficient is double c)
-			{
-				if (c == 1.0)
-				{
-					return result;
-				}
-
-				return new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Format.DECIMAL, c));
-			}
-
 			return !Numbers.IsOne(variable_component.Coefficient)
-				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, variable_component.Coefficient))
+				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(GetCoefficientFormat(variable_component.Coefficient), variable_component.Coefficient))
 				: result;
 		}
 
 		if (component is ComplexComponent complex_component)
 		{
-			return complex_component.IsNegative
-				? new NegateNode(complex_component.Node)
-				: complex_component.Node;
+			return complex_component.IsNegative ? new NegateNode(complex_component.Node) : complex_component.Node;
 		}
 
 		if (component is VariableProductComponent product)
@@ -194,7 +196,7 @@ public static class Analysis
 			}
 
 			return !Numbers.Equals(product.Coefficient, 1L)
-				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(Assembler.Format, product.Coefficient))
+				? new OperatorNode(Operators.MULTIPLY).SetOperands(result, new NumberNode(GetCoefficientFormat(product.Coefficient), product.Coefficient))
 				: result;
 		}
 
@@ -204,50 +206,54 @@ public static class Analysis
 	/// <summary>
 	/// Negates the all the specified components using their internal negation method
 	/// </summary>
-	/// <param name="components">Components to negate</param>
-	/// <returns>The specified components</returns>
-	private static List<Component> Negate(List<Component> components)
+	public static List<Component> Negate(List<Component> components)
 	{
 		components.ForEach(c => c.Negate());
 		return components;
 	}
 
-	private static List<Component> CollectComponents(Node node)
+	/// <summary>
+	/// Returns a component list which describes the specified expression
+	/// </summary>
+	public static List<Component> CollectComponents(Node expression)
 	{
 		var result = new List<Component>();
 
-		if (node.Is(NodeType.NUMBER))
+		if (expression.Is(NodeType.NUMBER))
 		{
-			result.Add(new NumberComponent(node.To<NumberNode>().Value));
+			result.Add(new NumberComponent(expression.To<NumberNode>().Value));
 		}
-		else if (node.Is(NodeType.VARIABLE))
+		else if (expression.Is(NodeType.VARIABLE))
 		{
-			result.Add(new VariableComponent(node.To<VariableNode>().Variable));
+			result.Add(new VariableComponent(expression.To<VariableNode>().Variable));
 		}
-		else if (node.Is(NodeType.OPERATOR))
+		else if (expression.Is(NodeType.OPERATOR))
 		{
-			result.AddRange(CollectComponents(node.To<OperatorNode>()));
+			result.AddRange(CollectComponents(expression.To<OperatorNode>()));
 		}
-		else if (node.Is(NodeType.CONTENT))
+		else if (expression.Is(NodeType.CONTENT))
 		{
-			if (!Equals(node.First, null))
+			if (!Equals(expression.First, null))
 			{
-				result.AddRange(CollectComponents(node.First));
+				result.AddRange(CollectComponents(expression.First));
 			}
 		}
-		else if (node.Is(NodeType.NEGATE))
+		else if (expression.Is(NodeType.NEGATE))
 		{
-			result.AddRange(Negate(CollectComponents(node.First!)));
+			result.AddRange(Negate(CollectComponents(expression.First!)));
 		}
 		else
 		{
-			result.Add(new ComplexComponent(node));
+			result.Add(new ComplexComponent(expression));
 		}
 
 		return result;
 	}
 
-	private static List<Component> CollectComponents(OperatorNode node)
+	/// <summary>
+	/// Returns a component list which describes the specified operator node
+	/// </summary>
+	public static List<Component> CollectComponents(OperatorNode node)
 	{
 		var left_components = CollectComponents(node.Left);
 		var right_components = CollectComponents(node.Right);
@@ -281,9 +287,7 @@ public static class Analysis
 	/// <summary>
 	/// Tries to simplify the specified components
 	/// </summary>
-	/// <param name="components">Components to simplify</param>
-	/// <returns>A simplified version of the components</returns>
-	private static List<Component> Simplify(List<Component> components)
+	public static List<Component> Simplify(List<Component> components)
 	{
 		if (components.Count <= 1)
 		{
@@ -322,10 +326,7 @@ public static class Analysis
 	/// <summary>
 	/// Simplifies the addition between the specified operands
 	/// </summary>
-	/// <param name="left_components">Components of the left hand side</param>
-	/// <param name="right_components">Components of the right hand side</param>
-	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifyAddition(List<Component> left_components, List<Component> right_components)
+	public static List<Component> SimplifyAddition(List<Component> left_components, List<Component> right_components)
 	{
 		return Simplify(left_components.Concat(right_components).ToList());
 	}
@@ -333,10 +334,7 @@ public static class Analysis
 	/// <summary>
 	/// Simplifies the subtraction between the specified operands
 	/// </summary>
-	/// <param name="left_components">Components of the left hand side</param>
-	/// <param name="right_components">Components of the right hand side</param>
-	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifySubtraction(List<Component> left_components, List<Component> right_components)
+	public static List<Component> SimplifySubtraction(List<Component> left_components, List<Component> right_components)
 	{
 		Negate(right_components);
 
@@ -346,10 +344,7 @@ public static class Analysis
 	/// <summary>
 	/// Simplifies the multiplication between the specified operands
 	/// </summary>
-	/// <param name="left_components">Components of the left hand side</param>
-	/// <param name="right_components">Components of the right hand side</param>
-	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifyMultiplication(List<Component> left_components, List<Component> right_components)
+	public static List<Component> SimplifyMultiplication(List<Component> left_components, List<Component> right_components)
 	{
 		var components = new List<Component>();
 
@@ -371,10 +366,7 @@ public static class Analysis
 	/// <summary>
 	/// Simplifies the division between the specified operands
 	/// </summary>
-	/// <param name="left_components">Components of the left hand side</param>
-	/// <param name="right_components">Components of the right hand side</param>
-	/// <returns>Simplified version of the expression</returns>
-	private static List<Component> SimplifyDivision(List<Component> left_components, List<Component> right_components)
+	public static List<Component> SimplifyDivision(List<Component> left_components, List<Component> right_components)
 	{
 		if (left_components.Count == 1 && right_components.Count == 1)
 		{
@@ -395,7 +387,7 @@ public static class Analysis
 	/// <summary>
 	/// Tries to simplify the specified node
 	/// </summary>
-	private static Node GetSimplifiedValue(Node value)
+	public static Node GetSimplifiedValue(Node value)
 	{
 		var components = CollectComponents(value);
 		var simplified = Recreate(components);
@@ -404,60 +396,9 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Returns whether the specified node is primitive that is whether it contains only operators, numbers, parameter- or local variables
+	/// Finds comparisons and tries to simplify them.
+	/// Returns whether any modifications were done.
 	/// </summary>
-	/// <returns>True if the definition is primitive, otherwise false</returns>
-	public static bool IsPrimitive(Node node)
-	{
-		return node.Find(n => !(n.Is(NodeType.NUMBER) || n.Is(NodeType.OPERATOR) || n.Is(NodeType.VARIABLE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
-	}
-
-	private static Node? GetBranch(Node node)
-	{
-		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
-	}
-
-	private static List<Node> GetDenylist(Node node)
-	{
-		var denylist = new List<Node>();
-		var branch = node;
-
-		while ((branch = GetBranch(branch!)) != null)
-		{
-			if (branch is IfNode x)
-			{
-				denylist.AddRange(x.GetBranches().Where(b => b != x));
-			}
-			else if (branch is ElseIfNode y)
-			{
-				denylist.AddRange(y.GetRoot().GetBranches().Where(b => b != y));
-			}
-			else if (branch is ElseNode z)
-			{
-				denylist.AddRange(z.GetRoot().GetBranches().Where(b => b != z));
-			}
-		}
-
-		return denylist;
-	}
-
-	/// <summary>
-	/// Returns whether the specified variable will be used in the future starting from the specified node perspective
-	/// </summary>
-	public static bool IsUsedLater(Variable variable, Node perspective)
-	{
-		// Get a denylist which describes which sections of the node tree have not been executed in the past or won't be executed in the future
-		var denylist = GetDenylist(perspective);
-
-		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
-		{
-			return true;
-		}
-
-		return perspective.FindParent(i => i.Is(NodeType.LOOP)) != null;
-	}
-
 	public static bool OptimizeComparisons(Node root)
 	{
 		var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
@@ -528,7 +469,7 @@ public static class Analysis
 			comparison.First!.Replace(Recreate(left));
 			comparison.Last!.Replace(Recreate(right));
 
-			var evaluation = Preprocessor.TryEvaluateOperator(comparison.To<OperatorNode>());
+			var evaluation = Evaluator.TryEvaluateOperator(comparison.To<OperatorNode>());
 
 			if (evaluation != null)
 			{
@@ -539,602 +480,7 @@ public static class Analysis
 
 		return precomputed;
 	}
-
-	private static void EvaluateLogicalOperator(OperatorNode expression)
-	{
-		if (expression.Left.Is(Operators.AND) || expression.Left.Is(Operators.OR))
-		{
-			EvaluateLogicalOperator(expression.Left.To<OperatorNode>());
-		}
-
-		if (expression.Right.Is(Operators.AND) || expression.Right.Is(Operators.OR))
-		{
-			EvaluateLogicalOperator(expression.Right.To<OperatorNode>());
-		}
-
-		if (!expression.Left.Is(NodeType.NUMBER) && !expression.Right.Is(NodeType.NUMBER))
-		{
-			return;
-		}
-
-		var a = expression.Left is NumberNode x && x.Value.Equals(0L);
-		var b = expression.Right is NumberNode y && y.Value.Equals(0L);
-
-		if (a && b)
-		{
-			expression.Replace(new NumberNode(Parser.Format, 0L, expression.Position));
-			return;
-		}
-
-		expression.Replace(a ? expression.Right : expression.Left);
-	}
-
-	private static void EvaluateLogicalOperators(Node root)
-	{
-		foreach (var iterator in root)
-		{
-			if (iterator.Is(Operators.AND) || iterator.Is(Operators.OR))
-			{
-				EvaluateLogicalOperator(iterator.To<OperatorNode>());
-			}
-			else
-			{
-				EvaluateLogicalOperators(iterator);
-			}
-		}
-	}
-
-	private static bool EvaluateConditionalStatement(IfNode root)
-	{
-		if (root.Condition is not NumberNode condition || root.GetConditionInitialization().Any())
-		{
-			return false;
-		}
-
-		if (!condition.Value.Equals(0L))
-		{
-			// None of the successors will execute
-			root.GetSuccessors().ForEach(i => i.Remove());
-
-			if (root.Predecessor == null)
-			{
-				// Since the root node is the first branch, the body can be inlined
-				root.ReplaceWithChildren(root.Body.Clone());
-			}
-			else
-			{
-				// Since there is a branch before the root node, the root can be replaced with an else statement
-				root.Replace(new ElseNode(root.Body.Context, root.Body.Clone(), root.Position));
-			}
-		}
-		else if (root.Successor == null || root.Predecessor != null)
-		{
-			root.Remove();
-		}
-		else
-		{
-			if (root.Successor is ElseIfNode x)
-			{
-				root.Replace(new IfNode(x.Body.Context, x.Condition, x.Body, x.Position));
-				x.Remove();
-				return true;
-			}
-
-			root.ReplaceWithChildren(root.Successor);
-			root.Successor.Remove();
-		}
-
-		return true;
-	}
-
-	private static void EvaluateConditionalStatements(Node root)
-	{
-		var iterator = root.First;
-
-		while (iterator != null)
-		{
-			if (iterator is IfNode x)
-			{
-				if (EvaluateConditionalStatement(x))
-				{
-					iterator = root.First;
-				}
-				else
-				{
-					iterator = iterator.Next;
-				}
-
-				continue;
-			}
-			else if (iterator.Is(NodeType.ELSE))
-			{
-				iterator = iterator.Next;
-			}
-			else
-			{
-				EvaluateConditionalStatements(iterator);
-				iterator = iterator.Next;
-			}
-		}
-	}
-
-	public static bool UnwrapStatements(Node root)
-	{
-		var unwrapped = false;
-		var statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
-
-		while (statements.Any())
-		{
-			var iterator = statements.Dequeue();
-
-			if (iterator.Is(NodeType.IF))
-			{
-				var statement = iterator.To<IfNode>();
-
-				if (!statement.Condition.Is(NodeType.NUMBER))
-				{
-					continue;
-				}
-
-				var successors = statement.GetSuccessors();
-
-				if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
-				{
-					// Disconnect all the successors
-					successors.ForEach(i => i.Remove());
-
-					// Replace the conditional statement with the body
-					statement.ReplaceWithChildren(statement.Body);
-
-					unwrapped = true;
-					continue;
-				}
-
-				// If there is no successor, this statement can be removed completely
-				if (statement.Successor == null)
-				{
-					statement.Remove();
-					continue;
-				}
-
-				if (statement.Successor.Is(NodeType.ELSE))
-				{
-					// Replace the conditional statement with the body of the successor
-					statement.ReplaceWithChildren(statement.Successor.To<ElseNode>().Body);
-
-					unwrapped = true;
-					continue;
-				}
-
-				var successor = statement.Successor.To<ElseIfNode>();
-
-				// Create a conditional statement identical to the successor but as an if-statement
-				var replacement = new IfNode();
-				successor.ForEach(i => replacement.Add(i));
-
-				// Process the replacement later
-				statements.Enqueue(replacement);
-
-				// Since the statement will not be executed, replace it with its successor
-				successor.Remove();
-				statement.Replace(replacement);
-
-				unwrapped = true;
-			}
-			else if (iterator.Is(NodeType.LOOP))
-			{
-				var statement = iterator.To<LoopNode>();
-
-				if (statement.IsForeverLoop)
-				{
-					continue;
-				}
-
-				if (!statement.Condition.Is(NodeType.NUMBER))
-				{
-					if (TryUnwrapLoop(statement))
-					{
-						// Statements must be reloaded, since the unwrap was successful
-						unwrapped = true;
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
-					}
-
-					continue;
-				}
-
-				// NOTE: Here the condition of the loop must be a number node
-				// Basically if the number node represents a non-zero value it means the loop should be reconstructed as a forever loop
-				if (!Equals(statement.Condition.To<NumberNode>().Value, 0L))
-				{
-					// If there are nodes which are executed before the condition, insert them as well
-					var initialization = statement.GetConditionInitialization();
-
-					// Even though the loop will not be executed the initialization will be
-					statement.Insert(statement.Initialization);
-
-					if (!initialization.IsEmpty)
-					{
-						statement.Insert(initialization);
-					}
-
-					var replacement = new LoopNode(statement.Context, null, statement.Body, statement.Position);
-
-					statement.Insert(replacement);
-					statement.Remove();
-
-					if (!initialization.IsEmpty)
-					{
-						// Reload is needed, since the condition initialization is cloned
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
-					}
-				}
-				else
-				{
-					// If there are nodes which are executed before the condition, insert them as well
-					var initialization = statement.GetConditionInitialization();
-
-					// Even though the loop will not be executed the initialization will be
-					statement.Insert(statement.Initialization);
-
-					if (!initialization.IsEmpty)
-					{
-						// Reload is needed, since the condition initialization is cloned
-						statement.Replace(initialization);
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
-					}
-					else
-					{
-						statement.Remove();
-					}
-				}
-
-				unwrapped = true;
-			}
-		}
-
-		return unwrapped;
-	}
-
-	private class LoopUnwrapDescriptor
-	{
-		public Variable Iterator { get; set; }
-		public long Steps { get; set; }
-		public List<Component> Start { get; set; }
-		public List<Component> Step { get; set; }
-
-		public LoopUnwrapDescriptor(Variable iterator, long steps, List<Component> start, List<Component> step)
-		{
-			Iterator = iterator;
-			Steps = steps;
-			Start = start;
-			Step = step;
-		}
-	}
-
-	private static LoopUnwrapDescriptor? TryGetLoopUnwrapDescriptor(LoopNode loop)
-	{
-		// First, ensure that the condition contains a comparison operator and that it is primitive.
-		// Examples:
-		// i < 10
-		// i == 0
-		// 0 < 10 * a + 10 - x
-
-		// Ensure there is only one condition present
-		var condition = loop.Condition;
-
-		if (loop.GetConditionInitialization().Any())
-		{
-			return null;
-		}
-
-		if (!condition.Is(NodeType.OPERATOR) ||
-			condition.To<OperatorNode>().Operator.Type != OperatorType.COMPARISON ||
-			!IsPrimitive(condition))
-		{
-			return null;
-		}
-
-		// Ensure that the initialization is empty or it contains a definition of an integer variable
-		var initialization = loop.Initialization;
-
-		if (initialization.IsEmpty || initialization.First != initialization.Last)
-		{
-			return null;
-		}
-
-		initialization = initialization.First!;
-
-		if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE))
-		{
-			return null;
-		}
-
-		// Make sure the variable is predictable and it is an integer
-		var variable = initialization.First!.To<VariableNode>().Variable;
-
-		if (!variable.IsPredictable ||
-			!(initialization.First.To<VariableNode>().Variable.Type is Number) ||
-			!initialization.Last!.Is(NodeType.NUMBER))
-		{
-			return null;
-		}
-
-		var start_value = initialization.Last.To<NumberNode>().Value;
-
-		// Ensure there is only one action present
-		var action = loop.Action;
-
-		if (action.IsEmpty || action.First != action.Last)
-		{
-			return null;
-		}
-
-		action = action.First!;
-
-		var step_value = new List<Component>();
-
-		if (action.Is(NodeType.INCREMENT))
-		{
-			var statement = action.To<IncrementNode>();
-
-			if (!statement.Object.Is(variable))
-			{
-				return null;
-			}
-
-			step_value.Add(new NumberComponent(1L));
-		}
-		else if (action.Is(NodeType.DECREMENT))
-		{
-			var statement = action.To<IncrementNode>();
-
-			if (!statement.Object.Is(variable))
-			{
-				return null;
-			}
-
-			step_value.Add(new NumberComponent(-1L));
-		}
-		else if (action.Is(NodeType.OPERATOR))
-		{
-			var statement = action.To<OperatorNode>();
-
-			if (!statement.Left.Is(variable))
-			{
-				return null;
-			}
-
-			if (statement.Operator == Operators.ASSIGN)
-			{
-				statement = ReconstructionAnalysis.TryRewriteAsActionOperation(statement);
-
-				if (statement == null)
-				{
-					return null;
-				}
-			}
-
-			if (statement.Operator == Operators.ASSIGN_ADD)
-			{
-				step_value = CollectComponents(statement.Right);
-			}
-			else if (statement.Operator == Operators.ASSIGN_SUBTRACT)
-			{
-				step_value = Negate(CollectComponents(statement.Right));
-			}
-			else
-			{
-				return null;
-			}
-		}
-		else
-		{
-			return null;
-		}
-
-		// Try to rewrite the condition so that the initialized variable is on the left side of the comparison
-		// Example:
-		// 0 < 10 * a + 10 - x => x < 10 * a + 10
-		var left = CollectComponents(condition.First!);
-
-		// Abort the optimization if the comparison contains complex variable components
-		// Examples (x is the iterator variable):
-		// x^2 < 10
-		// x < ax + 10
-		if (left.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
-			c is VariableProductComponent y && y.Variables.Exists(i => i.Variable == variable)))
-		{
-			return null;
-		}
-
-		var right = CollectComponents(condition.Last!);
-
-		if (right.Exists(c => c is VariableComponent x && x.Variable == variable && x.Order != 1 ||
-			c is VariableProductComponent y && y.Variables.Exists(i => i.Variable == variable)))
-		{
-			return null;
-		}
-
-		// Ensure that the condition contains atleast one initialization variable
-		if (!left.Concat(right).Any(c => c is VariableComponent x && x.Variable == variable))
-		{
-			return null;
-		}
-
-		// Move all other than initialization variables to the right hand side
-		for (var i = left.Count - 1; i >= 0; i--)
-		{
-			var x = left[i];
-
-			if (x is VariableComponent a && a.Variable == variable)
-			{
-				continue;
-			}
-
-			x.Negate();
-
-			right.Add(x);
-			left.RemoveAt(i);
-		}
-
-		// Move all initialization variables to the left hand side
-		for (var i = right.Count - 1; i >= 0; i--)
-		{
-			var x = right[i];
-
-			if (x is not VariableComponent a || a.Variable != variable)
-			{
-				continue;
-			}
-
-			x.Negate();
-
-			left.Add(x);
-			right.RemoveAt(i);
-		}
-
-		// Substract the starting value from the right hand side of the condition
-		var range = SimplifySubtraction(right, new List<Component> { new NumberComponent(start_value) });
-		var result = SimplifyDivision(range, step_value);
-
-		if (result != null)
-		{
-			if (result.Count != 1)
-			{
-				return null;
-			}
-
-			if (result.First() is NumberComponent steps)
-			{
-				if (steps.Value is double)
-				{
-					Console.WriteLine("Loop can not be unwrapped since the amount of steps is expressed in decimals?");
-					return null;
-				}
-
-				return new LoopUnwrapDescriptor(variable, (long)steps.Value, new List<Component> { new NumberComponent(start_value) }, step_value);
-			}
-
-			// If the amount of steps is not a constant, it means the length of the loop varies, therefore the loop can not be unwrapped
-			return null;
-		}
-
-		Console.WriteLine("Encountered possible complex loop increment value division, please implement");
-		return null;
-	}
-
-	public static bool TryUnwrapLoop(LoopNode loop)
-	{
-		var descriptor = TryGetLoopUnwrapDescriptor(loop);
-
-		if (descriptor == null || descriptor.Steps > 100)
-		{
-			return false;
-		}
-
-		var environment = loop.GetParentContext();
-
-		loop.InsertChildren(loop.Initialization.Clone());
-
-		var action = ReconstructionAnalysis.TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
-
-		for (var i = 0; i < descriptor.Steps; i++)
-		{
-			// Clone the body and localize its content
-			var clone = loop.Body.Clone();
-			Inlines.LocalizeLabels(environment, clone);
-
-			loop.InsertChildren(clone);
-
-			// Clone the action and localize its content
-			clone = action.Clone();
-			Inlines.LocalizeLabels(environment, clone);
-
-			loop.Insert(action.Clone());
-		}
-
-		loop.Remove();
-
-		return true;
-	}
-
-	public static bool RemoveUnreachableStatements(Node root)
-	{
-		var return_statements = root.FindAll(n => n.Is(NodeType.RETURN));
-		var removed = false;
-
-		for (var i = return_statements.Count - 1; i >= 0; i--)
-		{
-			var return_statement = return_statements[i];
-
-			// Remove all statements which are after the return statement in its scope
-			var iterator = return_statement.Parent!.Last;
-
-			while (iterator != return_statement)
-			{
-				var previous = iterator!.Previous;
-				iterator.Remove();
-				iterator = previous;
-				removed = true;
-			}
-		}
-
-		return removed;
-	}
-
-	public static long GetCost(Node node)
-	{
-		var result = 0L;
-		var iterator = node.First;
-
-		while (iterator != null)
-		{
-			if (iterator.Is(NodeType.OPERATOR))
-			{
-				var operation = iterator.To<OperatorNode>().Operator;
-
-				if (operation == Operators.ADD || operation == Operators.SUBTRACT)
-				{
-					result += 2;
-				}
-				else if (operation == Operators.MULTIPLY)
-				{
-					result += 10;
-				}
-				else if (operation == Operators.DIVIDE)
-				{
-					result += 70;
-				}
-				else if (operation.Type == OperatorType.COMPARISON)
-				{
-					result++;
-				}
-				else if (operation.Type == OperatorType.ACTION)
-				{
-					result++;
-				}
-			}
-			else if (iterator.Is(NodeType.LINK, NodeType.OFFSET))
-			{
-				result += 10;
-			}
-			else if (iterator.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE))
-			{
-				result += 50;
-			}
-			else if (iterator.Is(NodeType.LOOP))
-			{
-				result += 100;
-			}
-
-			result += GetCost(iterator);
-
-			iterator = iterator.Next;
-		}
-
-		return result;
-	}
-
+	
 	/// <summary>
 	/// Tries to optimize all expressions in the specified node tree
 	/// </summary>
@@ -1160,6 +506,114 @@ public static class Analysis
 			// Replace the expression with a simplified version
 			expression.Replace(GetSimplifiedValue(expression));
 		}
+	}
+
+	#endregion
+
+	#region Nodes
+
+	/// <summary>
+	/// Returns whether the specified node is primitive that is whether it contains only operators, numbers, parameter- or local variables
+	/// </summary>
+	/// <returns>True if the definition is primitive, otherwise false</returns>
+	public static bool IsPrimitive(Node node)
+	{
+		return node.Find(n => !(n.Is(NodeType.NUMBER) || n.Is(NodeType.OPERATOR) || n.Is(NodeType.VARIABLE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
+	}
+
+	/// <summary>
+	/// Finds the branch which contains the specified node
+	/// </summary>
+	private static Node? GetBranch(Node node)
+	{
+		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
+	}
+
+	/// <summary>
+	/// If the specified node represents a conditional branch, this function appends the other branches to the specified denylist
+	/// </summary>
+	private static void DenyOtherBranches(List<Node> denylist, Node node)
+	{
+		if (node.Is(NodeType.IF))
+		{
+			denylist.AddRange(node.To<IfNode>().GetBranches().Where(i => i != node));
+		}
+		else if (node.Is(NodeType.ELSE_IF))
+		{
+			denylist.AddRange(node.To<ElseIfNode>().GetRoot().GetBranches().Where(i => i != node));
+		}
+		else if (node.Is(NodeType.ELSE))
+		{
+			denylist.AddRange(node.To<ElseNode>().GetRoot().GetBranches().Where(i => i != node));
+		}
+	}
+
+	/// <summary>
+	/// Returns whether the specified perspective is inside the condition of the specified branch
+	/// </summary>
+	private static bool IsInsideBranchCondition(Node perspective, Node branch)
+	{
+		if (branch.Is(NodeType.IF))
+		{
+			return perspective == branch.To<IfNode>().GetConditionStep() || perspective.IsUnder(branch.To<IfNode>().GetConditionStep());
+		}
+		else if (branch.Is(NodeType.ELSE_IF))
+		{
+			return perspective == branch.To<ElseIfNode>().GetConditionStep() || perspective.IsUnder(branch.To<ElseIfNode>().GetConditionStep());
+		}
+		else if (branch.Is(NodeType.LOOP))
+		{
+			return perspective == branch.To<LoopNode>().GetConditionStep() || perspective.IsUnder(branch.To<LoopNode>().GetConditionStep()); 
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Returns nodes whose contents should be taken into account if execution were to start from the specified perspective
+	/// </summary>
+	private static List<Node> GetDenylist(Node perspective)
+	{
+		var denylist = new List<Node>();
+		var branch = perspective;
+
+		while ((branch = GetBranch(branch)) != null)
+		{
+			// If the perspective is inside the condition of the branch, it can still enter the other branches
+			if (IsInsideBranchCondition(perspective, branch))
+			{
+				continue;
+			}
+
+			DenyOtherBranches(denylist, branch);
+		}
+
+		return denylist;
+	}
+
+	/// <summary>
+	/// Returns whether the specified variable will be used in the future starting from the specified node perspective
+	/// NOTE: Usually the perspective node is a branch but it is not counted as one.
+	/// This behaviour is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
+	/// </summary>
+	public static bool IsUsedLater(Variable variable, Node perspective, bool self = false)
+	{
+		// Get a denylist which describes which sections of the node tree have not been executed in the past or will not be executed in the future
+		var denylist = GetDenylist(perspective);
+
+		// If the it is allowed to count the perspective as a branch as well, append the other branches to the denylist
+		if (self)
+		{
+			DenyOtherBranches(denylist, perspective);
+		}
+
+		// If any of the references is placed after the specified perspective, the variable is needed
+		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
+		{
+			return true;
+		}
+
+		return perspective.FindParent(i => i.Is(NodeType.LOOP)) != null;
 	}
 
 	/// <summary>
@@ -1203,7 +657,155 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Adds logic for allocating the instance, registering virtual functions and initializing member variables to the constructors of the specified type
+	/// Approximates the complexity of the specified node tree to execute
+	/// </summary>
+	public static long GetCost(Node node)
+	{
+		var result = 0L;
+		var iterator = node.First;
+
+		while (iterator != null)
+		{
+			if (iterator.Is(NodeType.OPERATOR))
+			{
+				var operation = iterator.To<OperatorNode>().Operator;
+
+				if (operation == Operators.ADD)
+				{
+					result += ADDITION_COST;
+				}
+				else if (operation == Operators.SUBTRACT)
+				{
+					result += SUBTRACTION_COST;
+				}
+				else if (operation == Operators.MULTIPLY)
+				{
+					var multipliers = iterator.Where(i => i.Is(NodeType.NUMBER)).Cast<NumberNode>();
+
+					// Take into account that power of two multiplications are significantly faster
+					if (multipliers.Any(i => !i.Type.IsDecimal() && Common.IsPowerOfTwo((long)i.Value)))
+					{
+						result += POWER_OF_TWO_MULTIPLICATION_COST;
+					}
+					else
+					{
+						result += MULTIPLICATION_COST;
+					}
+				}
+				else if (operation == Operators.DIVIDE)
+				{
+					var divisor = iterator.Right.Is(NodeType.NUMBER) ? iterator.Right.To<NumberNode>() : null;
+
+					// Take into account that power of two division are significantly faster
+					if (divisor != null && !divisor.Type.IsDecimal() && Common.IsPowerOfTwo((long)divisor.Value))
+					{
+						result += POWER_OF_TWO_DIVISION_COST;
+					}
+					else
+					{
+						result += DIVISION_COST;
+					}
+				}
+				else
+				{
+					result += STANDARD_OPERATOR_COST;
+				}
+			}
+			else if (iterator.Is(NodeType.LINK, NodeType.OFFSET))
+			{
+				result += MEMORY_ACCESS_COST;
+			}
+			else if (iterator.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE))
+			{
+				result += CONDITIONAL_JUMP_COST;
+			}
+			else if (iterator.Is(NodeType.LOOP))
+			{
+				result += CONDITIONAL_JUMP_COST;
+				result += GetCost(iterator) * UnwrapmentAnalysis.MAXIMUM_LOOP_UNWRAP_STEPS;
+
+				iterator = iterator.Next;
+				continue;
+			}
+			else if (iterator.Is(NodeType.VARIABLE))
+			{
+				result += VARIABLE_ACCESS_COST;
+				iterator = iterator.Next;
+				continue;
+			}
+
+			result += GetCost(iterator);
+
+			iterator = iterator.Next;
+		}
+
+		return result;
+	}
+
+	#endregion
+
+	/// <summary>
+	/// Iterates through the constructors and destructors of the specified type and adds default calls to them
+	/// </summary>
+	private static void AddDefaultConstructorCalls(Type type, SortedSet<Type> denylist)
+	{
+		// 1. Do not process the specified type if it is already processed
+		// 2. Primitive types do not have constructors or destructors, so skip them
+		if (denylist.Contains(type) || !type.Constructors.Overloads.Any()) return;
+
+		// Do not process the specified type again later
+		denylist.Add(type);
+
+		var all = type.Constructors.Overloads.Concat(type.Destructors.Overloads).SelectMany(i => i.Implementations).Where(i => i.Node != null);
+
+		foreach (var iterator in all)
+		{
+			var supertypes = new List<Type>(type.Supertypes);
+			supertypes.Reverse();
+
+			foreach (var supertype in supertypes)
+			{
+				// If the supertype is not processed yet, process it now
+				AddDefaultConstructorCalls(supertype, denylist);
+
+				// Get all the constructor or destructor overloads of the current supertype
+				var overloads = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).Overloads;
+
+				// Check if there is already a function call using any of the overloads above, if so, no need to generate another call
+				var calls = iterator.Node!.FindAll(i => i.Is(NodeType.FUNCTION)).Cast<FunctionNode>();
+				
+				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i)))
+				{
+					continue;
+				}
+
+				// Get the implementation which requires no arguments
+				var implementation = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).GetImplementation();
+
+				// 1. If such implementation can not be found, no automatic call for the current supertype can be generated
+				// 2. If the implementation is empty, there is now use calling it
+				if (implementation == null || implementation.IsEmpty) continue;
+
+				// Next try to get the self pointer, this should not fail
+				var self = Common.GetSelfPointer(iterator, null);
+
+				if (self == null) continue;
+
+				// Add the default call
+				if (iterator.IsConstructor)
+				{
+					iterator.Node!.Insert(iterator.Node.First, new LinkNode(self, new FunctionNode(implementation)));
+				}
+				else
+				{
+					iterator.Node!.Add(new LinkNode(self, new FunctionNode(implementation)));
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Adds logic for allocating an instance of the specified type, registering virtual functions and initializing member variables to the constructors of the specified type
 	/// </summary>
 	private static void CompleteConstructors(Type type)
 	{
@@ -1239,13 +841,36 @@ public static class Analysis
 					constructor.Node!.Insert(position, expression);
 				}
 			}
+		}
+	}
 
-			foreach (var return_statement in constructor.Node!.FindAll(i => i.Is(NodeType.RETURN)))
+	/// <summary>
+	/// Adds logic for deallocating an instance of the specified type
+	/// </summary>
+	private static void CompleteDestructors(Type type)
+	{
+		if (!IsGarbageCollectorEnabled)
+		{
+			return;
+		}
+		
+		foreach (var destructor in type.Destructors.Overloads.SelectMany(i => i.Implementations))
+		{
+			var root = destructor.Node ?? throw new ApplicationException("Destructor was not implemented");
+			var self = destructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
+
+			foreach (var member in type.Variables.Values)
 			{
-				return_statement.Replace(new ReturnNode(self.Clone(), return_statement.Position));
-			}
+				// If the member is not destructable, it is not unlinkable, so skip it
+				if (member.IsStatic || !member.Type!.Destructors.Overloads.Any())
+				{
+					continue;
+				}
 
-			constructor.Node!.Add(new ReturnNode(self));
+				// Unlink the member variable
+				var implementation = Parser.UnlinkFunction!.Get(member.Type!) ?? throw new ApplicationException("Missing unlink function overload");;
+				root.Add(new FunctionNode(implementation).SetParameters(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
+			}
 		}
 	}
 
@@ -1267,19 +892,27 @@ public static class Analysis
 	/// </summary>
 	public static void Complete(Context context)
 	{
-		foreach (var type in context.Types.Values)
+		var denylist = new SortedSet<Type>();
+
+		foreach (var type in Common.GetAllTypes(context))
 		{
-			Complete(type);
+			AddDefaultConstructorCalls(type, denylist);
 			CompleteConstructors(type);
+			CompleteDestructors(type);
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
 			Complete(implementation);
 			CompleteSizes(implementation.Node!);
 		}
 	}
 
+	/// <summary>
+	/// Tries to find nodes which access information which they should not.
+	/// Historically context leaks have happened while inlining functions for example.
+	/// This function is intended for debugging purposes.
+	/// </summary>
 	public static void CaptureContextLeaks(Context context, Node root)
 	{
 		var variables = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
@@ -1308,51 +941,36 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Collects all types and subtypes from the specified context
+	/// Analyzes the specified context
 	/// </summary>
-	public static List<Type> GetAllTypes(Context context)
+	public static void Analyze(Bundle bundle, Context context)
 	{
-		var result = context.Types.Values.ToList();
-		result.AddRange(result.SelectMany(i => GetAllTypes(i)));
+		var implementations = Common.GetAllFunctionImplementations(context).Where(i => !i.Metadata.IsImported).OrderByDescending(i => i.References.Count).ToList();
+		var verbose = Assembler.IsVerboseOutputEnabled;
+		var time = bundle.Get(ConfigurationPhase.OUTPUT_TIME, false);
 
-		return result;
-	}
+		if (time || verbose)
+		{
+			Console.WriteLine("1. Pass");
+		}
 
-	/// <summary>
-	/// Collects all function implementations from the specified context
-	/// </summary>
-	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
-	{
-		var types = GetAllTypes(context);
-
-		// Collect all functions, constructors, destructors and virtual functions
-		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
-		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
-		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
-		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
-		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
-
-		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
-
-		// Concat all functions with lambdas, which can be found inside the collected functions
-		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
-			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
-	}
-
-	public static void Analyze(Context context)
-	{
-		var implementations = GetAllFunctionImplementations(context).OrderByDescending(i => i.References.Count).ToList();
-
+		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
 
+			var start = DateTime.UtcNow;
+			
+			// Reconstruct necessary nodes in the function implementation
 			ReconstructionAnalysis.Reconstruct(implementation.Node!);
 
+			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);
 
+			// Now optimize the function implementation
 			implementation.Node = GeneralAnalysis.Optimize(implementation, implementation.Node!);
 
+			// Finish optimizing the function implementation
 			ReconstructionAnalysis.Finish(implementation.Node!);
 
 			if (implementation is LambdaImplementation lambda)
@@ -1360,274 +978,60 @@ public static class Analysis
 				lambda.Seal();
 			}
 
-			//Console.WriteLine($"Analysis {i}/{implementations.Count}");
-		}
-	}
+			var interval = (DateTime.UtcNow - start).TotalMilliseconds;
 
-	public static void Evaluate(Node root)
-	{
-		var expressions = root.FindAll(i => i.Is(NodeType.COMPILES));
-
-		foreach (var expression in expressions)
-		{
-			var result = 1L;
-
-			if (expression.Find(i => i is IResolvable x && x.GetStatus().IsProblematic) != null)
+			if (time)
 			{
-				result = 0L;
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{interval} ms]");
 			}
-
-			expression.Replace(new NumberNode(Parser.Format, result, expression.Position));
-		}
-	}
-
-	public static void Evaluate(Context context)
-	{
-		foreach (var type in context.Types.Values)
-		{
-			Evaluate(type);
-		}
-
-		foreach (var implementation in context.GetImplementedFunctions())
-		{
-			// Should evaluate as long as the node tree changes
-			Evaluate(implementation.Node!);
-			EvaluateLogicalOperators(implementation.Node!);
-			EvaluateConditionalStatements(implementation.Node!);
-			Evaluate(implementation);
-		}
-	}
-
-	private static Node ReplaceRepetition(Node repetition, Variable variable, bool store = false)
-	{
-		if (Analyzer.IsEdited(repetition))
-		{
-			var edit = Analyzer.GetEditor(repetition);
-
-			if (edit.Is(Operators.ASSIGN))
+			else if (verbose)
 			{
-				// Store the value of the assignment to the specified variable
-				var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(variable),
-					edit.Right
-				);
-
-				var inline = new InlineNode(edit.Position) { initialization };
-
-				edit.Replace(inline);
-
-				// Store the value into the repetition
-				inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-					repetition.Clone(),
-					new VariableNode(variable)
-				));
-
-				// Add a result to the inline node if the return value of the edit is used
-				if (ReconstructionAnalysis.IsValueUsed(edit))
-				{
-					inline.Add(new VariableNode(variable));
-				}
-
-				return inline;
-			}
-
-			// Increments, decrements and special assignment operators should be unwrapped before unrepetition
-			throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
-		}
-
-		if (store)
-		{
-			// Store the value of the repetition to the specified variable
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(variable),
-				repetition.Clone()
-			);
-
-			// Replace the repetition with the initialization
-			var inline = new InlineNode(repetition.Position) { initialization, new VariableNode(variable) };
-			repetition.Replace(inline);
-
-			return inline;
-		}
-
-		var result = new VariableNode(variable);
-		repetition.Replace(result);
-
-		return result;
-	}
-
-	private static List<Node> FindTop(Node root, Predicate<Node> filter)
-	{
-		var nodes = new List<Node>();
-		var iterator = (IEnumerable<Node>)root;
-
-		if (root is OperatorNode x && x.Operator.Type == OperatorType.ACTION)
-		{
-			iterator = iterator.Reverse();
-		}
-
-		foreach (var i in iterator)
-		{
-			if (filter(i))
-			{
-				nodes.Add(i);
-			}
-			else
-			{
-				nodes.AddRange(FindTop(i, filter));
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()}");
 			}
 		}
 
-		return nodes;
-	}
-
-	private static List<Node> GetEditables(Node node)
-	{
-		var result = new List<Node>();
-
-		foreach (var iterator in node)
-		{
-			if (iterator is LinkNode link)
-			{
-				result.Add(link);
-				result.AddRange(GetEditables(link));
-			}
-			else if (iterator != null)
-			{
-				var editables = GetEditables(iterator);
-
-				if (editables.Any())
-				{
-					result.AddRange(editables);
-					result.AddRange(editables.SelectMany(i => GetEditables(i)));
-				}
-				else
-				{
-					result.Add(node.GetBottomLeft()!);
-				}
-			}
-		}
-
-		return result;
-	}
-
-	public static void Unrepeat(Node root)
-	{
-		var links = FindTop(root, i => i.Is(NodeType.LINK, NodeType.OFFSET));
-
-	Start:
-		var flow = new Flow(root);
-
-		if (!links.Any())
+		if (!IsGarbageCollectorEnabled)
 		{
 			return;
 		}
 
-		var repetitions = new List<Node>();
-		var start = links.First();
-
-		// Collect all parts of the start node which can be edited
-		var dependencies = GetEditables(start);
-
-		for (var j = links.Count - 1; j >= 1; j--)
+		if (time || verbose)
 		{
-			var other = links[j];
-
-			if (other.Any(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT)))
-			{
-				links.RemoveAt(j);
-				continue;
-			}
-
-			if (!start.Equals(other))
-			{
-				var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
-
-				foreach (var sublink in sublinks)
-				{
-					if (sublink.Equals(start))
-					{
-						repetitions.Insert(0, sublink);
-					}
-				}
-
-				continue;
-			}
-
-			repetitions.Insert(0, other);
+			Console.WriteLine("2. Pass");
 		}
 
-		// The current is processed, so remove it now
-		links.RemoveAt(0);
-
-		if (!repetitions.Any())
+		// Optimize all function implementations
+		for (var i = 0; i < implementations.Count; i++)
 		{
-			// Find inner links inside the current one and process them now
-			var inner = FindTop(start, i => i.Is(NodeType.LINK, NodeType.OFFSET));
-			links.InsertRange(0, inner);
+			var implementation = implementations[i];
 
-			goto Start;
-		}
+			var start = DateTime.UtcNow;
 
-		repetitions.ForEach(i => links.Remove(i));
+			// Adds garbage collecting
+			GarbageCollector.Generate(implementation);
+			
+			// Reconstruct necessary nodes in the function implementation
+			ReconstructionAnalysis.Reconstruct(implementation.Node!);
 
-		var context = start.FindParent(i => i.Is(NodeType.IMPLEMENTATION))!.To<ImplementationNode>().Context;
-		var variable = context.DeclareHidden(start.GetType());
+			// Do a safety check
+			CaptureContextLeaks(implementation, implementation.Node!);
 
-		// Initialize the variable
-		var scope = ReconstructionAnalysis.GetSharedScope(repetitions.Concat(new[] { start }).ToArray());
+			// Now optimize the function implementation
+			implementation.Node = GeneralAnalysis.Optimize(implementation, implementation.Node!);
 
-		if (scope == null)
-		{
-			throw new ApplicationException("Repetitions did not have a shared scope");
-		}
+			// Finish optimizing the function implementation
+			ReconstructionAnalysis.Finish(implementation.Node!);
 
-		// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
-		ReconstructionAnalysis.GetInsertPosition(start, scope).Insert(new DeclareNode(variable));
+			var interval = (DateTime.UtcNow - start).TotalMilliseconds;
 
-		ReplaceRepetition(start, variable, true);
-
-		foreach (var repetition in repetitions)
-		{
-			var store = false;
-
-			// Find all edits between the start and the repetition
-			var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ACTION) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
-
-			// If any of the edits contain a destination which matches any of the dependencies, a store is required
-			foreach (var edit in edits)
+			if (time)
 			{
-				var edited = Analyzer.GetEdited(edit);
-
-				if (!dependencies.Contains(edited))
-				{
-					continue;
-				}
-
-				start = repetition;
-				store = true;
-				break;
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{interval} ms]");
 			}
-
-			// 1. If there are function calls between the start and the repetition, the function calls could edit the repetition, so a store is required
-			// 2. If the start is not always executed before the repetition, a store is needed
-			if (flow.Between(start, repetition, i => i.Is(NodeType.FUNCTION, NodeType.CALL)))
+			else if (verbose)
 			{
-				start = repetition;
-				store = true;
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()}");
 			}
-			else if (!flow.IsExecutedBefore(start, repetition))
-			{
-				start = repetition;
-				store = true;
-			}
-
-			ReplaceRepetition(repetition, variable, store);
 		}
-
-		goto Start;
 	}
-
-	// TODO: Remove redundant casts and add necessary casts
-	// TODO: Remove exploits such as: !(!(!(x)))
 }

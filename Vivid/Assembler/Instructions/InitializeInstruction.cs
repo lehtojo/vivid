@@ -12,12 +12,12 @@ public class InitializeInstruction : Instruction
 
 	public int LocalMemoryTop { get; private set; }
 
-	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64bit;
-	private static bool IsStackAligned => Assembler.Is64bit;
+	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64Bit;
+	private static bool IsStackAligned => Assembler.Is64Bit;
 
 	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) { }
 
-	private static int GetRequiredCallMemory(IEnumerable<CallInstruction> calls)
+	private static int GetRequiredCallMemory(CallInstruction[] calls)
 	{
 		if (!calls.Any())
 		{
@@ -26,8 +26,8 @@ public class InitializeInstruction : Instruction
 
 		// Find all parameter move instructions which move the source value into memory
 		var parameter_instructions = calls.SelectMany(c => c.Instructions)
-			.Where(i => i.Type == InstructionType.MOVE).Select(i => (MoveInstruction)i)
-			.Where(m => m.Destination?.IsMemoryAddress ?? false);
+			.Where(i => i.Type == InstructionType.MOVE).Cast<MoveInstruction>()
+			.Where(m => m.Destination?.IsMemoryAddress ?? false).ToArray();
 
 		if (!parameter_instructions.Any())
 		{
@@ -36,10 +36,8 @@ public class InitializeInstruction : Instruction
 				// Even though no instruction writes to memory, on Windows x64 there's a requirement to allocate so called 'shadow space' for the first four parameters
 				return Calls.SHADOW_SPACE_SIZE;
 			}
-			else
-			{
-				return 0;
-			}
+			
+			return 0;
 		}
 
 		// Find the memory handle which has the greatest offset, that tells how much memory should be allocated for calls
@@ -151,7 +149,8 @@ public class InitializeInstruction : Instruction
 
 	public void Build(List<Register> save_registers, int required_local_memory)
 	{
-		var calls = Unit.Instructions.FindAll(i => i.Type == InstructionType.CALL).Select(i => (CallInstruction)i);
+		// Collect all normal call instructions
+		var calls = Unit.Instructions.FindAll(i => i.Is(InstructionType.CALL)).Cast<CallInstruction>().Where(i => !i.IsTailCall).ToArray();
 
 		var builder = new StringBuilder();
 
@@ -194,7 +193,6 @@ public class InitializeInstruction : Instruction
 		// Apply the additional memory to the stack and calculate the change from the start
 		Unit.StackOffset += additional_memory;
 
-		// Microsoft x64 and some other calling conventions need the stack to be aligned
 		if (IsStackAligned)
 		{
 			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack

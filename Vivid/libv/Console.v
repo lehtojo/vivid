@@ -12,13 +12,16 @@ export readln() {
 	length = internal_read(buffer, CONSOLE_READ_LINE_BUFFER_SIZE) - 2
 
 	if length <= 0 {
-		deallocate(buffer, CONSOLE_READ_LINE_BUFFER_SIZE)
+		deallocate(buffer)
 		=> String('')
 	}
 
-	result = allocate(length)
+	result = allocate(length + 1)
+	result[length] = 0
+
 	copy(buffer, length, result)
-	deallocate(buffer, CONSOLE_READ_LINE_BUFFER_SIZE)
+	
+	deallocate(buffer)
 
 	=> String(result)
 }
@@ -32,13 +35,16 @@ export readln(length: large) {
 	length = internal_read(buffer, length) - 2
 
 	if length <= 0 {
-		deallocate(buffer, CONSOLE_READ_LINE_BUFFER_SIZE)
+		deallocate(buffer)
 		=> String('')
 	}
 
-	result = allocate(length)
+	result = allocate(length + 1)
+	result[length] = 0
+
 	copy(buffer, length, result)
-	deallocate(buffer, length)
+	
+	deallocate(buffer)
 
 	=> String(result)
 }
@@ -55,6 +61,13 @@ Summary: Writes the specified text to the console
 ###
 export print(text: link) {
 	internal_print(text, length_of(text))
+}
+
+###
+Summary: Converts the specified integer to string and prints it
+###
+export print(text: large) {
+	print(to_string(text))
 }
 
 ###
@@ -107,11 +120,18 @@ export println(number: decimal) {
 }
 
 ###
+Summary: Moves to the next line
+###
+export println() {
+	put(`\n`)
+}
+
+###
 Summary: Writes the specified character to the console
 ###
-export print_character(character: large) {
-	buffer = allocate(1)
+export put(character: tiny) {
+	buffer = allocate_stack(48) + 32
 	buffer[0] = character
 	internal_print(buffer, 1)
-	deallocate(buffer, 1)
+	deallocate_stack(48)
 }

@@ -256,17 +256,14 @@ public static class Memory
 	{
 		var register = (Register?)null;
 
-		if (directives != null)
+		foreach (var directive in directives)
 		{
-			foreach (var directive in directives)
-			{
-				var result = Consider(unit, directive, media_register);
+			var result = Consider(unit, directive, media_register);
 
-				if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
-				{
-					register = result;
-					break;
-				}
+			if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
+			{
+				register = result;
+				break;
 			}
 		}
 

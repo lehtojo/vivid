@@ -56,7 +56,7 @@ public static class Builders
 
 			case NodeType.LAMBDA:
 			{
-				return Lambdas.Build(unit, (LambdaNode)node);
+				throw new ApplicationException("Lambda nodes should not be passed to the back end");
 			}
 
 			case NodeType.LINK:
@@ -108,7 +108,7 @@ public static class Builders
 
 			case NodeType.STACK_ADDRESS:
 			{
-				return new AllocateStackInstruction(unit, node.To<StackAddressNode>().Bytes).Execute();
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Execute();
 			}
 
 			case NodeType.DISABLED: return new Result();

@@ -7,11 +7,6 @@ public class Tiny : Number
 		Identifier = "c";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "c";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

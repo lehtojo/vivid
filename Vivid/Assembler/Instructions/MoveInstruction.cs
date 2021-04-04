@@ -214,6 +214,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				Build(
 					instruction,
+					Assembler.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -232,10 +233,11 @@ public class MoveInstruction : DualParameterInstruction
 				// cvtsi2ss xmm0, rax
 				// cvtsi2sd xmm1, qword ptr [rbx]
 
-				instruction = Assembler.Is32bit ? Instructions.X64.CONVERT_INTEGER_TO_SINGLE_PRECISION : Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION;
+				instruction = Assembler.Is32Bit ? Instructions.X64.CONVERT_INTEGER_TO_SINGLE_PRECISION : Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION;
 
 				Build(
 					instruction,
+					Assembler.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -272,7 +274,7 @@ public class MoveInstruction : DualParameterInstruction
 				// 3.14159 => rax
 				// mov rax, 3
 				//
-				// Example (ARM64):
+				// Example (Arm64):
 				// 3.14159 => x0
 				// mov x0, #3
 
@@ -307,6 +309,7 @@ public class MoveInstruction : DualParameterInstruction
 
 					Build(
 						instruction,
+						Assembler.Size,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -322,10 +325,11 @@ public class MoveInstruction : DualParameterInstruction
 					return;
 				}
 
-				instruction = Assembler.Is32bit ? Instructions.X64.CONVERT_SINGLE_PRECISION_TO_INTEGER : Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER;
+				instruction = Assembler.Is32Bit ? Instructions.X64.CONVERT_SINGLE_PRECISION_TO_INTEGER : Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER;
 
 				Build(
 					instruction,
+					Assembler.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -543,7 +547,7 @@ public class MoveInstruction : DualParameterInstruction
 						return;
 					}
 
-					instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
+					instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
 
 					Build(
 						instruction,
@@ -626,7 +630,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
+		var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_MOVE : Instructions.X64.DOUBLE_PRECISION_MOVE;
 
 		if (Second.IsConstant)
 		{

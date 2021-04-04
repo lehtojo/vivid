@@ -3,32 +3,45 @@ using System.Linq;
 
 public static class Analyzer
 {
-	public static bool IsEdited(Node reference)
+	/// <summary>
+	/// Returns whether the specified is edited
+	/// </summary>
+	public static bool IsEdited(Node node)
 	{
-		var parent = reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Reference did not have a valid parent");
+		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Reference did not have a valid parent");
 
-		if (parent is OperatorNode operation && operation.Operator.Type == OperatorType.ACTION)
+		if (parent.Is(OperatorType.ACTION))
 		{
-			return operation.Left == reference || reference.IsUnder(operation.Left);
+			return parent.Left == node || node.IsUnder(parent.Left);
 		}
 
 		return parent.Is(NodeType.INCREMENT, NodeType.DECREMENT);
 	}
 
-	public static Node GetEdited(Node edit)
+	/// <summary>
+	/// Returns the node which is the destination of the specified edit
+	/// </summary>
+	public static Node GetEdited(Node editor)
 	{
-		return edit.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
+		return editor.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
 	}
 
-	public static Node GetEditor(Node reference)
+	/// <summary>
+	/// Returns the node which edits the specified node
+	/// </summary>
+	public static Node GetEditor(Node edited)
 	{
-		var editor = reference.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the editor node");
+		var editor = edited.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the editor node");
 		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : throw new ApplicationException("Could not find the editor node");
 	}
 
-	public static Node? TryGetEditor(Node reference)
+	/// <summary>
+	/// Tries to return the node which edits the specified node.
+	/// Returns null if the specified node is not edited.
+	/// </summary>
+	public static Node? TryGetEditor(Node node)
 	{
-		var editor = reference.FindParent(i => !i.Is(NodeType.CAST));
+		var editor = node.FindParent(i => !i.Is(NodeType.CAST));
 
 		if (editor == null)
 		{
@@ -36,6 +49,34 @@ public static class Analyzer
 		}
 
 		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : null;
+	}
+
+	/// <summary>
+	/// Tries to returns the source value which is assigned without any casting or filtering.
+	/// Returns null if the specified editor is not an assignment operator.
+	/// </summary>
+	public static Node GetSource(Node node)
+	{
+		while (true)
+		{
+			// Do not return the cast node since it does not represent the source value
+			if (node.Is(NodeType.CAST))
+			{
+				node = node.To<CastNode>().Object;
+				continue;
+			}
+
+			// Do not return the following nodes since they do not represent the source value
+			if (node.Is(NodeType.CONTENT, NodeType.INLINE))
+			{
+				node = node.Right;
+				continue;
+			}
+
+			break;
+		}
+
+		return node;
 	}
 
 	private static void ResetVariableUsages(Node root)
@@ -172,7 +213,7 @@ public static class Analyzer
 		}
 	}
 
-	private static void ApplyConstants(Context context)
+	public static void ApplyConstants(Context context)
 	{
 		var constants = context.Variables.Values.Where(v => v.IsConstant);
 

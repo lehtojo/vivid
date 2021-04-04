@@ -7,11 +7,6 @@ public class Normal : Number
 		Identifier = "i";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "i";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

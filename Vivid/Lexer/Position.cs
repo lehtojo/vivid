@@ -5,6 +5,7 @@
 	public int Character { get; private set; }
 	public int Local { get; private set; }
 	public int Absolute { get; private set; }
+	public bool IsCursor { get; set; } = false;
 
 	public int FriendlyLine => Line + 1;
 	public int FriendlyCharacter => Character + 1;
@@ -34,6 +35,11 @@
 		Local++;
 		Absolute++;
 		return this;
+	}
+
+	public Position Translate(int characters)
+	{
+		return new Position(Line, Character + characters, Local + characters, Absolute + characters);
 	}
 
 	public Position Clone()

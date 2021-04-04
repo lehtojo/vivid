@@ -31,14 +31,14 @@ public class HasNode : Node, IResolvable
 			return null;
 		}
 
-		var has_value_function = type.GetFunction(RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation(new List<Type>());
+		var has_value_function = type.GetFunction(RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
 
 		if (has_value_function == null || has_value_function.ReturnType != Types.BOOL)
 		{
 			return null;
 		}
 
-		var get_value_function = type.GetFunction(RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation(new List<Type>());
+		var get_value_function = type.GetFunction(RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
 
 		if (get_value_function == null)
 		{
@@ -93,7 +93,7 @@ public class HasNode : Node, IResolvable
 		};
 	}
 
-	public override Type? TryGetType()
+	public override Type TryGetType()
 	{
 		return Types.BOOL;
 	}

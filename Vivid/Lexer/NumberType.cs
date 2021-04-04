@@ -1,4 +1,4 @@
-public enum Format : int
+public enum Format
 {
 	INT8 = 2,
 	UINT8 = 4 | 1,

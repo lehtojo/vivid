@@ -70,7 +70,7 @@ public static class Calls
 
 	private static bool IsSelfPointerRequired(FunctionImplementation current, FunctionImplementation other)
 	{
-		if (other.IsStatic || other.IsConstructor || !current.IsMember || !other.IsMember)
+		if (other.IsStatic || other.IsConstructor || !current.IsMember || current.IsStatic || !other.IsMember || other.IsStatic)
 		{
 			return false;
 		}
@@ -98,7 +98,7 @@ public static class Calls
 			self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
 		}
 
-		var register = (Register?)null;
+		Register? register;
 
 		// Save the parameter instructions for inspection
 		call.Instructions.Clear();
@@ -188,7 +188,7 @@ public static class Calls
 		return result.ToArray();
 	}
 
-	private static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)
+	public static Result Build(Unit unit, Result? self, Node? parameters, FunctionImplementation implementation)
 	{
 		if (self == null && IsSelfPointerRequired(unit.Function, implementation))
 		{
@@ -231,7 +231,7 @@ public static class Calls
 
 		var register = (Register?)null;
 
-		if (unit.Function.IsMember || unit.Function.IsLambdaImplementation)
+		if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
 		{
 			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 
@@ -242,14 +242,11 @@ public static class Calls
 				var destination = new Result(References.CreateVariableHandle(unit, self), self.Type!.Format);
 				var source = new Result(new RegisterHandle(register), self.GetRegisterFormat());
 
-				unit.Append(new MoveInstruction(unit, destination, source)
-				{
-					Type = MoveType.RELOCATE
-				});
+				unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 			}
 			else
 			{
-				throw new ApplicationException("Self pointer should not be in stack (x64 calling convention)");
+				throw new ApplicationException("Self pointer should not be in stack");
 			}
 		}
 
@@ -262,10 +259,7 @@ public static class Calls
 				var destination = new Result(References.CreateVariableHandle(unit, parameter), parameter.Type!.Format);
 				var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
 
-				unit.Append(new MoveInstruction(unit, destination, source)
-				{
-					Type = MoveType.RELOCATE
-				});
+				unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 			}
 		}
 	}

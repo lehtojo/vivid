@@ -29,41 +29,47 @@ public class FunctionImplementation : Context
 	public List<Node> References { get; } = new List<Node>();
 
 	public Type? ReturnType { get; set; }
-	public bool Returns => ReturnType != null;
 
 	public bool IsInlined { get; set; } = false;
-	public bool IsEmpty => Node == null || Node.First == null;
+	public bool IsEmpty => (Node == null || Node.First == null) && !Metadata.IsImported;
 
 	public bool IsVirtual => Metadata is VirtualFunction;
 	public bool IsConstructor => Metadata is Constructor;
 	public bool IsStatic => Flag.Has(Metadata!.Modifiers, Modifier.STATIC);
 
-	protected override void OnMangle(Mangle mangle)
+	public override void OnMangle(Mangle mangle)
 	{
+		if (IsMember)
+		{
+			mangle += Mangle.START_LOCATION_COMMAND;
+			mangle.Path(GetParentTypes());
+		}
+
 		mangle += Identifier.Length.ToString(CultureInfo.InvariantCulture) + Identifier;
 
 		if (TemplateArguments.Any())
 		{
-			mangle += 'I';
-			TemplateArguments.ForEach(i => mangle += i);
-			mangle += 'E';
+			mangle += Mangle.START_TEMPLATE_ARGUMENTS_COMMAND;
+			mangle += TemplateArguments;
+			mangle += Mangle.END_COMMAND;
 		}
 
 		if (IsMember)
 		{
-			mangle += 'E';
+			mangle += Mangle.END_COMMAND;
 		}
 
-		mangle += Parameters.Select(p => p.Type!);
+		mangle += Parameters.Select(i => i.Type!);
 
 		if (!Parameters.Any())
 		{
-			mangle += 'v';
+			mangle += Mangle.NO_PARAMETERS_COMMAND;
 		}
 
 		if (ReturnType != global::Types.UNIT)
 		{
-			mangle += "_r";
+			mangle += Mangle.PARAMETERS_END;
+			mangle += Mangle.START_RETURN_TYPE_COMMAND;
 			mangle += ReturnType ?? throw new ApplicationException("Return type was not resolved and it was required to be mangled");
 		}
 	}
@@ -83,10 +89,7 @@ public class FunctionImplementation : Context
 		Name = Metadata.Name;
 		Identifier = Name;
 
-		if (context != null)
-		{
-			Link(context);
-		}
+		Link(context);
 
 		SetParameters(parameters);
 	}
@@ -119,7 +122,7 @@ public class FunctionImplementation : Context
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public virtual void Implement(List<Token> blueprint)
 	{
-		if (Metadata.IsMember)
+		if (Metadata.IsMember && !Metadata.IsStatic)
 		{
 			Self = new Variable(this, Metadata.GetTypeParent(), VariableCategory.PARAMETER, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 			{

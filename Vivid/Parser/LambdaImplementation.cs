@@ -14,14 +14,17 @@ public class LambdaImplementation : FunctionImplementation
 		Postfix = "_" + Postfix;
 	}
 
-	protected override void OnMangle(Mangle mangle)
+	public override void OnMangle(Mangle mangle)
 	{
+		Parent!.OnMangle(mangle);
+
 		mangle += $"_{Name}_";
-		mangle += Parameters.Select(p => p.Type!);
+		mangle += Parameters.Select(i => i.Type!);
 
 		if (ReturnType != global::Types.UNIT)
 		{
-			mangle += "_r";
+			mangle += Mangle.PARAMETERS_END;
+			mangle += Mangle.START_RETURN_TYPE_COMMAND;
 			mangle += ReturnType!;
 		}
 	}

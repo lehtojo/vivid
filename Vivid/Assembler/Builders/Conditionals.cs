@@ -13,19 +13,16 @@ public static class Conditionals
 		Result? result;
 
 		// Since this is a body of some statement is also has a scope
-		using (var scope = new Scope(unit, active_variables))
+		using (var scope = new Scope(unit, body, false, active_variables))
 		{
 			// Merges all changes that happen in the scope with the outer scope
-			var merge = new MergeScopeInstruction(unit);
+			var merge = new MergeScopeInstruction(unit, scope);
 
 			// Build the body
 			result = Builders.Build(unit, body);
 
 			// Restore the state after the body
 			unit.Append(merge);
-
-			// Keep all scope variables which are needed later active
-			var required_variables = active_variables.Where(i => Analysis.IsUsedLater(i, body)).ToList();
 		}
 
 		unit.Set(state);
@@ -36,29 +33,29 @@ public static class Conditionals
 	/// <summary>
 	/// Builds an if-statement or an else-if-statement
 	/// </summary>
-	private static Result Build(Unit unit, IfNode node, Node condition, LabelInstruction end)
+	private static Result Build(Unit unit, IfNode statement, Node condition, LabelInstruction end)
 	{
 		// Set the next label to be the end label if there is no successor since then there wont be any other comparisons
-		var interphase = node.Successor == null ? end.Label : unit.GetNextLabel();
+		var interphase = statement.Successor == null ? end.Label : unit.GetNextLabel();
 
 		// Build the nodes around the actual condition by disabling the condition temporarily
-		var instance = node.Condition.Instance;
-		node.Condition.Instance = NodeType.DISABLED;
+		var instance = statement.Condition.Instance;
+		statement.Condition.Instance = NodeType.DISABLED;
 
-		Builders.Build(unit, node.Left);
+		Builders.Build(unit, statement.Left);
 
-		node.Condition.Instance = instance;
+		statement.Condition.Instance = instance;
 
-		var active_variables = Scope.GetAllActiveVariables(unit, node);
+		var active_variables = Scope.GetAllActiveVariables(unit, statement);
 
 		// Jump to the next label based on the comparison
-		BuildCondition(unit, condition, interphase, active_variables);
+		BuildCondition(unit, statement, condition, interphase, active_variables);
 
 		// Build the body of this if-statement
-		var result = BuildBody(unit, node.Body, active_variables);
+		var result = BuildBody(unit, statement.Body, active_variables);
 
 		// If the body of the if-statement is executed it must skip the potential successors
-		if (node.Successor == null)
+		if (statement.Successor == null)
 		{
 			return result;
 		}
@@ -68,7 +65,7 @@ public static class Conditionals
 		unit.Append(new LabelInstruction(unit, interphase));
 
 		// Build the successor
-		return Build(unit, node.Successor, end);
+		return Build(unit, statement.Successor, end);
 	}
 
 	private static Result Build(Unit unit, Node node, LabelInstruction end)
@@ -117,14 +114,14 @@ public static class Conditionals
 		return result;
 	}
 
-	public static void BuildCondition(Unit unit, Node condition, Label failure, List<Variable> active_variables)
+	public static void BuildCondition(Unit unit, Node statement, Node condition, Label failure, List<Variable> active_variables)
 	{
 		// Load constants which might be edited inside the condition
 		Scope.LoadConstants(unit, condition);
 
 		var success = unit.GetNextLabel();
 
-		var instructions = BuildCondition(unit, condition, success, failure);
+		var instructions = BuildCondition(unit, statement, condition, success, failure);
 		instructions.Add(new LabelInstruction(unit, success));
 
 		// Remove all occurrences of the following pattern from the instructions:
@@ -178,7 +175,7 @@ public static class Conditionals
 		foreach (var label in labels)
 		{
 			// Check if any jump instruction uses the current label
-			if (!jumps.Any(j => j.Label == label.Label))
+			if (!jumps.Any(i => i.Label == label.Label))
 			{
 				// Since the label is not used, it can be removed
 				instructions.Remove(label);
@@ -201,12 +198,14 @@ public static class Conditionals
 
 	private class TemporaryCompareInstruction : TemporaryInstruction
 	{
+		private Node Statement { get; }
 		private Node Comparison { get; }
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
+		public TemporaryCompareInstruction(Unit unit, Node statement, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
 		{
+			Statement = statement;
 			Comparison = comparison;
 		}
 
@@ -215,10 +214,10 @@ public static class Conditionals
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
-			using (new Scope(Unit, active_variables))
+			using (var scope = new Scope(Unit, Comparison, true, active_variables))
 			{
 				// Merges all changes that happen in the scope with the outer scope
-				var merge = new MergeScopeInstruction(Unit);
+				var merge = new MergeScopeInstruction(Unit, scope);
 
 				// Build the body
 				var left = References.Get(Unit, Left);
@@ -235,7 +234,7 @@ public static class Conditionals
 		}
 	}
 
-	private static List<Instruction> BuildCondition(Unit unit, Node condition, Label success, Label failure)
+	private static List<Instruction> BuildCondition(Unit unit, Node statement, Node condition, Label success, Label failure)
 	{
 		if (condition.Is(NodeType.OPERATOR))
 		{
@@ -244,17 +243,17 @@ public static class Conditionals
 
 			if (type == OperatorType.LOGIC)
 			{
-				return BuildLogicalCondition(unit, operation, success, failure);
+				return BuildLogicalCondition(unit, statement, operation, success, failure);
 			}
 			else if (type == OperatorType.COMPARISON)
 			{
-				return BuildComparison(unit, operation, success, failure);
+				return BuildComparison(unit, statement, operation, success, failure);
 			}
 		}
 
 		if (condition.Is(NodeType.CONTENT))
 		{
-			return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
+			return BuildCondition(unit, statement, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
 		}
 
 		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
@@ -262,10 +261,10 @@ public static class Conditionals
 
 		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, replacement.Position));
 
-		return BuildCondition(unit, replacement, success, failure);
+		return BuildCondition(unit, statement, replacement, success, failure);
 	}
 
-	private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildComparison(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
 	{
 		var x = condition.Left.GetType();
 		var y = condition.Right.GetType();
@@ -273,28 +272,28 @@ public static class Conditionals
 
 		return new List<Instruction>
 		{
-			new TemporaryCompareInstruction(unit, condition),
+			new TemporaryCompareInstruction(unit, statement, condition),
 			new JumpInstruction(unit, (ComparisonOperator)condition.Operator, false, !unsigned, success),
 			new JumpInstruction(unit, failure)
 		};
 	}
 
-	private static List<Instruction> BuildLogicalCondition(Unit unit, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildLogicalCondition(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
 	{
 		var instructions = new List<Instruction>();
 		var interphase = unit.GetNextLabel();
 
 		if (Equals(condition.Operator, Operators.AND))
 		{
-			instructions.AddRange(BuildCondition(unit, condition.Left, interphase, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Left, interphase, failure));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
 		}
 		else if (Equals(condition.Operator, Operators.OR))
 		{
-			instructions.AddRange(BuildCondition(unit, condition.Left, success, interphase));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Left, success, interphase));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
 		}
 		else
 		{

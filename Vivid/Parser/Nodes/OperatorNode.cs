@@ -174,7 +174,7 @@ public class OperatorNode : Node, IResolvable
 		if (left is not Number)
 		{
 			// Allow operations such as comparing whether an object is a null pointer or not
-			if (right is not Number)
+			if (right is not Number && Operator != Operators.EQUALS && Operator != Operators.NOT_EQUALS)
 			{
 				return Status.Error(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
 			}

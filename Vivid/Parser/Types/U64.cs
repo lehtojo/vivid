@@ -7,11 +7,6 @@ public class U64 : Number
 		Identifier = "y";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "y";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

@@ -1,4 +1,4 @@
-global _V14large_functionv:function hidden
+.global _V14large_functionv
 _V14large_functionv:
 xor rax, rax
 xor rcx, rcx

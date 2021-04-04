@@ -9,12 +9,11 @@ public class IfPattern : Pattern
 	public const int CONDITION = 1;
 	public const int BODY = 3;
 
-	// if $bool [\n] [{}]
+	// Pattern: if $bool [\n] [{...}]
 	public IfPattern() : base
 	(
 		TokenType.KEYWORD, TokenType.OBJECT, TokenType.END | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

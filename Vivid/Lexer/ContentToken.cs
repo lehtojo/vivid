@@ -8,6 +8,7 @@ public class ContentToken : Token
 	private const int EMPTY = 2;
 
 	public List<Token> Tokens { get; private set; } = new List<Token>();
+	public Position? End { get; private set; }
 	public bool IsEmpty => Tokens.Count == 0;
 
 	public new ParenthesisType Type { get; set; }
@@ -40,8 +41,10 @@ public class ContentToken : Token
 		return sections;
 	}
 
-	public ContentToken(string raw, Position position) : base(TokenType.CONTENT)
+	public ContentToken(string raw, Position start, Position end) : base(TokenType.CONTENT)
 	{
+		Position = start;
+		End = end;
 		Type = ParenthesisType.Get(raw[OPENING]);
 
 		if (raw.Length == EMPTY)
@@ -49,7 +52,7 @@ public class ContentToken : Token
 			return;
 		}
 
-		Tokens = Lexer.GetTokens(raw[1..^1], position.Clone().NextCharacter());
+		Tokens = Lexer.GetTokens(raw[1..^1], start.Clone().NextCharacter());
 	}
 
 	public ContentToken() : base(TokenType.CONTENT)
@@ -67,6 +70,12 @@ public class ContentToken : Token
 	public ContentToken(params Token[] tokens) : base(TokenType.CONTENT)
 	{
 		Type = ParenthesisType.PARENTHESIS;
+		Tokens = new List<Token>(tokens);
+	}
+
+	public ContentToken(ParenthesisType type, params Token[] tokens) : base(TokenType.CONTENT)
+	{
+		Type = type;
 		Tokens = new List<Token>(tokens);
 	}
 

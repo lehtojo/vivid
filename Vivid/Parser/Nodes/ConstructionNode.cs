@@ -11,6 +11,6 @@ public class ConstructionNode : Node
 
 	public override Type? TryGetType()
 	{
-		return Constructor.TryGetType();
+		return Constructor.Function.GetTypeParent();
 	}
 }

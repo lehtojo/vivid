@@ -7,12 +7,11 @@ public class ConstructorPattern : Pattern
 
 	private const int HEAD = 0;
 
-	// init/deinit (...) [\n] {...}
+	// Pattern: init/deinit (...) [\n] {...}
 	public ConstructorPattern() : base
 	(
 		TokenType.FUNCTION
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -36,7 +35,7 @@ public class ConstructorPattern : Pattern
 		}
 
 		// Optionally consume a line ending
-		Consume(state, out Token? _, TokenType.END | TokenType.OPTIONAL);
+		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		// Try to consume curly brackets
 		if (Consume(state, out Token? brackets, TokenType.CONTENT))

@@ -44,5 +44,11 @@ public class GetVariableInstruction : Instruction
 	public override void OnBuild()
 	{
 		OnSimulate();
+
+		// If the result represents a static variable, it might be needed to load it into a register
+		if (Variable.IsStatic && Mode == AccessMode.READ && Trace.IsLoadingRequired(Unit, Result))
+		{
+			Memory.MoveToRegister(Unit, Result, Assembler.Size, Result.Format.IsDecimal(), Trace.GetDirectives(Unit, Result));
+		}
 	}
 }

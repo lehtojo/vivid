@@ -16,8 +16,7 @@ public class TemplateTypePattern : Pattern
 	public TemplateTypePattern() : base
 	(
 		TokenType.IDENTIFIER
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -35,7 +34,7 @@ public class TemplateTypePattern : Pattern
 
 		while (true)
 		{
-			if (!Consume(state, out Token? _, TokenType.IDENTIFIER))
+			if (!Consume(state, TokenType.IDENTIFIER))
 			{
 				return false;
 			}
@@ -59,7 +58,7 @@ public class TemplateTypePattern : Pattern
 		}
 
 		// Optionally consume a line-ending
-		Consume(state, out Token? _, TokenType.END | TokenType.OPTIONAL);
+		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		return Consume(state, out Token? parenthesis, TokenType.CONTENT) && parenthesis!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
 	}
@@ -70,7 +69,7 @@ public class TemplateTypePattern : Pattern
 		var body = tokens.Last().To<ContentToken>();
 
 		var template_argument_tokens = tokens.GetRange(TEMPLATE_ARGUMENTS_START, tokens.Count - TEMPLATE_ARGUMENTS_END - TEMPLATE_ARGUMENTS_START);
-		var template_argument_names = Common.GetTemplateParameterNames(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
+		var template_argument_names = Common.GetTemplateParameters(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
 
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 

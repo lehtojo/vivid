@@ -5,12 +5,12 @@ using System.IO;
 
 public class SourceFile
 {
-	public string Fullname { get; private set; }
-	public string Filename => System.IO.Path.GetFileName(Fullname);
-	public string? Folder => System.IO.Path.GetDirectoryName(Fullname);
-	public string Content { get; private set; }
-	public int Index { get; private set; }
-	public List<Token> Tokens { get; private set; }
+	public string Fullname { get; }
+	public string Filename => Path.GetFileName(Fullname);
+	public string? Folder => Path.GetDirectoryName(Fullname);
+	public string Content { get; }
+	public int Index { get; }
+	public List<Token> Tokens { get; }
 	public Node? Root { get; set; }
 	public Context? Context { get; set; }
 
@@ -24,7 +24,7 @@ public class SourceFile
 
 	public string GetFilenameWithoutExtension()
 	{
-		return System.IO.Path.GetFileNameWithoutExtension(Fullname);
+		return Path.GetFileNameWithoutExtension(Fullname);
 	}
 
 	public override bool Equals(object? other)
@@ -42,8 +42,8 @@ public class FilePhase : Phase
 {
 	public const string OUTPUT = "files";
 
-	private const char CARRIAGE_RETURN_CHARACTER = '\r';
-	private const char TAB_CHARACTER = '\t';
+	public const char CARRIAGE_RETURN_CHARACTER = '\r';
+	public const char TAB_CHARACTER = '\t';
 
 	public override Status Execute(Bundle bundle)
 	{

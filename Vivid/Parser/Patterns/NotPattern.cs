@@ -7,17 +7,16 @@ public class NotPattern : Pattern
 
 	public const int PRIORITY = 14;
 
-	// Example: ! $object
+	// Example: !/not $object
 	public NotPattern() : base
 	(
-		TokenType.OPERATOR,
+		TokenType.OPERATOR | TokenType.KEYWORD,
 		TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[NOT].To<OperatorToken>().Operator == Operators.EXCLAMATION;
+		return tokens[NOT].Is(Operators.EXCLAMATION) || tokens[NOT].Is(Keywords.NOT);
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)

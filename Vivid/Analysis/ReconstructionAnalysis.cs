@@ -436,7 +436,7 @@ public static class ReconstructionAnalysis
 	/// <summary>
 	/// Rewrites construction expressions so that they use nodes which can be compiled
 	/// </summary>
-	private static void RewriteConstructionExpressions(Node root)
+	private static void RewriteConstructions(Node root)
 	{
 		var constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
 
@@ -447,7 +447,7 @@ public static class ReconstructionAnalysis
 				continue;
 			}
 
-			var replacement = Common.CreateStackConstruction(construction.Constructor);
+			var replacement = Common.CreateStackConstruction(construction.GetType(), construction.Constructor);
 			construction.Replace(replacement);
 		}
 
@@ -455,7 +455,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var construction in constructions)
 		{
-			var replacement = Common.CreateHeapConstruction(construction.Constructor);
+			var replacement = Common.CreateHeapConstruction(construction.GetType(), construction.Constructor);
 			construction.Replace(replacement);
 		}
 	}
@@ -767,11 +767,13 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Performs an inlinement to a destination operand
+	/// Inlines the specified destination operand by replacing it with generated nodes.
+	/// The rest of the required steps are returned as an array of nodes.
+	/// The returned nodes should be executed before the destination operand.
 	/// </summary>
-	private static Node[] InlineDestination(ContextInlineNode environment, Node destination)
+	public static Node[] InlineDestination(Context environment, Node destination)
 	{
-		// Primitive destinations do not need inlinement
+		// Primitive destinations do not need inlining
 		if (Analysis.IsPrimitive(destination))
 		{
 			return Array.Empty<Node>();
@@ -792,7 +794,7 @@ public static class ReconstructionAnalysis
 			left.Remove();
 
 			// Load the left side into a variable
-			var left_variable = environment.Context.DeclareHidden(type);
+			var left_variable = environment.DeclareHidden(type);
 			var left_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(left_variable),
 				left
@@ -821,7 +823,7 @@ public static class ReconstructionAnalysis
 		var offset = operation.Offset;
 
 		// Load the start into a variable
-		var start_variable = environment.Context.DeclareHidden(type);
+		var start_variable = environment.DeclareHidden(type);
 		var start_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
 			new VariableNode(start_variable),
 			start
@@ -830,7 +832,7 @@ public static class ReconstructionAnalysis
 		type = offset.GetType();
 
 		// Load the offset into a variable
-		var offset_variable = environment.Context.DeclareHidden(type);
+		var offset_variable = environment.DeclareHidden(type);
 		var offset_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
 			new VariableNode(offset_variable),
 			offset
@@ -915,7 +917,7 @@ public static class ReconstructionAnalysis
 				continue;
 			}
 
-			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.SIZE, NodeType.CONTENT))
+			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.SIZE, NodeType.CONTENT, NodeType.NOT))
 			{
 				// Take out the value of the inline node
 				var value = inline.Last;
@@ -1080,7 +1082,7 @@ public static class ReconstructionAnalysis
 				var environment = new ContextInlineNode(new Context(context), inline.Position);
 
 				// Handle the inlinement of the destination node
-				InlineDestination(environment, parent.Left).ForEach(i => environment.Add(i));
+				InlineDestination(environment.Context, parent.Left).ForEach(i => environment.Add(i));
 
 				// Load the right side of the operation into a variable
 				var type = parent.Right.GetType();
@@ -1229,6 +1231,36 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Returns whether the node uses the local self pointer.
+	/// This function assumes the node is a member object.
+	/// </summary>
+	public static bool IsUsingLocalSelfPointer(Node node)
+	{
+		var link = node.Parent!;
+
+		// Take into account the following situation:
+		// Inheritant Inheritor {
+		//   init() { 
+		//     Inheritant.init()
+		//     Inheritant.member = 0
+		//   }
+		// }
+		if (link.Left.Is(NodeType.TYPE))
+		{
+			return true;
+		}
+
+		// Take into account the following situation:
+		// Namespace.Inheritant Inheritor {
+		//   init() { 
+		//     Namespace.Inheritant.init()
+		//     Namespace.Inheritant.member = 0
+		//   }
+		// }
+		return link.Left.Is(NodeType.LINK) && link.Left.Right.Is(NodeType.TYPE);
+	}
+
+	/// <summary>
 	/// Rewrites supertypes accesses so that they can be compiled
 	/// Example:
 	/// Base Inheritor {
@@ -1248,7 +1280,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var link in links)
 		{
-			if (!link.Left.Is(NodeType.TYPE))
+			if (!IsUsingLocalSelfPointer(link.Right))
 			{
 				continue;
 			}
@@ -1257,7 +1289,7 @@ public static class ReconstructionAnalysis
 			{
 				var function = link.Right.To<FunctionNode>();
 
-				if (!function.Function.IsMember)
+				if (function.Function.IsStatic || !function.Function.IsMember)
 				{
 					continue;
 				}
@@ -1266,10 +1298,14 @@ public static class ReconstructionAnalysis
 			{
 				var variable = link.Right.To<VariableNode>();
 
-				if (!variable.Variable.IsMember)
+				if (variable.Variable.IsStatic || !variable.Variable.IsMember)
 				{
 					continue;
 				}
+			}
+			else
+			{
+				continue;
 			}
 
 			link.Left.Replace(Common.GetSelfPointer(link.GetParentContext(), link.Left.Position));
@@ -1326,7 +1362,7 @@ public static class ReconstructionAnalysis
 
 			if (IsStackConstructionPreferred(root, lambda))
 			{
-				allocator = new CastNode(new StackAddressNode(type.ContentSize), new TypeNode(type));
+				allocator = new CastNode(new StackAddressNode(inline.Context, type.ContentSize), new TypeNode(type));
 			}
 			else
 			{
@@ -1371,17 +1407,74 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Finds statements which can not be reached and removes them
+	/// </summary>
+	public static bool RemoveUnreachableStatements(Node root)
+	{
+		var return_statements = root.FindAll(n => n.Is(NodeType.RETURN));
+		var removed = false;
+
+		for (var i = return_statements.Count - 1; i >= 0; i--)
+		{
+			var return_statement = return_statements[i];
+
+			// Remove all statements which are after the return statement in its scope
+			var iterator = return_statement.Parent!.Last;
+
+			while (iterator != return_statement)
+			{
+				var previous = iterator!.Previous;
+				iterator.Remove();
+				iterator = previous;
+				removed = true;
+			}
+		}
+
+		return removed;
+	}
+
+	/// <summary>
+	/// Finds links whose right operand does not need the left operand.
+	/// Those links will be replaced with the right operand.
+	/// </summary>
+	private static void StripLinks(Node root)
+	{
+		var links = root.FindAll(i => i.Is(NodeType.LINK));
+
+		foreach (var link in links)
+		{
+			var right = link.Right;
+
+			if (right.Is(NodeType.VARIABLE))
+			{
+				if (right.To<VariableNode>().Variable.IsMember && !right.To<VariableNode>().Variable.IsStatic) continue;
+			}
+			else if (right.Is(NodeType.FUNCTION))
+			{
+				if (right.To<FunctionNode>().Function.IsMember && !right.To<FunctionNode>().Function.IsStatic) continue;
+			}
+			else if (!right.Is(NodeType.CONSTRUCTION))
+			{
+				continue;
+			}
+
+			link.Replace(right);
+		}
+	}
+
+	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
 	public static void Reconstruct(Node root)
 	{
+		StripLinks(root);
 		RemoveRedundantParenthesis(root);
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
 		RewriteSupertypeAccessors(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
-		RewriteConstructionExpressions(root);
+		RewriteConstructions(root);
 		OutlineBooleanValues(root);
 		RewriteDiscardedIncrements(root);
 		RewriteIncrements(root);

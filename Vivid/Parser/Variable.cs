@@ -30,7 +30,7 @@ public class Variable
 	public bool IsRead => Reads.Count > 0;
 	public bool IsCopied => Reads.Any(i => !i.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT))?.Is(NodeType.LINK) ?? true);
 
-	public bool IsUnresolved => Type == Types.UNKNOWN || Type is IResolvable;
+	public bool IsUnresolved => Type == null || Type.IsUnresolved;
 	public bool IsResolved => !IsUnresolved;
 
 	public bool IsLocal => Category == VariableCategory.LOCAL;
@@ -38,6 +38,7 @@ public class Variable
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 	public bool IsInlined => (Flag.Has(Modifiers, Modifier.INLINE) || !IsCopied) && !Flag.Has(Modifiers, Modifier.OUTLINE);
+	public bool IsHidden => Name.Contains('.');
 
 	public bool IsGenerated => Position == null;
 
@@ -60,6 +61,9 @@ public class Variable
 		}
 	}
 
+	/// <summary>
+	/// Returns the mangled static name for this variable
+	/// </summary>
 	public string GetStaticName()
 	{
 		// Request the fullname in order to generate the mangled name object
@@ -120,24 +124,19 @@ public class Variable
 	{
 		return base.Equals(other) || other is Variable variable &&
 			   Name == variable.Name &&
-			   EqualityComparer<string?>.Default.Equals(Type?.Name, variable.Type?.Name) &&
+			   Type?.Identity == variable.Type?.Identity &&
+			   Context.Identity == variable.Context.Identity &&
 			   Category == variable.Category &&
-			   Modifiers == variable.Modifiers &&
-			   EqualityComparer<int>.Default.Equals(References.Count, variable.References.Count) &&
-			   EqualityComparer<int>.Default.Equals(Edits.Count, variable.Edits.Count) &&
-			   EqualityComparer<int>.Default.Equals(Reads.Count, variable.Reads.Count);
+			   Modifiers == variable.Modifiers;
 	}
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		var hash = new HashCode();
 		hash.Add(Name);
 		hash.Add(Type?.Name);
 		hash.Add(Category);
 		hash.Add(Modifiers);
-		hash.Add(References.Count);
-		hash.Add(Edits.Count);
-		hash.Add(Reads.Count);
 		hash.Add(Context.Identity);
 		return hash.ToHashCode();
 	}

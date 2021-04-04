@@ -16,6 +16,9 @@ public class CallInstruction : Instruction
 	// Represents the destinations where the required parameters are passed to
 	public List<Handle> Destinations { get; } = new List<Handle>();
 
+	// This call is a tail call if it uses jump instruction
+	public bool IsTailCall => Operation == global::Instructions.X64.JUMP || Operation == global::Instructions.Arm64.JUMP_LABEL || Operation == global::Instructions.Arm64.JUMP_REGISTER;
+
 	private bool IsParameterInstructionListExtracted => IsBuilt;
 
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
@@ -53,6 +56,9 @@ public class CallInstruction : Instruction
 		}
 	}
 
+	/// <summary>
+	/// Unpacks the parameter instructions by executing them
+	/// </summary>
 	private List<Register> ExecuteParameterInstructions()
 	{
 		var moves = Instructions.Select(i => i.To<MoveInstruction>()).ToList();
@@ -129,13 +135,13 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		// If this call follows the x64 calling convention, the parameter instructions' source values must be referenced so that they aren't overriden before this call
+		// The source values of the parameter instructions must be referenced so that they are not overriden before this call
 		if (!IsParameterInstructionListExtracted)
 		{
 			return Instructions
-				.Where(i => i.Type == InstructionType.MOVE)
+				.Where(i => i.Is(InstructionType.MOVE))
 				.Select(i => i.To<DualParameterInstruction>().Second)
-				.Concat(new Result[] { Result, Function }).ToArray();
+				.Concat(new[] { Result, Function }).ToArray();
 		}
 
 		return new[] { Result, Function };

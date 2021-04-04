@@ -7,11 +7,6 @@ public class Large : Number
 		Identifier = "x";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "x";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

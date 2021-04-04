@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 public class Table
@@ -36,6 +35,9 @@ public class Table
 
 public class RuntimeConfiguration
 {
+	public const string CONFIGURATION_VARIABLE = ".configuration";
+	public const string REFERENCE_COUNT_VARIABLE = ".references";
+
 	public const string ZERO_TERMINATOR = "\\x00";
 	public const string INHERITANT_SEPARATOR = "\\x01";
 	public const string FULLNAME_END = "\\x02";
@@ -44,6 +46,7 @@ public class RuntimeConfiguration
 	public Table Descriptor { get; private set; }
 
 	public Variable Variable { get; private set; }
+	public Variable? References { get; private set; }
 
 	public bool IsCompleted { get; set; } = false;
 
@@ -65,7 +68,12 @@ public class RuntimeConfiguration
 
 	public RuntimeConfiguration(Type type)
 	{
-		Variable = type.DeclareHidden(Types.LINK, VariableCategory.MEMBER);
+		Variable = type.Declare(Types.LINK, VariableCategory.MEMBER, CONFIGURATION_VARIABLE);
+		
+		if (Analysis.IsGarbageCollectorEnabled)
+		{
+			References = type.Declare(Types.LINK, VariableCategory.MEMBER, REFERENCE_COUNT_VARIABLE);
+		}
 
 		Entry = new Table(type.GetFullname() + Mangle.CONFIGURATION_COMMAND + Mangle.END_COMMAND);
 		Descriptor = new Table(type.GetFullname() + Mangle.DESCRIPTOR_COMMAND + Mangle.END_COMMAND);
@@ -101,9 +109,14 @@ public class Type : Context
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
 
+	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
+
 	public bool IsUnresolved => !IsResolved();
+
+	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
+	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
 	public Format Format => GetFormat();
 	public int ReferenceSize => GetReferenceSize();
@@ -119,8 +132,9 @@ public class Type : Context
 
 	public OperatorNode[] Initialization { get; set; } = Array.Empty<OperatorNode>();
 
-	public Action<Mangle> OnAddDefinition { get; set; }
-
+	/// <summary>
+	/// Adds the specified constructor to this type
+	/// </summary>
 	public void AddConstructor(Constructor constructor)
 	{
 		if (!Constructors.Overloads.Any() || !((Constructor)Constructors.Overloads.First()).IsDefault)
@@ -139,6 +153,9 @@ public class Type : Context
 		Declare(constructor);
 	}
 
+	/// <summary>
+	/// Adds the specified destructor to this type
+	/// </summary>
 	public void AddDestructor(Destructor destructor)
 	{
 		if (!Destructors.Overloads.Any() || !((Destructor)Destructors.Overloads.First()).IsDefault)
@@ -156,12 +173,18 @@ public class Type : Context
 
 		Declare(destructor);
 	}
-
+	
+	/// <summary>
+	/// Returns all the constructors
+	/// </summary>
 	public FunctionList GetConstructors()
 	{
 		return Constructors;
 	}
 
+	/// <summary>
+	/// Returns all the destructors
+	/// </summary>
 	public FunctionList GetDestructors()
 	{
 		return Destructors;
@@ -175,7 +198,6 @@ public class Type : Context
 		Modifiers = modifiers;
 		Position = position;
 		Supertypes = new List<Type>();
-		OnAddDefinition = OnAddDefaultDefinition;
 
 		AddConstructor(Constructor.Empty(this, position));
 		AddDestructor(Destructor.Empty(this, position));
@@ -191,7 +213,6 @@ public class Type : Context
 		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 		Supertypes = new List<Type>();
-		OnAddDefinition = OnAddDefaultDefinition;
 
 		Link(context);
 		context.Declare(this);
@@ -203,16 +224,6 @@ public class Type : Context
 		Identifier = Name;
 		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
-		OnAddDefinition = OnAddDefaultDefinition;
-	}
-
-	public Type(Context context) : base(context)
-	{
-		Prefix = "N";
-		Identifier = Name;
-		OnAddDefinition = OnAddDefaultDefinition;
-
-		Link(context);
 	}
 
 	public void AddRuntimeConfiguration()
@@ -283,9 +294,12 @@ public class Type : Context
 		return null;
 	}
 
+	/// <summary>
+	/// Returns whether this type inherits the specified type or if any of the supertypes inherits it
+	/// </summary>
 	public bool IsTypeInherited(Type type)
 	{
-		return Supertypes.Any(s => s == type || s.IsTypeInherited(type));
+		return Supertypes.Any(i => i == type || i.IsTypeInherited(type));
 	}
 
 	public bool IsSuperFunctionDeclared(string name)
@@ -313,19 +327,14 @@ public class Type : Context
 		return Supertypes.First(t => t.IsLocalVariableDeclared(name)).GetVariable(name);
 	}
 
-	public override bool IsLocalFunctionDeclared(string name)
-	{
-		return base.IsLocalFunctionDeclared(name);
-	}
-
-	public override bool IsLocalVariableDeclared(string name)
-	{
-		return base.IsLocalVariableDeclared(name);
-	}
-
 	public override bool IsFunctionDeclared(string name)
 	{
 		return base.IsFunctionDeclared(name) || IsSuperFunctionDeclared(name);
+	}
+
+	public override bool IsLocalFunctionDeclared(string name)
+	{
+		return Functions.ContainsKey(name) || IsSuperFunctionDeclared(name);
 	}
 
 	public override bool IsVariableDeclared(string name)
@@ -333,6 +342,14 @@ public class Type : Context
 		return base.IsVariableDeclared(name) || IsSuperVariableDeclared(name);
 	}
 
+	public override bool IsLocalVariableDeclared(string name)
+	{
+		return Variables.ContainsKey(name) || IsSuperVariableDeclared(name);
+	}
+
+	/// <summary>
+	/// Returns whether the specified virtual function is declared in this type or in any of the supertypes
+	/// </summary>
 	public bool IsVirtualFunctionDeclared(string name)
 	{
 		return Virtuals.ContainsKey(name) || Supertypes.Any(i => i.IsVirtualFunctionDeclared(name));
@@ -483,59 +500,14 @@ public class Type : Context
 		return this == other || Supertypes.Any(i => i.Is(other));
 	}
 
-	protected override void OnMangle(Mangle mangle)
+	public override void OnMangle(Mangle mangle)
 	{
-		mangle += 'N';
 		mangle.Add(this);
-	}
-
-	private Type[] GetTemplateArguments(string name)
-	{
-		if (GetType(name) is not TemplateType template_type)
-		{
-			throw new ApplicationException("The base class of a template type variant was not a template type");
-		}
-
-		return template_type.GetVariantArguments(this) ?? throw new ApplicationException("Could not retrieve the template arguments of a template type variant");
-	}
-
-	/// <summary>
-	/// Appends a definition of this type to the specified mangled identifier using the default method
-	/// </summary>
-	private void OnAddDefaultDefinition(Mangle mangle)
-	{
-		// Check if the name represents a template type
-		if (Name.EndsWith('>'))
-		{
-			// Determine the start of template arguments, meaning the text inside the brackets of the following example: Dictionary[<string, int>]
-			var template_arguments_start = Name.IndexOf('<');
-
-			// Get the template argument types
-			var name = Name[0..template_arguments_start];
-			var template_arguments = GetTemplateArguments(name);
-
-			mangle += name.Length.ToString(CultureInfo.InvariantCulture) + name;
-			mangle += 'I';
-			mangle += template_arguments;
-			mangle += 'E';
-		}
-		else
-		{
-			mangle += Name.Length.ToString(CultureInfo.InvariantCulture) + Name;
-		}
-	}
-
-	/// <summary>
-	/// Appends a definition of this type to the specified mangled identifier
-	/// </summary>
-	public virtual void AddDefinition(Mangle mangle)
-	{
-		OnAddDefinition(mangle);
 	}
 
 	public virtual Type? GetOffsetType()
 	{
-		return global::Types.UNKNOWN;
+		return null;
 	}
 
 	public virtual Type Clone()
@@ -545,37 +517,14 @@ public class Type : Context
 
 	public override bool Equals(object? other)
 	{
-		return other is Type type &&
-			   Name == type.Name &&
-			   EqualityComparer<List<Context>>.Default.Equals(Subcontexts, type.Subcontexts) &&
-			   IsImplementation == type.IsImplementation &&
-			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, type.Variables) &&
-			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, type.Functions) &&
-			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, type.Types) &&
-			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, type.Labels) &&
-			   Modifiers == type.Modifiers &&
-			   IsUnresolved == type.IsUnresolved &&
-			   Format == type.Format &&
-			   EqualityComparer<List<Type>>.Default.Equals(Supertypes, type.Supertypes) &&
-			   EqualityComparer<FunctionList>.Default.Equals(Constructors, type.Constructors) &&
-			   EqualityComparer<FunctionList>.Default.Equals(Destructors, type.Destructors);
+		return other is Type type && Name == type.Name && Identity == type.Identity;
 	}
 
 	public override int GetHashCode()
 	{
 		HashCode hash = new HashCode();
 		hash.Add(Name);
-		hash.Add(Subcontexts);
-		hash.Add(Variables);
-		hash.Add(Functions);
-		hash.Add(Types);
-		hash.Add(Labels);
-		hash.Add(Modifiers);
-		hash.Add(IsUnresolved);
-		hash.Add(Format);
-		hash.Add(Supertypes);
-		hash.Add(Constructors);
-		hash.Add(Destructors);
+		hash.Add(Identity);
 		return hash.ToHashCode();
 	}
 

@@ -7,11 +7,6 @@ public class U8 : Number
 		Identifier = "h";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "h";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

@@ -13,7 +13,7 @@ public class CompareInstruction : DualParameterInstruction
 	{
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is64bit ? Instructions.X64.DOUBLE_PRECISION_COMPARE : Instructions.X64.SINGLE_PRECISION_COMPARE;
+			var instruction = Assembler.Is64Bit ? Instructions.X64.DOUBLE_PRECISION_COMPARE : Instructions.X64.SINGLE_PRECISION_COMPARE;
 
 			if (Assembler.IsArm64)
 			{

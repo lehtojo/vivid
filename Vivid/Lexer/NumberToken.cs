@@ -7,6 +7,7 @@ public class NumberToken : Token
 	public object Value { get; private set; }
 	public Format NumberType { get; private set; }
 	public int Bits { get; private set; }
+	public Position? End { get; private set; }
 	public int Bytes => Bits / 8;
 
 	private static bool IsDecimal(string text)
@@ -94,6 +95,7 @@ public class NumberToken : Token
 	public NumberToken(string text, Position position) : base(TokenType.NUMBER)
 	{
 		Position = position;
+		End = position.Translate(text.Length);
 
 		var exponent = GetExponent(text);
 

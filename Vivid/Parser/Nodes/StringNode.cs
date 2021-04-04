@@ -17,7 +17,7 @@ public class StringNode : Node, ICloneable
 		return Identifier ??= unit.GetNextString() ?? throw new ApplicationException("String did not have an identifier");
 	}
 
-	public override Type? TryGetType()
+	public override Type TryGetType()
 	{
 		return Types.LINK;
 	}

@@ -8,16 +8,17 @@ public static class Program
 		var chain = new Chain
 		(
 			typeof(ConfigurationPhase),
+			typeof(ServicePhase),
 			typeof(FilePhase),
 			typeof(LexerPhase),
 			typeof(ParserPhase),
 			typeof(ResolverPhase),
 			typeof(AssemblerPhase)
 		);
-
+		
 		// Pack the program arguments in the chain
 		var bundle = new Bundle();
-		bundle.Put("arguments", arguments);
+		bundle.Put(ConfigurationPhase.ARGUMENTS, arguments);
 
 		// Execute the chain
 		Environment.Exit(chain.Execute(bundle) ? 0 : 1);

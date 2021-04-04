@@ -12,11 +12,6 @@ public class L8 : Number
 		return global::Types.TINY;
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "Ph";
-	}
-
 	public override int GetContentSize()
 	{
 		return STRIDE;

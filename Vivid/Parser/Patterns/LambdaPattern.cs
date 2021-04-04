@@ -10,18 +10,15 @@ public class LambdaPattern : Pattern
 	private const int OPERATOR = 1;
 	private const int BODY = 3;
 
-	// Examples:
-	// (a: num, b) -> [\n] a + b - 10
-	// x -> [\n] x * x
-	// y: System -> [\n] y.start()
-	// (z) -> [\n] { if z > 0 { => 1 } else => -1 }
+	// Pattern 1: ($1, $2, ..., $n) -> [\n] ...
+	// Pattern 2: $name -> [\n] ...
+	// Pattern 3: ($1, $2, ..., $n) -> [\n] {...}
 	public LambdaPattern() : base
 	(
 		 TokenType.CONTENT | TokenType.IDENTIFIER,
 		 TokenType.OPERATOR,
 		 TokenType.END | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	private static bool TryConsumeBody(Context context, PatternState state)
 	{
@@ -78,13 +75,10 @@ public class LambdaPattern : Pattern
 			blueprint.Insert(0, new OperatorToken(Operators.IMPLICATION) { Position = tokens[OPERATOR].Position });
 		}
 
-		var name = context.GetNextLambda().ToString(CultureInfo.InvariantCulture);
+		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
 
 		// Create a function token manually since it contains some useful helper functions
-		var function = new FunctionToken(
-			new IdentifierToken(name),
-			GetParameterTokens(tokens)
-		);
+		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
 
 		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint) { Position = tokens[PARAMETERS].Position };
 

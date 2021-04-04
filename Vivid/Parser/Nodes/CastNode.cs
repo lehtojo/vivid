@@ -19,7 +19,10 @@ public class CastNode : Node, IResolvable
 		var from = Object.GetType();
 		var to = GetType();
 
-		return from.GetSupertypeBaseOffset(to) == 0 || to.GetSupertypeBaseOffset(from) == 0;
+		var a = from.GetSupertypeBaseOffset(to);
+		var b = to.GetSupertypeBaseOffset(from);
+
+		return (a == null && b == null) || (a == 0 || b == 0);
 	}
 
 	public override Type? TryGetType()

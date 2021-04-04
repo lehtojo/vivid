@@ -44,6 +44,6 @@ public class Status
 			location = Errors.UNKNOWN_LOCATION;
 		}
 
-		return Status.Error($"{location}: {Errors.ERROR_BEGIN}error{Errors.ERROR_END}: {description}");
+		return Status.Error($"{location}: {Errors.ERROR_BEGIN}Error{Errors.ERROR_END}: {description}");
 	}
 }

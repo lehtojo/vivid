@@ -22,6 +22,6 @@ public class Keyword
 
 	public T To<T>() where T : Keyword
 	{
-		return (T)this ?? throw new ApplicationException($"Could not convert 'Keyword' to '{typeof(T).Name}'");
+		return (T)this;
 	}
 }

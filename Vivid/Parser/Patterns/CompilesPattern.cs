@@ -7,13 +7,13 @@ public class CompilesPattern : Pattern
 	private const int COMPILES = 0;
 	private const int CONDITION = 2;
 
+	// Pattern: compiles [\n] {...}
 	public CompilesPattern() : base
 	(
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

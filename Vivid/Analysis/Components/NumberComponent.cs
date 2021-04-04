@@ -85,8 +85,7 @@ public class NumberComponent : Component
 		return other switch
 		{
 			NumberComponent number_component => new NumberComponent(Numbers.Multiply(Value, number_component.Value)),
-			VariableComponent variable_component => new VariableComponent(variable_component.Variable,
-				Numbers.Multiply(Value, variable_component.Coefficient)),
+			VariableComponent variable_component => new VariableComponent(variable_component.Variable, Numbers.Multiply(Value, variable_component.Coefficient)),
 			VariableProductComponent product => product * this,
 			_ => null
 		};
@@ -99,11 +98,12 @@ public class NumberComponent : Component
 			return Clone();
 		}
 
-		return other switch
+		if (other is NumberComponent number_component && !Numbers.IsZero(number_component.Value))
 		{
-			NumberComponent number_component => new NumberComponent(Numbers.Divide(Value, number_component.Value)),
-			_ => null
-		};
+			return new NumberComponent(Numbers.Divide(Value, number_component.Value));
+		}
+
+		return null;
 	}
 
 	public override bool Equals(object? other)

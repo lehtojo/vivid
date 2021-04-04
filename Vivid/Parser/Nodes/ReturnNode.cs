@@ -4,7 +4,7 @@ public class ReturnNode : InstructionNode, IResolvable
 {
 	public Node? Value => First;
 
-	public ReturnNode(Node? node) : base(Keywords.RETURN, null)
+	public ReturnNode(Node? node) : base(Keywords.RETURN)
 	{
 		Instance = NodeType.RETURN;
 

@@ -6,7 +6,34 @@ public class FunctionList
 {
 	public List<Function> Overloads { get; } = new List<Function>();
 
+	/// <summary>
+	/// Adds the specified function to the overloads.
+	/// This function throws an exception on fail.
+	/// </summary>
 	public void Add(Function function)
+	{
+		var conflict = TryAdd(function);
+
+		if (conflict == null)
+		{
+			return;
+		}
+
+		if (conflict.Position != null)
+		{
+			throw Errors.Get(function.Position, $"Function overload can be confused with another function overload at {Errors.FormatPosition(conflict.Position)}");
+		}
+		else
+		{
+			throw Errors.Get(function.Position, $"Function overload can be confused with another function overload");
+		}
+	}
+
+	/// <summary>
+	/// Tries to add the specified function to the overloads.
+	/// This function returns the conflicting overload on fail, otherwise null.
+	/// </summary>
+	public Function? TryAdd(Function function)
 	{
 		// Conflicts can only happen with functions which are similar kind (either a template function or a standard function) and have the same amount of parameters
 		var is_template_function = function is TemplateFunction;
@@ -34,18 +61,12 @@ public class FunctionList
 
 			if (!pass)
 			{
-				if (conflict.Position != null)
-				{
-					throw Errors.Get(function.Position, $"Function overload can be confused with another function overload at {Errors.FormatPosition(conflict.Position)}");
-				}
-				else
-				{
-					throw Errors.Get(function.Position, $"Function overload can be confused with another function overload");
-				}
+				return conflict;
 			}
 		}
 
 		Overloads.Add(function);
+		return null;
 	}
 
 	public override bool Equals(object? other)
@@ -101,6 +122,11 @@ public class FunctionList
 		}
 	}
 
+	public Function? GetOverload(params Type[] parameters)
+	{
+		return GetOverload(parameters.ToList(), Array.Empty<Type>());
+	}
+
 	public Function? GetOverload(List<Type> parameters)
 	{
 		return GetOverload(parameters, Array.Empty<Type>());
@@ -130,6 +156,11 @@ public class FunctionList
 
 			return candidates.OrderBy(i => GetCastCount(i, parameters)).First().Get(parameters);
 		}
+	}
+
+	public FunctionImplementation? GetImplementation(params Type[] parameters)
+	{
+		return GetImplementation(parameters.ToList(), Array.Empty<Type>());
 	}
 
 	public FunctionImplementation? GetImplementation(List<Type> parameters)

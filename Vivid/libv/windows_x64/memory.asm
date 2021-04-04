@@ -3,10 +3,12 @@
 .extern Sleep
 .extern ExitProcess
 
+# rcx: Milliseconds
 .global _V5sleepx
 _V5sleepx:
 jmp Sleep
 
+# rcx: Code
 .global _V4exitx
 _V4exitx:
 jmp ExitProcess
@@ -15,9 +17,9 @@ jmp ExitProcess
 .global _V17internal_allocatex_rPh
 _V17internal_allocatex_rPh:
 
-mov rdx, rcx # Bytes
-xor rcx, rcx # lpAddress
-mov r8, 0x00001000 | 0x00002000
+mov rdx, rcx # Amount of bytes to allocate
+xor rcx, rcx
+mov r8, 0x00001000 | 0x00002000 # MEM_COMMIT | MEM_RESERVE
 mov r9, 0x04 # PAGE_READWRITE
 
 sub rsp, 40
@@ -26,11 +28,12 @@ add rsp, 40
 
 ret
 
+# rcx: Address
 .global _V10deallocatePhx
 _V10deallocatePhx:
 
-# rcx = lpAddress
-xor rdx, rdx # dwSize
+# rcx: Address of the region to be released
+xor rdx, rdx # Set the size of the region to zero in order to deallocate it completely
 mov r8, 0x00008000 # MEM_RELEASE
 
 sub rsp, 40
@@ -83,8 +86,8 @@ ret
 _V4zeroPhx:
 push rdi
 
-mov rdi, rcx # rdi = Destination
-mov rcx, rdx # rcx = Count
+mov rdi, rcx # rdi: Destination
+mov rcx, rdx # rcx: Count
 xor rax, rax # Value used to fill the range
 
 rep stosb
@@ -99,9 +102,9 @@ ret
 _V4fillPhxx:
 push rdi
 
-mov rdi, rcx # rdi = Destination
-mov rcx, rdx # rcx = Count
-mov rax, r8 # rax = Value
+mov rdi, rcx # rdi: Destination
+mov rcx, rdx # rcx: Count
+mov rax, r8 # rax: Value
 
 rep stosb
 
@@ -117,13 +120,8 @@ mov rax, rsp
 jmp rdx
 
 # rcx: Bytes
-.global _V16deallocate_stackx_rPh
-_V16deallocate_stackx_rPh:
+.global _V16deallocate_stackx
+_V16deallocate_stackx:
 pop rax
 add rsp, rcx
 jmp rax
-
-.global _V17get_stack_pointerv_rPh
-_V17get_stack_pointerv_rPh:
-lea rax, [rsp+8]
-ret

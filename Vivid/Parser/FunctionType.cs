@@ -2,45 +2,45 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class CallDescriptorType : Type
+public class FunctionType : UnresolvedType
 {
 	public Type? Self { get; private set; }
 	public List<Type?> Parameters { get; }
 	public Type? ReturnType { get; }
 
-	public CallDescriptorType(List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.DEFAULT)
+	public FunctionType(List<Type?> parameters, Type? return_type) : base(string.Empty)
 	{
 		Parameters = parameters;
 		ReturnType = return_type;
 	}
 
-	public CallDescriptorType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty, Modifier.DEFAULT)
+	public FunctionType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty)
 	{
 		Self = self;
 		Parameters = parameters;
 		ReturnType = return_type;
 	}
 
-	public override bool IsResolved()
+	public override Node? Resolve(Context context)
 	{
-		return true;
+		var resolved = Parameters.Select(i => (i == null || !i.IsUnresolved) ? null : Resolver.Resolve(context, i)).ToArray();
+
+		for (var i = 0; i < resolved.Length; i++)
+		{
+			var iterator = resolved[i];
+
+			if (iterator != null)
+			{
+				Parameters[i] = iterator;
+			}
+		}
+
+		return null;
 	}
 
-	public override void AddDefinition(Mangle mangle)
+	public override bool IsResolved()
 	{
-		mangle += 'F';
-
-		if (ReturnType == global::Types.UNIT)
-		{
-			mangle += 'v';
-		}
-		else
-		{
-			mangle += ReturnType!;
-		}
-
-		mangle += Parameters!;
-		mangle += 'E';
+		return Parameters.All(i => i != null && !i.IsUnresolved);
 	}
 
 	public override Type? GetOffsetType()
@@ -50,7 +50,7 @@ public class CallDescriptorType : Type
 
 	public override bool Equals(object? other)
 	{
-		if (other is not CallDescriptorType type || Parameters.Count != type.Parameters.Count)
+		if (other is not FunctionType type || Parameters.Count != type.Parameters.Count)
 		{
 			return false;
 		}
@@ -78,6 +78,6 @@ public class CallDescriptorType : Type
 
 	public override string ToString()
 	{
-		return $"({string.Join(", ", Parameters.Select(p => p?.ToString() ?? "_").ToArray())}) => {ReturnType?.ToString() ?? "_"}";
+		return $"({string.Join(", ", Parameters.Select(p => p?.ToString() ?? "_").ToArray())}) -> {ReturnType?.ToString() ?? "_"}";
 	}
 }

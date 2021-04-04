@@ -65,7 +65,7 @@ public class JumpInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var instruction = Comparator == null ? (Assembler.IsArm64 ? global::Instructions.Arm64.JUMP : global::Instructions.X64.JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
+		var instruction = Comparator == null ? (Assembler.IsArm64 ? global::Instructions.Arm64.JUMP_LABEL : global::Instructions.X64.JUMP) : Instructions[Comparator][IsSigned ? 0 : 1];
 
 		Build($"{instruction} {Label.GetName()}");
 	}

@@ -13,19 +13,22 @@ public class UnresolvedIdentifier : Node, IResolvable
 		Position = position;
 		Instance = NodeType.UNRESOLVED_IDENTIFIER;
 	}
-
+	
+	/// <summary>
+	/// Creates a lambda node from the specified function by copying it
+	/// </summary>
 	private Node? CreateLambdaByCopyingFunction(Context context, Function function, List<Type> types)
 	{
-		var name = context.GetNextLambda().ToString(CultureInfo.InvariantCulture);
+		// Allow only member functions which are static
+		if (function.IsMember && !function.IsStatic)
+		{
+			return null;
+		}
+
+		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
 		var blueprint = function.Blueprint.Select(i => (Token)i.Clone()).ToList();
 
-		var lambda = new Lambda(
-			context,
-			Modifier.DEFAULT,
-			name,
-			blueprint
-		);
-
+		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint);
 		var parameters = function.Parameters.Zip(types, (i, j) => new Parameter(i.Name, i.Position, j));
 
 		lambda.Position = Position;
@@ -34,6 +37,9 @@ public class UnresolvedIdentifier : Node, IResolvable
 		return new LambdaNode(lambda.Implement(types), Position!);
 	}
 
+	/// <summary>
+	/// Tries to convert this identifier into a function pointer
+	/// </summary>
 	private Node? TryResolveAsFunctionPointer(Context context)
 	{
 		// Check whether a function with same name as this identifier exists
@@ -50,7 +56,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 			return null;
 		}
 
-		var overload = (Function?)null;
+		Function? overload;
 
 		if (function.Overloads.Count == 1)
 		{
@@ -74,7 +80,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 		var type = Parent.To<CastNode>().TryGetType();
 
 		// Require that the type of the cast is resolved
-		if (type == null || type is not CallDescriptorType descriptor)
+		if (type is not FunctionType descriptor)
 		{
 			return null;
 		}
@@ -100,7 +106,10 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 	public Node? GetResolvedNode(Context context)
 	{
-		return Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), Parent?.Is(NodeType.LINK) ?? false) ?? TryResolveAsFunctionPointer(context);
+		var linked = Parent != null && Parent.Is(NodeType.LINK);
+		var result = Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), linked);
+
+		return result.Is(NodeType.UNRESOLVED_IDENTIFIER) ? TryResolveAsFunctionPointer(context) : result;
 	}
 
 	public Node? Resolve(Context context)

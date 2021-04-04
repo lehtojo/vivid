@@ -7,12 +7,11 @@ public class TypePattern : Pattern
 	public const int NAME = 0;
 	public const int BODY = 2;
 
-	// a-z [\n] {...}
+	// Pattern: $name [\n] {...}
 	public TypePattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

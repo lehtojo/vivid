@@ -58,6 +58,9 @@ public static class Operators
 
 	public static readonly IndependentOperator END = new IndependentOperator("\n");
 
+	/// NOTE: The user should not be able to use this operator since it is meant for internal usage
+	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new ClassicOperator(string.Empty, 11);
+
 	private static readonly Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
 	private static readonly Dictionary<string, ActionOperator> Actions = new Dictionary<string, ActionOperator>();
 

@@ -5,19 +5,15 @@ public class IsPattern : Pattern
 {
 	public const int PRIORITY = 5;
 
-	private const int IS = 1;
+	private const int KEYWORD = 1;
 	private const int TYPE = 2;
 
-	private const int MINIMUM_LENGTH = 3;
-
-	// Pattern: $object is $type[<$1, $2, ..., $n>] [$name]
+	// Pattern: $object is [not] $type [<$1, $2, ..., $n>] [$name]
 	public IsPattern() : base
 	(
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
-		TokenType.KEYWORD,
-		TokenType.IDENTIFIER
-	)
-	{ }
+		TokenType.KEYWORD
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -26,41 +22,51 @@ public class IsPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[IS].Is(Keywords.IS))
+		if (!tokens[KEYWORD].Is(Keywords.IS) && !tokens[KEYWORD].Is(Keywords.IS_NOT))
 		{
 			return false;
 		}
 
-		// Try to consume template arguments
-		Try(Common.ConsumeTemplateArguments, state);
+		// Consume the type
+		if (!Common.ConsumeType(state))
+		{
+			return false;
+		}
 
-		// Try consuming variable name
-		Consume(state, out Token? _, TokenType.IDENTIFIER);
+		// Try consuming the result variable name
+		Consume(state, TokenType.IDENTIFIER);
 
 		return true;
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
+		var negate = tokens[KEYWORD].Is(Keywords.IS_NOT);
+
 		var source = Singleton.Parse(context, tokens.First());
-		var type = Common.ReadTypeArgument(context, new Queue<Token>(tokens.Skip(TYPE)));
+		var queue = new Queue<Token>(tokens.Skip(TYPE));
+		var type = Common.ReadType(context, queue);
 
 		if (type == null)
 		{
 			throw Errors.Get(tokens[TYPE].Position, "Could not understand the type");
 		}
 
-		var is_template_type = tokens.Exists(i => i.Is(Operators.LESS_THAN));
-		var has_result_variable = is_template_type ? tokens.Last().Is(TokenType.IDENTIFIER) : tokens.Count > MINIMUM_LENGTH;
+		var result = (Node?)null;
 
-		if (has_result_variable)
+		// If there is a token left in the queue, it must be the result variable name
+		if (queue.Any())
 		{
-			var name = tokens.Last().To<IdentifierToken>().Value;
-			var result = new Variable(context, type, VariableCategory.LOCAL, name, Modifier.DEFAULT);
+			var name = queue.Dequeue().To<IdentifierToken>().Value;
+			var variable = new Variable(context, type, VariableCategory.LOCAL, name, Modifier.DEFAULT);
 
-			return new IsNode(source, type, result, tokens[IS].Position);
+			result = new IsNode(source, type, variable, tokens[KEYWORD].Position);
+		}
+		else
+		{
+			result = new IsNode(source, type, null, tokens[KEYWORD].Position);
 		}
 
-		return new IsNode(source, type, null, tokens[IS].Position);
+		return negate ? new NotNode(result, result.Position) : result;
 	}
 }

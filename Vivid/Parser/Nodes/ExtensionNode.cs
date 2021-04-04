@@ -1,16 +1,29 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class ExtensionFunctionNode : Node, IResolvable
 {
 	public Type Destination { get; private set; }
 	public FunctionToken Descriptor { get; private set; }
+	public List<string> TemplateParameters { get; private set; }
 	public List<Token> Body { get; private set; }
 
 	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<Token> body, Position position)
 	{
 		Destination = destination;
 		Descriptor = descriptor;
+		TemplateParameters = new List<string>();
+		Body = body;
+		Position = position;
+		Instance = NodeType.EXTENSION_FUNCTION;
+	}
+
+	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<string> template_parameters, List<Token> body, Position position)
+	{
+		Destination = destination;
+		Descriptor = descriptor;
+		TemplateParameters = template_parameters;
 		Body = body;
 		Position = position;
 		Instance = NodeType.EXTENSION_FUNCTION;
@@ -30,12 +43,20 @@ public class ExtensionFunctionNode : Node, IResolvable
 			Destination = destination;
 		}
 
-		var function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body)
+		var function = (Function?)null;
+
+		if (TemplateParameters.Any())
 		{
-			Position = Position
-		};
+			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters) { Position = Position };
+			function.Blueprint.AddRange(new[] { Descriptor, (Token)new ContentToken(Body) { Type = ParenthesisType.CURLY_BRACKETS } });
+		}
+		else
+		{
+			function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body) { Position = Position };
+		}
 
 		function.Parameters.AddRange(Descriptor.GetParameters(function));
+			
 		Destination.Declare(function);
 
 		return new FunctionDefinitionNode(function, Position);
@@ -43,7 +64,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position!, $"Could not resolve the destination '${Destination}' of the extension function");
+		return Status.Error(Position!, $"Could not resolve the destination '{Destination}' of the extension function");
 	}
 
 	public override int GetHashCode()

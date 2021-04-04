@@ -77,6 +77,10 @@ public static class Arithmetic
 		{
 			return BuildShiftRight(unit, node);
 		}
+		if (Equals(operation, Operators.ATOMIC_EXCHANGE_ADD))
+		{
+			return BuildAtomicExchangeAdd(unit, node);
+		}
 		if (operation.Type == OperatorType.COMPARISON || operation.Type == OperatorType.LOGIC)
 		{
 			throw new InvalidOperationException("Found a boolean value which should have been already outlined");
@@ -98,8 +102,8 @@ public static class Arithmetic
 	/// </summary>
 	public static Result BuildShiftLeft(Unit unit, OperatorNode shift)
 	{
-		var left = References.Get(unit, shift.Left, AccessMode.READ);
-		var right = References.Get(unit, shift.Right, AccessMode.READ);
+		var left = References.Get(unit, shift.Left);
+		var right = References.Get(unit, shift.Right);
 
 		return BitwiseInstruction.ShiftLeft(unit, left, right, Assembler.Format).Execute();
 	}
@@ -109,10 +113,22 @@ public static class Arithmetic
 	/// </summary>
 	public static Result BuildShiftRight(Unit unit, OperatorNode shift)
 	{
-		var left = References.Get(unit, shift.Left, AccessMode.READ);
-		var right = References.Get(unit, shift.Right, AccessMode.READ);
+		var left = References.Get(unit, shift.Left);
+		var right = References.Get(unit, shift.Right);
 
 		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format).Execute();
+	}
+
+	/// <summary>
+	/// Builds an exchange-add operator
+	/// </summary>
+	public static Result BuildAtomicExchangeAdd(Unit unit, OperatorNode operation)
+	{
+		var left = References.Get(unit, operation.Left);
+		var right = References.Get(unit, operation.Right);
+		var format = operation.GetType().To<Number>().Type;
+
+		return new AtomicExchangeAdditionInstruction(unit, left, right, format).Execute();
 	}
 
 	/// <summary>
@@ -214,7 +230,7 @@ public static class Arithmetic
 		var constant = (long)operation.Right.To<NumberNode>().Value;
 
 		// This algorithm handles positive divisors which can not be expressed as power of two
-		return constant > 0 && !IsPowerOfTwo(constant);
+		return constant > 0 && !Common.IsPowerOfTwo(constant);
 	}
 
 	/// <summary>
@@ -250,15 +266,7 @@ public static class Arithmetic
 
 		if (node.Condition == null && node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
 		{
-			var variable = node.Left.To<VariableNode>().Variable;
-
-			if (IsAliasAssignment(node.Right))
-			{
-				// The assignment is an alias assignment, so the alias variable should be duplicated
-				right = new DuplicateInstruction(unit, right).Execute();
-			}
-
-			return new SetVariableInstruction(unit, variable, right).Execute();
+			return new SetVariableInstruction(unit, node.Left.To<VariableNode>().Variable, right).Execute();
 		}
 
 		// Externally used variables need an immediate update 
@@ -335,15 +343,6 @@ public static class Arithmetic
 		value = GetValue(value);
 
 		return value.Is(NodeType.VARIABLE) && value.To<VariableNode>().Variable.IsPredictable;
-	}
-
-	/// <summary>
-	/// Returns whether the specified integer fullfills the following equation:
-	/// x = 2^y where y is an integer constant
-	/// </summary>
-	private static bool IsPowerOfTwo(long x)
-	{
-		return (x & (x - 1)) == 0;
 	}
 
 	private static long GetDivisorReciprocal(long divisor)

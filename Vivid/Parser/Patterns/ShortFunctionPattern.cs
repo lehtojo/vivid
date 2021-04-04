@@ -9,12 +9,11 @@ public class ShortFunctionPattern : Pattern
 	public const int IMPLICATION = 1;
 	public const int BODY = 2;
 
-	// a-z (...) => ...
+	// Pattern: $name (...) => ...
 	public ShortFunctionPattern() : base
 	(
 		TokenType.FUNCTION, TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -47,7 +46,7 @@ public class ShortFunctionPattern : Pattern
 		context.Declare(function);
 
 		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
-		if (function.IsMember)
+		if (function.IsMember && !function.IsStatic)
 		{
 			function.DeclareSelfPointer();
 		}

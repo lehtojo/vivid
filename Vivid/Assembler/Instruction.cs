@@ -459,7 +459,7 @@ public class Instruction
 		OnPostBuild();
 
 		// Unlock the register locks since the instruction has been executed
-		locks.ForEach(l => ((IDisposable)l).Dispose());
+		locks.ForEach(l => l.Dispose());
 	}
 
 	public void Translate()

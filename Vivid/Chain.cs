@@ -48,9 +48,9 @@ public class Chain
 				// Record the end of the execution
 				var end = DateTime.Now;
 
-				if (bundle.Get<bool>("time", false))
+				if (bundle.Get(ConfigurationPhase.OUTPUT_TIME, false))
 				{
-					Console.WriteLine($"{phase.GetType().Name}: {(end - start).TotalMilliseconds} ms");
+					Console.WriteLine($"{phase.GetName()}: {(end - start).TotalMilliseconds} ms");
 				}
 
 				if (status.IsProblematic)

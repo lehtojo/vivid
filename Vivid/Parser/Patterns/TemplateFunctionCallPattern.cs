@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 public class TemplateFunctionCallPattern : Pattern
 {
 	public const int PRIORITY = 19;
 
-	// Pattern:
-	// $name <$1, $2, ... $n> (...)
+	// Pattern: $name <$1, $2, ... $n> (...)
 	public TemplateFunctionCallPattern() : base(TokenType.IDENTIFIER) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -22,15 +20,10 @@ public class TemplateFunctionCallPattern : Pattern
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var name = tokens.First().To<IdentifierToken>();
-		
-		var descriptor = new FunctionToken(name, tokens.Last()?.To<ContentToken>() ?? throw new ApplicationException("Tried to create a template function call but the parameters were missing"))
-		{
-			Position = name.Position
-		};
-
+		var name = tokens.First().To<IdentifierToken>();	
+		var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
 		var template_arguments = Common.ReadTemplateArguments(context, new Queue<Token>(tokens.Skip(1)));
 
-		return Singleton.GetFunction(context, context, descriptor, template_arguments);
+		return Singleton.GetFunction(context, context, descriptor, template_arguments, false);
 	}
 }

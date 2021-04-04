@@ -8,9 +8,9 @@ public class CallNode : Node
 	public Node Self => First!;
 	public Node Pointer => First!.Next!;
 	public Node Parameters => Last!;
-	public CallDescriptorType Descriptor { get; private set; }
+	public FunctionType Descriptor { get; private set; }
 
-	public CallNode(Node self, Node pointer, Node parameters, CallDescriptorType descriptor)
+	public CallNode(Node self, Node pointer, Node parameters, FunctionType descriptor)
 	{
 		Descriptor = descriptor;
 		Instance = NodeType.CALL;

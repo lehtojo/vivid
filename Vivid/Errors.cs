@@ -4,13 +4,18 @@ using System.Diagnostics.CodeAnalysis;
 [SuppressMessage("Microsoft.Maintainability", "CA1032")]
 public class SourceException : Exception
 {
-	public SourceException(string message) : base(message) { }
+	public Position? Position { get; }
+
+	public SourceException(Position? position, string message) : base(message) 
+	{
+		Position = position;
+	}
 }
 
 public static class Errors
 {
-	public const string UNKNOWN_FILE = "[Unknown file]";
-	public const string UNKNOWN_LOCATION = "[Unknown location]";
+	public const string UNKNOWN_FILE = "<Source>";
+	public const string UNKNOWN_LOCATION = "<Source>:<Line>:<Character>";
 	public const string ERROR_BEGIN = "\x1B[1;31m";
 	public const string ERROR_END = "\x1B[0m";
 
@@ -18,7 +23,7 @@ public static class Errors
 	{
 		if (position == null)
 		{
-			return new SourceException($"{ERROR_BEGIN}Error{ERROR_END}: {description}");
+			return new SourceException(null, $"{ERROR_BEGIN}Error{ERROR_END}: {description}");
 		}
 
 		var fullname = UNKNOWN_FILE;
@@ -28,7 +33,7 @@ public static class Errors
 			fullname = position.File.Fullname;
 		}
 
-		return new SourceException($"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}error{ERROR_END}: {description}");
+		return new SourceException(position, $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}Error{ERROR_END}: {description}");
 	}
 
 	public static string Format(Position? position, string description)
@@ -45,7 +50,7 @@ public static class Errors
 			fullname = position.File.Fullname;
 		}
 
-		return $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}error{ERROR_END}: {description}";
+		return $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}Error{ERROR_END}: {description}";
 	}
 
 	public static string FormatPosition(Position position)

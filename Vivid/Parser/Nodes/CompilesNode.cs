@@ -9,7 +9,7 @@ public class CompilesNode : Node
 		Instance = NodeType.COMPILES;
 	}
 
-	public override Type? TryGetType()
+	public override Type TryGetType()
 	{
 		return Types.BOOL;
 	}

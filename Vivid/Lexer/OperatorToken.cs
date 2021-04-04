@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class OperatorToken : Token
 {
 	public Operator Operator { get; private set; }
+	public Position End => Position.Translate(Operator.Identifier.Length);
 
 	public OperatorToken(string identifier) : base(TokenType.OPERATOR)
 	{

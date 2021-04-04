@@ -61,11 +61,11 @@ public static class Translator
 		while (constant_data_section_handles.Count > 0)
 		{
 			var current = constant_data_section_handles.First();
-			var copies = constant_data_section_handles.Where(c => c.Equals(current)).ToList();
+			var copies = constant_data_section_handles.Where(i => i.Equals(current)).ToList();
 
 			var identifier = unit.GetNextConstantIdentifier(current.Value);
-			copies.ForEach(c => c.Identifier = identifier);
-			copies.ForEach(c => constant_data_section_handles.Remove(c));
+			copies.ForEach(i => i.Identifier = identifier);
+			copies.ForEach(i => constant_data_section_handles.Remove(i));
 		}
 	}
 
@@ -135,6 +135,15 @@ public static class Translator
 			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Assembler.Size.Bytes;
 
 			instruction.To<ReturnInstruction>().Build(registers, local_memory_top);
+		}
+
+		// Reverse the register list to its original order
+		registers.Reverse();
+
+		// If optimization is enabled, finish the instructions
+		if (Analysis.IsInstructionAnalysisEnabled)
+		{
+			InstructionAnalysis.Finish(unit, instructions, registers, required_local_memory);
 		}
 
 		// Align all used local variables

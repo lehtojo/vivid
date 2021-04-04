@@ -7,11 +7,6 @@ public class U32 : Number
 		Identifier = "j";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "j";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

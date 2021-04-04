@@ -7,12 +7,11 @@ public class AssignPattern : Pattern
 	public const int DESTINATION = 0;
 	public const int OPERATOR = 1;
 
-	// (a-z) = ...
+	// Pattern: $name = ...
 	public AssignPattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -54,11 +53,7 @@ public class AssignPattern : Pattern
 		{
 			var self = Common.GetSelfPointer(context, destination.Position);
 
-			return new LinkNode(
-				self,
-				new VariableNode(variable, destination.Position),
-				destination.Position
-			);
+			return new LinkNode(self, new VariableNode(variable, destination.Position), destination.Position);
 		}
 
 		return new VariableNode(variable, destination.Position);

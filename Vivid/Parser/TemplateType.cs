@@ -91,8 +91,6 @@ public class TemplateType : Type
 							tokens.Insert(i, new StringToken(type.Name));
 							continue;
 						}
-
-						default: break;
 					}
 				}
 
@@ -129,6 +127,10 @@ public class TemplateType : Type
 
 		// Register the new variant
 		var variant = result.To<TypeNode>().Type;
+		variant.Identifier = Name;
+		variant.Modifiers = Modifiers;
+		variant.TemplateArguments = arguments;
+
 		Variants.Add(identifier, new TemplateTypeVariant(variant, arguments));
 
 		// Parse the body of the type
@@ -151,21 +153,5 @@ public class TemplateType : Type
 		}
 
 		return TryGetVariant(arguments) ?? CreateVariant(arguments);
-	}
-
-	/// <summary>
-	/// Returns the template arguments of the specified variant
-	/// </summary>
-	public Type[]? GetVariantArguments(Type variant)
-	{
-		foreach (var iterator in Variants.Values)
-		{
-			if (iterator.Type == variant)
-			{
-				return iterator.Arguments;
-			}
-		}
-
-		return null;
 	}
 }

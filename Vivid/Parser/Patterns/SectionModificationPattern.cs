@@ -7,14 +7,13 @@ public class SectionModificationPattern : Pattern
 
 	public const int PRIORITY = 0;
 
-	// Example: $section [\n] $variable/$function/$type
+	// Pattern: $section [\n] $variable/$function/$type
 	public SectionModificationPattern() : base
 	(
 		TokenType.DYNAMIC,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.DYNAMIC
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
@@ -30,8 +29,7 @@ public class SectionModificationPattern : Pattern
 			return true;
 		}
 
-		return target.Is(NodeType.OPERATOR) && target.Is(Operators.ASSIGN) &&
-			target.To<OperatorNode>().Left is VariableNode x && x.Variable.Category == VariableCategory.MEMBER;
+		return target.Is(NodeType.OPERATOR) && target.Is(Operators.ASSIGN) && target.To<OperatorNode>().Left is VariableNode x && x.Variable.IsMember;
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)

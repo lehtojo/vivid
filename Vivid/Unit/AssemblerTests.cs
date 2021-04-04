@@ -1703,21 +1703,21 @@ namespace Vivid.Unit
 
 			_V12animal_movesP6Animal(salmon_pointer);
 			salmon = GetSalmon(salmon_pointer);
-			Assert.AreEqual(-1, salmon.energy);
+			Assert.AreEqual(99, salmon.energy);
 			Assert.AreEqual(1, salmon.hunger);
 
 			_V10fish_movesP4Fish(GetFishPointer(salmon_pointer));
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
 			Assert.AreEqual(5, salmon.velocity);
-			Assert.AreEqual(-2, salmon.energy);
+			Assert.AreEqual(98, salmon.energy);
 			Assert.AreEqual(2, salmon.hunger);
 
 			_V10fish_swimsP6Animal(salmon_pointer);
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
 			Assert.AreEqual(5, salmon.velocity);
-			Assert.AreEqual(-3, salmon.energy);
+			Assert.AreEqual(97, salmon.energy);
 			Assert.AreEqual(3, salmon.hunger);
 
 			_V10fish_stopsP6Animal(salmon_pointer);
@@ -1729,7 +1729,7 @@ namespace Vivid.Unit
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
 			Assert.AreEqual(0, salmon.velocity);
-			Assert.AreEqual(-4, salmon.energy);
+			Assert.AreEqual(96, salmon.energy);
 			Assert.AreEqual(4, salmon.hunger);
 			Assert.AreEqual(true, salmon.is_hiding);
 
@@ -1738,7 +1738,7 @@ namespace Vivid.Unit
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
 			Assert.AreEqual(0, salmon.velocity);
-			Assert.AreEqual(-4, salmon.energy);
+			Assert.AreEqual(96, salmon.energy);
 			Assert.AreEqual(4, salmon.hunger);
 			Assert.AreEqual(true, salmon.is_hiding);
 
@@ -1746,7 +1746,7 @@ namespace Vivid.Unit
 			salmon = GetSalmon(salmon_pointer);
 			Assert.AreEqual(5, salmon.speed);
 			Assert.AreEqual(5, salmon.velocity);
-			Assert.AreEqual(-6, salmon.energy);
+			Assert.AreEqual(94, salmon.energy);
 			Assert.AreEqual(6, salmon.hunger);
 			Assert.AreEqual(false, salmon.is_hiding);
 		}

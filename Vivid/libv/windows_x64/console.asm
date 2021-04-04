@@ -8,27 +8,23 @@
 _V14internal_printPhx:
 push rbx
 push rsi
-
-# Required spill area, 1 x 64 bit parameter and lpNumberOfCharsWritten for WriteFile (aligned)
 sub rsp, 56
 
-mov rbx, rcx # Address
-mov rsi, rdx # Length
+mov rbx, rcx # Save the address
+mov rsi, rdx # Save the length
 
-mov rcx, -11 # STD_OUTPUT_HANDLE
-call GetStdHandle
+mov rcx, -11
+call GetStdHandle # Get the output handle
 
-mov rcx, rax # hConsoleOutput
-mov rdx, rbx # lpBuffer
-mov r8, rsi # nNumberOfCharsToWrite
-lea r9, qword ptr [rsp+40] # lpNumberOfCharsWritten
-mov qword ptr [rsp+32], 0 # lpReserved (Stack memory should be zeroes?)
+mov rcx, rax # Handle to the console output
+mov rdx, rbx # Address of the buffer to write
+mov r8, rsi # Size of the buffer
+lea r9, qword ptr [rsp+40] # This location will contain how many characters were written
+mov qword ptr [rsp+32], 0
 
 call WriteFile
 
-# Required spill area, 1 x 64 bit parameter and lpNumberOfCharsWritten for WriteFile (aligned)
 add rsp, 56
-
 pop rsi
 pop rbx
 ret
@@ -39,28 +35,25 @@ ret
 _V13internal_readPhx_rx:
 push rbx
 push rsi
-
-# Required spill area and 2 x 64 bit parameters for ReadConsole (aligned)
 sub rsp, 56
 
-mov rbx, rcx # Buffer
-mov rsi, rdx # Length
+mov rbx, rcx # Save the buffer
+mov rsi, rdx # Save the length
 
-mov rcx, -10 # STD_INPUT_HANDLE
+mov rcx, -10
+call GetStdHandle # Get the input handle
 
-call GetStdHandle
-
-mov rcx, rax # hConsoleOutput
-mov rdx, rbx # lpBuffer
-mov r8, rsi # nNumberOfCharsToRead
-lea r9, [rsp+32] # lpNumberOfCharsRead
-mov qword ptr [rsp+40], 0 # pInputControl (Stack memory should be zeroes?)
+mov rcx, rax # Handle to the console input
+mov rdx, rbx # Address of the buffer where to store the result
+mov r8, rsi # Size of the buffer
+lea r9, [rsp+32] # This location will contain how many characters were read
+mov qword ptr [rsp+40], 0
 
 call ReadConsoleA
 
-# Remove spill area and 2 x 64 bit parameters for ReadConsole
-add rsp, 56
+mov rax, qword ptr [rsp+32] # Return how many characters were read
 
+add rsp, 56
 pop rsi
 pop rbx
 ret

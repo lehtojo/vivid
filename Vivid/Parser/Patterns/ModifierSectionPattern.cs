@@ -7,13 +7,12 @@ public class ModifierSectionPattern : Pattern
 
 	public const int PRIORITY = 20;
 
-	// Example: public static:
+	// Pattern: $modifiers :
 	public ModifierSectionPattern() : base
 	(
 		TokenType.KEYWORD,
 		TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

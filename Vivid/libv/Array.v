@@ -21,6 +21,11 @@ Array<T> {
 	init(count: large) {
 		require(count >= 0, 'Invalid array size')
 		
+		size = count * sizeof(T)
+
+		this.data = allocate(size)
+		zero(this.data, size)
+		
 		this.data = allocate(count * sizeof(T))
 		this.count = count
 	}
@@ -38,19 +43,23 @@ Array<T> {
 	}
 	
 	deinit() {
-		deallocate(data, count * sizeof(T))
+		deallocate(data)
 	}
 }
 
 Sheet<T> {
-	private data: link
+	private data: link<T>
 	width: large
 	height: large
 	
 	init(width: large, height: large) {
 		require(width >= 0 and height >= 0, 'Invalid sheet size')
 		
-		this.data = allocate(width * height * sizeof(T))
+		size = width * height * sizeof(T)
+
+		this.data = allocate(size)
+		zero(this.data, size)
+
 		this.width = width
 		this.height = height
 	}
@@ -66,20 +75,24 @@ Sheet<T> {
 	}
 	
 	deinit() {
-		deallocate(width * height * sizeof(T))
+		deallocate(data)
 	}
 }
 
 Box<T> {
-	private data: link
+	private data: link<T>
 	width: large
 	height: large
 	depth: large
 		
 	init(width: large, height: large, depth: large) {
 		require(width >= 0 and height >= 0 and depth >= 0, 'Invalid box size')
-			
-		this.data = allocate(width * height * depth)
+		
+		size = width * height * depth * sizeof(T)
+
+		this.data = allocate(size)
+		zero(this.data, size)
+
 		this.width = width
 		this.height = height
 		this.depth = depth
@@ -96,6 +109,6 @@ Box<T> {
 	}
 		
 	deinit() {
-		deallocate(width * height * depth * sizeof(T))
+		deallocate(data)
 	}
 }

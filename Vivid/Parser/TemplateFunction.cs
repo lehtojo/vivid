@@ -10,7 +10,7 @@ public class TemplateFunction : Function
 	public List<Type> TemplateArgumentTypes { get; }
 	private Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
 
-	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names) : base(context, modifiers, name)
+	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name)
 	{
 		TemplateArgumentNames = template_argument_names;
 		TemplateArgumentTypes = new List<Type>();
@@ -21,7 +21,7 @@ public class TemplateFunction : Function
 		}
 	}
 
-	public TemplateFunction(Context context, int modifiers, string name, int argument_count) : base(context, modifiers, name)
+	public TemplateFunction(Context context, int modifiers, string name, int argument_count) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name)
 	{
 		TemplateArgumentNames = new List<string>();
 		TemplateArgumentTypes = new List<Type>();
@@ -133,7 +133,7 @@ public class TemplateFunction : Function
 		return true;
 	}
 
-	public override FunctionImplementation? Get(List<Type> arguments)
+	public override FunctionImplementation? Get(IEnumerable<Type> arguments)
 	{
 		throw new InvalidOperationException("Tried to get overload of template function without template parameters");
 	}
@@ -154,6 +154,7 @@ public class TemplateFunction : Function
 
 		var implementation = variant.Get(parameters)!;
 		implementation.Identifier = Name;
+		implementation.Metadata.Modifiers = Modifiers;
 		implementation.TemplateArguments = template_arguments;
 
 		return implementation;

@@ -12,7 +12,7 @@ public class LinkPattern : Pattern
 
 	private const int STANDARD_TOKEN_COUNT = 5;
 
-	// ... [\n] . [\n] ...
+	// Pattern: ... [\n] . [\n] ...
 	public LinkPattern() : base
 	(
 		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.CONTENT | TokenType.DYNAMIC,
@@ -20,8 +20,7 @@ public class LinkPattern : Pattern
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.FUNCTION | TokenType.IDENTIFIER
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

@@ -14,7 +14,7 @@ public class IterationLoopPattern : Pattern
 	public const string NEXT_FUNCTION = "next";
 	public const string VALUE_FUNCTION = "value";
 
-	// Pattern: loop $i in $object [\n] {...}
+	// Pattern: loop $name in $object [\n] {...}
 	public IterationLoopPattern() : base
 	(
 		TokenType.KEYWORD,
@@ -23,8 +23,7 @@ public class IterationLoopPattern : Pattern
 		TokenType.OBJECT,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

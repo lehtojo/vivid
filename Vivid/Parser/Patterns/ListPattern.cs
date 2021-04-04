@@ -8,13 +8,13 @@ public class ListPattern : Pattern
 	public const int COMMA = 1;
 	public const int RIGHT = 2;
 
+	// Pattern: ... , ...
 	public ListPattern() : base
 	(
 		TokenType.OBJECT,
 		TokenType.OPERATOR,
 		TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

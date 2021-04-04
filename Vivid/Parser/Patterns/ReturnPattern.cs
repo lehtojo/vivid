@@ -8,12 +8,11 @@ class ReturnPattern : Pattern
 	public const int RETURN = 0;
 	public const int VALUE = 1;
 
-	// => ...
+	// Pattern: => ...
 	public ReturnPattern() : base
 	(
 		TokenType.OPERATOR, TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

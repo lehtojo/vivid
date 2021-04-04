@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public static class AssemblerExtensions
 {
@@ -17,6 +18,11 @@ public static class AssemblerExtensions
 		}
 
 		return a;
+	}
+
+	public static IEnumerable<T> Except<T>(this IEnumerable<T> a, T b)
+	{
+		return a.Where(i => !ReferenceEquals(i, b));
 	}
 
 	public static Format GetRegisterFormat(this Variable variable)

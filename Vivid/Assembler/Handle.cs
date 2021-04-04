@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-public enum HandleType : int
+public enum HandleType
 {
 	MEMORY = 1,
 	CONSTANT = 2,
@@ -179,7 +179,7 @@ public class DataSectionHandle : Handle
 				offset = '+' + offset;
 			}
 
-			if (Assembler.Is64bit)
+			if (Assembler.Is64Bit)
 			{
 				return IsPrecise ? $"{Size} ptr [rip+{Identifier}{offset}]" : $"[rip+{Identifier}{offset}]";
 			}
@@ -187,7 +187,7 @@ public class DataSectionHandle : Handle
 			return IsPrecise ? $"{Size} ptr [{Identifier}{offset}]" : $"[{Identifier}{offset}]";
 		}
 
-		if (Assembler.Is64bit)
+		if (Assembler.Is64Bit)
 		{
 			return IsPrecise ? $"{Size} ptr [rip+{Identifier}]" : $"[rip+{Identifier}]";
 		}
@@ -280,7 +280,7 @@ public class ConstantHandle : Handle
 
 	public string ToStringShared()
 	{
-		var result = Value?.ToString()?.Replace(',', '.');
+		var result = Value.ToString()?.Replace(',', '.');
 
 		if (result == null)
 		{
@@ -902,10 +902,10 @@ public class InlineHandle : Handle
 
 	public int AbsoluteOffset => Unit.StackOffset + Offset;
 
-	public InlineHandle(Unit unit, int bytes)
+	public InlineHandle(Unit unit, int bytes, string identity)
 	{
 		Unit = unit;
-		Identity = unit.GetNextIdentity();
+		Identity = identity;
 		Bytes = bytes;
 		Type = HandleType.EXPRESSION;
 		Instance = HandleInstanceType.INLINE;

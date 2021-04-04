@@ -101,6 +101,7 @@ public class Patterns
 		Add(new ListPattern());
 		Add(new LoopPattern());
 		Add(new ModifierSectionPattern());
+		Add(new NamespacePattern());
 		Add(new NotPattern());
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());

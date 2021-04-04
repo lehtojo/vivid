@@ -11,6 +11,7 @@ public class LoopNode : Node, IResolvable, IContext
 	public Node Condition => Common.FindCondition(Initialization.Next!);
 	public Node Action => Steps.Last!;
 
+	public Scope? Scope { get; set; } = null;
 	public Label? Continue { get; set; } = null;
 	public Label? Start { get; set; } = null;
 	public Label? Exit { get; set; } = null;

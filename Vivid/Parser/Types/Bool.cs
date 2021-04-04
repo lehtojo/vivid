@@ -7,11 +7,6 @@ public class Bool : Type
 		Identifier = "b";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "b";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

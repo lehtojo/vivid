@@ -6,8 +6,11 @@ using System.Collections.Generic;
 /// </summary>
 public class MergeScopeInstruction : Instruction
 {
-	public MergeScopeInstruction(Unit unit) : base(unit, InstructionType.MERGE_SCOPE)
+	public new Scope Scope { get; private set; }
+
+	public MergeScopeInstruction(Unit unit, Scope scope) : base(unit, InstructionType.MERGE_SCOPE)
 	{
+		Scope = scope;
 		Description = "Relocates values so that their locations match the state of the outer scope";
 		IsAbstract = true;
 	}
@@ -19,14 +22,14 @@ public class MergeScopeInstruction : Instruction
 
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Unit.Scope!.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
+		return Scope.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
 	}
 
 	public override void OnBuild()
 	{
 		var moves = new List<MoveInstruction>();
 
-		foreach (var variable in Scope!.Actives)
+		foreach (var variable in Scope.Actives)
 		{
 			var source = Unit.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
 

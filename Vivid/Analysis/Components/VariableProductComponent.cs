@@ -154,7 +154,7 @@ public class VariableProductComponent : Component
 			return Clone();
 		}
 
-		if (other is NumberComponent number)
+		if (other is NumberComponent number && !Numbers.IsZero(number.Value))
 		{
 			if (Coefficient is long && number.Value is long && !Numbers.IsZero(Numbers.Remainder(Coefficient, number.Value)))
 			{

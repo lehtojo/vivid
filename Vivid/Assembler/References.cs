@@ -165,7 +165,7 @@ public static class References
 
 			case NodeType.STACK_ADDRESS:
 			{
-				return new AllocateStackInstruction(unit, node.To<StackAddressNode>().Bytes).Execute();
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Execute();
 			}
 
 			default:

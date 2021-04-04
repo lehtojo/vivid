@@ -28,12 +28,6 @@ public class Link : Number
 		return TemplateArguments.FirstOrDefault() ?? global::Types.U8;
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "P";
-		mangle += GetOffsetType();
-	}
-
 	public override int GetContentSize()
 	{
 		return (TemplateArguments.FirstOrDefault() ?? global::Types.TINY).ReferenceSize;

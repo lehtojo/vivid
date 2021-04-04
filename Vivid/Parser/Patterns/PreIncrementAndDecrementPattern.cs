@@ -7,14 +7,12 @@ class PreIncrementAndDecrementPattern : Pattern
 	public const int OPERATOR = 0;
 	public const int OBJECT = 1;
 
-	// Examples: 
-	// ++ $variable
-	// -- $variable
+	// Pattern 1: ++ $value
+	// Pattern 2: -- $value
 	public PreIncrementAndDecrementPattern() : base
 	(
 		TokenType.OPERATOR, TokenType.DYNAMIC | TokenType.IDENTIFIER
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

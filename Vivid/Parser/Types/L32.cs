@@ -12,11 +12,6 @@ public class L32 : Number
 		return global::Types.NORMAL;
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "Pi";
-	}
-
 	public override int GetContentSize()
 	{
 		return STRIDE;

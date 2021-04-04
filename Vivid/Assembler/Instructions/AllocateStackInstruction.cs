@@ -4,17 +4,19 @@
 /// </summary>
 public class AllocateStackInstruction : Instruction
 {
+	public string Identity { get; private set; }
 	public int Bytes { get; private set; }
 
-	public AllocateStackInstruction(Unit unit, int bytes) : base(unit, InstructionType.ALLOCATE_STACK)
+	public AllocateStackInstruction(Unit unit, StackAddressNode node) : base(unit, InstructionType.ALLOCATE_STACK)
 	{
-		Bytes = bytes;
+		Identity = node.Identity;
+		Bytes = node.Bytes;
 		IsAbstract = true;
 	}
 
 	public override void OnSimulate()
 	{
-		Result.Value = new InlineHandle(Unit, Bytes);
+		Result.Value = new InlineHandle(Unit, Bytes, Identity);
 		Result.Format = Assembler.Format;
 	}
 

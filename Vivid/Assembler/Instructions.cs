@@ -64,6 +64,8 @@ public static class Instructions
 		public const string DOUBLE_PRECISION_ADD = "addsd";
 		public const string SINGLE_PRECISION_ADD = "addss";
 
+		public const string ATOMIC_EXCHANGE_ADD = "lock xadd";
+
 		public const string CALL = "call";
 		public const string EXTEND_DWORD = "cdq";
 		public const string EXTEND_QWORD = "cqo";
@@ -163,6 +165,9 @@ public static class Instructions
 
 			Descriptors.Add(Shared.ADD, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
 			Descriptors.Add(Shared.AND, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF)); // AF undefined
+
+			Descriptors.Add(ATOMIC_EXCHANGE_ADD, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
+
 			Descriptors.Add(CALL, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
 
 			Descriptors.Add(Shared.COMPARE, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
@@ -255,7 +260,8 @@ public static class Instructions
 		public const string STORE_REGISTER_PAIR = "stp";
 		public const string LOAD_REGISTER_PAIR = "ldp";
 
-		public const string JUMP = "b";
+		public const string JUMP_LABEL = "b";
+		public const string JUMP_REGISTER = "br";
 
 		public const string JUMP_GREATER_THAN = "b.gt";
 		public const string JUMP_GREATER_THAN_OR_EQUALS = "b.ge";

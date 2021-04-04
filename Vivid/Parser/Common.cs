@@ -49,7 +49,7 @@ public static class Common
 			self = new CastNode(self, new TypeNode(required_self_type), self.Position);
 		}
 
-		return new CallNode(self, function_pointer, parameters, new CallDescriptorType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType));
+		return new CallNode(self, function_pointer, parameters, new FunctionType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType));
 	}
 
 	/// <summary>
@@ -119,7 +119,7 @@ public static class Common
 
 		var variable = primary.GetVariable(name)!;
 
-		if (!(variable.Type is CallDescriptorType properties && Compatible(properties.Parameters, parameter_types)))
+		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types)))
 		{
 			return null;
 		}
@@ -153,7 +153,7 @@ public static class Common
 
 		var variable = environment.GetVariable(name)!;
 
-		if (!(variable.Type is CallDescriptorType properties && Compatible(properties.Parameters, parameter_types)))
+		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types)))
 		{
 			return null;
 		}
@@ -223,19 +223,68 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Consumes a (template) type
-	/// Pattern: $name [<$1, $2, ... $n>]
+	/// Consumes a lambda type
 	/// </summary>
-	public static bool ConsumeType(PatternState state)
+	public static bool ConsumeFunctionType(PatternState state)
 	{
-		if (!Pattern.Consume(state, out Token? _, TokenType.IDENTIFIER))
+		// Consume a normal parenthesis token
+		if (!Pattern.Consume(state, out Token? parameters, TokenType.CONTENT) || !parameters!.Is(ParenthesisType.PARENTHESIS))
 		{
 			return false;
 		}
 
-		Pattern.Try(ConsumeTemplateArguments, state);
+		// Consume an arrow operator
+		if (!Pattern.Consume(state, out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW))
+		{
+			return false;
+		}
 
-		return true;
+		// Consume the return type
+		return ConsumeType(state);
+	}
+
+	/// <summary>
+	/// Consumes a type
+	/// </summary>
+	public static bool ConsumeType(PatternState state)
+	{
+		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
+		{
+			var next = Pattern.Peek(state);
+
+			if (next == null || !next.Is(ParenthesisType.PARENTHESIS))
+			{
+				return false;
+			}
+		}
+
+		while (true)
+		{
+			var next = Pattern.Peek(state);
+
+			if (next == null) return true;
+
+			if (next.Is(Operators.DOT))
+			{
+				Pattern.Consume(state);
+
+				if (!Pattern.Consume(state, TokenType.IDENTIFIER)) return false;
+
+				Pattern.Try(ConsumeTemplateArguments, state);
+			}
+			else if (next.Is(Operators.LESS_THAN))
+			{
+				if (!ConsumeTemplateArguments(state)) return false;
+			}
+			else if (next.Is(ParenthesisType.PARENTHESIS))
+			{
+				if (!ConsumeFunctionType(state)) return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
 	}
 
 	/// <summary>
@@ -255,45 +304,90 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Reads a type from the next tokens inside the specified queue
-	/// Pattern: $name [<$1, $2, ... $n>]
+	/// Reads a type which represents a function from the specified tokens
 	/// </summary>
-	public static Type? ReadTypeArgument(Context context, Queue<Token> tokens)
+	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens)
 	{
-		if (!tokens.Peek().Is(TokenType.IDENTIFIER))
+		// Dequeue the parameter types
+		var parameters = tokens.Dequeue().To<ContentToken>();
+
+		// Dequeue the arrow operator
+		tokens.Dequeue();
+
+		// Dequeues the return type
+		var return_type = ReadType(context, tokens);
+
+		// The return type must exist
+		if (return_type == null)
 		{
 			return null;
 		}
 
+		// Read all the parameter types
+		var parameter_types = parameters.GetSections().Select(i => ReadType(context, new Queue<Token>(i))).ToList();
+
+		// If any of the parameter types is null, it means there is a syntax error
+		if (parameter_types.Any(i => i == null))
+		{
+			return null;
+		}
+
+		return new FunctionType(parameter_types, return_type);
+	}
+	
+	/// <summary>
+	/// Reads a type component from the tokens and returns it
+	/// </summary>
+	public static UnresolvedTypeComponent ReadTypeComponent(Context context, Queue<Token> tokens)
+	{
 		var name = tokens.Dequeue().To<IdentifierToken>().Value;
 
 		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
 		{
 			var template_arguments = ReadTemplateArguments(context, tokens);
 
-			if (template_arguments.All(i => !i.IsUnresolved) && context.IsTypeDeclared(name))
-			{
-				var type = context.GetType(name)!;
-
-				if (type is TemplateType template_type)
-				{
-					return template_type.GetVariant(template_arguments);
-				}
-
-				// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
-				if (type.IsTemplateType)
-				{
-					// Clone the type since it is shared and add the template types
-					type = type.Clone();
-					type.TemplateArguments = template_arguments;
-					return type;
-				}
-			}
-
-			return new UnresolvedType(context, name, template_arguments);
+			return new UnresolvedTypeComponent(name, template_arguments);
 		}
 
-		return context.IsTypeDeclared(name) ? context.GetType(name) : new UnresolvedType(context, name);
+		return new UnresolvedTypeComponent(name);
+	}
+
+	/// <summary>
+	/// Reads a type from the next tokens inside the specified queue
+	/// Pattern: $name [<$1, $2, ... $n>]
+	/// </summary>
+	public static Type? ReadType(Context context, Queue<Token> tokens)
+	{
+		var next = tokens.Peek();
+
+		if (next.Is(TokenType.CONTENT))
+		{
+			return ReadFunctionType(context, tokens);
+		}
+
+		if (!next.Is(TokenType.IDENTIFIER))
+		{
+			return null;
+		}
+
+		var components = new List<UnresolvedTypeComponent>();
+
+		while (true)
+		{
+			components.Add(ReadTypeComponent(context, tokens));
+
+			// Stop collecting type components if there are no tokens left or if the next token is not a dot operator
+			if (!tokens.Any() || !tokens.Peek().Is(Operators.DOT))
+			{
+				break;
+			}
+
+			tokens.Dequeue();
+		}
+
+		var type = new UnresolvedType(components.ToArray());
+
+		return type.TryResolveType(context) ?? type;
 	}
 
 	/// <summary>
@@ -335,7 +429,7 @@ public static class Common
 
 		Type? parameter;
 
-		while ((parameter = ReadTypeArgument(context, tokens)) != null)
+		while ((parameter = ReadType(context, tokens)) != null)
 		{
 			parameters.Add(parameter);
 
@@ -399,7 +493,7 @@ public static class Common
 	/// Pattern: <A, B, C, ...>
 	/// Returns: { A, B, C, ... }
 	/// </summary>
-	public static List<string> GetTemplateParameterNames(List<Token> template_argument_tokens, Position template_arguments_start)
+	public static List<string> GetTemplateParameters(List<Token> template_argument_tokens, Position template_arguments_start)
 	{
 		var template_argument_names = new List<string>();
 
@@ -412,7 +506,7 @@ public static class Common
 
 			if (!template_argument_tokens[i].Is(TokenType.IDENTIFIER))
 			{
-				throw Errors.Get(template_arguments_start, "Template type's argument list is invalid");
+				throw Errors.Get(template_arguments_start, "Template type argument list is invalid");
 			}
 
 			template_argument_names.Add(template_argument_tokens[i].To<IdentifierToken>().Value);
@@ -420,12 +514,15 @@ public static class Common
 
 		if (template_argument_names.Count == 0)
 		{
-			throw Errors.Get(template_arguments_start, "Template type's argument list can not be empty");
+			throw Errors.Get(template_arguments_start, "Template type argument list can not be empty");
 		}
 
 		return template_argument_names;
 	}
 
+	/// <summary>
+	/// Consumes a block of code which is considered to be a part of code which collapses into one dynamic token
+	/// </summary>
 	public static bool ConsumeBlock(Context context, PatternState state, List<Token> destination)
 	{
 		var consumed = Parser.Consume(
@@ -452,6 +549,9 @@ public static class Common
 		return consumed.Any();
 	}
 
+	/// <summary>
+	/// Consumes curly brackets
+	/// </summary>
 	public static bool ConsumeBody(PatternState state)
 	{
 		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
@@ -461,7 +561,7 @@ public static class Common
 	{
 		if (type.Configuration == null)
 		{
-			return Array.Empty<KeyValuePair<Type, DataPointer>>(); ;
+			return Array.Empty<KeyValuePair<Type, DataPointer>>();
 		}
 
 		var configuration = type.Configuration;
@@ -481,7 +581,7 @@ public static class Common
 		{
 			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
 			// It should be possible to check whether the link represents this type or another
-			descriptors[^1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry, 0));
+			descriptors[^1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry));
 		}
 
 		var offset = Parser.Bytes;
@@ -556,29 +656,52 @@ public static class Common
 		return descriptors;
 	}
 
-	public static Node CreateHeapConstruction(FunctionNode constructor)
+	/// <summary>
+	/// Constructs an object using heap memory
+	/// </summary>
+	public static Node CreateHeapConstruction(Type type, FunctionNode constructor)
 	{
-		var type = constructor.GetType();
-
 		var environment = constructor.GetParentContext();
 		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
 
-		var allocation_size = Math.Max(1L, type.ContentSize);
+		var size = Math.Max(1L, type.ContentSize);
 		var instance = inline.Context.DeclareHidden(type);
 
-		var allocation_parameters = new Node { new NumberNode(Assembler.Format, allocation_size) };
+		var arguments = new Node { new NumberNode(Assembler.Format, size) };
+		
+		if (Analysis.IsGarbageCollectorEnabled)
+		{
+			var linker = Parser.LinkFunction!.Get(type) ?? throw new ApplicationException("Missing link function overload");
 
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(instance),
-			new CastNode(
-				new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(allocation_parameters),
-				new TypeNode(type)
-			)
-		));
+			// The following example creates an instance of a type called Object
+			// Example: instance = link(allocate(sizeof(Object))) as Object
+			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(instance),
+				new CastNode(
+					new FunctionNode(linker, constructor.Position).SetParameters(new Node {
+						new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments)
+					}),
+					new TypeNode(type)
+				)
+			));
+		}
+		else
+		{
+			// The following example creates an instance of a type called Object
+			// Example: instance = allocate(sizeof(Object)) as Object
+			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(instance),
+				new CastNode(
+					new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments),
+					new TypeNode(type)
+				)
+			));
+		}
 
 		var supertypes = type.GetAllSupertypes();
 		var descriptors = CopyTypeDescriptors(type, supertypes);
 
+		// Register the runtime configurations
 		foreach (var iterator in descriptors)
 		{
 			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -587,40 +710,71 @@ public static class Common
 			));
 		}
 
-		inline.Add(new LinkNode(new VariableNode(instance), constructor));
-		return inline;
-	}
-
-	public static Node CreateStackConstruction(FunctionNode constructor)
-	{
-		var type = constructor.GetType();
-
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
-
-		var allocation_size = Math.Max(1, type.ContentSize);
-		var instance = inline.Context.DeclareHidden(type);
-
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(instance),
-			new CastNode(new StackAddressNode(allocation_size), new TypeNode(type))
-		));
-
-		var supertypes = type.GetAllSupertypes();
-		var descriptors = CopyTypeDescriptors(type, supertypes);
-
-		foreach (var iterator in descriptors)
+		// Do not call the initializer function if it is empty
+		if (!constructor.Function.IsEmpty)
 		{
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
-				iterator.Value
-			));
+			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
 		}
-
-		inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+		
+		// The inline node must return the value of the constructed object
 		inline.Add(new VariableNode(instance));
 
 		return inline;
+	}
+
+	/// <summary>
+	/// Constructs an object using stack memory
+	/// </summary>
+	public static Node CreateStackConstruction(Type type, FunctionNode constructor)
+	{
+		var environment = constructor.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+
+		var size = Math.Max(1, type.ContentSize);
+		var instance = inline.Context.DeclareHidden(type);
+
+		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(instance),
+			new CastNode(new StackAddressNode(inline.Context, size), new TypeNode(type))
+		));
+
+		var supertypes = type.GetAllSupertypes();
+		var descriptors = CopyTypeDescriptors(type, supertypes);
+
+		// Register the runtime configurations
+		foreach (var iterator in descriptors)
+		{
+			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+				iterator.Value
+			));
+		}
+
+		// Do not call the initializer function if it is empty
+		if (!constructor.Function.IsEmpty)
+		{
+			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+		}
+
+		// The inline node must return the value of the constructed object
+		inline.Add(new VariableNode(instance));
+
+		return inline;
+	}
+
+	/// <summary>
+	/// Returns the root of the expression which contains the specified node
+	/// </summary>
+	public static Node GetExpressionRoot(Node node)
+	{
+		var iterator = node;
+
+		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent))
+		{
+			iterator = iterator.Parent;
+		}
+
+		return iterator;
 	}
 
 	/// <summary>
@@ -690,6 +844,9 @@ public static class Common
 		return null;
 	}
 
+	/// <summary>
+	/// Returns the self pointer of the specified context
+	/// </summary>
 	public static Node GetSelfPointer(Context context, Position? position)
 	{
 		var self = context.GetSelfPointer();
@@ -702,39 +859,78 @@ public static class Common
 		return new UnresolvedIdentifier(context.IsInsideLambda ? Lambda.SELF_POINTER_IDENTIFIER : Function.SELF_POINTER_IDENTIFIER, position);
 	}
 
-	public static OperatorNode GetCondition(Context environment, Token token)
-	{
-		var node = Singleton.Parse(environment, token);
-
-		if (node.Is(NodeType.OPERATOR))
-		{
-			return node.To<OperatorNode>();
-		}
-
-		return new OperatorNode(Operators.NOT_EQUALS, node.Position).SetOperands(node, new NumberNode(Parser.Format, 0L, node.Position));
-	}
-
-	public static OperatorNode GetCondition(Context environment, List<Token> tokens)
-	{
-		var result = Parser.Parse(environment, tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
-
-		if (result.Count() == 1)
-		{
-			var node = result.First();
-
-			if (node.Is(NodeType.OPERATOR))
-			{
-				return result.First().To<OperatorNode>();
-			}
-
-			return new OperatorNode(Operators.NOT_EQUALS, node.Position).SetOperands(node, new NumberNode(Parser.Format, 0L, node.Position));
-		}
-
-		return new OperatorNode(Operators.NOT_EQUALS, result.Position).SetOperands(result, new NumberNode(Parser.Format, 0L, result.Position));
-	}
-
+	/// <summary>
+	/// Finds the condition node from the specified node
+	/// </summary>
 	public static Node FindCondition(Node start)
 	{
 		return start.GetRightWhile(i => i.Is(NodeType.CONTEXT, NodeType.INLINE, NodeType.NORMAL, NodeType.CONTENT)) ?? throw new ApplicationException("Conditional statement did not have a condition");
+	}
+
+	/// <summary>
+	/// Collects all types and subtypes from the specified context
+	/// </summary>
+	public static List<Type> GetAllTypes(Context context)
+	{
+		var result = context.Types.Values.ToList();
+		result.AddRange(result.SelectMany(i => GetAllTypes(i)).ToList());
+
+		return result.Where(i => !string.IsNullOrEmpty(i.Name)).ToList();
+	}
+
+	/// <summary>
+	/// Collects all function implementations from the specified context
+	/// </summary>
+	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
+	{
+		var types = Common.GetAllTypes(context);
+
+		// Collect all functions, constructors, destructors and virtual functions
+		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
+		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
+		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
+		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
+
+		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
+
+		// Concat all functions with lambdas, which can be found inside the collected functions
+		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
+			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+	}
+
+	/// <summary>
+	/// Collects all functions from the specified context and its subcontexts.
+	/// NOTE: This function does not return lambda functions.
+	/// </summary>
+	public static Function[] GetAllVisibleFunctions(Context context)
+	{
+		var types = GetAllTypes(context);
+
+		// Collect all functions, constructors, destructors and virtual functions
+		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
+		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
+		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
+		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
+
+		return type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).Distinct().ToArray();
+	}
+
+	/// <summary>
+	/// Collects all functions which have implementations from the specified context and its subcontexts
+	/// </summary>
+	public static Function[] GetAllImplementedFunctions(Context context)
+	{
+		return GetAllFunctionImplementations(context).Select(i => i.Metadata!).Distinct().ToArray();
+	}
+
+	/// <summary>
+	/// Returns whether the specified integer fullfills the following equation:
+	/// x = 2^y where y is an integer constant
+	/// </summary>
+	public static bool IsPowerOfTwo(long x)
+	{
+		return (x & (x - 1)) == 0;
 	}
 }

@@ -15,6 +15,17 @@ public abstract class Phase
 	public bool Failed => Tasks.Any(i => !i.IsCompleted || i.Result.IsProblematic);
 
 	/// <summary>
+	/// Returns the fullname without the postfix 'Phase'
+	/// </summary>
+	public string GetName()
+	{
+		var name = GetType().Name;
+		var postfix = "Phase";
+		
+		return name.EndsWith(postfix) ? name[0..(name.Length - postfix.Length)] : name;
+	}
+
+	/// <summary>
 	/// Executes the phase with the given data 
 	/// </summary>
 	/// <param name="bundle">Data collection that the phase may need</param>

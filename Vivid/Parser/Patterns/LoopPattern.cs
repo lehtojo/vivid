@@ -8,21 +8,20 @@ public class LoopPattern : Pattern
 	public const int STEPS = 1;
 	public const int BODY = 3;
 
-	// (i < 10)
+	// Example: (i < 10)
 	public const int WHILE_LOOP = 1;
 
-	// (i < 10, i++)
+	// Example: (i < 10, i++)
 	public const int SHORT_FOR_LOOP = 2;
 
-	// (i = 0, i < 10, i++)
+	// Example: (i = 0, i < 10, i++)
 	public const int FOR_LOOP = 3;
 
-	// Pattern: loop [(...)] [\n] (...)
+	// Pattern: loop [(...)] [\n] {...}
 	public LoopPattern() : base
 	(
 		TokenType.KEYWORD, TokenType.CONTENT | TokenType.OPTIONAL, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -31,7 +30,7 @@ public class LoopPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP;
+		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP && tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
 	private static Node? GetSteps(Context context, ContentToken content)

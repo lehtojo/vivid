@@ -7,11 +7,6 @@ public class U16 : Number
 		Identifier = "t";
 	}
 
-	public override void AddDefinition(Mangle mangle)
-	{
-		mangle.Value += "t";
-	}
-
 	public override int GetReferenceSize()
 	{
 		return BYTES;

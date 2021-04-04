@@ -6,7 +6,7 @@ public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
 {
 	public bool Equals(T? x, T? y)
 	{
-		return object.ReferenceEquals(x, y);
+		return ReferenceEquals(x, y);
 	}
 
 	public int GetHashCode(T x)
@@ -19,7 +19,7 @@ public class HashlessReferenceEqualityComparer<T> : IEqualityComparer<T> where T
 {
 	public bool Equals(T? x, T? y)
 	{
-		return object.ReferenceEquals(x, y);
+		return ReferenceEquals(x, y);
 	}
 
 	public int GetHashCode(T x)
@@ -42,6 +42,7 @@ public class LoopDescriptor
 
 public class Flow
 {
+	public List<Node> Nodes { get; private set; } = new List<Node>();
 	public Dictionary<Node, int> Indices { get; private set; } = new Dictionary<Node, int>(new ReferenceEqualityComparer<Node>());
 	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new ReferenceEqualityComparer<JumpNode>());
 	public Dictionary<Label, int> Labels { get; private set; } = new Dictionary<Label, int>(new ReferenceEqualityComparer<Label>());
@@ -84,6 +85,7 @@ public class Flow
 	private void Add(Node node)
 	{
 		Indices.Add(node, Indices.Count);
+		Nodes.Add(node);
 	}
 
 	private void LinearizeLogicalOperator(OperatorNode operation, Label success, Label failure)
@@ -772,5 +774,16 @@ public class Flow
 		var x = Indices[node];
 
 		return x > Indices[from] && x < Indices[to];
+	}
+
+	/// <summary>
+	/// Returns all the nodes which are located between the specified range
+	/// </summary>
+	public List<Node> GetNodesBetween(Node from, Node to)
+	{
+		var a = Indices[from];
+		var b = Indices[to];
+
+		return Nodes.GetRange(a, b - a);
 	}
 }

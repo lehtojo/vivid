@@ -7,14 +7,13 @@ public class UnarySignPattern : Pattern
 	public const int SIGN = 0;
 	public const int OBJECT = 1;
 
-	/// Example:
-	/// a = -x
+	// Pattern 1: - $value
+	// Pattern 2: + $value
 	public UnarySignPattern() : base
 	(
 		TokenType.OPERATOR,
 		TokenType.OBJECT
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

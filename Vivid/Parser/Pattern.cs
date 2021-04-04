@@ -47,6 +47,16 @@ public abstract class Pattern
 		return Parser.TryConsume(state, out consumed, mask);
 	}
 
+	public static bool Consume(PatternState state, int mask)
+	{
+		return Parser.TryConsume(state, out Token? _, mask);
+	}
+
+	public static bool Consume(PatternState state)
+	{
+		return Parser.TryConsume(state);
+	}
+
 	public static Token? Peek(PatternState state)
 	{
 		return state.Tokens.Count > state.End ? state.Tokens[state.End] : null;

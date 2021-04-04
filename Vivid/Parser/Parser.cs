@@ -94,7 +94,10 @@ public class Sublist<T> : IList<T>
 public static class Parser
 {
 	public static FunctionImplementation? AllocationFunction { get; set; }
+	public static FunctionImplementation? DeallocationFunction { get; set; }
 	public static FunctionImplementation? InheritanceFunction { get; set; }
+	public static Function? LinkFunction { get; set; }
+	public static Function? UnlinkFunction { get; set; }
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
@@ -131,11 +134,6 @@ public static class Parser
 			{
 				Tokens.RemoveAt(start);
 			}
-		}
-
-		public int GetStart(List<Token> tokens)
-		{
-			return tokens.IndexOf(Tokens.First());
 		}
 
 		private int GetAbsolutePosition(int p)
@@ -366,6 +364,22 @@ public static class Parser
 		return true;
 	}
 
+	public static bool TryConsume(PatternState state)
+	{
+		var i = state.End;
+
+		// Ensure there are enough tokens
+		if (state.Tokens.Count - i < 1)
+		{
+			return false;
+		}
+
+		state.Formatted.Add(state.Tokens[i]);
+		state.End = i + 1;
+
+		return true;
+	}
+
 	public static List<Token> Consume(Context context, PatternState state, List<System.Type> patterns)
 	{
 		if (patterns.Exists(p => !p.IsSubclassOf(typeof(Pattern))))
@@ -450,7 +464,7 @@ public static class Parser
 	public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
 	{
 		RemoveLineEndingDuplications(tokens);
-		CreateFunctionCalls(tokens);
+		CreateFunctionTokens(tokens);
 
 		var denylist = new List<System.Type>();
 
@@ -498,7 +512,7 @@ public static class Parser
 	/// Forms function tokens from the specified tokens
 	/// </summary>
 	/// <param name="tokens">Tokens to iterate</param>
-	private static void CreateFunctionCalls(List<Token> tokens)
+	private static void CreateFunctionTokens(List<Token> tokens)
 	{
 		if (tokens.Count < FUNCTION_LENGTH)
 		{

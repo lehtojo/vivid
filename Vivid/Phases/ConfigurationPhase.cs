@@ -16,7 +16,11 @@ public class ConfigurationPhase : Phase
 	public const string OUTPUT_NAME = "output_name";
 	public const string OUTPUT_TYPE = "output_type";
 
+	public const string OUTPUT_TIME = "time";
+
 	public const string REBUILD_FLAG = "rebuild";
+
+	public const string SERVICE_FLAG = "service";
 
 	public const string EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "v";
@@ -58,7 +62,7 @@ public class ConfigurationPhase : Phase
 		}
 	}
 
-	private void Collect(Bundle bundle, DirectoryInfo folder, bool recursive = true)
+	private void Collect(DirectoryInfo folder, bool recursive = true)
 	{
 		foreach (var item in folder.GetFiles())
 		{
@@ -75,7 +79,7 @@ public class ConfigurationPhase : Phase
 
 		foreach (var item in folder.GetDirectories())
 		{
-			Collect(bundle, item);
+			Collect(item);
 		}
 	}
 
@@ -140,11 +144,12 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-q / -quiet",										Description = "Suppresses the console output" },
 					new() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
 					new() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
-					new() { Command = "-time",												Description = "Displays information about the length of the compilation" },
+					new() { Command = "-t / -time",										Description = "Displays information about the length of the compilation" },
 					new() { Command = "-O, -O1, -O2",									Description = "Optimizes the output" },
 					new() { Command = "-x64",												Description = "Compile for architecture x64" },
 					new() { Command = "-arm64",											Description = "Compile for architecture Arm64" },
 					new() { Command = "-version",											Description = "Outputs the version of the compiler" },
+					new() { Command = "-s",													Description = "Creates a compiler service which waits for code analysis input from a local socket" }
 				};
 
 				Console.WriteLine
@@ -162,9 +167,7 @@ public class ConfigurationPhase : Phase
 			case "-r":
 			case "-recursive":
 			{
-				var folder = parameters.Dequeue();
-
-				if (folder == null || IsOption(folder))
+				if (!parameters.TryDequeue(out var folder) || IsOption(folder))
 				{
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
@@ -174,7 +177,7 @@ public class ConfigurationPhase : Phase
 					return Status.Error("Could not find folder '{0}'", folder);
 				}
 
-				Collect(bundle, new DirectoryInfo(folder), true);
+				Collect(new DirectoryInfo(folder), true);
 
 				return Status.OK;
 			}
@@ -195,9 +198,7 @@ public class ConfigurationPhase : Phase
 			case "-o":
 			case "-output":
 			{
-				var output = parameters.Dequeue();
-
-				if (output == null || IsOption(output))
+				if (!parameters.TryDequeue(out var output) || IsOption(output))
 				{
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
@@ -209,9 +210,7 @@ public class ConfigurationPhase : Phase
 			case "-l":
 			case "-library":
 			{
-				var library = parameters.Dequeue();
-
-				if (library == null || IsOption(library))
+				if (!parameters.TryDequeue(out var library) || IsOption(library))
 				{
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
@@ -255,9 +254,10 @@ public class ConfigurationPhase : Phase
 				return Status.OK;
 			}
 
+			case "-t":
 			case "-time":
 			{
-				bundle.PutBool("time", true);
+				bundle.PutBool(OUTPUT_TIME, true);
 				return Status.OK;
 			}
 
@@ -340,6 +340,12 @@ public class ConfigurationPhase : Phase
 				return Status.OK;
 			}
 
+			case "-s":
+			{
+				bundle.PutBool(SERVICE_FLAG, true);
+				return Status.OK;
+			}
+
 			default:
 			{
 				return Status.Error($"Unknown option '{option}'");
@@ -398,7 +404,7 @@ public class ConfigurationPhase : Phase
 
 				if (directory.Exists)
 				{
-					Collect(bundle, directory, false);
+					Collect(directory, false);
 					continue;
 				}
 

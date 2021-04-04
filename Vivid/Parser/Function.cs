@@ -64,12 +64,15 @@ public class Function : Context
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
 	public bool IsConstructor => this is Constructor;
+	public bool IsDestructor => this is Destructor;
 	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
 	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
 	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
 	public bool IsExported => Flag.Has(Modifiers, Modifier.GLOBAL);
 	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
+	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
+	public bool IsTemplateFunction => Flag.Has(Modifiers, Modifier.TEMPLATE_FUNCTION);
 
 	/// <summary>
 	/// Creates a unimplemented function
@@ -138,6 +141,14 @@ public class Function : Context
 	}
 
 	/// <summary>
+	/// Implements the function with the specified parameter type
+	/// </summary>
+	public FunctionImplementation Implement(Type type)
+	{
+		return Implement(new[] { type });
+	}
+
+	/// <summary>
 	/// Implements the function with parameter types
 	/// </summary>
 	/// <param name="types">Parameter types</param>
@@ -150,12 +161,6 @@ public class Function : Context
 		// Create a function implementation
 		var implementation = new FunctionImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
 
-		// Constructors must be set to return a link to the created object manually
-		if (IsConstructor)
-		{
-			implementation.ReturnType = GetTypeParent() ?? throw new ApplicationException("Constructor missing type parent");
-		}
-
 		// Add the created implementation to the list
 		Implementations.Add(implementation);
 
@@ -164,7 +169,7 @@ public class Function : Context
 		return implementation;
 	}
 
-	/// </summary>
+	/// <summary>
 	/// Returns whether there are enough parameters to call this function
 	/// </summary>
 	public virtual bool Passes(List<Type> parameters)
@@ -191,10 +196,17 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Tries to find function implementation with the given parameters
+	/// Tries to find function implementation with the specified parameter
 	/// </summary>
-	/// <param name="parameter">Parameter types used in filtering</param>
-	public virtual FunctionImplementation? Get(List<Type> parameters)
+	public FunctionImplementation? Get(Type type)
+	{
+		return Get(new[] { type });
+	}
+
+	/// <summary>
+	/// Tries to find function implementation with the specified parameters
+	/// </summary>
+	public virtual FunctionImplementation? Get(IEnumerable<Type> parameters)
 	{
 		// Implementation should not be made if any of the parameters has a fixed type but it is unresolved
 		if (Parameters.Any(i => i.Type != null && i.Type.IsUnresolved))
@@ -210,7 +222,7 @@ public class Function : Context
 			return implementation;
 		}
 
-		return Parameters.Count != parameters.Count ? null : Implement(types);
+		return Parameters.Count != parameters.Count() ? null : Implement(types);
 	}
 
 	public override Variable? GetSelfPointer()
@@ -218,9 +230,20 @@ public class Function : Context
 		return Self;
 	}
 
-	protected override void OnMangle(Mangle mangle)
+	public override void OnMangle(Mangle mangle)
 	{
+		if (IsMember)
+		{
+			mangle += Mangle.START_LOCATION_COMMAND;
+			mangle.Path(GetParentTypes());
+		}
+
 		mangle += Name.Length.ToString(CultureInfo.InvariantCulture) + Name;
+
+		if (IsMember)
+		{
+			mangle += Mangle.END_COMMAND;
+		}
 	}
 
 	public override string ToString()

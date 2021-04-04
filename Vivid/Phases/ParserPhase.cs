@@ -23,7 +23,7 @@ public class ParserPhase : Phase
 	/// <summary>
 	/// Parses all types under the specified root node
 	/// </summary>
-	private void ParseTypes(Node root)
+	public void ParseTypes(Node root)
 	{
 		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
 
@@ -48,12 +48,18 @@ public class ParserPhase : Phase
 	/// <summary>
 	/// Ensures that exported functions and virtual functions are implemented
 	/// </summary>
-	public static void ImplementRequiredFunctions(Context context)
+	public static void ImplementFunctions(Context context, bool all = false)
 	{
-		foreach (var function in context.Functions.Values.SelectMany(i => i.Overloads).ToArray())
+		foreach (var function in Common.GetAllVisibleFunctions(context))
 		{
 			// Skip all functions which are not exported
-			if (!function.IsExported)
+			if (!all && !function.IsExported)
+			{
+				continue;
+			}
+
+			// Template functions can not be implemented
+			if (function.IsTemplateFunction)
 			{
 				continue;
 			}
@@ -102,6 +108,19 @@ public class ParserPhase : Phase
 					break;
 				}
 			}
+		}
+	}
+
+	/// <summary>
+	/// Finds all the extension functions under the specified node and tries to apply them
+	/// </summary>
+	public static void ApplyExtensionFunctions(Context context, Node root)
+	{
+		var extensions = root.FindAll(i => i.Is(NodeType.EXTENSION_FUNCTION));
+
+		foreach (var extension in extensions)
+		{
+			Resolver.Resolve(context, extension);
 		}
 	}
 
@@ -189,11 +208,14 @@ public class ParserPhase : Phase
 			root.Merge(file.Root!);
 		}
 
+		// Applies all the extension functions
+		ApplyExtensionFunctions(context, root);
+
 		// Ensure exported and virtual functions are implemented
-		ImplementRequiredFunctions(context);
+		ImplementFunctions(context);
 
 		// Preprocess the 'hull' of the code before creating functions
-		Preprocessor.Evaluate(context, root);
+		Evaluator.Evaluate(context, root);
 		
 		// Implement the entry function if the output type does not represent library
 		if (bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE) != BinaryType.STATIC_LIBRARY)

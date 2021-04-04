@@ -7,14 +7,13 @@ public class SpecificModificationPattern : Pattern
 
 	public const int PRIORITY = 1;
 
-	// Example: (public static) [\n] $variable/$function/$type
+	// Pattern: $modifiers [\n] $variable/$function/$type
 	public SpecificModificationPattern() : base
 	(
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.DYNAMIC
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

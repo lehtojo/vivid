@@ -1,6 +1,6 @@
 using System.Linq;
 
-public class LinkNode : OperatorNode, IResolvable
+public class LinkNode : OperatorNode
 {
 	public LinkNode(Node left, Node right) : base(Operators.DOT)
 	{
@@ -65,7 +65,7 @@ public class LinkNode : OperatorNode, IResolvable
 		{
 			Resolver.Resolve(primary, Right);
 		}
-
+		
 		return null;
 	}
 

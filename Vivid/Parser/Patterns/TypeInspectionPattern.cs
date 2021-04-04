@@ -11,6 +11,7 @@ public class TypeInspectionPattern : Pattern
 
 	public const int PRIORITY = 18;
 
+	// Pattern: sizeof(...)/nameof(...)
 	public TypeInspectionPattern() : base(TokenType.FUNCTION) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -60,6 +61,6 @@ public class TypeInspectionPattern : Pattern
 			_ => throw Errors.Get(descriptor.Position, $"Unknown type inspection command '{descriptor.Name}'")
 		};
 
-		return Singleton.GetFunction(context, context, descriptor);
+		return Singleton.GetFunction(context, context, descriptor, false);
 	}
 }

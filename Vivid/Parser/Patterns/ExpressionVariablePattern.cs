@@ -7,12 +7,12 @@ public class ExpressionVariablePattern : Pattern
 
 	public const int IMPLICATION = 1;
 
+	// Pattern: $name => ...
 	public ExpressionVariablePattern() : base
 	(
 		TokenType.IDENTIFIER,
 		TokenType.OPERATOR
-	)
-	{ }
+	) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{

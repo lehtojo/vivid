@@ -9,21 +9,19 @@ public class InheritancePattern : Pattern
 
 	public const int PRIORITY = 21;
 
-	// Pattern: $type $type_definition
-	// Example: Enumerable List {T} { ... }
+	// Pattern: $type [<$1, $2, ..., $n>] [\n] $type_definition
 	public InheritancePattern() : base(TokenType.IDENTIFIER) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (state.Tokens.Skip(state.End).FirstOrDefault()?.Is(Operators.LESS_THAN) ?? false)
-		{
-			var template_arguments = Common.ReadTemplateArgumentTokens(new Queue<Token>(state.Tokens.Skip(state.End)));
-			tokens.AddRange(template_arguments);
-			state.End += template_arguments.Count;
-		}
+		// Remove the consumed token
+		state.End--;
+		state.Formatted.RemoveAt(0);
+
+		if (!Common.ConsumeType(state)) return false;
 
 		// Consume a line break if one is present
-		Consume(state, out Token? _, TokenType.END);
+		Consume(state, TokenType.END);
 
 		return Consume(state, out Token? x, TokenType.DYNAMIC) && x is DynamicToken y && y.Node is TypeNode z && z.IsDefinition;
 	}
@@ -47,7 +45,7 @@ public class InheritancePattern : Pattern
 			}
 		}
 
-		var inheritant_type = Common.ReadTypeArgument(context, new Queue<Token>(inheritant_tokens));
+		var inheritant_type = Common.ReadType(context, new Queue<Token>(inheritant_tokens));
 
 		if (inheritant_type == Types.UNKNOWN)
 		{

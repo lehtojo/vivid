@@ -14,9 +14,12 @@ public static class Keywords
 	public static readonly Keyword IN = new Keyword("in");
 	public static readonly Keyword INLINE = new ModifierKeyword("inline", Modifier.INLINE);
 	public static readonly Keyword IS = new Keyword("is", KeywordType.FLOW);
+	public static readonly Keyword IS_NOT = new Keyword("is not", KeywordType.FLOW);
 	public static readonly Keyword INIT = new Keyword("init");
 	public static readonly Keyword IMPORT = new ModifierKeyword("import", Modifier.EXTERNAL);
 	public static readonly Keyword LOOP = new Keyword("loop");
+	public static readonly Keyword NAMESPACE = new Keyword("namespace", KeywordType.NORMAL);
+	public static readonly Keyword NOT = new Keyword("not", KeywordType.FLOW);
 	public static readonly Keyword OUTLINE = new ModifierKeyword("outline", Modifier.OUTLINE);
 	public static readonly Keyword PRIVATE = new ModifierKeyword("private", Modifier.PRIVATE);
 	public static readonly Keyword PROTECTED = new ModifierKeyword("protected", Modifier.PROTECTED);
@@ -27,7 +30,7 @@ public static class Keywords
 	public static readonly Keyword STOP = new Keyword("stop", KeywordType.FLOW);
 	public static readonly Keyword WHEN = new Keyword("when", KeywordType.FLOW);
 
-	private static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
+	public static Dictionary<string, Keyword> Values { get; } = new Dictionary<string, Keyword>();
 
 	static Keywords()
 	{
@@ -44,6 +47,8 @@ public static class Keywords
 		Values.Add(IS.Identifier, IS);
 		Values.Add(IMPORT.Identifier, IMPORT);
 		Values.Add(LOOP.Identifier, LOOP);
+		Values.Add(NAMESPACE.Identifier, NAMESPACE);
+		Values.Add(NOT.Identifier, NOT);
 		Values.Add(OUTLINE.Identifier, OUTLINE);
 		Values.Add(PRIVATE.Identifier, PRIVATE);
 		Values.Add(PROTECTED.Identifier, PROTECTED);

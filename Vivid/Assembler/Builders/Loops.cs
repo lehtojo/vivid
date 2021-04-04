@@ -21,7 +21,7 @@ public static class Loops
 
 		var label = (Label?)null;
 
-		unit.Append(new MergeScopeInstruction(unit));
+		unit.Append(new MergeScopeInstruction(unit, node.Loop.Scope ?? throw new ApplicationException("Missing loop scope")));
 
 		if (node.Instruction == Keywords.STOP)
 		{
@@ -47,22 +47,24 @@ public static class Loops
 	/// <summary>
 	/// Builds the body of the specified loop without any of the steps
 	/// </summary>
-	private static Result BuildForeverLoopBody(Unit unit, LoopNode loop, LabelInstruction start)
+	private static Result BuildForeverLoopBody(Unit unit, LoopNode statement, LabelInstruction start)
 	{
-		var active_variables = Scope.GetAllActiveVariables(unit, loop);
+		var active_variables = Scope.GetAllActiveVariables(unit, statement);
 
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
 
-		using (var scope = new Scope(unit, active_variables))
+		using (var scope = new Scope(unit, statement.Body, false, active_variables))
 		{
+			statement.Scope = scope;
+
 			// Append the label where the loop will start
 			unit.Append(start);
 
 			// Build the loop body
-			result = Builders.Build(unit, loop.Body);
+			result = Builders.Build(unit, statement.Body);
 
-			unit.Append(new MergeScopeInstruction(unit));
+			unit.Append(new MergeScopeInstruction(unit, scope));
 		}
 
 		unit.Set(state);
@@ -73,36 +75,38 @@ public static class Loops
 	/// <summary>
 	/// Builds the body of the specified loop with its steps
 	/// </summary>
-	private static Result BuildLoopBody(Unit unit, LoopNode loop, LabelInstruction start, List<Variable> active_variables)
+	private static Result BuildLoopBody(Unit unit, LoopNode statement, LabelInstruction start, List<Variable> active_variables)
 	{
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
 
-		using (var scope = new Scope(unit, active_variables))
+		using (var scope = new Scope(unit, statement.Body, false, active_variables))
 		{
+			statement.Scope = scope;
+
 			// Append the label where the loop will start
 			unit.Append(start);
 
 			// Build the loop body
-			result = Builders.Build(unit, loop.Body);
+			result = Builders.Build(unit, statement.Body);
 
-			if (!loop.IsForeverLoop)
+			if (!statement.IsForeverLoop)
 			{
 				// Build the loop action
-				Builders.Build(unit, loop.Action);
+				Builders.Build(unit, statement.Action);
 			}
 
-			unit.Append(new MergeScopeInstruction(unit));
+			unit.Append(new MergeScopeInstruction(unit, scope));
 
 			// Build the nodes around the actual condition by disabling the condition temporarily
-			var instance = loop.Condition.Instance;
-			loop.Condition.Instance = NodeType.DISABLED;
+			var instance = statement.Condition.Instance;
+			statement.Condition.Instance = NodeType.DISABLED;
 
-			Builders.Build(unit, loop.Initialization.Next!);
+			Builders.Build(unit, statement.Initialization.Next!);
 
-			loop.Condition.Instance = instance;
+			statement.Condition.Instance = instance;
 
-			BuildEndCondition(unit, loop.Condition, start.Label);
+			BuildEndCondition(unit, statement, statement.Condition, start.Label);
 		}
 
 		unit.Set(state);
@@ -113,35 +117,35 @@ public static class Loops
 	/// <summary>
 	/// Builds the specified forever-loop
 	/// </summary>
-	private static Result BuildForeverLoop(Unit unit, LoopNode node)
+	private static Result BuildForeverLoop(Unit unit, LoopNode statement)
 	{
 		var start = unit.GetNextLabel();
 
 		if (!Assembler.IsDebuggingEnabled)
 		{
 			// Try to cache loop variables
-			Scope.Cache(unit, node);
+			Scope.Cache(unit, statement);
 		}
 
 		// Load constants which might be edited inside the loop
-		Scope.LoadConstants(unit, node, node.Context, node.Body.Context);
+		Scope.LoadConstants(unit, statement, statement.Context, statement.Body.Context);
 
 		// Register the start and exit label to the loop for control keywords
-		node.Start = unit.GetNextLabel();
-		node.Continue = node.Start;
-		node.Exit = unit.GetNextLabel();
+		statement.Start = unit.GetNextLabel();
+		statement.Continue = statement.Start;
+		statement.Exit = unit.GetNextLabel();
 
 		// Append the start label
-		unit.Append(new LabelInstruction(unit, node.Start));
+		unit.Append(new LabelInstruction(unit, statement.Start));
 
 		// Build the loop body
-		var result = BuildForeverLoopBody(unit, node, new LabelInstruction(unit, start));
+		var result = BuildForeverLoopBody(unit, statement, new LabelInstruction(unit, start));
 
 		// Jump to the start of the loop
 		unit.Append(new JumpInstruction(unit, start));
 
 		// Append the exit label
-		unit.Append(new LabelInstruction(unit, node.Exit));
+		unit.Append(new LabelInstruction(unit, statement.Exit));
 
 		return result;
 	}
@@ -149,13 +153,13 @@ public static class Loops
 	/// <summary>
 	/// Builds the specified loop
 	/// </summary>
-	public static Result Build(Unit unit, LoopNode node)
+	public static Result Build(Unit unit, LoopNode statement)
 	{
-		unit.TryAppendPosition(node);
+		unit.TryAppendPosition(statement);
 
-		if (node.IsForeverLoop)
+		if (statement.IsForeverLoop)
 		{
-			return BuildForeverLoop(unit, node);
+			return BuildForeverLoop(unit, statement);
 		}
 
 		// Create the start and end label of the loop
@@ -163,44 +167,44 @@ public static class Loops
 		var end = unit.GetNextLabel();
 
 		// Register the start and exit label to the loop for control keywords
-		node.Start = start;
-		node.Exit = end;
+		statement.Start = start;
+		statement.Exit = end;
 
 		// Initialize the loop
-		Builders.Build(unit, node.Initialization);
+		Builders.Build(unit, statement.Initialization);
 
 		if (!Assembler.IsDebuggingEnabled)
 		{
 			// Try to cache loop variables
-			Scope.Cache(unit, node);
+			Scope.Cache(unit, statement);
 		}
 
 		// Load constants which might be edited inside the loop
-		Scope.LoadConstants(unit, node, node.Body.Context);
+		Scope.LoadConstants(unit, statement, statement.Body.Context);
 
 		// Try to find a loop control node which targets the current loop
-		if (node.Body.Find(i => i.Is(NodeType.LOOP_CONTROL) && i.To<LoopControlNode>().Instruction == Keywords.CONTINUE && i.To<LoopControlNode>().Loop == node) != null)
+		if (statement.Body.Find(i => i.Is(NodeType.LOOP_CONTROL) && i.To<LoopControlNode>().Instruction == Keywords.CONTINUE && i.To<LoopControlNode>().Loop == statement) != null)
 		{
 			// Append a label which can be used by the continue-commands
-			node.Continue = unit.GetNextLabel();
-			unit.Append(new LabelInstruction(unit, node.Continue));
+			statement.Continue = unit.GetNextLabel();
+			unit.Append(new LabelInstruction(unit, statement.Continue));
 		}
 
 		// Build the nodes around the actual condition by disabling the condition temporarily
-		var instance = node.Condition.Instance;
-		node.Condition.Instance = NodeType.DISABLED;
+		var instance = statement.Condition.Instance;
+		statement.Condition.Instance = NodeType.DISABLED;
 
-		Builders.Build(unit, node.Initialization.Next!);
+		Builders.Build(unit, statement.Initialization.Next!);
 
-		node.Condition.Instance = instance;
+		statement.Condition.Instance = instance;
 
-		var active_variables = Scope.GetAllActiveVariables(unit, node);
+		var active_variables = Scope.GetAllActiveVariables(unit, statement);
 
 		// Jump to the end based on the comparison
-		Conditionals.BuildCondition(unit, node.Condition, end, active_variables);
+		Conditionals.BuildCondition(unit, statement, statement.Condition, end, active_variables);
 
 		// Build the loop body
-		var result = BuildLoopBody(unit, node, new LabelInstruction(unit, start), active_variables);
+		var result = BuildLoopBody(unit, statement, new LabelInstruction(unit, start), active_variables);
 
 		// Append the label where the loop ends
 		unit.Append(new LabelInstruction(unit, end));
@@ -211,11 +215,11 @@ public static class Loops
 	/// <summary>
 	/// Builds the the specified condition which should be placed at the end of a loop
 	/// </summary>
-	private static void BuildEndCondition(Unit unit, Node condition, Label success)
+	private static void BuildEndCondition(Unit unit, Node statement, Node condition, Label success)
 	{
 		var failure = unit.GetNextLabel();
 
-		var instructions = BuildCondition(unit, condition, success, failure);
+		var instructions = BuildCondition(unit, statement, condition, success, failure);
 		instructions.Add(new LabelInstruction(unit, failure));
 
 		// Remove all occurrences of the following pattern from the instructions:
@@ -264,12 +268,12 @@ public static class Loops
 
 		// Remove unused labels
 		var labels = instructions.Where(i => i.Is(InstructionType.LABEL)).Select(i => i.To<LabelInstruction>()).ToList();
-		var jumps = instructions.Where(i => i.Is(InstructionType.JUMP)).Select(j => j.To<JumpInstruction>());
+		var jumps = instructions.Where(i => i.Is(InstructionType.JUMP)).Select(j => j.To<JumpInstruction>()).ToArray();
 
 		foreach (var label in labels)
 		{
 			// Check if any jump instruction uses the current label
-			if (!jumps.Any(j => j.Label == label.Label))
+			if (jumps.All(j => j.Label != label.Label))
 			{
 				// Since the label is not used, it can be removed
 				instructions.Remove(label);
@@ -292,12 +296,14 @@ public static class Loops
 
 	private class TemporaryCompareInstruction : TemporaryInstruction
 	{
+		private Node Statement { get; }
 		private Node Comparison { get; }
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
+		public TemporaryCompareInstruction(Unit unit, Node statement, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
 		{
+			Statement = statement;
 			Comparison = comparison;
 		}
 
@@ -306,10 +312,10 @@ public static class Loops
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
-			using (new Scope(Unit, Unit.Scope!.Actives))
+			using (var scope = new Scope(Unit, Comparison, true, Unit.Scope!.Actives))
 			{
 				// Merges all changes that happen in the scope with the outer scope
-				var merge = new MergeScopeInstruction(Unit);
+				var merge = new MergeScopeInstruction(Unit, scope);
 
 				// Build the body
 				var left = References.Get(Unit, Left);
@@ -326,7 +332,7 @@ public static class Loops
 		}
 	}
 
-	private static List<Instruction> BuildCondition(Unit unit, Node condition, Label success, Label failure)
+	private static List<Instruction> BuildCondition(Unit unit, Node statement, Node condition, Label success, Label failure)
 	{
 		if (condition.Is(NodeType.OPERATOR))
 		{
@@ -334,8 +340,8 @@ public static class Loops
 
 			return operation.Operator.Type switch
 			{
-				OperatorType.LOGIC => BuildLogicalCondition(unit, operation, success, failure),
-				OperatorType.COMPARISON => BuildComparison(unit, operation, success, failure),
+				OperatorType.LOGIC => BuildLogicalCondition(unit, statement, operation, success, failure),
+				OperatorType.COMPARISON => BuildComparison(unit, statement, operation, success, failure),
 				_ => throw new ApplicationException(
 				   "Unsupported operator encountered while building a conditional statement")
 			};
@@ -343,7 +349,7 @@ public static class Loops
 
 		if (condition.Is(NodeType.CONTENT))
 		{
-			return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
+			return BuildCondition(unit, statement, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
 		}
 
 		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
@@ -351,10 +357,10 @@ public static class Loops
 
 		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, condition.Position));
 
-		return BuildCondition(unit, replacement, success, failure);
+		return BuildCondition(unit, statement, replacement, success, failure);
 	}
 
-	private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildComparison(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
 	{
 		var x = condition.Left.GetType();
 		var y = condition.Right.GetType();
@@ -362,28 +368,28 @@ public static class Loops
 
 		return new List<Instruction>
 		{
-			new TemporaryCompareInstruction(unit, condition),
+			new TemporaryCompareInstruction(unit, statement, condition),
 			new JumpInstruction(unit, (ComparisonOperator)condition.Operator, false, !unsigned, success),
 			new JumpInstruction(unit, failure)
 		};
 	}
 
-	private static List<Instruction> BuildLogicalCondition(Unit unit, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildLogicalCondition(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
 	{
 		var instructions = new List<Instruction>();
 		var interphase = unit.GetNextLabel();
 
 		if (Equals(condition.Operator, Operators.AND))
 		{
-			instructions.AddRange(BuildCondition(unit, condition.Left, interphase, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Left, interphase, failure));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
 		}
 		else if (Equals(condition.Operator, Operators.OR))
 		{
-			instructions.AddRange(BuildCondition(unit, condition.Left, success, interphase));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Left, success, interphase));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
 		}
 		else
 		{

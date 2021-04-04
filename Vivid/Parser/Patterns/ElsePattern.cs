@@ -9,15 +9,14 @@ public class ElsePattern : Pattern
 	public const int ELSE = 2;
 	public const int BODY = 4;
 
-	// $([else] if) [\n] else [\n] [{}]
+	// Pattern: $([else] if) [\n] else [\n] [{...}]
 	public ElsePattern() : base
 	(
 		TokenType.DYNAMIC,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

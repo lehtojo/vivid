@@ -8,9 +8,8 @@ public class ElseIfPattern : Pattern
 	public const int FORMER = 0;
 	public const int ELSE = 2;
 	public const int CONDITION = 3;
-	public const int BODY = 5;
-
-	// $if [\n] else $bool [\n] [{}]
+	
+	// Pattern: $if [\n] else $bool [\n] [{}]
 	public ElseIfPattern() : base
 	(
 		TokenType.DYNAMIC,
@@ -18,8 +17,7 @@ public class ElseIfPattern : Pattern
 		TokenType.KEYWORD,
 		TokenType.OBJECT,
 		TokenType.END | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

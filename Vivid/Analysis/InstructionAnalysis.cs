@@ -74,7 +74,26 @@ public static class InstructionAnalysis
 		return false;
 	}
 
-	public static List<Instruction>? TryGetAllUsagesAfterwards(List<Instruction> instructions, Register register, int position)
+	/// <summary>
+	/// Returns all the instructions which use the specified register starting from the specified position.
+	/// This function assumes that the usages are needed for relocating the value inside the specified register.
+	/// This function returns null when it determines that modifying the specified register might not be safe.
+	/// Example (register = rax):
+	/// lea rcx, [rax+1] <- This instruction is added to the result list
+	/// call ... <- Analysis is stopped here since the specified register rax is volatile
+	/// add rax, 1
+	/// Example (register = rbx):
+	/// lea rcx, [rbx+1] <- This instruction is added to the result list
+	/// call ...
+	/// add rbx, 1 <- This instruction is added to the result list
+	/// mov rax, rbx <- This instruction is added to the result list
+	/// ret
+	/// Example (register = rcx):
+	/// add rcx, 1
+	/// mov rbx, rcx
+	/// call ... <- Analysis stopped here because the function uses the specified register as a parameter, therefore it is not considered safe to relocate the register rcx. Returned value is null.
+	/// </summary>
+	public static List<Instruction>? TryGetUsagesForRelocation(List<Instruction> instructions, Register register, int position)
 	{
 		var usages = new List<Instruction>();
 		var handle = new RegisterHandle(register);
@@ -88,9 +107,27 @@ public static class InstructionAnalysis
 				return null;
 			}
 
+			if (instruction.Is(InstructionType.RETURN))
+			{
+				return usages;
+			}
+
+			// If the instruction writes to the specified register and is not an intermediate instruction, return all the collected usages
+			// Example:
+			// add rcx, 1 <- Even though this instruction writes to the register rcx, it should not be considered to be the last usage of the value inside the register rcx
+			// lea rdx, [rcx*2] <- Notice that the value of the register rcx is referenced here as well
+			if (Writes(instruction, handle) && !IsIntermediate(instruction))
+			{
+				return usages;
+			}
+
 			if (Reads(instruction, handle))
 			{
 				// If the instruction locks the register, it should not be redirected
+				// Example:
+				// mov rax, 1
+				// div rcx <- Since division instruction locks the register rax, the value inside the register rax should not be relocated
+				// mov rdx, rax <- This instruction wants to relocate the value inside the register rax
 				if (Locks(instruction, handle))
 				{
 					return null;
@@ -100,48 +137,23 @@ public static class InstructionAnalysis
 				continue;
 			}
 
-			if (Writes(instruction, handle))
-			{
-				return usages;
-			}
-
 			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
 			{
-				return usages;
+				// If the call requires one of the parameters to be in the current register, value of that register should not be modified
+				if (instruction.To<CallInstruction>().Destinations.Contains(handle))
+				{
+					return null;
+				}
+
+				// Since the value of the current register does not represent an argument of the call, its lifetime ends here, if the current register is volatile
+				if (register.IsVolatile)
+				{
+					return usages;
+				}
 			}
 		}
 
 		return usages;
-	}
-
-	public static bool IsEditedBeforeRelocation(List<Instruction> instructions, Register register, int position)
-	{
-		var handle = new RegisterHandle(register);
-
-		for (var i = position + 1; i < instructions.Count; i++)
-		{
-			var instruction = instructions[i];
-
-			// Do not analyze conditional execution so return that it will be edited
-			if (instruction.Is(InstructionType.JUMP, InstructionType.LABEL))
-			{
-				return true;
-			}
-
-			// If the instruction is a call and the register is volatile, the call might edit it
-			if (instruction.Is(InstructionType.CALL) && register.IsVolatile)
-			{
-				return false;
-			}
-
-			// Check if the instruction edits the register
-			if (Writes(instruction, handle))
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/// <summary>
@@ -236,7 +248,7 @@ public static class InstructionAnalysis
 
 	public static bool IsIntermediate(Instruction instruction)
 	{
-		return Flag.Has(instruction.Parameters.Find(i => i.IsDestination)!.Flags, ParameterFlag.READS);
+		return Flag.Has(instruction.Destination!.Flags, ParameterFlag.READS);
 	}
 
 	public static void Replace(Result result, Handle what, Handle to)
@@ -317,16 +329,16 @@ public static class InstructionAnalysis
 	/// <summary>
 	/// Tries execute the move by inlining it to other instructions
 	/// </summary>
-	private static bool TryInlineMoveInstruction(Unit unit, MoveInstruction move, int i, List<Instruction> instructions, Instruction[] enforced, bool reordered)
+	private static bool TryInlineMoveInstruction(Unit unit, MoveInstruction pivot, int i, List<Instruction> instructions, Instruction[] enforced, bool reordered)
 	{
 		// Ensure the move has a destination and a source
-		if (move.Destination == null || move.Source == null)
+		if (pivot.Destination == null || pivot.Source == null)
 		{
 			return false;
 		}
 
-		var destination = move.Destination.Value!;
-		var source = move.Source.Value!;
+		var destination = pivot.Destination.Value!;
+		var source = pivot.Source.Value!;
 
 		// 1. Skip moves which are redundant
 		// 2. If the specified move is a conversion, skip the move
@@ -340,7 +352,7 @@ public static class InstructionAnalysis
 
 		var volatility_changes = IsVolatile(destination) != IsVolatile(source);
 
-		var is_destination_memory_address = move.Destination.IsMemoryAddress;
+		var is_destination_memory_address = pivot.Destination.IsMemoryAddress;
 		var is_source_return_register = IsReturnRegister(unit, source);
 		var is_source_register = source.Is(HandleType.REGISTER) || source.Is(HandleType.MEDIA_REGISTER);
 
@@ -363,7 +375,7 @@ public static class InstructionAnalysis
 				break;
 			}
 
-			// If either the destination or the source is a division related register, inlining should be skipped just in case
+			// If either the destination or the source is related to division and a division instruction is encountered, inlining must be aborted
 			if (instruction.Is(InstructionType.DIVISION) && (is_destination_division_register || is_source_division_register))
 			{
 				break;
@@ -375,14 +387,15 @@ public static class InstructionAnalysis
 				break;
 			}
 
-			// This prevents the following situation from happening:
+			// Prevents illegal reordering of move instructions
+			// Example:
 			// lea rax, [rdx*2]
 			// mov rcx, rbx
 			// mov rcx, rax
-			// =>
+			// If the last instruction was inlined, the result would be the following
 			// lea rcx, [rdx*2]
 			// mov rcx, rbx
-			// This situation usually happens when the compiler makes a redundant copy
+			// Notice that the value will be different inside the register rcx at the end
 			if (Writes(instruction, destination))
 			{
 				return false;
@@ -391,20 +404,34 @@ public static class InstructionAnalysis
 			var reads = Reads(instruction, source);
 			var writes = Writes(instruction, source);
 
-			// If this instruction writes to the source, it means the source instruction has been located
+			// If this instruction writes to the source without reading from it, it means the root instruction has been located
+			/// NOTE: Checking whether the instruction is an intermediate instruction ensures it does not depend on the value inside the source
+			// Example:
+			// mov rcx, 10
+			// add rcx, 1 <- Inlining here would break things because this is not the root instruction and this instruction is dependent on the value of the register rcx
+			// mov rdx, rcx
 			if (writes && !IsIntermediate(instruction))
 			{
 				root = instruction;
 				break;
 			}
 
-			// If the current instruction writes to any of the dependencies, this instruction can not be moved above it
+			// If the current instruction writes to any of the dependencies, inlining must be aborted
+			// Example:
+			// mov rdx, rax <- Inlining would break things because the next instruction writes to the register rcx
+			// add rcx, 1
+			// mov qword ptr [rcx], rdx
 			if (dependencies.Any(i => Writes(instruction, new RegisterHandle(i))))
 			{
 				break;
 			}
 
 			// If this instructions reads from the destination, inlining must be aborted
+			// Example:
+			// mov rdx, rbx
+			// add rdx, 1
+			// add rdx, rcx <- Inlining would break things because the root has not been found and the destination is used here
+			// mov rcx, rdx
 			if (Reads(instruction, destination))
 			{
 				return false;
@@ -428,18 +455,22 @@ public static class InstructionAnalysis
 
 				// Apply the inlining after it has been confirmed this should be done since this process may be aborted any time
 				usages.Add(instruction);
-				continue;
 			}
 		}
 
-		/// NOTE: The root can not be a conditional move since it is an intermediate
+		/// NOTE: The root can not be a conditional move since it is an intermediate instruction
+
+		// Determine whether the root instruction is a copy move instruction
+		// 1. If the root instruction is a move instruction and it is not a relocation move, it is considered to be a copy move
+		// 2. If the instructions have been reordered, the relocation move is considered to be a copy move as well
+		var is_root_copy_move = root != null && root.Is(InstructionType.MOVE) && (root.To<MoveInstruction>().Type != MoveType.RELOCATE || reordered);
 
 		// 1. If no root can be found, try to use the captured intermediates
-		// 2. If the root is a copy, do not redirect it, instead try to use the intermediates
-		// 3. If the root is one of the enforced instructions, it should not be disturbed
-		if (root == null || (root.Is(InstructionType.MOVE) && root.To<MoveInstruction>().Type != MoveType.RELOCATE) || enforced.Contains(root))
+		// 2. If the root is a copy, do not redirect it, instead try to use the captured intermediates
+		// 3. If the root is one of the enforced instructions, it should not be modified
+		if (root == null || is_root_copy_move || enforced.Contains(root))
 		{
-			// It is a default assumption that intermediates can not hold memory addresses
+			// Here it is assumed that intermediate instructions can not have memory addresses as their destinations
 			if (is_destination_memory_address)
 			{
 				return false;
@@ -451,20 +482,33 @@ public static class InstructionAnalysis
 				// add rax, 1
 				// mov rbp, rax
 				// lea rcx, [rdi+rax]
-				// =>
+				// Here the second instruction will be inlined and the result should be the following
 				// lea rbp, [rax+1]
-				// lea rcx, [rdi+rbp]
+				// lea rcx, [rdi+rbp] <- Notice that the second operand has changed to the register rbp
 
-				// NOTE: The usages list is not enough since it does not record instruction below the move which use the source register
+				/// NOTE: The usage list defined above is not enough since it only captures the usages between the root instruction and the move instruction
+				/// If you look at the example above, you can see that there can be usages of the source register even after the move instruction
+
+				// Get all of the instructions which use the source register starting from the current intermediate instruction
 				var start = instructions.IndexOf(intermediate);
-				var intermediate_usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, start);
+				usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, start);
 
-				if (intermediate_usages == null)
+				if (usages == null)
 				{
 					continue;
 				}
 
-				if (intermediate_usages.Any() && IsEditedBetween(instructions, start, instructions.IndexOf(intermediate_usages.Last()), destination, move))
+				var end = instructions.IndexOf(usages.Last());
+
+				// The following situation is theoretical, but still should be checked for
+				// Example:
+				// add rcx, 1
+				// add rdx, 1 <- The destination is edited here
+				// mov rdx, rcx <- This instruction is ignored
+				// Notice that the value inside the register rdx will be different in some cases
+				// lea rdx, [rcx+1]
+				// add rdx, 1
+				if (usages.Any() && IsEditedBetween(instructions, start, end, destination, pivot))
 				{
 					return false;
 				}
@@ -472,7 +516,7 @@ public static class InstructionAnalysis
 				// Try to redirect the intermediate to the destination
 				if (intermediate.Redirect(destination))
 				{
-					intermediate_usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
+					usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
 					intermediate.OnPostBuild();
 					return true;
 				}
@@ -496,25 +540,34 @@ public static class InstructionAnalysis
 		// ...
 		// mov rcx, [rdi]
 
-		if ((reordered || move.Type != MoveType.RELOCATE) && is_source_register)
-		{
-			// NOTE: The usages list is not enough since it does not record instruction below the move which use the source register
-			var position = instructions.IndexOf(root);
-			usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, position);
+		// Determine whether the pivot move instruction is a copy move instruction
+		// 1. If the move is not a relocation move, it is considered to be a copy move
+		// 2. If the instructions have been reordered, the relocation move is considered to be a copy move as well
+		var is_pivot_copy_move = pivot.Type != MoveType.RELOCATE || reordered;
 
-			// If the usages of the root instruction could not be collected, inlining should not be done
+		if (is_pivot_copy_move && is_source_register)
+		{
+			/// NOTE: The usage list defined above is not enough since it only captures the usages between the root instruction and the move instruction
+			var start = instructions.IndexOf(root);
+
+			// Get all of the instructions which use the source register starting from the root instruction
+			usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, start);
+
+			// If the usages of the root instruction could not be collected, inlining should be aborted
 			if (usages == null || is_destination_memory_address)
 			{
 				return false;
 			}
 
-			if (usages.Any() && IsEditedBetween(instructions, position, instructions.IndexOf(usages.Last()), destination, move))
-			{
-				return false;
-			}
-
-			// If any of the usages writes to the copy, inlining should be aborted
-			if (IsEditedBeforeRelocation(instructions, destination.To<RegisterHandle>().Register, position))
+			// The following situation is theoretical, but still should be checked for
+			// Example:
+			// add rcx, 1
+			// add rdx, 1
+			// mov rdx, rcx
+			// Notice that the value inside the register rdx will be different in some cases
+			// lea rdx, [rcx+1]
+			// add rdx, 1
+			if (usages.Any() && IsEditedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot))
 			{
 				return false;
 			}
@@ -542,13 +595,20 @@ public static class InstructionAnalysis
 	/// <summary>
 	/// Tries execute moves by inlining them to another instructions
 	/// </summary>
-	private static void InlineMoveInstructions(Unit unit, List<Instruction> instructions, bool reordered)
+	private static void InlineMoveInstructions(Unit unit, List<Instruction> instructions, bool relocations, bool reordered)
 	{
 		var enforced = FindEnforcedMoveInstructions(instructions);
 
 		for (var i = 0; i < instructions.Count; i++)
 		{
-			if (!instructions[i].Is(InstructionType.MOVE) || instructions[i].To<MoveInstruction>().Condition != null)
+			var instruction = instructions[i];
+
+			if (!instruction.Is(InstructionType.MOVE) || instruction.To<MoveInstruction>().Condition != null)
+			{
+				continue;
+			}
+
+			if (relocations && instruction.To<MoveInstruction>().Type != MoveType.RELOCATE)
 			{
 				continue;
 			}
@@ -563,11 +623,14 @@ public static class InstructionAnalysis
 
 	public static void Optimize(Unit unit, List<Instruction> instructions)
 	{
+		// Inline only the relocating moves
+		InlineMoveInstructions(unit, instructions, true, false);
+
 		//Remove all moves whose values are not read
 		RemoveRedundantMoves(unit, instructions);
 
 		// Try to inline moves for the first time
-		InlineMoveInstructions(unit, instructions, false);
+		InlineMoveInstructions(unit, instructions, false, true);
 
 		// Reorder the instructions
 		Reorder(instructions);
@@ -575,12 +638,30 @@ public static class InstructionAnalysis
 		// Remove all moves whose values are not read
 		RemoveRedundantMoves(unit, instructions);
 
-		// Try to inline moves for the second time since the instructions have been reordered
-		InlineMoveInstructions(unit, instructions, true);
+		InlineMoveInstructions(unit, instructions, false, true);
 
 		unit.Reindex();
 
 		Combine(unit, instructions);
+
+		// Remove all redundant move instructions
+		for (var i = instructions.Count - 1; i >= 0; i--)
+		{
+			var instruction = instructions[i];
+
+			if (!instruction.Is(InstructionType.MOVE) || !instruction.Parameters.Any())
+			{
+				continue;
+			}
+
+			var destination = instruction.Destination!.Value!;
+			var source = instruction.Source!.Value!;
+
+			if (Equals(destination, source) && destination.Format == source.Format && instruction.Parameters.Count == 2)
+			{
+				instructions.RemoveAt(i);
+			}
+		}
 
 		unit.Reindex();
 	}
@@ -656,7 +737,7 @@ public static class InstructionAnalysis
 				continue;
 			}
 
-			var dependencies = instruction.Parameters.Select(i => i.Value!).Concat(GetAllInputRegisters(instruction).Select(i => new RegisterHandle(i)));
+			var dependencies = instruction.Parameters.Select(i => i.Value!).Concat(GetAllInputRegisters(instruction).Select(i => new RegisterHandle(i))).ToArray();
 			var destinations = instruction.Parameters.Where(i => i.Writes).ToArray();
 
 			var position = i;
@@ -743,7 +824,7 @@ public static class InstructionAnalysis
 					return null;
 				}
 
-				var usages = TryGetAllUsagesAfterwards(instructions, source.To<RegisterHandle>().Register, i);
+				var usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, i);
 
 				if (usages == null || usages.Any(i => i != start))
 				{
@@ -1281,7 +1362,109 @@ public static class InstructionAnalysis
 		return !destination.IsMemoryAddress && (destination.IsAnyRegister && !IsReturnRegister(unit, destination.Value!));
 	}
 
+	/// <summary>
+	/// Finds all the call instructions which have a return instruction after them.
+	/// This function also ensures the calls do not use stack.
+	/// </summary>
+	private static int[] FindTailCalls(List<Instruction> instructions)
+	{
+		var indices = new List<int>();
 
+		for (var i = 0; i < instructions.Count; i++)
+		{
+			var instruction = instructions[i];
+
+			// Firstly, require that the current instruction is a return instruction
+			if (!instruction.Is(InstructionType.RETURN) || i - 1 < 0)
+			{
+				continue;
+			}
+
+			var previous = instructions[i - 1];
+
+			// Require that the previous instruction is a call instruction
+			if (!previous.Is(InstructionType.CALL))
+			{
+				continue;
+			}
+
+			// Tail calls are not allowed to have parameters which are placed into stack
+			/// NOTE: This is possible, but it would require adjusting the stack pointer of the parameter instructions
+			if (previous.To<CallInstruction>().Destinations.Any(i => i.Is(HandleType.MEMORY)))
+			{
+				continue;
+			}
+
+			indices.Add(i - 1);
+		}
+
+		return indices.ToArray();
+	}
+
+	/// <summary>
+	/// Finds all the tail calls in the specified instruction list and creates them.
+	/// </summary>
+	private static void CreateTailCalls(Unit unit, List<Instruction> instructions, List<Register> registers, int required_local_memory)
+	{
+		var initialization = instructions.Find(i => i.Is(InstructionType.INITIALIZE))!.To<InitializeInstruction>();
+		var indices = FindTailCalls(instructions);
+
+		// If there are any calls other than the tail calls, the tail calls can not be created
+		for (var i = 0; i < instructions.Count; i++)
+		{
+			if (instructions[i].Is(InstructionType.CALL) && !indices.Contains(i))
+			{
+				return;
+			}
+		}
+
+		foreach (var i in indices)
+		{
+			var call = instructions[i];
+
+			// Convert the call into a jump instruction
+			if (Assembler.IsArm64)
+			{
+				call.Operation = call.Operation == Instructions.Arm64.CALL_LABEL ? Instructions.Arm64.JUMP_LABEL : Instructions.Arm64.JUMP_REGISTER;
+			}
+			else
+			{
+				call.Operation = Instructions.X64.JUMP;
+			}
+
+			// Swap the two instructions
+			instructions.RemoveAt(i);
+			instructions.Insert(i + 1, call);
+		}
+
+		// Reset the stack offset before building the initialization instruction
+		unit.StackOffset = 0;
+
+		// Rebuild the initialization instruction
+		initialization.Build(registers, required_local_memory);
+		
+		var local_memory_top = initialization.LocalMemoryTop;
+
+		// Reverse the saved registers since they must be recovered from stack when approaching the tail calls
+		registers.Reverse();
+
+		// Rebuild the return instructions
+		// NOTE: Now the indices point to the return instructions since the tail calls were created above
+		foreach (var i in indices)
+		{
+			// Save the local memory size for later use
+			unit.Function.SizeOfLocals = unit.StackOffset - local_memory_top;
+			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Assembler.Size.Bytes;
+
+			instructions[i].To<ReturnInstruction>().Build(registers, local_memory_top);
+			instructions[i].To<ReturnInstruction>().RemoveReturnInstruction();
+		}
+	}
+
+	public static void Finish(Unit unit, List<Instruction> instructions, List<Register> registers, int required_local_memory)
+	{
+		CreateTailCalls(unit, instructions, registers, required_local_memory);
+	}
 
 
 

@@ -14,8 +14,7 @@ public class HasPattern : Pattern
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

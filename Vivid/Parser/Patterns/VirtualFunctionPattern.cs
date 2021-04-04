@@ -9,12 +9,11 @@ public class VirtualFunctionPattern : Pattern
 	public const int RETURN_TYPE = 2;
 
 	// NOTE: This pattern should execute after all member functions are declared, therefore the priority is low
-	// Example: $type { $function }
+	// Pattern: $function
 	public VirtualFunctionPattern() : base
 	(
 		TokenType.FUNCTION, TokenType.OPERATOR | TokenType.OPTIONAL
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -40,7 +39,7 @@ public class VirtualFunctionPattern : Pattern
 
 		if (!indicator.Is(TokenType.NONE))
 		{
-			return_type = Common.ReadTypeArgument(context, new Queue<Token>(tokens.Skip(RETURN_TYPE)));
+			return_type = Common.ReadType(context, new Queue<Token>(tokens.Skip(RETURN_TYPE)));
 
 			if (return_type == null)
 			{

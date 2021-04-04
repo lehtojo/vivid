@@ -14,14 +14,9 @@ public class MultiplicationInstruction : DualParameterInstruction
 		Assigns = assigns;
 	}
 
-	private static bool IsPowerOfTwo(long x)
-	{
-		return (x & (x - 1)) == 0;
-	}
-
 	private static bool IsConstantValidForExtendedMultiplication(long x)
 	{
-		return IsPowerOfTwo(x) && x <= (Assembler.IsX64 ? 8 : 1L << 32);
+		return Common.IsPowerOfTwo(x) && x <= (Assembler.IsX64 ? 8 : 1L << 32);
 	}
 
 	private class ConstantMultiplication
@@ -71,7 +66,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		// Handle decimal multiplication separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_MULTIPLY : Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
+			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_MULTIPLY : Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			result = Memory.LoadOperand(Unit, First, true, Assigns);
@@ -97,7 +92,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (multiplication != null && multiplication.Constant > 0)
 		{
-			if (!Assigns && IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= 8 && !First.IsExpiring(Unit.Position))
+			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= 8 && !First.IsExpiring(Unit.Position))
 			{
 				Memory.GetResultRegisterFor(Unit, Result, false);
 
@@ -135,7 +130,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				return;
 			}
 
-			if (IsPowerOfTwo(multiplication.Constant))
+			if (Common.IsPowerOfTwo(multiplication.Constant))
 			{
 				var count = new ConstantHandle((long)Math.Log2(multiplication.Constant));
 
@@ -221,8 +216,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			)
 		);
-
-		return;
 	}
 
 	public void BuildExtendedMultiplicationArm64(Result multiplicand, int shift)
@@ -293,8 +286,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 				HandleType.MODIFIER
 			)
 		);
-
-		return;
 	}
 
 	public void OnBuildArm64()
@@ -311,7 +302,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (!is_decimal && multiplication != null && multiplication.Constant > 0)
 		{
-			if (IsPowerOfTwo(multiplication.Constant))
+			if (Common.IsPowerOfTwo(multiplication.Constant))
 			{
 				first = multiplication.Multiplicand;
 				second = new Result(new ConstantHandle((long)Math.Log2(multiplication.Constant)), Assembler.Format);
@@ -374,8 +365,6 @@ public class MultiplicationInstruction : DualParameterInstruction
 				types
 			)
 		);
-
-		return;
 	}
 
 	public bool RedirectX64(Handle handle)

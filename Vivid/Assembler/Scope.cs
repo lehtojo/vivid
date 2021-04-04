@@ -56,6 +56,10 @@ public sealed class Scope : IDisposable
 				{
 					variables[node.Variable] = variables.GetValueOrDefault(node.Variable, 0) + 1;
 				}
+				else if (node.Variable.IsConstant || node.Variable.Category == VariableCategory.GLOBAL)
+				{
+					continue;
+				}
 				else if (!node.Parent?.Is(NodeType.LINK) ?? false)
 				{
 					if (unit.Self == null)
@@ -133,7 +137,7 @@ public sealed class Scope : IDisposable
 		variables = variables.Where(i => current.IsInside(i.Variable.Context)).ToList();
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
-		// (Otherwise there would be a lot of register moves trying to save the cached variables)
+		// NOTE: Otherwise there would be a lot of register moves trying to save the cached variables
 		var non_volatile_mode = roots.Any(i => i.Find(j => j.Is(NodeType.FUNCTION, NodeType.CALL)) != null);
 
 		unit.Append(new CacheVariablesInstruction(unit, roots, variables, non_volatile_mode));
@@ -150,7 +154,7 @@ public sealed class Scope : IDisposable
 				 .Distinct();
 	}
 
-	/// </summary>
+	/// <summary>
 	/// Returns all variables that the scope must take care of
 	/// </summary>
 	public static List<Variable> GetAllActiveVariables(Unit unit, Node[] roots)
@@ -159,7 +163,9 @@ public sealed class Scope : IDisposable
 
 		foreach (var variable in unit.Scope!.Variables.Keys)
 		{
-			if (variable.References.Any(i => roots.Any(j => i.IsUnder(j))) || roots.Any(j => Analysis.IsUsedLater(variable, j)))
+			// 1. If the variable is used inside any of the roots, it must be included
+			// 2. If the variable is used after any of the roots, it must be included
+			if (variable.References.Any(i => roots.Any(j => i.IsUnder(j))) || roots.Any(i => Analysis.IsUsedLater(variable, i)))
 			{
 				actives.Add(variable);
 			}
@@ -168,7 +174,7 @@ public sealed class Scope : IDisposable
 		return actives;
 	}
 
-	/// </summary>
+	/// <summary>
 	/// Returns all variables that the scope must take care of
 	/// </summary>
 	public static List<Variable> GetAllActiveVariables(Unit unit, Node root)
@@ -238,6 +244,9 @@ public sealed class Scope : IDisposable
 		}
 	}
 
+	private Node Root { get; }
+	private bool IsCondition { get; }
+
 	private List<VariableLoad> Loads { get; set; } = new List<VariableLoad>();
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
 	private HashSet<Variable> Finalizers { get; set; } = new HashSet<Variable>();
@@ -254,28 +263,12 @@ public sealed class Scope : IDisposable
 	/// Creates a scope with variables that are returned to their original locations once the scope is exited
 	/// </summary>
 	/// <param name="active_variables">Variables that must not be released</param>
-	public Scope(Unit unit, IEnumerable<Variable>? active_variables = null)
+	public Scope(Unit unit, Node root, bool is_condition, IEnumerable<Variable>? active_variables = null)
 	{
+		Root = root;
+		IsCondition = is_condition;
 		Actives = active_variables?.ToList() ?? new List<Variable>();
 		Enter(unit);
-	}
-
-	/// <summary>
-	/// Returns whether the variable is used later looking from the current instruction position
-	/// </summary>
-	public bool IsUsedLater(Variable variable)
-	{
-		// Try to get the most recently used handle of the variable
-		var current = GetCurrentVariableHandle(variable);
-
-		// If there is no handle of the variable, it means that the outer scope does not have it either
-		if (current == null)
-		{
-			return false;
-		}
-
-		// Check if the handle is used later or if the outer scope uses the variable later
-		return current.Lifetime.End > Unit!.Position || (Outer != null && Outer.IsUsedLater(variable));
 	}
 
 	/// <summary>
@@ -414,10 +407,7 @@ public sealed class Scope : IDisposable
 				var variable = Actives[i];
 				var external_handle = Loads[i].Reference;
 
-				if (external_handle != null)
-				{
-					SetOrCreateTransitionHandle(variable, external_handle.Value, external_handle.Format);
-				}
+				SetOrCreateTransitionHandle(variable, external_handle.Value, external_handle.Format);
 
 				if (!Initializers.Contains(variable))
 				{
@@ -468,7 +458,7 @@ public sealed class Scope : IDisposable
 				register.Reset();
 			}
 		}
-		else
+		else if (!Assembler.IsDebuggingEnabled)
 		{
 			// Move all parameters to their expected registers since this is the first scope
 			var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
@@ -476,7 +466,7 @@ public sealed class Scope : IDisposable
 
 			var register = (Register?)null;
 
-			if (unit.Function.IsMember || unit.Function.IsLambdaImplementation)
+			if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
 			{
 				var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
 
@@ -546,6 +536,15 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
+	/// Disables the specified variable by setting its value to none
+	/// </summary>
+	private void DisableVariable(Variable variable)
+	{
+		Unit!.Scope!.Variables[variable] = new Result(References.CreateVariableHandle(Unit, variable), variable.GetRegisterFormat());
+		Outer?.DisableVariable(variable);
+	}
+
+	/// <summary>
 	/// Switches back to the outer scope
 	/// </summary>
 	public void Exit()
@@ -557,7 +556,11 @@ public sealed class Scope : IDisposable
 
 		foreach (var variable in Actives)
 		{
-			if (Finalizers.Contains(variable))
+			// If there is a finalizer for the variable already, do not add another one
+			if (Finalizers.Contains(variable)) continue;
+
+			// If the variable is not used after this scope is exited, it does not need to be kept active the throughout scope
+			if (!Analysis.IsUsedLater(variable, Root))
 			{
 				continue;
 			}
@@ -587,15 +590,12 @@ public sealed class Scope : IDisposable
 		Unit.Scope = Outer ?? this;
 
 		// Reset all registers
-		Unit.Registers.ForEach(r => r.Reset());
+		Unit.Registers.ForEach(i => i.Reset());
 
 		// Attach all the variables before entering back to their registers
 		foreach (var load in Loads)
 		{
-			if (!load.Reference.IsAnyRegister)
-			{
-				continue;
-			}
+			if (!load.Reference.IsAnyRegister) continue;
 
 			load.Reference.Value.To<RegisterHandle>().Register.Handle = load.Reference;
 		}

@@ -7,12 +7,11 @@ public class OffsetPattern : Pattern
 	private const int OBJECT = 0;
 	private const int INDICES = 1;
 
-	// ... [...]
+	// Pattern: ... [...]
 	public OffsetPattern() : base
 	(
 		TokenType.OBJECT, TokenType.CONTENT
-	)
-	{ }
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

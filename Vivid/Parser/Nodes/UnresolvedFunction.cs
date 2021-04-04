@@ -88,7 +88,7 @@ public class UnresolvedFunction : Node, IResolvable
 				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
 				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!);
 
-			}).Cast<Function>().ToList();
+			}).ToList();
 		}
 
 		// Collect all parameter types but this time filling the unresolved lambda types with incomplete call descriptor types
@@ -107,12 +107,12 @@ public class UnresolvedFunction : Node, IResolvable
 				var actual = actual_types[j];
 
 				// Skip all parameter types which do not represent lambda types
-				if (expected == null || actual is not CallDescriptorType)
+				if (expected == null || actual is not FunctionType)
 				{
 					continue;
 				}
 
-				if (expected is not CallDescriptorType)
+				if (expected is not FunctionType)
 				{
 					// Since the actual parameter type is lambda type and the expected is not, the current candidate can be removed
 					candidates.RemoveAt(i);
@@ -134,12 +134,12 @@ public class UnresolvedFunction : Node, IResolvable
 		{
 			// Skip all parameter types which do not represent lambda types
 			/// NOTE: It is ensured that when the expected type is a call descriptor the actual type is as well
-			if (expected_types[i] is not CallDescriptorType expected)
+			if (expected_types[i] is not FunctionType expected)
 			{
 				continue;
 			}
 
-			var actual = (CallDescriptorType)actual_types[i]!;
+			var actual = (FunctionType)actual_types[i]!;
 
 			// Ensure the parameter types do not conflict
 			if (expected.Parameters.Count != actual.Parameters.Count ||
@@ -190,7 +190,7 @@ public class UnresolvedFunction : Node, IResolvable
 		}
 
 		// Try to find a suitable function by name and parameter types
-		var function = Singleton.GetFunctionByName(primary, Name, types!, Arguments);
+		var function = Singleton.GetFunctionByName(primary, Name, types!, Arguments, linked);
 
 		// Lastly, try to form a virtual function call if the function could not be found
 		if (function == null && !linked && !Arguments.Any())
@@ -213,13 +213,21 @@ public class UnresolvedFunction : Node, IResolvable
 		var node = new FunctionNode(function, Position).SetParameters(this);
 
 		if (function.IsConstructor)
-		{
-			return linked ? node : (Node)new ConstructionNode(node, node.Position);
+	{
+			var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+
+			// Consider the following situations:
+			// Namespace.Type() <- Construction
+			// Namespace.Type<large>() <- Construction
+			// Namespace.Type.init() <- Direct call
+			// Namespace.Type<large>.init() <- Direct call
+			// Therefore, construction is only needed when the function name matches the name of the constructed type
+			return type.Identifier != Name ? node : (Node)new ConstructionNode(node, node.Position);
 		}
 
 		// When the environment context is the same as the current context it means that this function is not part of a link
 		// When the function is a member function and the this function is not part of a link it means that the function needs the self pointer
-		if (function.IsMember && !linked)
+		if (function.IsMember && !function.IsStatic && !linked)
 		{
 			var self = Common.GetSelfPointer(environment, Position);
 
@@ -246,7 +254,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 		descriptor += $"({string.Join(", ", ((IEnumerable<Node>)this).Select(p => p.TryGetType()?.ToString() ?? "?"))})";
 
-		return Status.Error(Position, $"Could not find function or constructor '{descriptor}'");
+		return Status.Error(Position, $"Could not find function '{descriptor}'");
 	}
 
 	public override bool Equals(object? other)

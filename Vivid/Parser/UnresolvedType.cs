@@ -1,33 +1,29 @@
 using System;
 using System.Linq;
 
-public class UnresolvedType : Type, IResolvable
+public class UnresolvedTypeComponent
 {
-	private new string Name { get; }
+	public string Identifier { get; }
+	public Type[] Arguments { get; }
 
-	public UnresolvedType(Context context, string name) : base(context)
+	public UnresolvedTypeComponent(string identifier, Type[] arguments)
 	{
-		Name = name;
-		TemplateArguments = Array.Empty<Type>();
+		Identifier = identifier;
+		Arguments = arguments;
 	}
 
-	public UnresolvedType(Context context, string name, Type[] arguments) : base(context)
+	public UnresolvedTypeComponent(string identifier)
 	{
-		Name = name;
-		TemplateArguments = arguments;
+		Identifier = identifier;
+		Arguments = Array.Empty<Type>();
 	}
 
-	public override bool IsResolved()
+	public void Resolve(Context context)
 	{
-		return false;
-	}
-
-	public Node? Resolve(Context context)
-	{
-		// Resolve potential template parameters
-		for (var i = 0; i < TemplateArguments.Length; i++)
+		// Resolve the template parameters
+		for (var i = 0; i < Arguments.Length; i++)
 		{
-			var parameter = TemplateArguments[i];
+			var parameter = Arguments[i];
 			var replacement = Resolver.Resolve(context, parameter);
 
 			if (replacement == null)
@@ -35,43 +31,93 @@ public class UnresolvedType : Type, IResolvable
 				continue;
 			}
 
-			TemplateArguments[i] = replacement;
+			Arguments[i] = replacement;
 		}
+	}
 
-		// If any of the parameters is unresolved, then this type can not be resolved yet
-		if (TemplateArguments.Any(i => i.IsUnresolved))
+	public override string ToString()
+	{
+		var arguments = string.Join(", ", (object[])Arguments);
+		return Identifier + (string.IsNullOrEmpty(arguments) ? string.Empty : $"<{arguments}>");
+	}
+}
+
+public class UnresolvedType : Type, IResolvable
+{
+	private UnresolvedTypeComponent[] Components { get; }
+
+	public UnresolvedType(string identifier) : base(string.Empty, Modifier.DEFAULT)
+	{
+		Components = new[] { new UnresolvedTypeComponent(identifier) };
+	}
+
+	public UnresolvedType(string identifier, Type[] arguments) : base(string.Empty, Modifier.DEFAULT)
+	{
+		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
+	}
+
+	public UnresolvedType(UnresolvedTypeComponent[] components) : base(string.Empty, Modifier.DEFAULT)
+	{
+		Components = components;
+	}
+
+	public override bool IsResolved()
+	{
+		return false;
+	}
+
+	/// <summary>
+	/// Tries to resolve the type using the internal components
+	/// </summary>
+	public virtual Node? Resolve(Context context)
+	{
+		var environment = context;
+
+		foreach (var component in Components)
 		{
-			return null;
+			component.Resolve(environment);
+
+			var local = component != Components.First();
+
+			if (!context.IsTypeDeclared(component.Identifier, local))
+			{
+				return null;
+			}
+
+			var type = context.GetType(component.Identifier)!;
+
+			if (component.Arguments.Any())
+			{
+				// Require all of the arguments to be resolved
+				if (component.Arguments.Any(i => i.IsUnresolved))
+				{
+					return null;
+				}
+
+				// Since the component has template arguments, the type must be a template type
+				if (type.IsGenericType) return null;
+
+				if (type is TemplateType)
+				{
+					// Get a variant of the template type using the arguments of the component
+					context = type.To<TemplateType>().GetVariant(component.Arguments);
+				}
+				else
+				{
+					// Some base types are 'manual template types' such as link meaning they can still receive template arguments even though they are not instances of a template type class
+					type = type.Clone();
+					type.TemplateArguments = component.Arguments;
+
+					context = type;
+				}
+
+				continue;
+			}
+
+			context = type;
 		}
 
-		// Return if the type is not yet declared
-		if (!context.IsTypeDeclared(Name))
-		{
-			return null;
-		}
-
-		var type = context.GetType(Name)!;
-
-		if (!TemplateArguments.Any())
-		{
-			return new TypeNode(type);
-		}
-
-		if (type is TemplateType template_type)
-		{
-			return new TypeNode(template_type.GetVariant(TemplateArguments));
-		}
-
-		// Some base types are "manual template types" such as link meaning they can still receive template arguments even though they are not instances of a template type class
-		if (type.IsTemplateType)
-		{
-			// Clone the type since it is shared and add the template types
-			type = type.Clone();
-			type.TemplateArguments = TemplateArguments;
-			return new TypeNode(type);
-		}
-
-		return null;
+		return new TypeNode(context.To<Type>());
 	}
 
 	public Type? TryResolveType(Context context)
@@ -81,18 +127,11 @@ public class UnresolvedType : Type, IResolvable
 
 	public Status GetStatus()
 	{
-		var template_parameters = string.Join(", ", TemplateArguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
-
-		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
-
-		return Status.Error(Position, $"Could not resolve type '{descriptor}'");
+		return Status.Error(Position, $"Could not resolve type '{this}'");
 	}
 
 	public override string ToString()
 	{
-		var template_parameters = string.Join(", ", TemplateArguments.Select(i => i.IsUnresolved ? "?" : i.ToString()));
-		var descriptor = Name + (string.IsNullOrEmpty(template_parameters) ? string.Empty : $"<{template_parameters}>");
-
-		return descriptor;
+		return string.Join('.', (object[])Components);
 	}
 }

@@ -9,14 +9,13 @@ public class CastPattern : Pattern
 	private const int CAST = 1;
 	private const int TYPE = 2;
 
-	// Pattern: ... as Type [<$1, $2, ..., $n>]
+	// Pattern 1: $value as $type [<$1, $2, ..., $n>]
+	// Pattern 2: $value as ($1, $2, ..., $n) -> $type [<$1, $2, ..., $n>]
 	public CastPattern() : base
 	(
 		TokenType.OBJECT,
-		TokenType.KEYWORD,
-		TokenType.IDENTIFIER
-	)
-	{ }
+		TokenType.KEYWORD
+	) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{
@@ -30,15 +29,13 @@ public class CastPattern : Pattern
 			return false;
 		}
 
-		Try(Common.ConsumeTemplateArguments, state);
-
-		return true;
+		return Common.ConsumeType(state);
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
-		var type = Common.ReadTypeArgument(context, new Queue<Token>(tokens.Skip(TYPE)));
+		var type = Common.ReadType(context, new Queue<Token>(tokens.Skip(TYPE)));
 
 		if (type == null)
 		{

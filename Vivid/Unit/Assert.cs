@@ -19,13 +19,13 @@ public static class Assert
 	{
 		return value switch
 		{
-			byte a => (long)a,
-			short b => (long)b,
-			int c => (long)c,
-			long d => (long)d,
-			char e => (long)e,
-			ushort f => (long)f,
-			uint g => (long)g,
+			byte a => a,
+			short b => b,
+			int c => c,
+			long d => d,
+			char e => e,
+			ushort f => f,
+			uint g => g,
 			ulong h => (long)h,
 			IntPtr i => i.ToInt64(),
 			_ => null

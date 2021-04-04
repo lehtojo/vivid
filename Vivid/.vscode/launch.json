@@ -11,6 +11,11 @@
 			// Builds the standard library
 			//"args": [ "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Types.v", "-f", "-static" ],
 
+			// Builds the battleship game
+			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
+
+			"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-f", "-a", "-st" ],
+
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"stopAtEntry": false,
@@ -26,7 +31,7 @@
 			"program": "${workspaceFolder}/bin/Units/net5.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"args": [ ],
+			"args": [ "-O2" ],
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false
@@ -36,6 +41,12 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
+			"program": "${workspaceRoot}/v.exe",
+			"cwd": "${workspaceRoot}"
+		},
+		{
+			"request": "launch",
+			"name": "Vivid run",
 			"program": "${workspaceRoot}/v.exe",
 			"cwd": "${workspaceRoot}"
 		},

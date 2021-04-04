@@ -40,7 +40,7 @@ public class SubtractionInstruction : DualParameterInstruction
 				Unit.Append(new MoveInstruction(Unit, First, Result), true);
 			}
 
-			var instruction = Assembler.Is32bit ? Instructions.X64.SINGLE_PRECISION_SUBTRACT : Instructions.X64.DOUBLE_PRECISION_SUBTRACT;
+			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_SUBTRACT : Instructions.X64.DOUBLE_PRECISION_SUBTRACT;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 

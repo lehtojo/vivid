@@ -35,20 +35,25 @@ List<T> {
 		}
 
 		elements = allocate(count * sizeof(T))
+		zero(elements, count * sizeof(T))
+
 		capacity = count
 		position = 0
 	}
 
 	init() {
 		elements = allocate(sizeof(T))
+		elements[0] = 0
+
 		capacity = 1
 		position = 0
 	}
 
 	private grow() {
 		memory = allocate(capacity * 2 * sizeof(T))
+		zero(memory + capacity * sizeof(T), capacity * sizeof(T))
 		copy(elements, capacity * sizeof(T), memory)
-		#deallocate(elements, capacity * sizeof(T))
+		deallocate(elements)
 
 		elements = memory
 		capacity = capacity * 2
@@ -63,7 +68,7 @@ List<T> {
 		position += 1
 	}
 
-	remove(at: large) {
+	remove_at(at: large) {
 		offset = (at + 1) * sizeof(T)
 		bytes = (position - at - 1) * sizeof(T)
 
@@ -74,6 +79,17 @@ List<T> {
 		}
 
 		position--
+	}
+
+	remove(element: T) {
+		count = size()
+
+		loop (i = 0, i < count, i++) {
+			if elements[i] == element {
+				remove_at(i)
+				stop
+			}
+		}
 	}
 
 	take() {
