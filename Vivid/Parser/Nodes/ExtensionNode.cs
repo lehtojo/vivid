@@ -56,6 +56,12 @@ public class ExtensionFunctionNode : Node, IResolvable
 		}
 
 		function.Parameters.AddRange(Descriptor.GetParameters(function));
+
+		// If the destination is a namespace, mark the function as a static function
+		if (Destination.IsStatic)
+		{
+			function.Modifiers |= Modifier.STATIC;
+		}
 			
 		Destination.Declare(function);
 

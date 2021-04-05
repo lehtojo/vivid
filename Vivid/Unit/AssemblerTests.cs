@@ -2151,5 +2151,23 @@ namespace Vivid.Unit
 
 			Namespaces_Test();
 		}
+
+		private static void Extensions_Test()
+		{
+			var actual = Execute("Extensions");
+			var expected = "Decimal seems to be larger than tiny\nFactory created new Foo.Bar.Counter\n7\n";
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void Extensions()
+		{
+			if (!CompileExecutable("Extensions", new[] { "Extensions.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Extensions_Test();
+		}
 	}
 }

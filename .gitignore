@@ -1,2 +1,15 @@
-node_modules
-*.vsix
+.vs/
+
+# Binaries and such
+bin/
+obj/
+*.ilk
+*.o
+*.obj
+*.pdb
+*.dll
+*.so
+*.a
+*.exp
+*.lib
+*.exe

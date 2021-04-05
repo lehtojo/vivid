@@ -89,6 +89,7 @@ public static class Units
 		Run("Decimals", AssemblerTests.Decimals);
 		Run("Evacuation", AssemblerTests.Evacuation);
 		Run("ExpressionVariables", AssemblerTests.ExpressionVariables);
+		Run("Extensions", AssemblerTests.Extensions);
 		Run("Fibonacci", AssemblerTests.Fibonacci);
 		Run("Inheritance", AssemblerTests.Inheritance);
 		Run("Is", AssemblerTests.Is);

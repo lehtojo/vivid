@@ -50,7 +50,7 @@ public static class Evaluator
 		var right = TryGetValue(comparison.Right);
 
 		var is_equals_operator = comparison.Operator == Operators.EQUALS;
-		var is_not_equals_operator = comparison.Operator != Operators.EQUALS;
+		var is_not_equals_operator = comparison.Operator == Operators.NOT_EQUALS;
 
 		if ((is_equals_operator || is_not_equals_operator) && 
 			 (IsZero(comparison.Left) && Analyzer.GetSource(comparison.Right).Is(NodeType.STACK_ADDRESS) || 

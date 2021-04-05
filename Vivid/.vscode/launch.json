@@ -14,7 +14,7 @@
 			// Builds the battleship game
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
 
-			"args": [ "${workspaceFolder}/Tests/Namespaces.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-f", "-a", "-st", "-O1" ],
+			"args": [ "${workspaceFolder}/Tests/Extensions.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-f", "-a", "-st", "-O1" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
