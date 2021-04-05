@@ -877,13 +877,22 @@ public static class Analysis
 	/// <summary>
 	/// Evaluates the values of size nodes
 	/// </summary>
-	private static void CompleteSizes(Node root)
+	private static void CompleteInspections(Node root)
 	{
-		var sizes = root.FindAll(i => i.Is(NodeType.SIZE)).Cast<SizeNode>();
+		var inspections = root.FindAll(i => i.Is(NodeType.INSPECTION)).Cast<InspectionNode>();
 
-		foreach (var size in sizes)
+		foreach (var inspection in inspections)
 		{
-			size.Replace(new NumberNode(Parser.Format, (long)size.Type.ReferenceSize));
+			var type = inspection.Object.GetType();
+
+			if (inspection.Type == InspectionType.NAME)
+			{
+				inspection.Replace(new StringNode(type.ToString(), inspection.Position));
+			}
+			else if (inspection.Type == InspectionType.SIZE)
+			{
+				inspection.Replace(new NumberNode(Parser.Format, (long)type.ReferenceSize));
+			}
 		}
 	}
 
@@ -904,7 +913,7 @@ public static class Analysis
 		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
 			Complete(implementation);
-			CompleteSizes(implementation.Node!);
+			CompleteInspections(implementation.Node!);
 		}
 	}
 

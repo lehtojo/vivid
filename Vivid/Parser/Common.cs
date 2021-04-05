@@ -933,4 +933,62 @@ public static class Common
 	{
 		return (x & (x - 1)) == 0;
 	}
+
+	/// <summary>
+	/// Joins the specified token lists with the specified separator
+	/// </summary>
+	public static Token[] Join(Token separator, Token[][] elements)
+	{
+		var result = new List<Token>();
+
+		foreach (var element in elements)
+		{
+			result.AddRange(element);
+			result.Add(separator);
+		}
+
+		return result.GetRange(0, result.Count - 1).ToArray();
+	}
+
+	/// <summary>
+	/// Returns tokens which represent the specified type
+	/// </summary>
+	public static Token[] GetTokens(Type type, Position position)
+	{
+		var result = new List<Token>();
+
+		if (type is FunctionType function)
+		{
+			var parameters = function.Parameters.Select(i => GetTokens(i!, position)).ToArray();
+			var separator = new OperatorToken(Operators.COMMA) { Position = position };
+
+			result.Add(new ContentToken(ParenthesisType.PARENTHESIS, Join(separator, parameters)) { Position = position });
+			result.Add(new OperatorToken(Operators.ARROW) { Position = position });
+			result.AddRange(GetTokens(function.ReturnType!, position));
+
+			return result.ToArray();
+		}
+
+		if (type.Parent != null && type.Parent.IsType)
+		{
+			result.AddRange(GetTokens(type.Parent.To<Type>(), position));
+			result.Add(new OperatorToken(Operators.DOT) { Position = position });
+		}
+
+		result.Add(new IdentifierToken(type.Destructors.Overloads.Any() ? type.Identifier : type.Name, position));
+
+		if (type.TemplateArguments.Any())
+		{
+			result.Add(new OperatorToken(Operators.LESS_THAN) { Position = position });
+
+			var arguments = type.TemplateArguments.Select(i => GetTokens(i, position)).ToArray();
+			var separator = new OperatorToken(Operators.COMMA) { Position = position };
+
+			result.AddRange(Join(separator, arguments));
+
+			result.Add(new OperatorToken(Operators.GREATER_THAN) { Position = position });
+		}
+
+		return result.ToArray();
+	}
 }

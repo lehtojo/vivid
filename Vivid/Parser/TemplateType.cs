@@ -16,9 +16,6 @@ public class TemplateTypeVariant
 
 public class TemplateType : Type
 {
-	private const string TEMPLATE_ARGUMENT_SIZE_ACCESSOR = "size";
-	private const string TEMPLATE_ARGUMENT_NAME_ACCESSOR = "name";
-
 	private const int NAME = 0;
 
 	public List<string> TemplateArgumentNames { get; private set; }
@@ -71,30 +68,14 @@ public class TemplateType : Type
 					continue;
 				}
 
-				var type = arguments[j];
+				var position = tokens[i].To<IdentifierToken>().Position;
 
-				// Check if accessor pattern is possible (e.g T.size or T.name)
-				if (i + 2 < tokens.Count && tokens[i + 1].Type == TokenType.OPERATOR && tokens[i + 1].To<OperatorToken>().Operator == Operators.DOT && tokens[i + 2].Type == TokenType.IDENTIFIER)
-				{
-					switch (tokens[i + 2].To<IdentifierToken>().Value)
-					{
-						case TEMPLATE_ARGUMENT_SIZE_ACCESSOR:
-						{
-							tokens.RemoveRange(i, 3);
-							tokens.Insert(i, new NumberToken(type.ReferenceSize));
-							continue;
-						}
-
-						case TEMPLATE_ARGUMENT_NAME_ACCESSOR:
-						{
-							tokens.RemoveRange(i, 3);
-							tokens.Insert(i, new StringToken(type.Name));
-							continue;
-						}
-					}
-				}
-
-				tokens[i].To<IdentifierToken>().Value = type.Name;
+				tokens.RemoveAt(i);
+				tokens.InsertRange(i, Common.GetTokens(arguments[j], position));
+			}
+			else if (tokens[i].Type == TokenType.FUNCTION)
+			{
+				InsertArguments(tokens[i].To<FunctionToken>().Parameters.Tokens, arguments);
 			}
 			else if (tokens[i].Type == TokenType.CONTENT)
 			{
@@ -105,7 +86,7 @@ public class TemplateType : Type
 
 	private Type CreateVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name));
+		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var tokens = Inherited.Select(t => (Token)t.Clone()).ToList();

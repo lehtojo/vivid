@@ -530,6 +530,6 @@ public class Type : Context
 
 	public override string ToString()
 	{
-		return Name;
+		return string.Join('.', GetParentTypes().Select(i => i.Name).Concat(new[] { Name }));
 	}
 }

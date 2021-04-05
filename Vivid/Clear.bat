@@ -1,3 +1,4 @@
+@echo off
 del Unit_*.asm
 del Unit_*.obj
 del Unit_*.dll

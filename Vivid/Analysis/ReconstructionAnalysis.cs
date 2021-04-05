@@ -917,7 +917,7 @@ public static class ReconstructionAnalysis
 				continue;
 			}
 
-			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.SIZE, NodeType.CONTENT, NodeType.NOT))
+			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.INSPECTION, NodeType.CONTENT, NodeType.NOT))
 			{
 				// Take out the value of the inline node
 				var value = inline.Last;

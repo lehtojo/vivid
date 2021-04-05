@@ -6,9 +6,6 @@ public class TypeInspectionPattern : Pattern
 	public const string SIZE_INSPECTION_IDENTIFIER = "sizeof";
 	public const string NAME_INSPECTION_IDENTIFIER = "nameof";
 
-	public const string SIZE_INSPECTION_RUNTIME_IDENTIFIER = "internal_sizeof";
-	public const string NAME_INSPECTION_RUNTIME_IDENTIFIER = "internal_nameof";
-
 	public const int PRIORITY = 18;
 
 	// Pattern: sizeof(...)/nameof(...)
@@ -34,33 +31,20 @@ public class TypeInspectionPattern : Pattern
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var descriptor = tokens.First().To<FunctionToken>();
-		var parameters = descriptor.GetParsedParameters(context);
-		var parameter = parameters.First();
+		var parameter = descriptor.GetParsedParameters(context).First();
 
-		if (parameters.Find(i => !i.Is(NodeType.CONTENT) && !i.Is(NodeType.TYPE)) == null)
+		if (descriptor.Name == NAME_INSPECTION_IDENTIFIER)
 		{
 			var type = parameter.TryGetType();
 
-			if (type == Types.UNKNOWN)
+			if (type != Types.UNKNOWN)
 			{
-				throw Errors.Get(descriptor.Position, "Could not resolve the specified type");
+				return new StringNode(type.ToString(), descriptor.Position);
 			}
 
-			if (descriptor.Name == NAME_INSPECTION_IDENTIFIER)
-			{
-				return new StringNode(type.Name, descriptor.Position);
-			}
-
-			return new SizeNode(type);
+			return new InspectionNode(InspectionType.NAME, parameter);
 		}
 
-		descriptor.Identifier.Value = descriptor.Name switch
-		{
-			SIZE_INSPECTION_IDENTIFIER => SIZE_INSPECTION_RUNTIME_IDENTIFIER,
-			NAME_INSPECTION_IDENTIFIER => NAME_INSPECTION_RUNTIME_IDENTIFIER,
-			_ => throw Errors.Get(descriptor.Position, $"Unknown type inspection command '{descriptor.Name}'")
-		};
-
-		return Singleton.GetFunction(context, context, descriptor, false);
+		return new InspectionNode(InspectionType.SIZE, parameter);
 	}
 }

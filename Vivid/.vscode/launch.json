@@ -14,7 +14,7 @@
 			// Builds the battleship game
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
 
-			"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-f", "-a", "-st" ],
+			"args": [ "${workspaceFolder}/Tests/Namespaces.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/String.v", "-f", "-a", "-st", "-O1" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
@@ -31,7 +31,7 @@
 			"program": "${workspaceFolder}/bin/Units/net5.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"args": [ "-O2" ],
+			"args": [  ],
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false

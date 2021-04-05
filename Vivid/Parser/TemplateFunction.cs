@@ -45,7 +45,9 @@ public class TemplateFunction : Function
 		return null;
 	}
 
-	private void InsertArguments(List<Token> tokens, Type[] template_parameters)
+	
+
+	private void InsertArguments(List<Token> tokens, Type[] arguments)
 	{
 		for (var i = 0; i < tokens.Count; i++)
 		{
@@ -58,22 +60,25 @@ public class TemplateFunction : Function
 					continue;
 				}
 
-				tokens[i].To<IdentifierToken>().Value = template_parameters[j].Name;
+				var position = tokens[i].To<IdentifierToken>().Position;
+
+				tokens.RemoveAt(i);
+				tokens.InsertRange(i, Common.GetTokens(arguments[j], position));
 			}
 			else if (tokens[i].Type == TokenType.FUNCTION)
 			{
-				InsertArguments(tokens[i].To<FunctionToken>().Parameters.Tokens, template_parameters);
+				InsertArguments(tokens[i].To<FunctionToken>().Parameters.Tokens, arguments);
 			}
 			else if (tokens[i].Type == TokenType.CONTENT)
 			{
-				InsertArguments(tokens[i].To<ContentToken>().Tokens, template_parameters);
+				InsertArguments(tokens[i].To<ContentToken>().Tokens, arguments);
 			}
 		}
 	}
 
 	private Function? CreateVariant(Type[] template_arguments)
 	{
-		var identifier = string.Join(", ", template_arguments.Select(a => a.Name));
+		var identifier = string.Join(", ", template_arguments.Select(a => a.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();

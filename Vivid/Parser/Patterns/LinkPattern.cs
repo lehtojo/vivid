@@ -29,20 +29,13 @@ public class LinkPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var operation = (OperatorToken)tokens[OPERATOR];
-
-		// The operator between left and right token must be dot
-		if (operation.Operator != Operators.DOT)
+		// Ensure the operator is the dot operator
+		if (!tokens[OPERATOR].Is(Operators.DOT))
 		{
 			return false;
 		}
 
-		if (tokens[LEFT].Is(TokenType.DYNAMIC))
-		{
-			return true;
-		}
-
-		// Try to consume a template function call, therefore an identifier token in the right hand side
+		// Try to consume template arguments
 		if (tokens[RIGHT].Is(TokenType.IDENTIFIER))
 		{
 			Try(Common.ConsumeTemplateFunctionCall, state);
@@ -88,7 +81,7 @@ public class LinkPattern : Pattern
 		if (template_arguments.Any())
 		{
 			var name = tokens[RIGHT].To<IdentifierToken>();
-			var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>());
+			var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
 
 			right = Singleton.GetFunction(environment, primary, descriptor, template_arguments, true);
 		}

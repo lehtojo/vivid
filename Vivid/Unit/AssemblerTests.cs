@@ -2133,5 +2133,23 @@ namespace Vivid.Unit
 
 			Iteration_Test();
 		}
+
+		private static void Namespaces_Test()
+		{
+			var actual = Execute("Namespaces");
+			var expected = "Apple\nBanana\nFactory Foo.Apple\nFactory Foo.Apple\nFactory Foo.Apple\n";
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void Namespaces()
+		{
+			if (!CompileExecutable("Namespaces", new[] { "Namespaces.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Namespaces_Test();
+		}
 	}
 }
