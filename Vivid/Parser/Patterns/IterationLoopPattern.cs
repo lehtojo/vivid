@@ -82,8 +82,10 @@ public class IterationLoopPattern : Pattern
 		var context = new Context(environment);
 		var steps = new Node { new Node() { initialization }, new Node { condition }, new Node() };
 
-		var body = new ContextNode(context) { load };
-		Parser.Parse(context, tokens[BODY].To<ContentToken>().Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
+		var token = tokens[BODY].To<ContentToken>();
+		var body = new ScopeNode(context, token.Position, token.End) { load };
+
+		Parser.Parse(context, token.To<ContentToken>().Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
 
 		return new LoopNode(context, steps, body, tokens[LOOP].Position);
 	}

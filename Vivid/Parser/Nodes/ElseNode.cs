@@ -2,14 +2,14 @@ public class ElseNode : Node, IResolvable
 {
 	public Node? Predecessor => (Previous?.Is(NodeType.IF, NodeType.ELSE_IF) ?? false) ? Previous : null;
 
-	public ContextNode Body => First!.To<ContextNode>();
+	public ScopeNode Body => First!.To<ScopeNode>();
 
-	public ElseNode(Context context, Node body, Position? position = null)
+	public ElseNode(Context context, Node body, Position? start, Position? end)
 	{
-		Position = position;
+		Position = start;
 		Instance = NodeType.ELSE;
 
-		Add(new ContextNode(context));
+		Add(new ScopeNode(context, start, end));
 
 		body.ForEach(i => Body.Add(i));
 	}

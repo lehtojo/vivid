@@ -570,51 +570,34 @@ public static class Parser
 	}
 
 	/// <summary>
-	/// Creates a base context
+	/// Creates a root context
 	/// </summary>
-	/// <returns>Base context</returns>
 	public static Context Initialize(int identity)
 	{
-		var context = Context.CreateRootContext(identity.ToString(CultureInfo.InvariantCulture));
+		var context = new Context(identity.ToString(CultureInfo.InvariantCulture));
 		Types.Inject(context);
 
-		var copy = new Function
-		(
-			context,
-			Modifier.DEFAULT | Modifier.EXTERNAL,
-			"copy",
-			Types.UNIT,
-			new Parameter("source", Types.LINK),
-			new Parameter("bytes", Types.LARGE),
-			new Parameter("destination", Types.LINK)
-		);
-
-		var offset_copy = new Function
-		(
-			context,
-			Modifier.DEFAULT | Modifier.EXTERNAL,
-			"offset_copy",
-			Types.UNIT,
-			new Parameter("source", Types.LINK),
-			new Parameter("bytes", Types.LARGE),
-			new Parameter("destination", Types.LINK),
-			new Parameter("offset", Types.LARGE)
-		);
-
-		var deallocate = new Function
-		(
-			context,
-			Modifier.DEFAULT | Modifier.EXTERNAL,
-			"deallocate",
-			Types.UNIT,
-			new Parameter("address", Types.LINK),
-			new Parameter("bytes", Types.LARGE)
-		);
-
-		context.Declare(copy);
-		context.Declare(offset_copy);
-		context.Declare(deallocate);
-
 		return context;
+	}
+
+	/// <summary>
+	/// Creates a root node
+	/// </summary>
+	public static Node CreateRootNode(Context context)
+	{
+		var positive_infinity = Variable.Create(context, Types.DECIMAL, VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
+		var negative_infinity = Variable.Create(context, Types.DECIMAL, VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
+
+		return new ScopeNode(context, null, null)
+		{
+			new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(positive_infinity),
+				new NumberNode(Format.DECIMAL, double.PositiveInfinity)
+			),
+			new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(negative_infinity),
+				new NumberNode(Format.DECIMAL, double.NegativeInfinity)
+			)
+		};
 	}
 }

@@ -41,7 +41,7 @@ public static class Common
 			return null;
 		}
 
-		var function_pointer = OffsetNode.CreateConstantOffset(new LinkNode(self.Clone(), new VariableNode(self_type.Configuration.Variable)), overload.Alignment, 1, Parser.Format);
+		var function_pointer = new OffsetNode(new LinkNode(self.Clone(), new VariableNode(self_type.Configuration.Variable)), new NumberNode(Parser.Format, overload.Alignment));
 		var required_self_type = overload.GetTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
 
 		if (self_type != required_self_type)
@@ -80,7 +80,7 @@ public static class Common
 			return null;
 		}
 
-		var self = Common.GetSelfPointer(environment, null);
+		var self = GetSelfPointer(environment, null);
 
 		return TryGetVirtualFunctionCall(self, type, name, parameters, parameter_types);
 	}
@@ -102,7 +102,7 @@ public static class Common
 			return null;
 		}
 
-		var self = Common.GetSelfPointer(environment, null);
+		var self = GetSelfPointer(environment, null);
 
 		return TryGetVirtualFunctionCall(environment, self, type, descriptor);
 	}
@@ -125,7 +125,8 @@ public static class Common
 		}
 
 		var self = new LinkNode(left, new VariableNode(variable));
-		var function_pointer = OffsetNode.CreateConstantOffset(self.Clone(), 0, Parser.Size.Bytes, Parser.Format);
+		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
+		var function_pointer = new OffsetNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
 		return new CallNode(self, function_pointer, parameters, properties);
 	}
@@ -162,7 +163,7 @@ public static class Common
 
 		if (variable.IsMember)
 		{
-			var self_pointer = Common.GetSelfPointer(environment, null);
+			var self_pointer = GetSelfPointer(environment, null);
 
 			self = new LinkNode(self_pointer, new VariableNode(variable));
 		}
@@ -171,7 +172,8 @@ public static class Common
 			self = new VariableNode(variable);
 		}
 
-		var function_pointer = OffsetNode.CreateConstantOffset(self.Clone(), 0, Parser.Size.Bytes, Parser.Format);
+		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
+		var function_pointer = new OffsetNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
 		return new CallNode(self, function_pointer, parameters, properties);
 	}
@@ -730,12 +732,11 @@ public static class Common
 		var environment = constructor.GetParentContext();
 		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
 
-		var size = Math.Max(1, type.ContentSize);
 		var instance = inline.Context.DeclareHidden(type);
 
 		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 			new VariableNode(instance),
-			new CastNode(new StackAddressNode(inline.Context, size), new TypeNode(type))
+			new CastNode(new StackAddressNode(inline.Context, type), new TypeNode(type))
 		));
 
 		var supertypes = type.GetAllSupertypes();
@@ -788,63 +789,6 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Tries to return the type of the parameter that the specified node influences
-	/// </summary>
-	public static Type? TryGetParameterType(Node argument)
-	{
-		var iterator = argument;
-
-		while (iterator != null)
-		{
-			if (iterator.Parent == null)
-			{
-				return null;
-			}
-
-			if (iterator.Parent.Is(NodeType.FUNCTION))
-			{
-				// The specified node is part of standard function call
-				var function = iterator.Parent.To<FunctionNode>().Function;
-				var index = iterator.Parent.ToList().IndexOf(iterator);
-
-				// Ensure there are enough function parameters
-				if (function.ParameterTypes.Count <= index)
-				{
-					throw Errors.Get(iterator.Parent.Position, "Found a function call which takes too many arguments");
-				}
-
-				return function.ParameterTypes[index];
-			}
-			else if (iterator.Parent.Is(NodeType.CALL))
-			{
-				// The specified node is part of a manual function call
-				var descriptor = iterator.Parent.To<CallNode>().Descriptor;
-				var index = iterator.Parent.ToList().IndexOf(iterator);
-
-				// Ensure there are enough function parameters
-				if (descriptor.Parameters.Count <= index)
-				{
-					throw Errors.Get(iterator.Parent.Position, "Found a function call which takes too many arguments");
-				}
-
-				return descriptor.Parameters[index];
-			}
-			else if (iterator is not IContext)
-			{
-				// The parent node represents a typed object so it can be part of a function call
-				/// NOTE: Loops and such are context objects, so the condition should work
-				iterator = iterator.Parent;
-			}
-			else
-			{
-				return null;
-			}
-		}
-
-		return null;
-	}
-
-	/// <summary>
 	/// Returns the self pointer of the specified context
 	/// </summary>
 	public static Node GetSelfPointer(Context context, Position? position)
@@ -864,7 +808,7 @@ public static class Common
 	/// </summary>
 	public static Node FindCondition(Node start)
 	{
-		return start.GetRightWhile(i => i.Is(NodeType.CONTEXT, NodeType.INLINE, NodeType.NORMAL, NodeType.CONTENT)) ?? throw new ApplicationException("Conditional statement did not have a condition");
+		return start.GetRightWhile(i => i.Is(NodeType.SCOPE, NodeType.INLINE, NodeType.NORMAL, NodeType.CONTENT)) ?? throw new ApplicationException("Conditional statement did not have a condition");
 	}
 
 	/// <summary>
@@ -975,7 +919,7 @@ public static class Common
 			result.Add(new OperatorToken(Operators.DOT) { Position = position });
 		}
 
-		result.Add(new IdentifierToken(type.Destructors.Overloads.Any() ? type.Identifier : type.Name, position));
+		result.Add(new IdentifierToken(type.IsUserDefined ? type.Identifier : type.Name, position));
 
 		if (type.TemplateArguments.Any())
 		{
@@ -990,5 +934,38 @@ public static class Common
 		}
 
 		return result.ToArray();
+	}
+
+	/// <summary>
+	/// Returns whether the cast is safe
+	/// </summary>
+	public static bool IsCastSafe(Type from, Type to)
+	{
+		return from.Equals(to) || (from is Number && to is Number && (from is Link == to is Link)) || from.IsTypeInherited(to) || to.IsTypeInherited(from);
+	}
+
+	/// <summary>
+	/// Returns how many bits the specified number requires
+	/// </summary>
+	public static int GetBits(object value)
+	{
+		if (value is double) return Parser.Size.Bits;
+
+		var x = (long)value;
+
+		if (x < 0)
+		{
+			if (x < int.MinValue) return 64;
+			else if (x < short.MinValue) return 32;
+			else if (x < byte.MinValue) return 16;
+		}
+		else
+		{
+			if (x > int.MaxValue) return 64;
+			else if (x > short.MaxValue) return 32;
+			else if (x > byte.MaxValue) return 16;
+		}
+
+		return 8;
 	}
 }

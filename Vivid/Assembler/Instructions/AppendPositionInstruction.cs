@@ -21,11 +21,8 @@ public class AppendPositionInstruction : Instruction
 	public AppendPositionInstruction(Unit unit, Position position) : base(unit, InstructionType.APPEND_POSITION)
 	{
 		Position = position;
-	}
-
-	public override void OnBuild()
-	{
-		Build(GetPositionInstruction(Position));
+		Operation = GetPositionInstruction(Position);
+		IsBuilt = true;
 	}
 
 	public override string ToString()

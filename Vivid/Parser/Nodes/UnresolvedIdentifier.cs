@@ -17,24 +17,43 @@ public class UnresolvedIdentifier : Node, IResolvable
 	/// <summary>
 	/// Creates a lambda node from the specified function by copying it
 	/// </summary>
-	private Node? CreateLambdaByCopyingFunction(Context context, Function function, List<Type> types)
+	private Node? CreateLambdaFromFunction(Context context, Function function, List<Type> types)
 	{
 		// Allow only member functions which are static
-		if (function.IsMember && !function.IsStatic)
+		if (function.IsMember && !function.IsStatic) return null;
+
+		// Template functions are not supported here
+		if (function.IsTemplateFunction) return null;
+
+		// Create the parameters from the specified function
+		var parameters = function.Parameters.Zip(types, (i, j) => new Parameter(i.Name, i.Position, j));
+		var position = Position!;
+
+		// Create a blueprint which calls the specified function
+		// Example: => Namespace.Type.function(a, b, c)
+		var blueprint = new List<Token> { new OperatorToken(Operators.HEAVY_ARROW, position)};
+		
+		// Add the namespaces or types which contain the specified function before the function token
+		if (function.Parent != null && function.Parent.IsType)
 		{
-			return null;
+			blueprint.AddRange(Common.GetTokens(function.Parent.To<Type>(), position));
+			blueprint.Add(new OperatorToken(Operators.DOT, position));
 		}
 
+		// Now call the specified function by forwarding the lambda parameters
+		blueprint.Add(new FunctionToken
+		(
+			new IdentifierToken(function.Name, position),
+			new ContentToken(parameters.Select(i => (Token)new IdentifierToken(i.Name, position)).ToList()),
+			position
+		));
+
 		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
-		var blueprint = function.Blueprint.Select(i => (Token)i.Clone()).ToList();
+		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, Position, null);
 
-		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint);
-		var parameters = function.Parameters.Zip(types, (i, j) => new Parameter(i.Name, i.Position, j));
-
-		lambda.Position = Position;
 		lambda.Parameters.AddRange(parameters);
 
-		return new LambdaNode(lambda.Implement(types), Position!);
+		return new LambdaNode(lambda.Implement(types),position);
 	}
 
 	/// <summary>
@@ -68,16 +87,18 @@ public class UnresolvedIdentifier : Node, IResolvable
 				return null;
 			}
 
-			return CreateLambdaByCopyingFunction(context, overload, overload.Parameters.Select(i => i.Type!).ToList());
+			return CreateLambdaFromFunction(context, overload, overload.Parameters.Select(i => i.Type!).ToList());
 		}
 
+		var parent = FindParent(i => !i.Is(NodeType.LINK));
+
 		// Check if this identifier is casted and contains information about which overload to choose
-		if (Parent == null || !Parent.Is(NodeType.CAST))
+		if (parent == null || !parent.Is(NodeType.CAST))
 		{
 			return null;
 		}
 
-		var type = Parent.To<CastNode>().TryGetType();
+		var type = parent.To<CastNode>().TryGetType();
 
 		// Require that the type of the cast is resolved
 		if (type is not FunctionType descriptor)
@@ -98,23 +119,18 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 		if (overload != null)
 		{
-			return CreateLambdaByCopyingFunction(context, overload, types!);
+			return CreateLambdaFromFunction(context, overload, types!);
 		}
 
 		return null;
 	}
 
-	public Node? GetResolvedNode(Context context)
+	public Node? Resolve(Context context)
 	{
 		var linked = Parent != null && Parent.Is(NodeType.LINK);
 		var result = Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), linked);
 
 		return result.Is(NodeType.UNRESOLVED_IDENTIFIER) ? TryResolveAsFunctionPointer(context) : result;
-	}
-
-	public Node? Resolve(Context context)
-	{
-		return GetResolvedNode(context);
 	}
 
 	public override Type? TryGetType()

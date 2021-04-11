@@ -305,46 +305,6 @@ public static class Arithmetic
 		return result;
 	}
 
-	/// <summary>
-	/// Returns the value of the specified node
-	/// </summary>
-	private static Node GetValue(Node root)
-	{
-		var iterator = root;
-
-		while (true)
-		{
-			if (iterator.Is(NodeType.CAST))
-			{
-				iterator = iterator.First();
-			}
-			else if (iterator.Is(NodeType.INLINE))
-			{
-				iterator = iterator.Last();
-			}
-			else if (iterator.Is(NodeType.CONTENT))
-			{
-				iterator = iterator.Last();
-			}
-			else
-			{
-				break;
-			}
-		}
-
-		return iterator;
-	}
-
-	/// <summary>
-	/// Returns whether a variable is being assigned with another variable
-	/// </summary>
-	private static bool IsAliasAssignment(Node value)
-	{
-		value = GetValue(value);
-
-		return value.Is(NodeType.VARIABLE) && value.To<VariableNode>().Variable.IsPredictable;
-	}
-
 	private static long GetDivisorReciprocal(long divisor)
 	{
 		if (divisor == 1)

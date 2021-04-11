@@ -2,25 +2,29 @@ using System;
 
 public class StackAddressNode : Node
 {
+	public Type Type { get; }
 	public string Identity { get; set; }
-	public int Alignment { get; set; }
-	public int Bytes { get; set; }
+	public int Bytes => Math.Max(Type.ContentSize, 1);
 
-	public StackAddressNode(Context context, int bytes)
+	public StackAddressNode(Context context, Type type)
 	{
+		Type = type;
 		Identity = context.CreateStackAddress();
 		Instance = NodeType.STACK_ADDRESS;
-		Alignment = 0;
-		Bytes = bytes;
 	}
 
 	public override Type? TryGetType()
 	{
-		return Types.LINK;
+		return Type;
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is StackAddressNode node && Identity == node.Identity;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Instance, Position, Identity, Alignment, Bytes);
+		return HashCode.Combine(Instance, Position, Identity, Bytes);
 	}
 }

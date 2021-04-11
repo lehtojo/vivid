@@ -389,13 +389,15 @@ public class ServicePhase : Phase
 
 		// Parse the document
 		var context = Parser.Initialize(0);
-		var root = new ContextNode(context);
+		var root = Parser.CreateRootNode(context);
 
 		Parser.Parse(root, context, tokens);
 
 		// Find all the types under the parsed document and parse them completely
 		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
 		types.ForEach(i => i.Parse());
+		
+		root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
 
 		// Ensure exported and virtual functions are implemented
 		ParserPhase.ImplementFunctions(context, true);
@@ -569,13 +571,18 @@ public class ServicePhase : Phase
 
 		// Parse the document
 		var context = Parser.Initialize(0);
-		var root = new ContextNode(context);
+		var root = Parser.CreateRootNode(context);
 
 		Parser.Parse(root, context, tokens);
 
 		// Find all the types under the parsed document and parse them completely
 		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
 		types.ForEach(i => i.Parse());
+
+		root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
+
+		// Applies all the extension functions
+		ParserPhase.ApplyExtensionFunctions(context, root);
 
 		// Ensure exported and virtual functions are implemented
 		ParserPhase.ImplementFunctions(context, true);

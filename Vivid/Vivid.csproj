@@ -15,7 +15,7 @@
 		<WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 		<Nullable>enable</Nullable>
 		<GenerateProgramFile>false</GenerateProgramFile>
-		<NoWarn>1701;1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308</NoWarn>
+		<NoWarn>CA1050;CA1701;CA1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308</NoWarn>
 		<Optimize>false</Optimize>
 	</PropertyGroup>
 
@@ -27,7 +27,7 @@
 		<WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 		<Nullable>enable</Nullable>
 		<GenerateProgramFile>false</GenerateProgramFile>
-		<NoWarn>1701;1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308</NoWarn>
+		<NoWarn>CA1050;CA1701;CA1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308</NoWarn>
 		<Optimize>false</Optimize>
 	</PropertyGroup>
 
@@ -37,7 +37,7 @@
 		<WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 		<Nullable>enable</Nullable>
 		<GenerateProgramFile>false</GenerateProgramFile>
-		<NoWarn>1701;1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308;CA1050</NoWarn>
+		<NoWarn>CA1050;CA1701;CA1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308</NoWarn>
 		<Optimize>true</Optimize>
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<DebugType>full</DebugType>

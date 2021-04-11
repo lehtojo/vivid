@@ -129,9 +129,9 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return result;
 	}
 
-	public IContext FindContext()
+	public IScope FindContext()
 	{
-		return (IContext)FindParent(p => p is IContext)!;
+		return (IScope)FindParent(p => p is IScope)!;
 	}
 
 	public Context GetParentContext()

@@ -196,7 +196,8 @@ public static class MemoryAccessAnalysis
 			// Remove all the repetitions from the link list since they are about to be modified
 			repetitions.ForEach(i => links.Remove(i));
 
-			var context = start.FindParent(i => i.Is(NodeType.IMPLEMENTATION))!.To<ImplementationNode>().Context;
+			/// NOTE: If a scope node does not have a parent, it must be the root scope
+			var context = start.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent == null)!.To<ScopeNode>().Context;
 			var variable = context.DeclareHidden(start.GetType());
 
 			// Initialize the variable

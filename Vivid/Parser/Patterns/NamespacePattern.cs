@@ -22,10 +22,7 @@ public class NamespacePattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		// Require the first token to be the namespace keyword
-		if (!tokens.First().Is(Keywords.NAMESPACE))
-		{
-			return false;
-		}
+		if (!tokens.First().Is(Keywords.NAMESPACE)) return false;
 
 		while (true)
 		{
@@ -50,29 +47,12 @@ public class NamespacePattern : Pattern
 		return tokens.Last().Is(TokenType.NONE) || tokens.Last().Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	private static Type CreateNamespace(Context context, List<Token> tokens)
-	{
-		var components = new List<string>();
-
-		for (var i = NAME; i < tokens.Count; i += 2)
-		{
-			if (!tokens[i].Is(TokenType.IDENTIFIER))
-			{
-				break;
-			}
-
-			var name = tokens[i].To<IdentifierToken>().Value;
-			var type = context.GetType(name);
-
-			context = type != null ? type : new Type(context, name, Modifier.DEFAULT | Modifier.STATIC, tokens.First().Position);
-		}
-
-		return (Type)context;
-	}
-
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var result = CreateNamespace(context, tokens);
+		// Collect all the parent types and ensure they all are namespaces
+		var types = context.GetParentTypes();
+
+		if (types.Any(i => !i.IsStatic)) throw Errors.Get(tokens.First().Position, "Can not create a namespace under a type");
 		
 		List<Token>? blueprint;
 
@@ -89,6 +69,10 @@ public class NamespacePattern : Pattern
 			blueprint = state.Formatted.Last().To<ContentToken>().Tokens;
 		}
 
-		return new TypeNode(result, blueprint, result.Position);
+		// Find the line ending token which is after the name
+		var end = tokens.FindIndex(i => i.Is(TokenType.END) || i.Is(TokenType.NONE));
+		var name = tokens.GetRange(NAME, end - NAME);
+
+		return new NamespaceNode(name, blueprint);
 	}
 }

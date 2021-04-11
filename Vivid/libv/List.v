@@ -43,7 +43,7 @@ List<T> {
 
 	init() {
 		elements = allocate(sizeof(T))
-		elements[0] = 0
+		elements[0] = 0 as T
 
 		capacity = 1
 		position = 0

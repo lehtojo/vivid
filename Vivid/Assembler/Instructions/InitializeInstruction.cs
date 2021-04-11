@@ -156,7 +156,7 @@ public class InitializeInstruction : Instruction
 
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Position!));
+			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
 			builder.AppendLine(Unit.DEBUG_FUNCTION_START);
 		}
 

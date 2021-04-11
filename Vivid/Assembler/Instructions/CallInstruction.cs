@@ -26,6 +26,7 @@ public class CallInstruction : Instruction
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
 		Dependencies = null;
 		Description = "Calls function " + Function;
+		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
 	}
@@ -35,6 +36,7 @@ public class CallInstruction : Instruction
 		Function = function;
 		Dependencies = null;
 		Description = "Calls the function handle";
+		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
 	}
@@ -68,11 +70,68 @@ public class CallInstruction : Instruction
 		return registers;
 	}
 
+	/// <summary>
+	/// Prepares the memory handle for use by relocating its inner handles into registers, therefore its use does not require additional steps, except if it is in invalid format
+	/// </summary>
+	/// <returns>
+	/// Returns a list of register locks which must be active while the handle is in use
+	/// </returns>
+	public List<RegisterLock> ValidateMemoryHandle(Handle handle)
+	{
+		var results = handle.GetRegisterDependentResults();
+		var locks = new List<RegisterLock>();
+
+		foreach (var result in results)
+		{
+			// 1. If the function handle lifetime extends over this instruction, all the inner handles must extend over this instruction as well, therefore a non-volatile register is needed
+			// 2. If lifetime of a inner handle extends over this instruction, it needs a non-volatile register
+			var non_volatile = Function.IsValid(Position + 1) || result.IsValid(Position + 1);
+
+			if (result.IsStandardRegister && (!non_volatile || !result.Value.To<RegisterHandle>().Register.IsVolatile))
+			{
+				continue;
+			}
+
+			// Request an available register, which is volatile based on the lifetime of the function handle and its inner handles
+			var register = non_volatile ? Unit.GetNextNonVolatileRegister(false, true) : Unit.GetNextRegister();
+
+			// There should always be a register available, since the function call above can release values into memory
+			if (register == null) throw new ApplicationException("Could not validate call handle");
+
+			var destination = new RegisterHandle(register);
+
+			Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), result)
+			{
+				Description = $"Evacuate an important value into '{destination}'",
+				Type = MoveType.RELOCATE
+			});
+
+			locks.Add(RegisterLock.Create(result));
+		}
+
+		return locks;
+	}
+
+	/// <summary>
+	/// Moves the specified result into a register
+	/// </summary>
+	/// <returns>
+	/// Returns a list of register locks which must be active while the handle is in use
+	/// </returns>
+	public List<RegisterLock> MoveToRegister()
+	{
+		Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
+		return new List<RegisterLock> { RegisterLock.Create(Function) };
+	}
+
 	public override void OnBuild()
 	{
 		var registers = ExecuteParameterInstructions();
 
+		// Lock the parameter registers
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
+
+		var locks = new List<RegisterLock>();
 
 		if (Assembler.IsArm64)
 		{
@@ -80,10 +139,21 @@ public class CallInstruction : Instruction
 
 			if (!is_address)
 			{
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
+				locks = MoveToRegister();
 			}
 
+			// Ensure the function handle is in the correct format
+			if (Function.Format != Assembler.Format)
+			{
+				locks.ForEach(i => i.Dispose());
+				locks = MoveToRegister();
+			}
+
+			// Now evacuate all the volatile registers before the call
 			Unit.Append(new EvacuateInstruction(Unit, this));
+
+			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
+			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
 				is_address ? global::Instructions.Arm64.CALL_LABEL : global::Instructions.Arm64.CALL_REGISTER,
@@ -98,14 +168,25 @@ public class CallInstruction : Instruction
 		{
 			if (Function.IsMemoryAddress)
 			{
-				ValidateHandle(Function.Value);
+				locks = ValidateMemoryHandle(Function.Value);
 			}
 			else if (!Function.IsStandardRegister)
 			{
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
+				locks = MoveToRegister();
 			}
 
+			// Ensure the function handle is in the correct format
+			if (Function.Format != Assembler.Format)
+			{
+				locks.ForEach(i => i.Dispose());
+				locks = MoveToRegister();
+			}
+
+			// Now evacuate all the volatile registers before the call
 			Unit.Append(new EvacuateInstruction(Unit, this));
+
+			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
+			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
 				global::Instructions.X64.CALL,
@@ -118,9 +199,12 @@ public class CallInstruction : Instruction
 			);
 		}
 
+		locks.ForEach(i => i.Dispose());
+
 		// Validate evacuation since it is very important to be correct
 		ValidateEvacuation();
 
+		// Unlock the parameter registers
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
 
 		// After a call all volatile registers might be changed

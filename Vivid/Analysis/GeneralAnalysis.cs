@@ -135,67 +135,6 @@ public static class GeneralAnalysis
 	}
 
 	/// <summary>
-	/// Removes the statement while taking care of the calls which might be inside it
-	/// </summary>
-	private static void RemoveStatement(Node statement, Dictionary<Variable, VariableDescriptor> descriptors)
-	{
-		// Find all variables usages which might be removed
-		var usages = statement.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable.IsPredictable).ToList();
-
-		// Find all function calls inside the redundant write and replace the write with them
-		var calls = statement.FindAll(i => i.Is(NodeType.FUNCTION, NodeType.CALL));
-
-		// Since the calls will be preserved, find all variable usages under them, and remove them from the usage list
-		calls.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().ForEach(i => usages.Remove(i));
-
-		// Remove all the usages
-		foreach (var usage in usages)
-		{
-			var descriptor = descriptors[usage.Variable];
-			var removed = false;
-
-			for (var i = 0; i < descriptor.Reads.Count; i++)
-			{
-				if (ReferenceEquals(descriptor.Reads[i], usage))
-				{
-					descriptor.Reads.RemoveAt(i);
-					removed = true;
-					break;
-				}
-			}
-
-			if (removed)
-			{
-				continue;
-			}
-			
-			for (var i = 0; i < descriptor.Writes.Count; i++)
-			{
-				var edited = Analyzer.GetEdited(descriptor.Writes[i].Node);
-
-				if (ReferenceEquals(edited, usage))
-				{
-					descriptor.Writes.RemoveAt(i);
-					break;
-				}
-			}
-		}
-
-		if (calls.Any())
-		{
-			// Add all the calls under an inline node
-			var inline = new InlineNode(statement.Position);
-			calls.ForEach(inline.Add);
-
-			statement.Replace(inline);
-		}
-		else
-		{
-			statement.Remove();
-		}
-	}
-
-	/// <summary>
 	/// Removes all the assigments which do not have any effect on the execution of the specified function
 	/// </summary>
 	private static void RemoveRedundantAssignments(FunctionImplementation implementation, Node root)
@@ -254,34 +193,32 @@ public static class GeneralAnalysis
 			}
 		}
 
-		foreach (var redundant in redundants)
+		foreach (var iterator in redundants)
 		{
-			if (redundant.Declaration != null)
+			// Find all function calls inside the redundant write and replace the write with them
+			var blocks = iterator.Node.FindTop(i => i.Is(NodeType.FUNCTION, NodeType.CALL, NodeType.INLINE));
+
+			// If any of the calls in under a link node, select those link nodes
+			blocks = blocks.Select(i => i.Parent != null && i.Parent.Is(NodeType.LINK) ? i.Parent : i).ToList();
+
+			var inline = new InlineNode(iterator.Node.Position);
+
+			// Declare the variable of the assignment if needed
+			if (iterator.Declaration != null)
 			{
-				var declaration = new DeclareNode(redundant.Declaration);
+				inline.Add(new DeclareNode(iterator.Declaration));
+			}
 
-				// Find all function calls inside the redundant write and replace the write with them
-				var blocks = redundant.Node.FindTop(i => i.Is(NodeType.FUNCTION, NodeType.CALL, NodeType.INLINE));
+			// Add all the blocks to the inline node
+			blocks.ForEach(i => inline.Add(i));
 
-				// If any of the calls in under a link node, select those link nodes
-				blocks = blocks.Select(i => i.Parent!.Is(NodeType.LINK) ? i.Parent! : i).ToList();
-
-				if (blocks.Any())
-				{
-					// Add all the calls under an inline node
-					var inline = new InlineNode(redundant.Node.Position) { declaration };
-					blocks.ForEach(inline.Add);
-
-					redundant.Node.Replace(inline);
-				}
-				else
-				{
-					redundant.Node.Replace(declaration);
-				}
+			if (!inline.IsEmpty)
+			{
+				iterator.Node.Replace(inline);
 			}
 			else
 			{
-				RemoveStatement(redundant.Node, descriptors);
+				iterator.Node.Remove();
 			}
 		}
 	}
@@ -314,54 +251,6 @@ public static class GeneralAnalysis
 			return variable.IsPredictable && !variable.IsConstant && !variable.IsSelfPointer;
 
 		}).Select(i => i.To<VariableNode>().Variable).ToArray();
-	}
-
-	/// <summary>
-	/// Add all variable usages from the specified node tree
-	/// </summary>
-	private static void AddUsages(Node root, Dictionary<Variable, VariableDescriptor> descriptors)
-	{
-		var usages = root.Is(NodeType.VARIABLE) ? new[] { root.To<VariableNode>() } : root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().ToArray();
-		usages = usages.Where(i => i.Variable.IsPredictable).ToArray();
-
-		foreach (var usage in usages)
-		{
-			var descriptor = descriptors[usage.Variable];
-
-			if (Analyzer.IsEdited(usage))
-			{
-				descriptor.Writes.Add(new VariableWrite(Analyzer.GetEditor(usage)));
-			}
-			else
-			{
-				descriptor.Reads.Add(usage);
-			}
-		}
-	}
-
-	/// <summary>
-	/// Remove all variable usages from the specified node tree
-	/// </summary>
-	private static void RemoveUsages(Node root, Dictionary<Variable, VariableDescriptor> descriptors)
-	{
-		var usages = root.Is(NodeType.VARIABLE) ? new[] { root.To<VariableNode>() } : root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().ToArray();
-		usages = usages.Where(i => i.Variable.IsPredictable).ToArray();
-
-		foreach (var usage in usages)
-		{
-			var descriptor = descriptors[usage.Variable];
-
-			if (Analyzer.IsEdited(usage))
-			{
-				var index = descriptor.Writes.FindIndex(0, i => ReferenceEquals(Analyzer.GetEditor(usage), i.Node));
-
-				descriptor.Writes.RemoveAt(index);
-			}
-			else
-			{
-				descriptor.Reads.Remove(usage);
-			}
-		}
 	}
 
 	/// <summary>

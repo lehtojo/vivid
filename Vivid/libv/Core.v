@@ -1,12 +1,16 @@
 ﻿import exit(code: large)
 
 import internal_allocate(bytes: large): link
+import deallocate(address: link, bytes: large)
 
 import allocate_stack(count: large): link
 import deallocate_stack(count: large)
 
 import fill(destination: link, count: large, value: large)
 import zero(destination: link, count: large)
+
+import copy(source: link, bytes: large, destination: link)
+import offset_copy(source: link, bytes: large, destination: link, offset: large)
 
 true = 1
 false = 0
@@ -43,7 +47,9 @@ outline allocate(bytes: large) {
 	=> address as link
 }
 
-outline deallocate(address: link) {}
+outline deallocate(address: link) {
+	address = none as link
+}
 
 outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 

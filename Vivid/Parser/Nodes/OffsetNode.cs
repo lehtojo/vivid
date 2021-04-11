@@ -5,22 +5,10 @@ public class OffsetNode : Node, IResolvable
 	public Node Start => First!;
 	public Node Offset => Last!;
 
-	public int? Stride { get; set; }
-	public Format? Format { get; set; }
-
-	public static OffsetNode CreateConstantOffset(Node start, long offset, int stride, Format format)
-	{
-		return new OffsetNode(start, new ContentNode { new NumberNode(Parser.Format, offset) })
-		{
-			Stride = stride,
-			Format = format
-		};
-	}
-
 	public OffsetNode(Node start, Node offset)
 	{
 		Add(start);
-		Add(offset);
+		Add(new ContentNode { offset });
 		Instance = NodeType.OFFSET;
 	}
 
@@ -34,26 +22,12 @@ public class OffsetNode : Node, IResolvable
 
 	public int GetStride()
 	{
-		if (Stride != null)
-		{
-			return (int)Stride;
-		}
-
-		var type = GetType();
-
-		return Equals(type, Types.LINK) ? 1 : type.ReferenceSize;
+		return GetType().ReferenceSize;
 	}
 
 	public Format GetFormat()
 	{
-		if (Format != null)
-		{
-			return (Format)Format;
-		}
-
-		var type = GetType();
-
-		return Equals(type, Types.LINK) ? global::Format.UINT8 : type.Format;
+		return GetType().Format;
 	}
 
 	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node parameters)
@@ -117,7 +91,7 @@ public class OffsetNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Instance, Position, Stride, Format);
+		return HashCode.Combine(Instance, Position);
 	}
 
 	public Status GetStatus()

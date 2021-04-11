@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
+public class ScopeDestructionDescriptor
+{
+	public List<StackAddressNode> Allocations { get; } = new();
+	public bool IsTerminated { get; set; } = false;
+}
+
 public static class GarbageCollector
 {
 	/// <summary>
@@ -23,17 +29,33 @@ public static class GarbageCollector
 	}
 
 	/// <summary>
-	/// Returns all the variables under the specified scope which can be destructed.
+	/// Returns all the local variables under the specified scope which can be destructed.
 	/// The returned variables can not be declared under the specified scope contexts.
 	/// </summary>
-	private static List<Variable> GetUnlinkableScopeVariables(Context scope, Context[] scopes)
+	private static List<Variable> GetUnlinkableLocalVariables(Context scope, Context[] scopes)
 	{
 		var contexts = FindSubcontextsExcept(scope, scopes);
 
 		contexts.Add(scope);
 
 		// Collect all the variables which have a destructor
-		return contexts.SelectMany(i => i.Variables.Values).Where(i => i.IsLocal && i.Type!.Destructors.Overloads.Any()).ToList();
+		return contexts.SelectMany(i => i.Variables.Values).Where(i => i.IsLocal && i.Type!.IsUserDefined).ToList();
+	}
+
+	/// <summary>
+	/// Returns all the variables which have been initialized when the specified node is executed.
+	/// </summary>
+	private static List<Variable> GetUnlinkableVariables(Node perspective, Context scope)
+	{
+		// Collect all the local variables which have a destructor
+		var locals = scope.Variables.Values.Where(i => i.IsLocal && i.Type!.IsUserDefined);
+		
+		// 1. If the scope represents a function implementation, collecting should be stopped here
+		// 2. Require the local variables to be initialized before the specified perspective
+		if (scope.IsImplementation) return locals.Where(i => i.Writes.Any() && i.Writes.First().IsBefore(perspective)).ToList();
+
+		// Require the local variables to be initialized before the specified perspective
+		return locals.Where(i => i.Writes.Any() && i.Writes.First().IsBefore(perspective)).Concat(GetUnlinkableVariables(perspective, scope.Parent!)).ToList();
 	}
 
 	/// <summary>
@@ -45,6 +67,46 @@ public static class GarbageCollector
 		{
 			var implementation = Parser.UnlinkFunction!.Get(variable.Type!) ?? throw new ApplicationException("Missing unlink function overload");
 			destination.Add(new FunctionNode(implementation).SetParameters(new Node { new VariableNode(variable) }));
+		}
+	}
+
+	/// <summary>
+	/// Generates code which destructs all the specified stack allocations
+	/// </summary>
+	private static void DestructAll(Node destination, IEnumerable<StackAddressNode> allocations)
+	{
+		foreach (var allocation in allocations)
+		{
+			var implementation = allocation.Type.Destructors.GetImplementation() ?? throw new ApplicationException("Missing destructor");
+			
+			// Do not call the destructor if it is empty
+			if (implementation.IsEmpty) continue;
+			
+			destination.Add(new LinkNode(allocation.Clone(), new FunctionNode(implementation)));
+		}
+	}
+
+	/// <summary>
+	/// Registers stack allocations so that they will be destroyed properly
+	/// </summary>
+	public static void DestructStackAllocations(Node root, Dictionary<Node, ScopeDestructionDescriptor> scopes)
+	{
+		// Find all the stack allocations inside the specified node
+		var allocations = root.FindAll(i => i.Is(NodeType.STACK_ADDRESS)).Distinct();
+
+		foreach (var allocation in allocations)
+		{
+			var scope = allocation.FindParent(i => ReconstructionAnalysis.IsStatement(i)) ?? throw new ApplicationException("Stack allocation did not have a parent scope");
+			var denylist = Analysis.GetDenylist(allocation);
+
+			// Find all the scopes under the parent scope of the allocation and require that they are executed after the allocation
+			var subscopes = scopes.Keys.Where(i => i.IsUnder(scope) && i.IsAfter(allocation));
+
+			// Add the stack allocation to the filtered scopes
+			scopes[scope].Allocations.Add(allocation.To<StackAddressNode>());
+
+			// Destroy the allocation in subscopes which are terminated by a return statement
+			subscopes.Where(i => scopes[i].IsTerminated).ForEach(i => scopes[i].Allocations.Add(allocation.To<StackAddressNode>()));
 		}
 	}
 
@@ -62,25 +124,39 @@ public static class GarbageCollector
 		var root = implementation.Node!;
 
 		// Find all the scopes
-		var scopes = root.FindAll(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION)).Cast<IContext>().ToList();
-		var contexts = scopes.Select(i => i.GetContext()).ToArray();
+		var scopes = root.FindAll(i => ReconstructionAnalysis.IsScope(i)).ToDictionary(i => i, _ => new ScopeDestructionDescriptor());
+		var contexts = scopes.Keys.Select(i => ((IScope)i).GetContext()).ToArray();
 
 		// Add the root since it is a scoped node
-		scopes.Add((IContext)root);
+		scopes.Add(root, new ScopeDestructionDescriptor());
 
 		var returns = root.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
 
+		// Register scopes which can not be exited
 		foreach (var statement in returns)
 		{
-			var scope = (IContext)(statement.FindParent(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION)) ?? throw new ApplicationException("Missing statement context"));
-			var variables = GetUnlinkableScopeVariables(scope.GetContext(), contexts);
+			var scope = statement.FindParent(i => ReconstructionAnalysis.IsScope(i)) ?? throw new ApplicationException("Return statement did not have a parent scope");
+			scopes[scope].IsTerminated = true;
+		}
 
-			scopes.Remove(scope);
+		// Find all the stack allocations and register them to be destructed
+		DestructStackAllocations(root, scopes);
 
+		foreach (var statement in returns)
+		{
+			var scope = statement.FindParent(i => ReconstructionAnalysis.IsScope(i)) ?? throw new ApplicationException("Return statement did not have a parent scope");
+			var context = ((IScope)scope).GetContext();
+			
+			var variables = GetUnlinkableVariables(statement, context);
+			var allocations = scopes[scope].Allocations;
+
+			// If the return statement has a value, it might need to be moved, because the destructors must be executed last
 			if (statement.Value != null)
 			{
+				// Get the actual value which will be returned
 				var source = Analyzer.GetSource(statement.Value)!;
 				
+				// Determine which kind of value the return value is
 				var is_local_variable = source.Is(NodeType.VARIABLE) && source.To<VariableNode>().Variable.IsLocal;
 				var is_function_call = source.Is(NodeType.FUNCTION, NodeType.CALL);
 
@@ -89,10 +165,12 @@ public static class GarbageCollector
 					var value = statement.Value;
 					var type = value.GetType();
 
-					if (!variables.Any())
+					// Do not add any special operations if there are no variables to be destructed
+					if (!allocations.Any() && !variables.Any())
 					{
-						// Link the value if it can be linked
-						if (!is_function_call && type.Destructors.Overloads.Any())
+						// 1. Function calls can not be linked since their return values are already linked
+						// 2. The return value needs to be linkable
+						if (!is_function_call && type.IsUserDefined)
 						{
 							// Remove the value from the return statement
 							value.Remove();
@@ -109,13 +187,14 @@ public static class GarbageCollector
 					// Remove the value from the return statement
 					value.Remove();
 
-					var environment = new ContextInlineNode(new Context(scope.GetContext()));
+					var environment = new ContextInlineNode(new Context(context));
 
 					// Load the return value into a temporary variable
 					var variable = environment.Context.DeclareHidden(type);
 
-					// Link the value if it can be linked
-					if (!is_function_call && type.Destructors.Overloads.Any())
+					// 1. Function calls can not be linked since their return values are already linked
+					// 2. The return value needs to be linkable
+					if (!is_function_call && type.IsUserDefined)
 					{
 						implementation = Parser.LinkFunction!.Get(type) ?? throw new ApplicationException("Missing link function overload");
 						implementation.ReturnType = type;
@@ -135,6 +214,9 @@ public static class GarbageCollector
 					
 					// Unlink all the variables
 					UnlinkAll(environment, variables);
+
+					// Destruct all the stack allocations
+					DestructAll(environment, scopes[scope].Allocations);
 
 					// Set the temporary variable as the return value
 					statement.Add(new VariableNode(variable));
@@ -157,6 +239,9 @@ public static class GarbageCollector
 			// Unlink all the variables
 			UnlinkAll(inline, variables);
 
+			// Destruct all the stack allocations
+			DestructAll(inline, scopes[scope].Allocations);
+
 			// Replace the return statement with the inline node and add the return statement to the end of the inline node
 			statement.Replace(inline);
 			inline.Add(statement);
@@ -164,15 +249,19 @@ public static class GarbageCollector
 
 		foreach (var scope in scopes)
 		{
-			var variables = GetUnlinkableScopeVariables(scope.GetContext(), contexts);
+			// Skip scopes which are terminated by a return statement
+			if (scope.Value.IsTerminated) continue;
 
-			if (!variables.Any())
-			{
-				continue;
-			}
+			var context = ((IScope)scope.Key).GetContext();
+			var variables = GetUnlinkableLocalVariables(context, contexts);
+
+			if (!variables.Any()) continue;
 
 			// Unlink all the variables
-			UnlinkAll((Node)scope, variables);
+			UnlinkAll(scope.Key, variables);
+
+			// Destruct all the stack allocations
+			DestructAll(scope.Key, scope.Value.Allocations);
 		}
 	}
 
@@ -241,7 +330,7 @@ public static class GarbageCollector
 
 			// 1. Require the source to be linkable
 			// 2. Do not link the source value if it is a function call
-			if (source_type.Destructors.Overloads.Any() && !source.Is(NodeType.FUNCTION, NodeType.CALL))
+			if (source_type.IsUserDefined && !source.Is(NodeType.FUNCTION, NodeType.CALL))
 			{
 				implementation = Parser.LinkFunction!.Get(source_type) ?? throw new ApplicationException("Missing link function overload");
 				implementation.ReturnType = source_type;
@@ -268,7 +357,7 @@ public static class GarbageCollector
 			}
 
 			// If the destination can not be unlinked, skip it
-			if (!destination_type.Destructors.Overloads.Any())
+			if (!destination_type.IsUserDefined)
 			{
 				continue;
 			}
@@ -331,7 +420,7 @@ public static class GarbageCollector
 			var type = call.GetType();
 
 			// If the return type of the function call is not destructable, then this function call can be skipped
-			if (!type.Destructors.Overloads.Any())
+			if (!type.IsUserDefined)
 			{
 				continue;
 			}
@@ -369,5 +458,128 @@ public static class GarbageCollector
 		CreateIntermediateResults(implementation.Node!);
 		CreateAllScopeUnlinkers(implementation);
 		CreateAllScopeLinkers(implementation);
+	}
+
+	/// <summary>
+	/// Generates the function which are used for keeping track of used objects
+	/// </summary>
+	public static void CreateReferenceCountingFunctions(Context root)
+	{
+		if (!Analysis.IsGarbageCollectorEnabled) return;
+		
+		var instance_parameter_name = "a";
+
+		var link = new Function(root, Modifier.DEFAULT, "link", new Position(), new Position());
+		link.Start!.File = Parser.AllocationFunction!.Metadata.Start!.File;
+		link.Parameters.Add(new Parameter(instance_parameter_name));
+
+		root.Declare(link);
+
+		// Increments the reference count of the passed instance
+		// Result:
+		// if a != 0 { a..references += 1 }
+		// => a
+		link.Blueprint.AddRange(new List<Token>
+		{
+			new KeywordToken(Keywords.IF),
+			new IdentifierToken(instance_parameter_name),
+			new OperatorToken(Operators.NOT_EQUALS),
+			new NumberToken(0),
+
+			new ContentToken
+			(
+				ParenthesisType.CURLY_BRACKETS,
+				new IdentifierToken(instance_parameter_name),
+				new OperatorToken(Operators.DOT),
+				new IdentifierToken(RuntimeConfiguration.REFERENCE_COUNT_VARIABLE),
+				new OperatorToken(Operators.ASSIGN_ADD),
+				new NumberToken(1)
+			),
+
+			new OperatorToken(Operators.HEAVY_ARROW),
+			new IdentifierToken(instance_parameter_name)
+		});
+
+		Lexer.RegisterFile(link.Blueprint, link.Start!.File!);
+
+		var unlink = new Function(root, Modifier.DEFAULT, "unlink", new Position(), new Position());
+		unlink.Start!.File = Parser.AllocationFunction!.Metadata.Start!.File;
+		unlink.Parameters.Add(new Parameter(instance_parameter_name));
+
+		root.Declare(unlink);
+
+		// Result:
+		// if a != 0 and exchange_add(a..references, -1) == 1 {
+		//  a.deinit()
+		//  deallocate(a as link)
+		// }
+		unlink.Blueprint.AddRange(new List<Token>
+		{
+			new KeywordToken(Keywords.IF),
+
+			new IdentifierToken(instance_parameter_name),
+			new OperatorToken(Operators.NOT_EQUALS),
+			new NumberToken(0),
+
+			new OperatorToken(Operators.AND),
+
+			new IdentifierToken(instance_parameter_name),
+			new OperatorToken(Operators.DOT),
+			new IdentifierToken(RuntimeConfiguration.REFERENCE_COUNT_VARIABLE),
+			new OperatorToken(Operators.ATOMIC_EXCHANGE_ADD),
+			new NumberToken(-1),
+			new OperatorToken(Operators.EQUALS),
+			new NumberToken(1),
+
+			new ContentToken
+			(
+				ParenthesisType.CURLY_BRACKETS,
+
+				new IdentifierToken(instance_parameter_name),
+				new OperatorToken(Operators.DOT),
+				new FunctionToken
+				(
+					new IdentifierToken(Keywords.DEINIT.Identifier), 
+					new ContentToken()
+				),
+
+				new Token(TokenType.END),
+
+				new FunctionToken
+				(
+					new IdentifierToken(Parser.DeallocationFunction!.Name), 
+					new ContentToken
+					(
+						new IdentifierToken(instance_parameter_name),
+						new KeywordToken(Keywords.AS),
+						new IdentifierToken(Types.LINK.Name)
+					)
+				)
+			)
+		});
+
+		Lexer.RegisterFile(unlink.Blueprint, unlink.Start!.File!);
+
+		Parser.LinkFunction = link;
+		Parser.UnlinkFunction = unlink;
+	}
+
+	/// <summary>
+	/// Creates all link and unlink function overloads based on the types in the specified context
+	/// </summary>
+	public static void CreateAllOverloads(Context root)
+	{
+		if (!Analysis.IsGarbageCollectorEnabled) return;
+
+		foreach (var type in Common.GetAllTypes(root))
+		{
+			if (type.IsStatic || !type.IsUserDefined)
+			{
+				continue;
+			}
+
+			Parser.LinkFunction!.Get(type);
+			Parser.UnlinkFunction!.Get(type);
+		}
 	}
 }

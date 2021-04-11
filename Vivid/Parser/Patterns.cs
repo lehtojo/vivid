@@ -5,7 +5,7 @@ public class Option
 	public Pattern Pattern { get; private set; }
 	private List<int> Optionals { get; set; }
 
-	public List<int> Missing => new List<int>(Optionals);
+	public List<int> Missing => new(Optionals);
 
 	public Option(Pattern pattern, List<int> optionals)
 	{
@@ -72,7 +72,7 @@ public class Patterns
 		return Branches.GetValueOrDefault(type);
 	}
 
-	public static readonly Patterns Root = new Patterns();
+	public static readonly Patterns Root = new();
 
 	private static void Add(Pattern pattern)
 	{

@@ -8,25 +8,29 @@ public class ExtensionFunctionNode : Node, IResolvable
 	public FunctionToken Descriptor { get; private set; }
 	public List<string> TemplateParameters { get; private set; }
 	public List<Token> Body { get; private set; }
+	public Position? Start => Position;
+	public Position? End { get; private set; }
 
-	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<Token> body, Position position)
+	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<Token> body, Position? start, Position? end)
 	{
 		Destination = destination;
 		Descriptor = descriptor;
 		TemplateParameters = new List<string>();
 		Body = body;
-		Position = position;
 		Instance = NodeType.EXTENSION_FUNCTION;
+		Position = start;
+		End = end;
 	}
 
-	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<string> template_parameters, List<Token> body, Position position)
+	public ExtensionFunctionNode(Type destination, FunctionToken descriptor, List<string> template_parameters, List<Token> body, Position? start, Position? end)
 	{
 		Destination = destination;
 		Descriptor = descriptor;
 		TemplateParameters = template_parameters;
 		Body = body;
-		Position = position;
 		Instance = NodeType.EXTENSION_FUNCTION;
+		Position = start;
+		End = end;
 	}
 
 	public Node? Resolve(Context context)
@@ -47,12 +51,12 @@ public class ExtensionFunctionNode : Node, IResolvable
 
 		if (TemplateParameters.Any())
 		{
-			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters) { Position = Position };
+			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters, Start, End);
 			function.Blueprint.AddRange(new[] { Descriptor, (Token)new ContentToken(Body) { Type = ParenthesisType.CURLY_BRACKETS } });
 		}
 		else
 		{
-			function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body) { Position = Position };
+			function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body, Start, End);
 		}
 
 		function.Parameters.AddRange(Descriptor.GetParameters(function));

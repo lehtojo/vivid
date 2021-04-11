@@ -59,17 +59,17 @@ public class Function : Context
 	public Variable? Self { get; protected set; }
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
 	public List<Token> Blueprint { get; private set; }
-	public Position? Position { get; set; }
+	public Position? Start { get; set; }
+	public Position? End { get; set; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
 	public bool IsConstructor => this is Constructor;
-	public bool IsDestructor => this is Destructor;
 	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
 	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
 	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
-	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
-	public bool IsExported => Flag.Has(Modifiers, Modifier.GLOBAL);
+	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
+	public bool IsExported => Flag.Has(Modifiers, Modifier.EXPORTED);
 	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsTemplateFunction => Flag.Has(Modifiers, Modifier.TEMPLATE_FUNCTION);
@@ -81,13 +81,14 @@ public class Function : Context
 	/// <param name="modifiers">Function access modifiers</param>
 	/// <param name="name">Function name</param>
 	/// <param name="blueprint">Function blueprint is used to create implementations of this function</param>
-	public Function(Context context, int modifiers, string name, List<Token> blueprint) : base(context)
+	public Function(Context context, int modifiers, string name, List<Token> blueprint, Position? start, Position? end) : base(context)
 	{
 		Parent = context;
 		Name = name;
-		Prefix = Name.Length.ToString(CultureInfo.InvariantCulture);
 		Modifiers = modifiers;
 		Blueprint = blueprint;
+		Start = start;
+		End = end;
 	}
 
 	/// <summary>
@@ -96,13 +97,14 @@ public class Function : Context
 	/// <param name="context">Context to link into</param>
 	/// <param name="modifiers">Function access modifiers</param>
 	/// <param name="name">Function name</param>
-	public Function(Context context, int modifiers, string name) : base(context)
+	public Function(Context context, int modifiers, string name, Position? start, Position? end) : base(context)
 	{
 		Parent = context;
 		Name = name;
-		Prefix = Name.Length.ToString(CultureInfo.InvariantCulture);
 		Modifiers = modifiers;
 		Blueprint = new List<Token>();
+		Start = start;
+		End = end;
 	}
 
 	/// <summary>
@@ -116,7 +118,6 @@ public class Function : Context
 	{
 		Modifiers = modifiers;
 		Name = name;
-		Prefix = Name.Length.ToString(CultureInfo.InvariantCulture);
 		Parameters = parameters.ToList();
 		Blueprint = new List<Token>();
 
@@ -131,12 +132,10 @@ public class Function : Context
 	/// </summary>
 	public void DeclareSelfPointer()
 	{
-		var type = IsConstructor ? VariableCategory.LOCAL : VariableCategory.PARAMETER;
-
-		Self = new Variable(this, GetTypeParent(), type, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+		Self = new Variable(this, GetTypeParent(), VariableCategory.PARAMETER, SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 		{
 			IsSelfPointer = true,
-			Position = Position
+			Position = Start
 		};
 	}
 
@@ -170,29 +169,28 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Returns whether there are enough parameters to call this function
+	/// Returns whether the specified parameter types can implement this function
 	/// </summary>
-	public virtual bool Passes(List<Type> parameters)
+	public virtual bool Passes(List<Type> types)
 	{
-		if (parameters.Count != Parameters.Count)
-		{
-			return false;
-		}
+		if (types.Count != Parameters.Count) return false;
 
 		for (var i = 0; i < Parameters.Count; i++)
 		{
-			if (Parameters[i].Type == null)
-			{
-				continue;
-			}
+			if (Parameters[i].Type == null) continue;
 
-			if (Resolver.GetSharedType(Parameters[i].Type, parameters[i]) == null)
-			{
-				return false;
-			}
+			if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null) return false;
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Returns whether the specified parameter types can implement this function
+	/// </summary>
+	public virtual bool Passes(List<Type> types, Type[] arguments)
+	{
+		return arguments.Any() ? (IsTemplateFunction && To<TemplateFunction>().Passes(types, arguments)) : (!IsTemplateFunction && Passes(types));
 	}
 
 	/// <summary>
@@ -215,7 +213,7 @@ public class Function : Context
 		}
 
 		var types = Parameters.Zip(parameters).Select(i => i.First.Type ?? i.Second).ToList();
-		var implementation = Implementations.Find(f => f.ParameterTypes.SequenceEqual(types));
+		var implementation = Implementations.Find(i => i.ParameterTypes.SequenceEqual(types));
 
 		if (implementation != null || IsImported)
 		{
@@ -266,7 +264,7 @@ public class Function : Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		HashCode hash = new();
 		hash.Add(Subcontexts);
 		hash.Add(Variables);
 		hash.Add(Functions);

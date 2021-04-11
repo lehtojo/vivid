@@ -5,7 +5,7 @@ public class ExpressionVariablePattern : Pattern
 {
 	public const int PRIORITY = 21;
 
-	public const int IMPLICATION = 1;
+	public const int ARROW = 1;
 
 	// Pattern: $name => ...
 	public ExpressionVariablePattern() : base
@@ -16,7 +16,7 @@ public class ExpressionVariablePattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return context.IsInsideType && tokens[IMPLICATION].Is(Operators.IMPLICATION);
+		return context.IsInsideType && tokens[ARROW].Is(Operators.HEAVY_ARROW);
 	}
 
 	public override Node? Build(Context type, PatternState state, List<Token> tokens)
@@ -24,12 +24,12 @@ public class ExpressionVariablePattern : Pattern
 		var name = tokens.First().To<IdentifierToken>();
 
 		// Create function which has the name of the property but has no parameters
-		var function = new Function(type, Modifier.DEFAULT, name.Value) { Position = name.Position };
+		var function = new Function(type, Modifier.DEFAULT, name.Value, name.Position, null);
 		function.DeclareSelfPointer();
 
 		// Collect the tokens of the body
-		// Add the implication operator token to the start of the blueprint to represent a return statement
-		var blueprint = new List<Token> { tokens[IMPLICATION] };
+		// Add the heavy arrow operator token to the start of the blueprint to represent a return statement
+		var blueprint = new List<Token> { tokens[ARROW] };
 
 		if (!Common.ConsumeBlock(function, state, blueprint))
 		{

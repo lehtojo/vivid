@@ -2,67 +2,67 @@ using System.Collections.Generic;
 
 public static class Operators
 {
-	public static readonly IndependentOperator COLON = new IndependentOperator(":");
+	public static readonly IndependentOperator COLON = new(":");
 
-	public static readonly ClassicOperator POWER = new ClassicOperator("^", 15);
+	public static readonly ClassicOperator POWER = new("^", 15);
 
-	public static readonly ClassicOperator MULTIPLY = new ClassicOperator("*", 12);
-	public static readonly ClassicOperator DIVIDE = new ClassicOperator("/", 12);
-	public static readonly ClassicOperator MODULUS = new ClassicOperator("%", 12);
+	public static readonly ClassicOperator MULTIPLY = new("*", 12);
+	public static readonly ClassicOperator DIVIDE = new("/", 12);
+	public static readonly ClassicOperator MODULUS = new("%", 12);
 
-	public static readonly ClassicOperator ADD = new ClassicOperator("+", 11);
-	public static readonly ClassicOperator SUBTRACT = new ClassicOperator("-", 11);
+	public static readonly ClassicOperator ADD = new("+", 11);
+	public static readonly ClassicOperator SUBTRACT = new("-", 11);
 
-	public static readonly ClassicOperator SHIFT_LEFT = new ClassicOperator("<|", 10);
-	public static readonly ClassicOperator SHIFT_RIGHT = new ClassicOperator("|>", 10);
+	public static readonly ClassicOperator SHIFT_LEFT = new("<|", 10);
+	public static readonly ClassicOperator SHIFT_RIGHT = new("|>", 10);
 
-	public static readonly ComparisonOperator GREATER_THAN = new ComparisonOperator(">", 9);
-	public static readonly ComparisonOperator GREATER_OR_EQUAL = new ComparisonOperator(">=", 9);
-	public static readonly ComparisonOperator LESS_THAN = new ComparisonOperator("<", 9);
-	public static readonly ComparisonOperator LESS_OR_EQUAL = new ComparisonOperator("<=", 9);
+	public static readonly ComparisonOperator GREATER_THAN = new(">", 9);
+	public static readonly ComparisonOperator GREATER_OR_EQUAL = new(">=", 9);
+	public static readonly ComparisonOperator LESS_THAN = new("<", 9);
+	public static readonly ComparisonOperator LESS_OR_EQUAL = new("<=", 9);
 
-	public static readonly ComparisonOperator EQUALS = new ComparisonOperator("==", 8);
-	public static readonly ComparisonOperator NOT_EQUALS = new ComparisonOperator("!=", 8);
+	public static readonly ComparisonOperator EQUALS = new("==", 8);
+	public static readonly ComparisonOperator NOT_EQUALS = new("!=", 8);
 
-	public static readonly ClassicOperator BITWISE_AND = new ClassicOperator("&", 7);
-	public static readonly ClassicOperator BITWISE_XOR = new ClassicOperator("¤", 6);
-	public static readonly ClassicOperator BITWISE_OR = new ClassicOperator("|", 5);
+	public static readonly ClassicOperator BITWISE_AND = new("&", 7);
+	public static readonly ClassicOperator BITWISE_XOR = new("¤", 6);
+	public static readonly ClassicOperator BITWISE_OR = new("|", 5);
 
-	public static readonly IndependentOperator RANGE = new IndependentOperator("..");
+	public static readonly IndependentOperator RANGE = new("..");
 
-	public static readonly LogicOperator AND = new LogicOperator("and", 4);
-	public static readonly LogicOperator OR = new LogicOperator("or", 3);
+	public static readonly LogicOperator AND = new("and", 4);
+	public static readonly LogicOperator OR = new("or", 3);
 
-	public static readonly ActionOperator ASSIGN = new ActionOperator("=", null, 1);
-	public static readonly ActionOperator ASSIGN_POWER = new ActionOperator("^=", POWER, 1);
-	public static readonly ActionOperator ASSIGN_ADD = new ActionOperator("+=", ADD, 1);
-	public static readonly ActionOperator ASSIGN_SUBTRACT = new ActionOperator("-=", SUBTRACT, 1);
-	public static readonly ActionOperator ASSIGN_MULTIPLY = new ActionOperator("*=", MULTIPLY, 1);
-	public static readonly ActionOperator ASSIGN_DIVIDE = new ActionOperator("/=", DIVIDE, 1);
-	public static readonly ActionOperator ASSIGN_MODULUS = new ActionOperator("%=", MODULUS, 1);
+	public static readonly ActionOperator ASSIGN = new("=", null, 1);
+	public static readonly ActionOperator ASSIGN_POWER = new("^=", POWER, 1);
+	public static readonly ActionOperator ASSIGN_ADD = new("+=", ADD, 1);
+	public static readonly ActionOperator ASSIGN_SUBTRACT = new("-=", SUBTRACT, 1);
+	public static readonly ActionOperator ASSIGN_MULTIPLY = new("*=", MULTIPLY, 1);
+	public static readonly ActionOperator ASSIGN_DIVIDE = new("/=", DIVIDE, 1);
+	public static readonly ActionOperator ASSIGN_MODULUS = new("%=", MODULUS, 1);
 
-	public static readonly ActionOperator ASSIGN_AND = new ActionOperator("&=", BITWISE_AND, 1);
-	public static readonly ActionOperator ASSIGN_XOR = new ActionOperator("¤=", BITWISE_XOR, 1);
-	public static readonly ActionOperator ASSIGN_OR = new ActionOperator("|=", BITWISE_OR, 1);
+	public static readonly ActionOperator ASSIGN_AND = new("&=", BITWISE_AND, 1);
+	public static readonly ActionOperator ASSIGN_XOR = new("¤=", BITWISE_XOR, 1);
+	public static readonly ActionOperator ASSIGN_OR = new("|=", BITWISE_OR, 1);
 
-	public static readonly IndependentOperator EXCLAMATION = new IndependentOperator("!");
+	public static readonly IndependentOperator EXCLAMATION = new("!");
 
-	public static readonly IndependentOperator COMMA = new IndependentOperator(",");
-	public static readonly IndependentOperator DOT = new IndependentOperator(".");
+	public static readonly IndependentOperator COMMA = new(",");
+	public static readonly IndependentOperator DOT = new(".");
 
-	public static readonly IndependentOperator INCREMENT = new IndependentOperator("++");
-	public static readonly IndependentOperator DECREMENT = new IndependentOperator("--");
+	public static readonly IndependentOperator INCREMENT = new("++");
+	public static readonly IndependentOperator DECREMENT = new("--");
 
-	public static readonly IndependentOperator ARROW = new IndependentOperator("->");
-	public static readonly IndependentOperator IMPLICATION = new IndependentOperator("=>");
+	public static readonly IndependentOperator ARROW = new("->");
+	public static readonly IndependentOperator HEAVY_ARROW = new("=>");
 
-	public static readonly IndependentOperator END = new IndependentOperator("\n");
+	public static readonly IndependentOperator END = new("\n");
 
 	/// NOTE: The user should not be able to use this operator since it is meant for internal usage
-	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new ClassicOperator(string.Empty, 11);
+	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new(string.Empty, 11);
 
-	private static readonly Dictionary<string, Operator> Map = new Dictionary<string, Operator>();
-	private static readonly Dictionary<string, ActionOperator> Actions = new Dictionary<string, ActionOperator>();
+	private static readonly Dictionary<string, Operator> Map = new();
+	private static readonly Dictionary<string, ActionOperator> Actions = new();
 
 	private static void Add(Operator operation)
 	{
@@ -123,7 +123,7 @@ public static class Operators
 		Add(DECREMENT);
 
 		Add(ARROW);
-		Add(IMPLICATION);
+		Add(HEAVY_ARROW);
 
 		Add(COLON);
 		Add(END);

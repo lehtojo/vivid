@@ -7,15 +7,15 @@ public class IfNode : Node, IResolvable
 	public Node? Predecessor => (Is(NodeType.ELSE_IF) && (Previous?.Is(NodeType.IF, NodeType.ELSE_IF) ?? false)) ? Previous : null;
 
 	public Node Condition => Common.FindCondition(First!);
-	public ContextNode Body => Last!.To<ContextNode>();
+	public ScopeNode Body => Last!.To<ScopeNode>();
 
-	public IfNode(Context context, Node condition, Node body, Position? position = null)
+	public IfNode(Context context, Node condition, Node body, Position? start, Position? end)
 	{
-		Position = position;
+		Position = start;
 		Instance = NodeType.IF;
 
 		Add(new Node());
-		Add(new ContextNode(context));
+		Add(new ScopeNode(context, start, end));
 
 		body.ForEach(i => Body.Add(i));
 

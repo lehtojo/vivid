@@ -68,7 +68,7 @@ public class RuntimeConfiguration
 
 	public RuntimeConfiguration(Type type)
 	{
-		Variable = type.Declare(Types.LINK, VariableCategory.MEMBER, CONFIGURATION_VARIABLE);
+		Variable = type.Declare(Link.GetVariant(Types.U64), VariableCategory.MEMBER, CONFIGURATION_VARIABLE);
 		
 		if (Analysis.IsGarbageCollectorEnabled)
 		{
@@ -89,7 +89,7 @@ public class Type : Context
 	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
 	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
 
-	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOAD_FUNCTIONS = new Dictionary<Operator, string>();
+	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOAD_FUNCTIONS = new();
 
 	static Type()
 	{
@@ -110,10 +110,11 @@ public class Type : Context
 	public Position? Position { get; set; }
 
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
-	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
 
 	public bool IsUnresolved => !IsResolved();
 
+	public bool IsUserDefined => Destructors.Overloads.Any();
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
@@ -158,7 +159,7 @@ public class Type : Context
 	/// </summary>
 	public void AddDestructor(Destructor destructor)
 	{
-		if (!Destructors.Overloads.Any() || !((Destructor)Destructors.Overloads.First()).IsDefault)
+		if (!IsUserDefined || !((Destructor)Destructors.Overloads.First()).IsDefault)
 		{
 			Destructors.Add(destructor);
 			Declare(destructor);
@@ -194,13 +195,12 @@ public class Type : Context
 	{
 		Name = name;
 		Identifier = Name;
-		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 		Position = position;
 		Supertypes = new List<Type>();
 
-		AddConstructor(Constructor.Empty(this, position));
-		AddDestructor(Destructor.Empty(this, position));
+		AddConstructor(Constructor.Empty(this, position, position));
+		AddDestructor(Destructor.Empty(this, position, position));
 
 		Link(context);
 		context.Declare(this);
@@ -210,7 +210,6 @@ public class Type : Context
 	{
 		Name = name;
 		Identifier = Name;
-		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 		Supertypes = new List<Type>();
 
@@ -222,7 +221,6 @@ public class Type : Context
 	{
 		Name = name;
 		Identifier = Name;
-		Prefix = $"N{Name.Length}";
 		Modifiers = modifiers;
 	}
 
@@ -522,7 +520,7 @@ public class Type : Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		HashCode hash = new();
 		hash.Add(Name);
 		hash.Add(Identity);
 		return hash.ToHashCode();

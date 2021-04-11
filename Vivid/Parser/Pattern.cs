@@ -21,6 +21,16 @@ public class PatternState
 		Min = min;
 		Max = max;
 	}
+
+	public PatternState(List<Token> tokens)
+	{
+		Tokens = tokens;
+		Formatted = new List<Token>();
+		Start = 0;
+		End = 0;
+		Min = Parser.MIN_PRIORITY;
+		Max = Parser.MAX_PRIORITY;
+	}
 }
 
 public abstract class Pattern

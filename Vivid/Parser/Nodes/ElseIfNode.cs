@@ -1,6 +1,6 @@
 public class ElseIfNode : IfNode
 {
-	public ElseIfNode(Context context, Node condition, Node body, Position? position = null) : base(context, condition, body, position)
+	public ElseIfNode(Context context, Node condition, Node body, Position? start, Position? end) : base(context, condition, body, start, end)
 	{
 		Instance = NodeType.ELSE_IF;
 	}

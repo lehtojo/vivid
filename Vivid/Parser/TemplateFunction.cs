@@ -10,7 +10,7 @@ public class TemplateFunction : Function
 	public List<Type> TemplateArgumentTypes { get; }
 	private Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
 
-	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name)
+	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names, Position? start, Position? end) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, start, end)
 	{
 		TemplateArgumentNames = template_argument_names;
 		TemplateArgumentTypes = new List<Type>();
@@ -21,12 +21,12 @@ public class TemplateFunction : Function
 		}
 	}
 
-	public TemplateFunction(Context context, int modifiers, string name, int argument_count) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name)
+	public TemplateFunction(Context context, int modifiers, string name, int arguments) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
 	{
 		TemplateArgumentNames = new List<string>();
 		TemplateArgumentTypes = new List<Type>();
 
-		for (var i = 0; i < argument_count; i++)
+		for (var i = 0; i < arguments; i++)
 		{
 			TemplateArgumentNames.Add($"T{i}");
 			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
@@ -106,7 +106,7 @@ public class TemplateFunction : Function
 		throw new InvalidOperationException("Tried to execute pass function without template parameters");
 	}
 
-	public bool Passes(List<Type> parameters, Type[] template_arguments)
+	public new bool Passes(List<Type> parameters, Type[] template_arguments)
 	{
 		if (parameters.Count != Parameters.Count || template_arguments.Length != TemplateArgumentNames.Count)
 		{

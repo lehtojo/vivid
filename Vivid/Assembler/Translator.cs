@@ -93,6 +93,11 @@ public static class Translator
 		// Append a return instruction at the end if there is no return instruction present
 		if (!instructions.Any() || !instructions.Last().Is(InstructionType.RETURN))
 		{
+			if (Assembler.IsDebuggingEnabled && unit.Function.Metadata.End != null)
+			{
+				instructions.Add(new AppendPositionInstruction(unit, unit.Function.Metadata.End));
+			}
+
 			instructions.Add(new ReturnInstruction(unit, null, Types.UNKNOWN));
 		}
 
@@ -103,6 +108,13 @@ public static class Translator
 			end.OnBuild();
 
 			instructions.Add(end);
+
+			// Find sequential position instructions and separate them using NOP-instructions
+			for (var i = instructions.Count - 2; i >= 0; i--)
+			{
+				if (!instructions[i].Is(InstructionType.APPEND_POSITION) || !instructions[i + 1].Is(InstructionType.APPEND_POSITION)) continue;
+				instructions.Insert(i + 1, new NoOperationInstruction(unit));
+			}
 		}
 
 		// Build all initialization instructions

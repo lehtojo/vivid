@@ -2,24 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class TypeNode : Node, IContext
+public class TypeNode : Node, IScope
 {
 	public Type Type { get; private set; }
 	public bool IsDefinition { get; set; } = false;
 
-	private List<Token> Body { get; set; }
+	private List<Token> Blueprint { get; set; }
 
 	public TypeNode(Type type)
 	{
 		Type = type;
-		Body = new List<Token>();
+		Blueprint = new List<Token>();
 		Instance = NodeType.TYPE;
 	}
 
 	public TypeNode(Type type, Position? position)
 	{
 		Type = type;
-		Body = new List<Token>();
+		Blueprint = new List<Token>();
 		Position = position;
 		Instance = NodeType.TYPE;
 	}
@@ -27,7 +27,7 @@ public class TypeNode : Node, IContext
 	public TypeNode(Type type, List<Token> body, Position? position)
 	{
 		Type = type;
-		Body = body;
+		Blueprint = body;
 		Position = position;
 		IsDefinition = true;
 		Instance = NodeType.TYPE;
@@ -41,9 +41,11 @@ public class TypeNode : Node, IContext
 			Type.AddRuntimeConfiguration();
 		}
 
-		Parser.Parse(this, Type, Body);
+		// Create the body of the type
+		Parser.Parse(this, Type, Blueprint);
 
-		Body.Clear();
+		// The blueprint can be released now
+		Blueprint.Clear();
 
 		// Apply the static modifier to the parsed functions and variables
 		if (Type.IsStatic)
@@ -53,10 +55,7 @@ public class TypeNode : Node, IContext
 		}
 
 		// Parse all the subtypes
-		foreach (var subtype in FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition))
-		{
-			subtype.Parse();
-		}
+		FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
 
 		// Find all expressions which represent type initialization
 		var expressions = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
@@ -79,13 +78,13 @@ public class TypeNode : Node, IContext
 	{
 		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
-		hash.Add(Type.Name);
+		hash.Add(Type.Identity);
 		return hash.ToHashCode();
 	}
 
 	public void SetContext(Context context)
 	{
-		throw new InvalidOperationException("Replacing context of a type node is not allowed");
+		throw new InvalidOperationException("Replacing the context of a type node is not allowed");
 	}
 
 	public Context GetContext()

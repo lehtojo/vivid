@@ -45,7 +45,7 @@ public class FunctionType : UnresolvedType
 
 	public override Type? GetOffsetType()
 	{
-		return global::Types.LINK;
+		return global::Link.GetVariant(global::Types.U64);
 	}
 
 	public override bool Equals(object? other)

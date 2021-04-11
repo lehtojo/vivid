@@ -44,6 +44,10 @@ public class ElsePattern : Pattern
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
+		
+		var start = tokens[ELSE].Position;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+		
 		var context = new Context(environment);
 
 		if (body == null)
@@ -58,7 +62,7 @@ public class ElsePattern : Pattern
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
-		return new ElseNode(context, node, tokens[ELSE].Position);
+		return new ElseNode(context, node, start, end);
 	}
 
 	public override int GetStart()

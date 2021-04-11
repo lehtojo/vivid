@@ -48,6 +48,9 @@ public class ElseIfPattern : Pattern
 		var condition = Singleton.Parse(environment, tokens[CONDITION]);
 		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
 
+		var start = tokens[ELSE].Position;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+
 		var context = new Context(environment);
 
 		if (body == null)
@@ -62,7 +65,7 @@ public class ElseIfPattern : Pattern
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
-		return new ElseIfNode(context, condition, node);
+		return new ElseIfNode(context, condition, node, start, end);
 	}
 
 	public override int GetStart()

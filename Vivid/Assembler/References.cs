@@ -8,9 +8,9 @@ public enum AccessMode
 
 public static class References
 {
-	public static Handle CreateConstantNumber(object value)
+	public static Handle CreateConstantNumber(object value, Format format)
 	{
-		return new ConstantHandle(value);
+		return new ConstantHandle(value, format);
 	}
 
 	public static Handle CreateVariableHandle(Unit unit, Variable variable)

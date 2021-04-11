@@ -85,7 +85,6 @@ public class FunctionImplementation : Context
 		TemplateArguments = Array.Empty<Type>();
 
 		// Copy the name properties
-		Prefix = Metadata.Prefix;
 		Name = Metadata.Name;
 		Identifier = Name;
 
@@ -127,49 +126,23 @@ public class FunctionImplementation : Context
 			Self = new Variable(this, Metadata.GetTypeParent(), VariableCategory.PARAMETER, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 			{
 				IsSelfPointer = true,
-				Position = Metadata.Position
+				Position = Metadata.Start
 			};
 		}
 
-		Node = new ImplementationNode(this, Metadata.Position);
+		Node = new ScopeNode(this, Metadata.Start, Metadata.End);
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}
 
 	/// <summary>
 	/// Returns the header of the function.
-	/// Examples:
-	/// Name(Type, Type, ...) [: Result]
-	/// f(number, number): number
-	/// g(A, B) -> C
-	/// h() -> A
-	/// i()
 	/// </summary>
-	/// <returns>Header of the function</returns>
 	public virtual string GetHeader()
 	{
-		var prefix = string.Empty;
-		var iterator = Parent;
+		var a = Parent != null && Parent.IsType ? Parent.ToString() : string.Empty;
+		var b = $"{Metadata.Name}({string.Join(", ", ParameterTypes.Select(i => i.ToString()).ToArray())}) => " + (ReturnType == null ? "?" : ReturnType.ToString());
 
-		while (iterator != null)
-		{
-			if (iterator is FunctionImplementation x)
-			{
-				prefix = x.Name + '.' + prefix;
-			}
-			else if (iterator is Type y)
-			{
-				prefix = y.Name + '.' + prefix;
-			}
-			else
-			{
-				break;
-			}
-
-			iterator = iterator.Parent;
-		}
-
-		return prefix + $"{Metadata.Name}({string.Join(", ", ParameterTypes.Select(p => p.Name).ToArray())}) => " +
-			(ReturnType == null ? "_" : ReturnType.ToString());
+		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
 	}
 
 	public override string ToString()
@@ -210,7 +183,8 @@ public class FunctionImplementation : Context
 		}
 
 		// Try to find a return statement which is inside a statement, if at least one is found this function should not be inlined
-		if (Node.Find(i => i.Is(NodeType.RETURN) && i.FindParent(i => i is IContext && !i.Is(NodeType.IMPLEMENTATION)) != null) != null)
+		/// NOTE: If a scope node has a parent, it must be a statement
+		if (Node.Find(i => i.Is(NodeType.RETURN) && i.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent != null) != null) != null)
 		{
 			return false;
 		}
@@ -241,7 +215,7 @@ public class FunctionImplementation : Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new HashCode();
+		HashCode hash = new();
 		hash.Add(Name);
 		hash.Add(Parameters);
 		hash.Add(ParameterTypes);

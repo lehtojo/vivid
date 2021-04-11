@@ -16,6 +16,12 @@ public class OperatorToken : Token
 		Operator = operation;
 	}
 
+	public OperatorToken(Operator operation, Position position) : base(TokenType.OPERATOR)
+	{
+		Operator = operation;
+		Position = position;
+	}
+
 	public override bool Equals(object? other)
 	{
 		return other is OperatorToken token &&

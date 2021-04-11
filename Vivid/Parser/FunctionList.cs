@@ -19,13 +19,13 @@ public class FunctionList
 			return;
 		}
 
-		if (conflict.Position != null)
+		if (conflict.Start != null)
 		{
-			throw Errors.Get(function.Position, $"Function overload can be confused with another function overload at {Errors.FormatPosition(conflict.Position)}");
+			throw Errors.Get(function.Start, $"Function overload can be confused with another function overload at {Errors.FormatPosition(conflict.Start)}");
 		}
 		else
 		{
-			throw Errors.Get(function.Position, $"Function overload can be confused with another function overload");
+			throw Errors.Get(function.Start, $"Function overload can be confused with another function overload");
 		}
 	}
 

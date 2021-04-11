@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System;
 
 public static class Inlines
@@ -9,9 +8,10 @@ public static class Inlines
 	/// </summary>
 	public static void Build(Node root)
 	{
-		var context = root.Is(NodeType.IMPLEMENTATION) 
-			? root.To<ImplementationNode>().Context
-			: root.FindParent(i => i.Is(NodeType.IMPLEMENTATION))!.To<ImplementationNode>().Context;
+		/// NOTE: If a scope node does not have a parent, it must be the root scope
+		var context = root.Is(NodeType.SCOPE) 
+			? root.To<ScopeNode>().Context
+			: root.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent == null)!.To<ScopeNode>().Context;
 
 		while (true)
 		{
@@ -67,7 +67,7 @@ public static class Inlines
 	{
 		foreach (var iterator in start)
 		{
-			if (iterator is IContext subcontext && !iterator.Is(NodeType.TYPE))
+			if (iterator is IScope subcontext && !iterator.Is(NodeType.TYPE))
 			{
 				// The subcontext must be replaced with a new context so that there are no references to the original function
 				var replacement_context = new Context(context);

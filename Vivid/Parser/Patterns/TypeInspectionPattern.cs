@@ -25,26 +25,26 @@ public class TypeInspectionPattern : Pattern
 			return false;
 		}
 
-		return descriptor.GetParsedParameters(context).Count() == 1;
+		// Create a temporary state which is used to check whether the parameters contains a type
+		state = new PatternState(descriptor.Parameters.Tokens);
+
+		return Common.ConsumeType(state) && state.End == state.Tokens.Count;
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var descriptor = tokens.First().To<FunctionToken>();
-		var parameter = descriptor.GetParsedParameters(context).First();
+		var type = Common.ReadType(context, new Queue<Token>(descriptor.Parameters.Tokens));
+
+		if (type == null) throw Errors.Get(descriptor.Position, "Can not resolve the inspected type");
 
 		if (descriptor.Name == NAME_INSPECTION_IDENTIFIER)
 		{
-			var type = parameter.TryGetType();
+			if (!type.IsUnresolved) return new StringNode(type.ToString(), descriptor.Position);
 
-			if (type != Types.UNKNOWN)
-			{
-				return new StringNode(type.ToString(), descriptor.Position);
-			}
-
-			return new InspectionNode(InspectionType.NAME, parameter);
+			return new InspectionNode(InspectionType.NAME, new TypeNode(type));
 		}
 
-		return new InspectionNode(InspectionType.SIZE, parameter);
+		return new InspectionNode(InspectionType.SIZE, new TypeNode(type));
 	}
 }

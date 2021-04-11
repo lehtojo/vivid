@@ -25,7 +25,7 @@ public enum MoveType
 /// </summary>
 public class MoveInstruction : DualParameterInstruction
 {
-	private static readonly Dictionary<ComparisonOperator, string[]> Conditionals = new Dictionary<ComparisonOperator, string[]>();
+	private static readonly Dictionary<ComparisonOperator, string[]> Conditionals = new();
 
 	public static void Initialize()
 	{
@@ -366,7 +366,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				if (is_source_constant)
 				{
-					// Convert the decimal value to the destination's integer format
+					// Convert the decimal value to integer format
 					Second.Value.To<ConstantHandle>().Convert(First.Format);
 					Second.Format = Assembler.Format;
 
@@ -475,7 +475,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				if (is_source_constant)
 				{
-					// Convert the integer value to the destination's decimal format
+					// Convert the integer value to the decimal format
 					Second.Value.To<ConstantHandle>().Value = BitConverter.DoubleToInt64Bits((long)Second.Value.To<ConstantHandle>().Value);
 
 					if (Assembler.IsArm64)

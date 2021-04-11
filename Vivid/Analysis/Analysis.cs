@@ -572,7 +572,7 @@ public static class Analysis
 	/// <summary>
 	/// Returns nodes whose contents should be taken into account if execution were to start from the specified perspective
 	/// </summary>
-	private static List<Node> GetDenylist(Node perspective)
+	public static List<Node> GetDenylist(Node perspective)
 	{
 		var denylist = new List<Node>();
 		var branch = perspective;
@@ -862,7 +862,7 @@ public static class Analysis
 			foreach (var member in type.Variables.Values)
 			{
 				// If the member is not destructable, it is not unlinkable, so skip it
-				if (member.IsStatic || !member.Type!.Destructors.Overloads.Any())
+				if (member.IsStatic || !member.Type!.IsUserDefined)
 				{
 					continue;
 				}
@@ -940,7 +940,7 @@ public static class Analysis
 			throw new ApplicationException("Found a context leak");
 		}
 
-		var subcontexts = root.FindAll(i => i is IContext && !i.Is(NodeType.TYPE)).Cast<IContext>().Where(i => !i.GetContext().IsInside(context));
+		var subcontexts = root.FindAll(i => i is IScope && !i.Is(NodeType.TYPE)).Cast<IScope>().Where(i => !i.GetContext().IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
 		if (subcontexts.Any())
@@ -1015,6 +1015,10 @@ public static class Analysis
 			var implementation = implementations[i];
 
 			var start = DateTime.UtcNow;
+
+			// Analyze variable usages
+			Analyzer.ResetVariableUsages(implementation.Node!, implementation);
+			Analyzer.AnalyzeVariableUsages(implementation.Node!, implementation);
 
 			// Adds garbage collecting
 			GarbageCollector.Generate(implementation);

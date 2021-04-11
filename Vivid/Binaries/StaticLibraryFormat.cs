@@ -80,7 +80,7 @@ public static class StaticLibraryFormat
 
 	public const byte PADDING_VALUE = 0x20;
 
-	public static readonly DateTime TIMESTAMP_START = new DateTime(1970, 1, 1);
+	public static readonly DateTime TIMESTAMP_START = new(1970, 1, 1);
 
 	private static void WritePadding(MemoryStream builder, int length)
 	{

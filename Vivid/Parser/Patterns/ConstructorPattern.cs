@@ -43,32 +43,30 @@ public class ConstructorPattern : Pattern
 			return brackets!.Is(ParenthesisType.CURLY_BRACKETS);
 		}
 
-		// Try to consume an implication operator
-		return Consume(state, out Token? implication, TokenType.OPERATOR) && implication!.Is(Operators.IMPLICATION);
+		// Try to consume a heavy arrow operator
+		return Consume(state, out Token? arrow, TokenType.OPERATOR) && arrow!.Is(Operators.HEAVY_ARROW);
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var blueprint = (List<Token>?)null;
-
-		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS))
-		{
-			blueprint = tokens.Last().To<ContentToken>().Tokens;
-		}
+		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
 
 		var function = (Function?)null;
 		var descriptor = tokens[HEAD].To<FunctionToken>();
 		var type = (Type)context;
 
+		var start = descriptor.Position;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+
 		if (descriptor.Name == Keywords.INIT.Identifier)
 		{
-			function = new Constructor(type, Modifier.DEFAULT, descriptor.Position);
+			function = new Constructor(type, Modifier.DEFAULT, start, end);
 			function.Parameters.AddRange(descriptor.GetParameters(function));
 			function.DeclareSelfPointer();
 		}
 		else
 		{
-			function = new Destructor(type, Modifier.DEFAULT, descriptor.Position);
+			function = new Destructor(type, Modifier.DEFAULT, start, end);
 			function.Parameters.AddRange(descriptor.GetParameters(function));
 			function.DeclareSelfPointer();
 		}

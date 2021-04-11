@@ -111,11 +111,11 @@ public class ExtensionFunctionPattern : Pattern
 		
 		var name = tokens[i - 1].To<IdentifierToken>();
 		var parameters = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<ContentToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>().Tokens;
+		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>();
 
 		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
 
-		return new ExtensionFunctionNode(destination, descriptor, template_parameters, body, descriptor.Position);
+		return new ExtensionFunctionNode(destination, descriptor, template_parameters, body.Tokens, descriptor.Position, body.End);
 	}
 
 	private static Node? CreateStandardFunctionExtension(Context environment, List<Token> tokens)
@@ -126,9 +126,9 @@ public class ExtensionFunctionPattern : Pattern
 		if (destination == null) throw new ApplicationException("Invalid template function extension");
 
 		var descriptor = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<FunctionToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>().Tokens;
+		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>();
 
-		return new ExtensionFunctionNode(destination, descriptor, body, descriptor.Position);
+		return new ExtensionFunctionNode(destination, descriptor, body.Tokens, descriptor.Position, body.End);
 	}
 
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)

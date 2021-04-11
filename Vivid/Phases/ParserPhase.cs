@@ -142,7 +142,7 @@ public class ParserPhase : Phase
 			{
 				var file = files[index];
 				var context = Parser.Initialize(index);
-				var root = new ContextNode(context);
+				var root = new ScopeNode(context, null, null);
 
 				try
 				{
@@ -187,8 +187,8 @@ public class ParserPhase : Phase
 		}
 
 		// Merge all parsed files
-		var context = Context.CreateRootContext(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
-		var root = new ContextNode(context);
+		var context = new Context(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
+		var root = Parser.CreateRootNode(context);
 		
 		// Prepare for importing libraries
 		Importer.Initialize();
@@ -206,6 +206,31 @@ public class ParserPhase : Phase
 		{
 			context.Merge(file.Context!);
 			root.Merge(file.Root!);
+		}
+
+		// Parse all the namespaces since all code has been merged
+		foreach (var iterator in root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>())
+		{
+			Run(() =>
+			{
+				try
+				{
+					iterator.Parse(context);
+				}
+				catch (Exception e)
+				{
+					return Status.Error(e.Message);
+				}
+
+				return Status.OK;
+			});
+		}
+
+		Sync();
+
+		if (Failed)
+		{
+			return Status.Error(GetTaskErrors());
 		}
 
 		// Applies all the extension functions

@@ -7,12 +7,7 @@ public class LambdaImplementation : FunctionImplementation
 	public Type? Type { get; private set; }
 	public Variable? Function { get; private set; }
 
-	public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type, Context context)
-	   : base(metadata, parameters, return_type, context)
-	{
-		Prefix = "_";
-		Postfix = "_" + Postfix;
-	}
+	public LambdaImplementation(Lambda metadata, List<Parameter> parameters, Type? return_type, Context context) : base(metadata, parameters, return_type, context) {}
 
 	public override void OnMangle(Mangle mangle)
 	{
@@ -31,7 +26,9 @@ public class LambdaImplementation : FunctionImplementation
 
 	public void Seal()
 	{
-		if (Type == null || Type.Variables.Any())
+		// 1. If the type is not created, it means that this lambda is not used, therefore this lambda can be skipped
+		// 2. If the function is already created, this lambda is sealed
+		if (Type == null || Function != null)
 		{
 			return;
 		}
@@ -45,13 +42,13 @@ public class LambdaImplementation : FunctionImplementation
 		Function = Type.DeclareHidden(global::Types.LINK, VariableCategory.MEMBER);
 
 		// Change all captured variables into member variables so that they are retrieved using the self pointer of this lambda
-		Captures.ForEach(c => c.Category = VariableCategory.MEMBER);
+		Captures.ForEach(i => i.Category = VariableCategory.MEMBER);
 
 		// Remove all captured variables from the current context since they must be moved to the lambda object's context
-		Captures.Select(c => c.Name).ForEach(n => Variables.Remove(n));
+		Captures.Select(i => i.Name).ForEach(i => Variables.Remove(i));
 
 		// Move all the captured variables to the lambda object's type
-		Captures.ForEach(c => Type.Declare(c));
+		Captures.ForEach(i => Type.Declare(i));
 
 		// Add the self pointer to all of the usages of the captured variables
 		var usages = Node!.FindAll(i => i.Is(NodeType.VARIABLE) && Captures.Contains(i.To<VariableNode>().Variable));
@@ -103,12 +100,13 @@ public class LambdaImplementation : FunctionImplementation
 	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(this, string.Empty, Modifier.DEFAULT);
+		Type = new Type(GetRoot(), Identity, Modifier.DEFAULT);
+		Type.AddRuntimeConfiguration();
 
-		Type.AddConstructor(Constructor.Empty(Type, Metadata.Position!));
-		Type.AddDestructor(Destructor.Empty(Type, Metadata.Position!));
+		Type.AddConstructor(Constructor.Empty(Type, Metadata.Start, Metadata.End));
+		Type.AddDestructor(Destructor.Empty(Type, Metadata.Start, Metadata.End));
 
-		Node = new ImplementationNode(this, Metadata.Position);
+		Node = new ScopeNode(this, Metadata.Start, Metadata.End);
 
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}

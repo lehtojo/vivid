@@ -83,7 +83,7 @@ public class HasNode : Node, IResolvable
 		};
 
 		var assignment_context = new Context(environment);
-		var assignment = new IfNode(assignment_context, condition, body);
+		var assignment = new IfNode(assignment_context, condition, body, Position, null);
 
 		return new ContextInlineNode(inline_context, Position) {
 			initialization,

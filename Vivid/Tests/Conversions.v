@@ -1,8 +1,3 @@
-# TODO:
-# Standard casts
-# Storing to memory using assignment operations
-# Automatic casts (virtual functions etc)
-
 # Tests whether the two integer statements will be converted into decimal return statements
 export automatic_number_conversion(a: large) {
 	if a > 0
@@ -92,7 +87,8 @@ export automatic_cast_1(baz: Baz) {
 	=> Bar(baz.e, baz.e)
 }
 
-# Tests whether the return statements in the implementation of the function bar will obey the declared return type decimal
+# Tests whether the return statements in the implementation of the function bar will obey the declared return type decimal.
+# In addition, the compiler must cast the self pointer to type Bar.
 export automatic_cast_2(baz: Baz) {
 	=> baz.bar()
 }

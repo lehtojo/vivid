@@ -202,7 +202,7 @@ public static class Importer
 				else
 				{
 					// Create the template type
-					template_type = new TemplateType(context, result.Value.Name, Modifier.DEFAULT | Modifier.EXTERNAL, arguments.Value.Arguments.Length);
+					template_type = new TemplateType(context, result.Value.Name, Modifier.DEFAULT | Modifier.IMPORTED, arguments.Value.Arguments.Length);
 				}
 
 				// Get a template type variant using the template arguments
@@ -213,7 +213,7 @@ public static class Importer
 			}
 			else
 			{
-				type = context.GetType(result.Value.Name) ?? new Type(context, result.Value.Name, Modifier.DEFAULT | Modifier.EXTERNAL);
+				type = context.GetType(result.Value.Name) ?? new Type(context, result.Value.Name, Modifier.DEFAULT | Modifier.IMPORTED);
 				stack.Add(new MangleDefinition(type, stack.Count, 0));
 			}
 
@@ -381,7 +381,7 @@ public static class Importer
 				return (implementation.Metadata, position);
 			}
 
-			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.EXTERNAL, name.Value.Name, template_arguments.Length);
+			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, template_arguments.Length);
 			implementation = template_function.Get(parameter_types, template_arguments);
 
 			if (implementation == null) return null;
@@ -407,11 +407,9 @@ public static class Importer
 				parameters[i] = new Parameter($"p{i}", parameter_types[i]);
 			}
 
-			var function = (Function?)null;
-
 			if (context.IsType && name.Value.Name == Keywords.INIT.Identifier)
 			{
-				var constructor = new Constructor(context, Modifier.DEFAULT | Modifier.EXTERNAL, null);
+				var constructor = new Constructor(context, Modifier.DEFAULT | Modifier.IMPORTED, null, null);
 				constructor.Parameters.AddRange(parameters);
 
 				context.To<Type>().AddConstructor(constructor);
@@ -420,7 +418,7 @@ public static class Importer
 			}
 			else if (context.IsType && name.Value.Name == Keywords.DEINIT.Identifier)
 			{
-				var destructor = new Destructor(context, Modifier.DEFAULT | Modifier.EXTERNAL, null);
+				var destructor = new Destructor(context, Modifier.DEFAULT | Modifier.IMPORTED, null, null);
 				destructor.Parameters.AddRange(parameters);
 				
 				context.To<Type>().AddDestructor(destructor);
@@ -429,7 +427,7 @@ public static class Importer
 			}
 			else
 			{
-				function = new Function(context, Modifier.DEFAULT | Modifier.EXTERNAL, name.Value.Name, return_type, parameters);
+				var function = new Function(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, return_type, parameters);
 				implementation = function.Implementations.First();
 
 				context.Declare(function);
@@ -526,7 +524,7 @@ public static class Importer
 					parameters[i] = new Parameter($"p{i}", parameter_types[i]);
 				}
 
-				var function = new VirtualFunction(destination, name.Value.Name, return_type) { Modifiers = modifiers };
+				var function = new VirtualFunction(destination, name.Value.Name, return_type, null, null) { Modifiers = modifiers };
 				function.Parameters.AddRange(parameters);
 
 				destination.Declare(function);
@@ -761,7 +759,7 @@ public static class Importer
 				Lexer.RegisterFile(file.Tokens, file);
 
 				// Parse all the tokens
-				var root = new ContextNode(context);
+				var root = new ScopeNode(context, null, null);
 
 				Parser.Parse(root, context, file.Tokens);
 				

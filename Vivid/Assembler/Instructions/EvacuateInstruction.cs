@@ -24,22 +24,25 @@ public class EvacuateInstruction : Instruction
 				return;
 			}
 
+			// Try to get an available non-volatile register
 			var destination = (Handle?)null;
 			var register = Unit.GetNextNonVolatileRegister(source.IsMediaRegister, false);
 
+			// Use the non-volatile register, if one was found
 			if (register != null)
 			{
 				destination = new RegisterHandle(register);
 			}
 			else
 			{
+				// Since there are no non-volatile registers available, the value must be relocated to stack memory
 				Unit.Release(source);
 				return;
 			}
 
 			Unit.Append(new MoveInstruction(Unit, new Result(destination, source.Format), source.Handle!)
 			{
-				Description = $"Evacuate an important value in '{destination}'",
+				Description = $"Evacuate an important value into '{destination}'",
 				Type = MoveType.RELOCATE
 			});
 		});

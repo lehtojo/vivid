@@ -22,29 +22,19 @@ public static class Casts
 		if (from.IsTypeInherited(to)) // Determine whether the cast is a down cast
 		{
 			var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not calculate base offset of a super type while building down cast");
+			if (base_offset == 0) return result;
 
-			if (base_offset == 0)
-			{
-				return result;
-			}
-
-			var expression = ExpressionHandle.CreateMemoryAddress(result, base_offset);
-
-			return new Result(expression, result.Format);
+			var offset = new Result(new ConstantHandle((long)base_offset), Assembler.Format);
+			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
 		}
 
 		if (to.IsTypeInherited(from)) // Determine whether the cast is a up cast
 		{
 			var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not calculate base offset of a super type while building up cast");
+			if (base_offset == 0) return result;
 
-			if (base_offset == 0)
-			{
-				return result;
-			}
-
-			var expression = ExpressionHandle.CreateMemoryAddress(result, -base_offset);
-
-			return new Result(expression, result.Format);
+			var offset = new Result(new ConstantHandle((long)-base_offset), Assembler.Format);
+			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
 		}
 
 		// This means that the cast is unsafe since the types have nothing in common

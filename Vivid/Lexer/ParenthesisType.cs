@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 public class ParenthesisType
 {
-	public static readonly ParenthesisType PARENTHESIS = new ParenthesisType('(', ')');
-	public static readonly ParenthesisType BRACKETS = new ParenthesisType('[', ']');
-	public static readonly ParenthesisType CURLY_BRACKETS = new ParenthesisType('{', '}');
+	public static readonly ParenthesisType PARENTHESIS = new('(', ')');
+	public static readonly ParenthesisType BRACKETS = new('[', ']');
+	public static readonly ParenthesisType CURLY_BRACKETS = new('{', '}');
 
 	private static Dictionary<char, ParenthesisType> Map { get; } = new Dictionary<char, ParenthesisType>();
 

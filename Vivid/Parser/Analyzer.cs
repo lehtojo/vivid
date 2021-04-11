@@ -84,7 +84,7 @@ public static class Analyzer
 		root.FindAll(n => n.Is(NodeType.VARIABLE))
 			.Select(n => n.To<VariableNode>().Variable)
 			.Distinct()
-			.ForEach(v => { v.References.Clear(); v.Edits.Clear(); v.Reads.Clear(); });
+			.ForEach(v => { v.References.Clear(); v.Writes.Clear(); v.Reads.Clear(); });
 	}
 
 	private static void ResetVariableUsages(Context context)
@@ -97,7 +97,7 @@ public static class Analyzer
 		foreach (var variable in context.Variables.Values)
 		{
 			variable.References.Clear();
-			variable.Edits.Clear();
+			variable.Writes.Clear();
 			variable.Reads.Clear();
 		}
 
@@ -121,7 +121,7 @@ public static class Analyzer
 	public static void FindUsages(Variable variable, Node root)
 	{
 		variable.References.Clear();
-		variable.Edits.Clear();
+		variable.Writes.Clear();
 		variable.Reads.Clear();
 
 		foreach (var iterator in root.FindAll(n => n.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
@@ -130,7 +130,7 @@ public static class Analyzer
 
 			if (IsEdited(iterator))
 			{
-				variable.Edits.Add(iterator);
+				variable.Writes.Add(iterator);
 			}
 			else
 			{
@@ -147,7 +147,7 @@ public static class Analyzer
 
 			if (IsEdited(iterator))
 			{
-				iterator.Variable.Edits.Add(iterator);
+				iterator.Variable.Writes.Add(iterator);
 			}
 			else
 			{
@@ -161,13 +161,13 @@ public static class Analyzer
 		// Update all constants in the current context
 		foreach (var variable in context.Variables.Values)
 		{
-			if (variable.IsConstant && variable.References.Any() && !variable.Edits.Any() && !variable.Reads.Any())
+			if (variable.IsConstant && variable.References.Any() && !variable.Writes.Any() && !variable.Reads.Any())
 			{
 				foreach (var reference in variable.References)
 				{
 					if (IsEdited(reference.To<VariableNode>()))
 					{
-						variable.Edits.Add(reference);
+						variable.Writes.Add(reference);
 					}
 					else
 					{
@@ -219,16 +219,16 @@ public static class Analyzer
 
 		foreach (var constant in constants)
 		{
-			if (constant.Edits.Count == 0)
+			if (constant.Writes.Count == 0)
 			{
 				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
 			}
-			else if (constant.Edits.Count > 1)
+			else if (constant.Writes.Count > 1)
 			{
 				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned twice or more");
 			}
 
-			var edit = constant.Edits.First().Parent;
+			var edit = constant.Writes.First().Parent;
 
 			if (edit is OperatorNode assignment)
 			{

@@ -43,15 +43,15 @@ public class WhenPattern : Pattern
 	/// </summary>
 	private bool IsElseSection(List<Token> section)
 	{
-		var i = section.FindIndex(i => i.Is(Operators.IMPLICATION));
+		var i = section.FindIndex(i => i.Is(Operators.HEAVY_ARROW));
 
-		// Every section should have at least one implication token, but return false for now since the build function handles these issues
+		// Every section should have at least one heavy arrow token, but return false for now since the build function handles these issues
 		if (i == -1)
 		{
 			return false;
 		}
 
-		// If there is an else keyword before the first implication token, it means this section is an else section
+		// If there is an else keyword before the first heavy arrow token, it means this section is an else section
 		return section.Take(i).Any(i => i.Is(Keywords.ELSE));
 	}
 
@@ -100,12 +100,15 @@ public class WhenPattern : Pattern
 
 		foreach (var section in sections)
 		{
-			if (!section.Exists(i => i.Is(Operators.IMPLICATION)))
+			// Find the heavy arrow operator, which marks the start of the executable body, every section must have one
+			var start = section.Find(i => i.Is(Operators.HEAVY_ARROW));
+
+			if (start == null)
 			{
 				throw Errors.Get(body.Position, "Could not understand the sections");
 			}
 
-			var section_tokens = section.TakeWhile(i => !i.Is(Operators.IMPLICATION)).ToList();
+			var section_tokens = section.TakeWhile(i => !i.Is(Operators.HEAVY_ARROW)).ToList();
 			var section_tokens_count = section_tokens.Count;
 			var value = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
@@ -152,20 +155,23 @@ public class WhenPattern : Pattern
 
 			if (is_first)
 			{
-				result.Add(new IfNode(section_context, section_condition, section_body));
+				result.Add(new IfNode(section_context, section_condition, section_body, start.Position, null));
 
 				is_first = false;
 				continue;
 			}
 
-			result.Add(new ElseIfNode(section_context, section_condition, section_body));
+			result.Add(new ElseIfNode(section_context, section_condition, section_body, start.Position, null));
 		}
 
 		// Finally, add the section which executes when other conditions fail, if one exists
 		if (else_section != null)
 		{
-			var implication_index = else_section.FindIndex(i => i.Is(Operators.IMPLICATION));
-			var section_tokens = else_section.Skip(implication_index + 1).ToList();
+			// Find the heavy arrow operator, which marks the start of the executable body, every section must have one
+			var arrow_index = else_section.FindIndex(i => i.Is(Operators.HEAVY_ARROW));
+			if (arrow_index == -1) throw Errors.Get(body.Position, "Else section has an empty body");
+
+			var section_tokens = else_section.Skip(arrow_index + 1).ToList();
 
 			if (!section_tokens.Any())
 			{
@@ -196,7 +202,7 @@ public class WhenPattern : Pattern
 
 			var section_context = new Context(context);
 
-			result.Add(new ElseNode(section_context, section_body));
+			result.Add(new ElseNode(section_context, section_body, else_section[arrow_index].Position, null));
 		}
 
 		result.Add(new VariableNode(result_variable));

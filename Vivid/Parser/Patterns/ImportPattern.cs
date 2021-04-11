@@ -64,7 +64,7 @@ public class ImportPattern : Pattern
 			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Could not resolve the return type");
 		}
 
-		var function = new Function(environment, Modifier.DEFAULT | Modifier.EXTERNAL, header.Name) { Position = header.Position };
+		var function = new Function(environment, Modifier.DEFAULT | Modifier.IMPORTED, header.Name, header.Position, null);
 
 		var parameters = header.GetParameters(function);
 		function.Parameters.AddRange(parameters);

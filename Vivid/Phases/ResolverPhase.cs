@@ -91,6 +91,55 @@ public class DocumentDiagnostic
 
 public class ResolverPhase : Phase
 {
+	/// <summary>
+	/// Finds supertypes which are not constructed and reports them
+	/// </summary>
+	private static List<DocumentDiagnostic> FindUnconstructedSupertypes(Type type)
+	{
+		var diagnostics = new List<DocumentDiagnostic>();
+
+		if (type.IsImported || !type.IsUserDefined) return diagnostics;
+
+		// Look for types which inherit some other type
+		if (!type.Supertypes.Any()) return diagnostics;
+
+		// If any of the inherited types do not have a default constructor, the compiler can not generate automatic construction for the supertypes
+		var types = type.Supertypes.FindAll(i => i.Constructors.GetOverload() == null);
+		if (!types.Any()) return diagnostics;
+
+		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations))
+		{
+			var links = constructor.Node!.FindAll(i => i.Is(NodeType.LINK));
+			var supertypes = new HashSet<Type>(type.Supertypes.Where(i => !i.IsUnresolved));
+
+			foreach (var link in links)
+			{
+				// Skip all link which are not function calls
+				if (!link.Right.Is(NodeType.FUNCTION)) continue;
+
+				// Extract the called function
+				var implementation = link.Right.To<FunctionNode>().Function;
+
+				// 1. Require the called function to be constructor
+				// 2. It must use the self pointer
+				if (!implementation.Metadata.IsConstructor || !ReconstructionAnalysis.IsUsingLocalSelfPointer(link.Right)) continue;
+
+				// Remove the constructed type from the supertypes, if it is there
+				supertypes.Remove((Type)implementation.Parent!);
+			}
+
+			// If there is any supertype, which was not constructed, it is an error
+			if (!supertypes.Any()) continue;
+
+			foreach (var supertype in supertypes)
+			{
+				diagnostics.Add(new DocumentDiagnostic(constructor.Metadata.Start, $"Can not automatically construct the inherited type '{supertype}', because it does not have a default constructor", DocumentDiagnosticSeverity.ERROR));
+			}
+		}
+
+		return diagnostics;
+	}
+
 	public static List<DocumentDiagnostic> GetFunctionDiagnostics(FunctionImplementation implementation)
 	{
 		var diagnostics = new List<DocumentDiagnostic>();
@@ -98,7 +147,7 @@ public class ResolverPhase : Phase
 		// Report if the return type is not resolved
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			diagnostics.Add(new DocumentDiagnostic(implementation.Metadata.Position, "Could not resolve the return type", DocumentDiagnosticSeverity.ERROR));
+			diagnostics.Add(new DocumentDiagnostic(implementation.Metadata.Start, "Could not resolve the return type", DocumentDiagnosticSeverity.ERROR));
 		}
 
 		// Look for errors under the implementation node
@@ -108,12 +157,45 @@ public class ResolverPhase : Phase
 			{
 				var status = ((IResolvable)resolvable).GetStatus();
 
-				if (!status.IsProblematic)
-				{
-					continue;
-				}
+				if (!status.IsProblematic) continue;
 
 				diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
+			}
+
+			// Ensure assignments are used properly
+			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ACTION));
+
+			foreach (var iterator in nodes)
+			{
+				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.OFFSET)) continue;
+				diagnostics.Add(new DocumentDiagnostic(iterator.Position, "Can not understand the assignment", DocumentDiagnosticSeverity.ERROR));
+			}
+
+			// Ensure all the assignments are exposed to their parent scopes
+			foreach (var iterator in nodes)
+			{
+				if (iterator.Parent == null || iterator.Parent.Is(NodeType.SCOPE, NodeType.NORMAL, NodeType.INLINE)) continue;
+				diagnostics.Add(new DocumentDiagnostic(iterator.Position, "Assignment must be exposed", DocumentDiagnosticSeverity.ERROR));
+			}
+
+			// Ensure increments and decrements are used properly
+			nodes = implementation.Node.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+
+			foreach (var iterator in nodes)
+			{
+				var source = Analyzer.GetSource(iterator);
+				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
+
+				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
+				diagnostics.Add(new DocumentDiagnostic(iterator.Position, $"Can not understand the {name}", DocumentDiagnosticSeverity.ERROR));
+			}
+
+			nodes = implementation.Node.FindAll(i => i.Is(NodeType.LINK));
+
+			foreach (var iterator in nodes)
+			{
+				if (IsAccessable(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
+				diagnostics.Add(new DocumentDiagnostic(iterator.Right.Position, "Can not access the member here", DocumentDiagnosticSeverity.ERROR));
 			}
 		}
 
@@ -146,9 +228,17 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			diagnostics.AddRange(FindUnconstructedSupertypes(type));
+
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
-				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type.Name}' could not inherit type '{supertype.Name}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
+				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' could not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
+			}
+
+			// There must be at least one destructor which requires no parameters
+			if (type.IsUserDefined && type.Destructors.Overloads.All(i => i.Parameters.Count > 0))
+			{
+				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' does not have a default destructor", DocumentDiagnosticSeverity.ERROR));
 			}
 
 			diagnostics.AddRange(GetDiagnostics(type));
@@ -194,6 +284,51 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
+	/// Returns whether the specified object is accessable based on the specified environment
+	/// </summary>
+	public static bool IsAccessable(FunctionImplementation environment, LinkNode link, bool reads)
+	{
+		// Only variables and function calls can be checked
+		if (!link.Right.Is(NodeType.VARIABLE, NodeType.FUNCTION)) return true;
+
+		var context = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Context : link.Right.To<FunctionNode>().Function.Parent;
+		if (context == null || !context.IsType) return true;
+
+		// Determine which type owns the accessed object
+		var owner = (Type)context;
+
+		// Determine the modifiers of the accessed object
+		var modifiers = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Modifiers : link.Right.To<FunctionNode>().Function.Metadata.Modifiers;
+		
+		// Determine the access level of the requester
+		var requester = environment.GetTypeParent();
+		var access = requester == owner ? Modifier.PRIVATE : (requester != null && requester.IsTypeInherited(owner) ? Modifier.PROTECTED : Modifier.PUBLIC);
+
+		// If the access level is private and the object is read, it can always be accessed
+		// If the access level is private and the object is edited, it can be accessed if it is not private and readonly
+		if (access == Modifier.PRIVATE) return reads || !Flag.Has(modifiers, Modifier.READONLY | Modifier.PRIVATE);
+
+		if (access == Modifier.PROTECTED)
+		{
+			if (reads)
+			{
+				// If the access level is protected and the object is read:
+				// 1. The object can be accessed if it is public or protected
+				return Flag.Has(modifiers, Modifier.PUBLIC) || Flag.Has(modifiers, Modifier.PROTECTED);
+			}
+
+			// If the access level is protected and the object is edited:
+			// 1. The object can be accessed if it is public
+			// 2. The object can be accessed if it is protected and it is not readonly
+			return Flag.Has(modifiers, Modifier.PUBLIC) || (Flag.Has(modifiers, Modifier.PROTECTED) && !Flag.Has(modifiers, Modifier.READONLY));
+		}
+
+		// If the access level is public and the object is read, it can be accessed if it is public
+		// If the access level is public and the object is edited, it can be accessed if it is public and not readonly
+		return Flag.Has(modifiers, Modifier.PUBLIC) && (reads || !Flag.Has(modifiers, Modifier.READONLY));
+	}
+
+	/// <summary>
 	/// Returns a string which describes the state of the specified function implementation
 	/// </summary>
 	public static string GetFunctionReport(FunctionImplementation implementation)
@@ -207,7 +342,7 @@ public class ResolverPhase : Phase
 		// Report if the return type is not resolved
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			errors.Add(Status.Error(implementation.Metadata.Position, "Could not resolve the return type"));
+			errors.Add(Status.Error(implementation.Metadata.Start, "Could not resolve the return type"));
 		}
 
 		// Look for errors under the implementation node
@@ -216,6 +351,42 @@ public class ResolverPhase : Phase
 			errors.AddRange(implementation.Node.FindAll(i => i is IResolvable)
 				.Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic).ToList()
 			);
+
+			// Ensure assignments are used properly
+			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ACTION));
+
+			foreach (var iterator in nodes)
+			{
+				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.OFFSET)) continue;
+				errors.Add(Status.Error(iterator.Position, "Can not understand the assignment"));
+			}
+
+			// Ensure all the assignments are exposed to their parent scopes
+			foreach (var iterator in nodes)
+			{
+				if (iterator.Parent == null || iterator.Parent.Is(NodeType.SCOPE, NodeType.NORMAL, NodeType.INLINE)) continue;
+				errors.Add(Status.Error(iterator.Position, "Assignment must be exposed"));
+			}
+
+			// Ensure increments and decrements are used properly
+			nodes = implementation.Node.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+
+			foreach (var iterator in nodes)
+			{
+				var source = Analyzer.GetSource(iterator);
+				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
+
+				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
+				errors.Add(Status.Error(iterator.Position, $"Can not understand the {name}"));
+			}
+
+			nodes = implementation.Node.FindAll(i => i.Is(NodeType.LINK));
+
+			foreach (var iterator in nodes)
+			{
+				if (IsAccessable(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
+				errors.Add(Status.Error(iterator.Right.Position, "Can not access the member here"));
+			}
 		}
 
 		// Look for variables which are not resolved
@@ -262,9 +433,19 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(i.Range.Start.Line, i.Range.Start.Character), i.Message)))
+			{
+				types.AppendLine(diagnostic.Description);
+			}
+
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
 				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' could not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance"));
+			}
+
+			if (type.IsUserDefined && type.Destructors.Overloads.All(i => i.Parameters.Count > 0))
+			{
+				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' does not have a default destructor"));
 			}
 
 			var report = GetReport(type);
@@ -365,118 +546,7 @@ public class ResolverPhase : Phase
 		return builder.ToString() + report;
 	}
 
-	/// <summary>
-	/// Generates the function which are used for keeping track of used objects
-	/// </summary>
-	private static void CreateReferenceCountingFunctions(Context root)
-	{
-		var instance_parameter_name = "a";
-
-		var link = new Function(root, Modifier.DEFAULT, "link") { Position = new Position() };
-		link.Position.File = Parser.AllocationFunction!.Metadata.Position!.File;
-		link.Parameters.Add(new Parameter(instance_parameter_name));
-
-		root.Declare(link);
-
-		// Increments the reference count of the passed instance
-		// Result:
-		// if a != 0 { a..references += 1 }
-		// => a
-		link.Blueprint.AddRange(new List<Token>
-		{
-			new KeywordToken(Keywords.IF),
-			new IdentifierToken(instance_parameter_name),
-			new OperatorToken(Operators.NOT_EQUALS),
-			new NumberToken(0),
-
-			new ContentToken
-			(
-				ParenthesisType.CURLY_BRACKETS,
-				new IdentifierToken(instance_parameter_name),
-				new OperatorToken(Operators.DOT),
-				new IdentifierToken(RuntimeConfiguration.REFERENCE_COUNT_VARIABLE),
-				new OperatorToken(Operators.ASSIGN_ADD),
-				new NumberToken(1)
-			),
-
-			new OperatorToken(Operators.IMPLICATION),
-			new IdentifierToken(instance_parameter_name)
-		});
-
-		Lexer.RegisterFile(link.Blueprint, link.Position!.File!);
-
-		var unlink = new Function(root, Modifier.DEFAULT, "unlink") { Position = new Position() };
-		unlink.Position.File = Parser.AllocationFunction!.Metadata.Position!.File;
-		unlink.Parameters.Add(new Parameter(instance_parameter_name));
-
-		root.Declare(unlink);
-
-		// Result:
-		// if a != 0 and exchange_add(a..references, -1) == 1 {
-		//  a.deinit()
-		//  deallocate(a as link)
-		// }
-		unlink.Blueprint.AddRange(new List<Token>
-		{
-			new KeywordToken(Keywords.IF),
-
-			new IdentifierToken(instance_parameter_name),
-			new OperatorToken(Operators.NOT_EQUALS),
-			new NumberToken(0),
-
-			new OperatorToken(Operators.AND),
-
-			new IdentifierToken(instance_parameter_name),
-			new OperatorToken(Operators.DOT),
-			new IdentifierToken(RuntimeConfiguration.REFERENCE_COUNT_VARIABLE),
-			new OperatorToken(Operators.ATOMIC_EXCHANGE_ADD),
-			new NumberToken(-1),
-			new OperatorToken(Operators.EQUALS),
-			new NumberToken(1),
-
-			new ContentToken
-			(
-				ParenthesisType.CURLY_BRACKETS,
-
-				new IdentifierToken(instance_parameter_name),
-				new OperatorToken(Operators.DOT),
-				new FunctionToken
-				(
-					new IdentifierToken(Keywords.DEINIT.Identifier), 
-					new ContentToken()
-				),
-
-				new Token(TokenType.END),
-
-				new FunctionToken
-				(
-					new IdentifierToken(Parser.DeallocationFunction!.Name), 
-					new ContentToken
-					(
-						new IdentifierToken(instance_parameter_name),
-						new KeywordToken(Keywords.AS),
-						new IdentifierToken(Types.LINK.Name)
-					)
-				)
-			)
-		});
-
-		Lexer.RegisterFile(unlink.Blueprint, unlink.Position!.File!);
-
-		Parser.LinkFunction = link;
-		Parser.UnlinkFunction = unlink;
-
-		foreach (var type in Common.GetAllTypes(root))
-		{
-			if (type.IsStatic || !type.Destructors.Overloads.Any())
-			{
-				continue;
-			}
-
-			link.Implement(type);
-			unlink.Implement(type);
-		}
-	}
+	
 
 	/// <summary>
 	/// Finds the implementations of the allocation and the inheritance functions and registers them to be used
@@ -495,12 +565,7 @@ public class ResolverPhase : Phase
 
 		Parser.InheritanceFunction = inheritance_function.GetImplementation(Types.LINK, Types.LINK);
 
-		if (!Analysis.IsGarbageCollectorEnabled)
-		{
-			return;
-		}
-
-		CreateReferenceCountingFunctions(context);
+		GarbageCollector.CreateReferenceCountingFunctions(context);
 	}
 
 	public override Status Execute(Bundle bundle)
@@ -527,6 +592,7 @@ public class ResolverPhase : Phase
 			// Try to resolve any problems in the node tree
 			ParserPhase.ApplyExtensionFunctions(context, parse.Node);
 			ParserPhase.ImplementFunctions(context);
+			GarbageCollector.CreateAllOverloads(context);
 			
 			Resolver.ResolveContext(context);
 			report = GetReport(context, parse.Node);
@@ -555,6 +621,15 @@ public class ResolverPhase : Phase
 
 		// Analyze the output
 		Analyzer.Analyze(parse.Node, context);
+
+		// Report possible warnings
+		// NOTE: This must happen after collecting all the variable references
+		var warnings = Warnings.Analyze(context);
+
+		foreach (var warning in warnings)
+		{
+			Console.WriteLine(warning.Description);
+		}
 
 		// Apply analysis to the functions
 		Analysis.Analyze(bundle, context);

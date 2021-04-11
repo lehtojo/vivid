@@ -27,14 +27,14 @@ public class LambdaNode : Node, IResolvable
 
 	public FunctionType GetIncompleteType()
 	{
-		return new FunctionType(Function.Parameters.Select(p => p.Type).ToList(), Implementation?.ReturnType);
+		return new FunctionType(Function.Parameters.Select(i => i.Type).ToList(), Implementation?.ReturnType);
 	}
 
 	public override Type? TryGetType()
 	{
 		if (Implementation != null && Implementation.ReturnType != null)
 		{
-			return new FunctionType(Function.Parameters.Select(p => p.Type).ToList(), Implementation.ReturnType);
+			return new FunctionType(Function.Parameters.Select(i => i.Type).ToList(), Implementation.ReturnType);
 		}
 
 		return null;
@@ -68,13 +68,13 @@ public class LambdaNode : Node, IResolvable
 			}
 		}
 
-		if (Function.Parameters.Any(p => p.Type == null || p.Type.IsUnresolved))
+		if (Function.Parameters.Any(i => i.Type == null || i.Type.IsUnresolved))
 		{
 			return null;
 		}
 
 		Status = Status.OK;
-		Implementation = Function.Implement(Function.Parameters.Select(p => p.Type!));
+		Implementation = Function.Implement(Function.Parameters.Select(i => i.Type!));
 
 		return null;
 	}

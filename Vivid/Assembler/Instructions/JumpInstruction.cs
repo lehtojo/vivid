@@ -7,7 +7,7 @@ using System.Collections.Generic;
 /// </summary>
 public class JumpInstruction : Instruction
 {
-	private static readonly Dictionary<ComparisonOperator, string[]> Instructions = new Dictionary<ComparisonOperator, string[]>();
+	private static readonly Dictionary<ComparisonOperator, string[]> Instructions = new();
 
 	public static void Initialize()
 	{

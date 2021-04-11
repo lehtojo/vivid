@@ -169,7 +169,7 @@ public class Instruction
 	public bool IsUsageAnalyzed { get; set; } = true;
 
 	// Tells whether this instructions is built 
-	public bool IsBuilt { get; private set; } = false;
+	public bool IsBuilt { get; protected set; } = false;
 
 	// Tells whether the instruction is abstract. Abstract instructions will not translate into real assembly instructions
 	public bool IsAbstract { get; set; } = false;
@@ -385,12 +385,12 @@ public class Instruction
 	}
 
 	/// <summary>
-	/// Prepares the handle for use
+	/// Prepares the handle for use by relocating its inner handles into registers, therefore its use does not require additional steps, except if it is in invalid format
 	/// </summary>
 	/// <returns>
 	/// Returns a list of register locks which must be active while the handle is in use
 	/// </returns>
-	public List<RegisterLock> ValidateHandle(Handle handle)
+	private List<RegisterLock> ValidateHandle(Handle handle)
 	{
 		var results = handle.GetRegisterDependentResults();
 		var locks = new List<RegisterLock>();
@@ -409,7 +409,7 @@ public class Instruction
 	}
 
 	/// <summary>
-	/// Builds the instruction with the given arguments and forces the parameters to match the given size
+	/// Builds the instruction with the specified arguments and forces the parameters to match the specified size
 	/// </summary>
 	public void Build(string operation, Size size, params InstructionParameter[] parameters)
 	{

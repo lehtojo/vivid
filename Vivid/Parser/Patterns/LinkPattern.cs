@@ -19,7 +19,7 @@ public class LinkPattern : Pattern
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
-		TokenType.FUNCTION | TokenType.IDENTIFIER
+		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.CONTENT
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -56,6 +56,17 @@ public class LinkPattern : Pattern
 
 		// Try to retrieve the primary context from the left token
 		var left = Singleton.Parse(environment, tokens[LEFT]);
+
+		// If the right operand is a content token, this is a cast expression
+		if (tokens[RIGHT].Is(TokenType.CONTENT))
+		{
+			// Read the cast type from the content token
+			var type = Common.ReadType(environment, new Queue<Token>(tokens[RIGHT].To<ContentToken>().Tokens));
+			if (type == null) throw Errors.Get(tokens[RIGHT].Position, "Can not understand the cast");
+
+			return new CastNode(left, new TypeNode(type, tokens[RIGHT].Position), tokens[OPERATOR].Position);
+		}
+
 		var primary = left.TryGetType();
 
 		Node? right;

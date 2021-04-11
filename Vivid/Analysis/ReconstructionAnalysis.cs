@@ -12,7 +12,7 @@ public static class ReconstructionAnalysis
 		var iterator = reference.Parent!;
 		var position = reference;
 
-		while (!iterator.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION))
+		while (!iterator.Is(NodeType.SCOPE))
 		{
 			position = iterator;
 			iterator = iterator.Parent!;
@@ -70,7 +70,7 @@ public static class ReconstructionAnalysis
 
 		if (nodes.Length == 1)
 		{
-			return nodes.First().FindParent(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION));
+			return nodes.First().FindParent(i => i.Is(NodeType.SCOPE));
 		}
 
 		var shared = nodes[0];
@@ -85,7 +85,7 @@ public static class ReconstructionAnalysis
 			}
 		}
 
-		return shared.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION) ? shared : shared.FindParent(i => i.Is(NodeType.CONTEXT, NodeType.IMPLEMENTATION));
+		return shared.Is(NodeType.SCOPE) ? shared : shared.FindParent(i => i.Is(NodeType.SCOPE));
 	}
 
 	/// <summary>
@@ -324,12 +324,12 @@ public static class ReconstructionAnalysis
 		var start = new LinkNode(source, new VariableNode(configuration));
 
 		var a = new OperatorNode(Operators.EQUALS).SetOperands(
-			OffsetNode.CreateConstantOffset(start, 0, 1, Parser.Format),
+			new OffsetNode(start.Clone(), new NumberNode(Parser.Format, 0L)),
 			new DataPointer(expected.Configuration.Descriptor)
 		);
 
 		var b = new FunctionNode(Parser.InheritanceFunction!).SetParameters(new Node {
-			OffsetNode.CreateConstantOffset(start.Clone(), 0, 1, Parser.Format),
+			new OffsetNode(start, new NumberNode(Parser.Format, 0L)),
 			new DataPointer(expected.Configuration.Descriptor)
 		});
 
@@ -365,7 +365,7 @@ public static class ReconstructionAnalysis
 			);
 
 			// The result variable must be initialized outside the condition
-			ReconstructionAnalysis.GetInsertPosition(expression).Insert(initialization);
+			GetInsertPosition(expression).Insert(initialization);
 
 			// Get the context of the expression
 			var expression_context = expression.GetParentContext();
@@ -377,7 +377,7 @@ public static class ReconstructionAnalysis
 			// Object variable should be declared
 			initialization = new DeclareNode(object_variable);
 
-			ReconstructionAnalysis.GetInsertPosition(expression).Insert(initialization);
+			GetInsertPosition(expression).Insert(initialization);
 
 			// Load the inspected object
 			var load = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -396,7 +396,7 @@ public static class ReconstructionAnalysis
 				new CastNode(new VariableNode(object_variable), new TypeNode(expression.Type))
 			);
 
-			var conditional_assignment = new IfNode(assignment_context, condition, new Node { assignment });
+			var conditional_assignment = new IfNode(assignment_context, condition, new Node { assignment }, expression.Position, null);
 
 			// Create a condition which represents the result of the is expression
 			var result_condition = new VariableNode(expression.Result);
@@ -412,25 +412,18 @@ public static class ReconstructionAnalysis
 	private static bool IsStackConstructionPreferred(Node root, Node value)
 	{
 		var editor = Analyzer.TryGetEditor(value);
-
-		if (editor == null)
-		{
-			return false;
-		}
+		if (editor == null) return false;
 
 		var edited = Analyzer.GetEdited(editor);
-
-		if (!edited.Is(NodeType.VARIABLE))
-		{
-			return false;
-		}
+		if (!edited.Is(NodeType.VARIABLE)) return false;
 
 		var variable = edited.To<VariableNode>().Variable;
+		if (!variable.IsPredictable) return false;
 
 		// Refresh the usages of the variable in order to analyze whether this variable is inlinable
 		Analyzer.FindUsages(variable, root);
 
-		return variable.IsInlined && variable.IsPredictable;
+		return variable.IsInlined;
 	}
 
 	/// <summary>
@@ -515,10 +508,10 @@ public static class ReconstructionAnalysis
 			   new NumberNode(Assembler.Format, 1L)
 			);
 
-			destination.Edits.Add(assignment);
+			destination.Writes.Add(assignment);
 
 			// Create a conditional statement which sets the value of the destination variable to true if the condition is true
-			var statement = new IfNode(context, instance, new Node { assignment });
+			var statement = new IfNode(context, instance, new Node { assignment }, instance.Position, null);
 
 			// Add the statements which implement the boolean value
 			inline.Add(initialization);
@@ -533,8 +526,10 @@ public static class ReconstructionAnalysis
 	public static bool IsValueUsed(Node value)
 	{
 		return value.Parent!.Is(
+			NodeType.CALL,
 			NodeType.CAST,
 			NodeType.CONTENT,
+			NodeType.CONSTRUCTION,
 			NodeType.DECREMENT,
 			NodeType.FUNCTION,
 			NodeType.INCREMENT,
@@ -552,14 +547,15 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsStatement(Node node)
 	{
-		return node.Is(
-			NodeType.ELSE,
-			NodeType.ELSE_IF,
-			NodeType.IF,
-			NodeType.IMPLEMENTATION,
-			NodeType.LOOP,
-			NodeType.CONTEXT
-		);
+		return node.Is(NodeType.ELSE, NodeType.ELSE_IF, NodeType.IF, NodeType.LOOP, NodeType.SCOPE);
+	}
+
+	/// <summary>
+	/// Returns true if the specified node represents a scope
+	/// </summary>
+	public static bool IsScope(Node node)
+	{
+		return node.Is(NodeType.SCOPE);
 	}
 
 	/// <summary>
@@ -1245,10 +1241,7 @@ public static class ReconstructionAnalysis
 		//     Inheritant.member = 0
 		//   }
 		// }
-		if (link.Left.Is(NodeType.TYPE))
-		{
-			return true;
-		}
+		if (link.Left.Is(NodeType.TYPE)) return true;
 
 		// Take into account the following situation:
 		// Namespace.Inheritant Inheritor {
@@ -1340,6 +1333,55 @@ public static class ReconstructionAnalysis
 			));
 		}
 	}
+	
+	/// <summary>
+	/// Finds casts which have no effect and removes them
+	/// Example: x = 0 as large
+	/// </summary>
+	public static void RemoveRedundantCasts(Node root)
+	{
+		var casts = root.FindAll(i => i.Is(NodeType.CAST)).Cast<CastNode>();
+
+		foreach (var cast in casts)
+		{
+			// Do not remove the cast if it changes the type
+			if (!ReferenceEquals(cast.GetType(), cast.Object.GetType())) continue;
+
+			// Remove the cast since it does nothing
+			cast.Replace(cast.Object);
+		}
+	}
+
+	/// <summary>
+	/// Finds assignments which have implicit casts and adds them
+	/// </summary>
+	public static void AddAssignmentCasts(Node root)
+	{
+		var assignments = root.FindAll(i => i.Is(Operators.ASSIGN));
+
+		foreach (var assignment in assignments)
+		{
+			var to = assignment.Left.GetType();
+			var from = assignment.Right.GetType();
+
+			// Skip assignments which do not cast the value
+			if (to == from) continue;
+
+			// If the right operand is a number and it is converted into different kind of number, it can be done without a cast node
+			if (assignment.Right.Is(NodeType.NUMBER) && from is Number && to is Number)
+			{
+				assignment.Right.To<NumberNode>().Convert(to.Format);
+				continue;
+			}
+
+			// Remove the right operand from the assignment
+			var value = assignment.Right;
+			value.Remove();
+
+			// Now cast the right operand and add it back
+			assignment.Add(new CastNode(value, new TypeNode(to, value.Position), value.Position));
+		}
+	}
 
 	/// <summary>
 	/// Rewrites lambda nodes using simpler nodes
@@ -1362,7 +1404,7 @@ public static class ReconstructionAnalysis
 
 			if (IsStackConstructionPreferred(root, lambda))
 			{
-				allocator = new CastNode(new StackAddressNode(inline.Context, type.ContentSize), new TypeNode(type));
+				allocator = new CastNode(new StackAddressNode(inline.Context, type), new TypeNode(type));
 			}
 			else
 			{
@@ -1471,6 +1513,8 @@ public static class ReconstructionAnalysis
 		RemoveRedundantParenthesis(root);
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
+		RemoveRedundantCasts(root);
+		AddAssignmentCasts(root);
 		RewriteSupertypeAccessors(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);

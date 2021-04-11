@@ -71,19 +71,17 @@ public class TemplateFunctionPattern : Pattern
 			return true;
 		}
 
-		// If there's an implication operator next, then this is a template function
-		return Try(state, () => Consume(state, out Token? token, TokenType.OPERATOR) && token!.Is(Operators.IMPLICATION));
+		// If there is a heavy arrow operator next, then this is a template function
+		return Try(state, () => Consume(state, out Token? token, TokenType.OPERATOR) && token!.Is(Operators.HEAVY_ARROW));
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
-		var blueprint = (ContentToken?)null;
+		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>() : null;
 
-		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS))
-		{
-			blueprint = tokens.Last().To<ContentToken>();
-		}
+		var start = name.Position;
+		var end = blueprint?.End;
 
 		var template_parameters_end = tokens.FindLastIndex(tokens.Count - 1, i => i.Is(Operators.GREATER_THAN));
 
@@ -96,12 +94,9 @@ public class TemplateFunctionPattern : Pattern
 		var template_parameter_names = Common.GetTemplateParameters(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS_START + 1].Position);
 
 		var parameters = tokens[template_parameters_end + PARAMETERS_OFFSET].To<ContentToken>();
-		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
+		var descriptor = new FunctionToken(name, parameters) { Position = start };
 
-		var template_function = new TemplateFunction(context, Modifier.DEFAULT, name.Value, template_parameter_names)
-		{
-			Position = name.Position
-		};
+		var template_function = new TemplateFunction(context, Modifier.DEFAULT, name.Value, template_parameter_names, start, end);
 
 		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
 		if (template_function.IsMember && !template_function.IsStatic)
@@ -111,7 +106,7 @@ public class TemplateFunctionPattern : Pattern
 
 		if (blueprint == null)
 		{
-			// Take the implication token into the blueprint as well
+			// Take the heavy arrow token into the blueprint as well
 			var result = new List<Token>() { tokens.Last() };
 
 			if (!Common.ConsumeBlock(template_function, state, result))
@@ -129,6 +124,6 @@ public class TemplateFunctionPattern : Pattern
 
 		context.Declare(template_function);
 
-		return new FunctionDefinitionNode(template_function, name.Position);
+		return new FunctionDefinitionNode(template_function, start);
 	}
 }

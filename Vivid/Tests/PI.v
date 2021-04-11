@@ -1,5 +1,5 @@
 Array<T> {
-	private data: link<T>
+	data: link<T>
 	count: large
 	
 	init(count: large) {

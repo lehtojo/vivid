@@ -15,6 +15,13 @@ public class FunctionToken : Token
 		Parameters = parameters;
 	}
 
+	public FunctionToken(IdentifierToken name, ContentToken parameters, Position position) : base(TokenType.FUNCTION)
+	{
+		Identifier = name;
+		Parameters = parameters;
+		Position = position;
+	}
+
 	/// <summary>
 	/// Returns function parameters as node tree
 	/// </summary>

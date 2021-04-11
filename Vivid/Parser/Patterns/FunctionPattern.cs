@@ -30,7 +30,7 @@ class FunctionPattern : Pattern
 		var header = tokens[HEADER].To<FunctionToken>();
 		var body = tokens[BODY].To<ContentToken>();
 
-		var function = new Function(context, Modifier.DEFAULT, header.Name, body.Tokens) { Position = header.Position };
+		var function = new Function(context, Modifier.DEFAULT, header.Name, body.Tokens, header.Position, body.End);
 		function.Parameters.AddRange(header.GetParameters(function));
 
 		context.Declare(function);

@@ -45,11 +45,9 @@ Array<T> {
 }
 
 Object {
-	private:
+	public:
 	value: decimal
 	flag: bool = false
-
-	public:
 	
 	value() {
 		flag = true

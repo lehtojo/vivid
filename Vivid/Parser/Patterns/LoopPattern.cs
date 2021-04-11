@@ -108,8 +108,8 @@ public class LoopPattern : Pattern
 		}
 
 		var token = tokens[BODY].To<ContentToken>();
+		var body = new ScopeNode(body_context, token.Position, token.End);
 
-		var body = new ContextNode(body_context);
 		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
 
 		return new LoopNode(steps_context, steps, body, tokens[KEYWORD].Position);

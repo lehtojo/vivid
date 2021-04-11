@@ -788,17 +788,20 @@ public class Unit
 
 	public bool TryAppendPosition(Node node)
 	{
-		if (!Assembler.IsDebuggingEnabled)
-		{
-			return true;
-		}
-
-		if (node.Position == null)
-		{
-			return false;
-		}
+		if (!Assembler.IsDebuggingEnabled) return true;
+		if (node.Position == null) return false;
 
 		Append(new AppendPositionInstruction(this, node.Position));
+
+		return true;
+	}
+
+	public bool TryAppendPosition(Position? position)
+	{
+		if (!Assembler.IsDebuggingEnabled) return true;
+		if (position == null) return false;
+
+		Append(new AppendPositionInstruction(this, position));
 
 		return true;
 	}

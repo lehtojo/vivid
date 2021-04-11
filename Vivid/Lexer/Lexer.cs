@@ -43,6 +43,9 @@ public static class Lexer
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
+	public const string POSITIVE_INFINITY_CONSTANT = "POSITIVE_INFINITY";
+	public const string NEGATIVE_INFINITY_CONSTANT = "NEGATIVE_INFINITY";
+
 	public const char LINE_ENDING = '\n';
 	public const char COMMENT = '#';
 	public const string MULTILINE_COMMENT = "###";
@@ -74,7 +77,7 @@ public static class Lexer
 			'.' => ".0123456789",
 			',' => string.Empty,
 			'<' => "|=",
-			'>' => "|=-",
+			'>' => "|=-:",
 			_ => null
 		};
 	}
@@ -312,7 +315,7 @@ public static class Lexer
 	/// </summary>
 	private static bool IsMultilineComment(string text, Position start)
 	{
-		return start.Local + (MULTILINE_COMMENT.Length * 2 + 1) <= text.Length && text[start.Local..(start.Local + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Local + MULTILINE_COMMENT.Length] != COMMENT;
+		return start.Local + MULTILINE_COMMENT.Length * 2 + 1 <= text.Length && text[start.Local..(start.Local + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Local + MULTILINE_COMMENT.Length] != COMMENT;
 	}
 
 	/// <summary>
@@ -375,7 +378,7 @@ public static class Lexer
 			throw new LexerException(start, error);
 		}
 
-		var length = (i + 1) - start.Local;
+		var length = i + 1 - start.Local;
 
 		return new Position(start.Line, start.Character + length, start.Local + length, i + 1);
 	}
@@ -488,7 +491,7 @@ public static class Lexer
 		// Firsly the spaces must be skipped to find the next token
 		var position = SkipSpaces(text, start);
 
-		// Verify there's text to iterate
+		// Verify there is text to iterate
 		if (position.Local == text.Length)
 		{
 			return null;

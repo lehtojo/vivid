@@ -194,11 +194,30 @@ public static class Assembler
 	}
 
 	/// <summary>
+	/// Converts the specified modifiers into source code
+	/// </summary>
+	private static string GetModifiers(int modifiers)
+	{
+		var result = new List<string>();
+		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
+		if (Flag.Has(modifiers, Modifier.INLINE)) result.Add(Keywords.INLINE.Identifier);
+		if (Flag.Has(modifiers, Modifier.IMPORTED)) result.Add(Keywords.IMPORT.Identifier);
+		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);
+		if (Flag.Has(modifiers, Modifier.PRIVATE)) result.Add(Keywords.PRIVATE.Identifier);
+		if (Flag.Has(modifiers, Modifier.PROTECTED)) result.Add(Keywords.PROTECTED.Identifier);
+		if (Flag.Has(modifiers, Modifier.PUBLIC)) result.Add(Keywords.PUBLIC.Identifier);
+		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READONLY.Identifier);
+		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.STATIC.Identifier);
+		return string.Join(' ', result);
+	}
+
+	/// <summary>
 	/// Exports the specified template function which may have the specified parent type
 	/// </summary>
 	private static void ExportTemplateFunction(StringBuilder builder, TemplateFunction function)
 	{
-		/// TODO: Support modifiers
+		builder.Append(GetModifiers(function.Modifiers));
+		builder.Append(' ');
 		builder.Append(CreateTemplateName(function.Name, function.TemplateArgumentNames));
 		builder.Append(ParenthesisType.PARENTHESIS.Opening);
 		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
@@ -213,7 +232,8 @@ public static class Assembler
 	/// </summary>
 	private static void ExportShortTemplateFunction(StringBuilder builder, Function function)
 	{
-		/// TODO: Support modifiers
+		builder.Append(GetModifiers(function.Modifiers));
+		builder.Append(' ');
 		builder.Append(function.Name);
 		builder.Append(ParenthesisType.PARENTHESIS.Opening);
 		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
@@ -250,7 +270,7 @@ public static class Assembler
 	public static Dictionary<SourceFile, StringBuilder> GetTemplateExportFiles(Context context)
 	{
 		var files = new Dictionary<SourceFile, StringBuilder>();
-		var functions = context.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i) && i.Position?.File != null).GroupBy(i => i.Position!.File!);
+		var functions = context.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i) && i.Start?.File != null).GroupBy(i => i.Start!.File!);
 
 		foreach (var iterator in functions)
 		{
@@ -347,7 +367,7 @@ public static class Assembler
 		var statics = types.SelectMany(i => i.Variables.Values).Where(i => i.IsStatic).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetStaticName()).ToList());
 		
 		// Collect all the function names and group them by their files
-		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Position?.File != null).GroupBy(i => i.Metadata.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start?.File != null).GroupBy(i => i.Metadata.Start!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
 
 		// Finally, merge all the collected symbols
 		return (Dictionary<SourceFile, List<string>>)configurations.Merge(statics).Merge(functions);
@@ -425,7 +445,7 @@ public static class Assembler
 			unit.Execute(UnitMode.APPEND, () =>
 			{
 				// Create the most outer scope where all instructions will be placed
-				using var scope = new Scope(unit, implementation.Node!, false);
+				using var scope = new Scope(unit, implementation.Node!);
 
 				if (implementation.VirtualFunction != null)
 				{
@@ -472,7 +492,7 @@ public static class Assembler
 	{
 		constant_sections = new Dictionary<SourceFile, List<ConstantDataSectionHandle>>();
 
-		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Position != null).GroupBy(i => i.Position!.File ?? throw new ApplicationException("Missing declaration file"));
+		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Start != null).GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 		var text_sections = new Dictionary<SourceFile, string>();
 
 		foreach (var iterator in files)
@@ -709,7 +729,7 @@ public static class Assembler
 
 		// Append all strings into the data section
 		var functions = Common.GetAllFunctionImplementations(context).Where(i => !i.Metadata!.IsImported)
-			.GroupBy(i => i.Metadata!.Position?.File ?? throw new ApplicationException("Missing type declaration file"));
+			.GroupBy(i => i.Metadata!.Start?.File ?? throw new ApplicationException("Missing type declaration file"));
 
 		foreach (var iterator in functions)
 		{
@@ -876,8 +896,8 @@ public static class Assembler
 		var base_types = all_types.Where(i => i.Position == null).ToArray();
 		var types = all_types.Where(i => i.Position != null).ToArray();
 
-		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Position != null)
-			.GroupBy(i => i.Metadata!.Position!.File ?? throw new ApplicationException("Missing declaration file"));
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null)
+			.GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 
 		foreach (var file in functions)
 		{
@@ -933,7 +953,7 @@ public static class Assembler
 
 		if (entry_function != null)
 		{
-			entry_function_file = entry_function.Metadata.Position?.File ?? throw new ApplicationException("Entry function declaration file missing");
+			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
 		}
 
 		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);

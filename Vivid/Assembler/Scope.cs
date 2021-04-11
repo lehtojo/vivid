@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 public class VariableLoad
@@ -245,7 +246,6 @@ public sealed class Scope : IDisposable
 	}
 
 	private Node Root { get; }
-	private bool IsCondition { get; }
 
 	private List<VariableLoad> Loads { get; set; } = new List<VariableLoad>();
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
@@ -263,10 +263,9 @@ public sealed class Scope : IDisposable
 	/// Creates a scope with variables that are returned to their original locations once the scope is exited
 	/// </summary>
 	/// <param name="active_variables">Variables that must not be released</param>
-	public Scope(Unit unit, Node root, bool is_condition, IEnumerable<Variable>? active_variables = null)
+	public Scope(Unit unit, Node root, IEnumerable<Variable>? active_variables = null)
 	{
 		Root = root;
-		IsCondition = is_condition;
 		Actives = active_variables?.ToList() ?? new List<Variable>();
 		Enter(unit);
 	}
@@ -324,9 +323,9 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Ensure that the current scope is not circular by iterating parent scopes for limited number of times
 	/// </summary>
+	[Conditional("DEBUG")]
 	public void CaptureCircularScopes()
 	{
-		/// TODO: This should be disabled in release mode since there could be nested scopes more than the allowed limit
 		var iterator = this;
 		var limit = CIRCULAR_SCOPE_THRESHOLD;
 
@@ -450,7 +449,7 @@ public sealed class Scope : IDisposable
 
 			// Get all the register which hold any active variable
 			var denylist = Variables.Values.Where(i => i.Value.Is(HandleInstanceType.REGISTER)).Select(i => i.Value.To<RegisterHandle>().Register);
-			var registers = Unit.NonReservedRegisters.Where(r => !denylist.Contains(r));
+			var registers = Unit.NonReservedRegisters.Where(i => !denylist.Contains(i));
 
 			// All register which do not hold active variables must be reset since they would disturb the execution of the scope
 			foreach (var register in registers)
@@ -478,7 +477,7 @@ public sealed class Scope : IDisposable
 				}
 				else
 				{
-					throw new ApplicationException("Self pointer should not be in stack (x64 calling convention)");
+					throw new ApplicationException("Self pointer should not be in stack");
 				}
 			}
 

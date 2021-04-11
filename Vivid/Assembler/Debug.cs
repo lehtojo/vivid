@@ -180,12 +180,12 @@ public class Debug
 
 	public static int GetFile(FunctionImplementation implementation)
 	{
-		return implementation.Metadata.Position?.File?.Index ?? throw new ApplicationException($"Declaration file of function '{implementation.GetHeader()}' missing");
+		return implementation.Metadata.Start?.File?.Index ?? throw new ApplicationException($"Declaration file of function '{implementation.GetHeader()}' missing");
 	}
 
 	public static int GetLine(FunctionImplementation implementation)
 	{
-		return implementation.Metadata!.Position?.FriendlyLine ?? throw new ApplicationException($"Declaration position of function '{implementation.GetHeader()}' missing");
+		return implementation.Metadata!.Start?.FriendlyLine ?? throw new ApplicationException($"Declaration position of function '{implementation.GetHeader()}' missing");
 	}
 
 	public static int GetFile(Type type)

@@ -21,7 +21,7 @@ class ReturnPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[RETURN].To<OperatorToken>().Operator == Operators.IMPLICATION;
+		return tokens[RETURN].To<OperatorToken>().Operator == Operators.HEAVY_ARROW;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)

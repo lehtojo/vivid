@@ -131,7 +131,7 @@ public class Mangle
 		foreach (var type in components)
 		{
 			// The path must consist of user defined types
-			if (!type.Destructors.Overloads.Any())
+			if (!type.IsUserDefined)
 			{
 				throw new ArgumentException("Invalid type path");
 			}
@@ -210,7 +210,7 @@ public class Mangle
 				return;
 			}
 
-			if (type is Link link)
+			if (type is Link)
 			{
 				Value += POINTER_COMMAND;
 				
@@ -288,9 +288,6 @@ public class Context : IComparable<Context>
 	public string Identifier { get; set; } = string.Empty;
 	public string Name { get; protected set; } = string.Empty;
 
-	public string Prefix { get; set; } = string.Empty;
-	public string Postfix { get; set; } = string.Empty;
-
 	public Context? Parent { get; set; }
 	public List<Context> Subcontexts { get; private set; } = new List<Context>();
 
@@ -316,14 +313,6 @@ public class Context : IComparable<Context>
 	public List<Type> Imports { get; } = new List<Type>();
 
 	protected Indexer Indexer { get; set; } = new Indexer();
-
-	/// <summary>
-	/// Create a new root context
-	/// </summary>
-	public static Context CreateRootContext(string identity)
-	{
-		return new Context(identity);
-	}
 
 	/// <summary>
 	/// Create a new root context
@@ -405,10 +394,7 @@ public class Context : IComparable<Context>
 		{
 			var import = Imports[i];
 
-			if (!import.IsUnresolved)
-			{
-				continue;
-			}
+			if (!import.IsUnresolved) continue;
 
 			// Try to resolve the import
 			var node = ((IResolvable)import).Resolve(this);
@@ -422,17 +408,11 @@ public class Context : IComparable<Context>
 
 		foreach (var variable in Variables.Values)
 		{
-			if (!variable.IsUnresolved)
-			{
-				continue;
-			}
+			if (!variable.IsUnresolved) continue;
 
 			var resolvable = (IResolvable?)variable.Type;
 
-			if (resolvable == null)
-			{
-				continue;
-			}
+			if (resolvable == null) continue;
 
 			// Try to resolve the type
 			var node = resolvable.Resolve(this);
@@ -444,10 +424,7 @@ public class Context : IComparable<Context>
 			}
 		}
 
-		if (local)
-		{
-			return;
-		}
+		if (local) return;
 
 		foreach (var type in new List<Type>(Types.Values))
 		{
@@ -862,19 +839,22 @@ public class Context : IComparable<Context>
 		return Parent?.GetImplementationParent();
 	}
 
+	/// <summary>
+	/// Returns the root context
+	/// </summary>
+	public Context GetRoot()
+	{
+		return Parent == null ? this : Parent.GetRoot();
+	}
+
 	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
 	{
-		return Functions.Values
-			.SelectMany(f => f.Overloads)
-			.SelectMany(f => f.Implementations)
-			.Where(i => i.Node != null);
+		return Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations).Where(i => i.Node != null);
 	}
 
 	public virtual IEnumerable<FunctionImplementation> GetFunctionImplementations()
 	{
-		return Functions.Values
-			.SelectMany(f => f.Overloads)
-			.SelectMany(f => f.Implementations);
+		return Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations);
 	}
 
 	public virtual Label CreateLabel()

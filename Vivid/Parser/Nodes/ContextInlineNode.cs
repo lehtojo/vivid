@@ -1,6 +1,6 @@
 using System;
 
-public class ContextInlineNode : InlineNode, IContext
+public class ContextInlineNode : InlineNode, IScope
 {
 	public Context Context { get; private set; }
 

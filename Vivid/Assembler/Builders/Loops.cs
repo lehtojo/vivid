@@ -54,7 +54,7 @@ public static class Loops
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
 
-		using (var scope = new Scope(unit, statement.Body, false, active_variables))
+		using (var scope = new Scope(unit, statement.Body, active_variables))
 		{
 			statement.Scope = scope;
 
@@ -64,6 +64,7 @@ public static class Loops
 			// Build the loop body
 			result = Builders.Build(unit, statement.Body);
 
+			unit.TryAppendPosition(statement.Body.End);
 			unit.Append(new MergeScopeInstruction(unit, scope));
 		}
 
@@ -80,7 +81,7 @@ public static class Loops
 		var state = unit.GetState(unit.Position);
 		var result = (Result?)null;
 
-		using (var scope = new Scope(unit, statement.Body, false, active_variables))
+		using (var scope = new Scope(unit, statement.Body, active_variables))
 		{
 			statement.Scope = scope;
 
@@ -89,6 +90,8 @@ public static class Loops
 
 			// Build the loop body
 			result = Builders.Build(unit, statement.Body);
+			
+			unit.TryAppendPosition(statement.Body.End);
 
 			if (!statement.IsForeverLoop)
 			{
@@ -106,7 +109,7 @@ public static class Loops
 
 			statement.Condition.Instance = instance;
 
-			BuildEndCondition(unit, statement, statement.Condition, start.Label);
+			BuildEndCondition(unit, statement.Condition, start.Label);
 		}
 
 		unit.Set(state);
@@ -201,7 +204,7 @@ public static class Loops
 		var active_variables = Scope.GetAllActiveVariables(unit, statement);
 
 		// Jump to the end based on the comparison
-		Conditionals.BuildCondition(unit, statement, statement.Condition, end, active_variables);
+		Conditionals.BuildCondition(unit, statement.Condition, end, active_variables);
 
 		// Build the loop body
 		var result = BuildLoopBody(unit, statement, new LabelInstruction(unit, start), active_variables);
@@ -215,11 +218,11 @@ public static class Loops
 	/// <summary>
 	/// Builds the the specified condition which should be placed at the end of a loop
 	/// </summary>
-	private static void BuildEndCondition(Unit unit, Node statement, Node condition, Label success)
+	private static void BuildEndCondition(Unit unit, Node condition, Label success)
 	{
 		var failure = unit.GetNextLabel();
 
-		var instructions = BuildCondition(unit, statement, condition, success, failure);
+		var instructions = BuildCondition(unit, condition, success, failure);
 		instructions.Add(new LabelInstruction(unit, failure));
 
 		// Remove all occurrences of the following pattern from the instructions:
@@ -296,14 +299,12 @@ public static class Loops
 
 	private class TemporaryCompareInstruction : TemporaryInstruction
 	{
-		private Node Statement { get; }
 		private Node Comparison { get; }
 		private Node Left => Comparison.First!;
 		private Node Right => Comparison.Last!;
 
-		public TemporaryCompareInstruction(Unit unit, Node statement, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
+		public TemporaryCompareInstruction(Unit unit, Node comparison) : base(unit, InstructionType.TEMPORARY_COMPARE)
 		{
-			Statement = statement;
 			Comparison = comparison;
 		}
 
@@ -312,7 +313,7 @@ public static class Loops
 			var state = Unit.GetState(Unit.Position);
 
 			// Since this is a body of some statement is also has a scope
-			using (var scope = new Scope(Unit, Comparison, true, Unit.Scope!.Actives))
+			using (var scope = new Scope(Unit, Comparison, Unit.Scope!.Actives))
 			{
 				// Merges all changes that happen in the scope with the outer scope
 				var merge = new MergeScopeInstruction(Unit, scope);
@@ -332,7 +333,7 @@ public static class Loops
 		}
 	}
 
-	private static List<Instruction> BuildCondition(Unit unit, Node statement, Node condition, Label success, Label failure)
+	private static List<Instruction> BuildCondition(Unit unit, Node condition, Label success, Label failure)
 	{
 		if (condition.Is(NodeType.OPERATOR))
 		{
@@ -340,8 +341,8 @@ public static class Loops
 
 			return operation.Operator.Type switch
 			{
-				OperatorType.LOGIC => BuildLogicalCondition(unit, statement, operation, success, failure),
-				OperatorType.COMPARISON => BuildComparison(unit, statement, operation, success, failure),
+				OperatorType.LOGIC => BuildLogicalCondition(unit, operation, success, failure),
+				OperatorType.COMPARISON => BuildComparison(unit, operation, success, failure),
 				_ => throw new ApplicationException(
 				   "Unsupported operator encountered while building a conditional statement")
 			};
@@ -349,7 +350,7 @@ public static class Loops
 
 		if (condition.Is(NodeType.CONTENT))
 		{
-			return BuildCondition(unit, statement, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
+			return BuildCondition(unit, condition.First ?? throw new ApplicationException("Encountered an empty parenthesis while building a condition"), success, failure);
 		}
 
 		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
@@ -357,10 +358,10 @@ public static class Loops
 
 		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, condition.Position));
 
-		return BuildCondition(unit, statement, replacement, success, failure);
+		return BuildCondition(unit, replacement, success, failure);
 	}
 
-	private static List<Instruction> BuildComparison(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildComparison(Unit unit, OperatorNode condition, Label success, Label failure)
 	{
 		var x = condition.Left.GetType();
 		var y = condition.Right.GetType();
@@ -368,28 +369,28 @@ public static class Loops
 
 		return new List<Instruction>
 		{
-			new TemporaryCompareInstruction(unit, statement, condition),
+			new TemporaryCompareInstruction(unit, condition),
 			new JumpInstruction(unit, (ComparisonOperator)condition.Operator, false, !unsigned, success),
 			new JumpInstruction(unit, failure)
 		};
 	}
 
-	private static List<Instruction> BuildLogicalCondition(Unit unit, Node statement, OperatorNode condition, Label success, Label failure)
+	private static List<Instruction> BuildLogicalCondition(Unit unit, OperatorNode condition, Label success, Label failure)
 	{
 		var instructions = new List<Instruction>();
 		var interphase = unit.GetNextLabel();
 
 		if (Equals(condition.Operator, Operators.AND))
 		{
-			instructions.AddRange(BuildCondition(unit, statement, condition.Left, interphase, failure));
+			instructions.AddRange(BuildCondition(unit, condition.Left, interphase, failure));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
 		}
 		else if (Equals(condition.Operator, Operators.OR))
 		{
-			instructions.AddRange(BuildCondition(unit, statement, condition.Left, success, interphase));
+			instructions.AddRange(BuildCondition(unit, condition.Left, success, interphase));
 			instructions.Add(new LabelInstruction(unit, interphase));
-			instructions.AddRange(BuildCondition(unit, statement, condition.Right, success, failure));
+			instructions.AddRange(BuildCondition(unit, condition.Right, success, failure));
 		}
 		else
 		{

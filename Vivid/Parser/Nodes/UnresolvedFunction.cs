@@ -63,33 +63,14 @@ public class UnresolvedFunction : Node, IResolvable
 
 		// Find all the functions overloads with the name of this unresolved function
 		var functions = primary.GetFunction(Name)!;
-		var candidates = (List<Function>?)null;
 
-		/// TODO: This structure could be unified
-		if (Arguments.Any())
+		// Find all the function overloads that could accept the currently resolved parameter types
+		var candidates = functions.Overloads.Where(i =>
 		{
-			var overloads = functions.Overloads.Where(i => i is TemplateFunction).Cast<TemplateFunction>();
+			var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
+			return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!, Arguments);
 
-			// Find all the function overloads that could accept the currently resolved parameter types
-			candidates = overloads.Where(i =>
-			{
-				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
-				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!, Arguments);
-
-			}).Cast<Function>().ToList();
-		}
-		else
-		{
-			var overloads = functions.Overloads.Where(i => i is not TemplateFunction);
-
-			// Find all the function overloads that could accept the currently resolved parameter types
-			candidates = overloads.Where(i =>
-			{
-				var types = actual_types.Zip(i.Parameters.Select(i => i.Type), (a, b) => a ?? b).ToList();
-				return types.All(i => i != null && !i.IsUnresolved) && i.Passes(types!);
-
-			}).ToList();
-		}
+		}).ToList();
 
 		// Collect all parameter types but this time filling the unresolved lambda types with incomplete call descriptor types
 		actual_types = parameters.Select(i => i.Type ?? i.Node.To<LambdaNode>().GetIncompleteType()).ToList()!;
@@ -213,7 +194,7 @@ public class UnresolvedFunction : Node, IResolvable
 		var node = new FunctionNode(function, Position).SetParameters(this);
 
 		if (function.IsConstructor)
-	{
+		{
 			var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 			// Consider the following situations:

@@ -1,11 +1,11 @@
 using System;
 
-public class LoopNode : Node, IResolvable, IContext
+public class LoopNode : Node, IResolvable, IScope
 {
 	public Context Context { get; private set; }
 
 	public Node Steps => First!;
-	public ContextNode Body => Last!.To<ContextNode>();
+	public ScopeNode Body => Last!.To<ScopeNode>();
 
 	public Node Initialization => Steps.First!;
 	public Node Condition => Common.FindCondition(Initialization.Next!);
@@ -18,7 +18,7 @@ public class LoopNode : Node, IResolvable, IContext
 
 	public bool IsForeverLoop => First == Last;
 
-	public LoopNode(Context context, Node? steps, ContextNode body, Position? position = null)
+	public LoopNode(Context context, Node? steps, ScopeNode body, Position? position = null)
 	{
 		Context = context;
 		Position = position;

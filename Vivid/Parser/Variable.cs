@@ -11,7 +11,7 @@ public class Variable
 	public Position? Position { get; set; }
 
 	public bool IsConstant => Flag.Has(Modifiers, Modifier.CONSTANT);
-	public bool IsImported => Flag.Has(Modifiers, Modifier.EXTERNAL);
+	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
 	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
 	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
 	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
@@ -23,10 +23,10 @@ public class Variable
 	public int? LocalAlignment { get; set; }
 
 	public List<Node> References { get; private set; } = new List<Node>();
-	public List<Node> Edits { get; private set; } = new List<Node>();
+	public List<Node> Writes { get; private set; } = new List<Node>();
 	public List<Node> Reads { get; private set; } = new List<Node>();
 
-	public bool IsEdited => Edits.Count > 0;
+	public bool IsEdited => Writes.Count > 0;
 	public bool IsRead => Reads.Count > 0;
 	public bool IsCopied => Reads.Any(i => !i.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT))?.Is(NodeType.LINK) ?? true);
 
@@ -42,11 +42,17 @@ public class Variable
 
 	public bool IsGenerated => Position == null;
 
+	/// <summary>
+	/// Creates a new variable with the specified properties
+	/// </summary>
 	public static Variable Create(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
 		return new Variable(context, type, category, name, modifiers, declare);
 	}
 
+	/// <summary>
+	/// Creates a new variable with the specified properties
+	/// </summary>
 	public Variable(Context context, Type? type, VariableCategory category, string name, int modifiers, bool declare = true)
 	{
 		Name = name;
@@ -79,9 +85,12 @@ public class Variable
 		return mangle.Value;
 	}
 
+	/// <summary>
+	/// Returns whether this variable is edited inside the specified node
+	/// </summary>
 	public bool IsEditedInside(Node node)
 	{
-		return Edits.Any(e => e.FindParent(p => p == node) != null);
+		return Writes.Any(e => e.FindParent(p => p == node) != null);
 	}
 
 	public int? GetAlignment(Type parent)

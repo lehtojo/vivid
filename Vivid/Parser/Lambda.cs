@@ -8,7 +8,7 @@ public class Lambda : Function
 
 	public LambdaImplementation Implementation => (LambdaImplementation)Implementations.First();
 
-	public Lambda(Context context, int modifiers, string name, List<Token> blueprint) : base(context, modifiers, name, blueprint)
+	public Lambda(Context context, int modifiers, string name, List<Token> blueprint, Position? start, Position? end) : base(context, modifiers, name, blueprint, start, end)
 	{
 		// Lambdas usually capture variables from the parent context
 		Link(context ?? throw new ApplicationException("Tried to define a short function outside a context"));

@@ -14,13 +14,13 @@ public class GetConstantInstruction : Instruction
 		Description = $"Get a handle for constant '{value}'";
 		IsAbstract = true;
 
-		Result.Value = References.CreateConstantNumber(value);
+		Result.Value = References.CreateConstantNumber(value, Format);
 		Result.Format = Format;
 	}
 
 	public override void OnBuild()
 	{
-		Result.Value = References.CreateConstantNumber(Value);
+		Result.Value = References.CreateConstantNumber(Value, Format);
 		Result.Format = Format;
 	}
 }

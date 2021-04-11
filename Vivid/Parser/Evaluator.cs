@@ -204,6 +204,9 @@ public static class Evaluator
 		throw new ArgumentException("Unsupported comparison");
 	}
 
+	/// <summary>
+	/// Evaluates the condition of the specified if-statement and returns the context of the branch which will be executed.
+	/// </summary>
 	private static Context? Evaluate(IfNode statement)
 	{
 		var value = Convert.ToInt64(GetValue(statement.Condition), CultureInfo.InvariantCulture);
@@ -218,37 +221,42 @@ public static class Evaluator
 
 		var successor = statement.Successor;
 
-		if (successor != null)
+		if (successor == null)
 		{
-			if (successor.Is(NodeType.ELSE))
-			{
-				var node = successor.To<ElseNode>();
-
-				// Evaluate the body of the else-statement
-				EvaluateNode(node.Body.Context, node.Body);
-
-				return node.Body.Context;
-			}
-
-			return Evaluate((IfNode)successor);
+			return null;
 		}
 
-		return null;
+		if (successor.Is(NodeType.ELSE))
+		{
+			var node = successor.To<ElseNode>();
+
+			// Evaluate the body of the else-statement
+			EvaluateNode(node.Body.Context, node.Body);
+
+			return node.Body.Context;
+		}
+
+		return Evaluate((IfNode)successor);
 	}
 
+	/// <summary>
+	/// Finds if-statements and tries to evaluate their conditions
+	/// </summary>
 	private static void EvaluateNode(Context context, Node root)
 	{
 		foreach (var iterator in root)
 		{
-			if (iterator.Is(NodeType.IF))
+			if (!iterator.Is(NodeType.IF))
 			{
-				var conditional_node = iterator.To<IfNode>();
-				var result = Evaluate(conditional_node);
+				continue;
+			}
 
-				if (result != null)
-				{
-					context.Merge(result);
-				}
+			var statement = iterator.To<IfNode>();
+			var result = Evaluate(statement);
+
+			if (result != null)
+			{
+				context.Merge(result);
 			}
 		}
 	}
@@ -326,7 +334,7 @@ public static class Evaluator
 			else
 			{
 				// Since there is a branch before the root node, the root can be replaced with an else statement
-				root.Replace(new ElseNode(root.Body.Context, root.Body.Clone(), root.Position));
+				root.Replace(new ElseNode(root.Body.Context, root.Body.Clone(), root.Position, root.Body.End));
 			}
 		}
 		else if (root.Successor == null || root.Predecessor != null)
@@ -337,7 +345,7 @@ public static class Evaluator
 		{
 			if (root.Successor is ElseIfNode x)
 			{
-				root.Replace(new IfNode(x.Body.Context, x.Condition, x.Body, x.Position));
+				root.Replace(new IfNode(x.Body.Context, x.Condition, x.Body, x.Position, x.Body.End));
 				x.Remove();
 				return true;
 			}

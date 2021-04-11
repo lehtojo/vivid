@@ -72,7 +72,7 @@ public class LambdaPattern : Pattern
 
 		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			blueprint.Insert(0, new OperatorToken(Operators.IMPLICATION) { Position = tokens[OPERATOR].Position });
+			blueprint.Insert(0, new OperatorToken(Operators.HEAVY_ARROW) { Position = tokens[OPERATOR].Position });
 		}
 
 		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
@@ -80,7 +80,10 @@ public class LambdaPattern : Pattern
 		// Create a function token manually since it contains some useful helper functions
 		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
 
-		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint) { Position = tokens[PARAMETERS].Position };
+		var start = tokens[PARAMETERS].Position;
+		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().End : null;
+
+		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, start, end);
 
 		lambda.Parameters.AddRange(function.GetParameters(lambda));
 
@@ -88,10 +91,10 @@ public class LambdaPattern : Pattern
 		{
 			var implementation = lambda.Implement(lambda.Parameters.Select(p => p.Type!));
 
-			return new LambdaNode(implementation, tokens[PARAMETERS].Position);
+			return new LambdaNode(implementation, start);
 		}
 
-		return new LambdaNode(lambda, tokens[PARAMETERS].Position);
+		return new LambdaNode(lambda, start);
 	}
 
 	public override int GetPriority(List<Token> tokens)

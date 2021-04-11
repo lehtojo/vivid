@@ -47,27 +47,29 @@ public class VirtualFunctionPattern : Pattern
 			}
 		}
 
-		var type = context.GetTypeParent() ?? throw Errors.Get(tokens.First().Position, "Missing uncompleted function type parent");
+		var start = tokens.First().Position;
+
+		var type = context.GetTypeParent() ?? throw Errors.Get(start, "Missing uncompleted function type parent");
 		var descriptor = tokens.First().To<FunctionToken>();
 
 		if (type.IsVirtualFunctionDeclared(descriptor.Name))
 		{
-			throw Errors.Get(tokens.First().Position, "Uncompleted function with same name is already declared in one of the inherited types");
+			throw Errors.Get(start, "Uncompleted function with same name is already declared in one of the inherited types");
 		}
 
-		var function = new VirtualFunction(type, descriptor.Name, return_type) { Position = tokens.First().Position };
+		var function = new VirtualFunction(type, descriptor.Name, return_type, start, null);
 
 		var parameters = descriptor.GetParameters(function);
 
 		if (parameters.Any(i => i.Type == null))
 		{
-			throw Errors.Get(tokens.First().Position, "All parameters of a uncompleted function must have a type");
+			throw Errors.Get(start, "All parameters of a uncompleted function must have a type");
 		}
 
 		function.Parameters.AddRange(parameters);
 
 		type.Declare(function);
 
-		return new FunctionDefinitionNode(function, tokens.First().Position);
+		return new FunctionDefinitionNode(function, start);
 	}
 }

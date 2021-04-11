@@ -18,6 +18,8 @@ public static class Errors
 	public const string UNKNOWN_LOCATION = "<Source>:<Line>:<Character>";
 	public const string ERROR_BEGIN = "\x1B[1;31m";
 	public const string ERROR_END = "\x1B[0m";
+	public const string WARNING_BEGIN = "\x1B[1;33m";
+	public const string WARNING_END = "\x1B[0m";
 
 	public static Exception Get(Position? position, string description)
 	{

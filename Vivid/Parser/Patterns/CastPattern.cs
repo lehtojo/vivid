@@ -14,7 +14,7 @@ public class CastPattern : Pattern
 	public CastPattern() : base
 	(
 		TokenType.OBJECT,
-		TokenType.KEYWORD
+		TokenType.KEYWORD | TokenType.OPERATOR
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -24,12 +24,7 @@ public class CastPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[CAST].Is(Keywords.AS))
-		{
-			return false;
-		}
-
-		return Common.ConsumeType(state);
+		return tokens[CAST].Is(Keywords.AS) && Common.ConsumeType(state);
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
@@ -37,10 +32,7 @@ public class CastPattern : Pattern
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var type = Common.ReadType(context, new Queue<Token>(tokens.Skip(TYPE)));
 
-		if (type == null)
-		{
-			throw Errors.Get(tokens[TYPE].Position, "Could not resolve the cast type");
-		}
+		if (type == null) throw Errors.Get(tokens[TYPE].Position, "Could not resolve the cast type");
 
 		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position));
 	}

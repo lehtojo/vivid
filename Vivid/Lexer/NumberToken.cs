@@ -104,11 +104,16 @@ public class NumberToken : Token
 			// Calculate the value
 			if (!double.TryParse(GetNumberPart(text), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
 			{
-				throw new LexerException(position, "Could not resolve the number");
+				throw new LexerException(position, "Can not resolve the number");
 			}
 
-			/// TODO: Detect too large exponent
+			// Apply the exponent to the value
 			value *= Math.Pow(10, exponent);
+
+			if (double.IsInfinity(value))
+			{
+				throw new LexerException(position, $"Decimal number approaches infinity. Use the constants {Lexer.POSITIVE_INFINITY_CONSTANT} or {Lexer.NEGATIVE_INFINITY_CONSTANT} instead.");
+			}
 
 			Value = value;
 			NumberType = Format.DECIMAL;
@@ -119,11 +124,17 @@ public class NumberToken : Token
 			// Calculate the value
 			if (!long.TryParse(GetNumberPart(text), NumberStyles.Float, CultureInfo.InvariantCulture, out long value))
 			{
-				throw new LexerException(position, "Could not resolve the number");
+				throw new LexerException(position, "Can not resolve the number");
 			}
 
-			/// TODO: Detect too large exponent
-			value *= (long)Math.Pow(10, exponent);
+			// Apply the exponent to the value
+			for (var i = 0; i < exponent; i++)
+			{
+				var previous = value;
+				value *= 10;
+
+				if (value <= previous) throw new LexerException(position, "Too large or too small integer");
+			}
 
 			// Get the format of the number
 			GetType(text, out int bits, out bool unsigned);

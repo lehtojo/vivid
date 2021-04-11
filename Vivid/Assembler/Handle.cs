@@ -216,54 +216,17 @@ public class DataSectionHandle : Handle
 public class ConstantHandle : Handle
 {
 	public object Value { get; set; }
-	public int Bits => GetBits();
-
-	private int GetBits()
-	{
-		if (Value is double)
-		{
-			return Assembler.Size.Bits;
-		}
-
-		var x = (long)Value;
-
-		if (x < 0)
-		{
-			if (x < int.MinValue)
-			{
-				return 64;
-			}
-			else if (x < short.MinValue)
-			{
-				return 32;
-			}
-			else if (x < byte.MinValue)
-			{
-				return 16;
-			}
-		}
-		else
-		{
-			if (x > int.MaxValue)
-			{
-				return 64;
-			}
-			else if (x > short.MaxValue)
-			{
-				return 32;
-			}
-			else if (x > byte.MaxValue)
-			{
-				return 16;
-			}
-		}
-
-		return 8;
-	}
+	public int Bits => Common.GetBits(Value);
 
 	public ConstantHandle(object value) : base(HandleType.CONSTANT, HandleInstanceType.CONSTANT)
 	{
 		Value = value;
+	}
+
+	public ConstantHandle(object value, Format format) : base(HandleType.CONSTANT, HandleInstanceType.CONSTANT)
+	{
+		Value = value;
+		Format = format;
 	}
 
 	public void Convert(Format format)
@@ -276,6 +239,8 @@ public class ConstantHandle : Handle
 		{
 			Value = System.Convert.ToInt64(Value, CultureInfo.InvariantCulture);
 		}
+
+		Format = format;
 	}
 
 	public string ToStringShared()
@@ -672,6 +637,8 @@ public class ComplexMemoryHandle : Handle
 
 public class ExpressionHandle : Handle
 {
+	public const string ARM64_ZERO_REGISTER = "xzr";
+
 	public Result Multiplicand { get; private set; }
 	public int Multiplier { get; private set; }
 	public Result? Addition { get; private set; }
@@ -780,18 +747,7 @@ public class ExpressionHandle : Handle
 		// x0, x1
 		// x0, #1
 		// x0, x1, lsl #2
-		var result = string.Empty;
-
-		if (Addition != null)
-		{
-			result = Addition.ToString();
-		}
-		else
-		{
-			/// TODO: Append the zero register (formalize)
-			result = "xzr";
-		}
-
+		var result = Addition != null ? Addition.ToString() : ARM64_ZERO_REGISTER;
 		var constant = (long)Constant;
 
 		if (Multiplicand.IsConstant)
@@ -843,7 +799,6 @@ public class ExpressionHandle : Handle
 			result.Add(Multiplicand);
 		}
 
-		/// TODO: Bit limit
 		if (Addition != null && (Assembler.IsArm64 || !Addition.IsConstant))
 		{
 			result.Add(Addition);

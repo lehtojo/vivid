@@ -109,7 +109,8 @@ public static class InstructionAnalysis
 
 			if (instruction.Is(InstructionType.RETURN))
 			{
-				return usages;
+				// If the specified register is the return register which is used, it should not be redirected
+				return instruction.To<ReturnInstruction>().ReturnRegister == register ? null : usages;
 			}
 
 			// If the instruction writes to the specified register and is not an intermediate instruction, return all the collected usages
@@ -688,9 +689,9 @@ public static class InstructionAnalysis
 			return (a >= x && a < y) || (b > x && b <= y);
 		}
 
+		// Intersections are not possible with constant data section handles because they are read-only
 		if (i.Is(HandleInstanceType.CONSTANT_DATA_SECTION) && j.Is(HandleInstanceType.CONSTANT_DATA_SECTION))
 		{
-			/// TODO: Investigate this more since constant data section handles might intersect in the future since duplications should be removed
 			return false;
 		}
 
@@ -1092,20 +1093,13 @@ public static class InstructionAnalysis
 				// If the low part of the source is a constant, it means that the high is also a constant
 				if (source.Low.Is(HandleType.CONSTANT))
 				{
-					if (inline_destination_size > 8)
-					{
-						continue;
-					}
+					if (inline_destination_size > 8) continue;
 
 					var low_constant_value = source.Low.To<ConstantHandle>().Value as long?;
 					var high_constant_value = source.High.To<ConstantHandle>().Value as long?;
 
 					// Require both values to be integers
-					/// TODO: Investigate possibility of decimal values
-					if (low_constant_value == null || high_constant_value == null)
-					{
-						continue;
-					}
+					if (low_constant_value == null || high_constant_value == null) continue;
 
 					low_constant_value &= destination.Low.Size.Bytes switch
 					{
@@ -1131,10 +1125,7 @@ public static class InstructionAnalysis
 					if (Assembler.IsArm64)
 					{
 						// Allow constants between 0-65535
-						if (constant < 0 || constant > ushort.MaxValue)
-						{
-							continue;
-						}
+						if (constant < 0 || constant > ushort.MaxValue) continue;
 
 						// Both of the moves use registers to move the constant to the destination memory
 						// Ensure both of the registers are not used after the moves
@@ -1449,15 +1440,24 @@ public static class InstructionAnalysis
 		registers.Reverse();
 
 		// Rebuild the return instructions
-		// NOTE: Now the indices point to the return instructions since the tail calls were created above
-		foreach (var i in indices)
+		for (var i = 0; i < instructions.Count; i++)
 		{
+			var instruction = instructions[i];
+
+			if (!instruction.Is(InstructionType.RETURN)) continue;
+
 			// Save the local memory size for later use
 			unit.Function.SizeOfLocals = unit.StackOffset - local_memory_top;
 			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Assembler.Size.Bytes;
 
-			instructions[i].To<ReturnInstruction>().Build(registers, local_memory_top);
-			instructions[i].To<ReturnInstruction>().RemoveReturnInstruction();
+			instruction.To<ReturnInstruction>().Build(registers, local_memory_top);
+
+			// The actual return instruction can be removed from the return instructions which are linked to the tail calls, but not from other return instructions
+			// NOTE: Now the indices point to the return instructions since the tail calls were created above
+			if (indices.Contains(i))
+			{
+				instruction.To<ReturnInstruction>().RemoveReturnInstruction();
+			}
 		}
 	}
 
@@ -1465,27 +1465,4 @@ public static class InstructionAnalysis
 	{
 		CreateTailCalls(unit, instructions, registers, required_local_memory);
 	}
-
-
-
-
-
-
-
-
-	// Inlining:
-	//
-	// cmp x0, #0
-	// b.ne L0
-	//
-	// => cbnz x0, L0
-	// 
-	// sub x0, x0, #1
-	// cmp x0, #0
-	// b.eq L0
-	// =>
-	// subs x0, x0, x1
-	// b.eq L0
-	// 
-	// 
 }

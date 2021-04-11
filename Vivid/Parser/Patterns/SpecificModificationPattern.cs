@@ -43,7 +43,7 @@ public class SpecificModificationPattern : Pattern
 
 			case NodeType.FUNCTION_DEFINITION:
 			{
-				if (Flag.Has(Modifier.EXTERNAL, modifiers))
+				if (Flag.Has(Modifier.IMPORTED, modifiers))
 				{
 					throw Errors.Get(tokens[MODIFIER].Position, "Can not add external modifier to the function definition since it is a definition");
 				}

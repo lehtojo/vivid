@@ -480,7 +480,6 @@ init() {
 		loop (i < player_options.size(), i++) {
 			option = player_options[i]
 
-			# TODO: Operator overload
 			if option.x == position.x and option.y == position.y {
 				valid = true
 				stop

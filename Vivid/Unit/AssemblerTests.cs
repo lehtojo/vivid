@@ -1943,7 +1943,6 @@ namespace Vivid.Unit
 			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, car + 8));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, banana));
 
-			/// TODO: Inspect all the vehicles
 			_V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, long.MinValue);
 
 			var vehicles = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, 10);

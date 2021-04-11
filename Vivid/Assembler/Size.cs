@@ -2,13 +2,13 @@ using System;
 
 public class Size
 {
-	public static readonly Size NONE = new Size("?", "?", 0);
-	public static readonly Size BYTE = new Size("byte", ".byte", 1);
-	public static readonly Size WORD = new Size("word", ".short", 2);
-	public static readonly Size DWORD = new Size("dword", ".long", 4);
-	public static readonly Size QWORD = new Size("qword", ".quad", 8);
-	public static readonly Size XMMWORD = new Size("xmmword", ".xword", 16);
-	public static readonly Size YMMWORD = new Size("ymmword", ".yword", 32);
+	public static readonly Size NONE = new("?", "?", 0);
+	public static readonly Size BYTE = new("byte", ".byte", 1);
+	public static readonly Size WORD = new("word", ".short", 2);
+	public static readonly Size DWORD = new("dword", ".long", 4);
+	public static readonly Size QWORD = new("qword", ".quad", 8);
+	public static readonly Size XMMWORD = new("xmmword", ".xword", 16);
+	public static readonly Size YMMWORD = new("ymmword", ".yword", 32);
 
 	public string Identifier { get; private set; }
 	public string Allocator { get; private set; }

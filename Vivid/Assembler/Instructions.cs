@@ -57,6 +57,7 @@ public static class Instructions
 		public const string NEGATE = "neg";
 		public const string SUBTRACT = "sub";
 		public const string RETURN = "ret";
+		public const string NOP = "nop";
 	}
 
 	public static class X64
