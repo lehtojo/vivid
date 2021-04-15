@@ -42,10 +42,7 @@ public class TypeNode : Node, IScope
 		}
 
 		// Create the body of the type
-		Parser.Parse(this, Type, Blueprint);
-
-		// The blueprint can be released now
-		Blueprint.Clear();
+		Parser.Parse(this, Type, new List<Token>(Blueprint));
 
 		// Apply the static modifier to the parsed functions and variables
 		if (Type.IsStatic)

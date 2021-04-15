@@ -246,7 +246,10 @@ public class Function : Context
 
 	public override string ToString()
 	{
-		return Name + $"({string.Join(", ", Parameters)})";
+		var a = Parent != null && Parent.IsType ? Parent.ToString() : string.Empty;
+		var b = $"{Name}({string.Join(", ", Parameters.Select(i => i.ToString()).ToArray())})";
+
+		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
 	}
 
 	public override bool Equals(object? other)

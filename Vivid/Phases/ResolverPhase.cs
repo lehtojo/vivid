@@ -26,6 +26,11 @@ public class DocumentPosition
 	{
 		return Line == other.Line && Character == other.Character;
 	}
+
+	public bool Equals(Position other)
+	{
+		return Line == other.Line && Character == other.Character;
+	}
 }
 
 public class DocumentRange 
@@ -591,7 +596,7 @@ public class ResolverPhase : Phase
 
 			// Try to resolve any problems in the node tree
 			ParserPhase.ApplyExtensionFunctions(context, parse.Node);
-			ParserPhase.ImplementFunctions(context);
+			ParserPhase.ImplementFunctions(context, null);
 			GarbageCollector.CreateAllOverloads(context);
 			
 			Resolver.ResolveContext(context);

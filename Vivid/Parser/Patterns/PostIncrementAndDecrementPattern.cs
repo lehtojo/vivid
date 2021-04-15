@@ -35,9 +35,9 @@ class PostIncrementAndDecrementPattern : Pattern
 	{
 		if (tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT)
 		{
-			return new IncrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OBJECT].Position, true);
+			return new IncrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OPERATOR].Position, true);
 		}
 
-		return new DecrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OBJECT].Position, true);
+		return new DecrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OPERATOR].Position, true);
 	}
 }

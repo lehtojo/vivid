@@ -123,7 +123,7 @@ public class Type : Context
 	public int ReferenceSize => GetReferenceSize();
 	public int ContentSize => GetContentSize();
 
-	public RuntimeConfiguration? Configuration { get; private set; }
+	public RuntimeConfiguration? Configuration { get; set; }
 
 	public List<Type> Supertypes { get; } = new List<Type>();
 	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();

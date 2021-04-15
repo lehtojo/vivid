@@ -6,11 +6,20 @@ public class Parse
 {
 	public Context Context { get; private set; }
 	public Node Node { get; private set; }
+	public List<Token> Tokens { get; }
 
 	public Parse(Context context, Node node)
 	{
 		Context = context;
 		Node = node;
+		Tokens = new List<Token>();
+	}
+
+	public Parse(Context context, Node node, List<Token> tokens)
+	{
+		Context = context;
+		Node = node;
+		Tokens = tokens;
 	}
 }
 
@@ -48,30 +57,24 @@ public class ParserPhase : Phase
 	/// <summary>
 	/// Ensures that exported functions and virtual functions are implemented
 	/// </summary>
-	public static void ImplementFunctions(Context context, bool all = false)
+	public static void ImplementFunctions(Context context, SourceFile? file, bool all = false)
 	{
 		foreach (var function in Common.GetAllVisibleFunctions(context))
 		{
+			// If the file filter is specified, skip all functions which are not defined inside that file
+			if (file != null && function.Start?.File != file) continue;
+
 			// Skip all functions which are not exported
-			if (!all && !function.IsExported)
-			{
-				continue;
-			}
+			if (!all && !function.IsExported) continue;
 
 			// Template functions can not be implemented
-			if (function.IsTemplateFunction)
-			{
-				continue;
-			}
+			if (function.IsTemplateFunction) continue;
 
 			// Retrieve the types of all parameters
 			var types = function.Parameters.Select(i => i.Type).ToList();
 
 			// If any of the parameters has an undefined type, it can not be implemented
-			if (types.Any(i => i == Types.UNKNOWN || i.IsUnresolved))
-			{
-				continue;
-			}
+			if (types.Any(i => i == null || i.IsUnresolved)) continue;
 
 			// Force implement the current exported function
 			function.Get(types!);
@@ -80,27 +83,25 @@ public class ParserPhase : Phase
 		// Implement all virtual function overloads
 		foreach (var type in context.Types.Values)
 		{
+			// Find all virtual functions
 			var virtual_functions = type.GetAllVirtualFunctions();
 
 			foreach (var virtual_function in virtual_functions)
 			{
 				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
 
-				if (overloads == null)
-				{
-					continue;
-				}
+				if (overloads == null) continue;
 
 				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
 
 				foreach (var overload in overloads)
 				{
+					// If the file filter is specified, skip all functions which are not defined inside that file
+					if (file != null && overload.Start?.File != file) continue;
+
 					var actual = overload.Parameters.Select(i => i.Type).ToList();
 
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
-					{
-						continue;
-					}
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
 
 					var implementation = overload.Get(expected!) ?? throw new ApplicationException("Could not implement virtual function");
 					implementation.VirtualFunction = virtual_function;
@@ -237,7 +238,7 @@ public class ParserPhase : Phase
 		ApplyExtensionFunctions(context, root);
 
 		// Ensure exported and virtual functions are implemented
-		ImplementFunctions(context);
+		ImplementFunctions(context, null);
 
 		// Preprocess the 'hull' of the code before creating functions
 		Evaluator.Evaluate(context, root);

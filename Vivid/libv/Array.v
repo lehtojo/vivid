@@ -15,7 +15,7 @@ export require(result: bool, message: link) {
 }
 
 Array<T> {
-	private data: link<T>
+	public readonly data: link<T>
 	count: large
 	
 	init(count: large) {
@@ -48,7 +48,7 @@ Array<T> {
 }
 
 Sheet<T> {
-	private data: link<T>
+	public readonly data: link<T>
 	width: large
 	height: large
 	
@@ -80,7 +80,7 @@ Sheet<T> {
 }
 
 Box<T> {
-	private data: link<T>
+	public readonly data: link<T>
 	width: large
 	height: large
 	depth: large

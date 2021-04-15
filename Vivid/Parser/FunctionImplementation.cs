@@ -140,7 +140,7 @@ public class FunctionImplementation : Context
 	public virtual string GetHeader()
 	{
 		var a = Parent != null && Parent.IsType ? Parent.ToString() : string.Empty;
-		var b = $"{Metadata.Name}({string.Join(", ", ParameterTypes.Select(i => i.ToString()).ToArray())}) => " + (ReturnType == null ? "?" : ReturnType.ToString());
+		var b = $"{Metadata.Name}({string.Join(", ", Parameters.Select(i => i.ToString()).ToArray())}): " + (ReturnType == null ? "?" : ReturnType.ToString());
 
 		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
 	}

@@ -32,7 +32,6 @@ Ship {
 # Returns whether the specified position, which represent a bomb, hits any of the specified ships
 hits(a, x, y) {
 	board = Sheet<bool>(BOARD_SIZE, BOARD_SIZE)
-	fill(board.data, BOARD_SIZE * BOARD_SIZE, 0)
 
 	# Check whether the ship is a horizontal ship
 	if a.start.x == a.end.x {
@@ -65,7 +64,6 @@ hits(a, x, y) {
 # Returns whether the two specified ships collide
 collides(a, b) {
 	board = Sheet<bool>(BOARD_SIZE, BOARD_SIZE)
-	fill(board.data, BOARD_SIZE * BOARD_SIZE, 0)
 
 	if a.start.x == a.end.x {
 		min = min(a.start.y, a.end.y)
@@ -450,9 +448,6 @@ init() {
 
 	player_renderbuffer = Sheet<tiny>(BOARD_SIZE, BOARD_SIZE)
 	enemy_renderbuffer = Sheet<tiny>(BOARD_SIZE, BOARD_SIZE)
-
-	fill(player_renderbuffer.data, BOARD_SIZE * BOARD_SIZE, 0)
-	fill(enemy_renderbuffer.data, BOARD_SIZE * BOARD_SIZE, 0)
 
 	player_ships = design(player_renderbuffer)
 	enemy_ships = generate_ships()

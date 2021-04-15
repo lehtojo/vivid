@@ -45,8 +45,6 @@ public class TemplateFunction : Function
 		return null;
 	}
 
-	
-
 	private void InsertArguments(List<Token> tokens, Type[] arguments)
 	{
 		for (var i = 0; i < tokens.Count; i++)
@@ -163,5 +161,10 @@ public class TemplateFunction : Function
 		implementation.TemplateArguments = template_arguments;
 
 		return implementation;
+	}
+
+	public override string ToString()
+	{
+		return Name + '<' + string.Join(", ", TemplateArgumentNames) + $">({string.Join(", ", Parameters)})";
 	}
 }

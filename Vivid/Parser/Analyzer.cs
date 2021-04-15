@@ -215,7 +215,7 @@ public static class Analyzer
 
 	public static void ApplyConstants(Context context)
 	{
-		var constants = context.Variables.Values.Where(v => v.IsConstant);
+		var constants = context.Variables.Values.Where(i => i.IsConstant);
 
 		foreach (var constant in constants)
 		{

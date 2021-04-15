@@ -42,10 +42,7 @@ public class NamespaceNode : Node
 		var result = CreateNamespace(context);
 
 		// Create the body of the namespace
-		Parser.Parse(this, result, Blueprint);
-
-		// The blueprint can be released now
-		Blueprint.Clear();
+		Parser.Parse(this, result, new List<Token>(Blueprint));
 
 		// Apply the static modifier to the parsed functions and variables
 		result.Functions.Values.SelectMany(i => i.Overloads).ForEach(i => i.Modifiers |= Modifier.STATIC);

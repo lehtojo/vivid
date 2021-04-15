@@ -16,7 +16,7 @@ public class SourceFile
 
 	public SourceFile(string filename, string content, int index)
 	{
-		Fullname = filename;
+		Fullname = filename.Replace('\\', '/');
 		Content = content;
 		Index = index;
 		Tokens = new List<Token>();

@@ -380,7 +380,7 @@ public static class Lexer
 
 		var length = i + 1 - start.Local;
 
-		return new Position(start.Line, start.Character + length, start.Local + length, i + 1);
+		return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
 	}
 
 	/// <summary>

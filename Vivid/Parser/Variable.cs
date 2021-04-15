@@ -121,12 +121,10 @@ public class Variable
 
 	public override string ToString()
 	{
-		if (Type == null)
-		{
-			return $"{Name}: _";
-		}
-
-		return $"{Name}: {(Type.IsUnresolved ? "?" : Type.ToString())}";
+		var a = Context != null && Context.IsType ? Context.ToString() : string.Empty;
+		var b = (Type == null || Type.IsUnresolved) ? $"{Name}: ?" : $"{Name}: {(Type.IsUnresolved ? "?" : Type.ToString())}";
+		
+		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
 	}
 
 	public override bool Equals(object? other)
