@@ -14,10 +14,10 @@
 			// Builds the battleship game
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
 
-			"args": [ "${workspaceFolder}/Tests/Loops.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O1" ],
-
 			// Launch the compiler service
-			//"args": [ "-s" ],
+			"args": [ "-s" ],
+
+			//"args": [ "${workspaceFolder}/Tests/Loops.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O1" ],
 			
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

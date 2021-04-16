@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 public static class Analyzer
 {
@@ -81,10 +82,10 @@ public static class Analyzer
 
 	private static void ResetVariableUsages(Node root)
 	{
-		root.FindAll(n => n.Is(NodeType.VARIABLE))
-			.Select(n => n.To<VariableNode>().Variable)
+		root.FindAll(i => i.Is(NodeType.VARIABLE))
+			.Select(i => i.To<VariableNode>().Variable)
 			.Distinct()
-			.ForEach(v => { v.References.Clear(); v.Writes.Clear(); v.Reads.Clear(); });
+			.ForEach(i => { i.References.Clear(); i.Writes.Clear(); i.Reads.Clear(); });
 	}
 
 	private static void ResetVariableUsages(Context context)
@@ -118,13 +119,28 @@ public static class Analyzer
 		ResetVariableUsages(context);
 	}
 
-	public static void FindUsages(Variable variable, Node root)
+	/// <summary>
+	/// Finds all the usages of the specified variable in the specified node tree and in the specified context
+	/// </summary>
+	public static Task[] FindAllUsagesAsync(Variable variable, Node root, Context context)
 	{
-		variable.References.Clear();
-		variable.Writes.Clear();
-		variable.Reads.Clear();
+		FindUsages(variable, root);
+		return Common.GetAllFunctionImplementations(context).Select(i => Task.Run(() => FindUsages(variable, i.Node!, false))).ToArray();
+	}
 
-		foreach (var iterator in root.FindAll(n => n.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
+	/// <summary>
+	/// Finds all the usages of the specified variable in the specified node tree
+	/// </summary>
+	public static void FindUsages(Variable variable, Node root, bool clear = true)
+	{
+		if (clear)
+		{
+			variable.References.Clear();
+			variable.Writes.Clear();
+			variable.Reads.Clear();
+		}
+
+		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
 		{
 			variable.References.Add(iterator);
 
@@ -141,7 +157,7 @@ public static class Analyzer
 
 	private static void AnalyzeVariableUsages(Node root)
 	{
-		foreach (var iterator in root.FindAll(n => n.Is(NodeType.VARIABLE)).Select(n => n.To<VariableNode>()))
+		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
 		{
 			iterator.Variable.References.Add(iterator);
 

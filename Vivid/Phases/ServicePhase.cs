@@ -16,7 +16,8 @@ public enum DocumentRequestType
 	DIAGNOSE = 3,
 	OPEN = 4,
 	DEFINITION = 5,
-	INFORMATION = 6
+	INFORMATION = 6,
+	FIND_REFERENCES = 7
 }
 
 public class DocumentRequest
@@ -102,6 +103,18 @@ public static class DocumentResponseStatus
 	public const int OK = 0;
 	public const int INVALID_REQUEST = 1;
 	public const int ERROR = 2;
+}
+
+public class FileDivider
+{
+	public Uri File { get; set; }
+	public string Data { get; set; }
+
+	public FileDivider(Uri file, string data)
+	{
+		File = file;
+		Data = data;
+	}
 }
 
 public class DocumentAnalysisResponse
@@ -530,7 +543,7 @@ public class ServicePhase : Phase
 				}
 			}
 		}
-		else if (type == DocumentRequestType.DEFINITION || type == DocumentRequestType.INFORMATION)
+		else if (type == DocumentRequestType.DEFINITION || type == DocumentRequestType.INFORMATION || type == DocumentRequestType.FIND_REFERENCES)
 		{
 			var surroundings = GetCursorSurroundings(document, tokens, line, character);
 
@@ -612,17 +625,18 @@ public class ServicePhase : Phase
 		ParseAll(files);
 
 		// Finally, build the document
-		var parse = Build(files, filename);
+		/// NOTE: Build all the source files if the request is 'FIND_REFERENCES'
+		var parse = Build(files, filename, request.Type == DocumentRequestType.FIND_REFERENCES);
 
 		// Now find the cursor and return completions based on its position
 		foreach (var implementation in Common.GetAllFunctionImplementations(parse.Context))
 		{
 			var cursor = implementation.Node!.Find(i => i.Position != null && i.Position.IsCursor);
 
-			if (cursor == null)
-			{
-				continue;
-			}
+			if (cursor == null) continue;
+
+			// Reset the cursor flag since it must not affect later analyzes
+			cursor.Position!.IsCursor = false;
 
 			var environment = cursor.GetParentContext();
 
@@ -734,6 +748,30 @@ public class ServicePhase : Phase
 
 				var response = new DocumentAnalysisResponse(DocumentResponseStatus.OK, request.Uri, information);
 				SendResponse(socket, receiver, response);
+				return;
+			}
+			else if (request.Type == DocumentRequestType.FIND_REFERENCES)
+			{
+				if (cursor.Is(NodeType.VARIABLE))
+				{
+					var variable = cursor.To<VariableNode>().Variable;
+					Task.WaitAll(Analyzer.FindAllUsagesAsync(variable, parse.Node, parse.Context));
+
+					var locations = variable.References
+						.Select(i => i.Position)
+						.Where(i => i != null && i.File != null)
+						.GroupBy(i => i!.File)
+						.Select(i => new FileDivider
+						(
+							ToUri(i.Key!.Fullname), 
+							JsonSerializer.Serialize(i.Select(i => new DocumentPosition(i!.Line, i!.Character)).ToArray())
+						)).ToArray();
+
+					SendResponse(socket, receiver, new DocumentAnalysisResponse(DocumentResponseStatus.OK, request.Uri, JsonSerializer.Serialize(locations)));
+					return;
+				}
+
+				SendStatusCode(socket, receiver, request.Uri, DocumentResponseStatus.ERROR);
 				return;
 			}
 
@@ -855,9 +893,10 @@ public class ServicePhase : Phase
 	}
 
 	/// <summary>
-	/// Builds the specified file
+	/// Builds the specified file.
+	/// If the flag 'all' is set to true, all the source files will be implemented
 	/// </summary>
-	private static Parse Build(Dictionary<SourceFile, DocumentParse> files, string filename)
+	private static Parse Build(Dictionary<SourceFile, DocumentParse> files, string filename, bool all = false)
 	{
 		// Find the source file which has the same filename as the specified filename
 		var filter = files.Keys.First(i => i.Fullname == filename);
@@ -908,7 +947,7 @@ public class ServicePhase : Phase
 
 			// Try to resolve any problems in the node tree
 			ParserPhase.ApplyExtensionFunctions(context, root);
-			ParserPhase.ImplementFunctions(context, filter, true);
+			ParserPhase.ImplementFunctions(context, all ? null : filter, true);
 
 			Resolver.ResolveContext(context);
 			report = ResolverPhase.GetReport(context);

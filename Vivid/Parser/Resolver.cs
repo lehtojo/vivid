@@ -224,8 +224,8 @@ public static class Resolver
 
 		if (expected is Number x && actual is Number y)
 		{
-			if (expected is Decimal) return expected;
-			if (actual is Decimal) return actual;
+			if (expected.Format.IsDecimal()) return expected;
+			if (actual.Format.IsDecimal()) return actual;
 
 			return GetSharedNumber(x, y);
 		}
