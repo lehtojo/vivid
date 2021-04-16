@@ -105,7 +105,7 @@ public class WhenPattern : Pattern
 
 			if (start == null)
 			{
-				throw Errors.Get(body.Position, "Could not understand the sections");
+				throw Errors.Get(body.Position, "Can not understand the sections");
 			}
 
 			var section_tokens = section.TakeWhile(i => !i.Is(Operators.HEAVY_ARROW)).ToList();

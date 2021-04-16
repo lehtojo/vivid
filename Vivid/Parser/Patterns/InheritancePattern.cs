@@ -47,14 +47,14 @@ public class InheritancePattern : Pattern
 
 		var inheritant_type = Common.ReadType(context, new Queue<Token>(inheritant_tokens));
 
-		if (inheritant_type == Types.UNKNOWN)
+		if (inheritant_type == null)
 		{
-			throw Errors.Get(inheritant_tokens.First().Position, "Could not resolve the inherited type");
+			throw Errors.Get(inheritant_tokens.First().Position, "Can not resolve the inherited type");
 		}
 
 		if (!inheritor.IsInheritingAllowed(inheritant_type))
 		{
-			throw Errors.Get(inheritant_tokens.First().Position, "Could not inherit the type since it would have caused a cyclic inheritance");
+			throw Errors.Get(inheritant_tokens.First().Position, "Can not inherit the type since it would have caused a cyclic inheritance");
 		}
 
 		inheritor.Supertypes.Insert(0, inheritant_type);

@@ -1,4 +1,4 @@
-public abstract class Number : Type
+public class Number : Type
 {
 	public Format Type { get; private set; }
 	public bool IsUnsigned { get; private set; }
@@ -6,7 +6,7 @@ public abstract class Number : Type
 
 	public int Bytes => Bits / 8;
 
-	public Number(Format type, int bits, bool unsigned, string name) : base(name, Modifier.PUBLIC)
+	public Number(Format type, int bits, bool unsigned, string name) : base(name, Modifier.DEFAULT | Modifier.PRIMITIVE)
 	{
 		Type = type;
 		Bits = bits;
@@ -16,5 +16,15 @@ public abstract class Number : Type
 	public override Format GetFormat()
 	{
 		return Type;
+	}
+
+	public override int GetReferenceSize()
+	{
+		return Bytes;
+	}
+
+	public override int GetContentSize()
+	{
+		return Bytes;
 	}
 }

@@ -498,7 +498,7 @@ public static class Parser
 
 		if (i != -1)
 		{
-			throw Errors.Get(tokens[i].Position, "Could not understand");
+			throw Errors.Get(tokens[i].Position, "Can not understand");
 		}
 
 		// Combine all dynamic tokens in order
@@ -575,7 +575,7 @@ public static class Parser
 	public static Context Initialize(int identity)
 	{
 		var context = new Context(identity.ToString(CultureInfo.InvariantCulture));
-		Types.Inject(context);
+		Primitives.Inject(context);
 
 		return context;
 	}
@@ -585,8 +585,8 @@ public static class Parser
 	/// </summary>
 	public static Node CreateRootNode(Context context)
 	{
-		var positive_infinity = Variable.Create(context, Types.DECIMAL, VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
-		var negative_infinity = Variable.Create(context, Types.DECIMAL, VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
+		var positive_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
+		var negative_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
 
 		return new ScopeNode(context, null, null)
 		{

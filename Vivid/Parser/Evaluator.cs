@@ -153,10 +153,7 @@ public static class Evaluator
 		var left = GetValue(comparison.Left);
 		var right = GetValue(comparison.Right);
 
-		if (left == null || right == null)
-		{
-			throw new ArgumentException("Could not resolve a comparison operand");
-		}
+		if (left == null || right == null) throw Errors.Get(comparison.Position, "Could not resolve a comparison operand");
 
 		if (comparison.Operator == Operators.EQUALS)
 		{

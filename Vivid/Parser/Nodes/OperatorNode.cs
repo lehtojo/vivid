@@ -44,7 +44,7 @@ public class OperatorNode : Node, IResolvable
 		var right = Right.TryGetType();
 
 		// Return the left type only if it represents a link and it is modified with a number type
-		if (left is Link && right is Number && right != Types.DECIMAL && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
+		if (left is Link && right is Number && !right.Format.IsDecimal() && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
 		{
 			return left;
 		}
@@ -62,9 +62,9 @@ public class OperatorNode : Node, IResolvable
 		return Operator.Type switch
 		{
 			OperatorType.CLASSIC => GetClassicType(),
-			OperatorType.COMPARISON => Types.BOOL,
+			OperatorType.COMPARISON => Primitives.CreateBool(),
 			OperatorType.ACTION => GetActionType(),
-			OperatorType.LOGIC => Types.BOOL,
+			OperatorType.LOGIC => Primitives.CreateBool(),
 			_ => throw new Exception("Independent operator should not be processed here")
 		};
 	}
@@ -101,7 +101,7 @@ public class OperatorNode : Node, IResolvable
 		var target = Left.First!;
 		var type = target.TryGetType();
 
-		if (Equals(type, Types.UNKNOWN))
+		if (Equals(type, null))
 		{
 			return null;
 		}
@@ -139,7 +139,7 @@ public class OperatorNode : Node, IResolvable
 
 		var type = Left.TryGetType();
 
-		if (Equals(type, Types.UNKNOWN))
+		if (Equals(type, null))
 		{
 			return null;
 		}
@@ -182,19 +182,19 @@ public class OperatorNode : Node, IResolvable
 			return Status.OK;
 		}
 
-		return right is Number ? Status.OK : Status.Error("Could not resolve the type of the operation");
+		return right is Number ? Status.OK : Status.Error("Can not resolve the type of the operation");
 	}
 
 	private Status GetLogicStatus(Type left, Type right)
 	{
-		if (left != Types.BOOL)
+		if (!Primitives.IsPrimitive(left, Primitives.BOOL))
 		{
-			return Status.Error(Left.Position, $"The type of the operand must be '{Types.BOOL.Identifier}' since its parent is a logical operator");
+			return Status.Error(Left.Position, $"The type of the operand must be '{Primitives.BOOL}' since its parent is a logical operator");
 		}
 
-		if (right != Types.BOOL)
+		if (!Primitives.IsPrimitive(right, Primitives.BOOL))
 		{
-			return Status.Error(Right.Position, $"The type of the operand must be '{Types.BOOL.Identifier}' since its parent is a logical operator");
+			return Status.Error(Right.Position, $"The type of the operand must be '{Primitives.BOOL}' since its parent is a logical operator");
 		}
 
 		return Status.OK;
@@ -205,9 +205,9 @@ public class OperatorNode : Node, IResolvable
 		var left = Left.TryGetType();
 		var right = Right.TryGetType();
 
-		if (left == Types.UNKNOWN || right == Types.UNKNOWN)
+		if (left == null || right == null)
 		{
-			return Status.Error(Position, "Could not resolve the type of the operation");
+			return Status.Error(Position, "Can not resolve the type of the operation");
 		}
 
 		return Operator.Type switch

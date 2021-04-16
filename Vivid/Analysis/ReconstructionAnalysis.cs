@@ -106,7 +106,7 @@ public static class ReconstructionAnalysis
 		if (edit is IncrementNode increment)
 		{
 			var destination = increment.Object.Clone();
-			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from increment node");
+			var type = destination.GetType();
 
 			return new OperatorNode(Operators.ASSIGN_ADD, increment.Position).SetOperands(
 				destination,
@@ -117,7 +117,7 @@ public static class ReconstructionAnalysis
 		if (edit is DecrementNode decrement)
 		{
 			var destination = decrement.Object.Clone();
-			var type = destination.TryGetType() ?? throw new ApplicationException("Could not retrieve type from decrement node");
+			var type = destination.GetType();
 
 			return new OperatorNode(Operators.ASSIGN_SUBTRACT, decrement.Position).SetOperands(
 				destination,
@@ -488,7 +488,7 @@ public static class ReconstructionAnalysis
 		{
 			// Declare a hidden variable which represents the result
 			var environment = instance.GetParentContext();
-			var destination = environment.DeclareHidden(Types.BOOL);
+			var destination = environment.DeclareHidden(Primitives.CreateBool());
 
 			// Initialize the result with value 'false'
 			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -633,11 +633,7 @@ public static class ReconstructionAnalysis
 		foreach (var edit in edits)
 		{
 			var replacement = TryRewriteAsAssignOperation(edit);
-
-			if (replacement == null)
-			{
-				throw new ApplicationException("Could not unwrap an edit node");
-			}
+			if (replacement == null) throw new ApplicationException("Could not unwrap an edit node");
 
 			edit.Replace(replacement);
 		}
@@ -660,10 +656,7 @@ public static class ReconstructionAnalysis
 
 			var assignment = TryRewriteAsAssignOperation(expression, true);
 
-			if (assignment == null)
-			{
-				throw new ApplicationException("Could not rewrite increment or decrement as an assign operation");
-			}
+			if (assignment == null) throw new ApplicationException("Could not rewrite increment or decrement as an assign operation");
 
 			var post = expression is IncrementNode x ? x.Post : expression.To<DecrementNode>().Post;
 			var value = expression is IncrementNode y ? y.Object : expression.To<DecrementNode>().Object;

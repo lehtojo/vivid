@@ -179,12 +179,11 @@ public static class Aligner
 
 			foreach (var parameter in function.Parameters)
 			{
-				if (!parameter.IsParameter) // Redundant check?
-				{
-					continue;
-				}
+				if (!parameter.IsParameter) continue;
 
-				if (parameter.Type == Types.DECIMAL && media_register_count-- > 0 || parameter.Type != Types.DECIMAL && standard_register_count-- > 0)
+				var type = parameter.Type!;
+
+				if (type.Format.IsDecimal() && media_register_count-- > 0 || !type.Format.IsDecimal() && standard_register_count-- > 0)
 				{
 					continue;
 				}

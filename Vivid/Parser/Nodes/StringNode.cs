@@ -19,7 +19,7 @@ public class StringNode : Node, ICloneable
 
 	public override Type TryGetType()
 	{
-		return Types.LINK;
+		return new Link();
 	}
 
 	public new object Clone()

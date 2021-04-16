@@ -12,7 +12,7 @@ public class LambdaNode : Node, IResolvable
 	{
 		Function = lambda;
 		Position = position;
-		Status = Status.Error(Position, "Could not resolve parameter types of the short function");
+		Status = Status.Error(Position, "Can not resolve parameter types of the short function");
 		Instance = NodeType.LAMBDA;
 	}
 
@@ -61,7 +61,7 @@ public class LambdaNode : Node, IResolvable
 				// Try to resolve the parameter type
 				var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
 
-				if (type != Types.UNKNOWN)
+				if (type != null)
 				{
 					parameter.Type = type;
 				}

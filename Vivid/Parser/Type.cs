@@ -68,11 +68,11 @@ public class RuntimeConfiguration
 
 	public RuntimeConfiguration(Type type)
 	{
-		Variable = type.Declare(Link.GetVariant(Types.U64), VariableCategory.MEMBER, CONFIGURATION_VARIABLE);
+		Variable = type.Declare(new Link(Primitives.CreateNumber(Primitives.U64, Format.UINT64)), VariableCategory.MEMBER, CONFIGURATION_VARIABLE);
 		
 		if (Analysis.IsGarbageCollectorEnabled)
 		{
-			References = type.Declare(Types.LINK, VariableCategory.MEMBER, REFERENCE_COUNT_VARIABLE);
+			References = type.Declare(new Link(), VariableCategory.MEMBER, REFERENCE_COUNT_VARIABLE);
 		}
 
 		Entry = new Table(type.GetFullname() + Mangle.CONFIGURATION_COMMAND + Mangle.END_COMMAND);
@@ -114,7 +114,8 @@ public class Type : Context
 
 	public bool IsUnresolved => !IsResolved();
 
-	public bool IsUserDefined => Destructors.Overloads.Any();
+	public bool IsPrimitive => Flag.Has(Modifiers, Modifier.PRIMITIVE);
+	public bool IsUserDefined => !IsPrimitive && Destructors.Overloads.Any();
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
@@ -401,10 +402,10 @@ public class Type : Context
 				supertype = supertype.Supertypes.First();
 			}
 
-			return supertype.Configuration?.Variable ?? throw new ApplicationException("Could not get runtime configuration from an inherited supertype");
+			return supertype.Configuration?.Variable ?? throw new ApplicationException("Could not find runtime configuration from an inherited supertype");
 		}
 
-		return Configuration?.Variable ?? throw new ApplicationException("Could not get runtime configuration");
+		return Configuration?.Variable ?? throw new ApplicationException("Could not find runtime configuration");
 	}
 
 	public override Variable? GetVariable(string name)
@@ -428,11 +429,7 @@ public class Type : Context
 		if (Virtuals.ContainsKey(function.Name))
 		{
 			entry = GetVirtualFunction(function.Name);
-
-			if (entry == null)
-			{
-				throw new ApplicationException("Could not retrieve a virtual function list");
-			}
+			if (entry == null) throw new ApplicationException("Could not retrieve a virtual function list");
 		}
 		else
 		{

@@ -9,7 +9,7 @@ public class Parameter
 	public Position? Position { get; set; }
 	public Type? Type { get; set; }
 
-	public Parameter(string name, Type? type = Types.UNKNOWN)
+	public Parameter(string name, Type? type = null)
 	{
 		Name = name;
 		Type = type;

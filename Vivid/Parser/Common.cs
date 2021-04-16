@@ -28,7 +28,7 @@ public static class Common
 		}
 
 		// Ensure all the parameter types are resolved
-		if (parameter_types.Any(i => i == Types.UNKNOWN || i.IsUnresolved))
+		if (parameter_types.Any(i => i == null || i.IsUnresolved))
 		{
 			return null;
 		}
@@ -424,7 +424,7 @@ public static class Common
 
 		if (opening.Operator != Operators.LESS_THAN)
 		{
-			throw Errors.Get(opening.Position, "Could not understand the template arguments");
+			throw Errors.Get(opening.Position, "Can not understand the template arguments");
 		}
 
 		var parameters = new List<Type>();
@@ -443,7 +443,7 @@ public static class Common
 
 		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
 		{
-			throw Errors.Get(opening.Position, "Could not understand the template arguments");
+			throw Errors.Get(opening.Position, "Can not understand the template arguments");
 		}
 
 		return parameters.ToArray();
@@ -460,7 +460,7 @@ public static class Common
 
 		if (opening.Operator != Operators.LESS_THAN)
 		{
-			throw Errors.Get(opening.Position, "Could not understand the template arguments");
+			throw Errors.Get(opening.Position, "Can not understand the template arguments");
 		}
 
 		while (true)
@@ -482,7 +482,7 @@ public static class Common
 
 		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
 		{
-			throw Errors.Get(opening.Position, "Could not understand the template arguments");
+			throw Errors.Get(opening.Position, "Can not understand the template arguments");
 		}
 
 		result.Add(closing);

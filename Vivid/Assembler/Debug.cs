@@ -488,7 +488,7 @@ public class Debug
 
 	public static bool IsPointerType(Type type)
 	{
-		return !Types.IsPrimitive(type) && type != Types.LINK;
+		return type.IsPrimitive && type.Name != Primitives.LINK;
 	}
 
 	public void AppendMemberVariable(Variable variable)
@@ -546,35 +546,21 @@ public class Debug
 
 		var encoding = (byte)0;
 
-		if (type == Types.TINY)
+		if (type.IsPrimitive)
 		{
-			encoding = DWARF_ENCODING_SIGNED_CHAR;
+			encoding = type.Name switch
+			{
+				Primitives.TINY => DWARF_ENCODING_SIGNED_CHAR,
+				Primitives.U8 => DWARF_ENCODING_UNSIGNED_CHAR,
+				Primitives.DECIMAL => DWARF_ENCODING_DECIMAL,
+				Primitives.LINK => DWARF_ENCODING_ADDRESS,
+				Primitives.BOOL => DWARF_ENCODING_BOOL,
+				Primitives.UNIT => DWARF_ENCODING_SIGNED,
+				_ => type is Number number ? (number.IsUnsigned ? DWARF_ENCODING_UNSIGNED : DWARF_ENCODING_SIGNED) : (byte)0
+			};
 		}
-		else if (type == Types.U8)
-		{
-			encoding = DWARF_ENCODING_UNSIGNED_CHAR;
-		}
-		else if (type == Types.DECIMAL)
-		{
-			encoding = DWARF_ENCODING_DECIMAL;
-		}
-		else if (type == Types.LINK)
-		{
-			encoding = DWARF_ENCODING_ADDRESS;
-		}
-		else if (type == Types.BOOL)
-		{
-			encoding = DWARF_ENCODING_BOOL;
-		}
-		else if (type == Types.UNIT)
-		{
-			encoding = DWARF_ENCODING_SIGNED;
-		}
-		else if (type is Number number)
-		{
-			encoding = number.IsUnsigned ? DWARF_ENCODING_UNSIGNED : DWARF_ENCODING_SIGNED;
-		}
-		else
+
+		if (encoding == 0)
 		{
 			AppendObjectType(type);
 			return;

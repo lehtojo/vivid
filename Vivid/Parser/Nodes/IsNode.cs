@@ -24,7 +24,7 @@ public class IsNode : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		return Types.BOOL;
+		return Primitives.CreateBool();
 	}
 
 	public Node? Resolve(Context context)

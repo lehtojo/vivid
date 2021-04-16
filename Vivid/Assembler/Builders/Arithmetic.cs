@@ -136,7 +136,9 @@ public static class Arithmetic
 	/// </summary>
 	public static Result BuildNot(Unit unit, NotNode node)
 	{
-		if (node.Object.GetType() == Types.BOOL)
+		var type = node.Object.GetType();
+
+		if (Primitives.IsPrimitive(type, Primitives.BOOL))
 		{
 			var value = References.Get(unit, node.Object);
 
@@ -151,7 +153,9 @@ public static class Arithmetic
 	/// </summary>
 	public static Result BuildNegate(Unit unit, NegateNode node)
 	{
-		if (Assembler.IsX64 && node.GetType() == Types.DECIMAL)
+		var is_decimal = node.GetType().Format.IsDecimal();
+
+		if (Assembler.IsX64 && is_decimal)
 		{
 			// Define a constant which negates decimal values
 			var negator_constant = BitConverter.GetBytes(0x8000000000000000).Concat(BitConverter.GetBytes(0x8000000000000000)).ToArray();
@@ -161,7 +165,7 @@ public static class Arithmetic
 			return BitwiseInstruction.Xor(unit, References.Get(unit, node.Object), negator, Format.DECIMAL).Execute();
 		}
 
-		return SingleParameterInstruction.Negate(unit, References.Get(unit, node.Object), node.GetType() == Types.DECIMAL).Execute();
+		return SingleParameterInstruction.Negate(unit, References.Get(unit, node.Object), is_decimal).Execute();
 	}
 
 	/// <summary>

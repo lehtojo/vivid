@@ -18,28 +18,37 @@ public static class Importer
 	public const int STATIC_LIBRARY_SYMBOL_TABLE_OFFSET = 68;
 	public const int STATIC_LIBRARY_SYMBOL_TABLE_FIRST_LOCATION_ENTRY_OFFSET = STATIC_LIBRARY_SYMBOL_TABLE_OFFSET + sizeof(int);
 
-	private static Dictionary<char, Type> Primitives { get; set; } = new Dictionary<char, Type>();
+	private static Dictionary<char, Type> PrimitiveTypes { get; set; } = new Dictionary<char, Type>();
 
 	/// <summary>
 	/// Prepares the system for demangling symbols which is required for importing
 	/// </summary>
 	public static void Initialize()
 	{
-		Primitives.Clear();
+		PrimitiveTypes.Clear();
+
+		var primitive = (Type?)null;
 		
-		Primitives.Add(Types.BOOL.Identifier.First(), Types.BOOL);
-
-		Primitives.Add(Types.DECIMAL.Identifier.First(), Types.DECIMAL);
-
-		Primitives.Add(Types.LARGE.Identifier.First(), Types.LARGE);
-		Primitives.Add(Types.NORMAL.Identifier.First(), Types.NORMAL);
-		Primitives.Add(Types.SMALL.Identifier.First(), Types.SMALL);
-		Primitives.Add(Types.TINY.Identifier.First(), Types.TINY);
-
-		Primitives.Add(Types.U64.Identifier.First(), Types.U64);
-		Primitives.Add(Types.U32.Identifier.First(), Types.U32);
-		Primitives.Add(Types.U16.Identifier.First(), Types.U16);
-		Primitives.Add(Types.U8.Identifier.First(), Types.U8);
+		primitive = Primitives.CreateBool();
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.NORMAL, Format.INT32);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.SMALL, Format.INT16);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.TINY, Format.INT8);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.U64, Format.UINT64);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.U32, Format.UINT32);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.U16, Format.UINT16);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
+		primitive = Primitives.CreateNumber(Primitives.U8, Format.UINT8);
+		PrimitiveTypes.Add(primitive.Identifier.First(), primitive);
 	}
 
 	/// <summary>
@@ -106,7 +115,7 @@ public static class Importer
 	/// </summary>
 	private static Type CreatePointerType(Type type, int pointers)
 	{
-		if (!Types.IsPrimitive(type) && --pointers == 0)
+		if (!Primitives.IsPrimitive(type) && --pointers == 0)
 		{
 			return type;
 		}
@@ -149,7 +158,7 @@ public static class Importer
 		if (!pointer && char.IsLetter(command))
 		{
 			// If the command is not a pointer command, it must be a primitive type
-			if (!Primitives.TryGetValue(command, out Type? primitive)) return null;
+			if (!PrimitiveTypes.TryGetValue(command, out Type? primitive)) return null;
 
 			return (primitive, position + 1);
 		}
@@ -175,7 +184,7 @@ public static class Importer
 			if (position < symbol.Length && symbol[position] == Mangle.START_TEMPLATE_ARGUMENTS_COMMAND)
 			{
 				// The template type that will be constructured must be pushed to stack before it is fully created
-				var definition = new MangleDefinition(Types.UNKNOWN, stack.Count, 0);
+				var definition = new MangleDefinition(null, stack.Count, 0);
 				stack.Add(definition);
 
 				// Consume the template arguments
@@ -252,7 +261,7 @@ public static class Importer
 		else
 		{
 			// It must be a primitive type
-			if (!Primitives.TryGetValue(command, out Type? primitive)) return null;
+			if (!PrimitiveTypes.TryGetValue(command, out Type? primitive)) return null;
 
 			type = primitive;
 
@@ -357,7 +366,7 @@ public static class Importer
 			position++; // Skip the command
 		}
 
-		var return_type = Types.UNIT;
+		var return_type = Primitives.CreateUnit();
 
 		// Check if there is a return type defined
 		if (position + 2 < symbol.Length && symbol[position] == Mangle.PARAMETERS_END && symbol[position + 1] == Mangle.START_RETURN_TYPE_COMMAND)
@@ -485,7 +494,7 @@ public static class Importer
 		position = name.Value.Position;
 
 		var parameter_types = new List<Type>();
-		var return_type = Types.UNIT;
+		var return_type = Primitives.CreateUnit();
 
 		while (true)
 		{

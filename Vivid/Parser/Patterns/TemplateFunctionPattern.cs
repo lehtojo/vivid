@@ -87,7 +87,7 @@ public class TemplateFunctionPattern : Pattern
 
 		if (template_parameters_end == -1)
 		{
-			throw Errors.Get(tokens[TEMPLATE_PARAMETERS_START].Position, "Could not find the end of the template parameters");
+			throw Errors.Get(tokens[TEMPLATE_PARAMETERS_START].Position, "Can not find the end of the template parameters");
 		}
 
 		var template_parameter_tokens = tokens.GetRange(TEMPLATE_PARAMETERS_START, template_parameters_end - TEMPLATE_PARAMETERS_START);

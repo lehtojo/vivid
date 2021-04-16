@@ -552,7 +552,7 @@ public static class GarbageCollector
 					(
 						new IdentifierToken(instance_parameter_name),
 						new KeywordToken(Keywords.AS),
-						new IdentifierToken(Types.LINK.Name)
+						new IdentifierToken(Primitives.LINK)
 					)
 				)
 			)

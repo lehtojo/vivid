@@ -98,7 +98,7 @@ public static class Translator
 				instructions.Add(new AppendPositionInstruction(unit, unit.Function.Metadata.End));
 			}
 
-			instructions.Add(new ReturnInstruction(unit, null, Types.UNKNOWN));
+			instructions.Add(new ReturnInstruction(unit, null, null));
 		}
 
 		// If debug information is being generated, append a debug information label at the end

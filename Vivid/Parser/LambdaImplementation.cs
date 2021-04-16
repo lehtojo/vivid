@@ -16,7 +16,7 @@ public class LambdaImplementation : FunctionImplementation
 		mangle += $"_{Name}_";
 		mangle += Parameters.Select(i => i.Type!);
 
-		if (ReturnType != global::Types.UNIT)
+		if (!Primitives.IsPrimitive(ReturnType, Primitives.UNIT))
 		{
 			mangle += Mangle.PARAMETERS_END;
 			mangle += Mangle.START_RETURN_TYPE_COMMAND;
@@ -39,7 +39,7 @@ public class LambdaImplementation : FunctionImplementation
 		};
 
 		// Declare the function pointer as the first member
-		Function = Type.DeclareHidden(global::Types.LINK, VariableCategory.MEMBER);
+		Function = Type.DeclareHidden(new Link(), VariableCategory.MEMBER);
 
 		// Change all captured variables into member variables so that they are retrieved using the self pointer of this lambda
 		Captures.ForEach(i => i.Category = VariableCategory.MEMBER);

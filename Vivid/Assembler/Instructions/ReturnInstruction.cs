@@ -8,7 +8,7 @@ using System.Text;
 /// </summary>
 public class ReturnInstruction : Instruction
 {
-	public Register ReturnRegister => ReturnType == Types.DECIMAL ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
+	public Register ReturnRegister => (ReturnType != null && ReturnType.Format.IsDecimal()) ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 	private Handle ReturnRegisterHandle => new RegisterHandle(ReturnRegister);
 
 	public Result? Object { get; private set; }

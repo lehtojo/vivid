@@ -11,6 +11,6 @@ public class CompilesNode : Node
 
 	public override Type TryGetType()
 	{
-		return Types.BOOL;
+		return Primitives.CreateBool();
 	}
 }

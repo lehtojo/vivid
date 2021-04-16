@@ -84,10 +84,7 @@ public class InstructionParameter
 	{
 		var index = Types.ToList().IndexOf(current);
 
-		if (index == -1)
-		{
-			throw new ArgumentException("Could not retrieve lower cost handle options since the current handle type was not valid");
-		}
+		if (index == -1) throw new ArgumentException("Could not retrieve lower cost handle options since the current handle type was not valid");
 
 		// Return all handle types before the current handle's index (the handles at the top are lower in cost)
 		return Types.Take(index).ToArray();

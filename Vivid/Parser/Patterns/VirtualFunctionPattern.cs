@@ -34,7 +34,7 @@ public class VirtualFunctionPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var return_type = Types.UNIT;
+		var return_type = Primitives.CreateUnit();
 		var indicator = tokens[RETURN_TYPE_INDICATOR];
 
 		if (!indicator.Is(TokenType.NONE))
@@ -43,7 +43,7 @@ public class VirtualFunctionPattern : Pattern
 
 			if (return_type == null)
 			{
-				throw Errors.Get(indicator.Position, "Could not resolve return type of the uncompleted function");
+				throw Errors.Get(indicator.Position, "Can not resolve return type of the virtual function");
 			}
 		}
 
@@ -54,7 +54,7 @@ public class VirtualFunctionPattern : Pattern
 
 		if (type.IsVirtualFunctionDeclared(descriptor.Name))
 		{
-			throw Errors.Get(start, "Uncompleted function with same name is already declared in one of the inherited types");
+			throw Errors.Get(start, "Virtual function with same name is already declared in one of the inherited types");
 		}
 
 		var function = new VirtualFunction(type, descriptor.Name, return_type, start, null);

@@ -127,7 +127,7 @@ public class UnresolvedType : Type, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position, $"Could not resolve type '{this}'");
+		return Status.Error(Position, $"Can not resolve type '{this}'");
 	}
 
 	public override string ToString()

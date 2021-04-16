@@ -53,6 +53,8 @@ public class DocumentRange
 
 public class DocumentDiagnostic 
 {
+	private const string UNTITLED_FILE_SCHEME = "untitled";
+
 	public DocumentRange Range { get; set; }
 	public string Message { get; set; }
 	public int Severity { get; set; }
@@ -67,8 +69,8 @@ public class DocumentDiagnostic
 		var i = Message.IndexOf(':');
 		if (i == -1) return;
 		
-		// However, some filepaths have colon in them such as: C:/Users/...
-		if (i + 1 < Message.Length && (Message[i + 1] == '/' || Message[i + 1] == '\\'))
+		// However, some filepaths have colon in them such as 'C:/Users/...' and 'untitled:Untitled'
+		if (i + 1 < Message.Length && (Message[i + 1] == '/' || Message[i + 1] == '\\' || Message.Substring(0, i) == UNTITLED_FILE_SCHEME))
 		{
 			i = Message.IndexOf(':', i + 1);
 			if (i == -1) return;
@@ -152,7 +154,7 @@ public class ResolverPhase : Phase
 		// Report if the return type is not resolved
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			diagnostics.Add(new DocumentDiagnostic(implementation.Metadata.Start, "Could not resolve the return type", DocumentDiagnosticSeverity.ERROR));
+			diagnostics.Add(new DocumentDiagnostic(implementation.Metadata.Start, "Can not resolve the return type", DocumentDiagnosticSeverity.ERROR));
 		}
 
 		// Look for errors under the implementation node
@@ -206,7 +208,7 @@ public class ResolverPhase : Phase
 
 		// Look for variables which are not resolved
 		diagnostics.AddRange(implementation.Variables.Values.Where(i => i.IsUnresolved)
-			.Select(i => new DocumentDiagnostic(i.Position, $"Could not resolve type of local variable '{i.Name}'", DocumentDiagnosticSeverity.ERROR))
+			.Select(i => new DocumentDiagnostic(i.Position, $"Can not resolve type of local variable '{i.Name}'", DocumentDiagnosticSeverity.ERROR))
 		);
 
 		return diagnostics;
@@ -223,11 +225,11 @@ public class ResolverPhase : Phase
 		{
 			if (variable.Context.IsType)
 			{
-				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Could not resolve the type of the member variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
+				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of the member variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
 			}
 			else if (variable.Context.Parent == null)
 			{
-				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Could not resolve the type of the global variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
+				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of the global variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
 			}
 		}
 
@@ -237,7 +239,7 @@ public class ResolverPhase : Phase
 
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
-				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' could not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
+				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
 			}
 
 			// There must be at least one destructor which requires no parameters
@@ -258,7 +260,7 @@ public class ResolverPhase : Phase
 
 			foreach (var parameter in overload.Parameters)
 			{
-				diagnostics.Add(new DocumentDiagnostic(parameter.Position, $"Could not resolve the type of the parameter '{parameter.Name}'", DocumentDiagnosticSeverity.ERROR));
+				diagnostics.Add(new DocumentDiagnostic(parameter.Position, $"Can not resolve the type of the parameter '{parameter.Name}'", DocumentDiagnosticSeverity.ERROR));
 			}
 		}
 
@@ -347,7 +349,7 @@ public class ResolverPhase : Phase
 		// Report if the return type is not resolved
 		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
 		{
-			errors.Add(Status.Error(implementation.Metadata.Start, "Could not resolve the return type"));
+			errors.Add(Status.Error(implementation.Metadata.Start, "Can not resolve the return type"));
 		}
 
 		// Look for errors under the implementation node
@@ -396,7 +398,7 @@ public class ResolverPhase : Phase
 
 		// Look for variables which are not resolved
 		errors.AddRange(implementation.Variables.Values.Where(i => i.IsUnresolved)
-			.Select(i => Status.Error(i.Position, $"Could not resolve type of local variable '{i.Name}'"))
+			.Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'"))
 		);
 
 		// Build the report if there are errors
@@ -424,11 +426,11 @@ public class ResolverPhase : Phase
 		{
 			if (variable.Context.IsType)
 			{
-				variables.Append(Errors.Format(variable.Position, $"Could not resolve the type of the member variable '{variable.Name}'"));
+				variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of the member variable '{variable.Name}'"));
 			}
 			else if (variable.Context.Parent == null)
 			{
-				variables.Append(Errors.Format(variable.Position, $"Could not resolve the type of the global variable '{variable.Name}'"));
+				variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of the global variable '{variable.Name}'"));
 			}
 
 			variables.AppendLine();
@@ -445,7 +447,7 @@ public class ResolverPhase : Phase
 
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
-				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' could not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance"));
+				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance"));
 			}
 
 			if (type.IsUserDefined && type.Destructors.Overloads.All(i => i.Parameters.Count > 0))
@@ -482,7 +484,7 @@ public class ResolverPhase : Phase
 
 			foreach (var parameter in overload.Parameters)
 			{
-				functions.AppendLine(Errors.Format(parameter.Position, $"Could not resolve the type of the parameter '{parameter.Name}'"));
+				functions.AppendLine(Errors.Format(parameter.Position, $"Can not resolve the type of the parameter '{parameter.Name}'"));
 			}
 		}
 
@@ -562,13 +564,15 @@ public class ResolverPhase : Phase
 		var deallocation_function = context.GetFunction("deallocate") ?? throw new ApplicationException("Missing the deallocation function, please implement it or include the standard library");
 		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
 
-		Parser.AllocationFunction = allocation_function.GetImplementation(Types.LARGE);
-		Assembler.AllocationFunction = allocation_function.GetOverload(Types.LARGE);
+		var type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 
-		Parser.DeallocationFunction = deallocation_function.GetImplementation(Types.LINK);
-		Assembler.DeallocationFunction = deallocation_function.GetOverload(Types.LINK);
+		Parser.AllocationFunction = allocation_function.GetImplementation(type);
+		Assembler.AllocationFunction = allocation_function.GetOverload(type);
 
-		Parser.InheritanceFunction = inheritance_function.GetImplementation(Types.LINK, Types.LINK);
+		Parser.DeallocationFunction = deallocation_function.GetImplementation(new Link());
+		Assembler.DeallocationFunction = deallocation_function.GetOverload(new Link());
+
+		Parser.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link());
 
 		GarbageCollector.CreateReferenceCountingFunctions(context);
 	}

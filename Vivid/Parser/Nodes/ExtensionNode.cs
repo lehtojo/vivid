@@ -74,7 +74,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position!, $"Could not resolve the destination '{Destination}' of the extension function");
+		return Status.Error(Position!, $"Can not resolve the destination '{Destination}' of the extension function");
 	}
 
 	public override int GetHashCode()

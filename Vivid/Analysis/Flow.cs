@@ -157,10 +157,7 @@ public class Flow
 		var parent = condition.Parent!;
 
 		// Remove the condition for a while
-		if (!condition.Remove())
-		{
-			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
-		}
+		if (!condition.Remove()) throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
 
 		// Linearize all the nodes under the condition step except the actual condition
 		statement.GetConditionStep().ForEach(i => Linearize(i));
@@ -187,10 +184,7 @@ public class Flow
 		var parent = condition.Parent!;
 
 		// Remove the condition for a while
-		if (!condition.Remove())
-		{
-			throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
-		}
+		if (!condition.Remove()) throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
 
 		// Linearize all the nodes under the condition step except the actual condition
 		statement.GetConditionStep().ForEach(i => Linearize(i));

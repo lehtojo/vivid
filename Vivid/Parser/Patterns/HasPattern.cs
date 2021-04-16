@@ -36,7 +36,7 @@ public class HasPattern : Pattern
 			throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
 		}
 
-		var variable = Variable.Create(context, Types.UNKNOWN, VariableCategory.LOCAL, name.Value, Modifier.DEFAULT);
+		var variable = Variable.Create(context, null, VariableCategory.LOCAL, name.Value, Modifier.DEFAULT);
 		variable.Position = name.Position;
 
 		var result = new VariableNode(variable, name.Position);

@@ -33,7 +33,7 @@ public class ExpressionVariablePattern : Pattern
 
 		if (!Common.ConsumeBlock(function, state, blueprint))
 		{
-			throw Errors.Get(name.Position, $"Could not resolve the body of the property '{name.Value}'");
+			throw Errors.Get(name.Position, $"Can not resolve the body of the property '{name.Value}'");
 		}
 
 		// Save the blueprint

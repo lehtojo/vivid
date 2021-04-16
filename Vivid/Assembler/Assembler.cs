@@ -80,8 +80,8 @@ public static class Assembler
 
 		/// NOTE: All parameters must have a type since that is a requirement for virtual functions
 		mangle += function.Parameters.Select(i => i.Type!);
-
-		if (function.ReturnType != Types.UNIT)
+		
+		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
 		{
 			mangle += Mangle.START_RETURN_TYPE_COMMAND;
 			mangle += function.ReturnType;
@@ -383,10 +383,7 @@ public static class Assembler
 		// NOTE: The type 'from' must be one of the subtypes that type 'to' has
 		var alignment = to.GetSupertypeBaseOffset(from);
 
-		if (alignment == null || alignment < 0)
-		{
-			throw new ApplicationException("Could not add virtual function header");
-		}
+		if (alignment == null || alignment < 0) throw new ApplicationException("Could not add virtual function header");
 
 		if (alignment != 0)
 		{
@@ -581,21 +578,21 @@ public static class Assembler
 			if (command == 'x')
 			{
 				length = 2;
-				error = "Could not understand hexadecimal value in a string";
+				error = "Can not understand hexadecimal value in a string";
 			}
 			else if (command == 'u')
 			{
 				length = 4;
-				error = "Could not understand unicode character in a string";
+				error = "Can not understand unicode character in a string";
 			}
 			else if (command == 'U')
 			{
 				length = 8;
-				error = "Could not understand unicode character in a string";
+				error = "Can not understand unicode character in a string";
 			}
 			else
 			{
-				throw new ApplicationException($"Could not understand string command '{command}'");
+				throw new ApplicationException($"Can not understand string command '{command}'");
 			}
 
 			var hexadecimal = text.Substring(position, length);

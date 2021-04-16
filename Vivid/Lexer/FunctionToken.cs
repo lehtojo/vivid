@@ -76,7 +76,7 @@ public class FunctionToken : Token
 			}
 			else if (parameter is UnresolvedIdentifier name)
 			{
-				parameters.Add(new Parameter(name.Value, name.Position, Types.UNKNOWN));
+				parameters.Add(new Parameter(name.Value, name.Position, null));
 			}
 			else
 			{

@@ -28,12 +28,12 @@ public class InspectionNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		var type = TryGetType();
-		return type == null || type.IsUnresolved ? Status.Error(Position, "Could not resolve the type of the inspected object") : Status.OK;
+		return type == null || type.IsUnresolved ? Status.Error(Position, "Can not resolve the type of the inspected object") : Status.OK;
 	}
 
 	public override Type? TryGetType()
 	{
-		return Type == InspectionType.NAME ? Types.LINK : Types.LARGE;
+		return Type == InspectionType.NAME ? new Link() : Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 	}
 
 	public override int GetHashCode()

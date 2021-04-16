@@ -27,7 +27,7 @@ public class DecrementNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		// Ensure the object is a number
-		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Could not resolve the decrement operation");
+		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the decrement operation");
 	}
 
 	public override bool Equals(object? other)

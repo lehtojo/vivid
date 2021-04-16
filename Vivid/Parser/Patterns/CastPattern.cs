@@ -32,7 +32,7 @@ public class CastPattern : Pattern
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var type = Common.ReadType(context, new Queue<Token>(tokens.Skip(TYPE)));
 
-		if (type == null) throw Errors.Get(tokens[TYPE].Position, "Could not resolve the cast type");
+		if (type == null) throw Errors.Get(tokens[TYPE].Position, "Can not resolve the cast type");
 
 		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position));
 	}

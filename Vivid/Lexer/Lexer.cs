@@ -307,7 +307,7 @@ public static class Lexer
 			}
 		}
 
-		throw new LexerException(start, "Could not find closing parenthesis");
+		throw new LexerException(start, "Can not find closing parenthesis");
 	}
 
 	/// <summary>
@@ -391,7 +391,7 @@ public static class Lexer
 	/// <returns>Position after the string</returns>
 	private static Position SkipString(string text, Position start)
 	{
-		return SkipClosures(STRING, text, start, "Could not find the end of the string");
+		return SkipClosures(STRING, text, start, "Can not find the end of the string");
 	}
 
 	/// <summary>
@@ -402,7 +402,7 @@ public static class Lexer
 	/// <returns>Position after the character value</returns>
 	private static Position SkipCharacterValue(string text, Position start)
 	{
-		return SkipClosures(CHARACTER, text, start, "Could not find the end of the character value");
+		return SkipClosures(CHARACTER, text, start, "Can not find the end of the character value");
 	}
 
 	/// <summary>
@@ -417,21 +417,21 @@ public static class Lexer
 		if (command == 'x')
 		{
 			length = 2;
-			error = "Could not understand hexadecimal value";
+			error = "Can not understand hexadecimal value";
 		}
 		else if (command == 'u')
 		{
 			length = 4;
-			error = "Could not understand unicode character";
+			error = "Can not understand unicode character";
 		}
 		else if (command == 'U')
 		{
 			length = 8;
-			error = "Could not understand unicode character";
+			error = "Can not understand unicode character";
 		}
 		else
 		{
-			throw new LexerException(position, $"Could not understand string command '{command}'");
+			throw new LexerException(position, $"Can not understand string command '{command}'");
 		}
 
 		var hexadecimal = text[2..];

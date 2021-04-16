@@ -44,7 +44,7 @@ public class IterationLoopPattern : Pattern
 			return context.GetVariable(identifier)!;
 		}
 
-		var iterator = context.Declare(Types.UNKNOWN, VariableCategory.LOCAL, identifier);
+		var iterator = context.Declare(null, VariableCategory.LOCAL, identifier);
 		iterator.Position = tokens[ITERATOR].Position;
 
 		return iterator;
@@ -52,7 +52,7 @@ public class IterationLoopPattern : Pattern
 
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		var iterator = environment.DeclareHidden(Types.UNKNOWN);
+		var iterator = environment.DeclareHidden(null);
 		var iterator_position = tokens[ITERATOR].Position;
 
 		iterator.Position = iterator_position;

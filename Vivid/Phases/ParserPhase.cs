@@ -250,7 +250,7 @@ public class ParserPhase : Phase
 
 			if (function == null)
 			{
-				return Status.Error($"Could not find the entry function '{Keywords.INIT.Identifier}()'");
+				return Status.Error($"Can not find the entry function '{Keywords.INIT.Identifier}()'");
 			}
 
 			function.Overloads.First().Implement(new List<Type>());

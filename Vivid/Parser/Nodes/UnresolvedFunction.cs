@@ -220,7 +220,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		return Types.UNKNOWN;
+		return null;
 	}
 
 	public Node? Resolve(Context context)
@@ -235,7 +235,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 		descriptor += $"({string.Join(", ", ((IEnumerable<Node>)this).Select(p => p.TryGetType()?.ToString() ?? "?"))})";
 
-		return Status.Error(Position, $"Could not find function '{descriptor}'");
+		return Status.Error(Position, $"Can not find function '{descriptor}'");
 	}
 
 	public override bool Equals(object? other)

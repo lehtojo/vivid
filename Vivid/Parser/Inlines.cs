@@ -244,7 +244,7 @@ public static class Inlines
 		var inline = new ContextInlineNode(new Context(environment), reference.Position);
 		var body = GetInlineBody(inline.Context, implementation, reference, out Node destination);
 
-		if (implementation.ReturnType != Types.UNIT)
+		if (!Primitives.IsPrimitive(implementation.ReturnType, Primitives.UNIT))
 		{
 			// Declare a variable which contains the result of the inlined function
 			var result = inline.Context.DeclareHidden(implementation.ReturnType!);

@@ -4,24 +4,22 @@ public static class Casts
 {
 	public static Result Cast(Unit unit, Result result, Type from, Type to)
 	{
-		if (from == to)
-		{
-			return result;
-		}
+		if (from == to) return result;
 
 		if (from is Number x && to is Number y)
 		{
-			if ((x == Types.DECIMAL && y != Types.DECIMAL) || (x != Types.DECIMAL && y == Types.DECIMAL))
-			{
-				return new ConvertInstruction(unit, result, to != Types.DECIMAL).Execute();
-			}
+			var a = x.Format.IsDecimal();
+			var b = y.Format.IsDecimal();
+
+			// Execute only if exactly one of the booleans is true
+			if (a ^ b) return new ConvertInstruction(unit, result, !b).Execute();
 
 			return result;
 		}
 
 		if (from.IsTypeInherited(to)) // Determine whether the cast is a down cast
 		{
-			var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not calculate base offset of a super type while building down cast");
+			var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not compute base offset of a super type while building down cast");
 			if (base_offset == 0) return result;
 
 			var offset = new Result(new ConstantHandle((long)base_offset), Assembler.Format);
@@ -30,7 +28,7 @@ public static class Casts
 
 		if (to.IsTypeInherited(from)) // Determine whether the cast is a up cast
 		{
-			var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not calculate base offset of a super type while building up cast");
+			var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not compute base offset of a super type while building up cast");
 			if (base_offset == 0) return result;
 
 			var offset = new Result(new ConstantHandle((long)-base_offset), Assembler.Format);

@@ -13,6 +13,7 @@ public static class Modifier
 	public const int TEMPLATE_FUNCTION = 512;
 	public const int OUTLINE = 1024;
 	public const int INLINE = 2048;
+	public const int PRIMITIVE = 4096;
 
 	public const int DEFAULT = PUBLIC;
 

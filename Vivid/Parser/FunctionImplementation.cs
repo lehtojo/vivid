@@ -13,12 +13,12 @@ public class FunctionImplementation : Context
 	public Type[] TemplateArguments { get; set; }
 
 	public List<Variable> Parameters => Variables.Values
-		.Where(v => !v.IsSelfPointer && v.Category == VariableCategory.PARAMETER)
+		.Where(i => !i.IsSelfPointer && i.Category == VariableCategory.PARAMETER)
 		.ToList();
 
 	public List<Type> ParameterTypes => Parameters
-		.Where(p => !p.IsSelfPointer)
-		.Select(p => p.Type!)
+		.Where(i => !i.IsSelfPointer)
+		.Select(i => i.Type!)
 		.ToList();
 
 	public int SizeOfLocals { get; set; } = 0;
@@ -66,7 +66,7 @@ public class FunctionImplementation : Context
 			mangle += Mangle.NO_PARAMETERS_COMMAND;
 		}
 
-		if (ReturnType != global::Types.UNIT)
+		if (!Primitives.IsPrimitive(ReturnType, Primitives.UNIT))
 		{
 			mangle += Mangle.PARAMETERS_END;
 			mangle += Mangle.START_RETURN_TYPE_COMMAND;

@@ -18,17 +18,15 @@ public static class Numbers
 
 	static Numbers()
 	{
-		Define(Types.TINY);
-		Define(Types.SMALL);
-		Define(Types.NORMAL);
-		Define(Types.LARGE);
-
-		Define(Types.U8);
-		Define(Types.U16);
-		Define(Types.U32);
-		Define(Types.U64);
-
-		Define(Types.DECIMAL);
+		Define(Primitives.CreateNumber(Primitives.TINY, Format.INT8));
+		Define(Primitives.CreateNumber(Primitives.SMALL, Format.INT16));
+		Define(Primitives.CreateNumber(Primitives.NORMAL, Format.INT32));
+		Define(Primitives.CreateNumber(Primitives.LARGE, Format.INT64));
+		Define(Primitives.CreateNumber(Primitives.U8, Format.UINT8));
+		Define(Primitives.CreateNumber(Primitives.U16, Format.UINT16));
+		Define(Primitives.CreateNumber(Primitives.U32, Format.UINT32));
+		Define(Primitives.CreateNumber(Primitives.U64, Format.UINT64));
+		Define(Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL));
 	}
 
 	/// <summary>

@@ -26,14 +26,14 @@ public class HasNode : Node, IResolvable
 
 		var type = Source.TryGetType();
 
-		if (type == Types.UNKNOWN || type.IsUnresolved)
+		if (type == null || type.IsUnresolved)
 		{
 			return null;
 		}
 
 		var has_value_function = type.GetFunction(RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
 
-		if (has_value_function == null || has_value_function.ReturnType != Types.BOOL)
+		if (has_value_function == null || !Primitives.IsPrimitive(has_value_function.ReturnType, Primitives.BOOL))
 		{
 			return null;
 		}
@@ -48,7 +48,7 @@ public class HasNode : Node, IResolvable
 		var inline_context = new Context(environment);
 
 		var source_variable = inline_context.DeclareHidden(type);
-		var result_variable = inline_context.DeclareHidden(Types.BOOL);
+		var result_variable = inline_context.DeclareHidden(Primitives.CreateBool());
 
 		// Declare the result variable at the start of the function
 		var declaration = new DeclareNode(Result.Variable);
@@ -95,16 +95,16 @@ public class HasNode : Node, IResolvable
 
 	public override Type TryGetType()
 	{
-		return Types.BOOL;
+		return Primitives.CreateBool();
 	}
 
 	public Status GetStatus()
 	{
 		var type = Source.TryGetType();
 
-		if (type == Types.UNKNOWN || type.IsUnresolved)
+		if (type == null || type.IsUnresolved)
 		{
-			return Status.Error(Source.Position, "Could not resolve the type of the inspected object");
+			return Status.Error(Source.Position, "Can not resolve the type of the inspected object");
 		}
 
 		return Status.Error(Position, $"Ensure the inspected object has the following functions '{RUNTIME_HAS_VALUE_FUNCTION_HEADER}' and '{RUNTIME_GET_VALUE_FUNCTION_HEADER}'");

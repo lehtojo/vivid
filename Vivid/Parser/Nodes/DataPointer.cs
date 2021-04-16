@@ -14,7 +14,7 @@ public class DataPointer : Node
 
 	public override Type TryGetType()
 	{
-		return Types.LINK;
+		return new Link();
 	}
 
 	public override int GetHashCode()

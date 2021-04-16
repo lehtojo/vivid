@@ -136,7 +136,7 @@ public static class Calls
 			var source = References.Get(unit, parameter);
 			source = Casts.Cast(unit, source, parameter.GetType(), parameter_types[i]);
 
-			var is_decimal = Equals(parameter_types[i], Types.DECIMAL);
+			var is_decimal = parameter_types[i].Format.IsDecimal();
 
 			// Determine the parameter register
 			register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();

@@ -71,7 +71,7 @@ public class OffsetNode : Node, IResolvable
 
 		var type = Start.TryGetType();
 
-		if (type == Types.UNKNOWN)
+		if (type == null)
 		{
 			return null;
 		}
@@ -96,6 +96,6 @@ public class OffsetNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return TryGetType() == null ? Status.Error(Position, "Could not resolve the type of the accessor") : Status.OK;
+		return TryGetType() == null ? Status.Error(Position, "Can not resolve the type of the accessor") : Status.OK;
 	}
 }

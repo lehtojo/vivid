@@ -135,12 +135,12 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		return Types.UNKNOWN;
+		return null;
 	}
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position, $"Could not resolve identifier '{Value}'");
+		return Status.Error(Position, $"Can not resolve identifier '{Value}'");
 	}
 
 	public override string ToString()

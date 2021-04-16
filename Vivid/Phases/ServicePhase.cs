@@ -140,7 +140,7 @@ public class DocumentParse
 public class ServicePhase : Phase
 {
 	public const string FILE_SCHEME = "file";
-	public const string UNTITLED_SCHEME = "untitled";
+	public const string UNTITLED_FILE_SCHEME = "untitled";
 	public const string SERVICE_BIND_ADDRESS = "localhost";
 
 	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
@@ -178,7 +178,7 @@ public class ServicePhase : Phase
 	/// </summary>
 	public static Uri ToUri(string path)
 	{
-		if (!path.StartsWith(UNTITLED_SCHEME + ':'))
+		if (!path.StartsWith(UNTITLED_FILE_SCHEME + ':'))
 		{
 			return new Uri(FILE_SCHEME + ":///" + path.Replace(":", "%3A"));
 		}

@@ -57,11 +57,11 @@ public class ImportPattern : Pattern
 	private static void ImportFunction(Context environment, List<Token> tokens)
 	{
 		var header = tokens[OBJECT].To<FunctionToken>();
-		var return_type = Types.UNIT;
+		var return_type = Primitives.CreateUnit();
 
 		if (tokens[COLON].Is(Operators.COLON))
 		{
-			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Could not resolve the return type");
+			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Can not resolve the return type");
 		}
 
 		var function = new Function(environment, Modifier.DEFAULT | Modifier.IMPORTED, header.Name, header.Position, null);
@@ -80,7 +80,7 @@ public class ImportPattern : Pattern
 	private static void ImportNamespace(Context environment, List<Token> tokens)
 	{
 		var import = Common.ReadType(environment, new Queue<Token>(tokens.Skip(1)));
-		if (import == null) throw Errors.Get(tokens.First().Position, "Could not resolve the import");
+		if (import == null) throw Errors.Get(tokens.First().Position, "Can not resolve the import");
 		environment.Imports.Add(import);
 	}
 

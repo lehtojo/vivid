@@ -49,7 +49,7 @@ public class IsPattern : Pattern
 
 		if (type == null)
 		{
-			throw Errors.Get(tokens[TYPE].Position, "Could not understand the type");
+			throw Errors.Get(tokens[TYPE].Position, "Can not understand the type");
 		}
 
 		var result = (Node?)null;

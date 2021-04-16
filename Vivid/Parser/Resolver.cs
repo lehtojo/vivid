@@ -46,7 +46,7 @@ public static class Resolver
 			var resolved = Resolve(context, supertype);
 
 			// Skip the supertype if it could not be resolved or if it is not allowed to be inherited
-			if (resolved == Types.UNKNOWN || !type.IsInheritingAllowed(resolved))
+			if (resolved == null || !type.IsInheritingAllowed(resolved))
 			{
 				continue;
 			}
@@ -91,7 +91,7 @@ public static class Resolver
 				{
 					var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
 
-					if (!Equals(type, Types.UNKNOWN))
+					if (!Equals(type, null))
 					{
 						parameter.Type = type;
 					}
@@ -106,13 +106,13 @@ public static class Resolver
 			ResolveVariables(implementation);
 
 			// Check if the implementation has a return type and if it is unresolved
-			if (implementation.ReturnType != Types.UNKNOWN)
+			if (implementation.ReturnType != null)
 			{
 				if (implementation.ReturnType.IsUnresolved)
 				{
 					var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
 
-					if (type != Types.UNKNOWN)
+					if (type != null)
 					{
 						implementation.ReturnType = type;
 					}
@@ -127,7 +127,7 @@ public static class Resolver
 			{
 				if (!implementation.Metadata!.IsImported && implementation.Node.Find(i => i.Is(NodeType.RETURN)) == null)
 				{
-					implementation.ReturnType = Types.UNIT;
+					implementation.ReturnType = Primitives.CreateUnit();
 				}
 
 				ResolveTree(implementation, implementation.Node!);
@@ -219,22 +219,13 @@ public static class Resolver
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	public static Type? GetSharedType(Type? expected, Type? actual)
 	{
-		if (Equals(expected, actual))
-		{
-			return expected;
-		}
-
-		if (expected == Types.UNKNOWN || actual == Types.UNKNOWN)
-		{
-			return Types.UNKNOWN;
-		}
+		if (Equals(expected, actual)) return expected;
+		if (expected == null || actual == null) return null;
 
 		if (expected is Number x && actual is Number y)
 		{
-			if (expected is Decimal || actual is Decimal)
-			{
-				return Types.DECIMAL;
-			}
+			if (expected is Decimal) return expected;
+			if (actual is Decimal) return actual;
 
 			return GetSharedNumber(x, y);
 		}
@@ -250,7 +241,7 @@ public static class Resolver
 			}
 		}
 
-		return Types.UNKNOWN;
+		return null;
 	}
 
 	/// <summary>
@@ -260,14 +251,8 @@ public static class Resolver
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	private static Type? GetSharedType(IReadOnlyList<Type> types)
 	{
-		if (types.Count == 0)
-		{
-			return Types.UNKNOWN;
-		}
-		else if (types.Count == 1)
-		{
-			return types[0];
-		}
+		if (types.Count == 0) return null;
+		if (types.Count == 1) return types[0];
 
 		var current = types[0];
 
@@ -297,7 +282,7 @@ public static class Resolver
 		{
 			var type = iterator.TryGetType();
 
-			if (type == Types.UNKNOWN || type.IsUnresolved)
+			if (type == null || type.IsUnresolved)
 			{
 				// This operation must be aborted since type list cannot contain unresolved types
 				return null;
@@ -324,7 +309,7 @@ public static class Resolver
 			return operation.Right.TryGetType();
 		}
 
-		return Types.UNKNOWN;
+		return null;
 	}
 
 	/// <summary>
@@ -354,7 +339,7 @@ public static class Resolver
 
 				var type = TryGetTypeFromAssignOperation(parent);
 
-				if (type != Types.UNKNOWN)
+				if (type != null)
 				{
 					types.Add(type);
 				}
@@ -376,7 +361,7 @@ public static class Resolver
 
 				var type = TryGetTypeFromAssignOperation(parent!);
 
-				if (type != Types.UNKNOWN)
+				if (type != null)
 				{
 					types.Add(type);
 				}
@@ -386,7 +371,7 @@ public static class Resolver
 		// Get the shared type between the references
 		var shared = GetSharedType(types);
 
-		if (shared != Types.UNKNOWN)
+		if (shared != null)
 		{
 			// Now the type is resolved
 			variable.Type = shared;
@@ -398,7 +383,7 @@ public static class Resolver
 	/// </summary>
 	private static void ResolveVariables(Context context)
 	{
-		foreach (var variable in context.Variables.Values.Where(v => Equals(v.Type, Types.UNKNOWN) || v.Type.IsUnresolved))
+		foreach (var variable in context.Variables.Values.Where(i => i.Type == null || i.Type.IsUnresolved))
 		{
 			Resolve(variable);
 		}
@@ -423,20 +408,20 @@ public static class Resolver
 
 		if (statements.Any(i => i.Value == null))
 		{
-			implementation.ReturnType = Types.UNIT;
+			implementation.ReturnType = Primitives.CreateUnit();
 			return;
 		}
 
 		var types = statements.Select(i => i.Value!.TryGetType()).ToList();
 
-		if (types.Any(i => i == Types.UNKNOWN || i.IsUnresolved))
+		if (types.Any(i => i == null || i.IsUnresolved))
 		{
 			return;
 		}
 
 		var type = Resolver.GetSharedType(types!);
 
-		if (type == Types.UNKNOWN)
+		if (type == null)
 		{
 			return;
 		}

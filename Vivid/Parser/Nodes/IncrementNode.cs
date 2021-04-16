@@ -27,7 +27,7 @@ public class IncrementNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		// Ensure the object is a number
-		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Could not resolve the increment operation");
+		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the increment operation");
 	}
 
 	public override bool Equals(object? other)

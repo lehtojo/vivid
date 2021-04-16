@@ -32,7 +32,7 @@ public static class Trace
 
 		var avoid = new List<Register>();
 
-		if (unit.Function.ReturnType != Types.UNIT)
+		if (!Primitives.IsPrimitive(unit.Function.ReturnType, Primitives.UNIT))
 		{
 			for (var i = start; i < unit.Instructions.Count; i++)
 			{

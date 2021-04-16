@@ -42,7 +42,7 @@ public class ReturnNode : InstructionNode, IResolvable
 		//var current = function.ReturnType;
 		var type = Value?.TryGetType();
 
-		if (type == Types.UNKNOWN)
+		if (type == null)
 		{
 			return null;
 		}
@@ -70,7 +70,7 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		if (actual == null)
 		{
-			return Status.Error(Position, "Could not resolve the return value");
+			return Status.Error(Position, "Can not resolve the return value");
 		}
 
 		if (Resolver.GetSharedType(expected, actual) == null)

@@ -156,7 +156,7 @@ public class Mangle
 	/// <param name="full">If set to true, the full location of the specified type is appended, otherwise only the name of the type and potential template arguments are appended</param>
 	public void Add(Type type, int pointers = 0, bool full = true)
 	{
-		if (pointers == 0 && Types.IsPrimitive(type))
+		if (pointers == 0 && Primitives.IsPrimitive(type))
 		{
 			Value += type.Identifier;
 			return;
@@ -183,7 +183,7 @@ public class Mangle
 			}
 
 			// Add the default definition without pointers if the type is not a primitive
-			if (!Types.IsPrimitive(type))
+			if (!Primitives.IsPrimitive(type))
 			{
 				Definitions.Add(new MangleDefinition(type, Definitions.Count, 0));
 			}
@@ -195,13 +195,13 @@ public class Mangle
 
 				type = function.ReturnType!;
 
-				if (type == Types.UNIT)
+				if (Primitives.IsPrimitive(type, Primitives.UNIT))
 				{
 					Value += NO_PARAMETERS_COMMAND;
 				}
 				else
 				{
-					pointers = Types.IsPrimitive(type) || type is Link ? 0 : 1;
+					pointers = Primitives.IsPrimitive(type) || type is Link ? 0 : 1;
 					Add(type, pointers);
 				}
 
@@ -215,7 +215,7 @@ public class Mangle
 				Value += POINTER_COMMAND;
 				
 				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
-				pointers = Types.IsPrimitive(type) || type is Link ? 0 : 1;
+				pointers = Primitives.IsPrimitive(type) || type is Link ? 0 : 1;
 				
 				Add(argument, pointers);
 				return;
@@ -270,7 +270,7 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, Types.IsPrimitive(type) || type is Link ? 0 : 1);
+			Add(type, Primitives.IsPrimitive(type) || type is Link ? 0 : 1);
 		}
 	}
 
