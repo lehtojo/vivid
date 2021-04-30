@@ -1,3 +1,4 @@
+//analyze
 // x0: Text
 // x1: Length
 .global _V14internal_printPhx

@@ -1,3 +1,4 @@
+#analyze
 .extern GetSystemTimeAsFileTime
 
 .global _V4timev_rx

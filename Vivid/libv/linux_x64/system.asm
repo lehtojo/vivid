@@ -1,3 +1,4 @@
+#analyze
 .global _V4timev_rx
 _V4timev_rx:
 sub rsp, 16

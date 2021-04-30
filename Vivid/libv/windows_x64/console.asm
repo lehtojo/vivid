@@ -1,3 +1,4 @@
+#analyze
 .extern GetStdHandle
 .extern WriteFile
 .extern ReadConsoleA

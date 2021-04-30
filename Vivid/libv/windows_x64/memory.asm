@@ -1,3 +1,4 @@
+#analyze
 .extern VirtualAlloc
 .extern VirtualFree
 .extern Sleep

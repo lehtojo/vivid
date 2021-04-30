@@ -1,3 +1,4 @@
+#analyze
 .global _V14large_functionv
 _V14large_functionv:
 xor rax, rax

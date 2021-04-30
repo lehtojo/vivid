@@ -1,3 +1,4 @@
+#analyze
 .section .text
 .intel_syntax noprefix
 .include "linux_x64/console.asm"
