@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 .extern GetStdHandle
 .extern WriteFile
 .extern ReadConsoleA

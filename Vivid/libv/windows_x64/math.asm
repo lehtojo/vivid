@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 .global _V22internal_integer_powerxx_rx
 .global _V3powxx_rx
 _V3powxx_rx:

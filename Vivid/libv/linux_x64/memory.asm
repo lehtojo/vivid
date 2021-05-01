@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 # rcx: Nanoseconds
 .global _V5sleepx
 _V5sleepx:

@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 .extern VirtualAlloc
 .extern VirtualFree
 .extern Sleep

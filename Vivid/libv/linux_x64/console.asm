@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 # rdi: Text
 # rsi: Length
 .global _V14internal_printPhx

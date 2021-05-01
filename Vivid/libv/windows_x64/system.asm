@@ -1,4 +1,5 @@
 #analyze
+.intel_syntax noprefix
 .extern GetSystemTimeAsFileTime
 
 .global _V4timev_rx
