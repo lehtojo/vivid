@@ -1,7 +1,3 @@
-none = 0
-true = 1
-false = 0
-
 CURRENCY_EUROS = 0i8
 CURRENCY_DOLLARS = 1i8
 

@@ -35,7 +35,7 @@ public class TemplateFunction : Function
 
 	private Function? TryGetVariant(Type[] template_parameters)
 	{
-		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(a => a.Name));
+		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
 
 		if (Variants.TryGetValue(identifier, out Function? variant))
 		{

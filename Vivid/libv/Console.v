@@ -53,7 +53,7 @@ export readln(length: large) {
 Summary: Writes the specified string to the console
 ###
 export print(text: String) {
-	internal_print(text.data(), text.length())
+	internal_print(text.data(), text.length)
 }
 
 ###
@@ -71,10 +71,18 @@ export print(text: large) {
 }
 
 ###
+Summary: Converts the specified bool to a string and prints it
+###
+export print(value: bool) {
+	if value print('true')
+	else { print('false') }
+}
+
+###
 Summary: Writes the specified string and a line ending to the console
 ###
 export println(text: String) {
-	internal_print(text.append(10).data(), text.length() + 1)
+	internal_print(text.append(10).data(), text.length + 1)
 }
 
 ###
@@ -117,6 +125,14 @@ Summary: Converts the specified number to a string and writes it and a line endi
 ###
 export println(number: decimal) {
 	println(to_string(number))
+}
+
+###
+Summary: Converts the specified bool to a string and writes it and a line ending to the console
+###
+export println(value: bool) {
+	if value println('true')
+	else { println('false') }
 }
 
 ###

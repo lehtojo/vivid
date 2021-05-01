@@ -1,5 +1,8 @@
 ﻿import exit(code: large)
 
+import decimal_to_bits(value: decimal): large
+import bits_to_decimal(value: large): decimal
+
 import internal_allocate(bytes: large): link
 import deallocate(address: link, bytes: large)
 
@@ -11,9 +14,6 @@ import zero(destination: link, count: large)
 
 import copy(source: link, bytes: large, destination: link)
 import offset_copy(source: link, bytes: large, destination: link, offset: large)
-
-true = 1
-false = 0
 
 none = 0
 

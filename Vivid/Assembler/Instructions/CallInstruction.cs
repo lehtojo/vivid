@@ -219,7 +219,7 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		// The source values of the parameter instructions must be referenced so that they are not overriden before this call
+		// The source values of the parameter instructions must be referenced so that they are not overridden before this call
 		if (!IsParameterInstructionListExtracted)
 		{
 			return Instructions

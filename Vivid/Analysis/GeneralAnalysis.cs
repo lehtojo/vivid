@@ -135,7 +135,7 @@ public static class GeneralAnalysis
 	}
 
 	/// <summary>
-	/// Removes all the assigments which do not have any effect on the execution of the specified function
+	/// Removes all the assignments which do not have any effect on the execution of the specified function
 	/// </summary>
 	private static void RemoveRedundantAssignments(FunctionImplementation implementation, Node root)
 	{
@@ -329,7 +329,7 @@ public static class GeneralAnalysis
 
 			foreach (var write in descriptor.Writes)
 			{
-				// Collect all local variabes that affect the value of the write. If any of these is edited, it means the value of the write changes
+				// Collect all local variables that affect the value of the write. If any of these is edited, it means the value of the write changes
 				var dependencies = GetWriteDependencies(write.Node);
 				var obstacles = dependencies.SelectMany(i => descriptors[i].Writes).Select(i => i.Node).ToArray();
 

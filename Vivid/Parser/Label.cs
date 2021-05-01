@@ -21,8 +21,7 @@ public class Label
 
 	public override bool Equals(object? other)
 	{
-		return other is Label label &&
-			   Name == label.Name;
+		return other is Label label && Name == label.Name;
 	}
 
 	public override int GetHashCode()

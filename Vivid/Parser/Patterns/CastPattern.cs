@@ -34,6 +34,6 @@ public class CastPattern : Pattern
 
 		if (type == null) throw Errors.Get(tokens[TYPE].Position, "Can not resolve the cast type");
 
-		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position));
+		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position), tokens[CAST].Position);
 	}
 }

@@ -7,36 +7,36 @@ public static class Calls
 	public const int SHADOW_SPACE_SIZE = 32;
 	public const int STACK_ALIGNMENT = 16;
 
-	private const int X64_MAX_MEDIA_REGISTERS_UNIX_X64 = 7;
-	private const int X64_MAX_MEDIA_REGISTERS_WINDOWS_X64 = 4;
+	private const int UNIX_X64_MEDIA_REGISTER_PARAMETERS = 7;
+	private const int WINDOWS_X64_MEDIA_REGISTER_PARAMETERS = 4;
 
-	private const int ARM64_MAX_MEDIA_REGISTERS_UNIX_X64 = 8;
-	private const int ARM64_MAX_MEDIA_REGISTERS_WINDOWS_X64 = 8;
+	private const int UNIX_ARM64_MEDIA_REGISTER_PARAMETERS = 8;
+	private const int WINDOWS_ARM64_MEDIA_REGISTER_PARAMETERS = 8;
 
-	private static readonly string[] X64_StandardParameterRegisters_Unix_X64 = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
-	private static readonly string[] X64_StandardParameterRegisters_Windows_X64 = { "rcx", "rdx", "r8", "r9" };
+	private static readonly string[] UNIX_X64_STANDARD_PARAMETER_REGISTERS = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+	private static readonly string[] WINDOWS_X64_STANDARD_PARAMETER_REGISTERS = { "rcx", "rdx", "r8", "r9" };
 
-	private static readonly string[] ARM64_StandardParameterRegisters_Windows_X64 = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
-	private static readonly string[] ARM64_StandardParameterRegisters_Unix_X64 = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
+	private static readonly string[] WINDOWS_ARM64_STANDARD_PARAMETER_REGISTERS = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
+	private static readonly string[] UNIX_ARM64_STANDARD_PARAMETER_REGISTERS = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
 
 	public static IEnumerable<string> GetStandardParameterRegisters()
 	{
 		if (Assembler.IsArm64)
 		{
-			return Assembler.IsTargetWindows ? ARM64_StandardParameterRegisters_Windows_X64 : ARM64_StandardParameterRegisters_Unix_X64;
+			return Assembler.IsTargetWindows ? WINDOWS_ARM64_STANDARD_PARAMETER_REGISTERS : UNIX_ARM64_STANDARD_PARAMETER_REGISTERS;
 		}
 
-		return Assembler.IsTargetWindows ? X64_StandardParameterRegisters_Windows_X64 : X64_StandardParameterRegisters_Unix_X64;
+		return Assembler.IsTargetWindows ? WINDOWS_X64_STANDARD_PARAMETER_REGISTERS : UNIX_X64_STANDARD_PARAMETER_REGISTERS;
 	}
 
 	public static int GetMaxMediaRegisterParameters()
 	{
 		if (Assembler.IsArm64)
 		{
-			return Assembler.IsTargetWindows ? ARM64_MAX_MEDIA_REGISTERS_WINDOWS_X64 : ARM64_MAX_MEDIA_REGISTERS_UNIX_X64;
+			return Assembler.IsTargetWindows ? WINDOWS_ARM64_MEDIA_REGISTER_PARAMETERS : UNIX_ARM64_MEDIA_REGISTER_PARAMETERS;
 		}
 
-		return Assembler.IsTargetWindows ? X64_MAX_MEDIA_REGISTERS_WINDOWS_X64 : X64_MAX_MEDIA_REGISTERS_UNIX_X64;
+		return Assembler.IsTargetWindows ? WINDOWS_X64_MEDIA_REGISTER_PARAMETERS : UNIX_X64_MEDIA_REGISTER_PARAMETERS;
 	}
 
 	public static Result Build(Unit unit, FunctionNode node)
@@ -47,8 +47,8 @@ public static class Calls
 
 		if (IsSelfPointerRequired(unit.Function, node.Function))
 		{
-			var local_self_type = unit.Function.GetTypeParent()!;
-			var function_self_type = node.Function.GetTypeParent()!;
+			var local_self_type = unit.Function.FindTypeParent()!;
+			var function_self_type = node.Function.FindTypeParent()!;
 
 			self = References.GetVariable(unit, unit.Self!, AccessMode.READ);
 
@@ -75,8 +75,8 @@ public static class Calls
 			return false;
 		}
 
-		var x = current.GetTypeParent()!;
-		var y = other.GetTypeParent()!;
+		var x = current.FindTypeParent()!;
+		var y = other.FindTypeParent()!;
 
 		return x == y || x.IsSuperTypeDeclared(y);
 	}

@@ -364,7 +364,7 @@ public static class Arithmetic
 		if (assigns)
 		{
 			/// NOTE: When a predictable variable is being assigned it must not be under nodes which hide it
-			if (left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable)
+			if (left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
 			{
 				var variable = left.To<VariableNode>().Variable;
 				return new SetVariableInstruction(unit, variable, addition).Execute();

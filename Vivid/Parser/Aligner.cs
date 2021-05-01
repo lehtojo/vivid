@@ -11,7 +11,6 @@ public static class Aligner
 	/// <summary>
 	/// Aligns all variable and parameters recursively in the context
 	/// </summary>
-	/// <param name="context">Context to scan through</param>
 	public static void Align(Context context)
 	{
 		// Align types and subtypes
@@ -21,8 +20,10 @@ public static class Aligner
 		}
 
 		// Align function variables in memory
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in context.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations))
 		{
+			if (implementation.Node == null) continue;
+
 			// Align function parameters using global function offset
 			Align(implementation, GlobalFunctionParameterOffset);
 		}
@@ -37,7 +38,7 @@ public static class Aligner
 
 		foreach (var variable in variables)
 		{
-			position -= variable.Type!.ReferenceSize;
+			position -= variable.Type!.AllocationSize;
 			variable.LocalAlignment = position;
 		}
 
@@ -48,10 +49,10 @@ public static class Aligner
 
 			position -= first.Size.Bytes;
 
-			var copies = temporary_handles.Where(t => t.Identifier.Equals(identifier)).ToList();
+			var copies = temporary_handles.Where(i => i.Identifier.Equals(identifier)).ToList();
 
-			copies.ForEach(c => c.Offset = position);
-			copies.ForEach(c => temporary_handles.Remove(c));
+			copies.ForEach(i => i.Offset = position);
+			copies.ForEach(i => temporary_handles.Remove(i));
 		}
 
 		foreach (var temporary_handle in temporary_handles)
@@ -73,7 +74,6 @@ public static class Aligner
 	/// <summary>
 	/// Aligns member variables, function and subtypes
 	/// </summary>
-	/// <param name="type">Type to scan through</param>
 	public static void Align(Type type)
 	{
 		var position = 0;
@@ -81,32 +81,22 @@ public static class Aligner
 		// Member variables:
 		foreach (var variable in type.Variables.Values)
 		{
+			if (variable.IsStatic) continue;
 			variable.LocalAlignment = position;
-			position += variable.Type!.ReferenceSize;
+			position += variable.Type!.AllocationSize;
 		}
+
+		var implementations = type.Functions.Values.SelectMany(i => i.Overloads)
+			.Concat(type.Constructors.Overloads)
+			.Concat(type.Destructors.Overloads)
+			.Concat(type.Overrides.Values.SelectMany(i => i.Overloads))
+			.SelectMany(i => i.Implementations);
 
 		// Member functions:
-		foreach (var implementation in type.GetImplementedFunctions())
+		foreach (var implementation in implementations)
 		{
+			if (implementation.Node == null) continue;
 			Align(implementation, GlobalFunctionParameterOffset);
-		}
-
-		// Constructors:
-		foreach (var constructor in type.GetConstructors().Overloads)
-		{
-			foreach (var implementation in constructor.Implementations)
-			{
-				Align(implementation, GlobalFunctionParameterOffset);
-			}
-		}
-
-		// Destructors:
-		foreach (var destructor in type.GetDestructors().Overloads)
-		{
-			foreach (var implementation in destructor.Implementations)
-			{
-				Align(implementation, MemberFunctionParameterOffset);
-			}
 		}
 
 		// Align subtypes
@@ -116,44 +106,9 @@ public static class Aligner
 		}
 	}
 
-	private static void AlignLocals(FunctionImplementation implementation)
-	{
-		var locals = implementation.Locals;
-		locals.Reverse();
-
-		var position = 0;
-
-		foreach (var local in locals)
-		{
-			position -= local.Type!.ReferenceSize;
-			local.LocalAlignment = position;
-		}
-
-		foreach (var iterator in implementation.GetImplementedFunctions())
-		{
-			AlignLocals(iterator);
-		}
-	}
-
-	public static void AlignLocals(Context context)
-	{
-		// Align types and subtypes
-		foreach (var type in context.Types.Values)
-		{
-			AlignLocals(type);
-		}
-
-		foreach (var implementation in context.GetImplementedFunctions())
-		{
-			AlignLocals(implementation);
-		}
-	}
-
 	/// <summary>
 	/// Aligns function variables
 	/// </summary>
-	/// <param name="function">Function to scan through</param>
-	/// <param name="offset">Base offset to apply to all variables</param>
 	private static void Align(FunctionImplementation function, int offset)
 	{
 		// Align all lambdas

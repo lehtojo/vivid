@@ -6,6 +6,6 @@ export register_utilization(a: large, b: large, c: large, d: large, e: large, f:
 }
 
 init() {
-   register_utilization(1, 1, 1, 1, 1, 1, 1)
-   => 1
+	register_utilization(1, 1, 1, 1, 1, 1, 1)
+	=> 1
 }

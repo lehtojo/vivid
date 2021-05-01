@@ -47,13 +47,16 @@ public class VariableDeclarationPattern : Pattern
 
 		var type = Common.ReadType(context, new Queue<Token>(tokens.Skip(COLON + 1)));
 
-		var is_constant = !context.IsInsideFunction && !context.IsInsideType;
-		var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
+		var constant = context.Parent == null;
+		var category = context.IsType ? VariableCategory.MEMBER : (constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
+		var modifiers = Modifier.DEFAULT | (constant ? Modifier.CONSTANT : 0);
 
-		var variable = new Variable(context, type, category, name.Value, Modifier.DEFAULT | (is_constant ? Modifier.CONSTANT : 0))
+		if (context.IsNamespace)
 		{
-			Position = tokens[NAME].Position
-		};
+			modifiers |= Modifier.STATIC;
+		}
+
+		var variable = new Variable(context, type, category, name.Value, modifiers) { Position = tokens[NAME].Position };
 
 		return new VariableNode(variable, name.Position);
 	}

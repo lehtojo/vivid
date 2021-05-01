@@ -67,7 +67,7 @@ public class AssemblerPhase : Phase
 		return process.ExitCode == 0;
 	}
 
-	/// <symmary>
+	/// <summary>
 	/// Runs the specified executable with the given arguments
 	/// </summary>
 	private static Status Run(string executable, List<string> arguments)
@@ -136,7 +136,7 @@ public class AssemblerPhase : Phase
 		{
 			try
 			{
-				File.Delete(input_file);
+				//File.Delete(input_file);
 			}
 			catch
 			{

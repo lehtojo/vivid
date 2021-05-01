@@ -210,7 +210,7 @@ public class Instruction
 
 		if (parameter.IsValid())
 		{
-			// Get the more preffered options for this parameter
+			// Get the more preferred options for this parameter
 			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
 
 			if (options.Contains(HandleType.REGISTER))
@@ -308,7 +308,7 @@ public class Instruction
 					}
 				}
 
-				// If no result was attachted to the destination, the default action should be taken
+				// If no result was attached to the destination, the default action should be taken
 				if (!attached)
 				{
 					register.Handle = Result;

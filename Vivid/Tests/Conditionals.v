@@ -7,9 +7,6 @@ export conditionals(a, b) {
 	}
 }
 
-true = 1
-false = 0
-
 export if_statement_greater_than(a, b) {
 	if a > b {
 		=> true

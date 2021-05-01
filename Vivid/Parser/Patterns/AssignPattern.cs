@@ -36,13 +36,16 @@ public class AssignPattern : Pattern
 				throw Errors.Get(destination.Position, $"Can not declare variable with name '{destination.Value}' since the name is reserved");
 			}
 
-			var is_constant = !context.IsInsideFunction && !context.IsInsideType;
-			var category = context.IsType ? VariableCategory.MEMBER : (is_constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
+			var constant = context.Parent == null;
+			var category = context.IsType ? VariableCategory.MEMBER : (constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
+			var modifiers = Modifier.DEFAULT | (constant ? Modifier.CONSTANT : 0);
 
-			variable = new Variable(context, null, category, destination.Value, Modifier.DEFAULT | (is_constant ? Modifier.CONSTANT : 0))
+			if (context.IsNamespace)
 			{
-				Position = tokens[DESTINATION].Position
-			};
+				modifiers |= Modifier.STATIC;
+			}
+
+			variable = new Variable(context, null, category, destination.Value, modifiers) { Position = tokens[DESTINATION].Position };
 
 			return new VariableNode(variable, destination.Position);
 		}

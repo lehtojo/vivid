@@ -12,10 +12,6 @@ import close(description: large)
 # SOCKET_TYPE_STREAM = 1
 # SOCKET_TYPE_DATAGRAM = 2
 
-true = 1
-false = 0
-none = 0
-
 SocketAddressDescription {
    family: small
    port: u16

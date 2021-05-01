@@ -87,7 +87,7 @@ public static class Translator
 		var constant_handles = GetAllConstantDataSectionHandles(unit);
 
 		// Determine how much additional memory must be allocated at the start based on the generated code
-		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
+		var required_local_memory = local_variables.Sum(i => i.Type!.AllocationSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
 		var local_memory_top = 0;
 
 		// Append a return instruction at the end if there is no return instruction present

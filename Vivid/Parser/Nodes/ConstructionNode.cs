@@ -17,7 +17,7 @@ public class ConstructionNode : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		return Constructor.Function.GetTypeParent();
+		return Constructor.Function.FindTypeParent();
 	}
 
 	public Status GetStatus()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class FunctionToken : Token
 {
@@ -25,7 +26,6 @@ public class FunctionToken : Token
 	/// <summary>
 	/// Returns function parameters as node tree
 	/// </summary>
-	/// <param name="context">Context used to parse</param>
 	/// <returns>Parameters as node tree</returns>
 	public Node GetParsedParameters(Context context)
 	{
@@ -50,38 +50,51 @@ public class FunctionToken : Token
 	}
 
 	/// <summary>
-	/// Returns the parameters
+	/// Returns the parameters of this token
 	/// </summary>
-	/// <returns>List of parameter names</returns>
-	public List<Parameter> GetParameters(Context function_context)
+	public List<Parameter> GetParameters(Context context)
 	{
+		var tokens = new List<Token>(Parameters.Tokens);
 		var parameters = new List<Parameter>();
 
-		if (Parameters.IsEmpty)
+		while (tokens.Any())
 		{
-			return parameters;
+			var name = tokens.Pop();
+			
+			// Ensure the name is valid
+			if (name == null) throw Errors.Get(Position, "Invalid parameters");
+			if (!name.Is(TokenType.IDENTIFIER)) throw Errors.Get(name.Position, "Can not resolve the parameter declaration");
+
+			// Try to consume a parameter type
+			var next = tokens.Pop();
+
+			if (next == null || next.Is(Operators.COMMA))
+			{
+				parameters.Add(new Parameter(name.To<IdentifierToken>().Value, name.Position, null));
+				continue;
+			}
+
+			// If there are tokens left and the next token is not a comma, it must represent a parameter type
+			if (!next.Is(Operators.COLON)) throw Errors.Get(name.Position, "Can not resolve the parameter declaration");
+
+			var source = new Queue<Token>(tokens);
+			var type = Common.ReadType(context, source);
+
+			if (type == null) throw Errors.Get(next.Position, "Can not resolve the parameter type");
+
+			// Remove the same number of tokens as the type consumed
+			tokens.RemoveRange(0, tokens.Count - source.Count);
+
+			parameters.Add(new Parameter(name.To<IdentifierToken>().Value, name.Position, type));
+
+			// If there are tokens left, the next token must be a comma and it must be removed before starting over
+			if (tokens.Any() && !tokens.Pop()!.Is(Operators.COMMA)) throw Errors.Get(Position, "Invalid parameters");
 		}
 
-		Tree = GetParsedParameters(function_context);
-
-		foreach (var parameter in Tree)
+		// Declare the parameters
+		foreach (var parameter in parameters)
 		{
-			if (parameter is VariableNode node)
-			{
-				parameters.Add(new Parameter(node.Variable.Name, node.Position, node.Variable.Type));
-			}
-			else if (parameter.Is(Operators.ASSIGN))
-			{
-				throw Errors.Get(parameter.Position, "Default parameter values are not supported");
-			}
-			else if (parameter is UnresolvedIdentifier name)
-			{
-				parameters.Add(new Parameter(name.Value, name.Position, null));
-			}
-			else
-			{
-				throw Errors.Get(parameter.Position, "Can not resolve the parameter declaration");
-			}
+			context.Declare(parameter.Type, VariableCategory.PARAMETER, parameter.Name);
 		}
 
 		return parameters;

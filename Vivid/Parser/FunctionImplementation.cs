@@ -12,14 +12,8 @@ public class FunctionImplementation : Context
 
 	public Type[] TemplateArguments { get; set; }
 
-	public List<Variable> Parameters => Variables.Values
-		.Where(i => !i.IsSelfPointer && i.Category == VariableCategory.PARAMETER)
-		.ToList();
-
-	public List<Type> ParameterTypes => Parameters
-		.Where(i => !i.IsSelfPointer)
-		.Select(i => i.Type!)
-		.ToList();
+	public List<Variable> Parameters => Variables.Values.Where(i => !i.IsSelfPointer && i.IsParameter).ToList();
+	public List<Type> ParameterTypes => Parameters.Where(i => !i.IsSelfPointer).Select(i => i.Type!).ToList();
 
 	public int SizeOfLocals { get; set; } = 0;
 	public int SizeOfLocalMemory { get; set; } = 0;
@@ -39,6 +33,17 @@ public class FunctionImplementation : Context
 
 	public override void OnMangle(Mangle mangle)
 	{
+		if (Metadata.Language == FunctionLanguage.OTHER)
+		{
+			mangle.Value = Name;
+			return;
+		}
+
+		if (Metadata.Language == FunctionLanguage.CPP)
+		{
+			mangle.Value = Mangle.CPP_LANGUAGE_TAG;
+		}
+
 		if (IsMember)
 		{
 			mangle += Mangle.START_LOCATION_COMMAND;
@@ -66,7 +71,7 @@ public class FunctionImplementation : Context
 			mangle += Mangle.NO_PARAMETERS_COMMAND;
 		}
 
-		if (!Primitives.IsPrimitive(ReturnType, Primitives.UNIT))
+		if (Metadata.Language == FunctionLanguage.VIVID && !Primitives.IsPrimitive(ReturnType, Primitives.UNIT))
 		{
 			mangle += Mangle.PARAMETERS_END;
 			mangle += Mangle.START_RETURN_TYPE_COMMAND;
@@ -77,7 +82,6 @@ public class FunctionImplementation : Context
 	/// <summary>
 	/// Optionally links this function to some context
 	/// </summary>
-	/// <param name="context">Context to link into</param>
 	public FunctionImplementation(Function metadata, List<Parameter> parameters, Type? return_type, Context context) : base(context)
 	{
 		Metadata = metadata;
@@ -88,7 +92,7 @@ public class FunctionImplementation : Context
 		Name = Metadata.Name;
 		Identifier = Name;
 
-		Link(context);
+		Connect(context);
 
 		SetParameters(parameters);
 	}
@@ -96,7 +100,6 @@ public class FunctionImplementation : Context
 	/// <summary>
 	/// Sets the function parameters
 	/// </summary>
-	/// <param name="parameters">Parameters packed with name and type</param>
 	private void SetParameters(List<Parameter> parameters)
 	{
 		foreach (var properties in parameters)
@@ -118,12 +121,11 @@ public class FunctionImplementation : Context
 	/// <summary>
 	/// Implements the function using the given blueprint
 	/// </summary>
-	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public virtual void Implement(List<Token> blueprint)
 	{
 		if (Metadata.IsMember && !Metadata.IsStatic)
 		{
-			Self = new Variable(this, Metadata.GetTypeParent(), VariableCategory.PARAMETER, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+			Self = new Variable(this, Metadata.FindTypeParent(), VariableCategory.PARAMETER, Function.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 			{
 				IsSelfPointer = true,
 				Position = Metadata.Start
@@ -200,27 +202,12 @@ public class FunctionImplementation : Context
 
 	public override bool Equals(object? other)
 	{
-		return other is FunctionImplementation implementation &&
-			   EqualityComparer<Dictionary<string, Variable>>.Default.Equals(Variables, implementation.Variables) &&
-			   EqualityComparer<Dictionary<string, FunctionList>>.Default.Equals(Functions, implementation.Functions) &&
-			   EqualityComparer<Dictionary<string, Type>>.Default.Equals(Types, implementation.Types) &&
-			   EqualityComparer<Dictionary<string, Label>>.Default.Equals(Labels, implementation.Labels) &&
-			   EqualityComparer<string?>.Default.Equals(Metadata?.Name, implementation.Metadata?.Name) &&
-			   EqualityComparer<List<Variable>>.Default.Equals(Parameters, implementation.Parameters) &&
-			   EqualityComparer<List<Type>>.Default.Equals(ParameterTypes, implementation.ParameterTypes) &&
-			   EqualityComparer<List<Variable>>.Default.Equals(Locals, implementation.Locals) &&
-			   EqualityComparer<int>.Default.Equals(References.Count, implementation.References.Count) &&
-			   EqualityComparer<Type?>.Default.Equals(ReturnType, implementation.ReturnType);
+		return other is FunctionImplementation implementation && Identity == implementation.Identity;
 	}
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new();
-		hash.Add(Name);
-		hash.Add(Parameters);
-		hash.Add(ParameterTypes);
-		hash.Add(ReturnType);
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Identity, Parameters, ReturnType);
 	}
 }
 

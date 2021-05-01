@@ -409,6 +409,9 @@ namespace Vivid.Unit
 		private const string LIBV = "libv";
 		private const string TESTS = "Tests";
 
+		private static string[] StandardLibraryUtility { get; set; } = Array.Empty<string>();
+
+
 		[DllImport("Unit_Arithmetic", ExactSpelling = true)]
 		private static extern long _V10arithmeticxxx_rx(long a, long b, long c);
 
@@ -456,6 +459,18 @@ namespace Vivid.Unit
 
 		[DllImport("Unit_LargeFunctions", ExactSpelling = true)]
 		private static extern double _V1yxx_rd(long a, long b);
+
+		public static void Initialize()
+		{
+			StandardLibraryUtility = new[]
+			{
+				GetProjectFile("String.v", LIBV),
+				GetProjectFile("Console.v", LIBV),
+				GetProjectFile("Exceptions.v", LIBV),
+				GetProjectFile("List.v", LIBV),
+				GetProjectFile("Array.v", LIBV)
+			};
+		}
 
 		private static string GetExecutablePostfix()
 		{
@@ -742,6 +757,9 @@ namespace Vivid.Unit
 		private static extern byte _V7casts_3x_rb(long a);
 
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V10create_bazv_rP3Baz();
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern IntPtr _V7casts_4d_rP3Baz(double a);
 
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
@@ -825,7 +843,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(103, result.D);
 			Assert.AreEqual(104.0, result.E);
 
-			var baz = Marshal.AllocHGlobal(47); // sizeof(Baz) = 47
+			var baz = _V10create_bazv_rP3Baz();
 			Assert.AreEqual(baz, _V7casts_5P3Baz_rP3Foo(baz));
 			Assert.AreEqual(baz + 11, _V7casts_6P3Baz_rP3Bar(baz));
 
@@ -839,7 +857,7 @@ namespace Vivid.Unit
 			Marshal.WriteInt16(baz, 9, 1000); // baz.b = 1000
 
 			Marshal.WriteInt32(baz, 19, 505); // baz.c = 505
-			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505 !!!!!!!!!!!!!!!!Test!!!!!!!!!!!!!!
+			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505
 
 			Assert.AreEqual(1010.0, _V16automatic_cast_2P3Baz_rd(baz));
 
@@ -1215,7 +1233,7 @@ namespace Vivid.Unit
 
 		public static void PI()
 		{
-			if (!CompileExecutable("PI", new[] { "PI.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("PI", new[] { "PI.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1233,7 +1251,7 @@ namespace Vivid.Unit
 
 		public static void Fibonacci()
 		{
-			if (!CompileExecutable("Fibonacci", new[] { "Fibonacci.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Fibonacci", new[] { "Fibonacci.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1348,13 +1366,13 @@ namespace Vivid.Unit
 		private static extern long _V19logical_operators_1xx_rx(long a, long b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
-		private static extern bool _V14single_booleanb_rx(bool b);
+		private static extern bool _V14single_booleanb_rb(bool b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
 		private static extern long _V12two_booleansbb_rx(bool a, bool b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
-		private static extern bool _V20nested_if_statementsxxx_rx(long a, long b, long c);
+		private static extern bool _V20nested_if_statementsxxx_rb(long a, long b, long c);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
 		private static extern long _V27logical_and_in_if_statementbb_rx(bool a, bool b);
@@ -1368,8 +1386,8 @@ namespace Vivid.Unit
 		private static void LogicalOperators_Test()
 		{
 			// Single boolean as input
-			Assert.False(_V14single_booleanb_rx(true));
-			Assert.True(_V14single_booleanb_rx(false));
+			Assert.False(_V14single_booleanb_rb(true));
+			Assert.True(_V14single_booleanb_rb(false));
 
 			// Two booleans as input
 			Assert.AreEqual(1, _V12two_booleansbb_rx(true, false));
@@ -1379,26 +1397,26 @@ namespace Vivid.Unit
 			// Nested if-statement:
 
 			// All correct inputs
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 3));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 4));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, 1));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, -1));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 2, 3));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 2, 4));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 0, 1));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 0, -1));
 
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 8));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 6));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 4));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 5));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 4, 8));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 4, 6));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 3, 4));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 3, 5));
 
 			// Most of the paths for returning false
-			Assert.False(_V20nested_if_statementsxxx_rx(0, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(0, 0, 0));
 
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 1, 1));
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 2, 5));
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 1, 1));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 2, 5));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 0, 0));
 
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 0, 0));
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 4, 7));
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 3, 6));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 4, 7));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 3, 6));
 
 			// Logical and
 			Assert.AreEqual(10, _V27logical_and_in_if_statementbb_rx(true, true));
@@ -1468,7 +1486,7 @@ namespace Vivid.Unit
 
 		public static void Objects()
 		{
-			if (!Compile("Objects", new[] { "Objects.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!Compile("Objects", new[] { "Objects.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1489,7 +1507,7 @@ namespace Vivid.Unit
 		private static extern void _V15enchant_productP4PackIP7ProductP5PriceEx(IntPtr pack, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern bool _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(IntPtr pack, long index);
+		private static extern bool _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(IntPtr pack, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
 		private static extern double _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(IntPtr pack, long index, byte currency);
@@ -1517,9 +1535,9 @@ namespace Vivid.Unit
 			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 0);
 			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 1);
 
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 0));
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 1));
-			Assert.False(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 2));
+			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 0));
+			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 1));
+			Assert.False(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 2));
 
 			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("iCar");
 			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("iBanana");
@@ -1535,7 +1553,7 @@ namespace Vivid.Unit
 
 		public static void Templates()
 		{
-			if (!Compile("Templates", new[] { "Templates.v", GetProjectFile("String.v", LIBV) }))
+			if (!Compile("Templates", new[] { "Templates.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1813,7 +1831,7 @@ namespace Vivid.Unit
 
 		public static void Lambdas()
 		{
-			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1831,7 +1849,7 @@ namespace Vivid.Unit
 
 		public static void Virtuals()
 		{
-			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1958,7 +1976,7 @@ namespace Vivid.Unit
 
 		public static void Is()
 		{
-			if (!Compile("Is", new[] { "Is.v", GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Math.v", LIBV) }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1976,7 +1994,7 @@ namespace Vivid.Unit
 
 		public static void ExpressionVariables()
 		{
-			if (!CompileExecutable("ExpressionVariables", new[] { "ExpressionVariables.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("ExpressionVariables", new[] { "ExpressionVariables.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -2143,7 +2161,7 @@ namespace Vivid.Unit
 
 		public static void Namespaces()
 		{
-			if (!CompileExecutable("Namespaces", new[] { "Namespaces.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Namespaces", new[] { "Namespaces.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -2161,7 +2179,7 @@ namespace Vivid.Unit
 
 		public static void Extensions()
 		{
-			if (!CompileExecutable("Extensions", new[] { "Extensions.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Extensions", new[] { "Extensions.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}

@@ -22,10 +22,7 @@ public class ShortFunctionPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[ARROW].Is(Operators.HEAVY_ARROW))
-		{
-			return false;
-		}
+		if (!tokens[ARROW].Is(Operators.HEAVY_ARROW)) return false;
 
 		Common.ConsumeBody(state);
 		return true;

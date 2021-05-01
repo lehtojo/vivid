@@ -113,7 +113,7 @@ public static class StaticLibraryFormat
 		builder.WriteByte((byte)'0');
 		WritePadding(builder, IDENTITY_LENGTH - 1);
 
-		// Write the filemode
+		// Write the file mode
 		bytes = Encoding.UTF8.GetBytes(filemode);
 		builder.Write(bytes, 0, Math.Min(FILEMODE_LENGTH, bytes.Length));
 		WritePadding(builder, FILEMODE_LENGTH - bytes.Length);
@@ -215,7 +215,7 @@ public static class StaticLibraryFormat
 		var offset = SIGNATURE.Length + FILEHEADER_LENGTH + export_table_size + filename_table.Length;
 		files.ForEach(i => i.Position += (uint)offset);
 
-		// Write the export table fileheader
+		// Write the export table file header
 		WriteFileHeader(builder, EXPORT_TABLE_FILENAME, timestamp, (uint)export_table_size, EXPORT_TABLE_FILEMODE);
 
 		builder.Write(BitConverter.GetBytes(SwapEndianness(symbol_count)));

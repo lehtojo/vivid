@@ -262,7 +262,6 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Creates a scope with variables that are returned to their original locations once the scope is exited
 	/// </summary>
-	/// <param name="active_variables">Variables that must not be released</param>
 	public Scope(Unit unit, Node root, IEnumerable<Variable>? active_variables = null)
 	{
 		Root = root;
@@ -282,27 +281,27 @@ public sealed class Scope : IDisposable
 
 		handle = handle.Finalize();
 
-		if (Transferers.TryGetValue(variable, out Result? transferer))
+		if (Transferers.TryGetValue(variable, out Result? transferrer))
 		{
-			transferer.Value = handle;
-			transferer.Format = format;
+			transferrer.Value = handle;
+			transferrer.Format = format;
 		}
 		else
 		{
-			transferer = new Result(handle, format);
-			Transferers.Add(variable, transferer);
+			transferrer = new Result(handle, format);
+			Transferers.Add(variable, transferrer);
 		}
 
 		// Update the current handle to the variable
-		Variables[variable] = transferer;
+		Variables[variable] = transferrer;
 
-		// If the transferer is a register, the transferer value must be attached there
-		if (transferer.Value.Is(HandleInstanceType.REGISTER))
+		// If the transferrer is a register, the transferrer value must be attached there
+		if (transferrer.Value.Is(HandleInstanceType.REGISTER))
 		{
-			transferer.Value.To<RegisterHandle>().Register.Handle = transferer;
+			transferrer.Value.To<RegisterHandle>().Register.Handle = transferrer;
 		}
 
-		return transferer;
+		return transferrer;
 	}
 
 	/// <summary>

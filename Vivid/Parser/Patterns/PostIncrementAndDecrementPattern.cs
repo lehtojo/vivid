@@ -21,13 +21,6 @@ class PostIncrementAndDecrementPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var destination = tokens[OBJECT];
-
-		if (destination is DynamicToken dynamic && !dynamic.Node.Is(NodeType.LINK, NodeType.INCREMENT, NodeType.DECREMENT))
-		{
-			return false;
-		}
-
 		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT || tokens[OPERATOR].To<OperatorToken>().Operator == Operators.DECREMENT;
 	}
 

@@ -9,19 +9,16 @@ public static class Loops
 	/// </summary>
 	public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
 	{
-		if (node.Loop == null)
-		{
-			throw new ApplicationException("Loop control instruction was not inside a loop");
-		}
+		if (node.Loop == null) throw new ApplicationException("Loop control instruction was not inside a loop");
 
 		if (node.Condition != null)
 		{
 			Arithmetic.BuildCondition(unit, node.Condition);
 		}
 
-		var label = (Label?)null;
-
 		unit.Append(new MergeScopeInstruction(unit, node.Loop.Scope ?? throw new ApplicationException("Missing loop scope")));
+
+		var label = (Label?)null;
 
 		if (node.Instruction == Keywords.STOP)
 		{
@@ -242,7 +239,7 @@ public static class Loops
 			}
 		}
 
-		// Replace all occurances of the following pattern in the instructions:
+		// Replace all occurrences of the following pattern in the instructions:
 		// [Conditional jump] [Label 1]
 		// jmp [Label 2]
 		// [Label 1]:

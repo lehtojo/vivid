@@ -105,6 +105,7 @@ public class Patterns
 		Add(new NotPattern());
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());
+		Add(new OverrideFunctionPattern());
 		Add(new PostIncrementAndDecrementPattern());
 		Add(new PreIncrementAndDecrementPattern());
 		Add(new RangePattern());

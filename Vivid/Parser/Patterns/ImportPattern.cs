@@ -3,13 +3,20 @@ using System.Linq;
 
 public class ImportPattern : Pattern
 {
+	public const string CPP_LANGUAGE_TAG_1 = "cpp";
+	public const string CPP_LANGUAGE_TAG_2 = "c++";
+	public const string VIVID_LANGUAGE_TAG = "vivid";
+
 	private const int PRIORITY = 20;
 
 	private const int IMPORT = 0;
-	private const int OBJECT = 1;
-	private const int COLON = 2;
+	private const int LANGUAGE = 1;
+	private const int FUNCTION = 2;
+	private const int COLON = 3;
 
-	// Pattern 1: import $name (...) [: $type]
+	private const int TYPE_START = 1;
+
+	// Pattern 1: import ['$language'] $name (...) [: $type]
 	// Pattern 2: import $1.$2. ... .$n
 	public ImportPattern() : base
 	(
@@ -35,7 +42,10 @@ public class ImportPattern : Pattern
 			return Common.ConsumeType(state);
 		}
 
-		// Pattern: import $name (...) [: $type]
+		// Pattern: import ['$language'] $name (...) [: $type]
+		// Optionally consume a language identifier
+		Consume(state, TokenType.STRING | TokenType.OPTIONAL);
+
 		if (!Consume(state, TokenType.FUNCTION)) return false;
 
 		// Try to consume the return type
@@ -49,24 +59,45 @@ public class ImportPattern : Pattern
 		return true;
 	}
 
+	/// <summary>
+	/// Return whether the captured tokens represent a function import instead of namespace import
+	/// </summary>
 	private static bool IsFunctionImport(List<Token> tokens)
 	{
-		return tokens[OBJECT].Is(TokenType.FUNCTION);
+		return !tokens[TYPE_START].Is(TokenType.IDENTIFIER);
 	}
 
+	/// <summary>
+	/// Imports the function contained in the specified tokens
+	/// </summary>
 	private static void ImportFunction(Context environment, List<Token> tokens)
 	{
-		var header = tokens[OBJECT].To<FunctionToken>();
+		var descriptor = tokens[FUNCTION].To<FunctionToken>();
+		var language = FunctionLanguage.VIVID;
+
+		if (tokens[LANGUAGE].Is(TokenType.STRING))
+		{
+			language = tokens[LANGUAGE].To<StringToken>().Text.ToLowerInvariant() switch
+			{
+				CPP_LANGUAGE_TAG_1 => FunctionLanguage.CPP,
+				CPP_LANGUAGE_TAG_2 => FunctionLanguage.CPP,
+				VIVID_LANGUAGE_TAG => FunctionLanguage.VIVID,
+				_ => FunctionLanguage.OTHER
+			};
+		}
+
 		var return_type = Primitives.CreateUnit();
 
+		// If the colon operator is present, it means there is a return type in the tokens
 		if (tokens[COLON].Is(Operators.COLON))
 		{
 			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Can not resolve the return type");
 		}
 
-		var function = new Function(environment, Modifier.DEFAULT | Modifier.IMPORTED, header.Name, header.Position, null);
+		var function = new Function(environment, Modifier.DEFAULT | Modifier.IMPORTED, descriptor.Name, descriptor.Position, null);
+		function.Language = language;
 
-		var parameters = header.GetParameters(function);
+		var parameters = descriptor.GetParameters(function);
 		function.Parameters.AddRange(parameters);
 
 		var implementation = new FunctionImplementation(function, parameters, return_type, environment);
@@ -77,6 +108,9 @@ public class ImportPattern : Pattern
 		environment.Declare(function);
 	}
 
+	/// <summary>
+	/// Imports the namespace contained in the specified tokens
+	/// </summary>
 	private static void ImportNamespace(Context environment, List<Token> tokens)
 	{
 		var import = Common.ReadType(environment, new Queue<Token>(tokens.Skip(1)));

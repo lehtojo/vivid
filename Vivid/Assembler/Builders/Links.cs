@@ -11,7 +11,7 @@ public static class Links
 		}
 
 		// Retrieve the context where the function is defined
-		var function_context = function.Function.Metadata!.GetTypeParent()!;
+		var function_context = function.Function.Metadata!.FindTypeParent()!;
 		var self = References.Get(unit, self_node);
 
 		// If the function is not defined inside the type of the self pointer, it means it must have been defined in its supertypes, therefore casting is needed

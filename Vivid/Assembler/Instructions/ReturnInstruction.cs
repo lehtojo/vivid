@@ -149,7 +149,7 @@ public class ReturnInstruction : Instruction
 
 	private static void RestoreRegistersX64(StringBuilder builder, List<Register> registers)
 	{
-		// Save all used non-volatile rgisters
+		// Save all used non-volatile registers
 		foreach (var register in registers)
 		{
 			builder.AppendLine($"{Instructions.X64.POP} {register}");
@@ -184,7 +184,7 @@ public class ReturnInstruction : Instruction
 			}
 		}
 
-		// Restore all used non-volatile rgisters
+		// Restore all used non-volatile registers
 		if (Assembler.IsX64)
 		{
 			RestoreRegistersX64(builder, recover_registers);

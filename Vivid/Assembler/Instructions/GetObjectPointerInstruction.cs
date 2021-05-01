@@ -23,7 +23,7 @@ public class GetObjectPointerInstruction : Instruction
 
 	private void ValidateHandle()
 	{
-		// Ensure the start value is a contant or in a register
+		// Ensure the start value is a constant or in a register
 		if (!Start.IsConstant && !Start.IsInline && !Start.IsStandardRegister)
 		{
 			Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
@@ -33,6 +33,16 @@ public class GetObjectPointerInstruction : Instruction
 	public override void OnBuild()
 	{
 		ValidateHandle();
+
+		/// NOTE: Addresses of inlined member variables can not be modified, therefore the text below does not affect inlined member variables
+		if (Variable.IsInlined())
+		{
+			var alignment = Variable.LocalAlignment ?? throw Errors.Get(Variable.Position, "Missing member variable alignment");
+
+			Result.Value = ExpressionHandle.CreateMemoryAddress(Start, alignment);
+			Result.Format = Variable.Type!.Format;
+			return;
+		}
 
 		// Fixes situations where an object memory address is requested by not immediately loaded into a register, so another instruction might affect the value before loading
 		/// Example: object.member + object.modify()

@@ -404,12 +404,18 @@ public class Unit
 		{
 			foreach (var iterator in Scope!.Variables)
 			{
-				if (!iterator.Value.Equals(value))
+				if (!iterator.Value.Equals(value)) continue;
+
+				// Get the default handle of the variable
+				var handle = References.CreateVariableHandle(this, iterator.Key);
+
+				// The handle must be a memory handle, otherwise anything can happen
+				if (!handle.Is(HandleType.MEMORY))
 				{
-					continue;
+					handle = new TemporaryMemoryHandle(this);
 				}
 
-				var destination = new Result(References.CreateVariableHandle(this, iterator.Key), iterator.Key.Type!.Format);
+				var destination = new Result(handle, iterator.Key.Type!.Format);
 
 				var move = new MoveInstruction(this, destination, value)
 				{

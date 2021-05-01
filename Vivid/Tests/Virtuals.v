@@ -1,115 +1,112 @@
 InheritantOne {
-    foo()
+	virtual foo()
 }
 
 InheritantOne VirtualTypeOne {
-    foo() {
-        println(1 + 2)
-    }
+	override foo() {
+		println(1 + 2)
+	}
 }
 
 execute_virtual_type_one() {
-    x = VirtualTypeOne()
+	x = VirtualTypeOne()
 
-    x.foo()
-    (x as InheritantOne).foo()
+	x.foo()
+	(x as InheritantOne).foo()
 }
 
 InheritantTwo {
-    a: large
+	a: large
 
-    bar()
+	virtual bar()
 }
 
 InheritantTwo VirtualTypeTwo {
-    b: decimal
+	b: decimal
 
-    bar() {
-        println(a * a + b * b)
-    }
+	override bar() {
+		println(a * a + b * b)
+	}
 }
 
 execute_virtual_type_two() {
-    x = VirtualTypeTwo()
-    x.a = 7
-    x.b = 42
+	x = VirtualTypeTwo()
+	x.a = 7
+	x.b = 42
 
-    x.bar()
-    (x as InheritantTwo).bar()
+	x.bar()
+	(x as InheritantTwo).bar()
 }
 
 InheritantThree {
-    b: large
+	b: large
 
-    baz(x: tiny, y: small): large
+	virtual baz(x: tiny, y: small): large
 }
 
 InheritantThree VirtualTypeThree {
-    c: decimal
+	c: decimal
 
-    baz(x: tiny, y: small) {
-        if x > y {
-            println(x)
-            => x
-        }
-        else y > x {
-            println(y)
-            => y
-        }
-        else {
-            println(c)
-            => c
-        }
-    }
+	override baz(x: tiny, y: small) {
+		if x > y {
+			println(x)
+			=> x
+		}
+		else y > x {
+			println(y)
+			=> y
+		}
+		else {
+			println(c)
+			=> c
+		}
+	}
 }
 
 execute_virtual_type_three() {
-    x = VirtualTypeThree()
-    x.b = 1
-    x.c = 10
+	x = VirtualTypeThree()
+	x.b = 1
+	x.c = 10
 
-    println(x.baz(1, -1))
-    println((x as InheritantThree).baz(255, 32767))
-    println((x as InheritantThree).baz(7, 7))
+	println(x.baz(1, -1))
+	println((x as InheritantThree).baz(255, 32767))
+	println((x as InheritantThree).baz(7, 7))
 }
 
-InheritantOne 
-InheritantTwo 
-InheritantThree 
-VirtualTypeFour {
-    foo() {
-        a += 1
-        b -= 1
-    }
+InheritantOne InheritantTwo InheritantThree VirtualTypeFour {
+	override foo() {
+		a += 1
+		b -= 1
+	}
 
-    bar() {
-        a *= 7
-        b *= 7
-    }
+	override bar() {
+		a *= 7
+		b *= 7
+	}
 
-    baz(x: tiny, y: small) {
-        => a / b + x / y
-    }
+	override baz(x: tiny, y: small) {
+		=> a / b + x / y
+	}
 }
 
 execute_virtual_type_four() {
-    x = VirtualTypeFour()
-    x.a = -6942
-    x.b = 4269
+	x = VirtualTypeFour()
+	x.a = -6942
+	x.b = 4269
 
-    x.foo()
-    x.bar()
-    println(x.baz(64, 8)) # 7
+	x.foo()
+	x.bar()
+	println(x.baz(64, 8)) # 7
 
-    (x as InheritantOne).foo()
-    (x as InheritantTwo).bar()
-    println((x as InheritantThree).baz(0, 1)) # -1
+	(x as InheritantOne).foo()
+	(x as InheritantTwo).bar()
+	println((x as InheritantThree).baz(0, 1)) # -1
 }
 
 init() {
-    execute_virtual_type_one()
-    execute_virtual_type_two()
-    execute_virtual_type_three()
-    execute_virtual_type_four()
-    => 0
+	execute_virtual_type_one()
+	execute_virtual_type_two()
+	execute_virtual_type_three()
+	execute_virtual_type_four()
+	=> 0
 }

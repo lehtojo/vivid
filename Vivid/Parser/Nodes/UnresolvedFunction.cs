@@ -10,7 +10,6 @@ public class UnresolvedFunction : Node, IResolvable
 	/// <summary>
 	/// Creates an unresolved function with a function name to look for
 	/// </summary>
-	/// <param name="name">Function name</param>
 	public UnresolvedFunction(string name, Position? position)
 	{
 		Name = name;
@@ -22,7 +21,6 @@ public class UnresolvedFunction : Node, IResolvable
 	/// <summary>
 	/// Creates an unresolved function with a function name to look for with the specified template parameters
 	/// </summary>
-	/// <param name="name">Function name</param>
 	public UnresolvedFunction(string name, Type[] template_arguments, Position? position)
 	{
 		Name = name;
@@ -45,7 +43,7 @@ public class UnresolvedFunction : Node, IResolvable
 	}
 
 	/// <summary>
-	/// Tries to resolve any typeless short functions inside the parameters of this unresolved function
+	/// Tries to resolve lambda arguments whose parameter types are not resolved
 	/// </summary>
 	private void TryResolveShortFunctionParameters(Context primary, List<(Type? Type, Node Node)> parameters)
 	{
@@ -129,7 +127,7 @@ public class UnresolvedFunction : Node, IResolvable
 				return;
 			}
 
-			// Since none of the parameters conflicted with the expected parameters types, the expected parameter types can be transfered
+			// Since none of the parameters conflicted with the expected parameters types, the expected parameter types can be transferred
 			for (var j = 0; j < expected.Parameters.Count; j++)
 			{
 				parameters[i].Node.To<LambdaNode>().Function.Parameters[j].Type = expected.Parameters[j];
@@ -176,7 +174,6 @@ public class UnresolvedFunction : Node, IResolvable
 		// Lastly, try to form a virtual function call if the function could not be found
 		if (function == null && !linked && !Arguments.Any())
 		{
-			// Try to form a virtual function call
 			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
 
 			if (result != null)
@@ -186,16 +183,13 @@ public class UnresolvedFunction : Node, IResolvable
 			}
 		}
 
-		if (function == null)
-		{
-			return null;
-		}
+		if (function == null) return null;
 
 		var node = new FunctionNode(function, Position).SetParameters(this);
 
 		if (function.IsConstructor)
 		{
-			var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+			var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 			// Consider the following situations:
 			// Namespace.Type() <- Construction

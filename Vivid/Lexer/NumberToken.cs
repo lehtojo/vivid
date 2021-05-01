@@ -82,7 +82,7 @@ public class NumberToken : Token
 			index++;
 		}
 
-		var exponent = new string(text.Skip(index).TakeWhile(c => char.IsDigit(c)).ToArray());
+		var exponent = new string(text.Skip(index).TakeWhile(i => char.IsDigit(i)).ToArray());
 
 		if (int.TryParse(exponent, out int result))
 		{

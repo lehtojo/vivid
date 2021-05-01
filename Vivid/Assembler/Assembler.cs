@@ -37,6 +37,7 @@ public static class Assembler
 	private const string STRING_ALLOCATOR_DIRECTIVE = ".ascii";
 	private const string BYTE_ALIGNMENT_DIRECTIVE = ".balign";
 	private const string POWER_OF_TWO_ALIGNMENT = ".align";
+	private const string BYTE_ZERO_ALLOCATOR = ".zero";
 	private const string ARM64_COMMENT = "//";
 	private const string X64_COMMENT = "#";
 	public static string Comment { get; set; } = X64_COMMENT;
@@ -84,7 +85,7 @@ public static class Assembler
 		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
 		{
 			mangle += Mangle.START_RETURN_TYPE_COMMAND;
-			mangle += function.ReturnType;
+			mangle += function.ReturnType ?? throw new ApplicationException("Virtual function missing return type");
 		}
 
 		mangle += Mangle.END_COMMAND;
@@ -377,8 +378,8 @@ public static class Assembler
 	{
 		unit.Append(new LabelInstruction(unit, new Label(fullname + "_v")));
 
-		var from = implementation.VirtualFunction!.GetTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
-		var to = implementation.GetTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
+		var from = implementation.VirtualFunction!.FindTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
+		var to = implementation.FindTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
 
 		// NOTE: The type 'from' must be one of the subtypes that type 'to' has
 		var alignment = to.GetSupertypeBaseOffset(from);
@@ -523,7 +524,7 @@ public static class Assembler
 			}
 
 			var name = variable.GetStaticName();
-			var allocator = Size.FromBytes(variable.Type!.ReferenceSize).Allocator;
+			var size = variable.Type!.AllocationSize;
 
 			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 
@@ -532,7 +533,7 @@ public static class Assembler
 				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
 			}
 
-			builder.AppendLine($"{name}: {allocator} 0");
+			builder.AppendLine($"{name}: {BYTE_ZERO_ALLOCATOR} {size}");
 		}
 
 		foreach (var subtype in type.Supertypes)
@@ -546,7 +547,7 @@ public static class Assembler
 
 	private static IEnumerable<StringNode> GetStringNodes(Node root)
 	{
-		return root.FindAll(n => n.Is(NodeType.STRING)).Cast<StringNode>();
+		return root.FindAll(i => i.Is(NodeType.STRING)).Cast<StringNode>();
 	}
 
 	private static string AllocateString(string text)
@@ -564,10 +565,7 @@ public static class Assembler
 				builder.AppendLine($"{STRING_ALLOCATOR_DIRECTIVE} \"{buffer}\"");
 			}
 
-			if (position >= text.Length)
-			{
-				break;
-			}
+			if (position >= text.Length) break;
 
 			position++; // Skip character '\'
 
@@ -583,12 +581,17 @@ public static class Assembler
 			else if (command == 'u')
 			{
 				length = 4;
-				error = "Can not understand unicode character in a string";
+				error = "Can not understand Unicode character in a string";
 			}
 			else if (command == 'U')
 			{
 				length = 8;
-				error = "Can not understand unicode character in a string";
+				error = "Can not understand Unicode character in a string";
+			}
+			else if (command == '\\')
+			{
+				builder.AppendLine($"{Size.BYTE.Allocator} {(int)'\\'}");
+				continue;
 			}
 			else
 			{
@@ -628,10 +631,7 @@ public static class Assembler
 
 	public static void AppendTable(StringBuilder builder, Table table)
 	{
-		if (table.IsBuilt)
-		{
-			return;
-		}
+		if (table.IsBuilt) return;
 
 		table.IsBuilt = true;
 
@@ -851,32 +851,24 @@ public static class Assembler
 	/// <summary>
 	/// Appends debug information about the specified function
 	/// </summary>
-	public static void AppendFunctionDebugInfo(Debug debug, FunctionImplementation implementation)
+	public static void AppendFunctionDebugInfo(Debug debug, FunctionImplementation implementation, HashSet<Type> types)
 	{
-		debug.AppendFunction(implementation);
+		debug.AppendFunction(implementation, types);
 
-		foreach (var iterator in implementation.GetImplementedFunctions())
+		foreach (var iterator in implementation.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations))
 		{
-			if (iterator.Metadata.IsImported)
-			{
-				continue;
-			}
+			if (iterator.Node == null || iterator.Metadata.IsImported) continue;
 
-			AppendFunctionDebugInfo(debug, iterator);
+			AppendFunctionDebugInfo(debug, iterator, types);
 		}
 	}
 
 	/// <summary>
 	/// Appends debug information about the specified type
 	/// </summary>
-	public static void AppendTypeDebugInfo(Debug debug, Type type)
+	public static void AppendTypeDebugInfo(Debug debug, Type type, HashSet<Type> types)
 	{
-		debug.AppendType(type);
-
-		foreach (var iterator in type.Types.Values)
-		{
-			AppendTypeDebugInfo(debug, iterator);
-		}
+		debug.AppendType(type, types);
 	}
 
 	public static Dictionary<SourceFile, string> GetDebugSections(Context context)
@@ -888,38 +880,38 @@ public static class Assembler
 			return sections;
 		}
 
-		var all_types = Common.GetAllTypes(context).Where(i => !i.IsImported).Distinct().ToArray();
-		
-		var base_types = all_types.Where(i => i.Position == null).ToArray();
-		var types = all_types.Where(i => i.Position != null).ToArray();
-
-		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null)
-			.GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null).GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 
 		foreach (var file in functions)
 		{
 			var debug = new Debug();
+			var types = new HashSet<Type>();
 
 			debug.BeginFile(file.Key!);
 
 			foreach (var implementation in file)
 			{
-				if (implementation.Metadata!.IsImported)
+				if (implementation.Metadata!.IsImported) continue;
+
+				AppendFunctionDebugInfo(debug, implementation, types);
+			}
+
+			var denylist = new HashSet<Type>();
+
+			while (true)
+			{
+				var previous = new HashSet<Type>(types);
+
+				foreach (var type in previous)
 				{
-					continue;
+					if (denylist.Contains(type)) continue;
+					AppendTypeDebugInfo(debug, type, types);
 				}
 
-				AppendFunctionDebugInfo(debug, implementation);
-			}
+				// Stop if the types have not increased
+				if (previous.Count == types.Count) break;
 
-			foreach (var type in types)
-			{
-				AppendTypeDebugInfo(debug, type);
-			}
-
-			foreach (var base_type in base_types)
-			{
-				AppendTypeDebugInfo(debug, base_type);
+				previous.ForEach(i => denylist.Add(i));
 			}
 
 			debug.EndFile();

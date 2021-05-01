@@ -28,35 +28,26 @@ public abstract class Phase
 	/// <summary>
 	/// Executes the phase with the given data 
 	/// </summary>
-	/// <param name="bundle">Data collection that the phase may need</param>
 	/// <returns>Status returned from the phase</returns>
 	public abstract Status Execute(Bundle bundle);
 
 	/// <summary>
 	/// Executes runnable on another thread if multithreading is enabled, otherwise executes locally
 	/// </summary>
-	/// <param name="task">Task to run</param>
 	public void Run(Func<Status> task)
 	{
-		if (Multithread)
-		{
-			Tasks.Add(Task.Run(task));
-		}
-		else
-		{
-			Status status;
+		Status status;
 
-			try
-			{
-				status = task();
-			}
-			catch (Exception e)
-			{
-				status = Status.Error(e.Message);
-			}
-
-			Tasks.Add(Task.FromResult(status));
+		try
+		{
+			status = task();
 		}
+		catch (Exception e)
+		{
+			status = Status.Error(e.Message);
+		}
+
+		Tasks.Add(Task.FromResult(status));
 	}
 
 	/// <summary>
@@ -75,7 +66,7 @@ public abstract class Phase
 	}
 
 	/// <summary>
-	/// Returns all tasks errors that occured during execution
+	/// Returns all tasks errors that occurred during execution
 	/// </summary>
 	public string GetTaskErrors()
 	{

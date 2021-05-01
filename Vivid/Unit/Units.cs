@@ -77,6 +77,8 @@ public static class Units
 			AssemblerTests.OptimizationLevel = 2;
 		}
 
+		AssemblerTests.Initialize();
+
 		StartSection("Assembler");
 
 		Run("Arithmetic", AssemblerTests.Arithmetic);

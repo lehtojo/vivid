@@ -20,6 +20,7 @@ public static class Primitives
 	public const string L32 = "l32";
 	public const string L16 = "l16";
 	public const string L8 = "l8";
+	public const string CHAR = "char";
 	public const string BYTE = "byte";
 
 	public const string LINK_IDENTIFIER = "Ph";
@@ -38,6 +39,7 @@ public static class Primitives
 	public const string U16_IDENTIFIER = "t";
 	public const string U8_IDENTIFIER = "h";
 	public const string BYTE_IDENTIFIER = U8_IDENTIFIER;
+	public const string CHAR_IDENTIFIER = TINY_IDENTIFIER;
 
 	/// <summary>
 	/// Creates a primitive number type with the specified name and format
@@ -50,7 +52,6 @@ public static class Primitives
 		{
 			LINK => LINK_IDENTIFIER,
 			BOOL => BOOL_IDENTIFIER,
-			BYTE => BYTE_IDENTIFIER,
 			DECIMAL => DECIMAL_IDENTIFIER,
 			LARGE => LARGE_IDENTIFIER,
 			NORMAL => NORMAL_IDENTIFIER,
@@ -64,6 +65,8 @@ public static class Primitives
 			U32 => U32_IDENTIFIER,
 			U16 => U16_IDENTIFIER,
 			U8 => U8_IDENTIFIER,
+			BYTE => BYTE_IDENTIFIER,
+			CHAR => CHAR_IDENTIFIER,
 			_ => number.Name
 		};
 
@@ -94,19 +97,12 @@ public static class Primitives
 		return type != null && type.IsPrimitive && type.Name == expected;
 	}
 
-	/// <summary>
-	/// Returns whether the specified type is primitive type
-	/// </summary>
-	public static bool IsPrimitive(Type type)
-	{
-		return type.IsPrimitive && type.Name != LINK;
-	}
-
 	public static void Inject(Context context)
 	{
 		context.Declare(CreateUnit());
 		context.Declare(CreateBool());
 		context.Declare(new Link());
+		context.Declare(CreateNumber(CHAR, Format.INT8));
 		context.Declare(CreateNumber(TINY, Format.INT8));
 		context.Declare(CreateNumber(SMALL, Format.INT16));
 		context.Declare(CreateNumber(NORMAL, Format.INT32));

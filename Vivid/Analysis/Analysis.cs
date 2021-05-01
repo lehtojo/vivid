@@ -594,7 +594,7 @@ public static class Analysis
 	/// <summary>
 	/// Returns whether the specified variable will be used in the future starting from the specified node perspective
 	/// NOTE: Usually the perspective node is a branch but it is not counted as one.
-	/// This behaviour is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
+	/// This behavior is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
 	/// </summary>
 	public static bool IsUsedLater(Variable variable, Node perspective, bool self = false)
 	{
@@ -617,7 +617,7 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Returns all operator nodes which are first encounter when decending from the specified node
+	/// Returns all operator nodes which are first encounter when descending from the specified node
 	/// </summary>
 	private static List<OperatorNode> FindTopLevelOperators(Node node)
 	{
@@ -861,7 +861,7 @@ public static class Analysis
 
 			foreach (var member in type.Variables.Values)
 			{
-				// If the member is not destructable, it is not unlinkable, so skip it
+				// If the member is not destructible, it is not unlinkable, so skip it
 				if (member.IsStatic || !member.Type!.IsUserDefined)
 				{
 					continue;
@@ -891,7 +891,7 @@ public static class Analysis
 			}
 			else if (inspection.Type == InspectionType.SIZE)
 			{
-				inspection.Replace(new NumberNode(Parser.Format, (long)type.ReferenceSize));
+				inspection.Replace(new NumberNode(Parser.Format, (long)type.AllocationSize));
 			}
 		}
 	}

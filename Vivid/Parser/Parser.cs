@@ -191,9 +191,6 @@ public static class Parser
 	/// <summary>
 	/// Tries to find the next pattern from the tokens by comparing the priority
 	/// </summary>
-	/// <param name="context">Current context</param>
-	/// <param name="tokens">Tokens to scan through</param>
-	/// <param name="priority">Pattern priority used for filtering</param>
 	/// <returns>Success: Next important pattern in tokens, Failure null</returns>
 	private static Instance? Next(Context context, List<Token> tokens, int min, int priority, List<System.Type> allowlist, int start = 0)
 	{
@@ -263,11 +260,9 @@ public static class Parser
 		return null;
 	}
 
-	/// /// <summary>
+	/// <summary>
 	/// Parses tokens with minimum and maximum priority range
 	/// </summary>
-	/// <param name="context">Current context</param>
-	/// <param name="tokens">Tokens to iterate</param>
 	/// <returns>Parsed node tree</returns>
 	public static Node Parse(Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
 	{
@@ -456,11 +451,6 @@ public static class Parser
 	/// Parses tokens into a node tree and attaches it to the parent node. 
 	/// Parsing is done by looking for prioritized patterns which are filtered using the min and max priority parameters.
 	/// </summary>
-	/// <param name="parent">Node which will receive the node tree</param>
-	/// <param name="context">Context to append metadata of the parsed content</param>
-	/// <param name="tokens">Tokens to iterate</param>
-	/// <param name="min">Minimum priority for pattern filtering</param>
-	/// <param name="max">Maximum priority for pattern filtering</param>
 	public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
 	{
 		RemoveLineEndingDuplications(tokens);
@@ -511,7 +501,6 @@ public static class Parser
 	/// <summary>
 	/// Forms function tokens from the specified tokens
 	/// </summary>
-	/// <param name="tokens">Tokens to iterate</param>
 	private static void CreateFunctionTokens(List<Token> tokens)
 	{
 		if (tokens.Count < FUNCTION_LENGTH)
@@ -572,7 +561,7 @@ public static class Parser
 	/// <summary>
 	/// Creates a root context
 	/// </summary>
-	public static Context Initialize(int identity)
+	public static Context CreateRootContext(int identity)
 	{
 		var context = new Context(identity.ToString(CultureInfo.InvariantCulture));
 		Primitives.Inject(context);
@@ -588,6 +577,9 @@ public static class Parser
 		var positive_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
 		var negative_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
 
+		var true_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.DEFAULT | Modifier.CONSTANT);
+		var false_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.DEFAULT | Modifier.CONSTANT);
+
 		return new ScopeNode(context, null, null)
 		{
 			new OperatorNode(Operators.ASSIGN).SetOperands(
@@ -597,6 +589,14 @@ public static class Parser
 			new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(negative_infinity),
 				new NumberNode(Format.DECIMAL, double.NegativeInfinity)
+			),
+			new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(true_constant),
+				new CastNode(new NumberNode(Format.UINT64, 1L), new TypeNode(Primitives.CreateBool()))
+			),
+			new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(false_constant),
+				new CastNode(new NumberNode(Format.UINT64, 0L), new TypeNode(Primitives.CreateBool()))
 			)
 		};
 	}

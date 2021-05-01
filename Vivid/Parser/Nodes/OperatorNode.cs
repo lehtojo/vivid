@@ -44,7 +44,7 @@ public class OperatorNode : Node, IResolvable
 		var right = Right.TryGetType();
 
 		// Return the left type only if it represents a link and it is modified with a number type
-		if (left is Link && right is Number && !right.Format.IsDecimal() && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
+		if ((left is Link || left is ArrayType) && right is Number && !right.Format.IsDecimal() && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
 		{
 			return left;
 		}

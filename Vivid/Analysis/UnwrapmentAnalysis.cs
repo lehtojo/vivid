@@ -300,7 +300,7 @@ public static class UnwrapmentAnalysis
 			return null;
 		}
 
-		// Ensure that the condition contains atleast one initialization variable
+		// Ensure that the condition contains at least one initialization variable
 		if (!left.Concat(right).Any(c => c is VariableComponent x && x.Variable == variable))
 		{
 			return null;

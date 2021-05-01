@@ -15,16 +15,20 @@
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
 
 			// Launch the compiler service
-			"args": [ "-s" ],
+			//"args": [ "-s" ],
 
-			//"args": [ "${workspaceFolder}/Tests/Loops.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O1" ],
+			"args": [ "${workspaceFolder}/Tests/Conversions.v",  "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Exceptions.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O2" ],
+			
+			//"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
+			
+			//"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/Core.v", "-f", "-a", "-st" ],
 			
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false
-		  	}
+			}
 		},
 		{
 			"name": "Run Units",
@@ -45,7 +49,8 @@
 			"request": "launch",
 			"name": "Vivid Debug",
 			"program": "${workspaceRoot}/v.exe",
-			"cwd": "${workspaceRoot}"
+			"cwd": "${workspaceRoot}",
+			"programArgs": "C:\\Users\\joona\\vivid\\Vivid\\Examples\\Test.v"
 		},
 		{
 			"request": "launch",
@@ -58,9 +63,9 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceRoot}/v.exe",
-			"args": [],
+			"args": [ "\"C:\\Users\\joona\\vivid\\Vivid\\Examples\\Test.v\"" ],
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceRoot}",
 			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",

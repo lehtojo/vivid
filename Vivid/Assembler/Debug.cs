@@ -40,6 +40,12 @@ public class TableLabel
 
 public class Debug
 {
+	public const string STRING_TYPE_IDENTIFIER = "String";
+	public const string STRING_TYPE_DATA_VARIABLE = "text";
+
+	public const string ARRAY_TYPE_POSTFIX = "_array";
+	public const short ARRAY_TYPE_ELEMENTS = 10000;
+
 	public const string FORMAT_COMPILATION_UNIT_START = "debug_file_{0}_start";
 	public const string FORMAT_COMPILATION_UNIT_END = "debug_file_{0}_end";
 
@@ -50,7 +56,7 @@ public class Debug
 	public const string DEBUG_LINE_TABLE_START = ".debug_line_start";
 
 	public const string DWARF_PRODUCER_TEXT = "Vivid version 1.0";
-	public const short DWARF_LANGUANGE_IDENTIFIER = 0x7777;
+	public const short DWARF_LANGUAGE_IDENTIFIER = 0x7777;
 
 	public const short DWARF_VERSION = 4;
 
@@ -72,7 +78,8 @@ public class Debug
 	public const byte DWARF_ACCESS_PRIVATE = 3;
 
 	public const byte DWARF_OP_BASE_POINTER_OFFSET = 145;
-	public const byte DWARF_OFFSET_ZERO = 128;
+	public const byte DWARF_OP_DEREFERENCE = 6;
+	public const byte DWARF_OP_ADD_BYTE_CONSTANT = 35;
 
 	public const byte DWARF_REGISTER_ZERO = 80;
 
@@ -83,7 +90,7 @@ public class Debug
 	public const byte DWARF_HAS_CHILDREN = 1;
 	public const byte DWARF_HAS_NO_CHILDREN = 0;
 	public const byte DWARF_PRODUCER = 37;
-	public const byte DWARF_LANGUANGE = 19;
+	public const byte DWARF_LANGUAGE = 19;
 	public const byte DWARF_NAME = 3;
 	public const byte DWARF_LINE_NUMBER_INFORMATION = 16;
 	public const byte DWARF_COMPILATION_FOLDER = 27;
@@ -110,6 +117,10 @@ public class Debug
 	public const byte DWARF_ENCODING = 62;
 	public const byte DWARF_BYTE_SIZE = 11;
 
+	public const byte DWARF_ARRAY_TYPE = 1;
+	public const byte DWARF_SUBRANGE_TYPE = 33;
+	public const byte DWARF_COUNT = 55;
+
 	public const byte DWARF_STRING_POINTER = 14;
 	public const byte DWARF_STRING = 8;
 	public const byte DWARF_DATA_8 = 11;
@@ -134,12 +145,15 @@ public class Debug
 	public byte Index { get; private set; } = 1;
 
 	public byte FileAbbrevation { get; private set; } = 0;
-	public byte ObjectTypeAbbrevation { get; private set; } = 0;
+	public byte ObjectTypeWithMembersAbbrevation { get; private set; } = 0;
+	public byte ObjectTypeWithoutMembersAbbrevation { get; private set; } = 0;
 	public byte BaseTypeAbbrevation { get; private set; } = 0;
 	public byte PointerTypeAbbrevation { get; private set; } = 0;
 	public byte MemberVariableAbbrevation { get; private set; } = 0;
 	public byte ParameterVariableAbbrevation { get; private set; } = 0;
 	public byte LocalVariableAbbrevation { get; private set; } = 0;
+	public byte ArrayTypeAbbrevation { get; private set; } = 0;
+	public byte SubrangeTypeAbbrevation { get; private set; } = 0;
 
 	public static object GetOffset(TableLabel from, TableLabel to)
 	{
@@ -150,7 +164,7 @@ public class Debug
 	{
 		Entry.Add(FileAbbrevation); // DW_TAG_compile_unit
 		Entry.Add(DWARF_PRODUCER_TEXT); // DW_AT_producer
-		Entry.Add(DWARF_LANGUANGE_IDENTIFIER); // DW_AT_language
+		Entry.Add(DWARF_LANGUAGE_IDENTIFIER); // DW_AT_language
 
 		var fullname = file.Fullname;
 
@@ -210,11 +224,26 @@ public class Debug
 
 	public static string GetTypeLabelName(Type type, bool pointer = false)
 	{
-		return type.GetFullname() + (pointer ? "_pointer_debug" : "_debug");
+		if (Primitives.IsPrimitive(type, Primitives.LINK))
+		{
+			return type.GetFullname();
+		}
+
+		if (type.IsPrimitive)
+		{
+			if (pointer) throw new NotSupportedException("Pointer of a primitive type required, but it was not requested using a link type");
+
+			return Mangle.VIVID_LANGUAGE_TAG + type.Name;
+		}
+
+		/// NOTE: Since the type is a user defined type, it must have a pointer symbol in its fullname. It must be removed, if the pointer flag is set to true.
+		var fullname = type.GetFullname();
+		return pointer ? fullname.Insert(Mangle.VIVID_LANGUAGE_TAG.Length, Mangle.POINTER_COMMAND.ToString()) : fullname;
 	}
 
-	public static TableLabel GetTypeLabel(Type type, bool pointer = false)
+	public static TableLabel GetTypeLabel(Type type, HashSet<Type> types, bool pointer = false)
 	{
+		types.Add(type);
 		return new TableLabel(GetTypeLabelName(type, pointer), Size.QWORD, false);
 	}
 
@@ -225,7 +254,7 @@ public class Debug
 		parameters.ForEach(i => Entry.Add(i));
 	}
 
-	public void AppendFunction(FunctionImplementation implementation)
+	public void AppendFunction(FunctionImplementation implementation, HashSet<Type> types)
 	{
 		var file = GetFile(implementation);
 
@@ -237,7 +266,7 @@ public class Debug
 		Entry.Add(GetOffset(start, GetEnd(implementation))); // DW_AT_high_pc
 
 		AppendOperation(Assembler.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
-		Entry.Add(implementation.GetFullname()); // DW_AT_name
+		Entry.Add(implementation.GetHeader()); // DW_AT_name
 		Entry.Add(file); // DW_AT_decl_file
 		Entry.Add(GetLine(implementation)); // DW_AT_decl_line
 
@@ -279,24 +308,24 @@ public class Debug
 
 		if (implementation.ReturnType != null)
 		{
-			Entry.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!))); // DW_AT_type
+			Entry.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!, types))); // DW_AT_type
 		}
 
 		foreach (var local in implementation.Locals)
 		{
-			AppendLocalVariable(local, file, implementation.SizeOfLocals);
+			AppendLocalVariable(local, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		var self = implementation.GetSelfPointer();
 
 		if (self != null)
 		{
-			AppendParameterVariable(self, file, implementation.SizeOfLocalMemory);
+			AppendParameterVariable(self, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		foreach (var parameter in implementation.Parameters)
 		{
-			AppendParameterVariable(parameter, file, implementation.SizeOfLocalMemory);
+			AppendParameterVariable(parameter, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		if (has_children)
@@ -307,7 +336,7 @@ public class Debug
 
 	public void AppendFileAbbrevation()
 	{
-		Abbrevation.Add(Index); // Define the current abbrevation code
+		Abbrevation.Add(Index); // Define the current abbreviation code
 
 		Abbrevation.Add(DWARF_TAG_COMPILE_UNIT); // This is a compile unit and it has children
 		Abbrevation.Add(DWARF_HAS_CHILDREN);
@@ -315,7 +344,7 @@ public class Debug
 		Abbrevation.Add(DWARF_PRODUCER); // The producer is identified with a string pointer
 		Abbrevation.Add(DWARF_STRING);
 
-		Abbrevation.Add(DWARF_LANGUANGE); // The languange is identified with a short integer
+		Abbrevation.Add(DWARF_LANGUAGE); // The language is identified with a short integer
 		Abbrevation.Add(DWARF_DATA_16);
 
 		Abbrevation.Add(DWARF_NAME); // The name of the file is added with a string pointer
@@ -339,7 +368,7 @@ public class Debug
 		FileAbbrevation = Index++;
 	}
 
-	public void AppendObjectTypeAbbrevation()
+	public void AppendObjectTypeWithMembersAbbrevation()
 	{
 		Abbrevation.Add(Index);
 		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
@@ -363,7 +392,34 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		ObjectTypeAbbrevation = Index++;
+		ObjectTypeWithMembersAbbrevation = Index++;
+	}
+
+	public void AppendObjectTypeWithoutMembersAbbrevation()
+	{
+		Abbrevation.Add(Index);
+		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
+		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
+
+		Abbrevation.Add(DWARF_CALLING_CONVENTION);
+		Abbrevation.Add(DWARF_DATA_8);
+
+		Abbrevation.Add(DWARF_NAME);
+		Abbrevation.Add(DWARF_STRING);
+
+		Abbrevation.Add(DWARF_BYTE_SIZE);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_DECLARATION_FILE);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_DECLARATION_LINE);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		ObjectTypeWithoutMembersAbbrevation = Index++;
 	}
 
 	public void AppendBaseTypeAbbrevation()
@@ -486,19 +542,52 @@ public class Debug
 		ParameterVariableAbbrevation = Index++;
 	}
 
-	public static bool IsPointerType(Type type)
+	public void AppendArrayTypeAbbrevation()
 	{
-		return type.IsPrimitive && type.Name != Primitives.LINK;
+		Abbrevation.Add(Index);
+		Abbrevation.Add(DWARF_ARRAY_TYPE);
+		Abbrevation.Add(DWARF_HAS_CHILDREN);
+
+		Abbrevation.Add(DWARF_TYPE);
+		Abbrevation.Add(DWARF_REFERENCE_32);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		ArrayTypeAbbrevation = Index++;
 	}
 
-	public void AppendMemberVariable(Variable variable)
+	public void AppendSubrangeTypeAbbrevation()
+	{
+		Abbrevation.Add(Index);
+		Abbrevation.Add(DWARF_SUBRANGE_TYPE);
+		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
+
+		Abbrevation.Add(DWARF_TYPE);
+		Abbrevation.Add(DWARF_REFERENCE_32);
+
+		Abbrevation.Add(DWARF_COUNT);
+		Abbrevation.Add(DWARF_DATA_16);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		SubrangeTypeAbbrevation = Index++;
+	}
+
+	public static bool IsPointerType(Type type)
+	{
+		return !type.IsPrimitive;
+	}
+
+	public void AppendMemberVariable(Variable variable, HashSet<Type> types)
 	{
 		Entry.Add(MemberVariableAbbrevation);
 		Entry.Add(variable.Name);
-		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!))));
+		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
 		Entry.Add(GetFile(variable));
 		Entry.Add(GetLine(variable));
-		Entry.Add(variable.LocalAlignment!);
+		Entry.Add(variable.LocalAlignment ?? throw new ApplicationException("Missing member variable alignment"));
 
 		if (Flag.Has(variable.Modifiers, Modifier.PRIVATE))
 		{
@@ -514,9 +603,11 @@ public class Debug
 		}
 	}
 
-	public void AppendObjectType(Type type)
+	public void AppendObjectType(Type type, HashSet<Type> types)
 	{
-		Entry.Add(ObjectTypeAbbrevation);
+		var has_members = type.Variables.Values.Any(i => !i.IsGenerated);
+
+		Entry.Add(has_members ? ObjectTypeWithMembersAbbrevation : ObjectTypeWithoutMembersAbbrevation);
 		Entry.Add(DWARF_CALLING_CONVENTION_PASS_BY_REFERENCE);
 		Entry.Add(type.Name);
 		Entry.Add(type.ContentSize);
@@ -525,23 +616,69 @@ public class Debug
 
 		foreach (var member in type.Variables.Values)
 		{
-			if (member.IsGenerated)
-			{
-				continue;
-			}
-
-			AppendMemberVariable(member);
+			if (member.IsGenerated || member.IsStatic) continue;
+			AppendMemberVariable(member, types);
 		}
 
-		Entry.Add(DWARF_END);
+		if (has_members) Entry.Add(DWARF_END);
 
 		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
 		Entry.Add(PointerTypeAbbrevation);
-		Entry.Add(GetOffset(Start, GetTypeLabel(type)));
+		Entry.Add(GetOffset(Start, GetTypeLabel(type, types)));
+	}
+	
+	/// <summary>
+	/// Appends a link type which enables the user to see its elements
+	/// </summary>
+	public void AppendArrayLink(Type type, Type element, HashSet<Type> types)
+	{
+		// Create the array type
+		var is_pointer = IsPointerType(element);
+		var name = GetTypeLabelName(type, is_pointer) + ARRAY_TYPE_POSTFIX;
+		var subrange = new TableLabel(name, Size.QWORD, true);
+
+		Entry.Add(subrange);
+		Entry.Add(ArrayTypeAbbrevation); // Abbrevation code
+		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
+
+		Entry.Add(SubrangeTypeAbbrevation); // Abbrevation code
+		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
+		Entry.Add(ARRAY_TYPE_ELEMENTS); // DW_AT_count
+
+		Entry.Add(DWARF_END); // End of children
+
+		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
+		Entry.Add(PointerTypeAbbrevation);
+		Entry.Add(GetOffset(Start, subrange));
+
+		types.Add(element);
 	}
 
-	public void AppendType(Type type)
+	public void AppendLink(Type type, HashSet<Type> types)
 	{
+		var element = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
+
+		if (!Primitives.IsPrimitive(element, Primitives.BYTE) && !Primitives.IsPrimitive(element, Primitives.CHAR) && !Primitives.IsPrimitive(element, Primitives.U8))
+		{
+			AppendArrayLink(type, element, types);
+			return;
+		}
+
+		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
+		Entry.Add(PointerTypeAbbrevation);
+		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, IsPointerType(element))));
+
+		types.Add(element);
+	}
+
+	public void AppendType(Type type, HashSet<Type> types)
+	{
+		if (Primitives.IsPrimitive(type, Primitives.LINK))
+		{
+			AppendLink(type, types);
+			return;
+		}
+
 		Entry.Add(new TableLabel(GetTypeLabelName(type), Size.QWORD, true));
 
 		var encoding = (byte)0;
@@ -550,19 +687,27 @@ public class Debug
 		{
 			encoding = type.Name switch
 			{
-				Primitives.TINY => DWARF_ENCODING_SIGNED_CHAR,
 				Primitives.U8 => DWARF_ENCODING_UNSIGNED_CHAR,
+				Primitives.BYTE => DWARF_ENCODING_UNSIGNED_CHAR,
 				Primitives.DECIMAL => DWARF_ENCODING_DECIMAL,
-				Primitives.LINK => DWARF_ENCODING_ADDRESS,
 				Primitives.BOOL => DWARF_ENCODING_BOOL,
 				Primitives.UNIT => DWARF_ENCODING_SIGNED,
-				_ => type is Number number ? (number.IsUnsigned ? DWARF_ENCODING_UNSIGNED : DWARF_ENCODING_SIGNED) : (byte)0
+				_ => (byte)0
 			};
+
+			if (encoding == 0 && type is Number number)
+			{
+				encoding = number.IsUnsigned ? DWARF_ENCODING_UNSIGNED : DWARF_ENCODING_SIGNED;
+			}
+			else if (encoding == 0 && type is ArrayType)
+			{
+				encoding = DWARF_ENCODING_SIGNED_CHAR;
+			}
 		}
 
 		if (encoding == 0)
 		{
-			AppendObjectType(type);
+			AppendObjectType(type, types);
 			return;
 		}
 
@@ -570,7 +715,7 @@ public class Debug
 		Entry.Add(type.Name);
 
 		Entry.Add(encoding);
-		Entry.Add(type.ReferenceSize);
+		Entry.Add(type.AllocationSize);
 	}
 
 	public static byte[] ToULEB128(int value)
@@ -628,43 +773,90 @@ public class Debug
 		return bytes.ToArray();
 	}
 
-	public void AppendLocalVariable(Variable variable, int file, int local_memory_size)
+	/// <summary>
+	/// Returns whether specified variable is a string
+	/// </summary>
+	private static bool IsStringType(Variable variable)
 	{
-		if (variable.IsGenerated)
-		{
-			return;
-		}
-
-		Entry.Add(LocalVariableAbbrevation); // DW_TAG_variable
-
-		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, ToSLEB128(local_memory_size + (int)variable.LocalAlignment!)); // DW_AT_location
-
-		Entry.Add(variable.Name); // DW_AT_name
-
-		Entry.Add(file); // DW_AT_decl_file
-		Entry.Add(GetLine(variable)); // DW_AT_decl_line
-
-		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!)))); // DW_AT_type
+		return variable.Type != null && variable.Type.Name == STRING_TYPE_IDENTIFIER && variable.Type.Parent!.IsGlobal;
 	}
 
-	public void AppendParameterVariable(Variable variable, int file, int local_memory_size)
+	public void AppendLocalVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
-		if (variable.IsGenerated)
+		if (variable.IsGenerated || variable.LocalAlignment == null) return;
+
+		var is_string = IsStringType(variable);
+
+		Entry.Add(LocalVariableAbbrevation); // DW_TAG_variable
+		
+		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
+		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Local variable was not aligned");
+		var local_variable_alignment = ToSLEB128(local_memory_size + (int)variable.LocalAlignment!);
+
+		if (is_string)
 		{
-			return;
+			// Get the member variable which points to the actual data in the string type
+			var data = type.GetVariable(STRING_TYPE_DATA_VARIABLE) ?? throw new ApplicationException("Missing string data variable");
+			
+			alignment = data.LocalAlignment ?? throw new ApplicationException("Member variable was not aligned");
+			type = data.Type ?? throw new ApplicationException("Missing variable type");
+
+			var data_variable_alignment = ToSLEB128(alignment);
+
+			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
+
+			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
 		}
-
-		Entry.Add(ParameterVariableAbbrevation); // DW_TAG_variable
-
-		// Substract one pointer size from the alignment (return address size)
-		AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, ToSLEB128(local_memory_size + (int)variable.LocalAlignment!)); // DW_AT_location
+		else
+		{
+			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment); // DW_AT_location
+		}
 
 		Entry.Add(variable.Name); // DW_AT_name
 
 		Entry.Add(file); // DW_AT_decl_file
 		Entry.Add(GetLine(variable)); // DW_AT_decl_line
 
-		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, IsPointerType(variable.Type!)))); // DW_AT_type
+		Entry.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
+	}
+
+	public void AppendParameterVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
+	{
+		if (variable.IsGenerated || variable.LocalAlignment == null) return;
+
+		var is_string = IsStringType(variable);
+
+		Entry.Add(ParameterVariableAbbrevation); // DW_TAG_variable
+		
+		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
+		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Parameter variable was not aligned");
+		var parameter_alignment = ToSLEB128(local_memory_size + (int)variable.LocalAlignment!);
+
+		if (is_string)
+		{
+			// Get the member variable which points to the actual data in the string type
+			var data = type.GetVariable(STRING_TYPE_DATA_VARIABLE) ?? throw new ApplicationException("Missing string data variable");
+			
+			alignment = data.LocalAlignment ?? throw new ApplicationException("Member variable was not aligned");
+			type = data.Type ?? throw new ApplicationException("Missing variable type");
+
+			var data_variable_alignment = ToSLEB128(alignment);
+
+			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
+
+			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
+		}
+		else
+		{
+			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment); // DW_AT_location
+		}
+
+		Entry.Add(variable.Name); // DW_AT_name
+
+		Entry.Add(file); // DW_AT_decl_file
+		Entry.Add(GetLine(variable)); // DW_AT_decl_line
+
+		Entry.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
 	}
 
 	public Debug()
@@ -689,12 +881,15 @@ public class Debug
 		Lines.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.QWORD, true));
 
 		AppendFileAbbrevation();
-		AppendObjectTypeAbbrevation();
+		AppendObjectTypeWithMembersAbbrevation();
+		AppendObjectTypeWithoutMembersAbbrevation();
 		AppendBaseTypeAbbrevation();
 		AppendPointerTypeAbbrevation();
 		AppendMemberVariableAbbrevation();
 		AppendParameterVariableAbbrevation();
 		AppendLocalVariableAbbrevation();
+		AppendArrayTypeAbbrevation();
+		AppendSubrangeTypeAbbrevation();
 	}
 
 	public void EndFile()

@@ -50,6 +50,21 @@ MapBucket<K, V> {
 		=> MAP_OK
 	}
 
+	contains_key(key: K) {
+		location = 0
+
+		if compiles { key.hash() } { location = (key.hash() as u64) % BUCKET_SIZE }
+		else { location = (key as u64) % BUCKET_SIZE }
+		
+		slot = slots[location]
+		
+		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
+			if iterator.value.key == key => true
+		}
+
+		=> false
+	}
+
 	get(key: K) {
 		location = 0
 
@@ -60,11 +75,11 @@ MapBucket<K, V> {
 		
 		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
 			if iterator.value.key == key {
-					=> iterator.value.value
+				=> Optional<V>(iterator.value.value)
 			}
 		}
 
-		=> none as V
+		=> Optional<V>()
 	}
 
 	remove(key: K) {
@@ -128,14 +143,32 @@ Map<K, V> {
 
 	set(key: K, value: V) => add(key, value)
 
+	contains_key(key: K) {
+		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
+			if bucket.value.contains_key(key) => true
+		}
+
+		=> false
+	}
+
+	try_get(key: K) {
+		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
+			result = bucket.value.get(key)
+
+			if not result.empty => result
+		}
+
+		=> Optional<V>()
+	}
+
 	get(key: K) {
 		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
 			result = bucket.value.get(key)
 
-			if result => result
+			if not result.empty => result.value
 		}
 
-		=> none as V
+		require(false, 'Map did not contain the specified key')
 	}
 
 	remove(key: K) {

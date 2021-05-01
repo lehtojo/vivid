@@ -38,7 +38,10 @@ public static class References
 
 			case VariableCategory.LOCAL:
 			{
-				handle = new StackVariableHandle(unit, variable);
+				handle = variable.IsInlined()
+					? new InlineHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
+					: new StackVariableHandle(unit, variable);
+				
 				break;
 			}
 
@@ -47,7 +50,7 @@ public static class References
 				handle = new MemoryHandle
 				(
 					unit,
-					self ?? throw new ArgumentException("Member variable did not have its base pointer"),
+					self ?? throw new ArgumentException("Member variable did not have its self pointer"),
 					variable.GetAlignment(self_type!) ?? throw new ApplicationException("Member variable was not aligned")
 				);
 

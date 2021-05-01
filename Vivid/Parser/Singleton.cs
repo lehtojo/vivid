@@ -7,7 +7,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build identifier into a node
 	/// </summary>
-	/// <param name="linked">Is the identifier requested by a link node</param>
 	public static Node GetIdentifier(Context context, IdentifierToken identifier, bool linked = false)
 	{
 		if (context.IsVariableDeclared(identifier.Value, linked))
@@ -57,7 +56,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to find function or constructor by name with the specified parameter types
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, bool linked)
 	{
 		return GetFunctionByName(context, name, parameters, Array.Empty<Type>(), linked);
@@ -66,7 +64,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to find function or constructor by name with the specified template parameter types and parameter types.
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, Type[] template_arguments, bool linked)
 	{
 		FunctionList functions;
@@ -87,7 +84,7 @@ public static class Singleton
 				if (type is TemplateType template_type)
 				{
 					// Since the function name refers to a type, the constructors of the type should be explored next
-					functions = template_type.GetVariant(template_arguments).GetConstructors();
+					functions = template_type.GetVariant(template_arguments).Constructors;
 				}
 				else
 				{
@@ -96,7 +93,7 @@ public static class Singleton
 			}
 			else
 			{
-				functions = context.GetType(name)!.GetConstructors();
+				functions = context.GetType(name)!.Constructors;
 			}
 		}
 		else if (context.IsFunctionDeclared(name, linked))
@@ -120,7 +117,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build function into a node
 	/// </summary>
-	/// <param name="linked">Is the identifier requested by a link node</param>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked)
 	{
 		var descriptor = (FunctionToken)token.Clone();
@@ -153,7 +149,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+				var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 				// Consider the following situations:
 				// Namespace.Type() <- Construction
@@ -193,7 +189,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build function into a node
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken descriptor, Type[] template_arguments, bool linked)
 	{
 		var parameters = descriptor.GetParsedParameters(environment);
@@ -212,7 +207,7 @@ public static class Singleton
 
 			if (function.IsConstructor)
 			{
-				var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+				var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 				// Consider the following situations:
 				// Namespace.Type() <- Construction

@@ -16,10 +16,7 @@ public static class Trace
 
 		for (var i = start; i <= end; i++)
 		{
-			if (!unit.Instructions[i].Is(InstructionType.CALL))
-			{
-				continue;
-			}
+			if (!unit.Instructions[i].Is(InstructionType.CALL)) continue;
 
 			calls.Add(unit.Instructions[i].To<CallInstruction>());
 		}

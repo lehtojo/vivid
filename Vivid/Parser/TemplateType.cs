@@ -45,7 +45,7 @@ public class TemplateType : Type
 
 	private Type? TryGetVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name));
+		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
 
 		if (Variants.TryGetValue(identifier, out TemplateTypeVariant? variant))
 		{
@@ -86,7 +86,7 @@ public class TemplateType : Type
 
 	private Type CreateVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.ToString()));
+		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var tokens = Inherited.Select(t => (Token)t.Clone()).ToList();

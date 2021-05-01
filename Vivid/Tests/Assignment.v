@@ -51,7 +51,7 @@ export preload_2(instance: Sequence) {
 
 # Tests whether the compiler loads the destination before incrementing it
 export preload_3(address: link<large>) {
-	address[0] = ++address
+	address[0] = ++address as large
 	=> address
 }
 

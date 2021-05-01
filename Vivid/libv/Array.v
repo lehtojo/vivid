@@ -1,5 +1,6 @@
 ﻿REQUIREMENT_EXIT_CODE = 1
 
+# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs that a requirement was not met
 export require(result: bool) {
 	if result == false {
 		println('Requirement failed')
@@ -7,6 +8,7 @@ export require(result: bool) {
 	}
 }
 
+# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs the user with the specified message
 export require(result: bool, message: link) {
 	if result == false {
 		println(message)
@@ -29,6 +31,12 @@ Array<T> {
 		this.data = allocate(count * sizeof(T))
 		this.count = count
 	}
+
+	# Summary: Creates an array from the specified data and size
+	init(data: link<T>, size: large) {
+		this.data = data
+		this.count = size
+	}
 	
 	set(i: large, value: T) {
 		require(i >= 0 and i < count, 'Index out of bounds')
@@ -45,6 +53,38 @@ Array<T> {
 	deinit() {
 		deallocate(data)
 	}
+
+	# Summary: Creates a list which contains the same elements as this array
+	to_list() {
+		=> List<T>(data, count)
+	}
+}
+
+# Summary: Finds the slices from this string which are separated by the specified character and returns them as an array
+String.split(character: char) {
+	c = 1
+
+	# Count the number of splits
+	loop (i = 0, i < length, i++) {
+		if text[i] != character continue
+		c++
+	}
+
+	# Reserve a result array for the slices 
+	slices = Array<String>(c)
+
+	c = 0
+	i = 0
+	p = 0
+
+	loop (i < length) {
+		if text[i] != character continue
+		slices[c++] = String(text + p, i - p)
+		p = ++i
+	}
+
+	slices[c] = String(text + p, i - p)
+	=> slices
 }
 
 Sheet<T> {

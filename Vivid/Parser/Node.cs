@@ -487,7 +487,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 	/// <summary>
 	/// Returns whether this node is placed before the specified node
 	/// </summary>
-	/// <param name="other">The node used for comparison</param>
 	/// <returns>True if this node is before the specified node, otherwise false</returns>
 	public bool IsBefore(Node other)
 	{
@@ -529,7 +528,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 	/// <summary>
 	/// Returns whether this node is placed after the specified node
 	/// </summary>
-	/// <param name="other">The node used for comparison</param>
 	/// <returns>True if this node is after the specified node, otherwise false</returns>
 	public bool IsAfter(Node other)
 	{

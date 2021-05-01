@@ -38,15 +38,6 @@ public class ReturnNode : InstructionNode, IResolvable
 		}
 
 		Resolver.Resolve(context, Value);
-
-		//var current = function.ReturnType;
-		var type = Value?.TryGetType();
-
-		if (type == null)
-		{
-			return null;
-		}
-
 		return null;
 	}
 

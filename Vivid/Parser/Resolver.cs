@@ -67,6 +67,7 @@ public static class Resolver
 		ResolveVariables(context);
 
 		var types = new List<Type>(context.Types.Values);
+		var overloads = (List<Function>?)null;
 
 		foreach (var type in types)
 		{
@@ -78,30 +79,62 @@ public static class Resolver
 			{
 				Resolve(type, iterator);
 			}
+
+			// Virtual functions do not have return types defined sometimes, the return types of those virtual functions are dependent on their default implementations
+			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			{
+				if (virtual_function.ReturnType != null) continue;
+				
+				// Find all overrides with the same name as the virtual function
+				overloads = type.GetOverride(virtual_function.Name)?.Overloads;
+				if (overloads == null) continue;
+
+				// Take out the expected parameter types
+				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
+
+				foreach (var overload in overloads)
+				{
+					// Ensure the actual parameter types match the expected types
+					var actual = overload.Parameters.Select(i => i.Type).ToList();
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
+
+					if (!overload.Implementations.Any()) continue;
+
+					// Now the current overload must be the default implementation for the virtual function
+					virtual_function.ReturnType = overload.Implementations.First().ReturnType;
+					break;
+				}
+			}
 		}
 
-		var overloads = context.Functions.Values.SelectMany(i => i.Overloads).ToList();
+		overloads = Common.GetAllVisibleFunctions(context).ToList();
 
 		// Resolve parameter types
 		foreach (var function in overloads)
 		{
 			foreach (var parameter in function.Parameters)
 			{
-				if (parameter.Type != null && parameter.Type.IsUnresolved)
-				{
-					var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
+				if (parameter.Type == null || !parameter.Type.IsUnresolved) continue;
+				
+				var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
 
-					if (!Equals(type, null))
-					{
-						parameter.Type = type;
-					}
+				if (!Equals(type, null))
+				{
+					parameter.Type = type;
 				}
 			}
+
+			// Resolve virtual function return types
+			if (function is not VirtualFunction virtual_function || virtual_function.ReturnType == null || !virtual_function.ReturnType.IsUnresolved) continue;
+
+			// Update the return type only if it is resolved
+			var resolved = Resolver.Resolve(context, virtual_function.ReturnType);
+			if (resolved == null) continue;
+
+			virtual_function.ReturnType = resolved;
 		}
 
-		var implementations = context.GetFunctionImplementations().ToList();
-
-		foreach (var implementation in implementations)
+		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
 			ResolveVariables(implementation);
 
@@ -247,7 +280,6 @@ public static class Resolver
 	/// <summary>
 	/// Returns the shared type between the types
 	/// </summary>
-	/// <param name="types">Type list to go through</param>
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	private static Type? GetSharedType(IReadOnlyList<Type> types)
 	{
@@ -303,7 +335,7 @@ public static class Resolver
 	{
 		var operation = assign.To<OperatorNode>();
 
-		// Try to resolve type via contextable right side of the assign operator
+		// Try to resolve the type using the right operand if the operation node represents an assignment
 		if (operation.Operator == Operators.ASSIGN)
 		{
 			return operation.Right.TryGetType();
@@ -323,19 +355,12 @@ public static class Resolver
 		foreach (var reference in variable.References)
 		{
 			var parent = reference.Parent;
-
-			if (parent == null)
-			{
-				continue;
-			}
+			if (parent == null) continue;
 
 			if (parent.Instance == NodeType.OPERATOR) // Locals
 			{
 				// Reference must be the destination in assign operation in order to resolve the type
-				if (parent.First != reference)
-				{
-					continue;
-				}
+				if (parent.First != reference) continue;
 
 				var type = TryGetTypeFromAssignOperation(parent);
 
@@ -347,17 +372,11 @@ public static class Resolver
 			else if (parent.Instance == NodeType.LINK) // Members
 			{
 				// Reference must be the destination in assign operation in order to resolve the type
-				if (parent.Last != reference)
-				{
-					continue;
-				}
+				if (parent.Last != reference) continue;
 
 				parent = parent.Parent;
 
-				if (parent == null || !parent.Is(NodeType.OPERATOR))
-				{
-					continue;
-				}
+				if (parent == null || !parent.Is(NodeType.OPERATOR)) continue;
 
 				var type = TryGetTypeFromAssignOperation(parent!);
 
@@ -383,7 +402,7 @@ public static class Resolver
 	/// </summary>
 	private static void ResolveVariables(Context context)
 	{
-		foreach (var variable in context.Variables.Values.Where(i => i.Type == null || i.Type.IsUnresolved))
+		foreach (var variable in context.Variables.Values.Where(i => i.Type == null))
 		{
 			Resolve(variable);
 		}
@@ -399,10 +418,7 @@ public static class Resolver
 	/// </summary>
 	private static void ResolveReturnType(FunctionImplementation implementation)
 	{
-		if (implementation.Node == null)
-		{
-			return;
-		}
+		if (implementation.Node == null) return;
 
 		var statements = implementation.Node.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>();
 

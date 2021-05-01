@@ -221,16 +221,10 @@ public class ResolverPhase : Phase
 	{
 		var diagnostics = new List<DocumentDiagnostic>();
 
+		// Go through all the variables which are unresolved
 		foreach (var variable in context.Variables.Values.Where(i => i.IsUnresolved))
 		{
-			if (variable.Context.IsType)
-			{
-				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of the member variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
-			}
-			else if (variable.Context.Parent == null)
-			{
-				diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of the global variable '{variable.Name}'", DocumentDiagnosticSeverity.ERROR));
-			}
+			diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of variable '{variable}'", DocumentDiagnosticSeverity.ERROR));
 		}
 
 		foreach (var type in context.Types.Values)
@@ -240,6 +234,12 @@ public class ResolverPhase : Phase
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
 				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
+			}
+
+			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			{
+				if (virtual_function.ReturnType != null && !virtual_function.ReturnType.IsUnresolved) continue;
+				diagnostics.Add(new DocumentDiagnostic(virtual_function.Start, "Can not resolve virtual function return type", DocumentDiagnosticSeverity.ERROR));
 			}
 
 			// There must be at least one destructor which requires no parameters
@@ -264,7 +264,7 @@ public class ResolverPhase : Phase
 			}
 		}
 
-		foreach (var implementation in context.GetFunctionImplementations())
+		foreach (var implementation in Common.GetLocalFunctionImplementations(context))
 		{
 			diagnostics.AddRange(GetFunctionDiagnostics(implementation));
 			diagnostics.AddRange(GetDiagnostics(implementation));
@@ -291,7 +291,7 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
-	/// Returns whether the specified object is accessable based on the specified environment
+	/// Returns whether the specified object is accessible based on the specified environment
 	/// </summary>
 	public static bool IsAccessable(FunctionImplementation environment, LinkNode link, bool reads)
 	{
@@ -308,7 +308,7 @@ public class ResolverPhase : Phase
 		var modifiers = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Modifiers : link.Right.To<FunctionNode>().Function.Metadata.Modifiers;
 		
 		// Determine the access level of the requester
-		var requester = environment.GetTypeParent();
+		var requester = environment.FindTypeParent();
 		var access = requester == owner ? Modifier.PRIVATE : (requester != null && requester.IsTypeInherited(owner) ? Modifier.PROTECTED : Modifier.PUBLIC);
 
 		// If the access level is private and the object is read, it can always be accessed
@@ -397,15 +397,10 @@ public class ResolverPhase : Phase
 		}
 
 		// Look for variables which are not resolved
-		errors.AddRange(implementation.Variables.Values.Where(i => i.IsUnresolved)
-			.Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'"))
-		);
+		errors.AddRange(implementation.Variables.Values.Where(i => i.IsUnresolved).Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'")));
 
 		// Build the report if there are errors
-		if (!errors.Any())
-		{
-			return string.Empty;
-		}
+		if (!errors.Any()) return string.Empty;
 
 		foreach (var error in errors)
 		{
@@ -422,17 +417,10 @@ public class ResolverPhase : Phase
 	{
 		var variables = new StringBuilder();
 
+		// Go through all the variables which are unresolved
 		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUnresolved))
 		{
-			if (variable.Context.IsType)
-			{
-				variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of the member variable '{variable.Name}'"));
-			}
-			else if (variable.Context.Parent == null)
-			{
-				variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of the global variable '{variable.Name}'"));
-			}
-
+			variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of variable '{variable}'"));
 			variables.AppendLine();
 		}
 
@@ -448,6 +436,12 @@ public class ResolverPhase : Phase
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
 			{
 				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance"));
+			}
+
+			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			{
+				if (virtual_function.ReturnType != null && !virtual_function.ReturnType.IsUnresolved) continue;
+				types.AppendLine(Errors.Format(virtual_function.Start, "Can not resolve virtual function return type"));
 			}
 
 			if (type.IsUserDefined && type.Destructors.Overloads.All(i => i.Parameters.Count > 0))
@@ -488,7 +482,7 @@ public class ResolverPhase : Phase
 			}
 		}
 
-		foreach (var implementation in context.GetFunctionImplementations())
+		foreach (var implementation in Common.GetLocalFunctionImplementations(context))
 		{
 			var report = GetFunctionReport(implementation);
 			var subreport = GetReport(implementation);
@@ -552,8 +546,6 @@ public class ResolverPhase : Phase
 
 		return builder.ToString() + report;
 	}
-
-	
 
 	/// <summary>
 	/// Finds the implementations of the allocation and the inheritance functions and registers them to be used

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.Linq;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1032", Justification = "Lexer exception should not be constructed without a position")]
@@ -59,7 +60,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is a operator
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is a operator, otherwise false</returns>
 	private static bool IsOperator(char c)
 	{
@@ -99,7 +99,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is a digit
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is a digit, otherwise false</returns>
 	private static bool IsDigit(char c)
 	{
@@ -109,7 +108,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is a text
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is a text, otherwise false</returns>
 	private static bool IsText(char c)
 	{
@@ -119,7 +117,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is start of a parenthesis
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is start of a parenthesis, otherwise false</returns>
 	private static bool IsContent(char c)
 	{
@@ -129,7 +126,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is start of a comment
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is start of a comment, otherwise false</returns>
 	private static bool IsComment(char c)
 	{
@@ -139,7 +135,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character start of a string
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is start of a string, otherwise false</returns>
 	private static bool IsString(char c)
 	{
@@ -149,7 +144,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character start of a character value
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>True if the character is start of a character value, otherwise false</returns>
 	private static bool IsCharacterValue(char c)
 	{
@@ -159,7 +153,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns the type of the character
 	/// </summary>
-	/// <param name="c">Character to scan</param>
 	/// <returns>Type of the character</returns>
 	private static AreaType GetType(char c)
 	{
@@ -202,10 +195,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is part of the progressing token
 	/// </summary>
-	/// <param name="previous">Type of the progressing token</param>
-	/// <param name="current">Type of the current character</param>
-	/// <param name="previous_symbol">Previous character</param>
-	/// <param name="current_symbol">Current character</param>
 	/// <returns>True if the character is part of the progressing token</returns>
 	private static bool IsPartOf(AreaType previous, AreaType current, char previous_symbol, char current_symbol, char next_symbol)
 	{
@@ -242,8 +231,6 @@ public static class Lexer
 	/// <summary>
 	/// Skips all the spaces starting from the given position
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="position">Start of the spaces</param>
 	/// <returns>Returns the position after the spaces</returns>
 	private static Position SkipSpaces(string text, Position position)
 	{
@@ -267,8 +254,6 @@ public static class Lexer
 	/// <summary>
 	/// Finds the corresponding end parenthesis and returns its position
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="start">Start of the opening parenthesis</param>
 	/// <returns>Position of the closing parenthesis</returns>
 	private static Position SkipContent(string text, Position start)
 	{
@@ -286,6 +271,14 @@ public static class Lexer
 			if (c == LINE_ENDING)
 			{
 				position.NextLine();
+			}
+			else if (c == STRING)
+			{
+				position = SkipString(text, position);
+			}
+			else if (c == CHARACTER)
+			{
+				position = SkipCharacterValue(text, position);
 			}
 			else
 			{
@@ -321,33 +314,35 @@ public static class Lexer
 	/// <summary>
 	/// Skips the current comment and returns the position
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="start">Start of the comment</param>
 	/// <returns>Position after the comment</returns>
 	private static Position SkipComment(string text, Position start)
 	{
 		if (IsMultilineComment(text, start))
 		{
-			var j = text.IndexOf(MULTILINE_COMMENT, start.Local + MULTILINE_COMMENT.Length);
-
-			if (j == -1)
-			{
-				throw new LexerException(start, $"Multiline comment did not have a closing '{MULTILINE_COMMENT}'");
-			}
+			var end = text.IndexOf(MULTILINE_COMMENT, start.Local + MULTILINE_COMMENT.Length);
+			if (end == -1) throw new LexerException(start, $"Multiline comment did not have a closing '{MULTILINE_COMMENT}'");
 
 			// Skip to the end of the multiline comment
-			j += MULTILINE_COMMENT.Length;
+			end += MULTILINE_COMMENT.Length;
 
 			// Count how many line ending are there inside the comment
-			var lines = text[start.Local..j].Count(i => i == LINE_ENDING);
+			var comment = text[start.Local..end];
+			var lines = comment.Count(i => i == LINE_ENDING);
 
-			// Try to resolve the character position from the last line ending inside the multiline comment
-			var k = text[start.Local..j].LastIndexOf(LINE_ENDING);
+			// Determine the index of the last line ending inside the comment
+			var last_line_ending = comment.LastIndexOf(LINE_ENDING);
 
-			// If there is no line ending inside the multiline comment, it means the comment uses only one line and its length can be added to the current character position
-			var c = k != -1 ? (j - k - 1) : (start.Character + j - start.Local);
+			// Check if the comment is a multiline comment
+			if (last_line_ending != -1)
+			{
+				last_line_ending += start.Local; // The index must be relative to the whole text
+				last_line_ending++; // Skip the line ending
 
-			return new Position(start.Line + lines, c, j, j);
+				return new Position(start.Line + lines, end - last_line_ending, end, start.Absolute + comment.Length);
+			}
+
+			/// NOTE: The comment is a single-line comment
+			return new Position(start.Line + lines, start.Character + comment.Length, end, start.Absolute + comment.Length);
 		}
 
 		var i = text.IndexOf(LINE_ENDING, start.Local);
@@ -355,12 +350,12 @@ public static class Lexer
 		if (i != -1)
 		{
 			var length = i - start.Local;
-			return new Position(start.Line, start.Character + length, start.Local + length, i);
+			return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
 		}
 		else
 		{
 			var length = text.Length - start.Local;
-			return new Position(start.Line, start.Character + length, start.Local + length, text.Length);
+			return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
 		}
 	}
 
@@ -386,8 +381,6 @@ public static class Lexer
 	/// <summary>
 	/// Skips the current string and returns the position
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="start">Start of the string</param>
 	/// <returns>Position after the string</returns>
 	private static Position SkipString(string text, Position start)
 	{
@@ -397,8 +390,6 @@ public static class Lexer
 	/// <summary>
 	/// Skips the current character value and returns the position
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="start">Start of the character value</param>
 	/// <returns>Position after the character value</returns>
 	private static Position SkipCharacterValue(string text, Position start)
 	{
@@ -422,12 +413,12 @@ public static class Lexer
 		else if (command == 'u')
 		{
 			length = 4;
-			error = "Can not understand unicode character";
+			error = "Can not understand Unicode character";
 		}
 		else if (command == 'U')
 		{
 			length = 8;
-			error = "Can not understand unicode character";
+			error = "Can not understand Unicode character";
 		}
 		else
 		{
@@ -436,15 +427,8 @@ public static class Lexer
 
 		var hexadecimal = text[2..];
 
-		if (hexadecimal.Length != length)
-		{
-			throw new LexerException(position, "Invalid character");
-		}
-
-		if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value))
-		{
-			throw new LexerException(position, error);
-		}
+		if (hexadecimal.Length != length) throw new LexerException(position, "Invalid character");
+		if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value)) throw new LexerException(position, error);
 
 		return value;
 	}
@@ -457,25 +441,17 @@ public static class Lexer
 		// Remove the closures
 		text = text[1..^1];
 
-		if (text.Length == 0)
-		{
-			throw new LexerException(position, "Character value was empty");
-		}
+		if (text.Length == 0) throw new LexerException(position, "Character value is empty");
 
 		if (text.First() != '\\')
 		{
-			if (text.Length != 1)
-			{
-				throw new LexerException(position, "Character value allows only one character");
-			}
+			if (text.Length != 1) throw new LexerException(position, "Character value allows only one character");
 
 			return text.First();
 		}
 
-		if (text.Length <= 2)
-		{
-			throw new LexerException(position, "Invalid character");
-		}
+		if (text.Length == 2 && text[1] == '\\') return (ulong)'\\';
+		if (text.Length <= 2) throw new LexerException(position, "Invalid character");
 
 		return GetSpecialCharacterValue(position, text);
 	}
@@ -483,12 +459,10 @@ public static class Lexer
 	/// <summary>
 	/// Returns the next token area in the text
 	/// </summary>
-	/// <param name="text">Current text</param>
-	/// <param name="start">Position from which to start looking for the next token</param>
 	/// <returns>The next token in the text</returns>
 	public static Area? GetNextToken(string text, Position start)
 	{
-		// Firsly the spaces must be skipped to find the next token
+		// Firstly the spaces must be skipped to find the next token
 		var position = SkipSpaces(text, start);
 
 		// Verify there is text to iterate
@@ -583,7 +557,6 @@ public static class Lexer
 	/// <summary>
 	/// Parses a token from text
 	/// </summary>
-	/// <param name="text">Text to parse into a token</param>
 	/// <returns>Text as a token</returns>
 	private static Token ParseTextToken(string text)
 	{
@@ -604,7 +577,6 @@ public static class Lexer
 	/// <summary>
 	/// Parses a token from a text area
 	/// </summary>
-	/// <param name="area">Current text area</param>
 	/// <returns>Area as a token</returns>
 	private static Token ParseToken(Area area)
 	{
@@ -665,25 +637,45 @@ public static class Lexer
 	/// </summary>
 	private static string PreprocessSpecialCharacters(string text)
 	{
-		text = text.Replace("\\a", "\\x07");
-		text = text.Replace("\\b", "\\x08");
-		text = text.Replace("\\t", "\\x09");
-		text = text.Replace("\\n", "\\x0A");
-		text = text.Replace("\\v", "\\x0B");
-		text = text.Replace("\\f", "\\x0C");
-		text = text.Replace("\\r", "\\x0D");
-		text = text.Replace("\\e", "\\x1B");
-		text = text.Replace("\\\"", "\\x22");
-		text = text.Replace("\\\'", "\\x27");
-		text = text.Replace("\\\\", "\\x5C");
+		var builder = new StringBuilder(text);
 
-		return text;
+		// Start from the second last character and look for special characters
+		for (var i = builder.Length - 2; i >= 0; i--)
+		{
+			// Special characters start with '\\'
+			if (builder[i] != '\\') continue;
+
+			// Skip occurrences where there are two sequential '\\'
+			// Example: '\\\\n' = \n != '\\\x0A'
+			if (i - 1 >= 0 && builder[i - 1] == '\\') continue;
+
+			var value = builder[i + 1] switch
+			{
+				'a' => "\\x07",
+				'b' => "\\x08",
+				't' => "\\x09",
+				'n' => "\\x0A",
+				'v' => "\\x0B",
+				'f' => "\\x0C",
+				'r' => "\\x0D",
+				'e' => "\\x1B",
+				'\"' => "\\x22",
+				'\'' => "\\x27",
+				_ => string.Empty
+			};
+
+			if (string.IsNullOrEmpty(value)) continue;
+
+			builder.Remove(i, 2);
+			builder.Insert(i, value);
+		}
+
+		return builder.ToString();
 	}
 
 	/// <summary>
 	/// Returns the text as a token list
 	/// </summary>
-	/// <param name="text">Text to scan</param>
 	/// <returns>Text as a token list</returns>
 	public static List<Token> GetTokens(string text, bool join = true)
 	{
@@ -693,8 +685,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns the text as a token list
 	/// </summary>
-	/// <param name="text">Text to scan</param>
-	/// <param name="anchor">Current position</param>
 	/// <returns>Text as a token list</returns>
 	public static List<Token> GetTokens(string text, Position anchor, bool join = true)
 	{

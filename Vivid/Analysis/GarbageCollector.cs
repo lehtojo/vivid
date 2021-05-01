@@ -419,7 +419,7 @@ public static class GarbageCollector
 
 			var type = call.GetType();
 
-			// If the return type of the function call is not destructable, then this function call can be skipped
+			// If the return type of the function call is not destructible, then this function call can be skipped
 			if (!type.IsUserDefined)
 			{
 				continue;

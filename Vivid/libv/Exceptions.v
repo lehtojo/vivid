@@ -8,14 +8,14 @@ Result<T, E> {
 
 Result<T, E> Ok<T, E> {
 	init(value: T) {
-		this.value = value
+		this.value = value as u64
 		this.is_error = false
 	}
 }
 
 Result<T, E> Error<T, E> {
 	init(value: E) {
-		this.value = value
+		this.value = value as u64
 		this.is_error = true
 	}
 

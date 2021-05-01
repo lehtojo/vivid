@@ -142,7 +142,7 @@ public static class Conditionals
 			}
 		}
 
-		// Replace all occurances of the following pattern in the instructions:
+		// Replace all occurrences of the following pattern in the instructions:
 		// [Conditional jump] [Label 1]
 		// jmp [Label 2]
 		// [Label 1]:
@@ -367,7 +367,7 @@ public static class Conditionals
 
 		// NOTE: There can not be increments and decrements operations since they can not be processed in the back end
 
-		// Since there will not be function calls, the only meaningfull nodes currently are edits
+		// Since there will not be function calls, the only meaningful nodes currently are edits
 		var a = statement.Body.FindAll(i => i.Is(OperatorType.ACTION));
 
 		// If the specified node contains memory edits, branchless execution should not be built

@@ -423,7 +423,7 @@ public static class ReconstructionAnalysis
 		// Refresh the usages of the variable in order to analyze whether this variable is inlinable
 		Analyzer.FindUsages(variable, root);
 
-		return variable.IsInlined;
+		return variable.IsInlined();
 	}
 
 	/// <summary>
@@ -696,37 +696,29 @@ public static class ReconstructionAnalysis
 
 		foreach (var assignment in assignments)
 		{
-			if (assignment.Right is OperatorNode operation)
+			if (assignment.Right is not OperatorNode operation) continue;
+
+			var value = (Node?)null;
+
+			// Ensure either the left or the right operand is the same as the destination of the assignment
+			if (operation.Left.Equals(assignment.Left))
 			{
-				var value = (Node?)null;
-
-				// Ensure either the left or the right operand is the same as the destination of the assignment
-				if (operation.Left.Equals(assignment.Left))
-				{
-					value = operation.Right;
-				}
-				else if (operation.Right.Equals(assignment.Left) &&
-					operation.Operator != Operators.DIVIDE &&
-					operation.Operator != Operators.MODULUS &&
-					operation.Operator != Operators.SUBTRACT)
-				{
-					value = operation.Left;
-				}
-
-				if (value == null)
-				{
-					continue;
-				}
-
-				var action_operator = Operators.GetActionOperator(operation.Operator);
-
-				if (action_operator == null)
-				{
-					continue;
-				}
-
-				assignment.Replace(new OperatorNode(action_operator, assignment.Position).SetOperands(assignment.Left, value));
+				value = operation.Right;
 			}
+			else if (operation.Right.Equals(assignment.Left) &&
+				operation.Operator != Operators.DIVIDE &&
+				operation.Operator != Operators.MODULUS &&
+				operation.Operator != Operators.SUBTRACT)
+			{
+				value = operation.Left;
+			}
+
+			if (value == null) continue;
+
+			var action_operator = Operators.GetActionOperator(operation.Operator);
+			if (action_operator == null) continue;
+
+			assignment.Replace(new OperatorNode(action_operator, assignment.Position).SetOperands(assignment.Left, value));
 		}
 	}
 
@@ -974,9 +966,11 @@ public static class ReconstructionAnalysis
 				{
 					// Load the instance into a variable
 					var instance = call.Parent.Left;
+					var type = instance.GetType();
+
 					instance.Remove();
 
-					var instance_variable = environment.Context.DeclareHidden(call.Parent.Left.GetType());
+					var instance_variable = environment.Context.DeclareHidden(type);
 					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 						new VariableNode(instance_variable),
 						instance
@@ -1013,7 +1007,7 @@ public static class ReconstructionAnalysis
 				root.Replace(environment);
 				environment.Add(root);
 
-				// Liftup the created inline node and after that continue lifting up the current inline node
+				// Lift up the created inline node and after that continue lifting up the current inline node
 				LiftupInlineNode(environment);
 				continue;
 			}
@@ -1070,7 +1064,7 @@ public static class ReconstructionAnalysis
 				var context = inline.GetParentContext();
 				var environment = new ContextInlineNode(new Context(context), inline.Position);
 
-				// Handle the inlinement of the destination node
+				// Handle the inlining of the destination node
 				InlineDestination(environment.Context, parent.Left).ForEach(i => environment.Add(i));
 
 				// Load the right side of the operation into a variable
@@ -1310,7 +1304,7 @@ public static class ReconstructionAnalysis
 			var left = call.Left;
 
 			var function = call.Right.To<FunctionNode>();
-			var expected = function.Function.Metadata.GetTypeParent() ?? throw new ApplicationException("Missing parent type");
+			var expected = function.Function.Metadata.FindTypeParent() ?? throw new ApplicationException("Missing parent type");
 			var actual = left.GetType();
 
 			if (actual == expected || actual.GetSupertypeBaseOffset(expected) == 0)

@@ -1,6 +1,3 @@
-true = 1
-false = 0
-
 export single_boolean(b: bool) {
 	if b == true {
 		=> false
@@ -105,56 +102,56 @@ export nested_logical_statements(a: bool, b: bool, c: bool, d: bool) {
 }
 
 export logical_operators_1(a: large, b: large) {
-   if a > b or a == 0 {
-	  => b
-   }
-   else a == b and b == 1 {
-	  => a
-   }
-   else {
-	  => 0
-   }
+	if a > b or a == 0 {
+		=> b
+	}
+	else a == b and b == 1 {
+		=> a
+	}
+	else {
+		=> 0
+	}
 }
 
 export logical_operators_2(a: large, b: large, c: large) {
-   if (a > b and a > c) or c > b {
-	  => 1
-   }
-   else (a <= b or b >= c) and (c == 1 or a == 1) {
-	  => 0
-   }
-   else {
-	  => -1
-   }
+	if (a > b and a > c) or c > b {
+		=> 1
+	}
+	else (a <= b or b >= c) and (c == 1 or a == 1) {
+		=> 0
+	}
+	else {
+		=> -1
+	}
 }
 
 f(a: large) {
-   if a == 7 {
-	  => true
-   }
-   else {
-	  => false
-   }
+	if a == 7 {
+		=> true
+	}
+	else {
+		=> false
+	}
 }
 
 export logical_operators_3(a: large, b: large) {
-   if (a > 10 or f(a) == true) and a > b {
-	  => 0
-   }
-   else {
-	  => 1
-   }
+	if (a > 10 or f(a) == true) and a > b {
+		=> 0
+	}
+	else {
+		=> 1
+	}
 }
 
 init() {
-   logical_operators_1(1, 1)
-   logical_operators_2(1, 1, 1)
-   logical_operators_3(1, 1)
-   single_boolean(true as bool)
-   two_booleans(true as bool, true as bool)
-   nested_if_statements(0, 0, 0)
-   logical_and_in_if_statement(true as bool, true as bool)
-   logical_or_in_if_statement(true as bool, true as bool)
-   nested_logical_statements(true as bool, true as bool, true as bool, true as bool)
-   => 1
+	logical_operators_1(1, 1)
+	logical_operators_2(1, 1, 1)
+	logical_operators_3(1, 1)
+	single_boolean(true)
+	two_booleans(true, true)
+	nested_if_statements(0, 0, 0)
+	logical_and_in_if_statement(true, true)
+	logical_or_in_if_statement(true, true)
+	nested_logical_statements(true, true, true, true)
+	=> 1
 }

@@ -81,14 +81,14 @@ public class ParserPhase : Phase
 		}
 
 		// Implement all virtual function overloads
-		foreach (var type in context.Types.Values)
+		foreach (var type in Common.GetAllTypes(context))
 		{
 			// Find all virtual functions
 			var virtual_functions = type.GetAllVirtualFunctions();
 
 			foreach (var virtual_function in virtual_functions)
 			{
-				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
+				var overloads = type.GetOverride(virtual_function.Name)?.Overloads;
 
 				if (overloads == null) continue;
 
@@ -105,7 +105,12 @@ public class ParserPhase : Phase
 
 					var implementation = overload.Get(expected!) ?? throw new ApplicationException("Could not implement virtual function");
 					implementation.VirtualFunction = virtual_function;
-					implementation.ReturnType = virtual_function.ReturnType;
+
+					if (virtual_function.ReturnType != null)
+					{
+						implementation.ReturnType = virtual_function.ReturnType;
+					}
+					
 					break;
 				}
 			}
@@ -142,7 +147,7 @@ public class ParserPhase : Phase
 			Run(() =>
 			{
 				var file = files[index];
-				var context = Parser.Initialize(index);
+				var context = Parser.CreateRootContext(index);
 				var root = new ScopeNode(context, null, null);
 
 				try
