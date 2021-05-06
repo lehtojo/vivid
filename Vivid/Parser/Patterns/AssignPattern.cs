@@ -26,14 +26,15 @@ public class AssignPattern : Pattern
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var destination = tokens[DESTINATION].To<IdentifierToken>();
+		var name = destination.Value;
 
 		Variable? variable;
 
-		if (!context.IsVariableDeclared(destination.Value))
+		if (!context.IsVariableDeclared(name))
 		{
-			if (destination.Value == Function.SELF_POINTER_IDENTIFIER || destination.Value == Lambda.SELF_POINTER_IDENTIFIER)
+			if (name == Function.SELF_POINTER_IDENTIFIER || name == Lambda.SELF_POINTER_IDENTIFIER)
 			{
-				throw Errors.Get(destination.Position, $"Can not declare variable with name '{destination.Value}' since the name is reserved");
+				throw Errors.Get(destination.Position, $"Can not declare variable with name '{name}' since the name is reserved");
 			}
 
 			var constant = context.Parent == null;
@@ -45,12 +46,12 @@ public class AssignPattern : Pattern
 				modifiers |= Modifier.STATIC;
 			}
 
-			variable = new Variable(context, null, category, destination.Value, modifiers) { Position = tokens[DESTINATION].Position };
+			variable = new Variable(context, null, category, name, modifiers) { Position = destination.Position };
 
 			return new VariableNode(variable, destination.Position);
 		}
 
-		variable = context.GetVariable(destination.Value)!;
+		variable = context.GetVariable(name)!;
 
 		if (variable.IsMember)
 		{

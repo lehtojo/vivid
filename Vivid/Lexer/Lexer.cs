@@ -457,6 +457,31 @@ public static class Lexer
 	}
 
 	/// <summary>
+	/// Returns how many bits the specified number requires
+	/// </summary>
+	public static int GetBits(object value)
+	{
+		if (value is double) return Lexer.Size.Bits;
+
+		var x = (long)value;
+
+		if (x < 0)
+		{
+			if (x < int.MinValue) return 64;
+			else if (x < short.MinValue) return 32;
+			else if (x < byte.MinValue) return 16;
+		}
+		else
+		{
+			if (x > int.MaxValue) return 64;
+			else if (x > short.MaxValue) return 32;
+			else if (x > byte.MaxValue) return 16;
+		}
+
+		return 8;
+	}
+
+	/// <summary>
 	/// Returns the next token area in the text
 	/// </summary>
 	/// <returns>The next token in the text</returns>
@@ -511,8 +536,12 @@ public static class Lexer
 			case AreaType.CHARACTER:
 			{
 				area.End = SkipCharacterValue(text, area.Start);
-				area.Text = GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]).ToString(CultureInfo.InvariantCulture);
 				area.Type = AreaType.NUMBER;
+
+				var value = (long)GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]);
+				var bits = GetBits(value);
+				
+				area.Text = value.ToString(CultureInfo.InvariantCulture) + SIGNED_TYPE_SEPARATOR + bits.ToString(CultureInfo.InvariantCulture);
 				return area;
 			}
 		}

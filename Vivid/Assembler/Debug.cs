@@ -233,7 +233,7 @@ public class Debug
 		{
 			if (pointer) throw new NotSupportedException("Pointer of a primitive type required, but it was not requested using a link type");
 
-			return Mangle.VIVID_LANGUAGE_TAG + type.Name;
+			return Mangle.VIVID_LANGUAGE_TAG + type.Identifier;
 		}
 
 		/// NOTE: Since the type is a user defined type, it must have a pointer symbol in its fullname. It must be removed, if the pointer flag is set to true.
@@ -582,12 +582,14 @@ public class Debug
 
 	public void AppendMemberVariable(Variable variable, HashSet<Type> types)
 	{
+		if (variable.Type is ArrayType) return;
+		
 		Entry.Add(MemberVariableAbbrevation);
 		Entry.Add(variable.Name);
 		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
 		Entry.Add(GetFile(variable));
 		Entry.Add(GetLine(variable));
-		Entry.Add(variable.LocalAlignment ?? throw new ApplicationException("Missing member variable alignment"));
+		Entry.Add(variable.GetAlignment(variable.Context.To<Type>()) ?? throw new ApplicationException("Missing member variable alignment"));
 
 		if (Flag.Has(variable.Modifiers, Modifier.PRIVATE))
 		{
@@ -783,7 +785,7 @@ public class Debug
 
 	public void AppendLocalVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
-		if (variable.IsGenerated || variable.LocalAlignment == null) return;
+		if (variable.IsGenerated || variable.LocalAlignment == null || variable.Type is ArrayType) return;
 
 		var is_string = IsStringType(variable);
 

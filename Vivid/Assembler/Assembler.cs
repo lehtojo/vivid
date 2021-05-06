@@ -376,7 +376,7 @@ public static class Assembler
 
 	private static void AppendVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
 	{
-		unit.Append(new LabelInstruction(unit, new Label(fullname + "_v")));
+		unit.Append(new LabelInstruction(unit, new Label(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX)));
 
 		var from = implementation.VirtualFunction!.FindTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
 		var to = implementation.FindTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
@@ -434,10 +434,11 @@ public static class Assembler
 				continue;
 			}
 
-			// Ensure this function is visible to other units
-			builder.AppendLine($"{EXPORT_DIRECTIVE} {implementation.GetFullname()}");
-
 			var fullname = implementation.GetFullname();
+
+			// Ensure this function is visible to other units
+			builder.AppendLine($"{EXPORT_DIRECTIVE} {fullname}");
+
 			var unit = new Unit(implementation);
 
 			unit.Execute(UnitMode.APPEND, () =>
@@ -447,6 +448,7 @@ public static class Assembler
 
 				if (implementation.VirtualFunction != null)
 				{
+					builder.AppendLine($"{EXPORT_DIRECTIVE} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
 					AppendVirtualFunctionHeader(unit, implementation, fullname);
 				}
 
@@ -863,14 +865,6 @@ public static class Assembler
 		}
 	}
 
-	/// <summary>
-	/// Appends debug information about the specified type
-	/// </summary>
-	public static void AppendTypeDebugInfo(Debug debug, Type type, HashSet<Type> types)
-	{
-		debug.AppendType(type, types);
-	}
-
 	public static Dictionary<SourceFile, string> GetDebugSections(Context context)
 	{
 		var sections = new Dictionary<SourceFile, string>();
@@ -905,7 +899,7 @@ public static class Assembler
 				foreach (var type in previous)
 				{
 					if (denylist.Contains(type)) continue;
-					AppendTypeDebugInfo(debug, type, types);
+					debug.AppendType(type, types);
 				}
 
 				// Stop if the types have not increased

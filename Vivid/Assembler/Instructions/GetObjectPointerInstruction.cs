@@ -37,9 +37,7 @@ public class GetObjectPointerInstruction : Instruction
 		/// NOTE: Addresses of inlined member variables can not be modified, therefore the text below does not affect inlined member variables
 		if (Variable.IsInlined())
 		{
-			var alignment = Variable.LocalAlignment ?? throw Errors.Get(Variable.Position, "Missing member variable alignment");
-
-			Result.Value = ExpressionHandle.CreateMemoryAddress(Start, alignment);
+			Result.Value = ExpressionHandle.CreateMemoryAddress(Start, Offset);
 			Result.Format = Variable.Type!.Format;
 			return;
 		}

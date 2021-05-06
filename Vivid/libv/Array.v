@@ -1,18 +1,24 @@
 ﻿REQUIREMENT_EXIT_CODE = 1
 
-# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs that a requirement was not met
-export require(result: bool) {
-	if result == false {
-		println('Requirement failed')
-		exit(REQUIREMENT_EXIT_CODE)
-	}
-}
+MemoryIterator<T> {
+	elements: link<T>
+	position: normal
+	count: normal
 
-# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs the user with the specified message
-export require(result: bool, message: link) {
-	if result == false {
-		println(message)
-		exit(REQUIREMENT_EXIT_CODE)
+	init(elements: link<T>, count: large) {
+		this.elements = elements
+		this.position = -1
+		this.count = count
+	}
+
+	value() => elements[position]
+
+	next() {
+		=> ++position < count
+	}
+
+	reset() {
+		position = -1
 	}
 }
 
@@ -48,6 +54,11 @@ Array<T> {
 		require(i >= 0 and i < count, 'Index out of bounds')
 
 		=> data[i]
+	}
+
+	# Summary: Returns an iterator which can be used to inspect this array
+	iterator() {
+		=> MemoryIterator<T>(data, count)
 	}
 	
 	deinit() {
@@ -150,5 +161,22 @@ Box<T> {
 		
 	deinit() {
 		deallocate(data)
+	}
+}
+
+
+# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs that a requirement was not met
+export require(result: bool) {
+	if result == false {
+		println('Requirement failed')
+		exit(REQUIREMENT_EXIT_CODE)
+	}
+}
+
+# Summary: Ensures the specified condition is true, otherwise this function exits the program and informs the user with the specified message
+export require(result: bool, message: link) {
+	if result == false {
+		println(message)
+		exit(REQUIREMENT_EXIT_CODE)
 	}
 }

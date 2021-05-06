@@ -22,20 +22,14 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetVirtualFunctionCall(Node self, Type self_type, string name, Node parameters, List<Type?> parameter_types)
 	{
-		if (!self_type.IsVirtualFunctionDeclared(name))
-		{
-			return null;
-		}
+		if (!self_type.IsVirtualFunctionDeclared(name)) return null;
 
 		// Ensure all the parameter types are resolved
-		if (parameter_types.Any(i => i == null || i.IsUnresolved))
-		{
-			return null;
-		}
+		if (parameter_types.Any(i => i == null || i.IsUnresolved)) return null;
 
 		// Try to find a virtual function with the parameter types
 		var overload = (VirtualFunction?)self_type.GetVirtualFunction(name)!.GetOverload(parameter_types!);
-		if (overload == null) return null;
+		if (overload == null || overload.ReturnType == null) return null;
 
 		var required_self_type = overload.FindTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
 		if (required_self_type.Configuration == null) return null;
@@ -323,10 +317,7 @@ public static class Common
 		var return_type = ReadType(context, tokens);
 
 		// The return type must exist
-		if (return_type == null)
-		{
-			return null;
-		}
+		if (return_type == null) return null;
 
 		// Read all the parameter types
 		var parameter_types = parameters.GetSections().Select(i => ReadType(context, new Queue<Token>(i))).ToList();

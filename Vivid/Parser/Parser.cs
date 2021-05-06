@@ -503,10 +503,7 @@ public static class Parser
 	/// </summary>
 	private static void CreateFunctionTokens(List<Token> tokens)
 	{
-		if (tokens.Count < FUNCTION_LENGTH)
-		{
-			return;
-		}
+		if (tokens.Count < FUNCTION_LENGTH) return;
 
 		for (var i = tokens.Count - 2; i >= 0;)
 		{

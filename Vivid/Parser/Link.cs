@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 
 public class Link : Number
@@ -57,16 +57,16 @@ public class Link : Number
 
 	public override bool Equals(object? other)
 	{
-		return other is Link link && Name == link.Name && Identifier == link.Identifier && TemplateArguments.SequenceEqual(link.TemplateArguments);
+		return other is Link link && Name == link.Name && Identifier == link.Identifier && Equals(GetOffsetType(), link.GetOffsetType());
 	}
 
 	public override int GetHashCode()
 	{
-		var hash = new System.HashCode();
-		hash.Add(Identifier);
-		hash.Add(Name);
-		TemplateArguments.ForEach(i => hash.Add(i.GetHashCode()));
-		
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Identifier, GetOffsetType());
+	}
+
+	public override string ToString()
+	{
+		return Name + '<' + GetOffsetType() + '>';
 	}
 }

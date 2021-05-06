@@ -405,6 +405,9 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return Remove();
 	}
 
+	/// <summary>
+	/// Transfers the child nodes of the specified node to this node and detaches the specified node
+	/// </summary>
 	public void Merge(Node node)
 	{
 		foreach (var iterator in node)
@@ -414,7 +417,10 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 		node.Detach();
 	}
-
+	
+	/// <summary>
+	/// Removes all references from this node to other nodes
+	/// </summary>
 	public void Detach()
 	{
 		Parent = null;

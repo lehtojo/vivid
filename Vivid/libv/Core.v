@@ -102,7 +102,7 @@ move(source: link, destination: link, bytes: large) {
 	# Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
 	buffer = allocate(bytes)
 	copy(source, bytes, buffer)
-    
+
 	# Copy the contents of the temporary buffer to the destination
 	copy(buffer, bytes, destination)
 

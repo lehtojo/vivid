@@ -23,10 +23,7 @@ public class LinkNode : OperatorNode
 		var primary = Left.TryGetType();
 
 		// Do not try to resolve the right node without the type of the left
-		if (primary == null)
-		{
-			return null;
-		}
+		if (primary == null) return null;
 
 		if (Right.Is(NodeType.UNRESOLVED_FUNCTION))
 		{
@@ -61,9 +58,16 @@ public class LinkNode : OperatorNode
 				return resolved;
 			}
 		}
-		else
+		else if (Right.Is(NodeType.UNRESOLVED_IDENTIFIER))
 		{
 			Resolver.Resolve(primary, Right);
+		}
+		else
+		{
+			/// NOTE: Environment context is required
+			/// Consider a situation where the right operand is a function call.
+			/// The function arguments need the environment context to be resolved.
+			Resolver.Resolve(environment, Right);
 		}
 		
 		return null;

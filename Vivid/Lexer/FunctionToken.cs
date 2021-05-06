@@ -62,10 +62,8 @@ public class FunctionToken : Token
 			var name = tokens.Pop();
 			
 			// Ensure the name is valid
-			if (name == null) throw Errors.Get(Position, "Invalid parameters");
-			if (!name.Is(TokenType.IDENTIFIER)) throw Errors.Get(name.Position, "Can not resolve the parameter declaration");
+			if (name == null || !name.Is(TokenType.IDENTIFIER)) throw Errors.Get(name?.Position, "Can not understand the parameters");
 
-			// Try to consume a parameter type
 			var next = tokens.Pop();
 
 			if (next == null || next.Is(Operators.COMMA))
@@ -75,7 +73,7 @@ public class FunctionToken : Token
 			}
 
 			// If there are tokens left and the next token is not a comma, it must represent a parameter type
-			if (!next.Is(Operators.COLON)) throw Errors.Get(name.Position, "Can not resolve the parameter declaration");
+			if (!next.Is(Operators.COLON)) throw Errors.Get(name?.Position, "Can not understand the parameters");
 
 			var source = new Queue<Token>(tokens);
 			var type = Common.ReadType(context, source);

@@ -1,25 +1,3 @@
-MemoryIterator<T> {
-	elements: link<T>
-	position: normal
-	count: normal
-
-	init(elements: link<T>, count: large) {
-		this.elements = elements
-		this.position = -1
-		this.count = count
-	}
-
-	value() => elements[position]
-
-	next() {
-		=> ++position < count
-	}
-
-	reset() {
-		position = -1
-	}
-}
-
 List<T> {
 	private:
 	elements: link<T>
@@ -29,16 +7,18 @@ List<T> {
 	public:
 
 	# Summary: Creates a list with the specified initial size
-	init(count: large) {
-		if count <= 0 {
-			count = 1
+	init(size: large, fill: bool) {
+		if size <= 0 {
+			size = 1
 		}
 
-		elements = allocate(count * sizeof(T))
-		zero(elements, count * sizeof(T))
+		elements = allocate(size * sizeof(T))
+		zero(elements, size * sizeof(T))
 
-		capacity = count
-		position = 0
+		capacity = size
+
+		if fill { position = size }
+		else { position = 0 }
 	}
 
 	# Summary: Creates a list with the specified initial size
@@ -115,7 +95,7 @@ List<T> {
 
 		if count > 0 {
 			start = elements + at * sizeof(T)
-			move(start, start + sizeof(T), count)
+			move(start, start + sizeof(T), count * sizeof(T))
 		}
 
 		elements[at] = element

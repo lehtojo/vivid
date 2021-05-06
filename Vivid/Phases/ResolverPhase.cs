@@ -163,7 +163,6 @@ public class ResolverPhase : Phase
 			foreach (var resolvable in implementation.Node.FindAll(i => i is IResolvable))
 			{
 				var status = ((IResolvable)resolvable).GetStatus();
-
 				if (!status.IsProblematic) continue;
 
 				diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
@@ -229,6 +228,17 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			foreach (var iterator in type.Initialization)
+			{
+				foreach (var resolvable in iterator.FindAll(i => i is IResolvable))
+				{
+					var status = ((IResolvable)resolvable).GetStatus();
+					if (!status.IsProblematic) continue;
+
+					diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
+				}
+			}
+
 			diagnostics.AddRange(FindUnconstructedSupertypes(type));
 
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
@@ -428,6 +438,16 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			foreach (var iterator in type.Initialization)
+			{
+				var errors = iterator.FindAll(i => i is IResolvable).Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic);
+
+				foreach (var error in errors)
+				{
+					types.AppendLine(error.Description);
+				}
+			}
+
 			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(i.Range.Start.Line, i.Range.Start.Character), i.Message)))
 			{
 				types.AppendLine(diagnostic.Description);

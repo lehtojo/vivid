@@ -16,10 +16,7 @@ MapElement<K, V> {
 }
 
 MapBucket<K, V> {
-	private:
 	slots: Array<LinkedList<MapElement<K, V>>>
-	
-	public:
 
 	init() {
 		# Initialize all the slots in this bucket
@@ -94,8 +91,8 @@ MapBucket<K, V> {
 
 		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
 			if iterator.value.key == key {
-					slot.remove(previous, iterator)
-					=> MAP_OK
+				slot.remove(previous, iterator)
+				=> MAP_OK
 			}
 
 			previous = iterator
@@ -112,6 +109,66 @@ MapBucket<K, V> {
 		}
 
 		=> size
+	}
+}
+
+MapIterator<K, V> {
+	buckets: LinkedList<MapBucket<K, V>>
+	bucket: LinkedListElement<MapBucket<K, V>>
+	slot: normal
+	element: LinkedListElement<MapElement<K, V>>
+
+	init(buckets: LinkedList<MapBucket<K, V>>) {
+		this.buckets = buckets
+		this.bucket = none as LinkedListElement<MapBucket<K, V>>
+	}
+
+	value() => element.value
+
+	private next_element() {
+		# Ensure the current bucket is not none
+		loop (bucket != none) {
+			slot++ # Move to the next slot
+
+			# If the current bucket does not contain the current slot index, move to the next bucket
+			if slot >= bucket.value.slots.count {
+				slot = -1
+				bucket = bucket.next
+				continue
+			}
+
+			# Load the first element from the current slot and ensure it exists, move to the next slot otherwise
+			value = bucket.value.slots[slot].iterator()
+			if value == none continue
+
+			element = value
+			=> true
+		}
+
+		=> false
+	}
+
+	next() {
+		# At beginning the iterator does not have the first bucket loaded
+		if bucket == none {
+			bucket = buckets.iterator()
+			slot = -1
+			=> next_element()
+		}
+		
+		# If the element is none at this point, nothing can be done
+		if element == none => false
+		
+		# Try to access the next element
+		element = element.next
+		if element != none => true
+
+		# Since the element is none currently, try to get the next element from the next slot
+		=> next_element()
+	}
+
+	reset() {
+		bucket = none
 	}
 }
 
@@ -187,5 +244,9 @@ Map<K, V> {
 		}
 
 		=> size
+	}
+
+	iterator() {
+		=> MapIterator<K, V>(buckets)
 	}
 }

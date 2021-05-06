@@ -68,6 +68,8 @@ public class Mangle
 	public const char START_MEMBER_VARIABLE_COMMAND = 'V';
 	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
 
+	public const string VIRTUAL_FUNCTION_POSTFIX = "_v";
+
 	private List<MangleDefinition> Definitions { get; set; } = new List<MangleDefinition>();
 	public string Value { get; set; } = string.Empty;
 
