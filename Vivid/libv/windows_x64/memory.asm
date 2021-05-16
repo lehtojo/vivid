@@ -32,7 +32,7 @@ ret
 
 # rcx: Address
 .global _V10deallocatePhx
-_V10deallocatePhx:
+_V19internal_deallocatePh:
 
 # rcx: Address of the region to be released
 xor rdx, rdx # Set the size of the region to zero in order to deallocate it completely
