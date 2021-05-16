@@ -31,11 +31,12 @@ add rsp, 40
 ret
 
 # rcx: Address
-.global _V10deallocatePhx
-_V19internal_deallocatePh:
+# rdx: Bytes
+.global _V19internal_deallocatePhx
+_V19internal_deallocatePhx:
 
 # rcx: Address of the region to be released
-xor rdx, rdx # Set the size of the region to zero in order to deallocate it completely
+# rdx: Size of the region
 mov r8, 0x00008000 # MEM_RELEASE
 
 sub rsp, 40

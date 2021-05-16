@@ -62,8 +62,8 @@ ret
 
 # rdi: Address
 # rsi: Length
-.global _V10deallocatePhx
-_V10deallocatePhx:
+.global _V19internal_deallocatePhx
+_V19internal_deallocatePhx:
 
 mov rax, 11 # System call: sys_munmap
 syscall
