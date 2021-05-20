@@ -9,36 +9,47 @@ using System.Linq;
 public class CallInstruction : Instruction
 {
 	public Result Function { get; }
-
-	// Represents the instructions which pass the required parameters
-	public List<Instruction> Instructions { get; } = new List<Instruction>();
+	public Type? ReturnType { get; private set; }
 	
-	// Represents the destinations where the required parameters are passed to
+	// Represents the destination handles where the required parameters are passed to
 	public List<Handle> Destinations { get; } = new List<Handle>();
 
 	// This call is a tail call if it uses jump instruction
-	public bool IsTailCall => Operation == global::Instructions.X64.JUMP || Operation == global::Instructions.Arm64.JUMP_LABEL || Operation == global::Instructions.Arm64.JUMP_REGISTER;
+	public bool IsTailCall => Operation == Instructions.X64.JUMP || Operation == Instructions.Arm64.JUMP_LABEL || Operation == Instructions.Arm64.JUMP_REGISTER;
+	
+	public List<Result> Values { get; private set; } = new List<Result>();
 
-	private bool IsParameterInstructionListExtracted => IsBuilt;
-
+	#warning Support return values which use stack more than is allocated
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
+		ReturnType = return_type;
 		Dependencies = null;
 		Description = "Calls function " + Function;
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
+
+		// Handle pack return types
+		if (ReturnType == null || !ReturnType.IsPack) return;
+		CreatePackValues(ReturnType);
+		ReceivePackReturnType();
 	}
 
 	public CallInstruction(Unit unit, Result function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = function;
+		ReturnType = return_type;
 		Dependencies = null;
 		Description = "Calls the function handle";
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
+
+		// Handle pack return types
+		if (ReturnType == null || !ReturnType.IsPack) return;
+		CreatePackValues(ReturnType);
+		ReceivePackReturnType();
 	}
 
 	/// <summary>
@@ -49,25 +60,9 @@ public class CallInstruction : Instruction
 		foreach (var register in Unit.VolatileRegisters)
 		{
 			/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
-			if (register.Handle == null || !register.Handle.IsValid(Position + 1) || register.IsHandleCopy())
-			{
-				continue;
-			}
-
+			if (register.Handle == null || !register.Handle.IsValid(Position + 1) || register.IsHandleCopy()) continue;
 			throw new ApplicationException("Register evacuation failed");
 		}
-	}
-
-	/// <summary>
-	/// Unpacks the parameter instructions by executing them
-	/// </summary>
-	private List<Register> ExecuteParameterInstructions()
-	{
-		var moves = Instructions.Select(i => i.To<MoveInstruction>()).ToList();
-
-		Unit.Append(Memory.Align(Unit, moves, out List<Register> registers));
-
-		return registers;
 	}
 
 	/// <summary>
@@ -124,9 +119,90 @@ public class CallInstruction : Instruction
 		return new List<RegisterLock> { RegisterLock.Create(Function) };
 	}
 
+	/// <summary>
+	/// Generates the results which are used by the returned pack
+	/// </summary>
+	private void CreatePackValues(Type type)
+	{
+		foreach (var member in type.Variables.Values)
+		{
+			Values.Add(new Result());
+
+			if (member.Type!.IsPack)
+			{
+				CreatePackValues(member.Type!);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Sets the return value to represent a pack type
+	/// </summary>
+	private void ReceivePackReturnType()
+	{
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => Unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
+		var decimal_parameter_registers = Unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
+		var position = new StackMemoryHandle(Unit, Assembler.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0, false);
+		var handle = new DisposablePackHandle(new Dictionary<Variable, Result>());
+
+		ReceivePackReturnType(handle, standard_parameter_registers, decimal_parameter_registers, position, ReturnType!, 0);
+
+		Result.Value = handle;
+		Result.Format = Assembler.Format;
+	}
+
+	/// <summary>
+	/// Sets the return value to represent a pack type
+	/// </summary>
+	private int ReceivePackReturnType(DisposablePackHandle pack, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Type type, int i)
+	{
+		var members = type.Variables.Values.ToArray();
+
+		foreach (var member in members)
+		{
+			var result = Values[i];
+			i++;
+
+			pack.Variables[member] = result;
+
+			if (member.Type!.IsPack)
+			{
+				var handle = new DisposablePackHandle(new Dictionary<Variable, Result>());
+				result.Value = handle;
+				
+				i = ReceivePackReturnType(handle, standard_parameter_registers, decimal_parameter_registers, position, member.Type!, i);
+				continue;
+			}
+
+			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+			if (register != null)
+			{
+				result.Value = new RegisterHandle(register);
+				register.Handle = result;
+			}
+			else
+			{
+				result.Value = position.Finalize();
+				position.Offset += Assembler.Size.Bytes;
+			}
+
+			result.Format = member.GetRegisterFormat();
+		}
+
+		return i;
+	}
+	
+	public override void OnSimulate()
+	{
+		// Handle pack return types
+		if (ReturnType == null || !ReturnType.IsPack) return;
+		ReceivePackReturnType();
+	}
+
 	public override void OnBuild()
 	{
-		var registers = ExecuteParameterInstructions();
+		var registers = Destinations.Where(i => i.Is(HandleType.REGISTER)).Select(i => i.To<RegisterHandle>().Register).ToArray();
 
 		// Lock the parameter registers
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
@@ -156,7 +232,7 @@ public class CallInstruction : Instruction
 			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
-				is_address ? global::Instructions.Arm64.CALL_LABEL : global::Instructions.Arm64.CALL_REGISTER,
+				is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.ALLOW_ADDRESS,
@@ -189,7 +265,7 @@ public class CallInstruction : Instruction
 			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
-				global::Instructions.X64.CALL,
+				Instructions.X64.CALL,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
@@ -208,7 +284,13 @@ public class CallInstruction : Instruction
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
 
 		// After a call all volatile registers might be changed
-		Unit.VolatileRegisters.ForEach(r => r.Reset());
+		Unit.VolatileRegisters.ForEach(i => i.Reset());
+
+		if (ReturnType != null && ReturnType.IsPack)
+		{
+			ReceivePackReturnType();
+			return;
+		}
 
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
@@ -219,15 +301,6 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		// The source values of the parameter instructions must be referenced so that they are not overridden before this call
-		if (!IsParameterInstructionListExtracted)
-		{
-			return Instructions
-				.Where(i => i.Is(InstructionType.MOVE))
-				.Select(i => i.To<DualParameterInstruction>().Second)
-				.Concat(new[] { Result, Function }).ToArray();
-		}
-
-		return new[] { Result, Function };
+		return new[] { Result, Function }.Concat(Values).ToArray();
 	}
 }

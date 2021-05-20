@@ -20,15 +20,10 @@ public class InitializeInstruction : Instruction
 
 	private static int GetRequiredCallMemory(CallInstruction[] calls)
 	{
-		if (!calls.Any())
-		{
-			return 0;
-		}
+		if (!calls.Any()) return 0;
 
 		// Find all parameter move instructions which move the source value into memory
-		var parameter_instructions = calls.SelectMany(c => c.Instructions)
-			.Where(i => i.Type == InstructionType.MOVE).Cast<MoveInstruction>()
-			.Where(m => m.Destination?.IsMemoryAddress ?? false).ToArray();
+		var parameter_instructions = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).ToArray();
 
 		if (!parameter_instructions.Any())
 		{
@@ -42,7 +37,7 @@ public class InitializeInstruction : Instruction
 		}
 
 		// Find the memory handle which has the greatest offset, that tells how much memory should be allocated for calls
-		return parameter_instructions.Select(i => i.Destination!.Value!.To<MemoryHandle>().Offset).Max() + Assembler.Size.Bytes;
+		return parameter_instructions.Select(i => i.To<MemoryHandle>().Offset).Max() + Assembler.Size.Bytes;
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)

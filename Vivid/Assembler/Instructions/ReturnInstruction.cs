@@ -28,11 +28,13 @@ public class ReturnInstruction : Instruction
 	/// </summary>
 	private bool IsValueInReturnRegister()
 	{
-		return Object!.Value.Is(HandleType.REGISTER) && Object!.Value.To<RegisterHandle>().Register == ReturnRegister;
+		return Object!.Value.Is(HandleInstanceType.REGISTER) && Object!.Value.To<RegisterHandle>().Register == ReturnRegister;
 	}
 
 	public override void OnBuild()
 	{
+		if (ReturnType!.IsPack) return;
+
 		// 1. Skip if there is no return value
 		// 2. Ensure the return value is in the correct register
 		if (Object == null || IsValueInReturnRegister())

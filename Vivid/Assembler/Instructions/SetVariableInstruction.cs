@@ -11,19 +11,25 @@ public class SetVariableInstruction : Instruction
 
 	public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit, InstructionType.SET_VARIABLE)
 	{
-		if (!variable.IsPredictable)
-		{
-			throw new ArgumentException("Tried to use Set-Variable-Instruction to update the value of an unpredictable variable");
-		}
+		if (!variable.IsPredictable) throw new ArgumentException("Setting value for unpredictable variables is not allowed");
 
 		Variable = variable;
 		Value = value;
+
+		// If the variable has a previous value, hold it until this instruction is executed
+		if (Unit.Scope!.Variables.TryGetValue(Variable, out Result? previous))
+		{
+			Dependencies = new[] { Result, Value, previous };
+		}
+		else
+		{
+			Dependencies = new[] { Result, Value };
+		}
+		
 		Description = $"Updates the value of the variable '{variable.Name}'";
 		IsAbstract = true;
-		Dependencies = new[] { Result, Value };
 
 		Result.Format = Variable.GetRegisterFormat();
-
 		OnSimulate();
 	}
 
@@ -43,13 +49,10 @@ public class SetVariableInstruction : Instruction
 	public override void OnBuild() 
 	{
 		// Do not copy the value if it does not represent another variable
-		if (!Unit.Scope!.Variables.ContainsValue(Value))
-		{
-			return;
-		}
+		if (!Unit.Scope!.Variables.ContainsValue(Value)) return;
 
 		// Try to get the current location of the variable to be updated
-		var current = Unit.GetCurrentVariableHandle(Variable);
+		var current = Unit.GetVariableValue(Variable);
 
 		// Use the location if it is available
 		if (current != null)

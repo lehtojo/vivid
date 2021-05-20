@@ -291,7 +291,7 @@ public class Instruction
 
 		if (destination != null)
 		{
-			if (destination.Is(HandleType.REGISTER) || destination.Is(HandleType.MEDIA_REGISTER))
+			if (destination.Is(HandleInstanceType.REGISTER))
 			{
 				var register = destination.To<RegisterHandle>().Register;
 				var attached = false;
@@ -329,7 +329,7 @@ public class Instruction
 
 		if (source != null)
 		{
-			if (source.Is(HandleType.REGISTER) || source.Is(HandleType.MEDIA_REGISTER))
+			if (source.Is(HandleInstanceType.REGISTER))
 			{
 				var register = source.To<RegisterHandle>().Register;
 

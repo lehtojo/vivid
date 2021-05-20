@@ -26,6 +26,11 @@ public static class References
 			throw new InvalidOperationException("Tried to create variable handle which used a self pointer without its type");
 		}
 
+		if (variable.Type!.IsPack)
+		{
+			return new PackHandle(unit, variable.Type, variable.Context.Identity + '.' + variable.Name);
+		}
+
 		Handle? handle;
 
 		switch (variable.Category)
@@ -76,12 +81,12 @@ public static class References
 
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
-		Result? self = null;
-		Type? self_type = null;
+		var self = (Result?)null;
+		var self_type = (Type?)null;
 
 		if (variable.Category == VariableCategory.MEMBER)
 		{
-			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
+			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ).Execute();
 			self_type = unit.Self.Type!;
 		}
 

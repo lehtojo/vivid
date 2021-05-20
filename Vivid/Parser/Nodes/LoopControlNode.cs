@@ -5,51 +5,57 @@ public class LoopControlNode : Node, IResolvable
 {
 	public Keyword Instruction { get; private set; }
 	public Condition? Condition { get; set; }
-	public LoopNode? Loop { get; set; }
+	public LoopNode? Loop => (LoopNode?)FindParent(i => i.Is(NodeType.LOOP));
+	public bool Finished { get; set; } = false;
 
 	public LoopControlNode(Keyword instruction, Position? position = null)
 	{
 		Instruction = instruction;
 		Position = position;
 		Instance = NodeType.LOOP_CONTROL;
+
+		if (Instruction != Keywords.CONTINUE) { Finished = true; }
 	}
 
-	public LoopControlNode(Keyword instruction, Condition? condition, LoopNode? loop, Position? position)
+	public LoopControlNode(Keyword instruction, Condition? condition, Position? position, bool finished = false)
 	{
 		Instruction = instruction;
 		Condition = condition;
-		Loop = loop;
+		Finished = finished;
 		Position = position;
 		Instance = NodeType.LOOP_CONTROL;
 	}
 
 	public Node? Resolve(Context context)
 	{
-		// If the loop has been found already, it means this node is resolved
-		if (Loop != null) return null;
+		if (Finished) return null;
 
 		// Try to find the parent loop
-		Loop = (LoopNode?)FindParent(i => i.Is(NodeType.LOOP));
-		if (Loop == null) return null;
+		var loop = Loop;
+		if (loop == null) return null;
 
 		// Continue nodes must execute the action of their parent loops
 		if (Instruction != Keywords.CONTINUE) return null;
 
 		// Copy the action node if it is present and it is not empty
-		if (Loop.IsForeverLoop || Loop.Action.IsEmpty) return null;
+		if (loop.IsForeverLoop || loop.Action.IsEmpty)
+		{
+			Finished = true;
+			return null;
+		}
 		
 		// Execute the action first then the continue
 		var result = new InlineNode();
-		Loop.Action.ForEach(i => result.Add(i.Clone()));
+		loop.Action.ForEach(i => result.Add(i.Clone()));
 
-		result.Add(new LoopControlNode(Instruction, Condition, Loop, Position));
+		result.Add(new LoopControlNode(Instruction, Condition, Position, true));
 
 		return result;
 	}
 
 	public Status GetStatus()
 	{
-		if (Loop != null) return Status.OK;
+		if (Finished && Loop != null) return Status.OK;
 		return Status.Error($"Keyword '{Instruction.Identifier}' must be used inside a loop");
 	}
 

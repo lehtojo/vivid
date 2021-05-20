@@ -27,11 +27,9 @@ public class GetMemoryAddressInstruction : Instruction
 
 	private void ValidateHandle()
 	{
-		// Ensure the start value is a contant or in a register
-		if (!Start.IsConstant && !Start.IsInline && !Start.IsStandardRegister)
-		{
-			Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
-		}
+		// Ensure the start value is a constant or in a register
+		if (Start.IsConstant || Start.IsInline || Start.IsStandardRegister) return;
+		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
 	}
 
 	public override void OnBuild()

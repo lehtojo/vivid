@@ -106,6 +106,8 @@ public static class Parser
 	public const int MAX_PRIORITY = 23;
 	public const int MAX_FUNCTION_BODY_PRIORITY = 19;
 	public const int MIN_PRIORITY = 0;
+	public const int PRIORITY_ALL = -1;
+	public const int PRIORITY_NEVER = -2;
 
 	private const int FUNCTION_LENGTH = 2;
 
@@ -233,8 +235,9 @@ public static class Parser
 						}
 
 						var formatted = Mold(option.Missing, candidate);
+						var pattern_priority = pattern.GetPriority(formatted);
 
-						if (pattern.GetPriority(formatted) == priority)
+						if (pattern_priority == priority || pattern_priority == Parser.PRIORITY_ALL)
 						{
 							var state = new PatternState(tokens, formatted, start, end + 1, min, priority);
 

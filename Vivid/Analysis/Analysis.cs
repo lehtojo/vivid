@@ -809,16 +809,19 @@ public static class Analysis
 	/// </summary>
 	private static void CompleteConstructors(Type type)
 	{
-		if (type.Configuration == null)
-		{
-			return;
-		}
+		if (type.Configuration == null) return;
 
 		var expressions = new List<OperatorNode>(type.Initialization);
 
 		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
 		{
 			var self = Common.GetSelfPointer(constructor, null);
+
+			if (type.IsPack)
+			{
+				constructor.ReturnType = type;
+				constructor.Node!.Add(new ReturnNode(self.Clone()));
+			}
 
 			foreach (var iterator in expressions)
 			{

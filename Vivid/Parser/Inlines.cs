@@ -16,11 +16,7 @@ public static class Inlines
 		while (true)
 		{
 			var call = (FunctionNode?)root.Find(i => i.Is(NodeType.FUNCTION) && i.To<FunctionNode>().Function.IsInlineable());
-
-			if (call == null)
-			{
-				break;
-			}
+			if (call == null) break;
 
 			Inline(call.Function, call);
 			Analysis.CaptureContextLeaks(context, root);
@@ -238,16 +234,14 @@ public static class Inlines
 	/// <summary>
 	/// Replaces the function call with the body of the specified function using the parameter values of the call
 	/// </summary>
-	public static void Inline(FunctionImplementation implementation, FunctionNode reference)
+	public static void Inline(FunctionImplementation implementation, FunctionNode instance)
 	{
-		var environment = reference.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), reference.Position);
-		var body = GetInlineBody(inline.Context, implementation, reference, out Node destination);
-
 		if (!Primitives.IsPrimitive(implementation.ReturnType, Primitives.UNIT))
 		{
-			// Declare a variable which contains the result of the inlined function
-			var result = inline.Context.DeclareHidden(implementation.ReturnType!);
+			var root = instance.Parent != null && instance.Parent.Is(NodeType.LINK) ? instance.Parent : instance;
+			var container = Common.CreateInlineContainer(implementation.ReturnType!, root);
+			var context = container.Node.IsContext ? container.Node.To<ContextInlineNode>().Context : instance.GetParentContext();
+			var body = GetInlineBody(context, implementation, instance, out Node destination);
 
 			// Find all return statements
 			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Select(i => i.To<ReturnNode>());
@@ -266,7 +260,7 @@ public static class Inlines
 			{
 				// Assign the return value of the function to the variable which represents the result of the function
 				var assign = new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(result),
+					new VariableNode(container.Result),
 					return_statement.Value!
 				);
 
@@ -278,17 +272,18 @@ public static class Inlines
 				jump.Insert(assign);
 			}
 
-			body.ForEach(i => inline.Add(i));
-			inline.Add(new VariableNode(result));
+			// Transfer the contents to the container node and replace the destination with it
+			body.ForEach(i => container.Node.Add(i));
+			container.Destination.Replace(container.Node);
 
-			destination.Replace(inline);
-
-			ReconstructionAnalysis.Reconstruct(inline);
-			return;
+			// The container node must return the result, so add it
+			container.Node.Add(new VariableNode(container.Result, instance.Position));
+			ReconstructionAnalysis.Reconstruct(container.Node);
 		}
 		else
 		{
 			// Find all return statements
+			var body = GetInlineBody(instance.GetParentContext(), implementation, instance, out Node destination);
 			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
 
 			if (return_statements.Any())
@@ -310,12 +305,16 @@ public static class Inlines
 				body.Add(new LabelNode(end));
 			}
 
-			// Replace the function call with the body of the inlined function
-			body.ForEach(i => inline.Add(i));
+			var container = new InlineNode(instance.Position);
+			body.ForEach(i => container.Add(i));
+			destination.Replace(container);
 
-			destination.Replace(inline);
+			ReconstructionAnalysis.Reconstruct(container);
 
-			ReconstructionAnalysis.Reconstruct(inline);
+			if (!ReconstructionAnalysis.IsValueUsed(destination))
+			{
+				container.ReplaceWithChildren(container);
+			}
 		}
 	}
 }

@@ -159,9 +159,22 @@ export set(array: Array<Usable>, usable: Usable, i: large) {
 export is_pig(vehicle: Vehicle) => vehicle is Pig
 
 init() {
-	john = create_john()
+	pig = create_pig()
 	bus = create_bus()
-	can_use(john, bus)
+	car = create_car()
+	banana = create_banana()
 
+	john = create_john()
+	max = create_max()
+	gabe = create_gabe()
+	steve = create_steve()
+
+	array = create_array(4)
+	set(array, pig, 0)
+	set(array, bus, 1)
+	set(array, car, 2)
+	set(array, banana, 3)
+
+	get_reliable_vehicles(array, -1000000)
 	=> true
 }

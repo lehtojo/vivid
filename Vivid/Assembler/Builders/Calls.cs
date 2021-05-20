@@ -82,15 +82,92 @@ public static class Calls
 	}
 
 	/// <summary>
+	/// Passes the specified argument using a register or the specified stack position depending on the situation
+	/// </summary>
+	private static void PassArgument(List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Format format)
+	{
+		// Determine the parameter register
+		var is_decimal = format.IsDecimal();
+		var register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+		if (register != null)
+		{
+			// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
+			var destination = new RegisterHandle(register);
+			destination.Format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(value.Format.IsUnsigned());
+
+			destinations.Add(destination);
+		}
+		else
+		{
+			// Since there is no more room for parameters in registers, this parameter must be pushed to stack
+			position.Format = format;
+			destinations.Add(position.Finalize());
+
+			position.Offset += Size.FromFormat(value.Format).Bytes;
+		}
+
+		sources.Add(value);
+	}
+
+	/// <summary>
+	/// Passes the pack value using registers or the specified stack position depending on the situation
+	/// </summary>
+	private static void PassPackArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result pack)
+	{
+		if (pack.Value.Is(HandleInstanceType.PACK))
+		{
+			var handle = pack.Value.To<PackHandle>();
+
+			foreach (var iterator in handle.Variables)
+			{
+				var local = iterator.Value;
+				var source = new GetVariableInstruction(unit, local, AccessMode.READ).Execute();
+
+				if (local.Type!.IsPack)
+				{
+					PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source);
+					continue;
+				}
+
+				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source, local.GetRegisterFormat());
+			}
+
+			return;
+		}
+		
+		if (pack.Value.Is(HandleInstanceType.DISPOSABLE_PACK))
+		{
+			var handle = pack.Value.To<DisposablePackHandle>();
+
+			foreach (var iterator in handle.Variables)
+			{
+				var member = iterator.Key;
+				var source = iterator.Value;
+
+				if (member.Type!.IsPack)
+				{
+					PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source);
+					continue;
+				}
+
+				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source, member.GetRegisterFormat());
+			}
+
+			return;
+		}
+
+		throw new ApplicationException("Invalid pack handle");
+	}
+
+	/// <summary>
 	/// Passes the specified parameters to the function using the specified calling convention
 	/// </summary>
 	/// <returns>Returns the amount of parameters moved to stack</returns>
-	private static int PassParameters(Unit unit, CallInstruction call, Result? self_pointer, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
+	private static void PassArguments(Unit unit, CallInstruction call, Result? self_pointer, Type? self_type, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
 	{
-		var stack_parameter_count = 0;
-
+		var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
 		var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
-		var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
 		// Retrieve the this pointer if it is required and it is not loaded
 		if (self_pointer == null && is_self_pointer_required)
@@ -98,72 +175,45 @@ public static class Calls
 			self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
 		}
 
-		Register? register;
-
-		// Save the parameter instructions for inspection
-		call.Instructions.Clear();
-		call.Destinations.Clear();
+		var destinations = new List<Handle>();
+		var sources = new List<Result>();
 
 		// On Windows x64 a 'shadow space' is allocated for the first four parameters
-		var stack_position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
+		var position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
 
 		if (self_pointer != null)
 		{
-			register = standard_parameter_registers.Pop();
+			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
 
-			if (register != null)
+			if (self_type.IsPack)
 			{
-				var destination = new RegisterHandle(register);
-
-				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
-				call.Instructions.Add(new MoveInstruction(unit, new Result(destination, Assembler.Format), self_pointer) { IsSafe = true });
-				call.Destinations.Add(destination);
+				PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer);
 			}
 			else
 			{
-				// Since there is no more room for parameters in registers, this parameter must be pushed to stack
-				call.Instructions.Add(new MoveInstruction(unit, new Result(stack_position, self_pointer.Format), self_pointer));
-				call.Destinations.Add(stack_position.Finalize());
-
-				stack_position.Offset += Size.FromFormat(self_pointer.Format).Bytes;
+				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
 			}
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
 		{
 			var parameter = parameters[i];
+			var value = References.Get(unit, parameters[i]);
+			var type = parameter_types[i];
 
-			var source = References.Get(unit, parameter);
-			source = Casts.Cast(unit, source, parameter.GetType(), parameter_types[i]);
+			value = Casts.Cast(unit, value, parameter.GetType(), type);
 
-			var is_decimal = parameter_types[i].Format.IsDecimal();
-
-			// Determine the parameter register
-			register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-			if (register != null)
+			if (type.IsPack)
 			{
-				var destination = new RegisterHandle(register);
-
-				// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
-				var format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(source.Format.IsUnsigned());
-
-				call.Instructions.Add(new MoveInstruction(unit, new Result(destination, format), source) { IsSafe = true });
-				call.Destinations.Add(destination.Finalize());
+				PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value);
+				continue;
 			}
-			else
-			{
-				var destination = new Result(stack_position.Finalize(), parameter_types[i].GetRegisterFormat());
 
-				// Since there is no more room for parameters in registers, this parameter must be pushed to stack
-				call.Instructions.Add(new MoveInstruction(unit, destination, source));
-				call.Destinations.Add(stack_position.Finalize());
-
-				stack_position.Offset += Size.FromFormat(source.Format).Bytes;
-			}
+			PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type.GetRegisterFormat());
 		}
 
-		return stack_parameter_count;
+		call.Destinations.AddRange(destinations);
+		unit.Append(new ReorderInstruction(unit, destinations, sources));
 	}
 
 	/// <summary>
@@ -196,30 +246,20 @@ public static class Calls
 		}
 
 		var call = new CallInstruction(unit, implementation.GetFullname(), implementation.ReturnType);
+		var self_type = self == null ? null : implementation.FindTypeParent();
 
 		// Pass the parameters to the function and then execute it
-		PassParameters(unit, call, self, false, CollectParameters(parameters), implementation.ParameterTypes);
+		PassArguments(unit, call, self, self_type, false, CollectParameters(parameters), implementation.ParameterTypes);
 
 		return call.Execute();
 	}
 
-	public static Result Build(Unit unit, Function function, Type return_type, params Node[] parameters)
-	{
-		var implementation = function.Implementations.FirstOrDefault() ?? throw new ApplicationException("Tried to create a function call but the function did not have any implementations");
-		var call = new CallInstruction(unit, implementation.GetFullname(), return_type);
-
-		// Pass the parameters to the function and then execute it
-		PassParameters(unit, call, null, false, parameters, function.Parameters.Select(p => p.Type!).ToList());
-
-		return call.Execute();
-	}
-
-	public static Result Build(Unit unit, Result? self, Result function, Type? return_type, Node parameters, List<Type> parameter_types)
+	public static Result Build(Unit unit, Result? self, Type? self_type, Result function, Type? return_type, Node parameters, List<Type> parameter_types)
 	{
 		var call = new CallInstruction(unit, function, return_type);
 
 		// Pass the parameters to the function and then execute it
-		PassParameters(unit, call, self, true, CollectParameters(parameters), parameter_types);
+		PassArguments(unit, call, self, self_type, true, CollectParameters(parameters), parameter_types);
 
 		return call.Execute();
 	}

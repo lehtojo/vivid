@@ -110,6 +110,7 @@ public class Type : Context
 	public Position? Position { get; set; }
 
 	public bool IsInlining => Flag.Has(Modifiers, Modifier.INLINE);
+	public bool IsPack => Flag.Has(Modifiers, Modifier.PACK);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
 	public bool IsUnresolved => !IsResolved();
@@ -230,6 +231,7 @@ public class Type : Context
 
 	public virtual int GetAllocationSize()
 	{
+		if (IsPack) return GetContentSize();
 		return GetReferenceSize();
 	}
 

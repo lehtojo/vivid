@@ -62,6 +62,8 @@ public static class Instructions
 
 	public static class X64
 	{
+		public const int EVALUATE_MAX_MULTIPLIER = 8;
+
 		public const string DOUBLE_PRECISION_ADD = "addsd";
 		public const string SINGLE_PRECISION_ADD = "addss";
 

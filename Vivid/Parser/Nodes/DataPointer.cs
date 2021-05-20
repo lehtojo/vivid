@@ -14,7 +14,7 @@ public class DataPointer : Node
 
 	public override Type TryGetType()
 	{
-		return new Link();
+		return Link.GetVariant(Primitives.CreateNumber(Primitives.LARGE, Format.INT64));
 	}
 
 	public override int GetHashCode()

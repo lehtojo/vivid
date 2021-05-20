@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 public static class Arithmetic
 {
@@ -260,6 +261,84 @@ public static class Arithmetic
 		return result;
 	}
 
+	private static Dictionary<Variable, Result> GetPackHandleResults(Unit unit, Handle handle, AccessMode mode)
+	{
+		if (handle.Is(HandleInstanceType.PACK))
+		{
+			var result = new Dictionary<Variable, Result>();
+
+			// Load all the locals which represent the members
+			foreach (var iterator in handle.To<PackHandle>().Variables)
+			{
+				result.Add(iterator.Key, new GetVariableInstruction(unit, iterator.Value, mode).Execute());
+			}
+
+			return result;
+		}
+		else if (handle.Is(HandleInstanceType.DISPOSABLE_PACK))
+		{
+			return handle.To<DisposablePackHandle>().Variables;
+		}
+
+		throw new InvalidOperationException("Invalid pack handle");
+	}
+
+	private static Result CreatePackAssignment(Unit unit, Result left, Result right, Condition? condition)
+	{
+		if (left.Value.Is(HandleInstanceType.PACK) && condition == null)
+		{
+			var destinations = left.Value.To<PackHandle>().Variables;
+			var sources = GetPackHandleResults(unit, right.Value, AccessMode.READ);
+
+			foreach (var iterator in destinations)
+			{
+				var destination = iterator.Value;
+				var member = iterator.Key;
+				var source = sources[member];
+
+				if (destination.Type!.IsPack)
+				{
+					CreatePackAssignment(unit, new GetVariableInstruction(unit, destination, AccessMode.WRITE).Execute(), source, null);
+					continue;
+				}
+
+				unit.Append(new SetVariableInstruction(unit, destination, source));
+			}
+		}
+		else
+		{
+			var destinations = GetPackHandleResults(unit, left.Value, AccessMode.WRITE);
+			var sources = GetPackHandleResults(unit, right.Value, AccessMode.READ);
+
+			foreach (var iterator in destinations)
+			{
+				var destination = iterator.Value;
+				var member = iterator.Key;
+				var source = sources[member];
+
+				if (iterator.Key.Type!.IsPack)
+				{
+					CreatePackAssignment(unit, destination, source, null);
+					continue;
+				}
+
+				unit.Append(new MoveInstruction(unit, destination, source, condition));
+			}
+		}
+
+		return new Result();
+	}
+
+	/// <summary>
+	/// Tries to determine the local variable the specified node and its result represent
+	/// </summary>
+	private static Variable? TryGetLocalVariable(Node node, Result result)
+	{
+		if (node.Is(NodeType.VARIABLE) && node.To<VariableNode>().Variable.IsPredictable) return node.To<VariableNode>().Variable;
+		if (result.Value.Is(HandleInstanceType.STACK_VARIABLE)) return result.Value.To<StackVariableHandle>().Variable;
+		return null;
+	}
+
 	/// <summary>
 	/// Builds an assignment operation
 	/// </summary>
@@ -268,9 +347,19 @@ public static class Arithmetic
 		var left = References.Get(unit, node.Left, AccessMode.WRITE);
 		var right = References.Get(unit, node.Right);
 
-		if (node.Condition == null && node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
+		// Pack value assignments differ from normal assignments
+		if (node.Left.GetType().IsPack)
 		{
-			return new SetVariableInstruction(unit, node.Left.To<VariableNode>().Variable, right).Execute();
+			if (node.Left.GetType() != node.Right.GetType()) throw new InvalidOperationException("Destination and source types must be the same in pack assignments");
+			return CreatePackAssignment(unit, left, right, node.Condition);
+		}
+
+		var local = TryGetLocalVariable(node.Left, left);
+
+		// Check if the destination represents a local variable and ensure the assignment is not conditional
+		if (node.Condition == null && local != null && !Assembler.IsDebuggingEnabled)
+		{
+			return new SetVariableInstruction(unit, local, right).Execute();
 		}
 
 		// Externally used variables need an immediate update 
@@ -363,11 +452,11 @@ public static class Arithmetic
 		// Assign the result if needed
 		if (assigns)
 		{
-			/// NOTE: When a predictable variable is being assigned it must not be under nodes which hide it
-			if (left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
+			var local = TryGetLocalVariable(left, destination);
+
+			if (local != null && !Assembler.IsDebuggingEnabled)
 			{
-				var variable = left.To<VariableNode>().Variable;
-				return new SetVariableInstruction(unit, variable, addition).Execute();
+				return new SetVariableInstruction(unit, local, addition).Execute();
 			}
 
 			return new MoveInstruction(unit, destination, addition).Execute();

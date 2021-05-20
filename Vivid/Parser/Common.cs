@@ -2,6 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 
+public struct InlineContainer
+{
+	public Node Destination { get; private set; }
+	public InlineNode Node { get; private set; }
+	public Variable Result { get; private set; }
+
+	public InlineContainer(Node destination, InlineNode node, Variable result)
+	{
+		Destination = destination;
+		Node = node;
+		Result = result;
+	}
+}
+
 public static class Common
 {
 	/// <summary>
@@ -689,14 +703,11 @@ public static class Common
 	/// <summary>
 	/// Constructs an object using heap memory
 	/// </summary>
-	public static Node CreateHeapConstruction(Type type, FunctionNode constructor)
+	public static InlineContainer CreateHeapConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+		var container = CreateInlineContainer(type, construction);
 
 		var size = Math.Max(1L, type.ContentSize);
-		var instance = inline.Context.DeclareHidden(type);
-
 		var arguments = new Node { new NumberNode(Assembler.Format, size) };
 		
 		if (Analysis.IsGarbageCollectorEnabled)
@@ -705,8 +716,8 @@ public static class Common
 
 			// The following example creates an instance of a type called Object
 			// Example: instance = link(allocate(sizeof(Object))) as Object
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(instance),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(container.Result),
 				new CastNode(
 					new FunctionNode(linker, constructor.Position).SetParameters(new Node {
 						new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments)
@@ -719,8 +730,8 @@ public static class Common
 		{
 			// The following example creates an instance of a type called Object
 			// Example: instance = allocate(sizeof(Object)) as Object
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(instance),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(container.Result),
 				new CastNode(
 					new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments),
 					new TypeNode(type)
@@ -734,8 +745,8 @@ public static class Common
 		// Register the runtime configurations
 		foreach (var iterator in descriptors)
 		{
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(container.Result), new VariableNode(iterator.Key.Configuration!.Variable)),
 				iterator.Value
 			));
 		}
@@ -743,28 +754,25 @@ public static class Common
 		// Do not call the initializer function if it is empty
 		if (!constructor.Function.IsEmpty)
 		{
-			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+			container.Node.Add(new LinkNode(new VariableNode(container.Result), constructor, constructor.Position));
 		}
 		
 		// The inline node must return the value of the constructed object
-		inline.Add(new VariableNode(instance));
+		container.Node.Add(new VariableNode(container.Result));
 
-		return inline;
+		return container;
 	}
 
 	/// <summary>
 	/// Constructs an object using stack memory
 	/// </summary>
-	public static Node CreateStackConstruction(Type type, FunctionNode constructor)
+	public static InlineContainer CreateStackConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+		var container = CreateInlineContainer(type, construction);
 
-		var instance = inline.Context.DeclareHidden(type);
-
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(instance),
-			new CastNode(new StackAddressNode(inline.Context, type), new TypeNode(type))
+		container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(container.Result),
+			new CastNode(new StackAddressNode(construction.GetParentContext(), type), new TypeNode(type))
 		));
 
 		var supertypes = type.GetAllSupertypes();
@@ -773,8 +781,8 @@ public static class Common
 		// Register the runtime configurations
 		foreach (var iterator in descriptors)
 		{
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(container.Result), new VariableNode(iterator.Key.Configuration!.Variable)),
 				iterator.Value
 			));
 		}
@@ -782,13 +790,69 @@ public static class Common
 		// Do not call the initializer function if it is empty
 		if (!constructor.Function.IsEmpty)
 		{
-			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+			container.Node.Add(new LinkNode(new VariableNode(container.Result), constructor, constructor.Position));
 		}
 
 		// The inline node must return the value of the constructed object
-		inline.Add(new VariableNode(instance));
+		container.Node.Add(new VariableNode(container.Result));
 
-		return inline;
+		return container;
+	}
+
+	/// <summary>
+	/// Determines the variable which will store the result and the node that should contain the inlined content
+	/// </summary>
+	public static InlineContainer CreateInlineContainer(Type type, Node node)
+	{
+		if (node.Parent != null && node.Parent.Is(Operators.ASSIGN))
+		{
+			var edited = Analyzer.GetEdited(node.Parent);
+
+			if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsPredictable)
+			{
+				return new InlineContainer(node.Parent, new InlineNode(node.Position), edited.To<VariableNode>().Variable);
+			}
+		}
+
+		var environment = node.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), node.Position);
+		var instance = inline.Context.DeclareHidden(type);
+		
+		return new InlineContainer(node, inline, instance);
+	}
+
+	/// <summary>
+	/// Constructs a pack object
+	/// </summary>
+	public static InlineContainer CreatePackConstruction(Type type, Node construction, FunctionNode constructor)
+	{
+		var container = CreateInlineContainer(type, construction);
+
+		// Do not call the initializer function if it is empty
+		if (!constructor.Function.IsEmpty)
+		{
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(container.Result),
+				constructor
+			));
+		}
+
+		var supertypes = type.GetAllSupertypes();
+		var descriptors = CopyTypeDescriptors(type, supertypes);
+
+		// Register the runtime configurations
+		foreach (var iterator in descriptors)
+		{
+			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new LinkNode(new VariableNode(container.Result), new VariableNode(iterator.Key.Configuration!.Variable)),
+				iterator.Value
+			));
+		}
+
+		// The inline node must return the value of the constructed object
+		container.Node.Add(new VariableNode(container.Result));
+
+		return container;
 	}
 
 	/// <summary>

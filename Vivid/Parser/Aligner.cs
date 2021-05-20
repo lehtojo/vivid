@@ -137,40 +137,36 @@ public static class Aligner
 				if (!parameter.IsParameter) continue;
 
 				var type = parameter.Type!;
-
-				if (type.Format.IsDecimal() && media_register_count-- > 0 || !type.Format.IsDecimal() && standard_register_count-- > 0)
-				{
-					continue;
-				}
+				if (type.Format.IsDecimal() && media_register_count-- > 0 || !type.Format.IsDecimal() && standard_register_count-- > 0) continue;
 
 				parameter.LocalAlignment = position;
-				position += Parser.Bytes; // Stack elements each require the same amount of memory
+				position += (type.IsPack ? type.GetContentSize() : Parser.Bytes);
 			}
 		}
 		else
 		{
 			var position = offset * Parser.Bytes;
+			var self = (Variable?)null;
 
 			// Align the this pointer if it exists
-			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out Variable? x))
+			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out self))
 			{
-				x.LocalAlignment = position;
-				position += Parser.Bytes;
+				self.LocalAlignment = position;
+				position += (self.Type!.IsPack ? self.Type!.GetContentSize() : Parser.Bytes);
 			}
-			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out Variable? y))
+			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out self))
 			{
-				y.LocalAlignment = position - Parser.Bytes;
-				position += Parser.Bytes;
+				self.LocalAlignment = position - Parser.Bytes;
+				position += (self.Type!.IsPack ? self.Type!.GetContentSize() : Parser.Bytes);
 			}
 
-			// Parameters:
-			foreach (var variable in function.Parameters)
+			// Align the other parameters
+			foreach (var parameter in function.Parameters)
 			{
-				if (variable.Category == VariableCategory.PARAMETER)
-				{
-					variable.LocalAlignment = position;
-					position += Parser.Bytes; // Stack elements each require the same amount of memory
-				}
+				if (!parameter.IsParameter) continue;
+
+				parameter.LocalAlignment = position;
+				position += (parameter.Type!.IsPack ? parameter.Type!.GetContentSize() : Parser.Bytes);
 			}
 		}
 	}

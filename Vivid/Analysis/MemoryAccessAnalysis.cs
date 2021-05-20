@@ -128,6 +128,14 @@ public static class MemoryAccessAnalysis
 	}
 
 	/// <summary>
+	/// Returns all member variables which are accessed in the specified expression
+	/// </summary>
+	private static Variable[] GetEditableMembers(Node expression)
+	{
+		return expression.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable.IsMember).Select(i => i.Variable).ToArray();
+	}
+
+	/// <summary>
 	/// Tries to find identical memory reads and localizes them, therefore it optimizes memory access
 	/// </summary>
 	public static Node Unrepeat(Node node)
@@ -143,7 +151,8 @@ public static class MemoryAccessAnalysis
 
 			if (!links.Any())
 			{
-				return Analysis.GetCost(node) < before ? root : node;
+				// Since there are no links left, it is time to choose whether to use the old node tree version or the new one
+				return Analysis.GetCost(root) < before ? root : node;
 			}
 
 			var repetitions = new List<Node>();
@@ -151,45 +160,44 @@ public static class MemoryAccessAnalysis
 
 			// Collect all parts of the start node which can be edited
 			var dependencies = GetEditables(start);
+			var members = GetEditableMembers(start);
 
+			// Find all the other usages of the link 'start'
 			for (var i = links.Count - 1; i >= 1; i--)
 			{
 				var other = links[i];
 
 				// If the current link contains nodes which should not be moved, skip it
-				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT)) != null)
+				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT, NodeType.NUMBER)) != null)
 				{
 					links.RemoveAt(i);
 					continue;
 				}
 
-				if (!start.Equals(other))
+				// Add the link 'other' if it completely matches the link 'start'
+				if (start.Equals(other))
 				{
-					var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
-
-					foreach (var sublink in sublinks)
-					{
-						if (sublink.Equals(start))
-						{
-							repetitions.Insert(0, sublink);
-						}
-					}
-
+					repetitions.Insert(0, other);
 					continue;
 				}
+				
+				// Analyze the inner links, some of those can match the currently inspected link 'start'
+				var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
 
-				repetitions.Insert(0, other);
+				foreach (var sublink in sublinks)
+				{
+					if (!sublink.Equals(start)) continue;
+					repetitions.Insert(0, sublink);
+				}
 			}
 
-			// The current is processed, so remove it now
-			links.RemoveAt(0);
+			links.RemoveAt(0); // Remove the first link 'start', since it has been processed
 
 			if (!repetitions.Any())
 			{
 				// Find inner links inside the current one and process them now
 				var inner = FindTop(start, i => i.Is(NodeType.LINK, NodeType.OFFSET));
 				links.InsertRange(0, inner);
-
 				continue;
 			}
 
@@ -202,11 +210,7 @@ public static class MemoryAccessAnalysis
 
 			// Initialize the variable
 			var scope = ReconstructionAnalysis.GetSharedScope(repetitions.Concat(new[] { start }).ToArray());
-
-			if (scope == null)
-			{
-				throw new ApplicationException("Repetitions did not have a shared scope");
-			}
+			if (scope == null) throw new ApplicationException("Links did not have a shared scope");
 
 			// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
 			ReconstructionAnalysis.GetInsertPosition(start, scope).Insert(new DeclareNode(variable));
@@ -225,9 +229,19 @@ public static class MemoryAccessAnalysis
 				{
 					var edited = Analyzer.GetEdited(edit);
 
+					if (edited == start) continue;
+					
+					// If the dependencies does not contain the edited node, loading might not be necessary
 					if (!dependencies.Contains(edited))
 					{
-						continue;
+						// If the current edit writes to any of the critical member variables, it may not be safe to use repetition without loading
+						var is_member_variable_edited = edited.Is(NodeType.LINK) && edited.Right.Is(NodeType.VARIABLE);
+						
+						if (!is_member_variable_edited || !members.Contains(edited.Right.To<VariableNode>().Variable))
+						{
+							// None of the edits must access raw memory, since they can edit the repetitions
+							if (!edited.Is(NodeType.OFFSET) && edited.Find(i => i.Is(NodeType.OFFSET)) == null) continue;
+						}
 					}
 
 					start = repetition;

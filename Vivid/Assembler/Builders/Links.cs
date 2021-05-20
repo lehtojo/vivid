@@ -29,23 +29,36 @@ public static class Links
 
 		if (node.Right.Is(NodeType.VARIABLE))
 		{
-			var variable = node.Right.To<VariableNode>().Variable;
+			var member = node.Right.To<VariableNode>().Variable;
 
-			if (variable.Category == VariableCategory.GLOBAL)
+			// Link nodes can also access static variables for example
+			if (member.IsGlobal)
 			{
-				return References.GetVariable(unit, variable, mode);
+				return References.GetVariable(unit, member, mode);
 			}
 
-			var start = References.Get(unit, node.Left);
-			var alignment = variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
+			var left = References.Get(unit, node.Left);
 
-			return new GetObjectPointerInstruction(unit, variable, start, alignment, mode).Execute();
+			// Handle pack types
+			if (self_type.IsPack)
+			{
+				if (left.Value.Is(HandleInstanceType.PACK))
+				{
+					return new GetVariableInstruction(unit, left.Value.To<PackHandle>().Variables[member], mode).Execute();
+				}
+				
+				if (!left.Value.Is(HandleInstanceType.DISPOSABLE_PACK)) throw new InvalidOperationException("Invalid pack handle");
+				return left.Value.To<DisposablePackHandle>().Variables[member];
+			}
+
+			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
+
+			// Handle pack types
+			if (member.Type!.IsPack) return new GetPackObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
+			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
 		}
 
-		if (!node.Right.Is(NodeType.FUNCTION))
-		{
-			throw new NotImplementedException("Unsupported member node");
-		}
+		if (!node.Right.Is(NodeType.FUNCTION)) throw new NotImplementedException("Unsupported member node");
 
 		return GetMemberFunctionCall(unit, node.Right.To<FunctionNode>(), node.Left, self_type);
 	}

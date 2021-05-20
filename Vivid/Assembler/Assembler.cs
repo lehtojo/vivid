@@ -400,26 +400,19 @@ public static class Assembler
 	{
 		unit.Simulate(UnitMode.APPEND, i =>
 		{
-			if (!i.Is(InstructionType.REQUIRE_VARIABLES))
-			{
-				return;
-			}
+			if (!i.Is(InstructionType.REQUIRE_VARIABLES)) return;
 
 			var instruction = i.To<RequireVariablesInstruction>();
 
 			foreach (var variable in instruction.Variables)
 			{
-				var handle = unit.GetCurrentVariableHandle(variable);
+				var handle = unit.GetVariableValue(variable);
+				if (handle == null) continue;
 
-				if (handle == null)
-				{
-					continue;
-				}
-
-				instruction.References.Add(handle);
+				instruction.Results.Add(handle);
 			}
 
-			instruction.Dependencies = instruction.References.Concat(new[] { instruction.Result }).ToArray();
+			instruction.Dependencies = instruction.Results.Concat(new[] { instruction.Result }).ToArray();
 		});
 	}
 
@@ -429,10 +422,7 @@ public static class Assembler
 
 		foreach (var implementation in function.Implementations)
 		{
-			if (implementation.IsInlined)
-			{
-				continue;
-			}
+			if (implementation.IsInlined) continue;
 
 			var fullname = implementation.GetFullname();
 

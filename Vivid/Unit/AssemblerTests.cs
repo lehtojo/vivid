@@ -1095,15 +1095,6 @@ namespace Vivid.Unit
 		[DllImport("Unit_Assignment", ExactSpelling = true)]
 		private static extern void _V12assignment_2P8Sequence(ref Sequence instance);
 
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern void _V9preload_1P8Sequencex(ref Sequence instance, long i);
-
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern IntPtr _V9preload_2P8Sequence_rPd(ref Sequence instance);
-
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern long _V9preload_3Px_rS_(IntPtr address);
-
 		private static void Assignment_Test()
 		{
 			var holder = new Holder();
@@ -1126,18 +1117,6 @@ namespace Vivid.Unit
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456), Marshal.ReadInt64(sequence.Address, sizeof(double) * 0));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-987.654), Marshal.ReadInt64(sequence.Address, sizeof(double) * 1));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(101.010), Marshal.ReadInt64(sequence.Address, sizeof(double) * 2));
-
-			_V9preload_1P8Sequencex(ref sequence, 1);
-
-			Assert.AreEqual(buffer + sizeof(double), sequence.Address);
-			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456 + 0.5), Marshal.ReadInt64(sequence.Address));
-
-			var previous = sequence.Address;
-			Assert.AreEqual(previous, _V9preload_2P8Sequence_rPd(ref sequence));
-			Assert.AreEqual(previous + sizeof(double), sequence.Address);
-
-			Assert.AreEqual(sequence.Address + 1, _V9preload_3Px_rS_(sequence.Address));
-			Assert.AreEqual(sequence.Address + 1, Marshal.ReadIntPtr(sequence.Address));
 		}
 
 		public static void Assignment()
@@ -1495,26 +1474,26 @@ namespace Vivid.Unit
 		}
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V11create_packv_rP4PackIP7ProductP5PriceE();
+		private static extern IntPtr _V13create_bundlev_rP6BundleIP7ProductP5PriceE();
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V11set_productP4PackIP7ProductP5PriceExPhxc(IntPtr pack, long index, IntPtr name, long value, byte currency);
+		private static extern IntPtr _V11set_productP6BundleIP7ProductP5PriceExPhxc(IntPtr bundle, long index, IntPtr name, long value, byte currency);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(IntPtr pack, long index);
+		private static extern IntPtr _V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern void _V15enchant_productP4PackIP7ProductP5PriceEx(IntPtr pack, long index);
+		private static extern void _V15enchant_productP6BundleIP7ProductP5PriceEx(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern bool _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(IntPtr pack, long index);
+		private static extern bool _V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern double _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(IntPtr pack, long index, byte currency);
+		private static extern double _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(IntPtr bundle, long index, byte currency);
 
 		private static void Templates_Test()
 		{
-			var pack = _V11create_packv_rP4PackIP7ProductP5PriceE();
+			var bundle = _V13create_bundlev_rP6BundleIP7ProductP5PriceE();
 
 			var car = new String("Car");
 			var banana = new String("Banana");
@@ -1524,31 +1503,31 @@ namespace Vivid.Unit
 			const int DOLLARS = 1;
 
 			// fsetproduct_a_tproduct_a_tprice_tpack_tlarge_tlink_ttiny
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 0, car.Data, 700000, EUROS);
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 2, lawnmower.Data, 40000, DOLLARS);
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 1, banana.Data, 100, DOLLARS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 0, car.Data, 700000, EUROS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 2, lawnmower.Data, 40000, DOLLARS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 1, banana.Data, 100, DOLLARS);
 
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("Car");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("Banana");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 2)).Assert("Lawnmower");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 0)).Assert("Car");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 1)).Assert("Banana");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 2)).Assert("Lawnmower");
 
-			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 0);
-			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 1);
+			_V15enchant_productP6BundleIP7ProductP5PriceEx(bundle, 0);
+			_V15enchant_productP6BundleIP7ProductP5PriceEx(bundle, 1);
 
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 0));
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 1));
-			Assert.False(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rb(pack, 2));
+			Assert.True(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 0));
+			Assert.True(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 1));
+			Assert.False(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 2));
 
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("iCar");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("iBanana");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 0)).Assert("iCar");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 1)).Assert("iBanana");
 
-			Assert.AreEqual(700000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, EUROS));
-			Assert.AreEqual(100.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, EUROS));
-			Assert.AreEqual(40000.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, EUROS));
+			Assert.AreEqual(700000.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 0, EUROS));
+			Assert.AreEqual(100.0 * 0.8, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 1, EUROS));
+			Assert.AreEqual(40000.0 * 0.8, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 2, EUROS));
 
-			Assert.AreEqual(700000.0 * 1.25, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, DOLLARS));
-			Assert.AreEqual(100.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, DOLLARS));
-			Assert.AreEqual(40000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, DOLLARS));
+			Assert.AreEqual(700000.0 * 1.25, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 0, DOLLARS));
+			Assert.AreEqual(100.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 1, DOLLARS));
+			Assert.AreEqual(40000.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 2, DOLLARS));
 		}
 
 		public static void Templates()

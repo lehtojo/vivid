@@ -23,7 +23,7 @@ public class VariableState
 
 	public void Restore(Unit unit)
 	{
-		var handle = unit.GetCurrentVariableHandle(Variable);
+		var handle = unit.GetVariableValue(Variable);
 
 		if (Register.Handle != null && !Register.Handle.Equals(handle))
 		{
@@ -724,9 +724,9 @@ public class Unit
 		Mode = UnitMode.DEFAULT;
 	}
 
-	public Result? GetCurrentVariableHandle(Variable variable)
+	public Result? GetVariableValue(Variable variable)
 	{
-		return Scope?.GetCurrentVariableHandle(variable);
+		return Scope?.GetVariableValue(variable);
 	}
 
 	public string Export()

@@ -87,11 +87,7 @@ public static class UnwrapmentAnalysis
 			else if (iterator.Is(NodeType.LOOP))
 			{
 				var statement = iterator.To<LoopNode>();
-
-				if (statement.IsForeverLoop)
-				{
-					continue;
-				}
+				if (statement.IsForeverLoop) continue;
 
 				if (!statement.Condition.Is(NodeType.NUMBER))
 				{
@@ -169,37 +165,26 @@ public static class UnwrapmentAnalysis
 		// Ensure there is only one condition present
 		var condition = loop.Condition;
 
-		if (loop.GetConditionInitialization().Any())
-		{
-			return null;
-		}
+		if (loop.GetConditionInitialization().Any()) return null;
 
-		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition))
-		{
-			return null;
-		}
+		// Unwrapping loops which have loop control nodes, is currently too complex
+		if (loop.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().Any(i => ReferenceEquals(i.Loop, loop))) return null;
+
+		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition)) return null;
 
 		// Ensure that the initialization is empty or it contains a definition of an integer variable
 		var initialization = loop.Initialization;
 
-		if (initialization.IsEmpty || initialization.First != initialization.Last)
-		{
-			return null;
-		}
+		if (initialization.IsEmpty || initialization.First != initialization.Last) return null;
 
 		initialization = initialization.First!;
 
-		if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE))
-		{
-			return null;
-		}
+		if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE)) return null;
 
 		// Make sure the variable is predictable and it is an integer
 		var variable = initialization.First!.To<VariableNode>().Variable;
 
-		if (!variable.IsPredictable ||
-			!(initialization.First.To<VariableNode>().Variable.Type is Number) ||
-			!initialization.Last!.Is(NodeType.NUMBER))
+		if (!variable.IsPredictable || initialization.First.To<VariableNode>().Variable.Type is not Number || !initialization.Last!.Is(NodeType.NUMBER))
 		{
 			return null;
 		}

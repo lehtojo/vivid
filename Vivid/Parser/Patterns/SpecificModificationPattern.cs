@@ -5,8 +5,6 @@ public class SpecificModificationPattern : Pattern
 	public const int MODIFIER = 0;
 	public const int OBJECT = 2;
 
-	public const int PRIORITY = 1;
-
 	// Pattern: $modifiers [\n] $variable/$function/$type
 	public SpecificModificationPattern() : base
 	(
@@ -66,6 +64,6 @@ public class SpecificModificationPattern : Pattern
 
 	public override int GetPriority(List<Token> tokens)
 	{
-		return PRIORITY;
+		return Parser.PRIORITY_ALL;
 	}
 }

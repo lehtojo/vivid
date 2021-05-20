@@ -340,6 +340,57 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
+	/// Assigns a register or a stack address for the specified parameter depending on the situation
+	/// </summary>
+	private void ReceiveParameter(List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, Variable parameter)
+	{
+		var register = (Register?)null;
+
+		if (parameter.Type!.IsPack)
+		{
+			var handle = References.CreateVariableHandle(Unit!, parameter).To<PackHandle>();
+
+			foreach (var iterator in handle.Variables)
+			{
+				var member = iterator.Key;
+				var local = iterator.Value;
+
+				local.LocalAlignment = parameter.LocalAlignment + member.GetAlignment(parameter.Type);
+
+				if (local.Type!.IsPack)
+				{
+					ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, local);
+					continue;
+				}
+				
+				register = local.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+				if (register != null)
+				{
+					register.Handle = SetOrCreateTransitionHandle(local, new RegisterHandle(register), local.GetRegisterFormat());
+				}
+				else
+				{
+					SetOrCreateTransitionHandle(local, References.CreateVariableHandle(Unit!, local), local.GetRegisterFormat());
+				}
+			}
+
+			return;
+		}
+
+		register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+		if (register != null)
+		{
+			register.Handle = SetOrCreateTransitionHandle(parameter, new RegisterHandle(register), parameter.GetRegisterFormat());
+		}
+		else
+		{
+			SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit!, parameter), parameter.GetRegisterFormat());
+		}
+	}
+
+	/// <summary>
 	/// Switches the current scope to this scope
 	/// </summary>
 	public void Enter(Unit unit)
@@ -462,36 +513,14 @@ public sealed class Scope : IDisposable
 			var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
 			var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
-			var register = (Register?)null;
-
 			if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
 			{
-				var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
-
-				register = standard_parameter_registers.Pop();
-
-				if (register != null)
-				{
-					register.Handle = SetOrCreateTransitionHandle(self, new RegisterHandle(register), Assembler.Format);
-				}
-				else
-				{
-					throw new ApplicationException("Self pointer should not be in stack");
-				}
+				ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, unit.Self ?? throw new ApplicationException("Missing self pointer"));
 			}
 
 			foreach (var parameter in unit.Function.Parameters)
 			{
-				register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-				if (register != null)
-				{
-					register.Handle = SetOrCreateTransitionHandle(parameter, new RegisterHandle(register), parameter.GetRegisterFormat());
-				}
-				else
-				{
-					SetOrCreateTransitionHandle(parameter, References.CreateVariableHandle(Unit, parameter), parameter.GetRegisterFormat());
-				}
+				ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, parameter);
 			}
 		}
 
@@ -501,19 +530,13 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Returns the current handle of the specified variable, if one is present
 	/// </summary>
-	public Result? GetCurrentVariableHandle(Variable variable)
+	public Result? GetVariableValue(Variable variable)
 	{
 		// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
-		if (Assembler.IsDebuggingEnabled)
-		{
-			return null;
-		}
+		if (Assembler.IsDebuggingEnabled) return null;
 
 		// Only predictable variables are allowed to be cached
-		if (!variable.IsPredictable)
-		{
-			return null;
-		}
+		if (!variable.IsPredictable) return null;
 
 		// First check if the variable handle list already exists
 		if (Variables.TryGetValue(variable, out Result? handle))
@@ -522,7 +545,7 @@ public sealed class Scope : IDisposable
 		}
 		else
 		{
-			var source = Outer?.GetCurrentVariableHandle(variable);
+			var source = Outer?.GetVariableValue(variable);
 
 			if (source != null)
 			{

@@ -24,7 +24,7 @@ public static class Analyzer
 	/// </summary>
 	public static Node GetEdited(Node editor)
 	{
-		return editor.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
+		return editor.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Editor did not have a destination");
 	}
 
 	/// <summary>

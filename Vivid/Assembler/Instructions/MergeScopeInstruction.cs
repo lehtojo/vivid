@@ -22,7 +22,7 @@ public class MergeScopeInstruction : Instruction
 
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Scope.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
+		return Scope.Outer?.GetVariableValue(variable) ?? GetVariableStackHandle(variable);
 	}
 
 	public override void OnBuild()
@@ -31,7 +31,7 @@ public class MergeScopeInstruction : Instruction
 
 		foreach (var variable in Scope.Actives)
 		{
-			var source = Unit.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
+			var source = Unit.GetVariableValue(variable) ?? GetVariableStackHandle(variable);
 
 			// Copy the destination value to prevent any relocation leaks
 			var handle = GetDestinationHandle(variable);

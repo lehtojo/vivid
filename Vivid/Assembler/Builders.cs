@@ -17,8 +17,9 @@ public static class Builders
 				}
 
 				var function_pointer = References.Get(unit, call.Pointer);
+				var self_type = call.Descriptor.Self ?? call.Self.GetType();
 
-				return Calls.Build(unit, self, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+				return Calls.Build(unit, self, self_type, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
 			}
 
 			case NodeType.FUNCTION:
@@ -39,8 +40,11 @@ public static class Builders
 			case NodeType.DECLARE:
 			{
 				var declaration = (DeclareNode)node;
-				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
 
+				// Do not declare the variable twice
+				if (unit.Scope!.Variables.ContainsKey(declaration.Variable)) return new Result();
+
+				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
 				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
 			}
 

@@ -32,6 +32,7 @@ public class Variable
 	public bool IsUnresolved => Type == null || Type.IsUnresolved;
 	public bool IsResolved => !IsUnresolved;
 
+	public bool IsGlobal => Category == VariableCategory.GLOBAL;
 	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;

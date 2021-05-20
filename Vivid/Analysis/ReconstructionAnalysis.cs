@@ -435,21 +435,28 @@ public static class ReconstructionAnalysis
 
 		foreach (var construction in constructions)
 		{
-			if (!IsStackConstructionPreferred(root, construction))
-			{
-				continue;
-			}
+			if (!construction.GetType().IsPack) continue;
 
-			var replacement = Common.CreateStackConstruction(construction.GetType(), construction.Constructor);
-			construction.Replace(replacement);
+			var container = Common.CreatePackConstruction(construction.GetType(), construction, construction.Constructor);
+			container.Destination.Replace(container.Node);
 		}
 
 		constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
 
 		foreach (var construction in constructions)
 		{
-			var replacement = Common.CreateHeapConstruction(construction.GetType(), construction.Constructor);
-			construction.Replace(replacement);
+			if (!IsStackConstructionPreferred(root, construction)) continue;
+
+			var container = Common.CreateStackConstruction(construction.GetType(), construction, construction.Constructor);
+			container.Destination.Replace(container.Node);
+		}
+
+		constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
+
+		foreach (var construction in constructions)
+		{
+			var container = Common.CreateHeapConstruction(construction.GetType(), construction, construction.Constructor);
+			container.Destination.Replace(container.Node);
 		}
 	}
 
@@ -612,10 +619,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var increment in increments)
 		{
-			if (IsValueUsed(increment))
-			{
-				continue;
-			}
+			if (IsValueUsed(increment)) continue;
 
 			var replacement = TryRewriteAsActionOperation(increment) ?? throw new ApplicationException("Could not rewrite increment operation as assign operation");
 
@@ -636,50 +640,6 @@ public static class ReconstructionAnalysis
 			if (replacement == null) throw new ApplicationException("Could not unwrap an edit node");
 
 			edit.Replace(replacement);
-		}
-	}
-
-	/// <summary>
-	/// Rewrites increments and decrements as inline nodes
-	/// Examples:
-	/// a = i++ => a = { x = i, i = i + 1, x }
-	/// a = ++i => a = { i = i + 1, i }
-	/// </summary>
-	private static void RewriteIncrements(Node root)
-	{
-		var expressions = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
-
-		foreach (var expression in expressions)
-		{
-			var environment = expression.GetParentContext();
-			var inline = new ContextInlineNode(new Context(environment), expression.Position);
-
-			var assignment = TryRewriteAsAssignOperation(expression, true);
-
-			if (assignment == null) throw new ApplicationException("Could not rewrite increment or decrement as an assign operation");
-
-			var post = expression is IncrementNode x ? x.Post : expression.To<DecrementNode>().Post;
-			var value = expression is IncrementNode y ? y.Object : expression.To<DecrementNode>().Object;
-
-			if (post)
-			{
-				var temporary = inline.Context.DeclareHidden(expression.GetType());
-
-				inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(temporary),
-					value
-				));
-
-				inline.Add(assignment);
-				inline.Add(new VariableNode(temporary));
-			}
-			else
-			{
-				inline.Add(assignment);
-				inline.Add(value);
-			}
-
-			expression.Replace(inline);
 		}
 	}
 
@@ -732,12 +692,18 @@ public static class ReconstructionAnalysis
 		foreach (var inline in inlines)
 		{
 			// If the inline node contains only one child node, the inline node can be replaced with it
-			if (inline.Count() != 1)
+			if (inline.Count() == 1)
+			{
+				inline.Replace(inline.Left);
+			}
+			else if (inline.Parent != null && (ReconstructionAnalysis.IsStatement(inline.Parent) || inline.Parent.Is(NodeType.INLINE, NodeType.NORMAL)))
+			{
+				inline.ReplaceWithChildren(inline);
+			}
+			else
 			{
 				continue;
 			}
-
-			inline.Replace(inline.Left);
 
 			if (inline.IsContext)
 			{
@@ -827,336 +793,194 @@ public static class ReconstructionAnalysis
 		return new[] { start_assignment, offset_assignment };
 	}
 
-	/// <summary>
-	/// Moves and merges the specified inline node so that it is not in the middle of an expression
-	/// </summary>
-	private static void LiftupInlineNode(InlineNode inline)
+	public static Node GetExpressionExtractPosition(Node expression)
 	{
-		while (true)
+		var iterator = expression;
+		var position = iterator;
+
+		while (iterator != null)
 		{
-			var parent = inline.Parent!;
+			if (iterator.Is(NodeType.INLINE, NodeType.NORMAL, NodeType.SCOPE)) break;
 
-			// Lifting should be stopped when a statement is encountered, since it can not be inlined
-			if (IsStatement(parent))
+			// Logical operators also act as scopes. You can not for example extract function calls from them, because the function calls are not always executed.
+			// Example of what this function should do in the following situation:
+			// a(b(i)) and c(d(j))
+			// =>
+			// { x = b(i), a(x) } and { y = d(j), c(y) }
+			if (iterator.Is(OperatorType.LOGIC))
 			{
-				// Merge the context of the current inline node with the parent context
-				if (inline.IsContext)
-				{
-					var environment = inline.GetParentContext();
-					environment.Merge(inline.To<ContextInlineNode>().Context);
-				}
-
-				// Replace the inline node with its child nodes and then stop
-				inline.ReplaceWithChildren(inline);
+				var scope = new InlineNode();
+				position.Replace(scope);
+				scope.Add(position);
 				break;
 			}
 
-			// 1. Normal node indicates a section which should not be moved
-			// 2. Logical operators create conditional sections, therefore lifting should be stopped
-			// 3. If there is no value in the inline node, do nothing, since this situation is spooky
-			if (parent.Is(NodeType.NORMAL, NodeType.LIST) || parent.Is(OperatorType.LOGIC) || inline.Last == null)
-			{
-				break;
-			}
-
-			if (parent.Is(NodeType.INLINE))
-			{
-				if (inline.IsContext)
-				{
-					if (parent.To<InlineNode>().IsContext)
-					{
-						// Transfer the contents of the inline context to the context of the parent
-						parent.To<ContextInlineNode>().Context.Merge(inline.To<ContextInlineNode>().Context);
-
-						// Replace the inline node with its child nodes
-						inline.ReplaceWithChildren(inline);
-
-						// Continue with the destination node
-						inline = parent.To<ContextInlineNode>();
-					}
-					else
-					{
-						// Transfer all the child nodes of the inline to the parent node for a while
-						inline.ReplaceWithChildren(inline);
-
-						// Now take all the child nodes from the parent node
-						parent.ForEach(inline.Add);
-
-						// Replace the parent with the inline node and continue
-						parent.Replace(inline);
-					}
-				}
-				else
-				{
-					// Transfer all the child nodes of the inline to the parent node
-					inline.ReplaceWithChildren(inline);
-
-					// Continue with the destination node
-					inline = parent.To<InlineNode>();
-				}
-
-				continue;
-			}
-
-			if (parent.Is(NodeType.DECREMENT, NodeType.INCREMENT, NodeType.NEGATE, NodeType.RETURN, NodeType.INSPECTION, NodeType.CONTENT, NodeType.NOT))
-			{
-				// Take out the value of the inline node
-				var value = inline.Last;
-				inline.Remove(value);
-
-				var operation = parent.Clone();
-				operation.Detach();
-
-				operation.Add(value);
-
-				inline.Add(operation);
-
-				parent.Replace(inline);
-				continue;
-			}
-
-			if (IsPartOfCallArgument(inline))
-			{
-				// Example:
-				// f(g(), { a = 0, if x > 0 { a = 1 }, a })
-				// =>
-				// { x = g(), y = { a = 0, if x > 0 { a = 1 }, a }, f(x, y) }
-
-				var context = inline.GetParentContext();
-				var environment = new ContextInlineNode(new Context(context), inline.Position);
-
-				// Find the call
-				var call = inline.FindParent(i => i.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION))!;
-
-				var parameters = call;
-				var root = call;
-
-				// Handle manual function calls by loading the self node and the pointer node into variables
-				if (call.Is(NodeType.CALL))
-				{
-					var node = call.To<CallNode>();
-					var self = node.Self;
-					var pointer = node.Pointer;
-
-					self.Remove();
-					pointer.Remove();
-
-					parameters = node.Parameters;
-
-					// Load the self pointer into a variable
-					var self_variable = environment.Context.DeclareHidden(self.GetType());
-					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-						new VariableNode(self_variable),
-						self
-					));
-
-					// Load the function pointer into a variable
-					var pointer_variable = environment.Context.DeclareHidden(pointer.GetType());
-					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-						new VariableNode(pointer_variable),
-						pointer
-					));
-
-					call.Left.Insert(new VariableNode(pointer_variable));
-					call.Left.Insert(new VariableNode(self_variable));
-				}
-
-				// Handle member function calls by loading the instance into a variable before anything else
-				if (call.Parent!.Is(NodeType.LINK))
-				{
-					// Load the instance into a variable
-					var instance = call.Parent.Left;
-					var type = instance.GetType();
-
-					instance.Remove();
-
-					var instance_variable = environment.Context.DeclareHidden(type);
-					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-						new VariableNode(instance_variable),
-						instance
-					));
-
-					// Replace the left side of the link with the loaded variable
-					call.Parent.Left.Insert(new VariableNode(instance_variable));
-
-					// Since the call is a member function call the root is the link
-					root = call.Parent;
-				}
-
-				var arguments = new List<Node>();
-
-				// Extract its arguments to temporary variables
-				while (parameters.Any())
-				{
-					// Take out the first argument
-					var argument = parameters.Left;
-					argument.Remove();
-
-					var variable = environment.Context.DeclareHidden(argument.GetType());
-					environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-						new VariableNode(variable),
-						argument
-					));
-
-					arguments.Add(new VariableNode(variable));
-				}
-
-				// Add all the loaded variables as arguments to the call node
-				arguments.ForEach(parameters.Add);
-
-				root.Replace(environment);
-				environment.Add(root);
-
-				// Lift up the created inline node and after that continue lifting up the current inline node
-				LiftupInlineNode(environment);
-				continue;
-			}
-
-			if (parent.First == inline)
-			{
-				// Example:
-				// { ..., a[i] } = f()
-				// { ..., a[i] = f() }
-
-				var value = inline.Last;
-
-				var operation = parent.Clone();
-				operation.Detach();
-
-				inline.Remove(value);
-
-				operation.Add(value);
-				operation.Add(parent.Right.Clone());
-
-				inline.Add(operation);
-
-				parent.Replace(inline);
-				parent.Detach();
-			}
-			else if (Analysis.IsPrimitive(parent.Left))
-			{
-				// Example:
-				// a = { ..., 1 + 2 }
-				// { ... a = 1 + 2 }
-
-				var value = inline.Last;
-
-				var operation = parent.Clone();
-				operation.Detach();
-
-				inline.Remove(value);
-
-				operation.Add(parent.Left.Clone());
-				operation.Add(value);
-
-				inline.Add(operation);
-
-				parent.Replace(inline);
-				parent.Detach();
-			}
-			else if (Analyzer.IsEdited(parent.Left))
-			{
-				// Example:
-				// x.y.z[i] = { a = i, i++, a }
-				// =>
-				// { m = x.y.z, n = i, a = i, i++, m[n] = a }
-
-				var context = inline.GetParentContext();
-				var environment = new ContextInlineNode(new Context(context), inline.Position);
-
-				// Handle the inlining of the destination node
-				InlineDestination(environment.Context, parent.Left).ForEach(i => environment.Add(i));
-
-				// Load the right side of the operation into a variable
-				var type = parent.Right.GetType();
-				var value = environment.Context.DeclareHidden(type);
-
-				environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(value),
-					parent.Right
-				));
-
-				// Finally, clone the parent and ensure it does not have any child nodes
-				var operation = parent.Clone();
-				operation.Detach();
-
-				operation.Add(parent.Left);
-				operation.Add(new VariableNode(value));
-
-				// Add the operation to the new inline node
-				environment.Add(operation);
-
-				parent.Replace(environment);
-
-				/// NOTE: No need to worry about context leak here, since the inline node is under the environment node
-				inline = environment;
-			}
-			else
-			{
-				// Example:
-				// f(x) + { a = f(x + 1), b = f(x + 2), a + b }
-				// =>
-				// { i = f(x), a = f(x + 1), b = f(x + 2), i + a + b }
-
-				// Take out the value of the inline node
-				var value = inline.Last;
-				inline.Remove(value);
-
-				var context = inline.GetParentContext();
-				var environment = new ContextInlineNode(new Context(context), inline.Position);
-
-				// Get the type of the left side
-				var type = parent.Left.GetType();
-
-				// Load the left side into a variable and execute it before the right side
-				var left = environment.Context.DeclareHidden(type);
-				environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(left),
-					parent.Left
-				));
-
-				// Transfer all child nodes to the environment node
-				inline.ForEach(environment.Add);
-
-				// If the inline node has a context, transfer its data to the environment context
-				if (inline.IsContext)
-				{
-					environment.Context.Merge(inline.To<ContextInlineNode>().Context);
-				}
-				
-				// Finally, clone the parent and ensure it does not have any child nodes
-				var operation = parent.Clone();
-				operation.Detach();
-
-				operation.Add(new VariableNode(left));
-				operation.Add(value);
-
-				// Add the operation in order to make it the return value of the new inline node 
-				environment.Add(operation);
-
-				parent.Replace(environment);
-
-				inline = environment;
-			}
+			position = iterator;
+			iterator = iterator.Parent;
 		}
+
+		return position;
 	}
 
 	/// <summary>
-	/// Moves and merges inlines nodes so that they are not in the middle of an expression
+	/// Returns all the increment and decrement nodes under the specified node
 	/// </summary>
-	private static void LiftupInlineNodes(Node root)
+	private static List<Node> FindIncrements(Node root)
 	{
-		while (true)
-		{
-			// Try to find the next inline node which can be lifted up
-			var inline = root.Find(i => i.Is(NodeType.INLINE) && !IsStatement(i.Parent!) && !i.Parent!.Is(NodeType.NORMAL) && !i.Parent.Is(OperatorType.LOGIC) && i.Any());
+		var result = new List<Node>();
 
-			if (inline == null)
+		foreach (var node in root)
+		{
+			result.AddRange(FindIncrements(node));
+
+			// Add the increment later than its child nodes, since the child nodes are executed first
+			if (node.Is(NodeType.INCREMENT, NodeType.DECREMENT)) { result.Add(node); }
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// This function extracts function calls and boolean expressions from complex expressions, so that they are executed first.
+	/// Example 1:
+	/// a = f(x) + g(y)
+	/// =>
+	/// i = f(x)
+	/// j = g(y)
+	/// a = i + j
+	/// Example 2:
+	/// a.x = a.y + f(a) + a.z
+	/// =>
+	/// i = f(a)
+	/// a.x = a.y + i + a.z
+	/// Example 3:
+	/// b = a.x + f(g(a) > h(a))
+	/// =>
+	/// i = f(g(a) > h(a))
+	/// b = a.x + i
+	/// =>
+	/// j = g(a) > h(a)
+	/// i = f(j)
+	/// b = a.x + i
+	/// =>
+	/// k = g(a)
+	/// l = h(a)
+	/// j = k > l
+	/// i = f(j)
+	/// b = a.x + i
+	/// </summary>
+	private static void ExtractExpressions(Node root)
+	{
+		var nodes = root.FindAll(i => i.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION));
+		nodes.AddRange(FindBooleanValues(root));
+
+		for (var i = 0; i < nodes.Count; i++)
+		{
+			var node = nodes[i];
+			var parent = node.Parent;
+
+			// Calls should always have a parent node
+			if (parent == null) continue;
+			// Skip values which are assigned to local variables
+			if (parent.Is(Operators.ASSIGN) && ReferenceEquals(parent.Right, node)) continue;
+			// Nothing can be done if the value is directly under a logical operator
+			if (parent.Is(OperatorType.LOGIC) || parent.Is(NodeType.CONSTRUCTION)) continue;
+
+			// Select the parent node, if the current node is a member function call
+			if (node.Is(NodeType.FUNCTION) && parent.Is(NodeType.LINK) && parent.Right == node) { node = parent; }
+
+			var position = GetExpressionExtractPosition(node);
+
+			// Do nothing if the call should not move
+			if (position == node) continue;
+
+			var context = node.GetParentContext();
+			var variable = context.DeclareHidden(node.GetType());
+
+			// Replace the result of the call with the created variable
+			node.Replace(new VariableNode(variable, node.Position));
+			
+			position.Insert(new OperatorNode(Operators.ASSIGN, node.Position).SetOperands(
+				new VariableNode(variable, node.Position),
+				node
+			));
+		}
+
+		var all = FindIncrements(root);
+		var filtered = all.GroupBy(i => GetExpressionExtractPosition(i), new ReferenceEqualityComparer<Node>()).ToArray();
+
+		// Extract increment nodes
+		foreach (var extracts in filtered)
+		{
+			// Determine the extract position
+			/// NOTE: This uses a temporary node, since sometimes the extract position can be next to an increment node, which is problematic
+			var destination = new Node();
+			extracts.Key.Insert(destination);
+
+			var locals = extracts.Where(i => i.First().Is(NodeType.VARIABLE)).ToArray();
+			var others = extracts.ToList();
+
+			for (var i = others.Count - 1; i >= 0; i--)
 			{
-				break;
+				if (locals.All(j => !ReferenceEquals(others[i], j))) continue;
+				others.RemoveAt(i);
 			}
 
-			LiftupInlineNode(inline.To<InlineNode>());
+			foreach (var extract in locals.GroupBy(i => i.First().To<VariableNode>().Variable).ToArray())
+			{
+				// Determine the edited node
+				var edited = extract.Key;
+				var difference = 0L;
+
+				foreach (var increment in extract.Reverse())
+				{
+					var step = increment.Is(NodeType.INCREMENT) ? 1L : -1L;
+					var post = (step == 1 && increment.To<IncrementNode>().Post) || (step == -1 && increment.To<DecrementNode>().Post);
+					var position = increment.Position;
+
+					if (post) { difference -= step; }
+
+					if (difference > 0)
+					{
+						increment.Replace(new OperatorNode(Operators.ADD, position).SetOperands(increment.First(), new NumberNode(Parser.Format, difference, position)));
+					}
+					else if (difference < 0)
+					{
+						increment.Replace(new OperatorNode(Operators.SUBTRACT, position).SetOperands(increment.First(), new NumberNode(Parser.Format, -difference, position)));
+					}
+					else
+					{
+						increment.Replace(increment.First());
+					}
+
+					if (!post) { difference -= step; }
+				}
+
+				destination.Insert(new OperatorNode(Operators.ASSIGN_ADD, destination.Position).SetOperands(new VariableNode(edited, destination.Position), new NumberNode(Parser.Format, -difference, destination.Position)));
+			}
+
+			foreach (var increment in others)
+			{
+				// Determine the edited node
+				var edited = increment.First();
+				var environment = destination.GetParentContext();
+
+				var value = environment.DeclareHidden(increment.GetType());
+				var position = increment.Position;
+				var load = new OperatorNode(Operators.ASSIGN, position).SetOperands(new VariableNode(value, position), edited.Clone());
+
+				var step = increment.Is(NodeType.INCREMENT) ? 1L : -1L;
+				var post = (step == 1 && increment.To<IncrementNode>().Post) || (step == -1 && increment.To<DecrementNode>().Post);
+				
+				if (post) { destination.Insert(load); }
+
+				destination.Insert(new OperatorNode(Operators.ASSIGN_ADD, position).SetOperands(increment.First(), new NumberNode(Parser.Format, step, position)));
+				increment.Replace(new VariableNode(value, position));
+
+				if (!post) { destination.Insert(load); }
+			}
+
+			destination.Remove();
 		}
 	}
 
@@ -1171,29 +995,17 @@ public static class ReconstructionAnalysis
 			throw new InvalidOperationException("Rewriting a remainder operation requires the divisor to be an integer constant");
 		}
 
-		var environment = remainder.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), remainder.Position);
-
-		var a = inline.Context.DeclareHidden(remainder.Left.GetType());
-
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(a),
-			remainder.Left.Clone()
-		));
-
 		// Formula: a % c = a - (a / c) * c
-		inline.Add(new OperatorNode(Operators.SUBTRACT).SetOperands(
-			new VariableNode(a),
+		remainder.Replace(new OperatorNode(Operators.SUBTRACT).SetOperands(
+			remainder.Left.Clone(),
 			new OperatorNode(Operators.MULTIPLY).SetOperands(
 				new OperatorNode(Operators.DIVIDE).SetOperands(
-					new VariableNode(a),
+					remainder.Left.Clone(),
 					remainder.Right.Clone()
 				),
 				remainder.Right.Clone()
 			)
 		));
-
-		remainder.Replace(inline);
 	}
 
 	/// <summary>
@@ -1206,10 +1018,8 @@ public static class ReconstructionAnalysis
 
 		foreach (var remainder in remainders)
 		{
-			if (remainder.Right.Is(NodeType.NUMBER))
-			{
-				RewriteRemainderOperation(remainder);
-			}
+			if (!remainder.Right.Is(NodeType.NUMBER)) continue;
+			RewriteRemainderOperation(remainder);
 		}
 	}
 
@@ -1332,7 +1142,7 @@ public static class ReconstructionAnalysis
 		foreach (var cast in casts)
 		{
 			// Do not remove the cast if it changes the type
-			if (!ReferenceEquals(cast.GetType(), cast.Object.GetType())) continue;
+			if (!Equals(cast.GetType(), cast.Object.GetType())) continue;
 
 			// Remove the cast since it does nothing
 			cast.Replace(cast.Object);
@@ -1501,14 +1311,14 @@ public static class ReconstructionAnalysis
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
 		RemoveRedundantCasts(root);
+		RewriteDiscardedIncrements(root);
+		ExtractExpressions(root);
 		AddAssignmentCasts(root);
 		RewriteSupertypeAccessors(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
 		RewriteConstructions(root);
 		OutlineBooleanValues(root);
-		RewriteDiscardedIncrements(root);
-		RewriteIncrements(root);
 		RewriteAllEditsAsAssignOperations(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
@@ -1519,7 +1329,6 @@ public static class ReconstructionAnalysis
 		}
 
 		SubstituteInlineNodes(root);
-		LiftupInlineNodes(root);
 	}
 
 	/// <summary>

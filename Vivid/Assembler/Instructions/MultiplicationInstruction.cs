@@ -16,7 +16,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	private static bool IsConstantValidForExtendedMultiplication(long x)
 	{
-		return Common.IsPowerOfTwo(x) && x <= (Assembler.IsX64 ? 8 : 1L << 32);
+		return Common.IsPowerOfTwo(x) && x <= (Assembler.IsX64 ? Instructions.X64.EVALUATE_MAX_MULTIPLIER : 1L << 32);
 	}
 
 	private class ConstantMultiplication
@@ -92,7 +92,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (multiplication != null && multiplication.Constant > 0)
 		{
-			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= 8 && !First.IsExpiring(Unit.Position))
+			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= Instructions.X64.EVALUATE_MAX_MULTIPLIER && !First.IsExpiring(Unit.Position))
 			{
 				Memory.GetResultRegisterFor(Unit, Result, false);
 

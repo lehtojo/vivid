@@ -31,12 +31,8 @@ public class GetVariableInstruction : Instruction
 
 	public override void OnSimulate()
 	{
-		var current = Unit.GetCurrentVariableHandle(Variable);
-
-		if (current == null)
-		{
-			return;
-		}
+		var current = Unit.GetVariableValue(Variable);
+		if (current == null) return;
 
 		Result.Join(current);
 	}

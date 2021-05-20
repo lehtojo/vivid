@@ -440,6 +440,26 @@ public static class GeneralAnalysis
 	}
 
 	/// <summary>
+	/// Returns whether the specified node trees are equal
+	/// </summary>
+	private static bool IsTreeEqual(Node a, Node b)
+	{
+		if (!Equals(a, b)) return false;
+
+		var x = a.First;
+		var y = b.First;
+
+		while (true)
+		{
+			if (x == null || y == null) return x == null && y == null;
+			if (!IsTreeEqual(x, y)) return false;
+
+			x = x.Next;
+			y = y.Next;
+		}
+	}
+
+	/// <summary>
 	/// Looks for assignments which can be inlined
 	/// </summary>
 	private static Node AssignVariables(FunctionImplementation implementation, Node root)
@@ -449,7 +469,7 @@ public static class GeneralAnalysis
 
 		var result = (Node?)null;
 
-		while (result == null || !result.Equals(minimum_cost_snapshot))
+		while (result == null || !IsTreeEqual(result, minimum_cost_snapshot))
 		{
 			result = minimum_cost_snapshot;
 
