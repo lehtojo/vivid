@@ -206,7 +206,7 @@ public class Unit
 
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Assembler.Size, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
+			var register = new Register(Size.XMMWORD, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
 
 			if (i < 19)
 			{

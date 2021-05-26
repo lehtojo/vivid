@@ -694,7 +694,7 @@ public class Flow
 
 	/// <summary>
 	/// Returns whether the specified node is executed before the specified position (from)
-	/// NOTE: This does not check whether the node is always executed before the position rather whether is it executed before the first time
+	/// NOTE: This does not check whether the node is always executed before the position rather whether is it executed at least once before reaching the specified position
 	/// </summary>
 	public bool IsExecutedBefore(Node node, Node position)
 	{

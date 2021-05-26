@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
@@ -23,29 +24,26 @@ public class InitializeInstruction : Instruction
 		if (!calls.Any()) return 0;
 
 		// Find all parameter move instructions which move the source value into memory
-		var parameter_instructions = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).ToArray();
+		var parameter_memory_addresses = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
+		var return_value_sizes = calls.Where(i => i.ReturnType != null && i.ReturnType.IsPack).Select(i => i.ReturnType!.ContentSize).ToArray();
 
-		if (!parameter_instructions.Any())
+		if (!parameter_memory_addresses.Any() && !return_value_sizes.Any())
 		{
-			if (IsShadowSpaceRequired)
-			{
-				// Even though no instruction writes to memory, on Windows x64 there's a requirement to allocate so called 'shadow space' for the first four parameters
-				return Calls.SHADOW_SPACE_SIZE;
-			}
-			
+			// Even though no instruction writes to memory, on Windows x64 there is a requirement to allocate so called 'shadow space' for the first four parameters
+			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
 			return 0;
 		}
 
-		// Find the memory handle which has the greatest offset, that tells how much memory should be allocated for calls
-		return parameter_instructions.Select(i => i.To<MemoryHandle>().Offset).Max() + Assembler.Size.Bytes;
+		var required_parameter_memory = parameter_memory_addresses.Any() ? parameter_memory_addresses.Max() + Assembler.Size.Bytes : 0; // Find the parameter memory address with the largest offset
+		var required_return_value_memory = return_value_sizes.Any() ? return_value_sizes.Max() : 0; // Find the largest return value
+
+		// The maximum value of the required memory sizes fulfills both requirements
+		return Math.Max(required_parameter_memory, required_return_value_memory);
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)
 	{
-		if (!registers.Any())
-		{
-			return;
-		}
+		if (!registers.Any()) return;
 
 		var stack_pointer = Unit.GetStackPointer();
 		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;

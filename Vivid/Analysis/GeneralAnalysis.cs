@@ -320,6 +320,8 @@ public static class GeneralAnalysis
 
 		foreach (var variable in variables)
 		{
+			if (variable.Type!.IsPack) continue;
+			
 			var descriptors = GetVariableDescriptors(implementation, root);
 			var descriptor = descriptors[variable];
 
@@ -339,10 +341,7 @@ public static class GeneralAnalysis
 				foreach (var read in write.Dependencies)
 				{
 					// If the value of the write contains calls, it should not be assigned
-					if (!IsAssignable(write.Node))
-					{
-						continue;
-					}
+					if (!IsAssignable(write.Node)) continue;
 
 					// If the read is dependent on any of the other writes, the value of the current write can not be assigned
 					if (descriptor.Writes.Except(write).SelectMany(i => i.Dependencies).Any(i => ReferenceEquals(i, read)))
@@ -356,10 +355,7 @@ public static class GeneralAnalysis
 					var to = flow.Indices[read];
 
 					// If the read happens before the edit, which is possible in loops for example, it is not reliable to get all the nodes between the edit and the read
-					if (to < from)
-					{
-						continue;
-					}
+					if (to < from) continue;
 
 					foreach (var node in flow.Nodes.GetRange(from, to - from).Where(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
 					{
@@ -368,20 +364,14 @@ public static class GeneralAnalysis
 							var editor = Analyzer.GetEditor(node);
 							var position = flow.Indices[editor];
 
-							if (position <= from || position >= to)
-							{
-								continue;
-							}
+							if (position <= from || position >= to) continue;
 
 							assign = false;
 							break;
 						}
 					}
 
-					if (!assign)
-					{
-						continue;
-					}
+					if (!assign) continue;
 
 					assignable.Add(read);
 				}
@@ -408,10 +398,7 @@ public static class GeneralAnalysis
 			{
 				var write = descriptor.Writes[i];
 
-				if (write.Dependencies.Count != 0)
-				{
-					continue;
-				}
+				if (write.Dependencies.Count != 0) continue;
 
 				// If this statement is a declaration and the next write is not in the same scope, replace this statement with a declaration node
 				// 1. Only the first write can be a declaration

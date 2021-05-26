@@ -110,7 +110,7 @@ public static class ReconstructionAnalysis
 
 			return new OperatorNode(Operators.ASSIGN_ADD, increment.Position).SetOperands(
 				destination,
-				new NumberNode(type.Format, 1L, increment.Position)
+				new NumberNode(Assembler.Format, 1L, increment.Position)
 			);
 		}
 
@@ -121,7 +121,7 @@ public static class ReconstructionAnalysis
 
 			return new OperatorNode(Operators.ASSIGN_SUBTRACT, decrement.Position).SetOperands(
 				destination,
-				new NumberNode(type.Format, 1L, decrement.Position)
+				new NumberNode(Assembler.Format, 1L, decrement.Position)
 			);
 		}
 

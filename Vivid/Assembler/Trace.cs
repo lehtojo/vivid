@@ -14,6 +14,11 @@ public static class Trace
 
 		end = end == -1 ? unit.Instructions.Count - 1 : end;
 		start = start == -1 ? unit.Instructions.Count - 1 : start;
+		
+		if (unit.Position > 0 && unit.Position > start) { start = unit.Position; }
+
+		// Do not process result which have already expired
+		if (start > end) { return new List<Directive>(); }
 
 		for (var i = start; i <= end; i++)
 		{
@@ -41,17 +46,10 @@ public static class Trace
 		{
 			for (var i = start; i < unit.Instructions.Count; i++)
 			{
-				if (!unit.Instructions[i].Is(InstructionType.RETURN))
-				{
-					continue;
-				}
+				if (!unit.Instructions[i].Is(InstructionType.RETURN)) continue;
 
 				var instruction = unit.Instructions[i].To<ReturnInstruction>();
-
-				if (instruction.Object == null)
-				{
-					continue;
-				}
+				if (instruction.Object == null) continue;
 
 				if (!instruction.Object.Equals(result))
 				{

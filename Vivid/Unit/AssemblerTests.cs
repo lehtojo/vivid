@@ -398,6 +398,16 @@ public struct IterationObject
 	[FieldOffset(16)] public bool Flag;
 }
 
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[SuppressMessage("Microsoft.Maintainability", "CA1815")]
+[StructLayout(LayoutKind.Explicit)]
+public struct MemoryObject
+{
+	[FieldOffset(8)] public int X;
+	[FieldOffset(12)] public double Y;
+	[FieldOffset(20)] public IntPtr Other;
+}
+
 namespace Vivid.Unit
 {
 	public static class AssemblerTests
@@ -601,6 +611,9 @@ namespace Vivid.Unit
 			return File.ReadAllText(Prefix + project + '.' + file + ".asm");
 		}
 
+		/// <summary>
+		/// Loads the specified assembly output file and returns the section which represents the specified function
+		/// </summary>
 		private static string LoadAssemblyFunction(string output, string function)
 		{
 			var assembly = File.ReadAllText(Prefix + output + ".asm");
@@ -610,6 +623,22 @@ namespace Vivid.Unit
 			if (start == -1 || end == -1)
 			{
 				Assert.Fail($"Could not load assembly function '{function}' from file '{Prefix + output + ".asm"}'");
+			}
+
+			return assembly[start..end];
+		}
+
+		/// <summary>
+		/// Returns the section which represents the specified function
+		/// </summary>
+		private static string GetFunctionFromAssembly(string assembly, string function)
+		{
+			var start = assembly.IndexOf(function + ':');
+			var end = assembly.IndexOf("\n\n", start);
+
+			if (start == -1 || end == -1)
+			{
+				Assert.Fail($"Could not load assembly function '{function}' from '{assembly}'");
 			}
 
 			return assembly[start..end];
@@ -636,7 +665,7 @@ namespace Vivid.Unit
 
 			foreach (var line in assembly.Split('\n'))
 			{
-				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains("lea"))
+				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains(Instructions.X64.EVALUATE))
 				{
 					count++;
 				}
@@ -649,7 +678,7 @@ namespace Vivid.Unit
 		{
 			foreach (var line in assembly.Split('\n'))
 			{
-				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains("lea"))
+				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains(Instructions.X64.EVALUATE))
 				{
 					Assert.Fail("Assembly contained memory address(es)");
 				}
@@ -2164,6 +2193,157 @@ namespace Vivid.Unit
 			}
 
 			Extensions_Test();
+		}
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V13memory_case_1P6Objecti_ri(ref MemoryObject instance, int value);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern byte _V13memory_case_2Phi_rh(IntPtr memory, int i);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_3P6Objectdd_rd(ref MemoryObject instance, double value);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V13memory_case_4P6ObjectS0__ri(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_5P6ObjectPh_rd(IntPtr instance, IntPtr memory);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_6P6Object_rd(ref MemoryObject a);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_7P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_8P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_9P6ObjectS0__rd(ref MemoryObject a, IntPtr b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V14memory_case_10P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern void _V14memory_case_11P6Objectx(ref MemoryObject a, int i);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V14memory_case_12P6Objectx_ri(ref MemoryObject a, int i);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern void _V14memory_case_13P6Objectx(ref MemoryObject a, int i);
+
+		public static void Memory_Test()
+		{
+			var a = new MemoryObject();
+			var x = Marshal.AllocHGlobal(28);
+			a.Other = x;
+
+			var b = new MemoryObject();
+			var y = Marshal.AllocHGlobal(28);
+			b.Other = y;
+
+			Assert.AreEqual(10, _V13memory_case_1P6Objecti_ri(ref a, 10));
+			Assert.AreEqual(10, a.X);
+
+			var memory = Marshal.AllocHGlobal(10);
+			Assert.AreEqual(7, _V13memory_case_2Phi_rh(memory, 6));
+			Assert.AreEqual(7, Marshal.ReadByte(memory, 6));
+
+			a.Y = 1.718281;
+			var result = _V13memory_case_3P6Objectdd_rd(ref a, 8.8);
+			if (result != 1.718281 + 1.0 + 8.0 && result != 10.718281) Assert.Fail("Values are not equal");
+
+			Assert.AreEqual(8, a.X);
+			Assert.AreEqual(1.718281 + 1.0, a.Y);
+
+			Assert.AreEqual(2, _V13memory_case_4P6ObjectS0__ri(ref a, ref a));
+			Assert.AreEqual(2, a.X);
+
+			Assert.AreEqual(120.11225, _V13memory_case_5P6ObjectPh_rd(memory, memory + 12));
+
+			Assert.AreEqual(-3.14159, _V13memory_case_6P6Object_rd(ref a));
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+			
+			a.Y = 1.0;
+			b.Y = -1.0;
+			var previous = a.Other;
+			Assert.AreEqual(-1.0, _V13memory_case_7P6ObjectS0__rd(ref a, ref b));
+			Assert.AreNotEqual(previous, a.Other);
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(previous, 12)));
+			a.Other = previous;
+
+			Marshal.WriteInt64(b.Other, 12, BitConverter.DoubleToInt64Bits(101.1000));
+			Assert.AreEqual(101.1000, _V13memory_case_8P6ObjectS0__rd(ref a, ref b));
+
+			Assert.AreEqual(10.0, _V13memory_case_9P6ObjectS0__rd(ref a, a.Other));
+			Assert.AreEqual(10.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+
+			a.Y = 13579.2468;
+			Assert.AreEqual(13579.2468, _V14memory_case_10P6ObjectS0__rd(ref a, ref a));
+			
+			a.X = 10;
+			a.Other = x;
+			Marshal.WriteInt32(a.Other, 8, 20);
+			_V14memory_case_11P6Objectx(ref a, 7);
+			Assert.AreEqual(11, a.X);
+			Assert.AreEqual(21, Marshal.ReadInt32(a.Other, 8));
+			
+			_V14memory_case_11P6Objectx(ref a, -3);
+			Assert.AreEqual(12, a.X);
+			Assert.AreEqual(22, Marshal.ReadInt32(a.Other, 8));
+
+			a.Y = -2.25;
+			Assert.AreEqual(-2, _V14memory_case_12P6Objectx_ri(ref a, 555));
+			Assert.AreEqual(-2, a.X);
+			Assert.AreEqual(-2.25, a.Y);
+
+			a.X = 101;
+			Assert.AreEqual(101, _V14memory_case_12P6Objectx_ri(ref a, -111));
+			Assert.AreEqual(101, a.X);
+			Assert.AreEqual(101.0, a.Y);
+
+			a.X = 3;
+			a.Y = 92.001;
+			_V14memory_case_13P6Objectx(ref a, 7);
+			Assert.AreEqual(10, a.X);
+			Assert.AreEqual(100.001, a.Y);
+
+			a.X = 7;
+			a.Y = 6.0;
+			_V14memory_case_13P6Objectx(ref a, -7);
+			Assert.AreEqual(0, a.X);
+			Assert.AreEqual(0.0, a.Y);
+
+			if (OptimizationLevel < 1) return;
+
+			// Load the generated assembly
+			var assembly = LoadAssemblyOutput("Memory");
+			
+			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_1P6Objecti_ri")));
+			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_2Phi_rh")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectdd_rd")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_4P6ObjectS0__ri")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_5P6ObjectPh_rd")));
+			Assert.AreEqual(2, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_6P6Object_rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_7P6ObjectS0__rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_8P6ObjectS0__rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_9P6ObjectS0__rd")));
+			Assert.AreEqual(5, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_10P6ObjectS0__rd")));
+			Assert.AreEqual(6, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_11P6Objectx")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_12P6Objectx_ri")));
+			Assert.AreEqual(6, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_13P6Objectx")));
+		}
+
+		public static void Memory()
+		{
+			if (!Compile("Memory", new[] { "Memory.v" }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Memory_Test();
 		}
 	}
 }

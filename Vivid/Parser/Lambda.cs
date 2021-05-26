@@ -39,13 +39,4 @@ public class Lambda : Function
 
 		return implementation;
 	}
-
-	public List<Variable> GetCapturedVariables()
-	{
-		return Implementation.Node!
-		   .FindAll(i => i.Is(NodeType.VARIABLE))
-		   .Select(i => i.To<VariableNode>().Variable)
-		   .Where(i => !i.Context.IsInside(this))
-		   .ToList();
-	}
 }

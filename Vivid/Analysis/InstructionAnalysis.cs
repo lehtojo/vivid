@@ -276,45 +276,35 @@ public static class InstructionAnalysis
 		}
 	}
 
-	private static bool IsEditedBetween(List<Instruction> instructions, int start, int end, Handle handle, Instruction? ignore)
+	/// <summary>
+	/// Returns whether the specified handle is used between the specified range
+	/// </summary>
+	private static bool IsUsedBetween(List<Instruction> instructions, int start, int end, Handle handle, Instruction? ignore, bool writes, bool reads)
 	{
 		for (var i = start; i <= end; i++)
 		{
 			var instruction = instructions[i];
-
-			if (instruction == ignore)
-			{
-				continue;
-			}
-
-			var destination = instruction.Destination;
-
-			if (destination == null)
-			{
-				continue;
-			}
+			if (instruction == ignore) continue;
 
 			if (instruction.Is(InstructionType.CALL))
 			{
-				if (handle.Is(HandleInstanceType.REGISTER) && handle.To<RegisterHandle>().Register.IsVolatile)
-				{
-					return true;
-				}
+				// If the handle represents a volatile register, its contents might change during function call
+				if (handle.Is(HandleInstanceType.REGISTER) && handle.To<RegisterHandle>().Register.IsVolatile) return true;
 
-				if (handle.Is(HandleType.MEMORY))
-				{
-					return true;
-				}
+				// Contents of memory handles can change during function call
+				if (handle.Is(HandleType.MEMORY)) return true;
 			}
 
-			if (Writes(instruction, handle))
-			{
-				return true;
-			}
+			if (writes && Writes(instruction, handle)) return true;
+			if (reads && Reads(instruction, handle)) return true;
 
-			if (destination.IsMemoryAddress && handle.Is(HandleType.MEMORY) && IsIntersectionPossible(destination.Value!, handle))
+			if (!handle.Is(HandleType.MEMORY)) continue; // Require the specified handle to be a memory handle
+
+			// Check if any of the parameters can intersect with the specified handle
+			foreach (var parameter in instruction.Parameters)
 			{
-				return true;
+				if (!parameter.IsMemoryAddress || !IsIntersectionPossible(parameter.Value!, handle)) continue;
+				if ((writes && parameter.IsDestination) || (reads && parameter.IsSource)) return true;
 			}
 		}
 
@@ -465,10 +455,7 @@ public static class InstructionAnalysis
 		if (root == null || is_root_copy_move)
 		{
 			// Here it is assumed that intermediate instructions can not have memory addresses as their destinations
-			if (is_destination_memory_address)
-			{
-				return false;
-			}
+			if (is_destination_memory_address) return false;
 
 			foreach (var intermediate in intermediates)
 			{
@@ -487,22 +474,10 @@ public static class InstructionAnalysis
 				var start = instructions.IndexOf(intermediate);
 				usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, start);
 
-				if (usages == null)
-				{
-					continue;
-				}
+				if (usages == null) continue;
 
-				var end = instructions.IndexOf(usages.Last());
-
-				// The following situation is theoretical, but still should be checked for
-				// Example:
-				// add rcx, 1
-				// add rdx, 1 <- The destination is edited here
-				// mov rdx, rcx <- This instruction is ignored
-				// Notice that the value inside the register rdx will be different in some cases
-				// lea rdx, [rcx+1]
-				// add rdx, 1
-				if (usages.Any() && IsEditedBetween(instructions, start, end, destination, pivot))
+				// If the destination is used between the pivot and the intermediate, the redirection might be invalid
+				if (usages.Any() && IsUsedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot, true, true))
 				{
 					return false;
 				}
@@ -514,6 +489,33 @@ public static class InstructionAnalysis
 					intermediate.OnPostBuild();
 					return true;
 				}
+			}
+
+			if (root != null)
+			{
+				var start = instructions.IndexOf(root);
+				usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, start);
+				if (usages == null) return false;
+
+				// If the destination is used between the pivot and the root, the redirection might be invalid
+				/// NOTE: Why the code ensures there are no reads from the destination between the root and the pivot?
+				// Before:                  After:
+				// mov rax, rcx <- Root     mov rdx, rcx
+				// mov rbx, rdx             mov rbx, rdx <- Notice the value might be different here
+				// mov rdx, rax <- Pivot
+				/// NOTE: Why the code ensures there are no writes to the destination between the root and the pivot?
+				// Before:                  After:
+				// mov rax, rcx <- Root     mov rcx, rcx
+				// add rcx, 1               add rcx, 1 <- Notice the value might be different here
+				// mov rcx, rax <- Pivot
+				if (usages.Any() && IsUsedBetween(instructions, start + 1, instructions.IndexOf(usages.Last()), destination, pivot, true, true)) return false;
+
+				// Try to redirect the intermediate to the destination
+				if (!root.Redirect(destination)) return false;
+
+				usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
+				root.OnPostBuild();
+				return true;
 			}
 
 			return false;
@@ -561,7 +563,7 @@ public static class InstructionAnalysis
 			// Notice that the value inside the register rdx will be different in some cases
 			// lea rdx, [rcx+1]
 			// add rdx, 1
-			if (usages.Any() && IsEditedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot))
+			if (usages.Any() && IsUsedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot, true, true))
 			{
 				return false;
 			}
@@ -608,7 +610,7 @@ public static class InstructionAnalysis
 	public static void Optimize(Unit unit, List<Instruction> instructions)
 	{
 		// Inline only the relocating moves
-		InlineMoveInstructions(unit, instructions, true, false);
+		InlineMoveInstructions(unit, instructions, false, true);
 
 		//Remove all moves whose values are not read
 		RemoveRedundantMoves(unit, instructions);
@@ -845,12 +847,12 @@ public static class InstructionAnalysis
 
 	public static Register? TryGetNextMediaRegister(Unit unit, List<Instruction> instructions, int position)
 	{
-		return unit.MediaRegisters.Where(i => IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
+		return unit.VolatileMediaRegisters.Concat(unit.NonVolatileMediaRegisters).Where(i => IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
 	}
 
 	public static Register? TryGetNextStandardRegister(Unit unit, List<Instruction> instructions, int position)
 	{
-		return unit.StandardRegisters.Where(i => IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
+		return unit.VolatileStandardRegisters.Concat(unit.NonVolatileStandardRegisters).Where(i => IsRegisterAvailable(instructions, i, position)).FirstOrDefault();
 	}
 
 	public static SequentialPair? TryGetSequentialPair(Handle first, Handle second)
@@ -1010,32 +1012,20 @@ public static class InstructionAnalysis
 
 			for (var j = i + 1; j < instructions.Count; j++)
 			{
-				if (instructions[j].Is(InstructionType.CALL, InstructionType.JUMP, InstructionType.LABEL))
-				{
-					break;
-				}
+				if (instructions[j].Is(InstructionType.CALL, InstructionType.JUMP, InstructionType.LABEL)) break;
 
 				// Try to find the next move instruction
-				if (!instructions[j].Is(InstructionType.MOVE))
-				{
-					continue;
-				}
+				if (!instructions[j].Is(InstructionType.MOVE)) continue;
 
 				var second_move = instructions[j].To<MoveInstruction>();
 
 				// The second move is found but its destination must be a memory address
-				if (!second_move.Parameters.Any() || !second_move.Destination!.IsMemoryAddress)
-				{
-					continue;
-				}
+				if (!second_move.Parameters.Any() || !second_move.Destination!.IsMemoryAddress) continue;
 
 				var second_source = TryGetIndependentSource(instructions, second_move, j);
 
 				// Skip this move if its source is used in multiple locations or if it is a register
-				if (second_source == null || second_source.First.Is(HandleType.REGISTER))
-				{
-					continue;
-				}
+				if (second_source == null || second_source.First.Is(HandleType.REGISTER)) continue;
 
 				var destination = TryGetSequentialPair(first_move.Destination!.Value!, second_move.Destination!.Value!);
 				var source = TryGetSequentialPair(first_source.First, second_source.First);
@@ -1044,10 +1034,7 @@ public static class InstructionAnalysis
 				if (destination == null || source == null || destination.High.Size != destination.Low.Size || source.High.Size != source.Low.Size)
 				{
 					// If the moves might intersect even a little bit, both the first and the second move should be left alone
-					if (IsIntersectionPossible(first_move.Destination.Value!, second_move.Destination.Value!))
-					{
-						break;
-					}
+					if (IsIntersectionPossible(first_move.Destination.Value!, second_move.Destination.Value!)) break;
 
 					continue;
 				}
@@ -1056,10 +1043,7 @@ public static class InstructionAnalysis
 				if (destination.Flipped != source.Flipped)
 				{
 					// Constants still can be flipped over
-					if (source.Low.Type != HandleType.CONSTANT)
-					{
-						continue;
-					}
+					if (source.Low.Type != HandleType.CONSTANT) continue;
 
 					var temporary = source.High;
 					source.High = source.Low;
@@ -1071,10 +1055,7 @@ public static class InstructionAnalysis
 				var start = first_source.Second == null ? i : instructions.IndexOf(first_source.Second);
 				var end = j;
 
-				if (dependencies.Any(i => IsEditedBetween(instructions, start, end, new RegisterHandle(i), null)))
-				{
-					continue;
-				}
+				if (dependencies.Any(i => IsUsedBetween(instructions, start, end, new RegisterHandle(i), null, true, false))) continue;
 
 				var inline_destination_size = destination.Low.Size.Bytes * 2;
 				var inline_source_size = source.Low.Size.Bytes * 2;
@@ -1219,10 +1200,10 @@ public static class InstructionAnalysis
 						}
 					}
 
-					if (load_register == null)
-					{
-						continue;
-					}
+					if (load_register == null) continue;
+
+					// Arm does not have 256-bit registers
+					if (Assembler.IsArm64 && inline_source_size == Size.YMMWORD.Bytes) continue;
 
 					load.Destination.Value = new RegisterHandle(load_register) { Format = load_format };
 					load.Destination.Size = Size.FromFormat(load_format);

@@ -1317,15 +1317,22 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
-	private static readonly Variant[] Variants = new Variant[]
+	private static readonly Variant[] VariantsX64 = new Variant[]
 	{
 		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_XMMWORD_MOVE, Size.XMMWORD, Size.XMMWORD),
 		new(Size.YMMWORD, Size.YMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_YMMWORD_MOVE, Size.YMMWORD, Size.YMMWORD),
 	};
 
+	private static readonly Variant[] VariantsArm64 = new Variant[]
+	{
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEDIA_REGISTER, HandleType.MEMORY, Instructions.Arm64.LOAD, Size.XMMWORD, Size.XMMWORD),
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY, HandleType.MEDIA_REGISTER, Instructions.Arm64.STORE, Size.XMMWORD, Size.XMMWORD),
+	};
+
 	private Variant? TryGetVariant()
 	{
-		return Variants.Where(i =>
+		var variants = Assembler.IsArm64 ? VariantsArm64 : VariantsX64;
+		return variants.Where(i =>
 			i.InputDestinationFormats.Contains(Destination!.Value!.Format) &&
 			i.InputSourceFormats.Contains(Source!.Value!.Format) &&
 			Flag.Has((int)i.InputDestinationTypes, (int)Destination!.Value!.Type) &&
@@ -1447,14 +1454,21 @@ public class MoveInstruction : DualParameterInstruction
 
 	public void OnPostBuildArm64()
 	{
+		var variant = TryGetVariant();
+
+		if (variant != null)
+		{
+			Operation = variant.Operation;
+			Destination!.Value!.Format = variant.OutputDestinationSize.ToFormat();
+			Source!.Value!.Format = variant.OutputSourceSize.ToFormat();
+			return;
+		}
+		
 		var source = Source!.Value!;
 		var destination = Destination!.Value!;
 
 		// Skip decimal formats
-		if (source.Format.IsDecimal() || destination.Format.IsDecimal())
-		{
-			return;
-		}
+		if (source.Format.IsDecimal() || destination.Format.IsDecimal()) return;
 
 		var is_load = IsLoadInstructionArm64();
 		var is_store = IsStoreInstructionArm64();

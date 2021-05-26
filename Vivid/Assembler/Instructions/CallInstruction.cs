@@ -18,8 +18,7 @@ public class CallInstruction : Instruction
 	public bool IsTailCall => Operation == Instructions.X64.JUMP || Operation == Instructions.Arm64.JUMP_LABEL || Operation == Instructions.Arm64.JUMP_REGISTER;
 	
 	public List<Result> Values { get; private set; } = new List<Result>();
-
-	#warning Support return values which use stack more than is allocated
+	
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);

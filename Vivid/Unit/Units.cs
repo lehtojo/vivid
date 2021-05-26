@@ -101,6 +101,7 @@ public static class Units
 		Run("Linkage", AssemblerTests.Linkage);
 		Run("LogicalOperators", AssemblerTests.LogicalOperators);
 		Run("Loops", AssemblerTests.Loops);
+		Run("Memory", AssemblerTests.Memory);
 		Run("Namespaces", AssemblerTests.Namespaces);
 		Run("Objects", AssemblerTests.Objects);
 		Run("PI", AssemblerTests.PI);
