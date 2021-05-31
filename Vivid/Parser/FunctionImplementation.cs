@@ -154,19 +154,19 @@ public class FunctionImplementation : Context
 
 	public override bool IsLocalVariableDeclared(string name)
 	{
-		return Parameters.Any(p => p.Name == name) || base.IsLocalVariableDeclared(name);
+		return Parameters.Any(i => i.Name == name) || base.IsLocalVariableDeclared(name);
 	}
 
 	public override bool IsVariableDeclared(string name)
 	{
-		return Parameters.Any(p => p.Name == name) || base.IsVariableDeclared(name);
+		return Parameters.Any(i => i.Name == name) || base.IsVariableDeclared(name);
 	}
 
 	public override Variable? GetVariable(string name)
 	{
-		if (Parameters.Any(p => p.Name == name))
+		if (Parameters.Any(i => i.Name == name))
 		{
-			return Parameters.Find(p => p.Name == name);
+			return Parameters.Find(i => i.Name == name);
 		}
 
 		return base.GetVariable(name);

@@ -11,8 +11,7 @@ public enum HandleType
 	MEDIA_REGISTER = 8,
 	EXPRESSION = 16,
 	MODIFIER = 32,
-	ABSTRACT = 64,
-	NONE = 128
+	NONE = 64
 }
 
 public enum HandleInstanceType
@@ -30,9 +29,7 @@ public enum HandleInstanceType
 	INLINE,
 	REGISTER,
 	MODIFIER,
-	LOWER_12_BITS,
-	PACK,
-	DISPOSABLE_PACK
+	LOWER_12_BITS
 }
 
 public class Handle
@@ -1029,82 +1026,5 @@ public class Lower12Bits : Handle
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(Handle);
-	}
-}
-
-public class PackHandle : Handle
-{
-	public Dictionary<Variable, Variable> Variables { get; } = new Dictionary<Variable, Variable>();
-
-	public PackHandle(Unit unit, Type type, string identity) : base(HandleType.ABSTRACT, HandleInstanceType.PACK)
-	{
-		foreach (var member in type.Variables.Values)
-		{
-			var name = identity + '.' + member.Name;
-			var local = unit.Function.GetVariable(name);
-
-			if (local == null)
-			{
-				local = unit.Function.Declare(member.Type!, VariableCategory.LOCAL, name);
-			}
-
-			Variables.Add(member, local);
-		}
-	}
-
-	public PackHandle(Dictionary<Variable, Variable> variables) : base(HandleType.MEMORY, HandleInstanceType.PACK)
-	{
-		Variables = new Dictionary<Variable, Variable>(variables);
-	}
-
-	public override string ToString()
-	{
-		return string.Empty;
-	}
-
-	public override bool Equals(object? other)
-	{
-		return ReferenceEquals(this, other);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Type, Instance, Variables);
-	}
-
-	public override Handle Finalize()
-	{
-		return new PackHandle(Variables);
-	}
-}
-
-public class DisposablePackHandle : Handle
-{
-	/// NOTE: Inner results are not updated, because the lifetimes of the members should be independent
-	public Dictionary<Variable, Result> Variables { get; } = new Dictionary<Variable, Result>();
-
-	public DisposablePackHandle(Dictionary<Variable, Result> variables) : base(HandleType.ABSTRACT, HandleInstanceType.DISPOSABLE_PACK)
-	{
-		Variables = variables;
-	}
-
-	public override string ToString()
-	{
-		return string.Empty;
-	}
-
-	public override bool Equals(object? other)
-	{
-		return ReferenceEquals(this, other);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Type, Instance, Variables);
-	}
-
-	public override Handle Finalize()
-	{
-		return new DisposablePackHandle(Variables);
 	}
 }

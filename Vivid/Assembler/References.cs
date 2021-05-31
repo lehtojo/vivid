@@ -26,11 +26,6 @@ public static class References
 			throw new InvalidOperationException("Tried to create variable handle which used a self pointer without its type");
 		}
 
-		if (variable.Type!.IsPack)
-		{
-			return new PackHandle(unit, variable.Type, variable.Context.Identity + '.' + variable.Name);
-		}
-
 		Handle? handle;
 
 		switch (variable.Category)

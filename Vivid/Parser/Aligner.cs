@@ -140,7 +140,7 @@ public static class Aligner
 				if (type.Format.IsDecimal() && media_register_count-- > 0 || !type.Format.IsDecimal() && standard_register_count-- > 0) continue;
 
 				parameter.LocalAlignment = position;
-				position += (type.IsPack ? type.GetContentSize() : Parser.Bytes);
+				position += Parser.Bytes;
 			}
 		}
 		else
@@ -152,12 +152,12 @@ public static class Aligner
 			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out self))
 			{
 				self.LocalAlignment = position;
-				position += (self.Type!.IsPack ? self.Type!.GetContentSize() : Parser.Bytes);
+				position += Parser.Bytes;
 			}
 			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out self))
 			{
 				self.LocalAlignment = position - Parser.Bytes;
-				position += (self.Type!.IsPack ? self.Type!.GetContentSize() : Parser.Bytes);
+				position += Parser.Bytes;
 			}
 
 			// Align the other parameters
@@ -166,7 +166,7 @@ public static class Aligner
 				if (!parameter.IsParameter) continue;
 
 				parameter.LocalAlignment = position;
-				position += (parameter.Type!.IsPack ? parameter.Type!.GetContentSize() : Parser.Bytes);
+				position += Parser.Bytes;
 			}
 		}
 	}

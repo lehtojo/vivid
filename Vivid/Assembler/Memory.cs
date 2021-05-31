@@ -463,11 +463,7 @@ public static class Memory
 		foreach (var type in types)
 		{
 			var converted = TryConvert(unit, result, size, type, protect, directives);
-
-			if (converted != null)
-			{
-				return converted;
-			}
+			if (converted != null) return converted;
 		}
 
 		throw new ArgumentException("Could not convert reference to the requested format");

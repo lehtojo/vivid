@@ -16,9 +16,7 @@ public class CallInstruction : Instruction
 
 	// This call is a tail call if it uses jump instruction
 	public bool IsTailCall => Operation == Instructions.X64.JUMP || Operation == Instructions.Arm64.JUMP_LABEL || Operation == Instructions.Arm64.JUMP_REGISTER;
-	
-	public List<Result> Values { get; private set; } = new List<Result>();
-	
+
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
@@ -28,11 +26,6 @@ public class CallInstruction : Instruction
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
-
-		// Handle pack return types
-		if (ReturnType == null || !ReturnType.IsPack) return;
-		CreatePackValues(ReturnType);
-		ReceivePackReturnType();
 	}
 
 	public CallInstruction(Unit unit, Result function, Type? return_type) : base(unit, InstructionType.CALL)
@@ -44,11 +37,6 @@ public class CallInstruction : Instruction
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
-
-		// Handle pack return types
-		if (ReturnType == null || !ReturnType.IsPack) return;
-		CreatePackValues(ReturnType);
-		ReceivePackReturnType();
 	}
 
 	/// <summary>
@@ -116,87 +104,6 @@ public class CallInstruction : Instruction
 	{
 		Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
 		return new List<RegisterLock> { RegisterLock.Create(Function) };
-	}
-
-	/// <summary>
-	/// Generates the results which are used by the returned pack
-	/// </summary>
-	private void CreatePackValues(Type type)
-	{
-		foreach (var member in type.Variables.Values)
-		{
-			Values.Add(new Result());
-
-			if (member.Type!.IsPack)
-			{
-				CreatePackValues(member.Type!);
-			}
-		}
-	}
-
-	/// <summary>
-	/// Sets the return value to represent a pack type
-	/// </summary>
-	private void ReceivePackReturnType()
-	{
-		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => Unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
-		var decimal_parameter_registers = Unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
-		var position = new StackMemoryHandle(Unit, Assembler.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0, false);
-		var handle = new DisposablePackHandle(new Dictionary<Variable, Result>());
-
-		ReceivePackReturnType(handle, standard_parameter_registers, decimal_parameter_registers, position, ReturnType!, 0);
-
-		Result.Value = handle;
-		Result.Format = Assembler.Format;
-	}
-
-	/// <summary>
-	/// Sets the return value to represent a pack type
-	/// </summary>
-	private int ReceivePackReturnType(DisposablePackHandle pack, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Type type, int i)
-	{
-		var members = type.Variables.Values.ToArray();
-
-		foreach (var member in members)
-		{
-			var result = Values[i];
-			i++;
-
-			pack.Variables[member] = result;
-
-			if (member.Type!.IsPack)
-			{
-				var handle = new DisposablePackHandle(new Dictionary<Variable, Result>());
-				result.Value = handle;
-				
-				i = ReceivePackReturnType(handle, standard_parameter_registers, decimal_parameter_registers, position, member.Type!, i);
-				continue;
-			}
-
-			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-			if (register != null)
-			{
-				result.Value = new RegisterHandle(register);
-				register.Handle = result;
-			}
-			else
-			{
-				result.Value = position.Finalize();
-				position.Offset += Assembler.Size.Bytes;
-			}
-
-			result.Format = member.GetRegisterFormat();
-		}
-
-		return i;
-	}
-	
-	public override void OnSimulate()
-	{
-		// Handle pack return types
-		if (ReturnType == null || !ReturnType.IsPack) return;
-		ReceivePackReturnType();
 	}
 
 	public override void OnBuild()
@@ -285,12 +192,6 @@ public class CallInstruction : Instruction
 		// After a call all volatile registers might be changed
 		Unit.VolatileRegisters.ForEach(i => i.Reset());
 
-		if (ReturnType != null && ReturnType.IsPack)
-		{
-			ReceivePackReturnType();
-			return;
-		}
-
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
 
@@ -300,6 +201,6 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		return new[] { Result, Function }.Concat(Values).ToArray();
+		return new[] { Result, Function };
 	}
 }

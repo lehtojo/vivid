@@ -232,8 +232,8 @@ public class Unit
 	public List<VariableState> GetState(int at)
 	{
 		return Scope!.Variables
-			.Where(v => v.Value.IsAnyRegister && v.Value.IsValid(at))
-			.Select(v => new VariableState(v.Key, v.Value.Value.To<RegisterHandle>().Register)).ToList();
+			.Where(i => i.Value.IsAnyRegister && i.Value.IsValid(at))
+			.Select(i => new VariableState(i.Key, i.Value.Value.To<RegisterHandle>().Register)).ToList();
 	}
 
 	public void Set(List<VariableState> state)
@@ -395,10 +395,7 @@ public class Unit
 	{
 		var value = register.Handle;
 
-		if (value == null)
-		{
-			return;
-		}
+		if (value == null) { return; }
 
 		if (value.IsReleasable(this))
 		{
@@ -724,9 +721,53 @@ public class Unit
 		Mode = UnitMode.DEFAULT;
 	}
 
-	public Result? GetVariableValue(Variable variable)
+	/// <summary>
+	/// Updates the value of the specified variable in the current scope
+	/// </summary>
+	public void SetVariableValue(Variable variable, Result value)
 	{
-		return Scope?.GetVariableValue(variable);
+		if (Scope == null) throw new ApplicationException("Unit did not have an active scope");
+		Scope.Variables[variable] = value;
+	}
+
+	/// <summary>
+	/// Tries to return the current value of the specified variable.
+	/// By default, this function goes through all scopes in order to return the value of the variable, but this can be turned off.
+	/// </summary>
+	public Result? GetVariableValue(Variable variable, bool recursive = true)
+	{
+		return Scope?.GetVariableValue(variable, recursive);
+	}
+
+	/// <summary>
+	/// Returns whether any variables owns the specified value
+	/// </summary>
+	public bool IsVariableValue(Result value)
+	{
+		return Scope != null && Scope.Variables.ContainsValue(value);
+	}
+
+	/// <summary>
+	/// Returns the variable which owns the specified value, if it is owned by any
+	/// </summary>
+	public Variable? GetValueOwner(Result value)
+	{
+		if (Scope == null) return null;
+
+		foreach (var iterator in Scope.Variables)
+		{
+			if (Equals(iterator.Value, value)) return iterator.Key;
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Returns whether a value has been assigned to the specified variable
+	/// </summary>
+	public bool IsInitialized(Variable variable)
+	{
+		return Scope != null && Scope.Variables.ContainsKey(variable);
 	}
 
 	public string Export()

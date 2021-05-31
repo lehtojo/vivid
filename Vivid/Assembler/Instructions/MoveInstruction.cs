@@ -753,6 +753,8 @@ public class MoveInstruction : DualParameterInstruction
 
 			Second.Format = Assembler.Format;
 
+			Memory.MoveToRegister(Unit, Second, Assembler.Size, false);
+
 			// Example:
 			// xmm0 <- 10.0
 			// mov rax, 0x4024000000000000

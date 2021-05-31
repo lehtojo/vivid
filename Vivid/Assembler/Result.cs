@@ -98,7 +98,7 @@ public class Result
 
 	public bool IsReleasable(Unit unit)
 	{
-		return unit.Scope!.Variables.Values.Any(i => i.Equals(this));
+		return unit.IsVariableValue(this);
 	}
 
 	public Result(Instruction instruction)

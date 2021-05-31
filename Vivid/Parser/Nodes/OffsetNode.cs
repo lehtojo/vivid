@@ -22,7 +22,7 @@ public class OffsetNode : Node, IResolvable
 
 	public int GetStride()
 	{
-		return GetType().AllocationSize;
+		return GetType().ReferenceSize;
 	}
 
 	public Format GetFormat()

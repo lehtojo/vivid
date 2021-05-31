@@ -33,8 +33,6 @@ public class ReturnInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		if (ReturnType!.IsPack) return;
-
 		// 1. Skip if there is no return value
 		// 2. Ensure the return value is in the correct register
 		if (Object == null || IsValueInReturnRegister())
@@ -61,10 +59,7 @@ public class ReturnInstruction : Instruction
 		// ldp x2, x3, [sp, #16]
 		// ldp x0, x1, [sp], #64
 
-		if (!registers.Any())
-		{
-			return;
-		}
+		if (!registers.Any()) { return; }
 
 		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
 		var stack_pointer = Unit.GetStackPointer();

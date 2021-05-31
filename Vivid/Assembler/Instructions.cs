@@ -308,10 +308,7 @@ public static class Instructions
 
 		public static void Initialize()
 		{
-			if (Descriptors.Count > 0)
-			{
-				return;
-			}
+			if (Descriptors.Count > 0) return;
 
 			Descriptors.Add(SHIFT_LEFT, new(StatusFlag.Arm64.C));
 			Descriptors.Add(SHIFT_RIGHT, new(StatusFlag.Arm64.C));

@@ -435,16 +435,6 @@ public static class ReconstructionAnalysis
 
 		foreach (var construction in constructions)
 		{
-			if (!construction.GetType().IsPack) continue;
-
-			var container = Common.CreatePackConstruction(construction.GetType(), construction, construction.Constructor);
-			container.Destination.Replace(container.Node);
-		}
-
-		constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
-
-		foreach (var construction in constructions)
-		{
 			if (!IsStackConstructionPreferred(root, construction)) continue;
 
 			var container = Common.CreateStackConstruction(construction.GetType(), construction, construction.Constructor);
@@ -881,8 +871,10 @@ public static class ReconstructionAnalysis
 
 			// Calls should always have a parent node
 			if (parent == null) continue;
-			// Skip values which are assigned to local variables
-			if (parent.Is(Operators.ASSIGN) && ReferenceEquals(parent.Right, node)) continue;
+			
+			// Skip values which are assigned to hidden local variables
+			if (parent.Is(Operators.ASSIGN) && ReferenceEquals(parent.Right, node) && parent.Left.Is(NodeType.VARIABLE) && parent.Left.To<VariableNode>().Variable.IsPredictable) continue;
+
 			// Nothing can be done if the value is directly under a logical operator
 			if (parent.Is(OperatorType.LOGIC) || parent.Is(NodeType.CONSTRUCTION)) continue;
 
@@ -1124,10 +1116,7 @@ public static class ReconstructionAnalysis
 
 			left.Remove();
 
-			call.Right.Insert(new CastNode(
-				left,
-				new TypeNode(expected)
-			));
+			call.Right.Insert(new CastNode(left, new TypeNode(expected)));
 		}
 	}
 	

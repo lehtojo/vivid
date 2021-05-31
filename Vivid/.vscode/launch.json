@@ -22,8 +22,7 @@
 			//"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
 			
 			//"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/Core.v", "-f", "-a", "-st", "-O1" ],
-			"args": [ "${workspaceFolder}/Examples/Yeet.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Exceptions.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O1", "-arm64" ],
-			
+
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"stopAtEntry": false,

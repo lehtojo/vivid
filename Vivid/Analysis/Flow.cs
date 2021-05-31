@@ -40,6 +40,747 @@ public class LoopDescriptor
 	}
 }
 
+public class Index : IComparable<Index>
+{
+	private int[] Values { get; set; }
+
+	/// <summary>
+	/// Returns whether the most significant index equals the maximum integer value
+	/// </summary>
+	public bool IsMax => Values[0] == int.MaxValue;
+
+	/// <summary>
+	/// Create an index which has one dimension whose value is the specified value
+	/// </summary>
+	public Index(int value = 0)
+	{
+		Values = new[] { value };
+	}
+
+	/// <summary>
+	/// Create an index which has the specified dimensions
+	/// </summary>
+	public Index(int[] values)
+	{
+		Values = values;
+	}
+
+	/// <summary>
+	/// Create an index which is greater than the specified index a and less than the specified index b.
+	/// NOTE: Index a must be less than index b.
+	/// </summary>
+	public Index(Index? a, Index? b)
+	{
+		if (a == null && b == null)
+		{
+			Values = new[] { 0 };
+			return;
+		}
+
+		if (a == null)
+		{
+			// Create a copy of the values
+			Values = new int[b!.Values.Length];
+			b!.Values.CopyTo(Values, 0);
+			
+			// Decrement the last dimension
+			Values[Values.Length - 1]--;
+			return;
+		}
+
+		if (b == null)
+		{
+			// Create a copy of the values
+			Values = new int[a!.Values.Length];
+			a!.Values.CopyTo(Values, 0);
+			
+			// Increment the last dimension
+			Values[Values.Length - 1]++;
+			return;
+		}
+
+#if _DEBUG
+		if (a <= b) throw new ApplicationException("Specified indices were invalid");
+#endif
+
+		var i = a.Values;
+		var j = b.Values;
+
+		var x = i.Length;
+		var y = j.Length;
+
+		// If the indices have the same amount of dimensions, a new dimension must be created
+		// Example:
+		// 0.0.0.0 <- a
+		// 0.0.0.0.0 <- this
+		// 0.0.0.1 <- b
+		if (x == y)
+		{
+			Values = new int[x + 1]; /// NOTE: The last value will be zero
+			Array.Copy(i, Values, x);
+		}
+		else if (x > y)
+		{
+			// Example:
+			// 0.0.0.0.0 <- a
+			// 0.0.0.0.1 <- this
+			// 0.0.0.1 <- b
+			Values = new int[x];
+			Values[x - 1] = i[x - 1] + 1;
+			Array.Copy(i, Values, x - 1);
+		}
+		else
+		{
+			// Example:
+			// 0.0.0.0 <- a
+			// 0.0.0.0.-1 <- this
+			// 0.0.0.0.0 <- b
+			Values = new int[y];
+			Values[y - 1] = j[y - 1] - 1;
+			Array.Copy(j, Values, y - 1);
+		}
+	}
+
+	/// <summary>
+	/// Returns an index which is one increment larger in the least significant dimension
+	/// </summary>
+	public Index Next()
+	{
+		// Create a copy of the values
+		var values = new int[Values.Length];
+		Values.CopyTo(values, 0);
+
+		// Increment the last dimension
+		values[values.Length - 1]++;
+
+		return new Index(values);
+	}
+
+	/// <summary>
+	/// NOTE: Shared dimensions are marked with brackets.
+	/// If shared dimensions are not equal, the index that has larger value in the same dimension as the other index, is larger than the other.
+	/// The first dimension is the most significant and the last the least significant.
+	/// Examples: [1] < [2], [1.1] < [1.2], [1.-2] < [1.-1], [1.2.1] > [1.1.2], [1.2.1] > [1.1.2].2
+	/// If the shared dimensions are equal, the index who has more dimensions is always larger than the other.
+	/// Examples: [0.0.0].0 > [0.0.0], [3.2.1.0] < [3.2.1.0].-1 
+	/// </summary>
+	public static int CompareTo(Index? x, Index? y)
+	{
+		if (x == null || y == null) return (x != null ? 1 : 0).CompareTo(y != null ? 1 : 0);
+
+		var a = x.Values.Length;
+		var b = y.Values.Length;
+		var c = Math.Min(a, b);
+
+		for (var i = 0; i < c; i++)
+		{
+			var d = x.Values[i] - y.Values[i];
+			if (d == 0) continue;
+
+			return Math.Sign(d);
+		}
+
+		return Math.Sign(a - b);
+	}
+
+	public static bool operator <(Index? a, Index? b) => CompareTo(a, b) < 0;
+	public static bool operator >(Index? a, Index? b) => CompareTo(a, b) > 0;
+	public static bool operator <=(Index? a, Index? b) => CompareTo(a, b) <= 0;
+	public static bool operator >=(Index? a, Index? b) => CompareTo(a, b) >= 0;
+
+	public override string ToString()
+	{
+		return string.Join('.', Values);
+	}
+
+	public static bool Equals(Index? a, Index? b)
+	{
+		if (ReferenceEquals(a, b)) return true;
+		if (a == null || b == null || a.Values.Length != b.Values.Length) return false;
+		
+		for (var i = 0; i < a.Values.Length; i++)
+		{
+			if (a.Values[i] != b.Values[i]) return false;
+		}
+
+		return true;
+	}
+
+	public override bool Equals(object? other)
+	{
+		if (other is not Index index) return false;
+
+		if (ReferenceEquals(this, other)) return true;
+		if (Values.Length != index.Values.Length) return false;
+		
+		for (var i = 0; i < Values.Length; i++)
+		{
+			if (Values[i] != index.Values[i]) return false;
+		}
+
+		return true;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Values);
+	}
+
+	public int CompareTo(Index? other)
+	{
+		return CompareTo(this, other);
+	}
+}
+
+public struct ModifiableFlowElement
+{
+	public Node Node { get; set; }
+	public Index Index { get; set; }
+	public int Capacity { get; set; }
+
+	public ModifiableFlowElement(Node node, Index index, int capacity)
+	{
+		Node = node;
+		Index = index;
+		Capacity = capacity;
+	}
+}
+
+public class ModifiableFlow
+{
+	public List<ModifiableFlowElement> Nodes { get; private set; } = new List<ModifiableFlowElement>();
+	public Dictionary<Node, Index> Indices { get; private set; } = new Dictionary<Node, Index>(new ReferenceEqualityComparer<Node>());
+	public Dictionary<JumpNode, Index> Jumps { get; private set; } = new Dictionary<JumpNode, Index>(new ReferenceEqualityComparer<JumpNode>());
+	public Dictionary<Label, Index> Labels { get; private set; } = new Dictionary<Label, Index>(new ReferenceEqualityComparer<Label>());
+	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
+	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new ReferenceEqualityComparer<LoopNode>());
+	public Label End { get; private set; }
+
+	public void Replace(Node before, Node after)
+	{
+		var position = GetNodeIndex(before);
+		var descriptor = Nodes[position];
+
+		var destination = position - descriptor.Capacity;
+		var nodes = Nodes.GetRange(destination, descriptor.Capacity + 1);
+
+		Nodes.RemoveRange(destination, nodes.Count);
+
+		foreach (var iterator in nodes)
+		{
+			var node = iterator.Node;
+			Indices.Remove(node);
+
+			if (node.Is(NodeType.JUMP))
+			{
+				var jump = (JumpNode)node;
+				var label = jump.Label;
+
+				Jumps.Remove(jump);
+
+				if (Paths.ContainsKey(label)) Paths[label].Remove(jump);
+				continue;
+			}
+			
+			if (node.Is(NodeType.LABEL))
+			{
+				Labels.Remove(node.To<LabelNode>().Label);
+				Paths.Remove(node.To<LabelNode>().Label);
+				continue;
+			}
+			
+			if (node.Is(NodeType.LOOP)) { Loops.Remove((LoopNode)node); }
+		}
+
+		if (after.First == null)
+		{
+			descriptor.Node = after;
+			descriptor.Capacity = 0;
+			Nodes.Insert(destination, descriptor);
+			return;
+		}
+
+		var flow = new ModifiableFlow(after, End);
+		var start = destination - 1 >= 0 ? Nodes[destination - 1].Index : null;
+		var end = destination < Nodes.Count ? Nodes[destination].Index : null;
+
+		for (var i = flow.Nodes.Count - 1; i >= 0; i--)
+		{
+			var element = flow.Nodes[i];
+			var node = element.Node;
+			end = new Index(start, end);
+			element.Index = end;
+
+			Nodes.Insert(destination, element);
+			Indices.Add(node, end);
+
+			if (node.Is(NodeType.JUMP)) { Jumps.Add((JumpNode)node, end); }
+			else if (node.Is(NodeType.LABEL)) { Labels.Add(node.To<LabelNode>().Label, end); }
+		}
+
+		foreach (var path in flow.Paths)
+		{
+			var label = path.Key;
+			var jumps = path.Value;
+
+			if (Paths.ContainsKey(label))
+			{
+				Paths[label].AddRange(jumps);
+				continue;
+			}
+
+			Paths[label] = jumps;
+		}
+
+		flow.Loops.ForEach(i => Loops.Add(i.Key, i.Value));
+	}
+
+	public int GetNodeIndex(Node node)
+	{
+		return GetNodeIndex(Indices[node]);
+	}
+
+	public int GetNodeIndex(Index index)
+	{
+		var start = 0;
+		var end = Indices.Count;
+
+		while (start != end)
+		{
+			var middle = (start + end) / 2;
+			var element = Nodes[middle].Index;
+			
+			if (index.Equals(element)) return middle;
+			if (index > element) { start = middle + 1; }
+			else { end = middle; }
+		}
+
+		return -1;
+	}
+
+	public ModifiableFlow(Node root)
+	{
+		End = new Label();
+		Linearize(root);
+		Add(new LabelNode(End), 0);
+
+		Register();
+	}
+
+	private ModifiableFlow(Node root, Label end)
+	{
+		End = end;
+		Linearize(root);
+		Register();
+	}
+
+	private void Register()
+	{
+		foreach (var iterator in Indices)
+		{
+			if (iterator.Key is JumpNode jump)
+			{
+				Jumps.Add(jump, iterator.Value);
+
+				if (!Paths.TryGetValue(jump.Label, out List<JumpNode>? jumps))
+				{
+					jumps = new List<JumpNode>();
+					Paths[jump.Label] = jumps;
+				}
+
+				jumps.Add(jump);
+			}
+			else if (iterator.Key is LabelNode node)
+			{
+				Labels.Add(node.Label, iterator.Value);
+			}
+		}
+	}
+
+	private void Add(Node node, int capacity)
+	{
+		var index = new Index(Indices.Count);
+		Indices.Add(node, new Index(Indices.Count));
+		Nodes.Add(new ModifiableFlowElement(node, index, capacity));
+	}
+
+	private void LinearizeLogicalOperator(OperatorNode operation, Label success, Label failure)
+	{
+		var count = Nodes.Count;
+
+		if (operation.Left.Is(OperatorType.LOGIC))
+		{
+			var intermediate = new Label();
+
+			if (operation.Operator == Operators.AND)
+			{
+				// Operator: AND
+				LinearizeLogicalOperator((OperatorNode)operation.Left, intermediate, failure);
+			}
+			else
+			{
+				// Operator: OR
+				LinearizeLogicalOperator((OperatorNode)operation.Left, success, intermediate);
+			}
+
+			Add(new LabelNode(intermediate), 0);
+		}
+		else if (operation.Operator == Operators.AND)
+		{
+			// Operator: AND
+			Linearize(operation.Left, false);
+			Add(new JumpNode(failure, true), 0);
+		}
+		else
+		{
+			// Operator: OR
+			Linearize(operation.Left, false);
+			Add(new JumpNode(success, true), 0);
+		}
+
+		Add(operation.Left, Nodes.Count - count);
+		count = Nodes.Count;
+
+		if (operation.Right.Is(OperatorType.LOGIC))
+		{
+			var intermediate = new Label();
+
+			if (operation.Operator == Operators.AND)
+			{
+				// Operator: AND
+				LinearizeLogicalOperator((OperatorNode)operation.Right, intermediate, failure);
+			}
+			else
+			{
+				// Operator: OR
+				LinearizeLogicalOperator((OperatorNode)operation.Right, success, intermediate);
+			}
+
+			Add(new LabelNode(intermediate), 0);
+		}
+		else if (operation.Operator == Operators.AND)
+		{
+			// Operator: AND
+			Linearize(operation.Right, false);
+			Add(new JumpNode(failure, true), 0);
+		}
+		else
+		{
+			// Operator: OR
+			Linearize(operation.Right, false);
+			Add(new JumpNode(failure, true), 0);
+		}
+
+		Add(operation.Right, Nodes.Count - count);
+	}
+
+	private void LinearizeCondition(IfNode statement, Label failure)
+	{
+		var condition = statement.Condition;
+		var parent = condition.Parent!;
+
+		// Remove the condition for a while
+		if (!condition.Remove()) throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
+
+		// Linearize all the nodes under the condition step except the actual condition
+		statement.GetConditionStep().ForEach(i => Linearize(i));
+
+		// Add the condition back
+		parent.Add(condition);
+		
+		var count = Nodes.Count;
+
+		if (condition.Is(OperatorType.LOGIC))
+		{
+			var success = new Label();
+
+			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
+
+			Add(new LabelNode(success), 0);
+			Add(condition, Nodes.Count - count);
+		}
+		else
+		{
+			Linearize(condition, false);
+			Add(new JumpNode(failure, true), 0);
+			Add(condition, Nodes.Count - count);
+		}
+	}
+
+	private void LinearizeCondition(LoopNode statement, Label failure)
+	{
+		var condition = statement.Condition;
+		var parent = condition.Parent!;
+
+		// Remove the condition for a while
+		if (!condition.Remove()) throw new ApplicationException("Could not remove the condition of a conditional statement during flow analysis");
+
+		// Linearize all the nodes under the condition step except the actual condition
+		statement.GetConditionStep().ForEach(i => Linearize(i));
+
+		// Add the condition back
+		parent.Add(condition);
+
+		if (condition.Is(OperatorType.LOGIC))
+		{
+			var success = new Label();
+			var count = Nodes.Count;
+
+			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
+			
+			Add(new LabelNode(success), 0);
+			Add(condition, Nodes.Count - count);
+		}
+		else
+		{
+			Linearize(condition);
+		}
+	}
+
+	private void Linearize(Node node, bool add = true)
+	{
+		var count = Nodes.Count;
+
+		switch (node.Instance)
+		{
+			case NodeType.OPERATOR:
+			{
+				var operation = node.To<OperatorNode>();
+				if (operation.Operator == Operators.AND || operation.Operator == Operators.OR) { throw new ApplicationException("Flow analysis encountered wild logical operator"); }
+
+				node.ForEach(i => Linearize(i));
+
+				if (add) Add(node, Nodes.Count - count);
+				break;
+			}
+
+			case NodeType.IF:
+			{
+				if (!add) throw new NotSupportedException("Delaying addition of conditional statements in modifiable flow is not supported");
+
+				var statement = node.To<IfNode>();
+				var intermediate = new Label();
+				var end = new Label();
+
+				LinearizeCondition(statement, intermediate);
+
+				// The body may be executed based on the condition. If it executes, it jumps to the end label
+				Linearize(statement.Body);
+				Add(new JumpNode(end), 0);
+				Add(new LabelNode(intermediate), 0);
+				Add(node, Nodes.Count - count);
+
+				foreach (var successor in statement.GetSuccessors())
+				{
+					count = Nodes.Count;
+
+					if (successor.Is(NodeType.ELSE_IF))
+					{
+						intermediate = new Label();
+
+						LinearizeCondition((ElseIfNode)successor, intermediate);
+
+						// The body may be executed based on the condition. If it executes, it jumps to the end label
+						Linearize(successor.To<ElseIfNode>().Body);
+						Add(new JumpNode(end), 0);
+
+						Add(new LabelNode(intermediate), 0);
+					}
+					else if (successor.Is(NodeType.ELSE))
+					{
+						// The body always executes and jumps to the end label
+						Linearize(successor.To<ElseNode>().Body);
+					}
+
+					Add(successor, Nodes.Count - count);
+				}
+
+				// NOTE: If all the conditional branches were removed, the end label would still remain. This should not break anything since the label would just be unused.
+				Add(new LabelNode(end), 0);
+				break;
+			}
+
+			case NodeType.LOOP:
+			{
+				if (!add) throw new NotSupportedException("Delaying addition of conditional statements in modifiable flow is not supported");
+				
+				var statement = node.To<LoopNode>();
+				var start = new Label();
+				var end = new Label();
+
+				Loops.Add(statement, new LoopDescriptor(start, end));
+
+				if (statement.IsForeverLoop)
+				{
+					Add(new LabelNode(start), 0);
+					Linearize(statement.Body);
+					Add(new JumpNode(start), 0);
+					Add(new LabelNode(end), 0);
+					Add(statement, Nodes.Count - count);
+					break;
+				}
+
+				Linearize(statement.Initialization);
+
+				Add(new LabelNode(start), 0);
+				LinearizeCondition(statement, end);
+				Add(new JumpNode(end, true), 0);
+
+				Linearize(statement.Body);
+				Linearize(statement.Action);
+
+				Add(new JumpNode(start), 0);
+				Add(new LabelNode(end), 0);
+				Add(statement, Nodes.Count - count);
+
+				break;
+			}
+
+			case NodeType.LOOP_CONTROL:
+			{
+				var instruction = node.To<LoopControlNode>().Instruction;
+
+				if (instruction == Keywords.CONTINUE)
+				{
+					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var start = Loops[loop.To<LoopNode>()].Start;
+
+					Add(new JumpNode(start), 0);
+					if (add) Add(node, Nodes.Count - count);
+				}
+				else if (instruction == Keywords.STOP)
+				{
+					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var end = Loops[loop.To<LoopNode>()].End;
+
+					Add(new JumpNode(end), 0);
+					if (add) Add(node, Nodes.Count - count);
+				}
+				else
+				{
+					throw new ApplicationException("Invalid loop control node");
+				}
+
+				break;
+			}
+
+			case NodeType.RETURN:
+			{
+				node.ForEach(i => Linearize(i));
+				Add(new JumpNode(End), 0);
+				if (add) Add(node, Nodes.Count - count);
+				break;
+			}
+
+			case NodeType.ELSE:
+			case NodeType.ELSE_IF: { break; }
+
+			default:
+			{
+				foreach (var iterator in node)
+				{
+					Linearize(iterator);
+				}
+
+				if (add) Add(node, Nodes.Count - count);
+				break;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Finds the positions which can be reached starting from the specified position while avoiding the specified obstacles
+	/// NOTE: Provide a copy of the positions since this function edits the specified list
+	/// </summary>
+	public List<Index> GetExecutablePositions(Index start, Index[] obstacles, List<Index> positions, SortedSet<Index> denylist)
+	{
+		var executable = new List<Index>(positions.Count);
+
+	Start:
+
+		// Try to find the closest obstacle which is ahead of the current position
+		var closest_obstacle = new Index(int.MaxValue);
+
+		foreach (var obstacle in obstacles)
+		{
+			if (obstacle > start && obstacle < closest_obstacle)
+			{
+				closest_obstacle = obstacle;
+				break;
+			}
+		}
+
+		// Try to find the closest jump which is ahead of the current position
+		var closest_jump = new Index(int.MaxValue);
+		var closest_jump_node = (JumpNode?)null;
+
+		foreach (var jump in Jumps)
+		{
+			if (jump.Value > start)
+			{
+				closest_jump = jump.Value;
+				closest_jump_node = jump.Key;
+				break;
+			}
+		}
+
+		// Determine whether an obstacle or a jump is closer
+		var closest = (Index?)null;
+		if (closest_obstacle <= closest_jump) { closest = closest_obstacle; }
+		else { closest = closest_jump; }
+
+		// Register all positions which fall between the closest obstacle or jump and the current position
+		for (var i = positions.Count - 1; i >= 0; i--)
+		{
+			var position = positions[i];
+
+			if (position >= start && position < closest)
+			{
+				executable.Add(position);
+				positions.RemoveAt(i);
+			}
+		}
+
+		// 1. Return if there are no positions to be reached
+		// 2. If the closest has the value of the maximum integer, it means there is no jump or obstacle ahead
+		// 3. Return from the call if an obstacle is hit
+		// 4. The closest value must represent a jump so ensure it is not visited before
+		if (!positions.Any() || closest.IsMax || Equals(closest, closest_obstacle) || denylist.Contains(closest))
+		{
+			return executable;
+		}
+
+		// Do not visit this jump again
+		denylist.Add(closest_jump);
+
+		if (closest_jump_node!.IsConditional)
+		{
+			// Visit the jump destination and try to reach the positions there
+			var destination = Labels[closest_jump_node.Label];
+			executable.AddRange(GetExecutablePositions(destination, obstacles, positions, denylist));
+
+			// Do not continue if all positions have been reached already
+			if (!positions.Any())
+			{
+				return executable;
+			}
+
+			// Fall through the conditional jump and return the reached positions if the end of nodes has been reached
+			var i = GetNodeIndex(closest) + 1;
+			if (i >= Nodes.Count) return executable;
+
+			start = Nodes[i].Index;
+		}
+		else
+		{
+			// Since the jump is not conditional go to its label
+			start = Labels[closest_jump_node.Label];
+		}
+
+		goto Start;
+	}
+}
+
 public class Flow
 {
 	public List<Node> Nodes { get; private set; } = new List<Node>();

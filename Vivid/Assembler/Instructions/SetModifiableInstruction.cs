@@ -21,15 +21,8 @@ public class SetModifiableInstruction : Instruction
 	{
 		var handle = new GetVariableInstruction(Unit, Variable, AccessMode.READ).Execute();
 
-		if (handle == null)
-		{
-			throw new ApplicationException("Scope tried to edit an external variable which was not defined yet");
-		}
-
-		if (!handle.IsConstant)
-		{
-			return;
-		}
+		if (handle == null) throw new ApplicationException("Scope tried to edit an external variable which was not defined yet");
+		if (!handle.IsConstant) return;
 
 		var directives = Trace.GetDirectives(Unit, handle);
 		var is_media_register = handle.Format.IsDecimal();

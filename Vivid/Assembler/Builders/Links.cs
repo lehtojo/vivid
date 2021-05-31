@@ -38,23 +38,8 @@ public static class Links
 			}
 
 			var left = References.Get(unit, node.Left);
-
-			// Handle pack types
-			if (self_type.IsPack)
-			{
-				if (left.Value.Is(HandleInstanceType.PACK))
-				{
-					return new GetVariableInstruction(unit, left.Value.To<PackHandle>().Variables[member], mode).Execute();
-				}
-				
-				if (!left.Value.Is(HandleInstanceType.DISPOSABLE_PACK)) throw new InvalidOperationException("Invalid pack handle");
-				return left.Value.To<DisposablePackHandle>().Variables[member];
-			}
-
 			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
 
-			// Handle pack types
-			if (member.Type!.IsPack) return new GetPackObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
 			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
 		}
 

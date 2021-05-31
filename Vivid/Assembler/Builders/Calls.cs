@@ -111,56 +111,6 @@ public static class Calls
 	}
 
 	/// <summary>
-	/// Passes the pack value using registers or the specified stack position depending on the situation
-	/// </summary>
-	private static void PassPackArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result pack)
-	{
-		if (pack.Value.Is(HandleInstanceType.PACK))
-		{
-			var handle = pack.Value.To<PackHandle>();
-
-			foreach (var iterator in handle.Variables)
-			{
-				var local = iterator.Value;
-				var source = new GetVariableInstruction(unit, local, AccessMode.READ).Execute();
-
-				if (local.Type!.IsPack)
-				{
-					PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source);
-					continue;
-				}
-
-				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source, local.GetRegisterFormat());
-			}
-
-			return;
-		}
-		
-		if (pack.Value.Is(HandleInstanceType.DISPOSABLE_PACK))
-		{
-			var handle = pack.Value.To<DisposablePackHandle>();
-
-			foreach (var iterator in handle.Variables)
-			{
-				var member = iterator.Key;
-				var source = iterator.Value;
-
-				if (member.Type!.IsPack)
-				{
-					PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source);
-					continue;
-				}
-
-				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source, member.GetRegisterFormat());
-			}
-
-			return;
-		}
-
-		throw new ApplicationException("Invalid pack handle");
-	}
-
-	/// <summary>
 	/// Passes the specified parameters to the function using the specified calling convention
 	/// </summary>
 	/// <returns>Returns the amount of parameters moved to stack</returns>
@@ -185,14 +135,7 @@ public static class Calls
 		{
 			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
 
-			if (self_type.IsPack)
-			{
-				PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer);
-			}
-			else
-			{
-				PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
-			}
+			PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
@@ -202,13 +145,6 @@ public static class Calls
 			var type = parameter_types[i];
 
 			value = Casts.Cast(unit, value, parameter.GetType(), type);
-
-			if (type.IsPack)
-			{
-				PassPackArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value);
-				continue;
-			}
-
 			PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type.GetRegisterFormat());
 		}
 

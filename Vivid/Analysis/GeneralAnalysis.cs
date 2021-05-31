@@ -111,20 +111,20 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Registers all dependencies for the specified variable writes
 	/// </summary>
-	private static void RegisterWriteDependencies(Dictionary<Variable, VariableDescriptor> descriptors, Flow flow)
+	private static void RegisterWriteDependencies(Dictionary<Variable, VariableDescriptor> descriptors, ModifiableFlow flow)
 	{
 		foreach (var descriptor in descriptors)
 		{
 			descriptor.Value.Writes.ForEach(i => i.Dependencies.Clear());
 
 			var obstacles = descriptor.Value.Writes.Select(i => flow.Indices[i.Node]).ToArray();
-			var nodes = new Dictionary<int, Node>(descriptor.Value.Reads.Select(i => new KeyValuePair<int, Node>(flow.Indices[i], i)));
+			var nodes = new Dictionary<Index, Node>(descriptor.Value.Reads.Select(i => new KeyValuePair<Index, Node>(flow.Indices[i], i)));
 			var positions = nodes.Keys.ToList();
 
 			for (var i = 0; i < descriptor.Value.Writes.Count; i++)
 			{
 				var start = obstacles[i];
-				var executable = flow.GetExecutablePositions(start, obstacles, new List<int>(positions), new SortedSet<int>());
+				var executable = flow.GetExecutablePositions(start, obstacles, new List<Index>(positions), new SortedSet<Index>());
 
 				if (executable.Any())
 				{
@@ -256,7 +256,7 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Assigns the value of the specified write to the specified reads
 	/// </summary>
-	private static void Assign(VariableWrite write, bool recursive)
+	private static void Assign(ModifiableFlow flow, VariableWrite write, bool recursive)
 	{
 		foreach (var read in write.Assignable)
 		{
@@ -288,6 +288,7 @@ public static class GeneralAnalysis
 			{
 				// Because the assignment will not be reverted back, remove the read from the dependencies
 				write.Dependencies.Remove(read);
+				flow.Replace(read, value);
 			}
 		}
 	}
@@ -320,12 +321,10 @@ public static class GeneralAnalysis
 
 		foreach (var variable in variables)
 		{
-			if (variable.Type!.IsPack) continue;
-			
 			var descriptors = GetVariableDescriptors(implementation, root);
 			var descriptor = descriptors[variable];
 
-			var flow = new Flow(root);
+			var flow = new ModifiableFlow(root);
 
 			RegisterWriteDependencies(descriptors, flow);
 
@@ -357,7 +356,10 @@ public static class GeneralAnalysis
 					// If the read happens before the edit, which is possible in loops for example, it is not reliable to get all the nodes between the edit and the read
 					if (to < from) continue;
 
-					foreach (var node in flow.Nodes.GetRange(from, to - from).Where(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
+					var start = flow.GetNodeIndex(from);
+					var end = flow.GetNodeIndex(to);
+
+					foreach (var node in flow.Nodes.GetRange(start, end - start).Select(i => i.Node).Where(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
 					{
 						if (dependencies.Contains(node.Variable) && Analyzer.IsEdited(node))
 						{
@@ -377,20 +379,13 @@ public static class GeneralAnalysis
 				}
 
 				// If the value contains the destination variable and it can not be assigned to all its usages or it is repeated, it should not be assigned
-				if (recursive && (assignable.Count != write.Dependencies.Count || flow.IsRepeated(write.Node)))
+				if (recursive && (assignable.Count != write.Dependencies.Count || write.Node.FindParent(i => i.Is(NodeType.LOOP)) != null))
 				{
 					continue;
 				}
 
 				write.Assignable.AddRange(assignable);
-			}
-
-			for (var i = 0; i < descriptor.Writes.Count; i++)
-			{
-				var write = descriptor.Writes[i];
-				var recursive = write.Value.Find(i => i.Is(variable)) != null;
-
-				Assign(write, recursive);
+				Assign(flow, write, recursive);
 			}
 
 			// Lastly, remove all the assignments which have no dependencies left

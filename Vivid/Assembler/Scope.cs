@@ -105,7 +105,7 @@ public sealed class Scope : IDisposable
 		}
 
 		// Take only those variables which are initialized
-		var descriptors = result.Where(i => unit.Scope!.Variables.ContainsKey(i.Key)).Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
+		var descriptors = result.Where(i => unit.IsInitialized(i.Key)).Select(i => new VariableUsageDescriptor(i.Key, i.Value)).ToList();
 
 		// Sort the variables based on their number of usages (most used variable first)
 		descriptors.Sort((a, b) => -a.Usages.CompareTo(b.Usages));
@@ -346,38 +346,6 @@ public sealed class Scope : IDisposable
 	{
 		var register = (Register?)null;
 
-		if (parameter.Type!.IsPack)
-		{
-			var handle = References.CreateVariableHandle(Unit!, parameter).To<PackHandle>();
-
-			foreach (var iterator in handle.Variables)
-			{
-				var member = iterator.Key;
-				var local = iterator.Value;
-
-				local.LocalAlignment = parameter.LocalAlignment + member.GetAlignment(parameter.Type);
-
-				if (local.Type!.IsPack)
-				{
-					ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, local);
-					continue;
-				}
-				
-				register = local.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-				if (register != null)
-				{
-					register.Handle = SetOrCreateTransitionHandle(local, new RegisterHandle(register), local.GetRegisterFormat());
-				}
-				else
-				{
-					SetOrCreateTransitionHandle(local, References.CreateVariableHandle(Unit!, local), local.GetRegisterFormat());
-				}
-			}
-
-			return;
-		}
-
 		register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 
 		if (register != null)
@@ -413,16 +381,9 @@ public sealed class Scope : IDisposable
 			foreach (var variable in Actives)
 			{
 				// Skip variables which are already loaded
-				if (Loads.Exists(l => l.Variable == variable))
-				{
-					continue;
-				}
+				if (Loads.Exists(i => i.Variable == variable)) continue;
 
 				var handle = References.GetVariable(Unit, variable, AccessMode.READ);
-				var instruction = handle.Instruction!;
-
-				instruction.Description = $"Transfers the current handle of variable '{variable.Name}' to the upcoming scope";
-
 				Loads.Add(new VariableLoad(variable, handle));
 			}
 		}
@@ -530,7 +491,7 @@ public sealed class Scope : IDisposable
 	/// <summary>
 	/// Returns the current handle of the specified variable, if one is present
 	/// </summary>
-	public Result? GetVariableValue(Variable variable)
+	public Result? GetVariableValue(Variable variable, bool recursive = true)
 	{
 		// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
 		if (Assembler.IsDebuggingEnabled) return null;
@@ -543,26 +504,15 @@ public sealed class Scope : IDisposable
 		{
 			return handle;
 		}
-		else
+		else if (recursive)
 		{
 			var source = Outer?.GetVariableValue(variable);
-
-			if (source != null)
-			{
-				Variables.Add(variable, source);
-			}
+			if (source != null) { Variables.Add(variable, source); }
 
 			return source;
 		}
-	}
 
-	/// <summary>
-	/// Disables the specified variable by setting its value to none
-	/// </summary>
-	private void DisableVariable(Variable variable)
-	{
-		Unit!.Scope!.Variables[variable] = new Result(References.CreateVariableHandle(Unit, variable), variable.GetRegisterFormat());
-		Outer?.DisableVariable(variable);
+		return null;
 	}
 
 	/// <summary>

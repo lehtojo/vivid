@@ -17,14 +17,9 @@ public class SetVariableInstruction : Instruction
 		Value = value;
 
 		// If the variable has a previous value, hold it until this instruction is executed
-		if (Unit.Scope!.Variables.TryGetValue(Variable, out Result? previous))
-		{
-			Dependencies = new[] { Result, Value, previous };
-		}
-		else
-		{
-			Dependencies = new[] { Result, Value };
-		}
+		var previous = Unit.GetVariableValue(Variable, false);
+		if (previous != null) { Dependencies = new[] { Result, Value, previous }; }
+		else { Dependencies = new[] { Result, Value }; }
 		
 		Description = $"Updates the value of the variable '{variable.Name}'";
 		IsAbstract = true;
@@ -36,20 +31,20 @@ public class SetVariableInstruction : Instruction
 	public override void OnSimulate()
 	{
 		// If the value does not represent another variable, it does not need to be copied
-		if (!Unit.Scope!.Variables.ContainsValue(Value))
+		if (!Unit.IsVariableValue(Value))
 		{
-			Unit.Scope!.Variables[Variable] = Value;
+			Unit.SetVariableValue(Variable, Value);
 			return;
 		}
 		
 		// Since the value represents another variable, the value has been copied to the result of this instruction
-		Unit.Scope!.Variables[Variable] = Result;
+		Unit.SetVariableValue(Variable, Result);
 	}
 
 	public override void OnBuild() 
 	{
 		// Do not copy the value if it does not represent another variable
-		if (!Unit.Scope!.Variables.ContainsValue(Value)) return;
+		if (!Unit.IsVariableValue(Value)) return;
 
 		// Try to get the current location of the variable to be updated
 		var current = Unit.GetVariableValue(Variable);

@@ -822,47 +822,13 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Constructs a pack object
-	/// </summary>
-	public static InlineContainer CreatePackConstruction(Type type, Node construction, FunctionNode constructor)
-	{
-		var container = CreateInlineContainer(type, construction);
-
-		// Do not call the initializer function if it is empty
-		if (!constructor.Function.IsEmpty)
-		{
-			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(container.Result),
-				constructor
-			));
-		}
-
-		var supertypes = type.GetAllSupertypes();
-		var descriptors = CopyTypeDescriptors(type, supertypes);
-
-		// Register the runtime configurations
-		foreach (var iterator in descriptors)
-		{
-			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(container.Result), new VariableNode(iterator.Key.Configuration!.Variable)),
-				iterator.Value
-			));
-		}
-
-		// The inline node must return the value of the constructed object
-		container.Node.Add(new VariableNode(container.Result));
-
-		return container;
-	}
-
-	/// <summary>
 	/// Returns the root of the expression which contains the specified node
 	/// </summary>
 	public static Node GetExpressionRoot(Node node)
 	{
 		var iterator = node;
 
-		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent))
+		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent) && !iterator.Parent.Is(NodeType.NORMAL))
 		{
 			iterator = iterator.Parent;
 		}

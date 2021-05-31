@@ -116,7 +116,7 @@ export println(number: normal) {
 ###
 Summary: Converts the specified number to a string and writes it and a line ending to the console
 ###
-export outline println(number: large) {
+export println(number: large) {
 	println(to_string(number))
 }
 

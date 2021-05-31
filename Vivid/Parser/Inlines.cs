@@ -203,10 +203,7 @@ public static class Inlines
 
 		foreach (var local in implementation.Variables.Values)
 		{
-			if (local.IsSelfPointer)
-			{
-				continue;
-			}
+			if (local.IsSelfPointer) continue;
 
 			var replacement = context.DeclareHidden(local.Type!);
 

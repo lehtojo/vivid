@@ -38,19 +38,11 @@ public class DivisionInstruction : DualParameterInstruction
 
 			if (Assigns && !First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
-				{
-					Type = MoveType.RELOCATE
-				});
-
+				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.RELOCATE });
 				return First;
 			}
 
-			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
-			{
-				Type = MoveType.COPY
-
-			}.Execute();
+			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.COPY }.Execute();
 		}
 		else if (!Assigns)
 		{

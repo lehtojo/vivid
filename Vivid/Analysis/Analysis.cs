@@ -817,12 +817,6 @@ public static class Analysis
 		{
 			var self = Common.GetSelfPointer(constructor, null);
 
-			if (type.IsPack)
-			{
-				constructor.ReturnType = type;
-				constructor.Node!.Add(new ReturnNode(self.Clone()));
-			}
-
 			foreach (var iterator in expressions)
 			{
 				var expression = iterator.Clone().To<OperatorNode>();
@@ -930,26 +924,17 @@ public static class Analysis
 		var variables = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find variables whose parent context is not defined inside the implementation, if even one is found it means something has leaked
-		if (variables.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (variables.Any()) { throw new ApplicationException("Found a context leak"); }
 
 		var declarations = root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
-		if (declarations.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (declarations.Any()) { throw new ApplicationException("Found a context leak"); }
 
 		var subcontexts = root.FindAll(i => i is IScope && !i.Is(NodeType.TYPE)).Cast<IScope>().Where(i => !i.GetContext().IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
-		if (subcontexts.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (subcontexts.Any()) { throw new ApplicationException("Found a context leak"); }
 	}
 
 	/// <summary>

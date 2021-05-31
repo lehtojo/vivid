@@ -6,11 +6,6 @@ public static class Casts
 	{
 		if (from == to) return result;
 
-		if (from.IsPack || to.IsPack)
-		{
-			Console.WriteLine("Internal warning: Casting pack types is not supported");
-		}
-
 		if (from is Number x && to is Number y)
 		{
 			var a = x.Format.IsDecimal();

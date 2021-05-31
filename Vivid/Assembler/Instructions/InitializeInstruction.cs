@@ -25,20 +25,15 @@ public class InitializeInstruction : Instruction
 
 		// Find all parameter move instructions which move the source value into memory
 		var parameter_memory_addresses = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
-		var return_value_sizes = calls.Where(i => i.ReturnType != null && i.ReturnType.IsPack).Select(i => i.ReturnType!.ContentSize).ToArray();
 
-		if (!parameter_memory_addresses.Any() && !return_value_sizes.Any())
+		if (!parameter_memory_addresses.Any())
 		{
 			// Even though no instruction writes to memory, on Windows x64 there is a requirement to allocate so called 'shadow space' for the first four parameters
 			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
 			return 0;
 		}
 
-		var required_parameter_memory = parameter_memory_addresses.Any() ? parameter_memory_addresses.Max() + Assembler.Size.Bytes : 0; // Find the parameter memory address with the largest offset
-		var required_return_value_memory = return_value_sizes.Any() ? return_value_sizes.Max() : 0; // Find the largest return value
-
-		// The maximum value of the required memory sizes fulfills both requirements
-		return Math.Max(required_parameter_memory, required_return_value_memory);
+		return parameter_memory_addresses.Max() + Assembler.Size.Bytes;
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)

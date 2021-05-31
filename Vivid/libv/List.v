@@ -168,4 +168,6 @@ List<T> {
 	to_array() {
 		=> Array<T>(elements, position)
 	}
+
+	# TODO: Decrement operator overload for taking out elements
 }
