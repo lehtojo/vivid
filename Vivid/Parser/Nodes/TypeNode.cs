@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class TypeNode : Node, IScope
+public class TypeNode : Node, IScope, IResolvable
 {
 	public Type Type { get; private set; }
 	public bool IsDefinition { get; set; } = false;
@@ -87,5 +87,15 @@ public class TypeNode : Node, IScope
 	public Context GetContext()
 	{
 		return Type;
+	}
+
+	public Node? Resolve(Context context) => null;
+
+	public Status GetStatus()
+	{
+		if (Parent == null || !Parent.Is(NodeType.LINK)) return Status.OK;
+		if (Next!.Is(NodeType.VARIABLE) && !Next.To<VariableNode>().Variable.IsStatic) return Status.Error(Position, "Can not access the member variable, because it is not static");
+		if (Next!.Is(NodeType.FUNCTION) && !Next.To<FunctionNode>().Function.IsStatic) return Status.Error(Position, "Can not access the member function, because it is not static");
+		return Status.OK;
 	}
 }
