@@ -29,8 +29,8 @@ public static class Inlines
 	public static void LocalizeLabels(Context context, Node root)
 	{
 		// Find all the labels and the jumps under the specified root
-		var labels = root.FindAll(i => i.Is(NodeType.LABEL)).Cast<LabelNode>();
-		var jumps = root.FindAll(i => i.Is(NodeType.JUMP)).Cast<JumpNode>().ToList();
+		var labels = root.FindAll(NodeType.LABEL).Cast<LabelNode>();
+		var jumps = root.FindAll(NodeType.JUMP).Cast<JumpNode>().ToList();
 
 		// Go through all the labels
 		foreach (var label in labels)
@@ -113,7 +113,7 @@ public static class Inlines
 			return;
 		}
 
-		var inline_self_pointer_usages = body.FindAll(i => i.Is(NodeType.VARIABLE))
+		var inline_self_pointer_usages = body.FindAll(NodeType.VARIABLE)
 			.Where(i => i.To<VariableNode>().Variable == inline_self_pointer)
 			.Cast<VariableNode>();
 
@@ -218,7 +218,7 @@ public static class Inlines
 
 		if (LocalizeMemberAccess(context, reference, body))
 		{
-			destination = reference.FindParent(i => i.Is(NodeType.LINK)) ?? throw new ApplicationException("Could not find the self pointer of the inlined function from its reference");
+			destination = reference.FindParent(NodeType.LINK) ?? throw new ApplicationException("Could not find the self pointer of the inlined function from its reference");
 		}
 		else
 		{
@@ -241,7 +241,7 @@ public static class Inlines
 			var body = GetInlineBody(context, implementation, instance, out Node destination);
 
 			// Find all return statements
-			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Select(i => i.To<ReturnNode>());
+			var return_statements = body.FindAll(NodeType.RETURN).Select(i => i.To<ReturnNode>());
 
 			// Request a label representing the end of the function only if needed
 			Label? end = null;
@@ -281,7 +281,7 @@ public static class Inlines
 		{
 			// Find all return statements
 			var body = GetInlineBody(instance.GetParentContext(), implementation, instance, out Node destination);
-			var return_statements = body.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
+			var return_statements = body.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
 
 			if (return_statements.Any())
 			{

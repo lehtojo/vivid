@@ -5,7 +5,7 @@ public class LoopControlNode : Node, IResolvable
 {
 	public Keyword Instruction { get; private set; }
 	public Condition? Condition { get; set; }
-	public LoopNode? Loop => (LoopNode?)FindParent(i => i.Is(NodeType.LOOP));
+	public LoopNode? Loop => (LoopNode?)FindParent(NodeType.LOOP);
 	public bool Finished { get; set; } = false;
 
 	public LoopControlNode(Keyword instruction, Position? position = null)

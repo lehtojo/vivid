@@ -158,7 +158,7 @@ public static class Resolver
 
 			if (implementation.Node != null)
 			{
-				if (!implementation.Metadata!.IsImported && implementation.Node.Find(i => i.Is(NodeType.RETURN)) == null)
+				if (!implementation.Metadata!.IsImported && implementation.Node.Find(NodeType.RETURN) == null)
 				{
 					implementation.ReturnType = Primitives.CreateUnit();
 				}
@@ -281,7 +281,7 @@ public static class Resolver
 	/// Returns the shared type between the types
 	/// </summary>
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
-	private static Type? GetSharedType(IReadOnlyList<Type> types)
+	public static Type? GetSharedType(IReadOnlyList<Type> types)
 	{
 		if (types.Count == 0) return null;
 		if (types.Count == 1) return types[0];
@@ -420,7 +420,7 @@ public static class Resolver
 	{
 		if (implementation.Node == null) return;
 
-		var statements = implementation.Node.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>();
+		var statements = implementation.Node.FindAll(NodeType.RETURN).Cast<ReturnNode>();
 
 		if (statements.Any(i => i.Value == null))
 		{

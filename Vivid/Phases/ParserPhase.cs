@@ -34,7 +34,7 @@ public class ParserPhase : Phase
 	/// </summary>
 	public void ParseTypes(Node root)
 	{
-		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+		var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
 
 		foreach (var type in types)
 		{
@@ -122,7 +122,7 @@ public class ParserPhase : Phase
 	/// </summary>
 	public static void ApplyExtensionFunctions(Context context, Node root)
 	{
-		var extensions = root.FindAll(i => i.Is(NodeType.EXTENSION_FUNCTION));
+		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION);
 
 		foreach (var extension in extensions)
 		{
@@ -215,7 +215,7 @@ public class ParserPhase : Phase
 		}
 
 		// Parse all the namespaces since all code has been merged
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>())
+		foreach (var iterator in root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>())
 		{
 			Run(() =>
 			{

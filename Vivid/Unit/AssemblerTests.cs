@@ -1868,6 +1868,30 @@ namespace Vivid.Unit
 		[DllImport("Unit_Whens", ExactSpelling = true)]
 		private static extern long _V14numerical_whenx_rx(long x);
 
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V13create_stringPhx_rP6String(StringBuilder characters, long length);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V11string_whenP6String_rx(IntPtr text);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V10create_boov_rP3Boo();
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V11create_babax_rP4Baba(long x);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V10create_buix_rP3Bui(long x);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V14create_bababuixx_rP7Bababui(long x, long y);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V7is_whenP3Boo_rx(IntPtr boo);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V10range_whenx_rx(long x);
+
 		private static void Whens_Test()
 		{
 			Assert.AreEqual(49, _V14numerical_whenx_rx(7));
@@ -1877,11 +1901,35 @@ namespace Vivid.Unit
 			Assert.AreEqual(42, _V14numerical_whenx_rx(42));
 			Assert.AreEqual(-100, _V14numerical_whenx_rx(-100));
 			Assert.AreEqual(0, _V14numerical_whenx_rx(0));
+
+			Assert.AreEqual(0, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Foo"), 3)));
+			Assert.AreEqual(1, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Bar"), 3)));
+			Assert.AreEqual(2, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Baz"), 3)));
+			Assert.AreEqual(-1, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Bababui"), 7)));
+		
+			var boo = _V10create_boov_rP3Boo();
+			var baba = _V11create_babax_rP4Baba(42);
+			var bui = _V10create_buix_rP3Bui(777);
+			var bababui = _V14create_bababuixx_rP7Bababui(-123, 321);
+
+			Assert.AreEqual(-1, _V7is_whenP3Boo_rx(boo));
+			Assert.AreEqual(42 * 42, _V7is_whenP3Boo_rx(baba));
+			Assert.AreEqual(777 + 777, _V7is_whenP3Boo_rx(bui));
+			Assert.AreEqual(321 * (-123 * -123), _V7is_whenP3Boo_rx(bababui));
+
+			Assert.AreEqual(10, _V10range_whenx_rx(10));
+			Assert.AreEqual(11 * 11, _V10range_whenx_rx(11));
+			Assert.AreEqual(100 * 100, _V10range_whenx_rx(100));
+			Assert.AreEqual(-6, _V10range_whenx_rx(-6));
+			Assert.AreEqual(2 * -7, _V10range_whenx_rx(-7));
+			Assert.AreEqual(2 * -8, _V10range_whenx_rx(-8));
+			Assert.AreEqual(2 * -42, _V10range_whenx_rx(-42));
+			Assert.AreEqual(3, _V10range_whenx_rx(3));
 		}
 
 		public static void Whens()
 		{
-			if (!Compile("Whens", new[] { "Whens.v" }))
+			if (!Compile("Whens", new[] { "Whens.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}

@@ -63,7 +63,7 @@ public class CompareInstruction : DualParameterInstruction
 
 			Build(
 				Instructions.Shared.COMPARE,
-				Assembler.Size,
+				Size.Min(First.Size, Second.Size),
 				new InstructionParameter(
 					First,
 					ParameterFlag.NONE,

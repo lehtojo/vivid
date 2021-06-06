@@ -37,9 +37,13 @@ public class MergeScopeInstruction : Instruction
 			var handle = GetDestinationHandle(variable);
 			var destination = new Result(handle.Value, handle.Format);
 
-			if (destination.IsConstant)
+			if (destination.IsConstant) continue;
+			
+			// If the only difference between the source and destination, is the size, and the source size is larger than the destination size, no conversion is needed
+			/// NOTE: Move instruction should still be created, so that the destination is locked
+			if (destination.Value.Equals(source.Value) && Size.FromFormat(destination.Format).Bytes <= Size.FromFormat(source.Format).Bytes)
 			{
-				continue;
+				source = destination;
 			}
 
 			moves.Add(new MoveInstruction(Unit, destination, source)

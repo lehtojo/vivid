@@ -8,7 +8,6 @@ public class Label
 	{
 		Name = name;
 	}
-
 	public virtual string GetName()
 	{
 		return Name;

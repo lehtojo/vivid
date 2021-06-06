@@ -24,7 +24,7 @@ public static class UnwrapmentAnalysis
 	public static bool UnwrapStatements(Node root)
 	{
 		var unwrapped = false;
-		var statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+		var statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 
 		while (statements.Any())
 		{
@@ -95,7 +95,7 @@ public static class UnwrapmentAnalysis
 					{
 						// Statements must be reloaded, since the unwrap was successful
 						unwrapped = true;
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 
 					continue;
@@ -124,7 +124,7 @@ public static class UnwrapmentAnalysis
 					if (!initialization.IsEmpty)
 					{
 						// Reload is needed, since the condition initialization is cloned
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 				}
 				else
@@ -139,7 +139,7 @@ public static class UnwrapmentAnalysis
 					{
 						// Reload is needed, since the condition initialization is cloned
 						statement.Replace(initialization);
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 					else
 					{
@@ -168,7 +168,7 @@ public static class UnwrapmentAnalysis
 		if (loop.GetConditionInitialization().Any()) return null;
 
 		// Unwrapping loops which have loop control nodes, is currently too complex
-		if (loop.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().Any(i => ReferenceEquals(i.Loop, loop))) return null;
+		if (loop.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().Any(i => ReferenceEquals(i.Loop, loop))) return null;
 
 		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition)) return null;
 

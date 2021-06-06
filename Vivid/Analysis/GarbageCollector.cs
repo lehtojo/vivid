@@ -92,7 +92,7 @@ public static class GarbageCollector
 	public static void DestructStackAllocations(Node root, Dictionary<Node, ScopeDestructionDescriptor> scopes)
 	{
 		// Find all the stack allocations inside the specified node
-		var allocations = root.FindAll(i => i.Is(NodeType.STACK_ADDRESS)).Distinct();
+		var allocations = root.FindAll(NodeType.STACK_ADDRESS).Distinct();
 
 		foreach (var allocation in allocations)
 		{
@@ -130,7 +130,7 @@ public static class GarbageCollector
 		// Add the root since it is a scoped node
 		scopes.Add(root, new ScopeDestructionDescriptor());
 
-		var returns = root.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
+		var returns = root.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
 
 		// Register scopes which can not be exited
 		foreach (var statement in returns)
@@ -406,7 +406,7 @@ public static class GarbageCollector
 	private static void CreateIntermediateResults(Node root)
 	{
 		// Find all function calls
-		var calls = root.FindAll(i => i.Is(NodeType.FUNCTION, NodeType.CALL));
+		var calls = root.FindAll(NodeType.FUNCTION, NodeType.CALL);
 		
 		foreach (var call in calls)
 		{

@@ -308,7 +308,7 @@ public static class Conditionals
 	private static bool IsBranchlessExecutionPossible(Node root)
 	{
 		// If the specified node contains a function call, branchless execution is not possible
-		return root.Find(i => i.Is(NodeType.FUNCTION, NodeType.CALL, NodeType.IF, NodeType.RETURN)) == null;
+		return root.Find(NodeType.FUNCTION, NodeType.CALL, NodeType.IF, NodeType.RETURN) == null;
 	}
 
 	/// <summary>
@@ -353,9 +353,16 @@ public static class Conditionals
 	private static bool TryBuildBranchlessExecution(Unit unit, IfNode statement)
 	{
 		// Require the condition to be single comparison for now
-		if (!statement.Condition.Is(OperatorType.COMPARISON))
+		var comparison = Analyzer.GetSource(statement.Condition);
+		
+		if (!comparison.Is(OperatorType.COMPARISON))
 		{
-			return false;
+			if (!comparison.Is(NodeType.CALL, NodeType.FUNCTION)) return false;
+			
+			comparison = new OperatorNode(Operators.NOT_EQUALS).SetOperands(
+				comparison.Clone(),
+				new NumberNode(Parser.Format, 0L)
+			);
 		}
 
 		if ((statement.Successor != null && statement.Successor.Is(NodeType.ELSE_IF)) || !IsBranchlessExecutionPossible(statement.Body))
@@ -363,7 +370,7 @@ public static class Conditionals
 			return false;
 		}
 
-		var operation = (ComparisonOperator)statement.Condition.To<OperatorNode>().Operator;
+		var operation = (ComparisonOperator)comparison.To<OperatorNode>().Operator;
 
 		// NOTE: There can not be increments and decrements operations since they can not be processed in the back end
 
@@ -440,8 +447,8 @@ public static class Conditionals
 
 			statement.Condition.Instance = instance;
 
-			var left = References.Get(unit, statement.Condition.Left);
-			var right = References.Get(unit, statement.Condition.Right);
+			var left = References.Get(unit, comparison.Left);
+			var right = References.Get(unit, comparison.Right);
 
 			var condition = new Condition(left, right, operation);
 			var inverse_condition = new Condition(left, right, operation.Counterpart!);
@@ -472,8 +479,8 @@ public static class Conditionals
 
 			y.Values.SelectMany(i => i).ForEach(i => SetConditional(i, inverse_condition));
 
-			statement.Body.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
-			statement.Successor.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = inverse_condition);
+			statement.Body.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+			statement.Successor.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = inverse_condition);
 		}
 		else
 		{
@@ -485,15 +492,15 @@ public static class Conditionals
 
 			statement.Condition.Instance = instance;
 
-			var left = References.Get(unit, statement.Condition.Left);
-			var right = References.Get(unit, statement.Condition.Right);
+			var left = References.Get(unit, comparison.Left);
+			var right = References.Get(unit, comparison.Right);
 
 			var condition = new Condition(left, right, operation);
 
 			// Set every assignment to be conditional
 			a.ForEach(i => SetConditional(i, condition));
 
-			statement.Body.FindAll(i => i.Is(NodeType.LOOP_CONTROL)).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+			statement.Body.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
 		}
 
 		Builders.Build(unit, statement.Body);

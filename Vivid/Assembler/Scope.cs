@@ -122,7 +122,7 @@ public sealed class Scope : IDisposable
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
 		// NOTE: Otherwise there would be a lot of register moves trying to save the cached variables
-		var non_volatile_mode = node.Find(n => n.Is(NodeType.FUNCTION, NodeType.CALL)) != null;
+		var non_volatile_mode = node.Find(NodeType.FUNCTION, NodeType.CALL) != null;
 
 		unit.Append(new CacheVariablesInstruction(unit, new[] { node }, variables, non_volatile_mode));
 	}
@@ -139,7 +139,7 @@ public sealed class Scope : IDisposable
 
 		// If the loop contains at least one function, the variables should be cached into non-volatile registers
 		// NOTE: Otherwise there would be a lot of register moves trying to save the cached variables
-		var non_volatile_mode = roots.Any(i => i.Find(j => j.Is(NodeType.FUNCTION, NodeType.CALL)) != null);
+		var non_volatile_mode = roots.Any(i => i.Find(NodeType.FUNCTION, NodeType.CALL) != null);
 
 		unit.Append(new CacheVariablesInstruction(unit, roots, variables, non_volatile_mode));
 	}
@@ -149,9 +149,9 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	public static IEnumerable<Variable> GetAllNonLocalVariables(Node[] roots, params Context[] local_contexts)
 	{
-		return roots.SelectMany(r => r.FindAll(n => n.Is(NodeType.VARIABLE))
-				 .Select(n => n.To<VariableNode>().Variable)
-				 .Where(v => v.IsPredictable && IsNonLocalVariable(v, local_contexts)))
+		return roots.SelectMany(i => i.FindAll(NodeType.VARIABLE)
+				 .Select(i => i.To<VariableNode>().Variable)
+				 .Where(i => i.IsPredictable && IsNonLocalVariable(i, local_contexts)))
 				 .Distinct();
 	}
 

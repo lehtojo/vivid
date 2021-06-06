@@ -2,6 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+public class NodeReferenceEqualityComparer : IEqualityComparer<Node>
+{
+	public bool Equals(Node? x, Node? y)
+	{
+		return ReferenceEquals(x, y);
+	}
+
+	public int GetHashCode(Node x)
+	{
+		return HashCode.Combine(x);
+	}
+}
+
 public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
 {
 	public bool Equals(T? x, T? y)
@@ -642,7 +655,7 @@ public class ModifiableFlow
 
 				if (instruction == Keywords.CONTINUE)
 				{
-					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var loop = node.FindParent(NodeType.LOOP) ?? throw new ApplicationException("Loop control node missing parent loop");
 					var start = Loops[loop.To<LoopNode>()].Start;
 
 					Add(new JumpNode(start), 0);
@@ -650,7 +663,7 @@ public class ModifiableFlow
 				}
 				else if (instruction == Keywords.STOP)
 				{
-					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var loop = node.FindParent(NodeType.LOOP) ?? throw new ApplicationException("Loop control node missing parent loop");
 					var end = Loops[loop.To<LoopNode>()].End;
 
 					Add(new JumpNode(end), 0);
@@ -784,11 +797,11 @@ public class ModifiableFlow
 public class Flow
 {
 	public List<Node> Nodes { get; private set; } = new List<Node>();
-	public Dictionary<Node, int> Indices { get; private set; } = new Dictionary<Node, int>(new ReferenceEqualityComparer<Node>());
-	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new ReferenceEqualityComparer<JumpNode>());
+	public Dictionary<Node, int> Indices { get; private set; } = new Dictionary<Node, int>(new NodeReferenceEqualityComparer());
+	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new NodeReferenceEqualityComparer());
 	public Dictionary<Label, int> Labels { get; private set; } = new Dictionary<Label, int>(new ReferenceEqualityComparer<Label>());
 	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
-	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new ReferenceEqualityComparer<LoopNode>());
+	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new NodeReferenceEqualityComparer());
 	public Label End { get; private set; }
 
 	public Flow(Node root)
@@ -1051,7 +1064,7 @@ public class Flow
 
 				if (instruction == Keywords.CONTINUE)
 				{
-					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var loop = node.FindParent(NodeType.LOOP) ?? throw new ApplicationException("Loop control node missing parent loop");
 
 					var start = Loops[loop.To<LoopNode>()].Start;
 
@@ -1060,7 +1073,7 @@ public class Flow
 				}
 				else if (instruction == Keywords.STOP)
 				{
-					var loop = node.FindParent(i => i.Is(NodeType.LOOP)) ?? throw new ApplicationException("Loop control node missing parent loop");
+					var loop = node.FindParent(NodeType.LOOP) ?? throw new ApplicationException("Loop control node missing parent loop");
 
 					var end = Loops[loop.To<LoopNode>()].End;
 

@@ -446,6 +446,16 @@ public class Context : IComparable<Context>
 		Parent.Subcontexts.Add(this);
 		Update();
 	}
+	
+	/// <summary>
+	/// Diconnects this context from its parent
+	/// </summary>
+	public void Disconnect()
+	{
+		if (Parent == null) return;
+		Parent.Subcontexts.Remove(this);
+		Parent = null;
+	}
 
 	/// <summary>
 	/// Moves all types, functions and variables from the specified context to this context

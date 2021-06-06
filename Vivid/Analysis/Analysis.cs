@@ -526,7 +526,7 @@ public static class Analysis
 	/// </summary>
 	private static Node? GetBranch(Node node)
 	{
-		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
+		return node.FindParent(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE);
 	}
 
 	/// <summary>
@@ -613,7 +613,7 @@ public static class Analysis
 			return true;
 		}
 
-		return perspective.FindParent(i => i.Is(NodeType.LOOP)) != null;
+		return perspective.FindParent(NodeType.LOOP) != null;
 	}
 
 	/// <summary>
@@ -772,7 +772,7 @@ public static class Analysis
 				var overloads = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).Overloads;
 
 				// Check if there is already a function call using any of the overloads above, if so, no need to generate another call
-				var calls = iterator.Node!.FindAll(i => i.Is(NodeType.FUNCTION)).Cast<FunctionNode>();
+				var calls = iterator.Node!.FindAll(NodeType.FUNCTION).Cast<FunctionNode>();
 				
 				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i)))
 				{
@@ -876,7 +876,7 @@ public static class Analysis
 	/// </summary>
 	private static void CompleteInspections(Node root)
 	{
-		var inspections = root.FindAll(i => i.Is(NodeType.INSPECTION)).Cast<InspectionNode>();
+		var inspections = root.FindAll(NodeType.INSPECTION).Cast<InspectionNode>();
 
 		foreach (var inspection in inspections)
 		{
@@ -921,12 +921,12 @@ public static class Analysis
 	/// </summary>
 	public static void CaptureContextLeaks(Context context, Node root)
 	{
-		var variables = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var variables = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find variables whose parent context is not defined inside the implementation, if even one is found it means something has leaked
 		if (variables.Any()) { throw new ApplicationException("Found a context leak"); }
 
-		var declarations = root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var declarations = root.FindAll(NodeType.DECLARE).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
 		if (declarations.Any()) { throw new ApplicationException("Found a context leak"); }

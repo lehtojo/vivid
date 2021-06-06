@@ -192,7 +192,7 @@ public class FunctionImplementation : Context
 		}
 
 		// Try to find nested if-statements, else-if-statements, else-statements or loop-statements, if at least one is found this function should not be inlined
-		if (Node.Find(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) && i.FindParent(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP)) != null) != null)
+		if (Node.Find(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) && i.FindParent(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) != null) != null)
 		{
 			return false;
 		}

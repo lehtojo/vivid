@@ -116,7 +116,7 @@ public class ResolverPhase : Phase
 
 		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations))
 		{
-			var links = constructor.Node!.FindAll(i => i.Is(NodeType.LINK));
+			var links = constructor.Node!.FindAll(NodeType.LINK);
 			var supertypes = new HashSet<Type>(type.Supertypes.Where(i => !i.IsUnresolved));
 
 			foreach (var link in links)
@@ -185,7 +185,7 @@ public class ResolverPhase : Phase
 			}
 
 			// Ensure increments and decrements are used properly
-			nodes = implementation.Node.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+			nodes = implementation.Node.FindAll(NodeType.INCREMENT, NodeType.DECREMENT);
 
 			foreach (var iterator in nodes)
 			{
@@ -196,7 +196,7 @@ public class ResolverPhase : Phase
 				diagnostics.Add(new DocumentDiagnostic(iterator.Position, $"Can not understand the {name}", DocumentDiagnosticSeverity.ERROR));
 			}
 
-			nodes = implementation.Node.FindAll(i => i.Is(NodeType.LINK));
+			nodes = implementation.Node.FindAll(NodeType.LINK);
 
 			foreach (var iterator in nodes)
 			{
@@ -289,7 +289,7 @@ public class ResolverPhase : Phase
 	public static List<DocumentDiagnostic> GetDiagnostics(Context context, Node root)
 	{
 		var diagnostics = GetDiagnostics(context);
-		var extensions = root.FindAll(i => i.Is(NodeType.EXTENSION_FUNCTION)).Cast<ExtensionFunctionNode>();
+		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION).Cast<ExtensionFunctionNode>();
 
 		foreach (var extension in extensions)
 		{
@@ -386,7 +386,7 @@ public class ResolverPhase : Phase
 			}
 
 			// Ensure increments and decrements are used properly
-			nodes = implementation.Node.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+			nodes = implementation.Node.FindAll(NodeType.INCREMENT, NodeType.DECREMENT);
 
 			foreach (var iterator in nodes)
 			{
@@ -397,7 +397,7 @@ public class ResolverPhase : Phase
 				errors.Add(Status.Error(iterator.Position, $"Can not understand the {name}"));
 			}
 
-			nodes = implementation.Node.FindAll(i => i.Is(NodeType.LINK));
+			nodes = implementation.Node.FindAll(NodeType.LINK);
 
 			foreach (var iterator in nodes)
 			{
@@ -548,7 +548,7 @@ public class ResolverPhase : Phase
 	public static string GetReport(Context context, Node root)
 	{
 		var report = GetReport(context);
-		var extensions = root.FindAll(i => i.Is(NodeType.EXTENSION_FUNCTION)).Cast<ExtensionFunctionNode>();
+		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION).Cast<ExtensionFunctionNode>();
 
 		if (!extensions.Any())
 		{
@@ -574,7 +574,7 @@ public class ResolverPhase : Phase
 	{
 		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing the allocation function, please implement it or include the standard library");
 		var deallocation_function = context.GetFunction("deallocate") ?? throw new ApplicationException("Missing the deallocation function, please implement it or include the standard library");
-		var inheritance_function = context.GetFunction("inherits") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
+		var inheritance_function = context.GetFunction("internal_is") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
 
 		var type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 

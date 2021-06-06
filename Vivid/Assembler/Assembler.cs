@@ -539,7 +539,7 @@ public static class Assembler
 
 	private static IEnumerable<StringNode> GetStringNodes(Node root)
 	{
-		return root.FindAll(i => i.Is(NodeType.STRING)).Cast<StringNode>();
+		return root.FindAll(NodeType.STRING).Cast<StringNode>();
 	}
 
 	private static string AllocateString(string text)

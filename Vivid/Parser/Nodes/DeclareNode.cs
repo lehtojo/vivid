@@ -10,6 +10,13 @@ public class DeclareNode : Node
 		Instance = NodeType.DECLARE;
 	}
 
+	public DeclareNode(Variable variable, Position? position)
+	{
+		Variable = variable;
+		Instance = NodeType.DECLARE;
+		Position = position;
+	}
+
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(Instance, Position, Variable);

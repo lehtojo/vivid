@@ -45,7 +45,7 @@ public static class Warnings
 	/// </summary>
 	private static void FindSuspiciousFunctionArguments(List<Status> diagnostics, Node root)
 	{
-		var calls = root.FindAll(i => i.Is(NodeType.FUNCTION, NodeType.CALL));
+		var calls = root.FindAll(NodeType.FUNCTION, NodeType.CALL);
 
 		foreach (var call in calls)
 		{
@@ -109,7 +109,7 @@ public static class Warnings
 	/// </summary>
 	private static void FindAllUnusedVariables(List<Status> diagnostics, FunctionImplementation implementation)
 	{
-		var lambdas = implementation.Node!.FindAll(i => i.Is(NodeType.LAMBDA)).Cast<LambdaNode>();
+		var lambdas = implementation.Node!.FindAll(NodeType.LAMBDA).Cast<LambdaNode>();
 		var captures = lambdas.Where(i => i.Implementation != null).Select(i => (LambdaImplementation)i.Implementation!).SelectMany(i => i.Captures).Select(i => i.Captured).ToHashSet();
 
 		foreach (var iterator in implementation.Locals.Concat(implementation.Parameters))

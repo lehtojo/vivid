@@ -63,29 +63,18 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static Node? GetSharedScope(Node[] nodes)
 	{
-		if (!nodes.Any())
-		{
-			return null;
-		}
-
-		if (nodes.Length == 1)
-		{
-			return nodes.First().FindParent(i => i.Is(NodeType.SCOPE));
-		}
+		if (!nodes.Any()) return null;
+		if (nodes.Length == 1) return nodes.First().FindParent(NodeType.SCOPE);
 
 		var shared = nodes[0];
 
 		for (var i = 1; i < nodes.Length; i++)
 		{
 			shared = Node.GetSharedNode(shared, nodes[i], false);
-
-			if (shared == null)
-			{
-				return null;
-			}
+			if (shared == null) return null;
 		}
 
-		return shared.Is(NodeType.SCOPE) ? shared : shared.FindParent(i => i.Is(NodeType.SCOPE));
+		return shared.Is(NodeType.SCOPE) ? shared : shared.FindParent(NodeType.SCOPE);
 	}
 
 	/// <summary>
@@ -323,17 +312,12 @@ public static class ReconstructionAnalysis
 		var configuration = type.GetConfigurationVariable();
 		var start = new LinkNode(source, new VariableNode(configuration));
 
-		var a = new OperatorNode(Operators.EQUALS).SetOperands(
-			new OffsetNode(start.Clone(), new NumberNode(Parser.Format, 0L)),
-			new DataPointer(expected.Configuration.Descriptor)
-		);
-
-		var b = new FunctionNode(Parser.InheritanceFunction!).SetParameters(new Node {
+		var condition = new FunctionNode(Parser.InheritanceFunction!).SetParameters(new Node {
 			new OffsetNode(start, new NumberNode(Parser.Format, 0L)),
 			new DataPointer(expected.Configuration.Descriptor)
 		});
 
-		return new OperatorNode(Operators.OR).SetOperands(a, b);
+		return condition;
 	}
 
 	/// <summary>
@@ -341,16 +325,13 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RewriteIsExpressions(Node root)
 	{
-		var expressions = root.FindAll(i => i.Is(NodeType.IS)).Cast<IsNode>().ToList();
+		var expressions = root.FindAll(NodeType.IS).Cast<IsNode>().ToList();
 
 		for (var i = expressions.Count - 1; i >= 0; i--)
 		{
 			var expression = expressions[i];
 
-			if (expression.HasResultVariable)
-			{
-				continue;
-			}
+			if (expression.HasResultVariable) continue;
 
 			expression.Replace(CreateTypeCondition(expression.Object, expression.Type));
 			expressions.RemoveAt(i);
@@ -399,7 +380,10 @@ public static class ReconstructionAnalysis
 			var conditional_assignment = new IfNode(assignment_context, condition, new Node { assignment }, expression.Position, null);
 
 			// Create a condition which represents the result of the is expression
-			var result_condition = new VariableNode(expression.Result);
+			var result_condition = new OperatorNode(Operators.NOT_EQUALS).SetOperands(
+				new VariableNode(expression.Result),
+				new NumberNode(Parser.Format, 0L)
+			);
 
 			// Replace the expression with the logic above
 			expression.Replace(new InlineNode(expression.Position) { load, conditional_assignment, result_condition });
@@ -431,7 +415,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RewriteConstructions(Node root)
 	{
-		var constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
+		var constructions = root.FindAll(NodeType.CONSTRUCTION).Cast<ConstructionNode>();
 
 		foreach (var construction in constructions)
 		{
@@ -441,7 +425,7 @@ public static class ReconstructionAnalysis
 			container.Destination.Replace(container.Node);
 		}
 
-		constructions = root.FindAll(i => i.Is(NodeType.CONSTRUCTION)).Cast<ConstructionNode>();
+		constructions = root.FindAll(NodeType.CONSTRUCTION).Cast<ConstructionNode>();
 
 		foreach (var construction in constructions)
 		{
@@ -463,10 +447,7 @@ public static class ReconstructionAnalysis
 		{
 			var node = candidate.FindParent(i => !i.Is(NodeType.CONTENT))!;
 
-			if (ReconstructionAnalysis.IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate))
-			{
-				return false;
-			}
+			if (ReconstructionAnalysis.IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate)) return false;
 
 			// Ensure the parent is not a comparison or a logical operator
 			return node is not OperatorNode operation || (operation.Operator.Type != OperatorType.COMPARISON && operation.Operator.Type != OperatorType.LOGIC);
@@ -560,27 +541,12 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsCondition(Node node)
 	{
-		var statement = node.FindParent(i => i.Is(NodeType.ELSE_IF, NodeType.IF, NodeType.LOOP));
+		var statement = node.FindParent(NodeType.ELSE_IF, NodeType.IF, NodeType.LOOP);
 
-		if (statement == null)
-		{
-			return false;
-		}
-
-		if (statement.Is(NodeType.IF))
-		{
-			return ReferenceEquals(statement.To<IfNode>().Condition, node);
-		}
-
-		if (statement.Is(NodeType.ELSE_IF))
-		{
-			return ReferenceEquals(statement.To<ElseIfNode>().Condition, node);
-		}
-
-		if (statement.Is(NodeType.LOOP))
-		{
-			return ReferenceEquals(statement.To<LoopNode>().Condition, node);
-		}
+		if (statement == null) return false;
+		if (statement.Is(NodeType.IF)) return ReferenceEquals(statement.To<IfNode>().Condition, node);
+		if (statement.Is(NodeType.ELSE_IF)) return ReferenceEquals(statement.To<ElseIfNode>().Condition, node);
+		if (statement.Is(NodeType.LOOP)) return ReferenceEquals(statement.To<LoopNode>().Condition, node);
 
 		return false;
 	}
@@ -591,7 +557,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsPartOfCallArgument(Node node)
 	{
-		return node.FindParent(i => i.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION)) != null;
+		return node.FindParent(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION) != null;
 	}
 
 	/// <summary>
@@ -605,7 +571,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RewriteDiscardedIncrements(Node root)
 	{
-		var increments = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+		var increments = root.FindAll(NodeType.INCREMENT, NodeType.DECREMENT);
 
 		foreach (var increment in increments)
 		{
@@ -622,7 +588,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RewriteAllEditsAsAssignOperations(Node root)
 	{
-		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || (i is OperatorNode x && x.Operator.Type == OperatorType.ACTION));
+		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || i.Is(OperatorType.ACTION));
 
 		foreach (var edit in edits)
 		{
@@ -677,7 +643,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void SubstituteInlineNodes(Node root)
 	{
-		var inlines = root.FindAll(i => i.Is(NodeType.INLINE)).Cast<InlineNode>();
+		var inlines = root.FindAll(NodeType.INLINE).Cast<InlineNode>();
 
 		foreach (var inline in inlines)
 		{
@@ -861,7 +827,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(i => i.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION));
+		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION);
 		nodes.AddRange(FindBooleanValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
@@ -1126,7 +1092,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void RemoveRedundantCasts(Node root)
 	{
-		var casts = root.FindAll(i => i.Is(NodeType.CAST)).Cast<CastNode>();
+		var casts = root.FindAll(NodeType.CAST).Cast<CastNode>();
 
 		foreach (var cast in casts)
 		{
@@ -1174,7 +1140,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void RewriteLambdaConstructions(Node root)
 	{
-		var lambdas = root.FindAll(i => i.Is(NodeType.LAMBDA)).Cast<LambdaNode>();
+		var lambdas = root.FindAll(NodeType.LAMBDA).Cast<LambdaNode>();
 
 		foreach (var lambda in lambdas)
 		{
@@ -1239,7 +1205,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool RemoveUnreachableStatements(Node root)
 	{
-		var return_statements = root.FindAll(n => n.Is(NodeType.RETURN));
+		var return_statements = root.FindAll(NodeType.RETURN);
 		var removed = false;
 
 		for (var i = return_statements.Count - 1; i >= 0; i--)
@@ -1267,7 +1233,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void StripLinks(Node root)
 	{
-		var links = root.FindAll(i => i.Is(NodeType.LINK));
+		var links = root.FindAll(NodeType.LINK);
 
 		foreach (var link in links)
 		{

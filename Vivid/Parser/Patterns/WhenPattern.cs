@@ -25,188 +25,119 @@ public class WhenPattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		// Ensure the keyword is the when keyword
-		if (!tokens.First().Is(Keywords.WHEN))
-		{
-			return false;
-		}
-
-		if (!tokens[VALUE].Is(ParenthesisType.PARENTHESIS))
-		{
-			return false;
-		}
+		if (!tokens.First().Is(Keywords.WHEN)) return false;
+		if (!tokens[VALUE].Is(ParenthesisType.PARENTHESIS)) return false;
 
 		return tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	/// <summary>
-	/// Returns whether the section is an else section that is whether it should be executed when other conditions in when statement fail
-	/// </summary>
-	private bool IsElseSection(List<Token> section)
+	public override Node? Build(Context environment, PatternState state, List<Token> all)
 	{
-		var i = section.FindIndex(i => i.Is(Operators.HEAVY_ARROW));
-
-		// Every section should have at least one heavy arrow token, but return false for now since the build function handles these issues
-		if (i == -1)
-		{
-			return false;
-		}
-
-		// If there is an else keyword before the first heavy arrow token, it means this section is an else section
-		return section.Take(i).Any(i => i.Is(Keywords.ELSE));
-	}
-
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
-	{
-		var result = new InlineNode(tokens.First().Position);
+		var position = all.First().Position;
 
 		// Load the inspected value into a variable
-		var source = Singleton.Parse(context, tokens[VALUE]);
-		var type = source.TryGetType();
-
-		var inspected_variable = context.DeclareHidden(type);
-
-		var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(inspected_variable),
-			source
+		var inspected_value = Singleton.Parse(environment, all[VALUE]);
+		var inspected_value_variable = environment.DeclareHidden(inspected_value.TryGetType());
+		
+		var load = new OperatorNode(Operators.ASSIGN).SetOperands(
+			new VariableNode(inspected_value_variable, position),
+			inspected_value
 		);
 
-		result.Add(initialization);
+		var tokens = all[BODY].To<ContentToken>().Tokens;
 
-		var result_variable = context.DeclareHidden(null);
+		Parser.RemoveLineEndingDuplications(tokens);
+		Parser.CreateFunctionTokens(tokens);
 
-		initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(result_variable),
-			new NumberNode(Parser.Format, 0L)
-		);
+		if (!tokens.Any()) throw Errors.Get(position, "When-statement can not be empty");
 
-		// Initialize the result variable
-		result.Add(initialization);
+		const int IF_STATEMENT = 0;
+		const int ELSE_IF_STATEMENT = 1;
+		const int ELSE_STATEMENT = 2;
 
-		// Determine all the sections of the body by splitting the tokens by commas
-		var body = tokens[BODY].To<ContentToken>();
-		var sections = body.GetSections();
-		var is_first = true;
+		var sections = new List<Node>();
+		var type = IF_STATEMENT;
 
-		var else_section = sections.FirstOrDefault(IsElseSection);
-
-		if (else_section != null)
+		while (tokens.Any())
 		{
-			// Remove the else section since it is added last and it doesn't have a condition
-			sections.Remove(else_section);
+			// Remove all line-endings from the start
+			tokens.RemoveRange(0, tokens.TakeWhile(i => i.Is(TokenType.END) || i.Is(Operators.COMMA)).Count());
+			if (!tokens.Any()) break;
 
-			// Remove all other else sections since they won't execute
-			sections.RemoveAll(IsElseSection);
-		}
-
-		foreach (var section in sections)
-		{
 			// Find the heavy arrow operator, which marks the start of the executable body, every section must have one
-			var start = section.Find(i => i.Is(Operators.HEAVY_ARROW));
+			var index = tokens.FindIndex(i => i.Is(Operators.HEAVY_ARROW));
+			if (index < 0) throw Errors.Get(tokens.First().Position, "All sections in when-statements must have a heavy arrow operator");
+			if (index == 0) throw Errors.Get(tokens.First().Position, "Section condition can not be empty");
 
-			if (start == null)
+			var arrow = tokens[index];
+
+			// Take out the section condition
+			var condition_tokens = tokens.GetRange(0, index);
+			var condition = (Node?)null;
+
+			tokens.RemoveRange(0, index + 1);
+
+			if (!condition_tokens.First().Is(Keywords.ELSE))
+			{	
+				// Insert an equals-operator to the condition, if it does start with a keyword or an operator
+				if (!condition_tokens.First().Is(TokenType.KEYWORD, TokenType.OPERATOR))
+				{
+					condition_tokens.Insert(0, new OperatorToken(Operators.EQUALS, condition_tokens.First().Position));
+				}
+
+				condition_tokens.Insert(0, new IdentifierToken(inspected_value_variable.Name, position));
+				condition = Parser.Parse(environment, condition_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+			}
+			else
 			{
-				throw Errors.Get(body.Position, "Can not understand the sections");
+				type = ELSE_STATEMENT;
 			}
 
-			var section_tokens = section.TakeWhile(i => !i.Is(Operators.HEAVY_ARROW)).ToList();
-			var section_tokens_count = section_tokens.Count;
-			var value = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+			if (!tokens.Any()) throw Errors.Get(position, "Missing section body");
 
-			if (!value.Any())
+			var context = new Context(environment);
+			var body = (Node?)null;
+
+			if (tokens.First().Is(ParenthesisType.CURLY_BRACKETS))
 			{
-				throw Errors.Get(body.Position, "One of the sections has an empty value as condition");
+				var parenthesis = tokens.Pop()!.To<ContentToken>();
+				body = Parser.Parse(context, parenthesis.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+			}
+			else
+			{
+				// Consume the section body
+				state = new PatternState(tokens);
+				var result = new List<Token>();
+				if (!Common.ConsumeBlock(context, state, result)) throw Errors.Get(arrow.Position, "Could not understand the section body");
+
+				body = Parser.Parse(context, result, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
+
+				// Remove the consumed tokens
+				tokens.RemoveRange(0, state.End);
 			}
 
-			var section_condition = new OperatorNode(Operators.EQUALS).SetOperands(
-				new VariableNode(inspected_variable),
-				value.Last!
-			);
-
-			section_tokens = section.Skip(section_tokens_count + 1).ToList();
-
-			if (!section_tokens.Any())
+			// Finish the when-statement, when an else-section is encountered
+			if (type == ELSE_STATEMENT)
 			{
-				throw Errors.Get(body.Position, "One of the sections has an empty body");
+				sections.Add(new ElseNode(context, body, arrow.Position, null));
+				break;
 			}
 
-			// If the first token represents a block, the body of the section is the tokens inside it
-			if (section_tokens.First().Is(ParenthesisType.CURLY_BRACKETS))
+			// If the section is not an else-section, the condition must be present
+			if (condition == null) throw Errors.Get(arrow.Position, "Missing section condition");
+			
+			// Add the conditional section
+			if (type == IF_STATEMENT)
 			{
-				section_tokens = section_tokens.First().To<ContentToken>().Tokens;
+				sections.Add(new IfNode(context, condition, body, arrow.Position, null));
+				type = ELSE_IF_STATEMENT;
 			}
-
-			var section_body = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
-
-			if (!section_body.Any())
+			else
 			{
-				throw Errors.Get(body.Position, "One of the sections has an empty body");
+				sections.Add(new ElseIfNode(context, condition, body, arrow.Position, null));
 			}
-
-			// Create an assignment which stores the last value in the body into the result variable
-			var result_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(result_variable),
-				section_body.Last!.Clone()
-			);
-
-			// Replace the last value with the assignment since the assignment has the last value
-			section_body.Last!.Replace(result_assignment);
-
-			var section_context = new Context(context);
-
-			if (is_first)
-			{
-				result.Add(new IfNode(section_context, section_condition, section_body, start.Position, null));
-
-				is_first = false;
-				continue;
-			}
-
-			result.Add(new ElseIfNode(section_context, section_condition, section_body, start.Position, null));
 		}
 
-		// Finally, add the section which executes when other conditions fail, if one exists
-		if (else_section != null)
-		{
-			// Find the heavy arrow operator, which marks the start of the executable body, every section must have one
-			var arrow_index = else_section.FindIndex(i => i.Is(Operators.HEAVY_ARROW));
-			if (arrow_index == -1) throw Errors.Get(body.Position, "Else section has an empty body");
-
-			var section_tokens = else_section.Skip(arrow_index + 1).ToList();
-
-			if (!section_tokens.Any())
-			{
-				throw Errors.Get(body.Position, "Else section has an empty body");
-			}
-
-			// If the first token represents a block, the body of the section is the tokens inside it
-			if (section_tokens.First().Is(ParenthesisType.CURLY_BRACKETS))
-			{
-				section_tokens = section_tokens.First().To<ContentToken>().Tokens;
-			}
-
-			var section_body = Parser.Parse(context, section_tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
-
-			if (!section_body.Any())
-			{
-				throw Errors.Get(body.Position, "Else section has an empty body");
-			}
-
-			// Create an assignment which stores the last value in the body into the result variable
-			var result_assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(result_variable),
-				section_body.Last!.Clone()
-			);
-
-			// Replace the last value with the assignment since the assignment has the last value
-			section_body.Last!.Replace(result_assignment);
-
-			var section_context = new Context(context);
-
-			result.Add(new ElseNode(section_context, section_body, else_section[arrow_index].Position, null));
-		}
-
-		result.Add(new VariableNode(result_variable));
-
-		return result;
+		return new InlineNode(position) { load, new WhenNode(new VariableNode(inspected_value_variable, position), sections, position) };
 	}
 }

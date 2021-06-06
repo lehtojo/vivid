@@ -49,9 +49,9 @@ public class NamespaceNode : Node
 		result.Variables.Values.ForEach(i => i.Modifiers |= Modifier.STATIC);
 
 		// Parse all the subtypes
-		FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
+		FindAll(NodeType.TYPE).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
 
 		// Parse all the subnamespaces
-		FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>().ForEach(i => i.Parse(result));
+		FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>().ForEach(i => i.Parse(result));
 	}
 }

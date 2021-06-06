@@ -54,35 +54,57 @@ outline deallocate(address: link) {
 outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
-TYPE_DESCRIPTOR_INHERITANT_SEPARATOR = 1
-TYPE_DESCRIPTOR_FULLNAME_END = 2
+TYPE_DESCRIPTOR_FULLNAME_END = 1
 
-outline inherits(descriptor: link, type: link) {
-	x = (descriptor as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
-	y = (type as l64)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+outline internal_is(inspected: link, inheritant: link) {
+	if inspected == inheritant => true
+	
+	inspected_fullname = inspected.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	inheritant_fullname = inheritant.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	
+	# Determine the length of the name of the inheritant type
+	inheritant_name_length = 0
+	loop (inheritant_fullname[inheritant_name_length] != 0) { inheritant_name_length++ }
 
-	s = y[0]
-	i = 0
+	position = 0
+	length = 0
 
 	loop {
-		a = x[i]
-		i++
+		value = inspected_fullname[position]
+		if value == TYPE_DESCRIPTOR_FULLNAME_END => false
+		
+		if value == 0 {
+			# Ensure the names have the same length
+			if length == inheritant_name_length {
+				i = position - length
+				j = 0
 
-		if a == s {
-			j = 1
+				loop (j < length) {
+					# Set index i to -1 if the names differ
+					if inspected_fullname[i] != inheritant_fullname[j] {
+						i = -1
+						stop
+					}
 
-			loop {
-				a = x[i]
-				b = y[j]
+					# Move to the next character
+					i++
+					j++
+				}
 
-				i++
-				j++
-
-				if a != b and a == TYPE_DESCRIPTOR_INHERITANT_SEPARATOR and b == 0 => true
+				# If the names differ, index i must be -1
+				if i != -1 => true
 			}
+			
+			position++
+			length = 0
+			continue
 		}
-		else a == TYPE_DESCRIPTOR_FULLNAME_END => false
+
+		position++
+		length++
 	}
+
+	=> false
 }
 
 move(source: link, offset: large, destination: link, bytes: large) {

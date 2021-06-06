@@ -39,8 +39,7 @@ public class RuntimeConfiguration
 	public const string REFERENCE_COUNT_VARIABLE = ".references";
 
 	public const string ZERO_TERMINATOR = "\\x00";
-	public const string INHERITANT_SEPARATOR = "\\x01";
-	public const string FULLNAME_END = "\\x02";
+	public const string FULLNAME_END = "\\x01";
 
 	public Table Entry { get; private set; }
 	public Table Descriptor { get; private set; }
@@ -50,20 +49,9 @@ public class RuntimeConfiguration
 
 	public bool IsCompleted { get; set; } = false;
 
-	private string GetFullname(Type type, bool start = false)
+	private static string GetFullname(Type type)
 	{
-		var a = type.Name;
-		var b = INHERITANT_SEPARATOR;
-
-		b += string.Join(string.Empty, type.Supertypes.Select(i => GetFullname(i)).ToArray());
-
-		if (start)
-		{
-			a += ZERO_TERMINATOR;
-			b += FULLNAME_END;
-		}
-
-		return a + b;
+		return type.Name + ZERO_TERMINATOR + string.Join(ZERO_TERMINATOR, type.GetAllSupertypes().Select(i => i.Name)) + FULLNAME_END;
 	}
 
 	public RuntimeConfiguration(Type type)
@@ -80,7 +68,7 @@ public class RuntimeConfiguration
 
 		Entry.Add(Descriptor);
 
-		Descriptor.Add(GetFullname(type, true), false);
+		Descriptor.Add(GetFullname(type), false);
 	}
 }
 

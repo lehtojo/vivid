@@ -83,7 +83,7 @@ public static class MemoryAccessAnalysis
 	/// </summary>
 	private static Variable[] GetEditableMembers(Node expression)
 	{
-		return expression.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable.IsMember).Select(i => i.Variable).ToArray();
+		return expression.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable.IsMember).Select(i => i.Variable).ToArray();
 	}
 
 	/// <summary>
@@ -133,7 +133,7 @@ public static class MemoryAccessAnalysis
 				}
 				
 				// Analyze the inner links, some of those can match the currently inspected link 'start'
-				var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
+				var sublinks = other.FindAll(NodeType.LINK).Cast<LinkNode>();
 
 				foreach (var sublink in sublinks)
 				{
@@ -193,7 +193,7 @@ public static class MemoryAccessAnalysis
 						if (!is_member_variable_edited || !members.Contains(edited.Right.To<VariableNode>().Variable))
 						{
 							// None of the edits must access raw memory, since they can edit the repetitions
-							if (!edited.Is(NodeType.OFFSET) && edited.Find(i => i.Is(NodeType.OFFSET)) == null) continue;
+							if (!edited.Is(NodeType.OFFSET) && edited.Find(NodeType.OFFSET) == null) continue;
 						}
 					}
 

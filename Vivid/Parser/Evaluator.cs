@@ -327,7 +327,7 @@ public static class Evaluator
 	/// </summary>
 	private static void EvaluateCompilesNodes(Node root)
 	{
-		var expressions = root.FindAll(i => i.Is(NodeType.COMPILES));
+		var expressions = root.FindAll(NodeType.COMPILES);
 
 		foreach (var expression in expressions)
 		{

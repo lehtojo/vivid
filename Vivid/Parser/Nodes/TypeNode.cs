@@ -52,7 +52,7 @@ public class TypeNode : Node, IScope
 		}
 
 		// Parse all the subtypes
-		FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
+		FindAll(NodeType.TYPE).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
 
 		// Find all expressions which represent type initialization
 		var expressions = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();

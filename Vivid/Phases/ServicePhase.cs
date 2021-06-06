@@ -908,10 +908,10 @@ public class ServicePhase : Phase
 			if (root == null || context == null) continue;
 
 			// Find all the types under the parsed document and parse them completely
-			var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+			var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
 			types.ForEach(i => i.Parse());
 
-			root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
+			root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
 
 			// Applies all the extension functions
 			ParserPhase.ApplyExtensionFunctions(context, root);

@@ -776,7 +776,7 @@ public static class Importer
 				file.Context = context;
 
 				// Find all the types and parse them
-				var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+				var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
 
 				foreach (var type in types)
 				{

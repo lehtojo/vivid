@@ -40,7 +40,7 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Finds all nodes which pass the specified filter, favoring right side of assignment operations first
 	/// </summary>
-	private static List<Node> FindAll(Node root, Predicate<Node> filter)
+	private static List<Node> FindAll(Node root, NodeType type)
 	{
 		var nodes = new List<Node>();
 		var iterator = (IEnumerable<Node>)root;
@@ -52,12 +52,12 @@ public static class GeneralAnalysis
 
 		foreach (var i in iterator)
 		{
-			if (filter(i))
+			if (i.Instance == type)
 			{
 				nodes.Add(i);
 			}
 
-			nodes.AddRange(FindAll(i, filter));
+			nodes.AddRange(FindAll(i, type));
 		}
 
 		return nodes;
@@ -74,9 +74,11 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Produces a descriptor for the specified variable from the specified set of variable nodes
 	/// </summary>
-	private static VariableDescriptor GetVariableDescriptor(Variable variable, List<VariableNode> nodes)
+	private static VariableDescriptor GetVariableDescriptor(Variable variable, Dictionary<Variable, Node[]> nodes)
 	{
-		var reads = nodes.Where(i => i.Is(variable)).Cast<Node>().ToList();
+		if (!nodes.TryGetValue(variable, out Node[]? all)) return new VariableDescriptor(new List<Node>(), new List<Node>());
+		
+		var reads = new List<Node>(all);
 		var writes = GetWrites(reads);
 
 		for (var i = 0; i < writes.Count; i++)
@@ -99,7 +101,7 @@ public static class GeneralAnalysis
 	/// </summary>
 	public static Dictionary<Variable, VariableDescriptor> GetVariableDescriptors(FunctionImplementation implementation, Node root)
 	{
-		var nodes = FindAll(root, i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().ToList();
+		var nodes = FindAll(root, NodeType.VARIABLE).GroupBy(i => i.To<VariableNode>().Variable).ToDictionary(i => i.Key, i => i.ToArray());
 		var variables = implementation.Locals.Concat(implementation.Variables.Values).Distinct();
 
 		return new Dictionary<Variable, VariableDescriptor>
@@ -242,10 +244,7 @@ public static class GeneralAnalysis
 
 		return value.FindAll(i =>
 		{
-			if (!i.Is(NodeType.VARIABLE))
-			{
-				return false;
-			}
+			if (!i.Is(NodeType.VARIABLE)) return false;
 
 			var variable = i.To<VariableNode>().Variable;
 			return variable.IsPredictable && !variable.IsConstant && !variable.IsSelfPointer;
@@ -379,7 +378,7 @@ public static class GeneralAnalysis
 				}
 
 				// If the value contains the destination variable and it can not be assigned to all its usages or it is repeated, it should not be assigned
-				if (recursive && (assignable.Count != write.Dependencies.Count || write.Node.FindParent(i => i.Is(NodeType.LOOP)) != null))
+				if (recursive && (assignable.Count != write.Dependencies.Count || write.Node.FindParent(NodeType.LOOP) != null))
 				{
 					continue;
 				}
@@ -532,7 +531,7 @@ public static class GeneralAnalysis
 			if (context.Variables.ContainsKey(variable.Name))
 			{
 				context.Variables.Remove(variable.Name);
-				root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => i.Variable == variable).ForEach(i => i.Remove());
+				root.FindAll(NodeType.DECLARE).Cast<DeclareNode>().Where(i => i.Variable == variable).ForEach(i => i.Remove());
 				continue;
 			}
 

@@ -82,7 +82,7 @@ public static class Analyzer
 
 	private static void ResetVariableUsages(Node root)
 	{
-		root.FindAll(i => i.Is(NodeType.VARIABLE))
+		root.FindAll(NodeType.VARIABLE)
 			.Select(i => i.To<VariableNode>().Variable)
 			.Distinct()
 			.ForEach(i => { i.References.Clear(); i.Writes.Clear(); i.Reads.Clear(); });
@@ -141,7 +141,7 @@ public static class Analyzer
 			variable.Reads.Clear();
 		}
 
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
+		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable == variable))
 		{
 			variable.References.Add(iterator);
 
@@ -179,7 +179,7 @@ public static class Analyzer
 
 	private static void AnalyzeVariableUsages(Node root)
 	{
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
+		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>())
 		{
 			iterator.Variable.References.Add(iterator);
 
@@ -297,7 +297,7 @@ public static class Analyzer
 	/// </summary>
 	public static void ApplyConstants(Node root)
 	{
-		var constants = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable.IsConstant).ToArray();
+		var constants = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable.IsConstant).ToArray();
 
 		foreach (var usage in constants)
 		{

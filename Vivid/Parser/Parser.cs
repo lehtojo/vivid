@@ -504,7 +504,7 @@ public static class Parser
 	/// <summary>
 	/// Forms function tokens from the specified tokens
 	/// </summary>
-	private static void CreateFunctionTokens(List<Token> tokens)
+	public static void CreateFunctionTokens(List<Token> tokens)
 	{
 		if (tokens.Count < FUNCTION_LENGTH) return;
 
@@ -544,7 +544,7 @@ public static class Parser
 	/// <summary>
 	/// Removes all line ending duplications
 	/// </summary>
-	private static void RemoveLineEndingDuplications(List<Token> tokens)
+	public static void RemoveLineEndingDuplications(List<Token> tokens)
 	{
 		for (var i = 0; i < tokens.Count - 1;)
 		{
