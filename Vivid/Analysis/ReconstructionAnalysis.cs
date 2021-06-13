@@ -312,7 +312,7 @@ public static class ReconstructionAnalysis
 		var configuration = type.GetConfigurationVariable();
 		var start = new LinkNode(source, new VariableNode(configuration));
 
-		var condition = new FunctionNode(Parser.InheritanceFunction!).SetParameters(new Node {
+		var condition = new FunctionNode(Parser.InheritanceFunction!).SetArguments(new Node {
 			new OffsetNode(start, new NumberNode(Parser.Format, 0L)),
 			new DataPointer(expected.Configuration.Descriptor)
 		});
@@ -1161,7 +1161,7 @@ public static class ReconstructionAnalysis
 			else
 			{
 				allocator = new CastNode(
-					new FunctionNode(Parser.AllocationFunction!, lambda.Position).SetParameters(new Node { new NumberNode(Parser.Format, (long)type.ContentSize) }),
+					new FunctionNode(Parser.AllocationFunction!, lambda.Position).SetArguments(new Node { new NumberNode(Parser.Format, (long)type.ContentSize) }),
 					new TypeNode(type)
 				);
 			}
@@ -1259,7 +1259,7 @@ public static class ReconstructionAnalysis
 	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
-	public static void Reconstruct(Node root)
+	public static void Reconstruct(FunctionImplementation implementation, Node root)
 	{
 		StripLinks(root);
 		RemoveRedundantParenthesis(root);
@@ -1280,7 +1280,7 @@ public static class ReconstructionAnalysis
 
 		if (Analysis.IsFunctionInliningEnabled)
 		{
-			Inlines.Build(root);
+			Inlines.Build(implementation, root);
 		}
 
 		SubstituteInlineNodes(root);

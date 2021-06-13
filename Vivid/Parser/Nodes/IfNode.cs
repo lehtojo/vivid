@@ -119,4 +119,6 @@ public class IfNode : Node, IResolvable
 	{
 		return HashCode.Combine(Instance, Position, Body.Context.Identity);
 	}
+
+	public override string ToString() => "If";
 }

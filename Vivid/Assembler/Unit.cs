@@ -66,6 +66,19 @@ public class Indexer
 	public int this[string category] => Next(category);
 }
 
+public struct VariableLocation
+{
+	public Variable Variable { get; }
+	public Handle Handle { get; }
+
+	public VariableLocation(Variable variable, Result result)
+	{
+		Variable = variable;
+		Handle = result.Value.Finalize();
+		Handle.Format = result.Format;
+	}
+}
+
 public class Unit
 {
 	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
@@ -92,6 +105,8 @@ public class Unit
 
 	private StringBuilder Builder { get; } = new StringBuilder();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
+
+	public Dictionary<Label, List<VariableLocation>> States { get; } = new Dictionary<Label, List<VariableLocation>>();
 
 	private Indexer Indexer { get; set; } = new Indexer();
 	public Variable? Self { get; set; }
@@ -680,27 +695,18 @@ public class Unit
 
 			try
 			{
-				if (instruction.Scope == null)
-				{
-					throw new ApplicationException("Instruction was missing its scope");
-				}
+				if (instruction.Scope == null) throw new ApplicationException("Missing instruction scope");
 
 				Anchor = instruction;
 
-				if (Scope != instruction.Scope)
-				{
-					instruction.Scope.Enter(this);
-				}
+				if (Scope != instruction.Scope) instruction.Scope.Enter(this);
 
 				action(instruction);
 
 				instruction.OnSimulate();
 
 				// Exit the current scope if its end is reached
-				if (instruction == Scope?.End)
-				{
-					Scope.Exit();
-				}
+				if (instruction == Scope?.End) Scope.Exit();
 			}
 			catch (Exception e)
 			{
@@ -709,10 +715,7 @@ public class Unit
 
 			Position = instruction.Position;
 
-			if (Position + 1 >= Instructions.Count)
-			{
-				break;
-			}
+			if (Position + 1 >= Instructions.Count) break;
 
 			Position++;
 		}

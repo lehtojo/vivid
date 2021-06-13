@@ -234,7 +234,9 @@ public static class MemoryAccessAnalysis
 				var obstacles = loads.Select(i => flow.Indices[i]).ToArray();
 				var positions = new List<int> { flow.Indices[repetition] };
 
-				if (flow.GetExecutablePositions(0, obstacles, positions, new SortedSet<int>()).Any())
+				var result = flow.GetExecutablePositions(0, obstacles, positions, new SortedSet<int>());
+
+				if (result == null || result.Any())
 				{
 					start = repetition;
 					accesses[i] = true;

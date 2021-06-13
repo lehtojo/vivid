@@ -2,6 +2,18 @@ using System;
 
 public static class Builders
 {
+	public static Result BuildChilds(Unit unit, Node node)
+	{
+		var result = (Result?)null;
+
+		foreach (var iterator in node)
+		{
+			result = References.Get(unit, iterator);
+		}
+
+		return result ?? new Result();
+	}
+
 	public static Result Build(Unit unit, Node node)
 	{
 		switch (node.Instance)
@@ -42,10 +54,15 @@ public static class Builders
 				var declaration = (DeclareNode)node;
 
 				// Do not declare the variable twice
-				if (unit.Scope!.Variables.ContainsKey(declaration.Variable)) return new Result();
+				if (unit.IsInitialized(declaration.Variable)) return new Result();
 
-				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
+				var result = new DeclareInstruction(unit, declaration.Variable, declaration.ToRegister).Execute();
 				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
+			}
+
+			case NodeType.JUMP:
+			{
+				return Jumps.Build(unit, (JumpNode)node);
 			}
 
 			case NodeType.OPERATOR:
@@ -98,6 +115,11 @@ public static class Builders
 				return Arithmetic.BuildNegate(unit, (NegateNode)node);
 			}
 
+			case NodeType.LABEL:
+			{
+				return new LabelInstruction(unit, node.To<LabelNode>().Label).Execute();
+			}
+
 			case NodeType.LOOP_CONTROL:
 			{
 				return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
@@ -117,17 +139,7 @@ public static class Builders
 
 			case NodeType.DISABLED: return new Result();
 
-			default:
-			{
-				Result? reference = null;
-
-				foreach (var iterator in node)
-				{
-					reference = References.Get(unit, iterator);
-				}
-
-				return reference ?? new Result();
-			}
+			default: return BuildChilds(unit, node);
 		}
 	}
 }

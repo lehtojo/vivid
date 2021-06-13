@@ -396,26 +396,6 @@ public static class Assembler
 		}
 	}
 
-	private static void RegisterRequiredVariables(Unit unit)
-	{
-		unit.Simulate(UnitMode.APPEND, i =>
-		{
-			if (!i.Is(InstructionType.REQUIRE_VARIABLES)) return;
-
-			var instruction = i.To<RequireVariablesInstruction>();
-
-			foreach (var variable in instruction.Variables)
-			{
-				var handle = unit.GetVariableValue(variable);
-				if (handle == null) continue;
-
-				instruction.Results.Add(handle);
-			}
-
-			instruction.Dependencies = instruction.Results.Concat(new[] { instruction.Result }).ToArray();
-		});
-	}
-
 	private static string GetTextSection(Function function, List<ConstantDataSectionHandle> constants)
 	{
 		var builder = new StringBuilder();
@@ -465,8 +445,6 @@ public static class Assembler
 
 				Builders.Build(unit, implementation.Node!);
 			});
-
-			RegisterRequiredVariables(unit);
 
 			unit.Reindex();
 			unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });

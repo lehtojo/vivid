@@ -370,6 +370,12 @@ public static class Conditionals
 			return false;
 		}
 
+		// Do not allow jump nodes
+		if (statement.Find(NodeType.JUMP) != null || (statement.Successor != null && statement.Successor.Find(NodeType.JUMP) != null))
+		{
+			return false;
+		}
+
 		var operation = (ComparisonOperator)comparison.To<OperatorNode>().Operator;
 
 		// NOTE: There can not be increments and decrements operations since they can not be processed in the back end
@@ -480,7 +486,9 @@ public static class Conditionals
 			y.Values.SelectMany(i => i).ForEach(i => SetConditional(i, inverse_condition));
 
 			statement.Body.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+			statement.Body.FindAll(NodeType.JUMP).Cast<JumpNode>().ForEach(i => i.Condition = condition);
 			statement.Successor.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = inverse_condition);
+			statement.Successor.FindAll(NodeType.LOOP_CONTROL).Cast<JumpNode>().ForEach(i => i.Condition = condition);
 		}
 		else
 		{
@@ -501,6 +509,7 @@ public static class Conditionals
 			a.ForEach(i => SetConditional(i, condition));
 
 			statement.Body.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ForEach(i => i.Condition = condition);
+			statement.Body.FindAll(NodeType.JUMP).Cast<JumpNode>().ForEach(i => i.Condition = condition);
 		}
 
 		Builders.Build(unit, statement.Body);

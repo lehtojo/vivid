@@ -36,6 +36,6 @@ public class RangePattern : Pattern
 		var left = Singleton.Parse(context, tokens[LEFT]);
 		var right = Singleton.Parse(context, tokens[RIGHT]);
 
-		return new UnresolvedFunction(RANGE_TYPE_NAME, tokens[OPERATOR].Position).SetParameters(new Node { left, right });
+		return new UnresolvedFunction(RANGE_TYPE_NAME, tokens[OPERATOR].Position).SetArguments(new Node { left, right });
 	}
 }

@@ -6,27 +6,22 @@ public static class Inlines
 	/// <summary>
 	/// Finds function calls under the specified root and tries to inline them
 	/// </summary>
-	public static void Build(Node root)
+	public static void Build(FunctionImplementation implementation, Node root)
 	{
-		/// NOTE: If a scope node does not have a parent, it must be the root scope
-		var context = root.Is(NodeType.SCOPE) 
-			? root.To<ScopeNode>().Context
-			: root.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent == null)!.To<ScopeNode>().Context;
-
 		while (true)
 		{
 			var call = (FunctionNode?)root.Find(i => i.Is(NodeType.FUNCTION) && i.To<FunctionNode>().Function.IsInlineable());
 			if (call == null) break;
 
-			Inline(call.Function, call);
-			Analysis.CaptureContextLeaks(context, root);
+			Inline(implementation, call.Function, call);
+			Analysis.CaptureContextLeaks(implementation, root);
 		}
 	}
 
 	/// <summary>
 	/// Finds all the labels under the specified root and localizes them by declaring new labels to the specified context
 	/// </summary>
-	public static void LocalizeLabels(Context context, Node root)
+	public static void LocalizeLabels(FunctionImplementation implementation, Node root)
 	{
 		// Find all the labels and the jumps under the specified root
 		var labels = root.FindAll(NodeType.LABEL).Cast<LabelNode>();
@@ -36,17 +31,14 @@ public static class Inlines
 		foreach (var label in labels)
 		{
 			// Create a replacement for the label
-			var replacement = context.CreateLabel();
+			var replacement = implementation.CreateLabel();
 
 			// Find all the jumps which use the current label and update them to use the replacement
 			for (var i = jumps.Count - 1; i >= 0; i--)
 			{
 				var jump = jumps[i];
 
-				if (jump.Label != label.Label)
-				{
-					continue;
-				}
+				if (jump.Label != label.Label) continue;
 
 				jump.Label = replacement;
 				jumps.RemoveAt(i);
@@ -180,12 +172,12 @@ public static class Inlines
 	/// Returns a node tree which represents the body of the specified function implementation.
 	/// The returned node tree does not have any connections to the function implementation.
 	/// </summary>
-	private static Node GetInlineBody(Context context, FunctionImplementation implementation, FunctionNode reference, out Node destination)
+	private static Node GetInlineBody(FunctionImplementation environment, Context context, FunctionImplementation function, FunctionNode reference, out Node destination)
 	{
-		var body = implementation.Node!.Clone();
+		var body = function.Node!.Clone();
 
 		// Load all the function call arguments into temporary variables
-		foreach (var (parameter, value) in implementation.Parameters.Zip(reference).Reverse())
+		foreach (var (parameter, value) in function.Parameters.Zip(reference).Reverse())
 		{
 			// Determines whether the value should be casted to match the parameter type
 			var is_cast_required = value.GetType() != parameter.Type!;
@@ -199,9 +191,9 @@ public static class Inlines
 			body.Insert(body.First, initialization);
 		}
 
-		LocalizeLabels(context, body);
+		LocalizeLabels(environment, body);
 
-		foreach (var local in implementation.Variables.Values)
+		foreach (var local in function.Variables.Values)
 		{
 			if (local.IsSelfPointer) continue;
 
@@ -231,14 +223,14 @@ public static class Inlines
 	/// <summary>
 	/// Replaces the function call with the body of the specified function using the parameter values of the call
 	/// </summary>
-	public static void Inline(FunctionImplementation implementation, FunctionNode instance)
+	public static void Inline(FunctionImplementation environment, FunctionImplementation function, FunctionNode instance)
 	{
-		if (!Primitives.IsPrimitive(implementation.ReturnType, Primitives.UNIT))
+		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
 		{
 			var root = instance.Parent != null && instance.Parent.Is(NodeType.LINK) ? instance.Parent : instance;
-			var container = Common.CreateInlineContainer(implementation.ReturnType!, root);
+			var container = Common.CreateInlineContainer(function.ReturnType!, root);
 			var context = container.Node.IsContext ? container.Node.To<ContextInlineNode>().Context : instance.GetParentContext();
-			var body = GetInlineBody(context, implementation, instance, out Node destination);
+			var body = GetInlineBody(environment, context, function, instance, out Node destination);
 
 			// Find all return statements
 			var return_statements = body.FindAll(NodeType.RETURN).Select(i => i.To<ReturnNode>());
@@ -248,7 +240,9 @@ public static class Inlines
 
 			if (return_statements.Any())
 			{
-				end = implementation.CreateLabel();
+				end = environment.CreateLabel();
+				body.Add(new DeclareNode(container.Result) { ToRegister = false });
+				body.Add(new JumpNode(end));
 				body.Add(new LabelNode(end));
 			}
 
@@ -275,17 +269,17 @@ public static class Inlines
 
 			// The container node must return the result, so add it
 			container.Node.Add(new VariableNode(container.Result, instance.Position));
-			ReconstructionAnalysis.Reconstruct(container.Node);
+			ReconstructionAnalysis.Reconstruct(environment, container.Node);
 		}
 		else
 		{
 			// Find all return statements
-			var body = GetInlineBody(instance.GetParentContext(), implementation, instance, out Node destination);
+			var body = GetInlineBody(environment, instance.GetParentContext(), function, instance, out Node destination);
 			var return_statements = body.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
 
 			if (return_statements.Any())
 			{
-				var end = implementation.CreateLabel();
+				var end = function.CreateLabel();
 
 				// Replace each return statement with a jump node which goes to the end of the inlined body
 				foreach (var return_statement in return_statements)
@@ -306,7 +300,7 @@ public static class Inlines
 			body.ForEach(i => container.Add(i));
 			destination.Replace(container);
 
-			ReconstructionAnalysis.Reconstruct(container);
+			ReconstructionAnalysis.Reconstruct(environment, container);
 
 			if (!ReconstructionAnalysis.IsValueUsed(destination))
 			{

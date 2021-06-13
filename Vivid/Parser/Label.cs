@@ -2,7 +2,7 @@ using System;
 
 public class Label
 {
-	protected string Name { get; set; }
+	public string Name { get; set; }
 
 	public Label(string name = "")
 	{

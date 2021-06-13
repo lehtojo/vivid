@@ -600,4 +600,22 @@ public static class Parser
 			)
 		};
 	}
+
+	public static int Print(Node root, int identation = 0, int total = 0)
+	{
+		var padding = new char[identation * 2];
+		Array.Fill(padding, ' ');
+		
+		Console.Write(new string(padding));
+		Console.WriteLine(root.ToString());
+
+		total++;
+
+		foreach (var child in root)
+		{
+			total += Print(child, identation + 1);
+		}
+
+		return total;
+	}
 }

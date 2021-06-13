@@ -268,6 +268,12 @@ public class ModifiableFlow
 	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
 	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new ReferenceEqualityComparer<LoopNode>());
 	public Label End { get; private set; }
+	public int LabelIdentity { get; private set; } = 0;
+
+	public string GetNextLabel()
+	{
+		return (LabelIdentity++).ToString();
+	}
 
 	public void Replace(Node before, Node after)
 	{
@@ -373,7 +379,7 @@ public class ModifiableFlow
 
 	public ModifiableFlow(Node root)
 	{
-		End = new Label();
+		End = new Label(GetNextLabel());
 		Linearize(root);
 		Add(new LabelNode(End), 0);
 
@@ -423,7 +429,7 @@ public class ModifiableFlow
 
 		if (operation.Left.Is(OperatorType.LOGIC))
 		{
-			var intermediate = new Label();
+			var intermediate = new Label(GetNextLabel());
 
 			if (operation.Operator == Operators.AND)
 			{
@@ -456,20 +462,7 @@ public class ModifiableFlow
 
 		if (operation.Right.Is(OperatorType.LOGIC))
 		{
-			var intermediate = new Label();
-
-			if (operation.Operator == Operators.AND)
-			{
-				// Operator: AND
-				LinearizeLogicalOperator((OperatorNode)operation.Right, intermediate, failure);
-			}
-			else
-			{
-				// Operator: OR
-				LinearizeLogicalOperator((OperatorNode)operation.Right, success, intermediate);
-			}
-
-			Add(new LabelNode(intermediate), 0);
+			LinearizeLogicalOperator((OperatorNode)operation.Right, success, failure);
 		}
 		else if (operation.Operator == Operators.AND)
 		{
@@ -505,7 +498,7 @@ public class ModifiableFlow
 
 		if (condition.Is(OperatorType.LOGIC))
 		{
-			var success = new Label();
+			var success = new Label(GetNextLabel());
 
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
 
@@ -536,7 +529,7 @@ public class ModifiableFlow
 
 		if (condition.Is(OperatorType.LOGIC))
 		{
-			var success = new Label();
+			var success = new Label(GetNextLabel());
 			var count = Nodes.Count;
 
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
@@ -572,8 +565,8 @@ public class ModifiableFlow
 				if (!add) throw new NotSupportedException("Delaying addition of conditional statements in modifiable flow is not supported");
 
 				var statement = node.To<IfNode>();
-				var intermediate = new Label();
-				var end = new Label();
+				var intermediate = new Label(GetNextLabel());
+				var end = new Label(GetNextLabel());
 
 				LinearizeCondition(statement, intermediate);
 
@@ -589,7 +582,7 @@ public class ModifiableFlow
 
 					if (successor.Is(NodeType.ELSE_IF))
 					{
-						intermediate = new Label();
+						intermediate = new Label(GetNextLabel());
 
 						LinearizeCondition((ElseIfNode)successor, intermediate);
 
@@ -618,8 +611,8 @@ public class ModifiableFlow
 				if (!add) throw new NotSupportedException("Delaying addition of conditional statements in modifiable flow is not supported");
 				
 				var statement = node.To<LoopNode>();
-				var start = new Label();
-				var end = new Label();
+				var start = new Label(GetNextLabel());
+				var end = new Label(GetNextLabel());
 
 				Loops.Add(statement, new LoopDescriptor(start, end));
 
@@ -705,7 +698,7 @@ public class ModifiableFlow
 	/// Finds the positions which can be reached starting from the specified position while avoiding the specified obstacles
 	/// NOTE: Provide a copy of the positions since this function edits the specified list
 	/// </summary>
-	public List<Index> GetExecutablePositions(Index start, Index[] obstacles, List<Index> positions, SortedSet<Index> denylist)
+	public List<Index>? GetExecutablePositions(Index start, Index[] obstacles, List<Index> positions, SortedSet<Index> denylist, int layer = 3)
 	{
 		var executable = new List<Index>(positions.Count);
 
@@ -770,7 +763,11 @@ public class ModifiableFlow
 		{
 			// Visit the jump destination and try to reach the positions there
 			var destination = Labels[closest_jump_node.Label];
-			executable.AddRange(GetExecutablePositions(destination, obstacles, positions, denylist));
+
+			if (layer - 1 <= 0) return null;
+			var result = GetExecutablePositions(destination, obstacles, positions, denylist, layer - 1);
+			if (result == null) return null;
+			executable.AddRange(result);
 
 			// Do not continue if all positions have been reached already
 			if (!positions.Any())
@@ -803,10 +800,16 @@ public class Flow
 	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
 	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new NodeReferenceEqualityComparer());
 	public Label End { get; private set; }
+	public int LabelIdentity { get; private set; } = 0;
+
+	public string GetNextLabel()
+	{
+		return (LabelIdentity++).ToString();
+	}
 
 	public Flow(Node root)
 	{
-		End = new Label();
+		End = new Label(GetNextLabel());
 		Linearize(root);
 		Add(new LabelNode(End));
 
@@ -846,7 +849,7 @@ public class Flow
 	{
 		if (operation.Left is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
 		{
-			var intermediate = new Label();
+			var intermediate = new Label(GetNextLabel());
 
 			if (operation.Operator == Operators.AND)
 			{
@@ -876,20 +879,7 @@ public class Flow
 
 		if (operation.Right is OperatorNode y && y.Operator.Type == OperatorType.LOGIC)
 		{
-			var intermediate = new Label();
-
-			if (operation.Operator == Operators.AND)
-			{
-				// Operator: AND
-				LinearizeLogicalOperator(y, intermediate, failure);
-			}
-			else
-			{
-				// Operator: OR
-				LinearizeLogicalOperator(y, success, intermediate);
-			}
-
-			Add(new LabelNode(intermediate));
+			LinearizeLogicalOperator(y, success, failure);
 		}
 		else if (operation.Operator == Operators.AND)
 		{
@@ -921,7 +911,7 @@ public class Flow
 
 		if (condition.Is(OperatorType.LOGIC))
 		{
-			var success = new Label();
+			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
 			Add(new LabelNode(success));
 		}
@@ -948,7 +938,7 @@ public class Flow
 
 		if (condition.Is(OperatorType.LOGIC))
 		{
-			var success = new Label();
+			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
 			Add(new LabelNode(success));
 		}
@@ -988,8 +978,8 @@ public class Flow
 			case NodeType.IF:
 			{
 				var statement = node.To<IfNode>();
-				var intermediate = new Label();
-				var end = new Label();
+				var intermediate = new Label(GetNextLabel());
+				var end = new Label(GetNextLabel());
 
 				LinearizeCondition(statement, intermediate);
 
@@ -1002,7 +992,7 @@ public class Flow
 				{
 					if (successor is ElseIfNode x)
 					{
-						intermediate = new Label();
+						intermediate = new Label(GetNextLabel());
 
 						LinearizeCondition(x, intermediate);
 
@@ -1027,8 +1017,8 @@ public class Flow
 			case NodeType.LOOP:
 			{
 				var statement = node.To<LoopNode>();
-				var start = new Label();
-				var end = new Label();
+				var start = new Label(GetNextLabel());
+				var end = new Label(GetNextLabel());
 
 				Loops.Add(statement, new LoopDescriptor(start, end));
 
@@ -1335,7 +1325,7 @@ public class Flow
 	/// Finds the positions which can be reached starting from the specified position while avoiding the specified obstacles
 	/// NOTE: Provide a copy of the positions since this function edits the specified list
 	/// </summary>
-	public List<int> GetExecutablePositions(int start, int[] obstacles, List<int> positions, SortedSet<int> denylist)
+	public List<int>? GetExecutablePositions(int start, int[] obstacles, List<int> positions, SortedSet<int> denylist, int layer = 3)
 	{
 		var executable = new List<int>(positions.Count);
 
@@ -1398,7 +1388,11 @@ public class Flow
 		{
 			// Visit the jump destination and try to reach the positions there
 			var destination = Labels[closest_jump_node.Label];
-			executable.AddRange(GetExecutablePositions(destination, obstacles, positions, denylist));
+
+			if (layer - 1 <= 0) return null;
+			var result = GetExecutablePositions(destination, obstacles, positions, denylist, layer - 1);
+			if (result == null) return null;
+			executable.AddRange(result);
 
 			// Do not continue if all positions have been reached already
 			if (!positions.Any())

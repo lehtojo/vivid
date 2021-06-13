@@ -21,4 +21,6 @@ public class DataPointer : Node
 	{
 		return HashCode.Combine(Instance, Position, Data, Offset);
 	}
+
+	public override string ToString() => $"Data Pointer ({Data}+{Offset})";
 }

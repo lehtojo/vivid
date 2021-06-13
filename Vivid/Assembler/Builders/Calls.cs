@@ -122,7 +122,7 @@ public static class Calls
 		// Retrieve the this pointer if it is required and it is not loaded
 		if (self_pointer == null && is_self_pointer_required)
 		{
-			self_pointer = new GetVariableInstruction(unit, unit.Self!, AccessMode.READ).Execute();
+			self_pointer = References.GetVariable(unit, unit.Self!, AccessMode.READ);
 		}
 
 		var destinations = new List<Handle>();

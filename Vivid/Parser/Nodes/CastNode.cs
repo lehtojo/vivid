@@ -47,4 +47,6 @@ public class CastNode : Node, IResolvable
 	{
 		return Status.OK;
 	}
+
+	public override string ToString() => "Cast";
 }

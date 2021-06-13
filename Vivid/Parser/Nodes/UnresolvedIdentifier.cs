@@ -143,11 +143,6 @@ public class UnresolvedIdentifier : Node, IResolvable
 		return Status.Error(Position, $"Can not resolve identifier '{Value}'");
 	}
 
-	public override string ToString()
-	{
-		return "?";
-	}
-
 	public override bool Equals(object? other)
 	{
 		return other is UnresolvedIdentifier identifier &&
@@ -159,4 +154,6 @@ public class UnresolvedIdentifier : Node, IResolvable
 	{
 		return HashCode.Combine(base.GetHashCode(), Value);
 	}
+
+	public override string ToString() => $"Unresolved Identifier {Value}";
 }

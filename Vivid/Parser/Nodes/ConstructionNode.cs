@@ -30,4 +30,6 @@ public class ConstructionNode : Node, IResolvable
 
 		return Status.OK;
 	}
+
+	public override string ToString() => "Construction";
 }

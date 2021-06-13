@@ -3,6 +3,7 @@ using System;
 public class DeclareNode : Node
 {
 	public Variable Variable { get; set; }
+	public bool ToRegister { get; set; } = true;
 
 	public DeclareNode(Variable variable)
 	{
@@ -21,4 +22,6 @@ public class DeclareNode : Node
 	{
 		return HashCode.Combine(Instance, Position, Variable);
 	}
+
+	public override string ToString() => $"Declare {Variable}";
 }

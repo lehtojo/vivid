@@ -76,7 +76,7 @@ public class OperatorNode : Node, IResolvable
 		// If the parameter type list is null, it means that one or more of the parameters could not be resolved
 		if (parameter_types == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
@@ -84,10 +84,10 @@ public class OperatorNode : Node, IResolvable
 
 		if (operator_function == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
 		}
 
-		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters), Position);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetArguments(parameters), Position);
 	}
 
 	private Node? TryResolveAsIndexedSetter()
@@ -231,4 +231,6 @@ public class OperatorNode : Node, IResolvable
 	{
 		return HashCode.Combine(Instance, Position, Operator.Identifier);
 	}
+
+	public override string ToString() => $"Operator {Operator.Identifier}";
 }

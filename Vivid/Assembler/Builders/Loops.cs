@@ -102,6 +102,9 @@ public static class Loops
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
 
+			// Initialization of the condition happens twice, therefore inner labels can duplicate
+			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
+
 			Builders.Build(unit, statement.Initialization.Next!);
 
 			statement.Condition.Instance = instance;

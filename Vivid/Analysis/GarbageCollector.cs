@@ -66,7 +66,7 @@ public static class GarbageCollector
 		foreach (var variable in variables)
 		{
 			var implementation = Parser.UnlinkFunction!.Get(variable.Type!) ?? throw new ApplicationException("Missing unlink function overload");
-			destination.Add(new FunctionNode(implementation).SetParameters(new Node { new VariableNode(variable) }));
+			destination.Add(new FunctionNode(implementation).SetArguments(new Node { new VariableNode(variable) }));
 		}
 	}
 
@@ -178,7 +178,7 @@ public static class GarbageCollector
 							implementation = Parser.LinkFunction!.Get(type) ?? throw new ApplicationException("Missing link function overload");
 							implementation.ReturnType = type;
 
-							statement.Add(new FunctionNode(implementation).SetParameters(new Node { value }));
+							statement.Add(new FunctionNode(implementation).SetArguments(new Node { value }));
 						}
 
 						continue;
@@ -201,7 +201,7 @@ public static class GarbageCollector
 
 						environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 							new VariableNode(variable),
-							new FunctionNode(implementation).SetParameters(new Node { value })
+							new FunctionNode(implementation).SetArguments(new Node { value })
 						));
 					}
 					else
@@ -335,7 +335,7 @@ public static class GarbageCollector
 				implementation = Parser.LinkFunction!.Get(source_type) ?? throw new ApplicationException("Missing link function overload");
 				implementation.ReturnType = source_type;
 
-				source.Replace(new FunctionNode(implementation).SetParameters(new Node { source.Clone() }));
+				source.Replace(new FunctionNode(implementation).SetArguments(new Node { source.Clone() }));
 			}
 
 			var primitive = destination.Is(NodeType.VARIABLE);
@@ -392,7 +392,7 @@ public static class GarbageCollector
 
 			// Unlink the old value
 			implementation = Parser.UnlinkFunction!.Get(destination_type) ?? throw new ApplicationException("Missing link function overload");
-			inline.Add(new FunctionNode(implementation).SetParameters(new Node { new VariableNode(temporary) }));
+			inline.Add(new FunctionNode(implementation).SetArguments(new Node { new VariableNode(temporary) }));
 		}
 	}
 	

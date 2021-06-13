@@ -918,15 +918,29 @@ public class MoveInstruction : DualParameterInstruction
 		UpdateResultFormat();
 
 		// Move should not happen if the source is the same as the destination
-		if (IsRedundant)
-		{
-			return;
-		}
+		if (IsRedundant) return;
 
 		// Ensure the destination is available if it is a register
 		if (IsSafe && First.IsAnyRegister)
 		{
 			Memory.ClearRegister(Unit, First.Value.To<RegisterHandle>().Register);
+		}
+
+		// If the source is empty, no actual instruction is needed, but relocating the source might be needed
+		if (Second.IsEmpty)
+		{
+			if (Type != MoveType.RELOCATE) return;
+
+			// Relocate the source to the destination
+			Second.Value = First.Value;
+
+			// Attach the source value to the destination, if it is a register
+			if (Second.IsAnyRegister)
+			{
+				Second.Value.To<RegisterHandle>().Register.Handle = Second;
+			}
+
+			return;
 		}
 
 		var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);

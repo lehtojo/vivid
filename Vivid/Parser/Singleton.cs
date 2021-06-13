@@ -120,13 +120,13 @@ public static class Singleton
 	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked)
 	{
 		var descriptor = (FunctionToken)token.Clone();
-		var parameters = descriptor.GetParsedParameters(environment);
+		var arguments = descriptor.GetParsedParameters(environment);
 
-		var types = Resolver.GetTypes(parameters);
+		var types = Resolver.GetTypes(arguments);
 
 		if (types == null)
 		{
-			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
 		}
 
 		if (!linked)
@@ -145,7 +145,7 @@ public static class Singleton
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetArguments(arguments);
 
 			if (function.IsConstructor)
 			{
@@ -183,7 +183,7 @@ public static class Singleton
 			}
 		}
 
-		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
 	}
 
 	/// <summary>
@@ -196,14 +196,14 @@ public static class Singleton
 
 		if (types == null || template_arguments.Any(i => i.IsUnresolved))
 		{
-			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
 		}
 
 		var function = GetFunctionByName(primary, descriptor.Name, types, template_arguments, linked);
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetArguments(parameters);
 
 			if (function.IsConstructor)
 			{
@@ -229,7 +229,7 @@ public static class Singleton
 		}
 
 		// NOTE: Template lambdas are not supported
-		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
 	}
 
 	/// <summary>
@@ -312,7 +312,7 @@ public static class Singleton
 		{
 			TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value, token.To<IdentifierToken>().Position),
 
-			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
+			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetArguments(token.To<FunctionToken>().GetParsedParameters(environment)),
 
 			_ => throw new Exception($"Could not create unresolved token ({token.Type})"),
 		};

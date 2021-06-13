@@ -37,7 +37,7 @@ public class OffsetNode : Node, IResolvable
 		// If the parameter type list is null, it means that one or more of the parameters could not be resolved
 		if (parameter_types == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
@@ -45,10 +45,10 @@ public class OffsetNode : Node, IResolvable
 
 		if (operator_function == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetParameters(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
 		}
 
-		return new LinkNode(target, new FunctionNode(operator_function, Position).SetParameters(parameters), Position);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetArguments(parameters), Position);
 	}
 
 	private Node? TryResolveAsIndexedGetter(Type type)
@@ -98,4 +98,6 @@ public class OffsetNode : Node, IResolvable
 	{
 		return TryGetType() == null ? Status.Error(Position, "Can not resolve the type of the accessor") : Status.OK;
 	}
+
+	public override string ToString() => "Offset";
 }

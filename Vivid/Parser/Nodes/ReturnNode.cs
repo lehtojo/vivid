@@ -71,4 +71,6 @@ public class ReturnNode : InstructionNode, IResolvable
 
 		return Status.OK;
 	}
+
+	public override string ToString() => "Return";
 }

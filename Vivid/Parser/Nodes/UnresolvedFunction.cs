@@ -32,7 +32,7 @@ public class UnresolvedFunction : Node, IResolvable
 	/// <summary>
 	/// Transfers the specified parameters to this unresolved function
 	/// </summary>
-	public UnresolvedFunction SetParameters(Node parameters)
+	public UnresolvedFunction SetArguments(Node parameters)
 	{
 		foreach (var parameter in parameters)
 		{
@@ -185,7 +185,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 		if (function == null) return null;
 
-		var node = new FunctionNode(function, Position).SetParameters(this);
+		var node = new FunctionNode(function, Position).SetArguments(this);
 
 		if (function.IsConstructor)
 		{
@@ -246,4 +246,6 @@ public class UnresolvedFunction : Node, IResolvable
 		hash.Add(Name);
 		return hash.ToHashCode();
 	}
+
+	public override string ToString() => $"Unresolved Function {Name}";
 }

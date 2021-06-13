@@ -314,6 +314,8 @@ public class AssemblerPhase : Phase
 
 	public override Status Execute(Bundle bundle)
 	{
+		Translator.TotalInstructions = 0;
+		
 		if (!bundle.Contains(ParserPhase.OUTPUT))
 		{
 			return Status.Error("Nothing to assemble");
@@ -354,6 +356,11 @@ public class AssemblerPhase : Phase
 		catch
 		{
 			return Status.Error("Could not move generated assembly into a file");
+		}
+
+		if (Assembler.IsVerboseOutputEnabled)
+		{
+			Console.WriteLine("Total Instructions: " + Translator.TotalInstructions);
 		}
 
 		Status status;

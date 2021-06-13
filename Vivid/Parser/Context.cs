@@ -565,7 +565,7 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, category, $"{Indexer.HIDDEN.ToLowerInvariant()}.{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
+		return Variable.Create(this, type, category, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
 	}
 
 	/// <summary>

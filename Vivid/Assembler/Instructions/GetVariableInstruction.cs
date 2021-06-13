@@ -24,6 +24,8 @@ public class GetVariableInstruction : Instruction
 
 		Result.Value = References.CreateVariableHandle(unit, Self, self_type, variable);
 		Result.Format = variable.Type!.Format;
+
+		OnSimulate();
 	}
 
 	public override void OnSimulate()

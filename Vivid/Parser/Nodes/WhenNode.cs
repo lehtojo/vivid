@@ -86,4 +86,6 @@ public class WhenNode : Node, IResolvable
 		if (Resolver.GetSharedType(types) == null) return Status.Error(Position, "Sections do not have a shared return type");
 		return Status.OK;
 	}
+
+	public override string ToString() => $"When";
 }

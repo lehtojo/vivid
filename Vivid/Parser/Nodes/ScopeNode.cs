@@ -47,4 +47,6 @@ public class ScopeNode : Node, IResolvable, IScope
 	{
 		return HashCode.Combine(Instance, Context.Identity);
 	}
+
+	public override string ToString() => $"Scope {Context.Identity}";
 }

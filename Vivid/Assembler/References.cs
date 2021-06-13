@@ -76,16 +76,15 @@ public static class References
 
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
-		var self = (Result?)null;
-		var self_type = (Type?)null;
-
-		if (variable.Category == VariableCategory.MEMBER)
+		if (variable.IsMember)
 		{
-			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ).Execute();
-			self_type = unit.Self.Type!;
+			var self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ).Execute();
+			var self_type = unit.Self.Type!;
+			return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 		}
 
-		return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
+		if (unit.IsInitialized(variable)) return unit.GetVariableValue(variable)!;
+		return new GetVariableInstruction(unit, null, null, variable, mode).Execute();
 	}
 
 	public static Result GetConstant(Unit unit, NumberNode node)

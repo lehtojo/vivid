@@ -16,4 +16,6 @@ public class ElseIfNode : IfNode
 
 		return iterator.To<IfNode>();
 	}
+
+	public override string ToString() => "Else If";
 }

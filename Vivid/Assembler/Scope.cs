@@ -6,12 +6,12 @@ using System.Linq;
 public class VariableLoad
 {
 	public Variable Variable { get; private set; }
-	public Result Reference { get; private set; }
+	public Result Result { get; private set; }
 
 	public VariableLoad(Variable variable, Result reference)
 	{
 		Variable = variable;
-		Reference = reference;
+		Result = reference;
 	}
 }
 
@@ -245,7 +245,7 @@ public sealed class Scope : IDisposable
 		}
 	}
 
-	private Node Root { get; }
+	public Node Root { get; }
 
 	private List<VariableLoad> Loads { get; set; } = new List<VariableLoad>();
 	private HashSet<Variable> Initializers { get; set; } = new HashSet<Variable>();
@@ -305,21 +305,6 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
-	/// Finds an index where a finalizer can be inserted
-	/// </summary>
-	private int GetFinalizerIndex()
-	{
-		/// NOTE: There must be an instruction which is under this scope since this scope could not have activated without such instruction
-		if (Unit == null || End == null || Unit.Mode != UnitMode.BUILD)
-		{
-			return -1;
-		}
-
-		// Find the last instruction which is under this scope
-		return Unit.Instructions.IndexOf(End);
-	}
-
-	/// <summary>
 	/// Ensure that the current scope is not circular by iterating parent scopes for limited number of times
 	/// </summary>
 	[Conditional("DEBUG")]
@@ -369,23 +354,15 @@ public sealed class Scope : IDisposable
 		Reset();
 
 		// Save the outer scope so that this scope can be exited later
-		if (unit.Scope != this)
-		{
-			Outer = unit.Scope;
-		}
+		if (unit.Scope != this) { Outer = unit.Scope; }
 
 		// Detect if there are new variables to load
 		if (Loads.Count != Actives.Count)
 		{
-			// Add all the missing variable loads
-			foreach (var variable in Actives)
-			{
-				// Skip variables which are already loaded
-				if (Loads.Exists(i => i.Variable == variable)) continue;
-
-				var handle = References.GetVariable(Unit, variable, AccessMode.READ);
-				Loads.Add(new VariableLoad(variable, handle));
-			}
+			var instruction = new RequireVariablesInstruction(unit, Actives);
+			instruction.Description = "Requires variables to enter a scope";
+			Unit.Append(instruction);
+			Loads = instruction.Variables.Zip(instruction.Dependencies!).Select(i => new VariableLoad(i.First, i.Second)).ToList();
 		}
 
 		if (Unit.Mode == UnitMode.BUILD)
@@ -393,13 +370,8 @@ public sealed class Scope : IDisposable
 			// Load all memory handles into registers which do not use the stack
 			foreach (var load in Loads)
 			{
-				var reference = load.Reference;
-
-				if (!reference.IsMemoryAddress || reference.Value.Is(HandleInstanceType.STACK_MEMORY, HandleInstanceType.STACK_VARIABLE, HandleInstanceType.TEMPORARY_MEMORY))
-				{
-					continue;
-				}
-
+				var reference = load.Result;
+				if (!reference.IsMemoryAddress || reference.Value.Is(HandleInstanceType.STACK_MEMORY, HandleInstanceType.STACK_VARIABLE, HandleInstanceType.TEMPORARY_MEMORY)) continue;
 				Memory.MoveToRegister(Unit, reference, Assembler.Size, reference.Format.IsDecimal(), Trace.GetDirectives(Unit, reference));
 			}
 		}
@@ -412,50 +384,18 @@ public sealed class Scope : IDisposable
 		{
 			for (var i = 0; i < Actives.Count; i++)
 			{
-				var finalizer_index = GetFinalizerIndex();
-
 				var variable = Actives[i];
-				var external_handle = Loads[i].Reference;
+				var external_handle = Loads[i].Result;
 
 				SetOrCreateTransitionHandle(variable, external_handle.Value, external_handle.Format);
+			}
 
-				if (!Initializers.Contains(variable))
-				{
-					// The current variable is an active one so it must stay protected during the whole scope
-					var instruction = new GetVariableInstruction(unit, variable, AccessMode.READ)
-					{
-						Description = $"Registers variable '{variable.Name}' as active"
-					};
-
-					instruction.Execute();
-
-					Initializers.Add(variable);
-
-					// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
-					Unit.Reindex(instruction);
-
-					// The finalizer index has a negative value if finalizers can not be inserted
-					if (finalizer_index != -1)
-					{
-						instruction = new GetVariableInstruction(unit, variable, AccessMode.READ)
-						{
-							Description = $"Requires the variable '{variable.Name}' to be active through out the scope",
-							Scope = this
-						};
-
-						// Add the instruction manually and reindex the instructions
-						Unit.Instructions.Insert(finalizer_index, instruction);
-						Unit.Reindex();
-
-						// Build the instruction now since the variable needs to be referenced
-						instruction.Build();
-
-						Finalizers.Add(variable);
-
-						// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
-						Unit.Reindex(instruction);
-					}
-				}
+			if (!Initializers.Any())
+			{
+				var instruction = new RequireVariablesInstruction(unit, Actives);
+				instruction.Description = "Initializes outer scope variables";
+				Unit.Append(instruction);
+				Actives.ForEach(i => Initializers.Add(i));
 			}
 
 			// Get all the register which hold any active variable
@@ -520,34 +460,14 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	public void Exit()
 	{
-		if (Unit == null)
+		if (Unit == null) throw new ApplicationException("Unit was not assigned to a scope or the scope was never entered");
+
+		if (!Finalizers.Any())
 		{
-			throw new ApplicationException("Unit was not assigned to a scope or the scope was never entered");
-		}
-
-		foreach (var variable in Actives)
-		{
-			// If there is a finalizer for the variable already, do not add another one
-			if (Finalizers.Contains(variable)) continue;
-
-			// If the variable is not used after this scope is exited, it does not need to be kept active the throughout scope
-			if (!Analysis.IsUsedLater(variable, Root))
-			{
-				continue;
-			}
-
-			// The current variable is an active one so it must stay protected during the whole scope
-			var instruction = new GetVariableInstruction(Unit, variable, AccessMode.READ)
-			{
-				Description = $"Requires the variable '{variable.Name}' to be active through out the scope"
-			};
-
-			instruction.Execute();
-
-			Finalizers.Add(variable);
-
-			// NOTE: Fixes an issue where the last initializer does not extend the lifetime of the variable since the reindexing happens before building
-			Unit.Reindex(instruction);
+			var instruction = new RequireVariablesInstruction(Unit, Actives.Where(i => Analysis.IsUsedLater(i , Root)).ToList());
+			instruction.Description = "Keeps outer scope variables active across the scope";
+			Unit.Append(instruction);
+			Actives.ForEach(i => Finalizers.Add(i));
 		}
 
 		if (End == null)
@@ -566,9 +486,9 @@ public sealed class Scope : IDisposable
 		// Attach all the variables before entering back to their registers
 		foreach (var load in Loads)
 		{
-			if (!load.Reference.IsAnyRegister) continue;
+			if (!load.Result.IsAnyRegister) continue;
 
-			load.Reference.Value.To<RegisterHandle>().Register.Handle = load.Reference;
+			load.Result.Value.To<RegisterHandle>().Register.Handle = load.Result;
 		}
 	}
 

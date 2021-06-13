@@ -401,7 +401,7 @@ public static class Analysis
 	/// </summary>
 	public static bool OptimizeComparisons(Node root)
 	{
-		var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
+		var comparisons = root.FindAll(i => i.Is(OperatorType.COMPARISON));
 		var precomputed = false;
 
 		foreach (var comparison in comparisons)
@@ -478,6 +478,31 @@ public static class Analysis
 			}
 		}
 
+		var precomputations = root.FindAll(i => i.Is(OperatorType.LOGIC));
+		precomputations.Reverse();
+
+		foreach (var condition in precomputations)
+		{
+			var parent = condition.Parent;
+
+			if (condition.Left.Is(NodeType.NUMBER))
+			{
+				var passes = !Numbers.IsZero(condition.Left.To<NumberNode>().Value);
+				if (condition.Is(Operators.AND)) condition.Replace(passes ? condition.Right : condition.Left);
+				else condition.Replace(passes ? condition.Left : condition.Right);
+				precomputed = true;
+				continue;
+			}
+
+			if (condition.Right.Is(NodeType.NUMBER))
+			{
+				var passes = !Numbers.IsZero(condition.Right.To<NumberNode>().Value);
+				if (condition.Is(Operators.AND)) condition.Replace(passes ? condition.Left : condition.Right);
+				else condition.Replace(passes ? condition.Left : condition.Right);
+				precomputed = true;
+			}
+		}
+
 		return precomputed;
 	}
 	
@@ -487,19 +512,7 @@ public static class Analysis
 	public static void OptimizeAllExpressions(Node root)
 	{
 		// Find all top level operators
-		var expressions = new List<Node>();
-
-		foreach (var operation in FindTopLevelOperators(root))
-		{
-			if (operation.Operator.Type == OperatorType.ACTION)
-			{
-				expressions.Add(operation.Last!);
-			}
-			else
-			{
-				expressions.Add(operation);
-			}
-		}
+		var expressions = root.FindTop(i => i.Is(OperatorType.CLASSIC) || i.Is(NodeType.NEGATE));
 
 		foreach (var expression in expressions)
 		{
@@ -580,10 +593,7 @@ public static class Analysis
 		while ((branch = GetBranch(branch)) != null)
 		{
 			// If the perspective is inside the condition of the branch, it can still enter the other branches
-			if (IsInsideBranchCondition(perspective, branch))
-			{
-				continue;
-			}
+			if (IsInsideBranchCondition(perspective, branch)) continue;
 
 			DenyOtherBranches(denylist, branch);
 		}
@@ -602,16 +612,10 @@ public static class Analysis
 		var denylist = GetDenylist(perspective);
 
 		// If the it is allowed to count the perspective as a branch as well, append the other branches to the denylist
-		if (self)
-		{
-			DenyOtherBranches(denylist, perspective);
-		}
+		if (self) DenyOtherBranches(denylist, perspective);
 
 		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
-		{
-			return true;
-		}
+		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective))) return true;
 
 		return perspective.FindParent(NodeType.LOOP) != null;
 	}
@@ -733,6 +737,12 @@ public static class Analysis
 				iterator = iterator.Next;
 				continue;
 			}
+			else if (iterator.Is(NodeType.NEGATE))
+			{
+				result += STANDARD_OPERATOR_COST;
+				iterator = iterator.Next;
+				continue;
+			}
 
 			result += GetCost(iterator);
 
@@ -774,10 +784,7 @@ public static class Analysis
 				// Check if there is already a function call using any of the overloads above, if so, no need to generate another call
 				var calls = iterator.Node!.FindAll(NodeType.FUNCTION).Cast<FunctionNode>();
 				
-				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i)))
-				{
-					continue;
-				}
+				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i))) continue;
 
 				// Get the implementation which requires no arguments
 				var implementation = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).GetImplementation();
@@ -846,10 +853,7 @@ public static class Analysis
 	/// </summary>
 	private static void CompleteDestructors(Type type)
 	{
-		if (!IsGarbageCollectorEnabled)
-		{
-			return;
-		}
+		if (!IsGarbageCollectorEnabled) return;
 		
 		foreach (var destructor in type.Destructors.Overloads.SelectMany(i => i.Implementations))
 		{
@@ -859,14 +863,11 @@ public static class Analysis
 			foreach (var member in type.Variables.Values)
 			{
 				// If the member is not destructible, it is not unlinkable, so skip it
-				if (member.IsStatic || !member.Type!.IsUserDefined)
-				{
-					continue;
-				}
+				if (member.IsStatic || !member.Type!.IsUserDefined) continue;
 
 				// Unlink the member variable
 				var implementation = Parser.UnlinkFunction!.Get(member.Type!) ?? throw new ApplicationException("Missing unlink function overload");;
-				root.Add(new FunctionNode(implementation).SetParameters(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
+				root.Add(new FunctionNode(implementation).SetArguments(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
 			}
 		}
 	}
@@ -946,10 +947,7 @@ public static class Analysis
 		var verbose = Assembler.IsVerboseOutputEnabled;
 		var time = bundle.Get(ConfigurationPhase.OUTPUT_TIME, false);
 
-		if (time || verbose)
-		{
-			Console.WriteLine("1. Pass");
-		}
+		if (time || verbose) Console.WriteLine("1. Pass");
 
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
@@ -959,7 +957,7 @@ public static class Analysis
 			var start = DateTime.UtcNow;
 			
 			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);
@@ -987,15 +985,8 @@ public static class Analysis
 			}
 		}
 
-		if (!IsGarbageCollectorEnabled)
-		{
-			return;
-		}
-
-		if (time || verbose)
-		{
-			Console.WriteLine("2. Pass");
-		}
+		if (!IsGarbageCollectorEnabled) return;
+		if (time || verbose) Console.WriteLine("2. Pass");
 
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
@@ -1012,7 +1003,7 @@ public static class Analysis
 			GarbageCollector.Generate(implementation);
 			
 			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);

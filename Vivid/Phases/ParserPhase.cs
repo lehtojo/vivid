@@ -25,7 +25,7 @@ public class Parse
 
 public class ParserPhase : Phase
 {
-	public const string ROOT_CONTEXT_IDENTITY = "Root";
+	public const string ROOT_CONTEXT_IDENTITY = "0";
 
 	public const string OUTPUT = "parse";
 
@@ -193,7 +193,7 @@ public class ParserPhase : Phase
 		}
 
 		// Merge all parsed files
-		var context = new Context(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
+		var context = new Context(ROOT_CONTEXT_IDENTITY);
 		var root = Parser.CreateRootNode(context);
 		
 		// Prepare for importing libraries

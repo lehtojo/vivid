@@ -1420,8 +1420,28 @@ public static class InstructionAnalysis
 		}
 	}
 
+	public static void RemoveRedundantJumps(Unit unit, List<Instruction> instructions)
+	{
+		// Remove jump instructions, which jump to labels directly in front of them
+		// Example:
+		// ...
+		// jump L0
+		// L0:
+		// ...
+		for (var i = instructions.Count - 2; i >= 0; i--)
+		{
+			if (!instructions[i].Is(InstructionType.JUMP)) continue;
+
+			var label = instructions[i].To<JumpInstruction>().Label;
+			if (!instructions[i + 1].Is(InstructionType.LABEL) || instructions[i + 1].To<LabelInstruction>().Label != label) continue;
+
+			instructions.RemoveAt(i);
+		}
+	}
+
 	public static void Finish(Unit unit, List<Instruction> instructions, List<Register> registers, int required_local_memory)
 	{
 		CreateTailCalls(unit, instructions, registers, required_local_memory);
+		RemoveRedundantJumps(unit, instructions);
 	}
 }

@@ -18,30 +18,9 @@ public class FunctionNode : Node
 		Instance = NodeType.FUNCTION;
 	}
 
-	public FunctionNode SetParameters(Node parameters)
+	public FunctionNode SetArguments(Node arguments)
 	{
-		var parameter = parameters.First;
-
-		if (Function.Parameters.Count != parameters.Count())
-		{
-			if (Function.Parameters.Count > parameters.Count())
-			{
-				throw new ApplicationException("Tried to build a function call with too few arguments");
-			}
-
-			for (var i = 0; i < parameters.Count() - Function.Parameters.Count; i++)
-			{
-				parameter = parameter!.Next;
-			}
-		}
-
-		while (parameter != null)
-		{
-			var next = parameter.Next;
-			Add(parameter);
-			parameter = next;
-		}
-
+		foreach (var argument in arguments) Add(argument);
 		return this;
 	}
 
@@ -54,4 +33,6 @@ public class FunctionNode : Node
 	{
 		return HashCode.Combine(Instance, Position, Function.Identity);
 	}
+
+	public override string ToString() => $"Call {Function}";
 }

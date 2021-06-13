@@ -82,4 +82,6 @@ public class LinkNode : OperatorNode
 	{
 		return Status.OK;
 	}
+
+	public override string ToString() => "Link";
 }

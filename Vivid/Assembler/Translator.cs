@@ -4,6 +4,8 @@ using System.Linq;
 
 public static class Translator
 {
+	public static int TotalInstructions = 0;
+
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
 	{
 		return unit.Instructions.SelectMany(i => i.Parameters).Where(p => p.IsAnyRegister && !p.Value!.To<RegisterHandle>().Register.IsVolatile).Select(p => p.Value!.To<RegisterHandle>().Register).Distinct().ToList();
@@ -71,6 +73,8 @@ public static class Translator
 
 	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
 	{
+		TotalInstructions += unit.Instructions.Count;
+		
 		// Take only the instructions which are actual assembly instructions
 		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
 

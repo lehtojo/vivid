@@ -13,4 +13,6 @@ public class NotNode : Node
 	{
 		return Object.TryGetType();
 	}
+
+	public override string ToString() => "Not";
 }

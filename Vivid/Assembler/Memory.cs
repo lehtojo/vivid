@@ -118,15 +118,15 @@ public static class Memory
 	/// </summary>
 	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves, out List<Register> registers)
 	{
-		var locks = moves.Where(m => m.IsRedundant && m.First.IsStandardRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
-		var unlocks = locks.Select(l => LockStateInstruction.Unlock(unit, l.Register)).ToList();
+		var locks = moves.Where(i => i.IsRedundant && i.First.IsStandardRegister).Select(i => LockStateInstruction.Lock(unit, i.First.Value.To<RegisterHandle>().Register)).ToList();
+		var unlocks = locks.Select(i => LockStateInstruction.Unlock(unit, i.Register)).ToList();
 
 		registers = locks.Select(i => i.Register).ToList();
 
 		// Now remove all redundant moves
 		moves.RemoveAll(m => m.IsRedundant);
 
-		var optimized = Align(unit, moves.Select(m => m.To<DualParameterInstruction>()).ToList());
+		var optimized = Align(unit, moves.Select(i => i.To<DualParameterInstruction>()).ToList());
 
 		for (var i = optimized.Count - 1; i >= 0; i--)
 		{

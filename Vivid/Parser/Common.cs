@@ -719,8 +719,8 @@ public static class Common
 			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(container.Result),
 				new CastNode(
-					new FunctionNode(linker, constructor.Position).SetParameters(new Node {
-						new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments)
+					new FunctionNode(linker, constructor.Position).SetArguments(new Node {
+						new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetArguments(arguments)
 					}),
 					new TypeNode(type)
 				)
@@ -733,7 +733,7 @@ public static class Common
 			container.Node.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(container.Result),
 				new CastNode(
-					new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments),
+					new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetArguments(arguments),
 					new TypeNode(type)
 				)
 			));

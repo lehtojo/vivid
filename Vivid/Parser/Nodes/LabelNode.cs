@@ -15,4 +15,6 @@ public class LabelNode : Node
 	{
 		return HashCode.Combine(Instance, Position, Label.GetName());
 	}
+
+	public override string ToString() => $"{Label}:";
 }

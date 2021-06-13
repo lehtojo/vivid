@@ -545,8 +545,11 @@ public class Instruction
 		else
 		{
 			IsBuilt = true;
+
+			// Reindex the inner results before and after building, so that their lifetimes are valid
 			Unit.Reindex(this);
 			OnBuild();
+			Unit.Reindex(this);
 		}
 
 		// Extend all inner results to last at least as long as their parents

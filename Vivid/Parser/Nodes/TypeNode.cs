@@ -93,9 +93,39 @@ public class TypeNode : Node, IScope, IResolvable
 
 	public Status GetStatus()
 	{
-		if (Parent == null || !Parent.Is(NodeType.LINK)) return Status.OK;
-		if (Next!.Is(NodeType.VARIABLE) && !Next.To<VariableNode>().Variable.IsStatic) return Status.Error(Position, "Can not access the member variable, because it is not static");
-		if (Next!.Is(NodeType.FUNCTION) && !Next.To<FunctionNode>().Function.IsStatic) return Status.Error(Position, "Can not access the member function, because it is not static");
+		if (Parent == null || !Parent.Is(NodeType.LINK) || Parent.Left != this) return Status.OK;
+
+		var right = Next!;
+		var accessed_object_parent_type = (Type?)null;
+
+		if (right.Is(NodeType.VARIABLE))
+		{
+			var variable = right.To<VariableNode>().Variable;
+			if (variable.IsStatic) return Status.OK;
+
+			accessed_object_parent_type = (Type)variable.Context;
+		}
+		else if (right.Is(NodeType.FUNCTION))
+		{
+			var function = right.To<FunctionNode>().Function;
+			if (function.IsStatic) return Status.OK;
+
+			accessed_object_parent_type = (Type)function.Parent!;
+		}
+		else
+		{
+			return Status.OK;
+		}
+
+		var scope_parent_type = GetContext().FindTypeParent();
+
+		if (scope_parent_type == null || (scope_parent_type != accessed_object_parent_type && !scope_parent_type.IsTypeInherited(accessed_object_parent_type)))
+		{
+			return Status.Error(Position, "Can not access the right operand, because it is not static");
+		}
+
 		return Status.OK;
 	}
+
+	public override string ToString() => $"Type {Type}";
 }

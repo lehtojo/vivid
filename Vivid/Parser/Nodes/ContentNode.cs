@@ -21,4 +21,6 @@ public class ContentNode : Node, IResolvable
 	{
 		return First != null ? Status.OK : Status.Error(Position, "Empty parenthesis are not allowed");
 	}
+
+	public override string ToString() => "Content";
 }

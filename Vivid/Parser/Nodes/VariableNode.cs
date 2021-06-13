@@ -36,4 +36,6 @@ public class VariableNode : Node
 	{
 		return HashCode.Combine(base.GetHashCode(), Variable);
 	}
+
+	public override string ToString() => $"Variable {Variable}";
 }

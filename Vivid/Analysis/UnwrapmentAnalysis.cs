@@ -21,7 +21,7 @@ public static class UnwrapmentAnalysis
 {
 	public const int MAXIMUM_LOOP_UNWRAP_STEPS = 100;
 	
-	public static bool UnwrapStatements(Node root)
+	public static bool UnwrapStatements(FunctionImplementation implementation, Node root)
 	{
 		var unwrapped = false;
 		var statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
@@ -33,11 +33,7 @@ public static class UnwrapmentAnalysis
 			if (iterator.Is(NodeType.IF))
 			{
 				var statement = iterator.To<IfNode>();
-
-				if (!statement.Condition.Is(NodeType.NUMBER))
-				{
-					continue;
-				}
+				if (!statement.Condition.Is(NodeType.NUMBER)) continue;
 
 				var successors = statement.GetSuccessors();
 
@@ -91,7 +87,7 @@ public static class UnwrapmentAnalysis
 
 				if (!statement.Condition.Is(NodeType.NUMBER))
 				{
-					if (TryUnwrapLoop(statement))
+					if (TryUnwrapLoop(implementation, statement))
 					{
 						// Statements must be reloaded, since the unwrap was successful
 						unwrapped = true;
@@ -343,14 +339,10 @@ public static class UnwrapmentAnalysis
 		return null;
 	}
 
-	public static bool TryUnwrapLoop(LoopNode loop)
+	public static bool TryUnwrapLoop(FunctionImplementation implementation, LoopNode loop)
 	{
 		var descriptor = TryGetLoopUnwrapDescriptor(loop);
-
-		if (descriptor == null || descriptor.Steps > MAXIMUM_LOOP_UNWRAP_STEPS)
-		{
-			return false;
-		}
+		if (descriptor == null || descriptor.Steps > MAXIMUM_LOOP_UNWRAP_STEPS) return false;
 
 		var environment = loop.GetParentContext();
 
@@ -362,13 +354,13 @@ public static class UnwrapmentAnalysis
 		{
 			// Clone the body and localize its content
 			var clone = loop.Body.Clone();
-			Inlines.LocalizeLabels(environment, clone);
+			Inlines.LocalizeLabels(implementation, clone);
 
 			loop.InsertChildren(clone);
 
 			// Clone the action and localize its content
 			clone = action.Clone();
-			Inlines.LocalizeLabels(environment, clone);
+			Inlines.LocalizeLabels(implementation, clone);
 
 			loop.Insert(action.Clone());
 		}

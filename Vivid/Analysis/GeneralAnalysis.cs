@@ -113,25 +113,24 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Registers all dependencies for the specified variable writes
 	/// </summary>
-	private static void RegisterWriteDependencies(Dictionary<Variable, VariableDescriptor> descriptors, ModifiableFlow flow)
+	private static void RegisterWriteDependencies(VariableDescriptor descriptor, ModifiableFlow flow)
 	{
-		foreach (var descriptor in descriptors)
+		descriptor.Writes.ForEach(i => i.Dependencies.Clear());
+
+		var obstacles = descriptor.Writes.Select(i => flow.Indices[i.Node]).ToArray();
+		var nodes = new Dictionary<Index, Node>(descriptor.Reads.Select(i => new KeyValuePair<Index, Node>(flow.Indices[i], i)));
+		var positions = nodes.Keys.ToList();
+
+		for (var i = 0; i < descriptor.Writes.Count; i++)
 		{
-			descriptor.Value.Writes.ForEach(i => i.Dependencies.Clear());
+			var start = obstacles[i];
+			var executable = flow.GetExecutablePositions(start, obstacles, new List<Index>(positions), new SortedSet<Index>());
 
-			var obstacles = descriptor.Value.Writes.Select(i => flow.Indices[i.Node]).ToArray();
-			var nodes = new Dictionary<Index, Node>(descriptor.Value.Reads.Select(i => new KeyValuePair<Index, Node>(flow.Indices[i], i)));
-			var positions = nodes.Keys.ToList();
+			if (executable == null) { executable = nodes.Keys.ToList(); }
 
-			for (var i = 0; i < descriptor.Value.Writes.Count; i++)
+			if (executable.Any())
 			{
-				var start = obstacles[i];
-				var executable = flow.GetExecutablePositions(start, obstacles, new List<Index>(positions), new SortedSet<Index>());
-
-				if (executable.Any())
-				{
-					descriptor.Value.Writes[i].Dependencies.AddRange(executable.Select(i => nodes[i]));
-				}
+				descriptor.Writes[i].Dependencies.AddRange(executable.Select(i => nodes[i]));
 			}
 		}
 	}
@@ -170,11 +169,14 @@ public static class GeneralAnalysis
 			foreach (var write in descriptor.Writes)
 			{
 				var obstacles = descriptor.Writes.Where(i => i != write).Select(i => i.Node).ToArray();
+				var obstacle_indices = obstacles.Select(i => flow.Indices[i]).ToArray();
 				var required = false;
 
 				foreach (var read in descriptor.Reads)
 				{
-					if (flow.IsReachableWithoutExecuting(read, write.Node, obstacles))
+					var result = flow.GetExecutablePositions(flow.Indices[write.Node], obstacle_indices, new List<int> { flow.Indices[read] }, new SortedSet<int>());
+
+					if (result == null || result.Any())
 					{
 						required = true;
 						break;
@@ -235,11 +237,7 @@ public static class GeneralAnalysis
 		if (value.Is(NodeType.VARIABLE))
 		{
 			var variable = value.To<VariableNode>().Variable;
-
-			if (variable.IsPredictable && !variable.IsConstant)
-			{
-				return new[] { variable };
-			}
+			if (variable.IsPredictable && !variable.IsConstant) return new[] { variable };
 		}
 
 		return value.FindAll(i =>
@@ -325,7 +323,7 @@ public static class GeneralAnalysis
 
 			var flow = new ModifiableFlow(root);
 
-			RegisterWriteDependencies(descriptors, flow);
+			RegisterWriteDependencies(descriptor, flow);
 
 			foreach (var write in descriptor.Writes)
 			{
@@ -443,7 +441,7 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Looks for assignments which can be inlined
 	/// </summary>
-	private static Node AssignVariables(FunctionImplementation implementation, Node root)
+	private static Node Start(FunctionImplementation implementation, Node root)
 	{
 		var minimum_cost_snapshot = root;
 		var minimum_cost = Analysis.GetCost(root);
@@ -467,7 +465,7 @@ public static class GeneralAnalysis
 			if (Analysis.IsMathematicalAnalysisEnabled) Analysis.OptimizeComparisons(snapshot);
 			
 			// Try to unwrap conditional statements whose outcome have been resolved
-			if (Analysis.IsUnwrapAnalysisEnabled) UnwrapmentAnalysis.UnwrapStatements(snapshot);
+			if (Analysis.IsUnwrapAnalysisEnabled) UnwrapmentAnalysis.UnwrapStatements(implementation, snapshot);
 
 			// Removes all statements which are not reachable
 			ReconstructionAnalysis.RemoveUnreachableStatements(snapshot);
@@ -552,7 +550,7 @@ public static class GeneralAnalysis
 
 		RemoveUnusedVariables(implementation, root);
 
-		root = AssignVariables(implementation, root);
+		root = Start(implementation, root);
 
 		if (!Assembler.IsDebuggingEnabled)
 		{

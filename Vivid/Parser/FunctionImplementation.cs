@@ -184,13 +184,6 @@ public class FunctionImplementation : Context
 			return false;
 		}
 
-		// Try to find a return statement which is inside a statement, if at least one is found this function should not be inlined
-		/// NOTE: If a scope node has a parent, it must be a statement
-		if (Node.Find(i => i.Is(NodeType.RETURN) && i.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent != null) != null) != null)
-		{
-			return false;
-		}
-
 		// Try to find nested if-statements, else-if-statements, else-statements or loop-statements, if at least one is found this function should not be inlined
 		if (Node.Find(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) && i.FindParent(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) != null) != null)
 		{

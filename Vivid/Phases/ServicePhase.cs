@@ -918,7 +918,7 @@ public class ServicePhase : Phase
 		}
 
 		// Merge all parsed files
-		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
+		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY);
 		root = Parser.CreateRootNode(context);
 
 		// Now merge all the parsed source files
