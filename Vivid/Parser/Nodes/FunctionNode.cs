@@ -1,20 +1,15 @@
 using System;
-using System.Collections.Generic;
 
 public class FunctionNode : Node
 {
 	public FunctionImplementation Function { get; private set; }
-	public List<Token> Tokens { get; private set; }
-
 	public Node Parameters => this;
-	public Node Body => Last!;
 
 	public FunctionNode(FunctionImplementation function, Position? position = null)
 	{
 		Function = function;
 		Function.References.Add(this);
 		Position = position;
-		Tokens = new List<Token>();
 		Instance = NodeType.FUNCTION;
 	}
 

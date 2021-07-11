@@ -252,7 +252,7 @@ public static class Assembler
 	/// </summary>
 	private static void ExportTemplateType(StringBuilder builder, TemplateType type)
 	{
-		builder.Append(CreateTemplateName(type.Name, type.TemplateArgumentNames));
+		builder.Append(CreateTemplateName(type.Name, type.TemplateParameters));
 		builder.Append(string.Join(' ', type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
 		builder.Append(Lexer.LINE_ENDING);
 	}

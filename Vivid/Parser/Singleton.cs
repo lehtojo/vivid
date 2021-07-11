@@ -13,7 +13,7 @@ public static class Singleton
 		{
 			var variable = context.GetVariable(identifier.Value)!;
 
-			if (variable.IsMember && !linked)
+			if (variable.IsMember && !variable.IsConstant && !linked)
 			{
 				var self = Common.GetSelfPointer(context, identifier.Position);
 
@@ -76,40 +76,25 @@ public static class Singleton
 			if (template_arguments.Any())
 			{
 				// If there are template arguments and if any of the template parameters is unresolved, then this function should fail
-				if (template_arguments.Any(i => i.IsUnresolved))
-				{
-					return null;
-				}
+				if (template_arguments.Any(i => i.IsUnresolved)) return null;
 
-				if (type is TemplateType template_type)
+				if (type.IsTemplateType)
 				{
 					// Since the function name refers to a type, the constructors of the type should be explored next
-					functions = template_type.GetVariant(template_arguments).Constructors;
+					functions = type.To<TemplateType>().GetVariant(template_arguments).Constructors;
 				}
-				else
-				{
-					return null;
-				}
+				else return null;
 			}
-			else
-			{
-				functions = context.GetType(name)!.Constructors;
-			}
+			else { functions = type.Constructors; }
 		}
 		else if (context.IsFunctionDeclared(name, linked))
 		{
 			functions = context.GetFunction(name)!;
 
 			// If there are template parameters, then the function should be retrieved based on them
-			if (template_arguments.Any())
-			{
-				return functions.GetImplementation(parameters, template_arguments);
-			}
+			if (template_arguments.Any()) return functions.GetImplementation(parameters, template_arguments);
 		}
-		else
-		{
-			return null;
-		}
+		else return null;
 
 		return functions.GetImplementation(parameters);
 	}
@@ -314,7 +299,7 @@ public static class Singleton
 
 			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetArguments(token.To<FunctionToken>().GetParsedParameters(environment)),
 
-			_ => throw new Exception($"Could not create unresolved token ({token.Type})"),
+			_ => throw new Exception($"Could not create unresolved node"),
 		};
 	}
 }

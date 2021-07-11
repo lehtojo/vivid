@@ -105,7 +105,6 @@ public static class Conditionals
 		var contexts = branches.Select(i => i is IfNode x ? x.Body.Context : i.To<ElseNode>().Body.Context).ToArray();
 
 		Scope.Cache(unit, branches, contexts, node.GetParentContext());
-
 		Scope.LoadConstants(unit, node);
 
 		var end = new LabelInstruction(unit, unit.GetNextLabel());

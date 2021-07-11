@@ -71,10 +71,7 @@ public class OffsetNode : Node, IResolvable
 
 		var type = Start.TryGetType();
 
-		if (type == null)
-		{
-			return null;
-		}
+		if (type == null) return null;
 
 		return TryResolveAsIndexedGetter(type);
 	}

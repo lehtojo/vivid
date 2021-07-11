@@ -380,10 +380,7 @@ public static class Parser
 
 	public static List<Token> Consume(Context context, PatternState state, List<System.Type> patterns)
 	{
-		if (patterns.Exists(p => !p.IsSubclassOf(typeof(Pattern))))
-		{
-			throw new ArgumentException("Pattern list contained a non-pattern type");
-		}
+		if (patterns.Exists(i => !i.IsSubclassOf(typeof(Pattern)))) throw new ArgumentException("Pattern list contained a non-pattern type");
 
 		var clone = new List<Token>(state.Tokens);
 		var consumption = new List<Consumption>();
@@ -426,10 +423,7 @@ public static class Parser
 		}
 
 		// Return an empty list if nothing was consumed
-		if (state.End >= clone.Count)
-		{
-			return new List<Token>();
-		}
+		if (state.End >= clone.Count) return new List<Token>();
 
 		List<Token>? consumed;
 

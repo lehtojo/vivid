@@ -348,7 +348,7 @@ public static class UnwrapmentAnalysis
 
 		loop.InsertChildren(loop.Initialization.Clone());
 
-		var action = ReconstructionAnalysis.TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
+		var action = ReconstructionAnalysis.TryRewriteAsAssignmentOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
 
 		for (var i = 0; i < descriptor.Steps; i++)
 		{

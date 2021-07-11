@@ -448,7 +448,7 @@ public class ResolverPhase : Phase
 				}
 			}
 
-			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(i.Range.Start.Line, i.Range.Start.Character), i.Message)))
+			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(type.Position?.File, i.Range.Start.Line, i.Range.Start.Character), i.Message)))
 			{
 				types.AppendLine(diagnostic.Description);
 			}
@@ -610,11 +610,11 @@ public class ResolverPhase : Phase
 		{
 			var previous = report;
 
-			// Try to resolve any problems in the node tree
 			ParserPhase.ApplyExtensionFunctions(context, parse.Node);
 			ParserPhase.ImplementFunctions(context, null);
 			GarbageCollector.CreateAllOverloads(context);
 			
+			// Try to resolve problems in the node tree and get the status after that
 			Resolver.ResolveContext(context);
 			report = GetReport(context, parse.Node);
 

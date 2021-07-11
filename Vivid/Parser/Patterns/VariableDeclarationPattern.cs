@@ -22,13 +22,7 @@ public class VariableDeclarationPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens[COLON].Is(Operators.COLON))
-		{
-			return false;
-		}
-
-		// Try to consume a type
-		return Common.ConsumeType(state);
+		return tokens[COLON].Is(Operators.COLON) && Common.ConsumeType(state);
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)

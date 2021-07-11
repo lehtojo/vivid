@@ -206,7 +206,7 @@ public static class Importer
 					template_type = type.To<TemplateType>();
 
 					// Require that the template type has the same amount of template arguments as captured above
-					if (template_type.TemplateArgumentNames.Count != arguments.Value.Arguments.Length) return null;
+					if (template_type.TemplateParameters.Count != arguments.Value.Arguments.Length) return null;
 				}
 				else
 				{

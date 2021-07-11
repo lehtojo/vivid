@@ -110,6 +110,7 @@ public static class Instructions
 		public const string DOUBLE_PRECISION_DIVIDE = "divsd";
 		public const string SINGLE_PRECISION_DIVIDE = "divss";
 		public const string SIGNED_DIVIDE = "idiv";
+		public const string UNSIGNED_DIVIDE = "div";
 
 		public const string JUMP_ABOVE = "ja";
 		public const string JUMP_ABOVE_OR_EQUALS = "jae";
@@ -254,6 +255,7 @@ public static class Instructions
 		public const string DECIMAL_COMPARE = "fcmp";
 
 		public const string SIGNED_DIVIDE = "sdiv";
+		public const string UNSIGNED_DIVIDE = "udiv";
 		public const string DECIMAL_DIVIDE = "fdiv";
 
 		public const string MULTIPLY_SUBTRACT = "msub";

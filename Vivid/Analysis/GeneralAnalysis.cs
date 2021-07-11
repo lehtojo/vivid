@@ -113,18 +113,18 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Registers all dependencies for the specified variable writes
 	/// </summary>
-	private static void RegisterWriteDependencies(VariableDescriptor descriptor, ModifiableFlow flow)
+	private static void RegisterWriteDependencies(VariableDescriptor descriptor, Flow flow)
 	{
 		descriptor.Writes.ForEach(i => i.Dependencies.Clear());
 
 		var obstacles = descriptor.Writes.Select(i => flow.Indices[i.Node]).ToArray();
-		var nodes = new Dictionary<Index, Node>(descriptor.Reads.Select(i => new KeyValuePair<Index, Node>(flow.Indices[i], i)));
+		var nodes = new Dictionary<int, Node>(descriptor.Reads.Select(i => new KeyValuePair<int, Node>(flow.Indices[i], i)));
 		var positions = nodes.Keys.ToList();
 
 		for (var i = 0; i < descriptor.Writes.Count; i++)
 		{
 			var start = obstacles[i];
-			var executable = flow.GetExecutablePositions(start, obstacles, new List<Index>(positions), new SortedSet<Index>());
+			var executable = flow.GetExecutablePositions(start, obstacles, new List<int>(positions), new SortedSet<int>());
 
 			if (executable == null) { executable = nodes.Keys.ToList(); }
 
@@ -253,8 +253,10 @@ public static class GeneralAnalysis
 	/// <summary>
 	/// Assigns the value of the specified write to the specified reads
 	/// </summary>
-	private static void Assign(ModifiableFlow flow, VariableWrite write, bool recursive)
+	private static bool Assign(VariableWrite write, bool recursive)
 	{
+		var assigned = false;
+
 		foreach (var read in write.Assignable)
 		{
 			// Find the root of the expression which contains the root and approximate the cost of the expression
@@ -285,9 +287,11 @@ public static class GeneralAnalysis
 			{
 				// Because the assignment will not be reverted back, remove the read from the dependencies
 				write.Dependencies.Remove(read);
-				flow.Replace(read, value);
+				assigned = true;
 			}
 		}
+
+		return assigned;
 	}
 
 	/// <summary>
@@ -321,100 +325,113 @@ public static class GeneralAnalysis
 			var descriptors = GetVariableDescriptors(implementation, root);
 			var descriptor = descriptors[variable];
 
-			var flow = new ModifiableFlow(root);
-
-			RegisterWriteDependencies(descriptor, flow);
-
-			foreach (var write in descriptor.Writes)
+			while (true)
 			{
-				// Collect all local variables that affect the value of the write. If any of these is edited, it means the value of the write changes
-				var dependencies = GetWriteDependencies(write.Node);
-				var obstacles = dependencies.SelectMany(i => descriptors[i].Writes).Select(i => i.Node).ToArray();
+				var assigned = false;
 
-				var assignable = new List<Node>();
-				var recursive = write.Value.Find(i => i.Is(variable)) != null;
-
-				foreach (var read in write.Dependencies)
+				foreach (var write in descriptor.Writes)
 				{
-					// If the value of the write contains calls, it should not be assigned
-					if (!IsAssignable(write.Node)) continue;
+					var flow = new Flow(root);
+					RegisterWriteDependencies(descriptor, flow);
 
-					// If the read is dependent on any of the other writes, the value of the current write can not be assigned
-					if (descriptor.Writes.Except(write).SelectMany(i => i.Dependencies).Any(i => ReferenceEquals(i, read)))
+					// Collect all local variables that affect the value of the write. If any of these is edited, it means the value of the write changes
+					var dependencies = GetWriteDependencies(write.Node);
+					var obstacles = dependencies.SelectMany(i => descriptors[i].Writes).Select(i => i.Node).ToArray();
+
+					var assignable = new List<Node>();
+					var recursive = write.Value.Find(i => i.Is(variable)) != null;
+
+					foreach (var read in write.Dependencies)
+					{
+						// If the value of the write contains calls, it should not be assigned
+						if (!IsAssignable(write.Node)) continue;
+
+						// If the read is dependent on any of the other writes, the value of the current write can not be assigned
+						if (descriptor.Writes.Except(write).SelectMany(i => i.Dependencies).Any(i => ReferenceEquals(i, read)))
+						{
+							continue;
+						}
+
+						var assign = true;
+
+						var from = flow.Indices[write.Node];
+						var to = flow.Indices[read];
+
+						// If the read happens before the edit, which is possible in loops for example, it is not reliable to get all the nodes between the edit and the read
+						if (to < from) continue;
+
+						foreach (var node in flow.Nodes.GetRange(from, to - from).Where(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
+						{
+							if (dependencies.Contains(node.Variable) && Analyzer.IsEdited(node))
+							{
+								var editor = Analyzer.GetEditor(node);
+								var position = flow.Indices[editor];
+
+								if (position <= from || position >= to) continue;
+
+								assign = false;
+								break;
+							}
+						}
+
+						if (!assign) continue;
+
+						assignable.Add(read);
+					}
+
+					// If the value contains the destination variable and it can not be assigned to all its usages or it is repeated, it should not be assigned
+					if (recursive && (assignable.Count != write.Dependencies.Count || write.Node.FindParent(NodeType.LOOP) != null))
 					{
 						continue;
 					}
 
-					var assign = true;
+					if (assignable.Count == 0) continue;
 
-					var from = flow.Indices[write.Node];
-					var to = flow.Indices[read];
+					write.Assignable.AddRange(assignable);
 
-					// If the read happens before the edit, which is possible in loops for example, it is not reliable to get all the nodes between the edit and the read
-					if (to < from) continue;
-
-					var start = flow.GetNodeIndex(from);
-					var end = flow.GetNodeIndex(to);
-
-					foreach (var node in flow.Nodes.GetRange(start, end - start).Select(i => i.Node).Where(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
+					if (Assign(write, recursive))
 					{
-						if (dependencies.Contains(node.Variable) && Analyzer.IsEdited(node))
-						{
-							var editor = Analyzer.GetEditor(node);
-							var position = flow.Indices[editor];
-
-							if (position <= from || position >= to) continue;
-
-							assign = false;
-							break;
-						}
+						assigned = true;
+						break;
 					}
-
-					if (!assign) continue;
-
-					assignable.Add(read);
 				}
 
-				// If the value contains the destination variable and it can not be assigned to all its usages or it is repeated, it should not be assigned
-				if (recursive && (assignable.Count != write.Dependencies.Count || write.Node.FindParent(NodeType.LOOP) != null))
+				// Lastly, remove all the assignments which have no dependencies left
+				for (var i = descriptor.Writes.Count - 1; i >= 0; i--)
 				{
-					continue;
-				}
+					var write = descriptor.Writes[i];
 
-				write.Assignable.AddRange(assignable);
-				Assign(flow, write, recursive);
-			}
+					if (write.Dependencies.Count != 0) continue;
 
-			// Lastly, remove all the assignments which have no dependencies left
-			for (var i = descriptor.Writes.Count - 1; i >= 0; i--)
-			{
-				var write = descriptor.Writes[i];
+					// If this statement is a declaration and the next write is not in the same scope, replace this statement with a declaration node
+					// 1. Only the first write can be a declaration
+					// 2. There must be at least two writes
+					if (i == 0 && descriptor.Writes.Count > 1)
+					{
+						var a = write.Node.GetParentContext();
+						var b = descriptor.Writes[1].Node.GetParentContext();
 
-				if (write.Dependencies.Count != 0) continue;
+						if (a == b)
+						{
+							write.Node.Remove();
+							continue;
+						}
 
-				// If this statement is a declaration and the next write is not in the same scope, replace this statement with a declaration node
-				// 1. Only the first write can be a declaration
-				// 2. There must be at least two writes
-				if (i == 0 && descriptor.Writes.Count > 1)
-				{
-					var a = write.Node.GetParentContext();
-					var b = descriptor.Writes[1].Node.GetParentContext();
-
-					if (a == b)
+						write.Node.Replace(new DeclareNode(variable));
+					}
+					else
 					{
 						write.Node.Remove();
-						continue;
 					}
+				}
 
-					write.Node.Replace(new DeclareNode(variable));
-				}
-				else
-				{
-					write.Node.Remove();
-				}
+				Analysis.OptimizeAllExpressions(root);
+
+				descriptors = GetVariableDescriptors(implementation, root);
+				descriptor = descriptors[variable];
+			
+				if (!assigned) break;
 			}
-
-			Analysis.OptimizeAllExpressions(root);
 		}
 	}
 
@@ -473,7 +490,7 @@ public static class GeneralAnalysis
 			// Finally, try to simplify all expressions
 			if (Analysis.IsMathematicalAnalysisEnabled) Analysis.OptimizeAllExpressions(snapshot);
 
-			ReconstructionAnalysis.SubstituteInlineNodes(snapshot);
+			ReconstructionAnalysis.RemoveRedundantInlineNodes(snapshot);
 
 			// Calculate the complexity of the current snapshot
 			var cost = Analysis.GetCost(snapshot);

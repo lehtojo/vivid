@@ -102,7 +102,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				// mov rax, rcx
 				// imul rax, 4
 				// =>
-				// lea ..., [rax*4]
+				// lea rax, [rcx*4]
 
 				var calculation = new ExpressionHandle
 				(
@@ -374,10 +374,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (Operation == Instructions.X64.SHIFT_LEFT)
 		{
-			if (!second.IsConstant)
-			{
-				return false;
-			}
+			if (!second.IsConstant) return false;
 
 			// Example:
 			// sal rax, 2 => lea rcx, [rax*4]
@@ -385,10 +382,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			var shift = (long)second.Value!.To<ConstantHandle>().Value;
 
 			// Maximum multiplier is eight so the exponent must be three or less
-			if (shift > 3)
-			{
-				return false;
-			}
+			if (shift > 3) return false;
 
 			var expression = new ExpressionHandle
 			(
@@ -409,19 +403,13 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (Operation == Instructions.X64.EVALUATE)
 		{
-			if (!handle.Is(HandleType.REGISTER))
-			{
-				return false;
-			}
+			if (!handle.Is(HandleType.REGISTER)) return false;
 
 			Destination!.Value = handle;
 			return true;
 		}
 
-		if (Operation != Instructions.X64.SIGNED_MULTIPLY)
-		{
-			return false;
-		}
+		if (Operation != Instructions.X64.SIGNED_MULTIPLY) return false;
 
 		if (handle.Type == HandleType.REGISTER && (first.IsMemoryAddress || first.IsStandardRegister) && second.IsConstant)
 		{
@@ -455,7 +443,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		return false;
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsArm64)
 		{

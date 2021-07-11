@@ -25,17 +25,10 @@ public class ElsePattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE)
-		{
-			return false;
-		}
+		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE) return false;
 
 		var former = tokens[FORMER].To<DynamicToken>();
-
-		if (!former.Node.Is(NodeType.IF, NodeType.ELSE_IF))
-		{
-			return false;
-		}
+		if (!former.Node.Is(NodeType.IF, NodeType.ELSE_IF)) return false;
 
 		Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
 		return true;

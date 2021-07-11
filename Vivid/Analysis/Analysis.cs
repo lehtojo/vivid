@@ -278,6 +278,17 @@ public static class Analysis
 			return SimplifyDivision(left_components, right_components);
 		}
 
+		#warning Enable in the future
+		// if (Equals(node.Operator, Operators.SHIFT_LEFT))
+		// {
+		// 	return SimplifyShiftLeft(left_components, right_components);
+		// }
+
+		// if (Equals(node.Operator, Operators.SHIFT_RIGHT))
+		// {
+		// 	return SimplifyShiftRight(left_components, right_components);
+		// }
+
 		return new List<Component>
 		{
 			new ComplexComponent(new OperatorNode(node.Operator).SetOperands(Recreate(left_components), Recreate(right_components)))
@@ -382,6 +393,56 @@ public static class Analysis
 		{
 			new ComplexComponent(new OperatorNode(Operators.DIVIDE).SetOperands(Recreate(left_components), Recreate(right_components)))
 		};
+	}
+
+	/// <summary>
+	/// Simplifies left shift between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyShiftLeft(List<Component> left_components, List<Component> right_components)
+	{
+		if (right_components.Count != 1 || right_components.First() is not NumberComponent right || right.Value is not long shifter)
+		{
+			return new List<Component>
+			{
+				new ComplexComponent(new OperatorNode(Operators.SHIFT_LEFT).SetOperands(Recreate(left_components), Recreate(right_components)))
+			};
+		}
+
+		var components = new List<Component>();
+		var multiplier = new NumberComponent(1L << (int)shifter);
+
+		foreach (var component in left_components)
+		{
+			var result = component * multiplier;
+			components.Add(result ?? new ComplexComponent(new OperatorNode(Operators.MULTIPLY).SetOperands(Recreate(component), Recreate(multiplier))));
+		}
+
+		return components;
+	}
+
+	/// <summary>
+	/// Simplifies left shift between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyShiftRight(List<Component> left_components, List<Component> right_components)
+	{
+		if (right_components.Count != 1 || right_components.First() is not NumberComponent right || right.Value is not long shifter)
+		{
+			return new List<Component>
+			{
+				new ComplexComponent(new OperatorNode(Operators.SHIFT_RIGHT).SetOperands(Recreate(left_components), Recreate(right_components)))
+			};
+		}
+
+		var components = new List<Component>();
+		var divider = new NumberComponent(1L << (int)shifter);
+
+		foreach (var component in left_components)
+		{
+			var result = component / divider;
+			components.Add(result ?? new ComplexComponent(new OperatorNode(Operators.DIVIDE).SetOperands(Recreate(component), Recreate(divider))));
+		}
+
+		return components;
 	}
 
 	/// <summary>
@@ -812,6 +873,23 @@ public static class Analysis
 	}
 
 	/// <summary>
+	/// Returns whether the specified node accesses any member of the specified type and the access requires self pointer
+	/// </summary>
+	private static bool IsSelfPointerRequired(Node node)
+	{
+		if (!node.Is(NodeType.FUNCTION, NodeType.VARIABLE) || node.Parent!.Is(NodeType.CONSTRUCTION, NodeType.LINK)) return false;
+
+		if (node.Is(NodeType.FUNCTION))
+		{
+			var function = node.To<FunctionNode>().Function;
+			return function.IsMember && !function.IsStatic;
+		}
+
+		var variable = node.To<VariableNode>().Variable;
+		return variable.IsMember && !variable.IsStatic;
+	}
+
+	/// <summary>
 	/// Adds logic for allocating an instance of the specified type, registering virtual functions and initializing member variables to the constructors of the specified type
 	/// </summary>
 	private static void CompleteConstructors(Type type)
@@ -827,9 +905,15 @@ public static class Analysis
 			foreach (var iterator in expressions)
 			{
 				var expression = iterator.Clone().To<OperatorNode>();
-				var members = expression.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsMember && !i.Parent!.Is(NodeType.LINK));
+				var edited = Analyzer.GetEdited(expression);
 
-				foreach (var member in members)
+				// Do not initialize constants in constructors
+				if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsConstant) continue;
+
+				var member_accessors = expression.FindAll(i => IsSelfPointerRequired(i));
+
+				// Add self pointer to all member accessors
+				foreach (var member in member_accessors)
 				{
 					member.Replace(new LinkNode(self.Clone(), member.Clone()));
 				}

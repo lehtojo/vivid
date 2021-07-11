@@ -162,7 +162,7 @@ public static class ReconstructionAnalysis
 	/// a *= 2 => a = a * 2
 	/// b[i] /= 10 => b[i] = b[i] / 10
 	/// </summary>
-	public static Node? TryRewriteAsAssignOperation(Node edit, bool force = false)
+	public static Node? TryRewriteAsAssignmentOperation(Node edit, bool force = false)
 	{
 		if (!force && IsValueUsed(edit))
 		{
@@ -199,23 +199,13 @@ public static class ReconstructionAnalysis
 
 			case OperatorNode operation:
 			{
-				if (operation.Operator.Type != OperatorType.ACTION)
-				{
-					return null;
-				}
-
-				if (operation.Operator == Operators.ASSIGN)
-				{
-					return edit;
-				}
+				if (operation.Operator.Type != OperatorType.ACTION) return null;
+				if (operation.Operator == Operators.ASSIGN) return edit;
 
 				var destination = operation.Left.Clone();
 				var type = ((ActionOperator)operation.Operator).Operator;
 
-				if (type == null)
-				{
-					return null;
-				}
+				if (type == null) return null;
 
 				return new OperatorNode(Operators.ASSIGN, operation.Position).SetOperands(
 					destination,
@@ -231,10 +221,10 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Removes redundant parenthesis in the specified node tree
+	/// Removes redundant parentheses in the specified node tree
 	/// Example: x = x * (((x + 1)))
 	/// </summary>
-	private static void RemoveRedundantParenthesis(Node root)
+	private static void RemoveRedundantParentheses(Node root)
 	{
 		if (root.Is(NodeType.CONTENT) || root.Is(NodeType.LIST))
 		{
@@ -246,14 +236,14 @@ public static class ReconstructionAnalysis
 				}
 			}
 
-			// Remove all parenthesis which block logical operators
+			// Remove all parentheses, which block logical operators
 			if (root.First is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
 			{
 				root.Replace(root.First!);
 			}
 		}
 
-		root.ForEach(RemoveRedundantParenthesis);
+		root.ForEach(RemoveRedundantParentheses);
 	}
 
 	/// <summary>
@@ -450,7 +440,7 @@ public static class ReconstructionAnalysis
 			if (ReconstructionAnalysis.IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate)) return false;
 
 			// Ensure the parent is not a comparison or a logical operator
-			return node is not OperatorNode operation || (operation.Operator.Type != OperatorType.COMPARISON && operation.Operator.Type != OperatorType.LOGIC);
+			return node is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGIC;
 
 		}).ToList();
 	}
@@ -584,16 +574,16 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Ensures all the edits under the specified node are assignment operations
+	/// Ensures all edits under the specified node are assignments
 	/// </summary>
-	private static void RewriteAllEditsAsAssignOperations(Node root)
+	private static void RewriteEditsAsAssignments(Node root)
 	{
 		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || i.Is(OperatorType.ACTION));
 
 		foreach (var edit in edits)
 		{
-			var replacement = TryRewriteAsAssignOperation(edit);
-			if (replacement == null) throw new ApplicationException("Could not unwrap an edit node");
+			var replacement = TryRewriteAsAssignmentOperation(edit);
+			if (replacement == null) throw new ApplicationException("Could not rewrite edit as an assignment operator");
 
 			edit.Replace(replacement);
 		}
@@ -639,9 +629,9 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Finds all inline nodes which have only one child node and replaces them with their child nodes
+	/// Finds all inlines nodes, which can be replaced with their own child nodes
 	/// </summary>
-	public static void SubstituteInlineNodes(Node root)
+	public static void RemoveRedundantInlineNodes(Node root)
 	{
 		var inlines = root.FindAll(NodeType.INLINE).Cast<InlineNode>();
 
@@ -870,7 +860,7 @@ public static class ReconstructionAnalysis
 		// Extract increment nodes
 		foreach (var extracts in filtered)
 		{
-			// Determine the extract position
+			// Create the extract position
 			/// NOTE: This uses a temporary node, since sometimes the extract position can be next to an increment node, which is problematic
 			var destination = new Node();
 			extracts.Key.Insert(destination);
@@ -1262,7 +1252,7 @@ public static class ReconstructionAnalysis
 	public static void Reconstruct(FunctionImplementation implementation, Node root)
 	{
 		StripLinks(root);
-		RemoveRedundantParenthesis(root);
+		RemoveRedundantParentheses(root);
 		RemoveCancellingNegations(root);
 		RemoveCancellingNots(root);
 		RemoveRedundantCasts(root);
@@ -1274,7 +1264,7 @@ public static class ReconstructionAnalysis
 		RewriteLambdaConstructions(root);
 		RewriteConstructions(root);
 		OutlineBooleanValues(root);
-		RewriteAllEditsAsAssignOperations(root);
+		RewriteEditsAsAssignments(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
 
@@ -1283,7 +1273,7 @@ public static class ReconstructionAnalysis
 			Inlines.Build(implementation, root);
 		}
 
-		SubstituteInlineNodes(root);
+		RemoveRedundantInlineNodes(root);
 	}
 
 	/// <summary>
@@ -1292,7 +1282,7 @@ public static class ReconstructionAnalysis
 	public static void Finish(Node root)
 	{
 		ConstructActionOperations(root);
-		SubstituteInlineNodes(root);
+		RemoveRedundantInlineNodes(root);
 		RewriteRemainderOperations(root);
 
 		/// NOTE: Inline nodes can be directly under logical operators now, so outline possible booleans values which represent conditions

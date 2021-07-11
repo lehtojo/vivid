@@ -5,14 +5,16 @@ public class ListPattern : Pattern
 	public const int PRIORITY = 0;
 
 	public const int LEFT = 0;
-	public const int COMMA = 1;
-	public const int RIGHT = 2;
+	public const int COMMA = 2;
+	public const int RIGHT = 4;
 
 	// Pattern: ... , ...
 	public ListPattern() : base
 	(
 		TokenType.OBJECT,
+		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
+		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OBJECT
 	) { }
 

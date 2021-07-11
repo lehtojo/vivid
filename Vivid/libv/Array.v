@@ -25,6 +25,11 @@ MemoryIterator<T> {
 Array<T> {
 	public readonly data: link<T>
 	count: large
+
+	init() {
+		data = none
+		count = 0
+	}
 	
 	init(count: large) {
 		require(count >= 0, 'Invalid array size')
@@ -89,7 +94,11 @@ String.split(character: char) {
 	p = 0
 
 	loop (i < length) {
-		if text[i] != character continue
+		if text[i] != character {
+			i++
+			continue
+		}
+		
 		slices[c++] = String(text + p, i - p)
 		p = ++i
 	}

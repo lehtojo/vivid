@@ -18,34 +18,34 @@ public class TemplateType : Type
 {
 	private const int NAME = 0;
 
-	public List<string> TemplateArgumentNames { get; private set; }
+	public List<string> TemplateParameters { get; private set; }
 	public List<Token> Inherited { get; private set; } = new List<Token>();
 
 	public List<Token> Blueprint { get; private set; }
 	private Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
 
-	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_argument_names, Position position) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE, position)
+	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_parameters, Position position) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE, position)
 	{
 		Blueprint = blueprint;
-		TemplateArgumentNames = template_argument_names;
+		TemplateParameters = template_parameters;
 	}
 
 	public TemplateType(Context context, string name, int modifiers, int argument_count) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE)
 	{
 		// Create an empty type with the specified name using tokens
 		Blueprint = new List<Token> { new IdentifierToken(name), new ContentToken() { Type = ParenthesisType.CURLY_BRACKETS } };
-		TemplateArgumentNames = new List<string>();
+		TemplateParameters = new List<string>();
 
 		// Generate the template arguments
 		for (var i = 0; i < argument_count; i++)
 		{
-			TemplateArgumentNames.Add($"T{i}");
+			TemplateParameters.Add($"T{i}");
 		}
 	}
 
 	private Type? TryGetVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
+		var identifier = string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.ToString()));
 
 		if (Variants.TryGetValue(identifier, out TemplateTypeVariant? variant))
 		{
@@ -61,7 +61,7 @@ public class TemplateType : Type
 		{
 			if (tokens[i].Type == TokenType.IDENTIFIER)
 			{
-				var j = TemplateArgumentNames.IndexOf(tokens[i].To<IdentifierToken>().Value);
+				var j = TemplateParameters.IndexOf(tokens[i].To<IdentifierToken>().Value);
 
 				if (j == -1)
 				{
@@ -86,13 +86,13 @@ public class TemplateType : Type
 
 	private Type CreateVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
+		var identifier = string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var tokens = Inherited.Select(t => (Token)t.Clone()).ToList();
 
 		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
-		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateArgumentNames.Count).Select(a => a.Name)) + '>';
+		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateParameters.Count).Select(a => a.Name)) + '>';
 
 		tokens.AddRange(blueprint);
 
@@ -128,7 +128,7 @@ public class TemplateType : Type
 	/// </summary>
 	public Type GetVariant(Type[] arguments)
 	{
-		if (arguments.Length < TemplateArgumentNames.Count)
+		if (arguments.Length < TemplateParameters.Count)
 		{
 			throw new ApplicationException("Missing template arguments");
 		}

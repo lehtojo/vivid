@@ -1,5 +1,3 @@
-using System;
-
 /// <summary>
 /// Loads the specified variable into a modifiable location if it is constant
 /// This instruction works on all architectures

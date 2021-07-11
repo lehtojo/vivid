@@ -101,7 +101,7 @@ public class ParserPhase : Phase
 
 					var actual = overload.Parameters.Select(i => i.Type).ToList();
 
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected) || expected.Any(i => i == null || i.IsUnresolved)) continue;
 
 					var implementation = overload.Get(expected!) ?? throw new ApplicationException("Could not implement virtual function");
 					implementation.VirtualFunction = virtual_function;

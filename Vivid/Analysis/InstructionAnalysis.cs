@@ -483,7 +483,7 @@ public static class InstructionAnalysis
 				}
 
 				// Try to redirect the intermediate to the destination
-				if (intermediate.Redirect(destination))
+				if (intermediate.Redirect(destination, false))
 				{
 					usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
 					intermediate.OnPostBuild();
@@ -511,7 +511,7 @@ public static class InstructionAnalysis
 				if (usages.Any() && IsUsedBetween(instructions, start + 1, instructions.IndexOf(usages.Last()), destination, pivot, true, true)) return false;
 
 				// Try to redirect the intermediate to the destination
-				if (!root.Redirect(destination)) return false;
+				if (!root.Redirect(destination, true)) return false;
 
 				usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
 				root.OnPostBuild();
@@ -550,10 +550,7 @@ public static class InstructionAnalysis
 			usages = TryGetUsagesForRelocation(instructions, source.To<RegisterHandle>().Register, start);
 
 			// If the usages of the root instruction could not be collected, inlining should be aborted
-			if (usages == null || is_destination_memory_address)
-			{
-				return false;
-			}
+			if (usages == null || is_destination_memory_address) return false;
 
 			// The following situation is theoretical, but still should be checked for
 			// Example:
@@ -563,14 +560,11 @@ public static class InstructionAnalysis
 			// Notice that the value inside the register rdx will be different in some cases
 			// lea rdx, [rcx+1]
 			// add rdx, 1
-			if (usages.Any() && IsUsedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot, true, true))
-			{
-				return false;
-			}
+			if (usages.Any() && IsUsedBetween(instructions, start, instructions.IndexOf(usages.Last()), destination, pivot, true, true)) return false;
 		}
 
 		// Try to redirect the root to the destination
-		if (root.Redirect(destination))
+		if (root.Redirect(destination, true))
 		{
 			usages.ForEach(i => i.Parameters.ForEach(j => Replace(j, source, destination)));
 			root.OnPostBuild();
@@ -1420,7 +1414,7 @@ public static class InstructionAnalysis
 		}
 	}
 
-	public static void RemoveRedundantJumps(Unit unit, List<Instruction> instructions)
+	public static void RemoveRedundantJumps(List<Instruction> instructions)
 	{
 		// Remove jump instructions, which jump to labels directly in front of them
 		// Example:
@@ -1442,6 +1436,6 @@ public static class InstructionAnalysis
 	public static void Finish(Unit unit, List<Instruction> instructions, List<Register> registers, int required_local_memory)
 	{
 		CreateTailCalls(unit, instructions, registers, required_local_memory);
-		RemoveRedundantJumps(unit, instructions);
+		RemoveRedundantJumps(instructions);
 	}
 }

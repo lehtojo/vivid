@@ -139,7 +139,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public IScope FindContext()
 	{
-		return (IScope)FindParent(p => p is IScope)!;
+		return (IScope)FindParent(i => i is IScope)!;
 	}
 
 	public Context GetParentContext()
@@ -682,10 +682,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public Node? GetRightWhile(Predicate<Node> filter)
 	{
-		if (Last == null)
-		{
-			return null;
-		}
+		if (Last == null) return null;
 
 		var iterator = Last;
 

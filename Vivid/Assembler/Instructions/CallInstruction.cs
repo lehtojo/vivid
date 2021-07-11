@@ -78,7 +78,7 @@ public class CallInstruction : Instruction
 			var register = non_volatile ? Unit.GetNextNonVolatileRegister(false, true) : Unit.GetNextRegister();
 
 			// There should always be a register available, since the function call above can release values into memory
-			if (register == null) throw new ApplicationException("Could not validate call handle");
+			if (register == null) throw new ApplicationException("Could not validate call memory handle");
 
 			var destination = new RegisterHandle(register);
 

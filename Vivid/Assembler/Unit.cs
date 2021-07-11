@@ -166,7 +166,7 @@ public class Unit
 			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
 			new Register(Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-			new Register(Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
+			new Register(Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
 			new Register(Size.YMMWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
 			new Register(Size.YMMWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
 			new Register(Size.YMMWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
@@ -537,7 +537,7 @@ public class Unit
 			return register;
 		}
 
-		// Since all registers contain intermediate values, one of them must be released a temporary memory location
+		// Since all registers contain intermediate values, one of them must be released to a temporary memory location
 		// NOTE: Some registers may be locked which prevents them from being used, but not all registers should be locked, otherwise something very strange has happened
 
 		// Find the next register which is not locked
@@ -574,7 +574,18 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Could not find an available media register");
+		// Find the next media register which is not locked
+		register = MediaRegisters.Find(r => !r.IsLocked);
+
+		if (register == null)
+		{
+			// NOTE: This usually happens when there is a flaw in the algorithm and the compiler does not know how to handle a value for example
+			throw new ApplicationException("All media registers were locked or reserved, this should not happen");
+		}
+
+		Release(register);
+
+		return register;
 	}
 
 	/// <summary>

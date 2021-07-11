@@ -332,7 +332,7 @@ public class Context : IComparable<Context>
 	}
 
 	/// <summary>
-	/// Returns whether the given context is a parent context or higher to this context
+	/// Returns whether the specified context is this context or one of the parent contexts
 	/// </summary>
 	public bool IsInside(Context context)
 	{

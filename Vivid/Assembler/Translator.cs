@@ -4,7 +4,7 @@ using System.Linq;
 
 public static class Translator
 {
-	public static int TotalInstructions = 0;
+	public static int TotalInstructions { get; set; } = 0;
 
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
 	{

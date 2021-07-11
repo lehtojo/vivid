@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Collections.Generic;
 
 public static class Arithmetic
 {
@@ -243,9 +242,10 @@ public static class Arithmetic
 	/// </summary>
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
 	{
+		var is_unsigned = operation.Left.GetType().Format.IsUnsigned();
 		var format = operation.GetType().To<Number>().Type;
 
-		if (Assembler.IsX64 && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
+		if (Assembler.IsX64 && !is_unsigned && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
 			return BuildConstantDivision(unit, operation.Left, (long)operation.Right.To<NumberNode>().Value, assigns);
 		}
@@ -254,7 +254,6 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var is_unsigned = operation.Left.GetType() is not Number number || number.IsUnsigned;
 
 		var result = new DivisionInstruction(unit, modulus, left, right, format, assigns, is_unsigned).Execute();
 

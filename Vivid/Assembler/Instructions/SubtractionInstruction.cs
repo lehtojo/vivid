@@ -32,7 +32,7 @@ public class SubtractionInstruction : DualParameterInstruction
 	{
 		var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
 
-		// Handle decimal division separately
+		// Handle decimal subtraction separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
 			if (Assigns && First.IsMemoryAddress)
@@ -207,13 +207,13 @@ public class SubtractionInstruction : DualParameterInstruction
 		return false;
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsArm64)
 		{
 			return RedirectArm64(handle);
 		}
 
-		return RedirectX64(handle);
+		return root && RedirectX64(handle);
 	}
 }

@@ -27,11 +27,32 @@ MapBucket<K, V> {
 		}
 	}
 
+	set(key: K, value: V) {
+		# Determine the slot where the value might be stored
+		destination = 0
+
+		if compiles { key.hash() } { destination = key.hash() % BUCKET_SIZE }
+		else { destination = (key as large) % BUCKET_SIZE }
+		if destination < 0 { destination += BUCKET_SIZE }
+
+		slot = slots[destination]
+
+		# Try to find the key from the slot
+		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
+			if iterator.value.key != key continue
+			iterator.value.value = value
+			=> MAP_OK
+		}
+
+		=> MAP_FAIL
+	}
+
 	add(key: K, value: V) {
 		destination = 0
 
-		if compiles { key.hash() } { destination = (key.hash() as u64) % BUCKET_SIZE }
-		else { destination = (key as u64) % BUCKET_SIZE }
+		if compiles { key.hash() } { destination = key.hash() % BUCKET_SIZE }
+		else { destination = (key as large) % BUCKET_SIZE }
+		if destination < 0 { destination += BUCKET_SIZE }
 
 		slot = slots[destination]
 
@@ -50,8 +71,9 @@ MapBucket<K, V> {
 	contains_key(key: K) {
 		location = 0
 
-		if compiles { key.hash() } { location = (key.hash() as u64) % BUCKET_SIZE }
-		else { location = (key as u64) % BUCKET_SIZE }
+		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
+		else { location = (key as large) % BUCKET_SIZE }
+		if location < 0 { location += BUCKET_SIZE }
 		
 		slot = slots[location]
 		
@@ -65,8 +87,9 @@ MapBucket<K, V> {
 	get(key: K) {
 		location = 0
 
-		if compiles { key.hash() } { location = (key.hash() as u64) % BUCKET_SIZE }
-		else { location = (key as u64) % BUCKET_SIZE }
+		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
+		else { location = (key as large) % BUCKET_SIZE }
+		if location < 0 { location += BUCKET_SIZE }
 		
 		slot = slots[location]
 		
@@ -82,8 +105,9 @@ MapBucket<K, V> {
 	remove(key: K) {
 		location = 0
 
-		if compiles { key.hash() } { location = (key.hash() as u64) % BUCKET_SIZE }
-		else { location = (key as u64) % BUCKET_SIZE }
+		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
+		else { location = (key as large) % BUCKET_SIZE }
+		if location < 0 { location += BUCKET_SIZE }
 
 		slot = slots[location]
 
@@ -175,10 +199,12 @@ MapIterator<K, V> {
 Map<K, V> {
 	private:
 	buckets: LinkedList<MapBucket<K, V>>
+	items: List<MapElement<K, V>>
 
 	public:
 	init() {
 		buckets = LinkedList<MapBucket<K, V>>()
+		items = List<MapElement<K, V>>()
 		buckets.add(MapBucket<K, V>())
 	}
 
@@ -186,19 +212,33 @@ Map<K, V> {
 		loop (iterator = buckets.iterator(), iterator, iterator = iterator.next) {
 			result = iterator.value.add(key, value)
 
-			if result == MAP_OK => true
-			else result == MAP_KEY_DUPLICATION => false
+			if result == MAP_OK {
+				items.add(MapElement<K, V>(key, value))
+				=> true
+			}
+
+			if result == MAP_KEY_DUPLICATION => false
 		}
 
 		bucket = MapBucket<K, V>()
 		bucket.add(key, value)
+		items.add(MapElement<K, V>(key, value))
 
 		buckets.add(bucket)
 
 		=> true
 	}
 
-	set(key: K, value: V) => add(key, value)
+	set(key: K, value: V) {
+		# First try to update the value, if the key has been added already
+		loop (iterator = buckets.iterator(), iterator, iterator = iterator.next) {
+			result = iterator.value.set(key, value)
+			if result == MAP_OK => true
+		}
+
+		# Since the map does not contain the key, add the value with the key
+		add(key, value)
+	}
 
 	contains_key(key: K) {
 		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
@@ -230,7 +270,16 @@ Map<K, V> {
 
 	remove(key: K) {
 		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			if bucket.value.remove(key) => true
+			if not bucket.value.remove(key) continue
+
+			# Remove the key and value pair from the items list as well
+			loop (i = items.size - 1, i >= 0, i--) {
+				if items[i].key != key continue
+				items.remove_at(i)
+				stop
+			}
+
+			=> true
 		}
 
 		=> false
@@ -247,6 +296,6 @@ Map<K, V> {
 	}
 
 	iterator() {
-		=> MapIterator<K, V>(buckets)
+		=> items.iterator()
 	}
 }

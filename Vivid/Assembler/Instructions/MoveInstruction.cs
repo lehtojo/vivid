@@ -1038,7 +1038,7 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (First.IsMemoryAddress)
+		else if (First.IsMemoryAddress && !(First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Address))
 		{
 			if (Assembler.IsArm64)
 			{
@@ -1644,7 +1644,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsX64)
 		{

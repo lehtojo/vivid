@@ -8,17 +8,15 @@ List<T> {
 
 	# Summary: Creates a list with the specified initial size
 	init(size: large, fill: bool) {
-		if size <= 0 {
-			size = 1
-		}
+		if fill { position = size }
+		else { position = 0 }
+
+		if size <= 0 { size = 1 }
 
 		elements = allocate(size * sizeof(T))
 		zero(elements, size * sizeof(T))
 
 		capacity = size
-
-		if fill { position = size }
-		else { position = 0 }
 	}
 
 	# Summary: Creates a list with the specified initial size
@@ -28,6 +26,16 @@ List<T> {
 		this.capacity = size
 		
 		copy(elements, size * sizeof(T), this.elements)
+	}
+
+	# Summary: Creates a list with the same contents as the specified list
+	init(other: List<T>) {
+		size = other.size
+		this.elements = allocate(size * sizeof(T))
+		this.position = size
+		this.capacity = size
+		
+		copy(other.elements, size * sizeof(T), this.elements)
 	}
 
 	# Summary: Creates an empty list
@@ -130,6 +138,7 @@ List<T> {
 
 	# Summary: Takes the value of the first element and removes it from the begining of the list
 	take_first() {
+		if position == 0 => none as T
 		first = elements[0]
 
 		# Move all elements left by one
@@ -139,6 +148,20 @@ List<T> {
 
 		elements[--position] = none as T
 		=> first
+	}
+
+	# Summary: Returns whether the list contains the specified element
+	contains(element: T) {
+		loop (i = 0, i < position, i++) {
+			if elements[i] == element => true
+		}
+
+		=> false
+	}
+
+	# Summary: Creates a new list, which contains the specified range of elements
+	slice(start: large, end: large) {
+		=> List<T>(elements + start * sizeof(T), end - start)
 	}
 	
 	# Summary: Sets the value of the element at the specified index
@@ -169,5 +192,11 @@ List<T> {
 		=> Array<T>(elements, position)
 	}
 
+	# Summary: Removes all the elements from this list
+	clear() {
+		position = 0
+	}
+
 	# TODO: Decrement operator overload for taking out elements
+	# TODO: Destruct cleared objects
 }

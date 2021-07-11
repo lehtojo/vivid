@@ -4,16 +4,6 @@ public class ReturnNode : InstructionNode, IResolvable
 {
 	public Node? Value => First;
 
-	public ReturnNode(Node? node) : base(Keywords.RETURN)
-	{
-		Instance = NodeType.RETURN;
-
-		if (node != null)
-		{
-			Add(node);
-		}
-	}
-
 	public ReturnNode(Node? node, Position? position) : base(Keywords.RETURN, position)
 	{
 		Instance = NodeType.RETURN;

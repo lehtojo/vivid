@@ -30,7 +30,7 @@ public class LinkNode : OperatorNode
 			var function = Right.To<UnresolvedFunction>();
 
 			// First, try to resolve the function normally
-			var resolved = function.Solve(environment, primary);
+			var resolved = function.Resolve(environment, primary);
 
 			if (resolved != null)
 			{
@@ -41,13 +41,8 @@ public class LinkNode : OperatorNode
 			var types = function.Select(i => i.TryGetType()).ToList();
 
 			// Try to form a virtual function call
-			resolved = Common.TryGetVirtualFunctionCall(Left, primary, function.Name, function, types);
-
-			if (resolved != null)
-			{
-				resolved.Position = Position;
-				return resolved;
-			}
+			resolved = Common.TryGetVirtualFunctionCall(Left, primary, function.Name, function, types, Position);
+			if (resolved != null) return resolved;
 
 			// Try to form a lambda function call
 			resolved = Common.TryGetLambdaCall(primary, Left, function.Name, function, types);

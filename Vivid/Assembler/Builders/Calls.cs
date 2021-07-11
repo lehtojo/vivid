@@ -104,7 +104,7 @@ public static class Calls
 			position.Format = format;
 			destinations.Add(position.Finalize());
 
-			position.Offset += Size.FromFormat(value.Format).Bytes;
+			position.Offset += Assembler.Size.Bytes;
 		}
 
 		sources.Add(value);

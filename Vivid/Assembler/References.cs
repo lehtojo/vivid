@@ -83,7 +83,7 @@ public static class References
 			return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 		}
 
-		if (unit.IsInitialized(variable)) return unit.GetVariableValue(variable)!;
+		if (!Assembler.IsDebuggingEnabled && unit.IsInitialized(variable)) return unit.GetVariableValue(variable)!;
 		return new GetVariableInstruction(unit, null, null, variable, mode).Execute();
 	}
 

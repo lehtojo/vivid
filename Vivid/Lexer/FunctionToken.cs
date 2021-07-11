@@ -92,7 +92,7 @@ public class FunctionToken : Token
 		// Declare the parameters
 		foreach (var parameter in parameters)
 		{
-			context.Declare(parameter.Type, VariableCategory.PARAMETER, parameter.Name);
+			context.Declare(parameter.Type, VariableCategory.PARAMETER, parameter.Name).Position = parameter.Position;
 		}
 
 		return parameters;

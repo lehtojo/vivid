@@ -26,10 +26,7 @@ public class UnresolvedTypeComponent
 			var parameter = Arguments[i];
 			var replacement = Resolver.Resolve(context, parameter);
 
-			if (replacement == null)
-			{
-				continue;
-			}
+			if (replacement == null) continue;
 
 			Arguments[i] = replacement;
 		}

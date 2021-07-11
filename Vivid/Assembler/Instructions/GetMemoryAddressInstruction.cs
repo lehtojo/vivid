@@ -21,7 +21,7 @@ public class GetMemoryAddressInstruction : Instruction
 		IsAbstract = true;
 		Dependencies = new[] { Result, Start, Offset };
 
-		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
+		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 		Result.Format = Format;
 	}
 

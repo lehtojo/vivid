@@ -26,8 +26,7 @@ class ReturnPattern : Pattern
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var token = tokens[VALUE];
-		var value = Singleton.Parse(context, token);
+		var value = Singleton.Parse(context, tokens[VALUE]);
 
 		return new ReturnNode(value, tokens[RETURN].Position);
 	}

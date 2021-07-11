@@ -383,6 +383,34 @@ String {
 		=> -1
 	}
 
+	# Summary: Converts all upper case alphabetic characters to lower case and returns a new string
+	to_lower() {
+		buffer = allocate(length + 1)
+		buffer[length] = 0
+
+		loop (i = 0, i < length, i++) {
+			value = text[i]
+			if value >= `A` and value <= `Z` { value -= (`A` - `a`) }
+			buffer[i] = value
+		}
+
+		=> String.from(buffer, length)
+	}
+
+	# Summary: Converts all lower case alphabetic characters to upper case and returns a new string
+	to_upper() {
+		buffer = allocate(length + 1)
+		buffer[length] = 0
+
+		loop (i = 0, i < length, i++) {
+			value = text[i]
+			if value >= `a` and value <= `z` { value += (`A` - `a`) }
+			buffer[i] = value
+		}
+
+		=> String.from(buffer, length)
+	}
+
 	###
 	Summary: Overrides the plus operator, allowing the user to combine string using the plus operator
 	###

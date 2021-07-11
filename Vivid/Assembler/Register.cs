@@ -27,18 +27,16 @@ public class Register
 	public Result? Handle
 	{
 		get => _Value;
-		set { _Value = value; IsUsed = true; }
+		set { _Value = value; }
 	}
 
 	public string this[Size size] => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
 
 	public int Flags { get; set; }
 
-	public bool IsUsed { get; private set; } = false;
 	public bool IsLocked { get; set; } = false;
 	public bool IsVolatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
 	public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
-	public bool IsReturnRegister => Flag.Has(Flags, RegisterFlag.RETURN);
 	public bool IsMediaRegister => Flag.Has(Flags, RegisterFlag.MEDIA);
 
 	public Register(Size width, string[] partitions, params int[] flags)
@@ -71,11 +69,6 @@ public class Register
 	public void Reset(bool full = false)
 	{
 		_Value = null;
-
-		if (full)
-		{
-			IsUsed = false;
-		}
 	}
 
 	public override string ToString()

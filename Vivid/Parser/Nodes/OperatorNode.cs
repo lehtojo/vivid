@@ -30,17 +30,6 @@ public class OperatorNode : Node, IResolvable
 	private Type? GetClassicType()
 	{
 		var left = Left.TryGetType();
-
-		if (Operator is not ClassicOperator operation)
-		{
-			throw new InvalidOperationException("Operator was being processed as a classical operator but it was not one");
-		}
-
-		if (!operation.IsShared)
-		{
-			return left;
-		}
-
 		var right = Right.TryGetType();
 
 		// Return the left type only if it represents a link and it is modified with a number type
@@ -69,55 +58,45 @@ public class OperatorNode : Node, IResolvable
 		};
 	}
 
-	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node parameters)
+	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node arguments)
 	{
-		var parameter_types = Resolver.GetTypes(Right);
+		var argument_types = Resolver.GetTypes(arguments);
 
-		// If the parameter type list is null, it means that one or more of the parameters could not be resolved
-		if (parameter_types == null)
+		// If the parameter type list is null, it means that one or more of the arguments could not be resolved
+		if (argument_types == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(arguments), Position);
 		}
 
 		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
-		var operator_function = operator_functions.GetImplementation(parameter_types);
+		var operator_function = operator_functions.GetImplementation(argument_types);
 
 		if (operator_function == null)
 		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(parameters), Position);
+			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(arguments), Position);
 		}
 
-		return new LinkNode(target, new FunctionNode(operator_function, Position).SetArguments(parameters), Position);
+		return new LinkNode(target, new FunctionNode(operator_function, Position).SetArguments(arguments), Position);
 	}
 
 	private Node? TryResolveAsIndexedSetter()
 	{
-		if (!Equals(Operator, Operators.ASSIGN))
-		{
-			return null;
-		}
+		if (!Equals(Operator, Operators.ASSIGN)) return null;
 
-		// Since the left node represents an indexed accessor its first node must represent the target object
+		// Since the left node represents an accessor its first node must represent the target object
 		var target = Left.First!;
 		var type = target.TryGetType();
 
-		if (Equals(type, null))
-		{
-			return null;
-		}
+		if (type == null) return null;
+		if (!type.IsLocalFunctionDeclared(Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER)) return null;
 
-		if (!type.IsLocalFunctionDeclared(Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER))
-		{
-			return null;
-		}
-
-		// Since the left node represents an indexed accessor its last node must represent the 'indices'
-		var parameters = Left.Last!;
+		// Since the left node represents an accessor its last node must represent its arguments
+		var arguments = Left.Last!;
 
 		// Since the current node is the assign-operator the right node must represent the assigned value which should be the last parameter
-		parameters.Add(Right);
+		arguments.Add(Right);
 
-		return CreateOperatorFunctionCall(target, Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER, parameters);
+		return CreateOperatorFunctionCall(target, Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER, arguments);
 	}
 
 	public virtual Node? Resolve(Context context)
@@ -138,24 +117,15 @@ public class OperatorNode : Node, IResolvable
 		}
 
 		var type = Left.TryGetType();
+		if (type == null) return null;
 
-		if (Equals(type, null))
-		{
-			return null;
-		}
-
-		if (!type.IsOperatorOverloaded(Operator))
-		{
-			return null;
-		}
+		if (!type.IsOperatorOverloaded(Operator)) return null;
 
 		// Retrieve the function name corresponding to the operator of this node
-		var operator_function_name = Type.OPERATOR_OVERLOAD_FUNCTIONS[Operator];
+		var overload = Type.OPERATOR_OVERLOADS[Operator];
+		var arguments = new Node { Right };
 
-		// Construct the parameters
-		var parameters = new Node { Right };
-
-		return CreateOperatorFunctionCall(Left, operator_function_name, parameters);
+		return CreateOperatorFunctionCall(Left, overload, arguments);
 	}
 
 	private Status GetActionStatus(Type left, Type right)

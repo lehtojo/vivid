@@ -115,7 +115,7 @@ export write_file(filename: link, text: String) {
 # Summary: Writes the specified byte array to the specified file
 export write_file(filename: link, bytes: Array<byte>) {
 	# Try to open the specified file
-	file = internal.CreateFileA(filename, internal.GENERIC_READ, internal.FILE_SHARE_READ, none, internal.OPEN_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none)
+	file = internal.CreateFileA(filename, internal.GENERIC_WRITE, internal.FILE_SHARE_READ, none, internal.CREATE_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none)
 	if file == none => false
 
 	# Write the specified byte array to the opened file

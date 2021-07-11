@@ -124,7 +124,7 @@ public static class Memory
 		registers = locks.Select(i => i.Register).ToList();
 
 		// Now remove all redundant moves
-		moves.RemoveAll(m => m.IsRedundant);
+		moves.RemoveAll(i => i.IsRedundant);
 
 		var optimized = Align(unit, moves.Select(i => i.To<DualParameterInstruction>()).ToList());
 
@@ -271,7 +271,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Determines the next register
+	/// Determines the next register to use
 	/// </summary>
 	public static Register GetNextRegister(Unit unit, bool media_register, List<Directive>? directives = null, bool is_result = false)
 	{
@@ -300,7 +300,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Tries to get a register without releasing based on the specified hint
+	/// Tries to get a register without releasing based on the specified directives
 	/// </summary>
 	private static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, List<Directive>? directives = null)
 	{
@@ -329,7 +329,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Copies the given result to a register
+	/// Copies the specified result to a register
 	/// </summary>
 	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
@@ -356,7 +356,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to a register considering the specified hints
+	/// Moves the specified result to a register considering the specified directives
 	/// </summary>
 	public static Result MoveToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
@@ -379,7 +379,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to a register considering the specified hints
+	/// Moves the specified result to a register considering the specified directives
 	/// </summary>
 	public static Result Convert(Unit unit, Result result, Size size, List<Directive>? directives = null)
 	{

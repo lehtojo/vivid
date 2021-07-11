@@ -16,7 +16,7 @@ public static class Resolver
 	}
 
 	/// <summary>
-	/// Tries to resolve the given node tree
+	/// Tries to resolve the specified node tree
 	/// </summary>
 	public static void Resolve(Context context, Node node)
 	{
@@ -172,7 +172,7 @@ public static class Resolver
 	}
 
 	/// <summary>
-	/// Tries to resolve the problems in the node tree
+	/// Tries to resolve problems in the node tree
 	/// </summary>
 	private static Node? ResolveTree(Context context, Node node)
 	{

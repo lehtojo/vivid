@@ -173,9 +173,20 @@ public class Function : Context
 
 		for (var i = 0; i < Parameters.Count; i++)
 		{
-			if (Parameters[i].Type == null) continue;
+			var expected = Parameters[i].Type;
+			if (expected == null) continue;
 
-			if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null) return false;
+			var actual = types[i];
+			if (Equals(expected, actual)) continue;
+			
+			if (!expected.IsPrimitive || !actual.IsPrimitive)
+			{
+				if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
+			}
+			else if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null)
+			{
+				return false;
+			}
 		}
 
 		return true;

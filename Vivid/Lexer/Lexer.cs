@@ -272,6 +272,10 @@ public static class Lexer
 			{
 				position.NextLine();
 			}
+			else if (c == COMMENT)
+			{
+				position = SkipComment(text, position);
+			}
 			else if (c == STRING)
 			{
 				position = SkipString(text, position);

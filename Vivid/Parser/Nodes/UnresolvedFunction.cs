@@ -32,13 +32,9 @@ public class UnresolvedFunction : Node, IResolvable
 	/// <summary>
 	/// Transfers the specified parameters to this unresolved function
 	/// </summary>
-	public UnresolvedFunction SetArguments(Node parameters)
+	public UnresolvedFunction SetArguments(Node arguments)
 	{
-		foreach (var parameter in parameters)
-		{
-			Add(parameter);
-		}
-
+		foreach (var argument in arguments) Add(argument);
 		return this;
 	}
 
@@ -48,13 +44,10 @@ public class UnresolvedFunction : Node, IResolvable
 	private void TryResolveShortFunctionParameters(Context primary, List<(Type? Type, Node Node)> parameters)
 	{
 		// Collect all the parameters which are unresolved
-		var unresolved = parameters.Where(p => p.Type == null || p.Type.IsUnresolved).ToArray();
+		var unresolved = parameters.Where(i => i.Type == null || i.Type.IsUnresolved).ToArray();
 
 		// Ensure all the unresolved parameter types represent lambda types
-		if (!unresolved.All(p => p.Node.Is(NodeType.LAMBDA)) || !primary.IsFunctionDeclared(Name))
-		{
-			return;
-		}
+		if (!unresolved.All(i => i.Node.Is(NodeType.LAMBDA)) || !primary.IsFunctionDeclared(Name)) return;
 
 		// Collect all parameter types leaving all lambda types as nulls
 		var actual_types = parameters.Select(i => i.Type).ToList();
@@ -78,7 +71,7 @@ public class UnresolvedFunction : Node, IResolvable
 		// Filter out all candidates where the type of the parameter matching the unresolved lambda type is not a lambda type
 		for (var i = candidates.Count - 1; i >= 0; i--)
 		{
-			expected_types = candidates[i].Parameters.Select(p => p.Type).ToArray();
+			expected_types = candidates[i].Parameters.Select(i => i.Type).ToArray();
 
 			for (var j = 0; j < expected_types.Length; j++)
 			{
@@ -86,10 +79,7 @@ public class UnresolvedFunction : Node, IResolvable
 				var actual = actual_types[j];
 
 				// Skip all parameter types which do not represent lambda types
-				if (expected == null || actual is not FunctionType)
-				{
-					continue;
-				}
+				if (expected == null || actual is not FunctionType) continue;
 
 				if (expected is not FunctionType)
 				{
@@ -101,10 +91,7 @@ public class UnresolvedFunction : Node, IResolvable
 		}
 
 		// Resolve the lambda type only if there's only one option left since the analysis would go too complex
-		if (candidates.Count != 1)
-		{
-			return;
-		}
+		if (candidates.Count != 1) return;
 
 		var match = candidates.First();
 		expected_types = match.Parameters.Select(p => p.Type).ToArray();
@@ -113,10 +100,7 @@ public class UnresolvedFunction : Node, IResolvable
 		{
 			// Skip all parameter types which do not represent lambda types
 			/// NOTE: It is ensured that when the expected type is a call descriptor the actual type is as well
-			if (expected_types[i] is not FunctionType expected)
-			{
-				continue;
-			}
+			if (expected_types[i] is not FunctionType expected) continue;
 
 			var actual = (FunctionType)actual_types[i]!;
 
@@ -135,7 +119,7 @@ public class UnresolvedFunction : Node, IResolvable
 		}
 	}
 
-	public Node? Solve(Context environment, Context primary)
+	public Node? Resolve(Context environment, Context primary)
 	{
 		var linked = environment != primary;
 
@@ -143,6 +127,14 @@ public class UnresolvedFunction : Node, IResolvable
 		foreach (var parameter in this)
 		{
 			Resolver.Resolve(environment, parameter);
+		}
+
+		// Try to resolve all template arguments
+		for (var i = 0; i < Arguments.Length; i++)
+		{
+			var result = Resolver.Resolve(environment, Arguments[i]);
+			if (result == null) continue;
+			Arguments[i] = result;
 		}
 
 		// Get parameter types
@@ -174,7 +166,7 @@ public class UnresolvedFunction : Node, IResolvable
 		// Lastly, try to form a virtual function call if the function could not be found
 		if (function == null && !linked && !Arguments.Any())
 		{
-			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!);
+			var result = Common.TryGetVirtualFunctionCall(environment, Name, this, types!, Position);
 
 			if (result != null)
 			{
@@ -191,16 +183,10 @@ public class UnresolvedFunction : Node, IResolvable
 		{
 			var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
-			// Consider the following situations:
-			// Namespace.Type() <- Construction
-			// Namespace.Type<large>() <- Construction
-			// Namespace.Type.init() <- Direct call
-			// Namespace.Type<large>.init() <- Direct call
-			// Therefore, construction is only needed when the function name matches the name of the constructed type
+			// If the descriptor name is not the same as the function name, it is a direct call rather than a construction
 			return type.Identifier != Name ? node : (Node)new ConstructionNode(node, node.Position);
 		}
 
-		// When the environment context is the same as the current context it means that this function is not part of a link
 		// When the function is a member function and the this function is not part of a link it means that the function needs the self pointer
 		if (function.IsMember && !function.IsStatic && !linked)
 		{
@@ -219,7 +205,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 	public Node? Resolve(Context context)
 	{
-		return Solve(context, context);
+		return Resolve(context, context);
 	}
 
 	public Status GetStatus()

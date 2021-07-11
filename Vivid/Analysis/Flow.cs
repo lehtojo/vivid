@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public class NodeReferenceEqualityComparer : IEqualityComparer<Node>
@@ -272,7 +273,7 @@ public class ModifiableFlow
 
 	public string GetNextLabel()
 	{
-		return (LabelIdentity++).ToString();
+		return (LabelIdentity++).ToString(CultureInfo.InvariantCulture);
 	}
 
 	public void Replace(Node before, Node after)
@@ -804,7 +805,7 @@ public class Flow
 
 	public string GetNextLabel()
 	{
-		return (LabelIdentity++).ToString();
+		return (LabelIdentity++).ToString(CultureInfo.InvariantCulture);
 	}
 
 	public Flow(Node root)

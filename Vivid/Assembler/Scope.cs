@@ -196,7 +196,7 @@ public sealed class Scope : IDisposable
 		var local_contexts = GetTopLocalContexts(root).Concat(contexts).ToArray();
 
 		// Find all variables inside the root node which are edited
-		var edited_variables = GetAllNonLocalVariables(new Node[] { root }, local_contexts).Where(v => v.IsEditedInside(root));
+		var edited_variables = GetAllNonLocalVariables(new Node[] { root }, local_contexts).Where(i => i.IsEditedInside(root));
 
 		// All edited variables that are constants must be moved to registers or into memory
 		foreach (var variable in edited_variables)
@@ -464,7 +464,7 @@ public sealed class Scope : IDisposable
 
 		if (!Finalizers.Any())
 		{
-			var instruction = new RequireVariablesInstruction(Unit, Actives.Where(i => Analysis.IsUsedLater(i , Root)).ToList());
+			var instruction = new RequireVariablesInstruction(Unit, Actives.Where(i => Analysis.IsUsedLater(i, Root)).ToList());
 			instruction.Description = "Keeps outer scope variables active across the scope";
 			Unit.Append(instruction);
 			Actives.ForEach(i => Finalizers.Add(i));

@@ -77,21 +77,21 @@ public class Type : Context
 	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
 	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
 
-	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOAD_FUNCTIONS = new();
+	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOADS = new();
 
 	static Type()
 	{
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ADD, "plus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.SUBTRACT, "minus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MULTIPLY, "times");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.DIVIDE, "divide");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MODULUS, "remainder");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_ADD, "assign_plus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.EQUALS, "equals");
+		OPERATOR_OVERLOADS.Add(Operators.ADD, "plus");
+		OPERATOR_OVERLOADS.Add(Operators.SUBTRACT, "minus");
+		OPERATOR_OVERLOADS.Add(Operators.MULTIPLY, "times");
+		OPERATOR_OVERLOADS.Add(Operators.DIVIDE, "divide");
+		OPERATOR_OVERLOADS.Add(Operators.MODULUS, "remainder");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_ADD, "assign_plus");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
+		OPERATOR_OVERLOADS.Add(Operators.EQUALS, "equals");
 	}
 
 	public int Modifiers { get; set; }
@@ -166,7 +166,7 @@ public class Type : Context
 		Declare(destructor);
 	}
 
-	public Type(Context context, string name, int modifiers, Position position) : base(name)
+	public Type(Context context, string name, int modifiers, Position? position) : base(name)
 	{
 		Name = name;
 		Identifier = Name;
@@ -228,14 +228,9 @@ public class Type : Context
 		return Supertypes.Sum(i => i.ContentSize) + bytes;
 	}
 
-	public FunctionList GetOperatorFunction(Operator operation)
-	{
-		return GetFunction(OPERATOR_OVERLOAD_FUNCTIONS[operation]) ?? throw new InvalidOperationException($"Could not find operator function '{OPERATOR_OVERLOAD_FUNCTIONS[operation]}'");
-	}
-
 	public bool IsOperatorOverloaded(Operator operation)
 	{
-		return OPERATOR_OVERLOAD_FUNCTIONS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
+		return OPERATOR_OVERLOADS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
 	}
 
 	public int? GetSupertypeBaseOffset(Type type)
@@ -351,7 +346,7 @@ public class Type : Context
 	/// </summary>
 	public List<VirtualFunction> GetAllVirtualFunctions()
 	{
-		return Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>().Concat(Supertypes.SelectMany(i => i.GetAllVirtualFunctions())).ToList();
+		return Supertypes.SelectMany(i => i.GetAllVirtualFunctions()).Concat(Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>()).ToList();
 	}
 
 	/// <summary>
@@ -414,8 +409,6 @@ public class Type : Context
 			entry = new FunctionList();
 			Virtuals.Add(function.Name, entry);
 		}
-
-		function.Ordinal = Virtuals.Values.Sum(i => i.Overloads.Count);
 
 		entry.Add(function);
 	}

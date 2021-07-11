@@ -17,7 +17,7 @@ public class TemplateFunction : Function
 
 		for (var i = 0; i < TemplateArgumentNames.Count; i++)
 		{
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
 		}
 	}
 
@@ -29,7 +29,7 @@ public class TemplateFunction : Function
 		for (var i = 0; i < arguments; i++)
 		{
 			TemplateArgumentNames.Add($"T{i}");
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
 		}
 	}
 

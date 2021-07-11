@@ -113,6 +113,7 @@ public class Debug
 	public const byte DWARF_EXPORTED = 63;
 	public const byte DWARF_VARIABLE = 52;
 	public const byte DWARF_PARAMETER = 5;
+	public const byte DWARF_INHERITANCE = 28;
 	public const byte DWARF_LOCATION = 2;
 	public const byte DWARF_ENCODING = 62;
 	public const byte DWARF_BYTE_SIZE = 11;
@@ -142,7 +143,7 @@ public class Debug
 	public TableLabel Start { get; }
 	public TableLabel End { get; }
 
-	public byte Index { get; private set; } = 1;
+	public int Index { get; private set; } = 1;
 
 	public byte FileAbbrevation { get; private set; } = 0;
 	public byte ObjectTypeWithMembersAbbrevation { get; private set; } = 0;
@@ -154,6 +155,7 @@ public class Debug
 	public byte LocalVariableAbbrevation { get; private set; } = 0;
 	public byte ArrayTypeAbbrevation { get; private set; } = 0;
 	public byte SubrangeTypeAbbrevation { get; private set; } = 0;
+	public byte InheritanceAbbrevation { get; private set; } = 0;
 
 	public static object GetOffset(TableLabel from, TableLabel to)
 	{
@@ -257,8 +259,9 @@ public class Debug
 	public void AppendFunction(FunctionImplementation implementation, HashSet<Type> types)
 	{
 		var file = GetFile(implementation);
+		var abbreviation = ToULEB128(Index++); // DW_TAG_subprogram
 
-		Entry.Add(Index); // DW_TAG_subprogram
+		foreach (var value in abbreviation) Entry.Add(value);
 
 		var start = new TableLabel(implementation.GetFullname(), Size.QWORD, false);
 		Entry.Add(start); // DW_AT_low_pc
@@ -272,7 +275,8 @@ public class Debug
 
 		var has_children = implementation.Self != null || implementation.Parameters.Any() || implementation.Locals.Any();
 
-		Abbrevation.Add(Index++);
+		foreach (var value in abbreviation) Abbrevation.Add(value);
+
 		Abbrevation.Add(DWARF_FUNCTION);
 		Abbrevation.Add(has_children ? DWARF_HAS_CHILDREN : DWARF_HAS_NO_CHILDREN);
 
@@ -336,7 +340,7 @@ public class Debug
 
 	public void AppendFileAbbrevation()
 	{
-		Abbrevation.Add(Index); // Define the current abbreviation code
+		Abbrevation.Add((byte)Index); // Define the current abbreviation code
 
 		Abbrevation.Add(DWARF_TAG_COMPILE_UNIT); // This is a compile unit and it has children
 		Abbrevation.Add(DWARF_HAS_CHILDREN);
@@ -365,12 +369,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		FileAbbrevation = Index++;
+		FileAbbrevation = (byte)Index++;
 	}
 
 	public void AppendObjectTypeWithMembersAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
 		Abbrevation.Add(DWARF_HAS_CHILDREN);
 
@@ -392,12 +396,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		ObjectTypeWithMembersAbbrevation = Index++;
+		ObjectTypeWithMembersAbbrevation = (byte)Index++;
 	}
 
 	public void AppendObjectTypeWithoutMembersAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -419,12 +423,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		ObjectTypeWithoutMembersAbbrevation = Index++;
+		ObjectTypeWithoutMembersAbbrevation = (byte)Index++;
 	}
 
 	public void AppendBaseTypeAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_BASE_TYPE_DECLARATION);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -440,12 +444,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		BaseTypeAbbrevation = Index++;
+		BaseTypeAbbrevation = (byte)Index++;
 	}
 
 	public void AppendPointerTypeAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_POINTER_TYPE_DECLARATION);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -455,12 +459,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		PointerTypeAbbrevation = Index++;
+		PointerTypeAbbrevation = (byte)Index++;
 	}
 
 	public void AppendMemberVariableAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_MEMBER_DECLARATION);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -485,12 +489,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		MemberVariableAbbrevation = Index++;
+		MemberVariableAbbrevation = (byte)Index++;
 	}
 
 	public void AppendLocalVariableAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_VARIABLE);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -512,12 +516,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		LocalVariableAbbrevation = Index++;
+		LocalVariableAbbrevation = (byte)Index++;
 	}
 
 	public void AppendParameterVariableAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_PARAMETER);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -539,12 +543,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		ParameterVariableAbbrevation = Index++;
+		ParameterVariableAbbrevation = (byte)Index++;
 	}
 
 	public void AppendArrayTypeAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_ARRAY_TYPE);
 		Abbrevation.Add(DWARF_HAS_CHILDREN);
 
@@ -554,12 +558,12 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		ArrayTypeAbbrevation = Index++;
+		ArrayTypeAbbrevation = (byte)Index++;
 	}
 
 	public void AppendSubrangeTypeAbbrevation()
 	{
-		Abbrevation.Add(Index);
+		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_SUBRANGE_TYPE);
 		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
 
@@ -572,7 +576,29 @@ public class Debug
 		Abbrevation.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		SubrangeTypeAbbrevation = Index++;
+		SubrangeTypeAbbrevation = (byte)Index++;
+	}
+
+	public void AppendInheritanceAbbreviation()
+	{
+		Abbrevation.Add((byte)Index);
+
+		Abbrevation.Add(DWARF_INHERITANCE);
+		Abbrevation.Add(DWARF_HAS_NO_CHILDREN);
+
+		Abbrevation.Add(DWARF_TYPE);
+		Abbrevation.Add(DWARF_REFERENCE_32);
+
+		Abbrevation.Add(DWARF_MEMBER_LOCATION);
+		Abbrevation.Add(DWARF_DATA_32);
+
+		Abbrevation.Add(DWARF_ACCESSIBILITY);
+		Abbrevation.Add(DWARF_DATA_8);
+
+		Abbrevation.Add(DWARF_END);
+		Abbrevation.Add(DWARF_END);
+
+		InheritanceAbbrevation = (byte)Index++;
 	}
 
 	public static bool IsPointerType(Type type)
@@ -607,7 +633,7 @@ public class Debug
 
 	public void AppendObjectType(Type type, HashSet<Type> types)
 	{
-		var has_members = type.Variables.Values.Any(i => !i.IsGenerated);
+		var has_members = type.Supertypes.Any() || type.Variables.Values.Any(i => !i.IsGenerated);
 
 		Entry.Add(has_members ? ObjectTypeWithMembersAbbrevation : ObjectTypeWithoutMembersAbbrevation);
 		Entry.Add(DWARF_CALLING_CONVENTION_PASS_BY_REFERENCE);
@@ -615,6 +641,15 @@ public class Debug
 		Entry.Add(type.ContentSize);
 		Entry.Add(GetFile(type));
 		Entry.Add(GetLine(type));
+
+		// Include the supertypes
+		foreach (var supertype in type.Supertypes)
+		{
+			Entry.Add(InheritanceAbbrevation);
+			Entry.Add(GetOffset(Start, GetTypeLabel(supertype, types)));
+			Entry.Add(type.GetSupertypeBaseOffset(supertype) ?? throw new ApplicationException("Could not resolve supertype base offset"));
+			Entry.Add(DWARF_ACCESS_PUBLIC);
+		}
 
 		foreach (var member in type.Variables.Values)
 		{
@@ -892,6 +927,7 @@ public class Debug
 		AppendLocalVariableAbbrevation();
 		AppendArrayTypeAbbrevation();
 		AppendSubrangeTypeAbbrevation();
+		AppendInheritanceAbbreviation();
 	}
 
 	public void EndFile()

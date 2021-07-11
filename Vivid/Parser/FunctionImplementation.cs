@@ -27,7 +27,6 @@ public class FunctionImplementation : Context
 	public bool IsInlined { get; set; } = false;
 	public bool IsEmpty => (Node == null || Node.First == null) && !Metadata.IsImported;
 
-	public bool IsVirtual => Metadata is VirtualFunction;
 	public bool IsConstructor => Metadata is Constructor;
 	public bool IsStatic => Flag.Has(Metadata!.Modifiers, Modifier.STATIC);
 

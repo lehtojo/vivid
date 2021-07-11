@@ -14,7 +14,7 @@ public class CastPattern : Pattern
 	public CastPattern() : base
 	(
 		TokenType.OBJECT,
-		TokenType.KEYWORD | TokenType.OPERATOR
+		TokenType.KEYWORD
 	) { }
 
 	public override int GetPriority(List<Token> tokens)

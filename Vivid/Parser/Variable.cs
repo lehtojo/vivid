@@ -98,7 +98,7 @@ public class Variable
 		{
 			var local_alignment = LocalAlignment ?? throw new ApplicationException($"Variable '{Name}' was not aligned yet");
 
-			return parent.Supertypes.Sum(s => s.ContentSize) + local_alignment;
+			return parent.Supertypes.Sum(i => i.ContentSize) + local_alignment;
 		}
 
 		var position = 0;

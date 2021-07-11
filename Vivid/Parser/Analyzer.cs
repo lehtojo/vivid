@@ -9,7 +9,7 @@ public static class Analyzer
 	/// </summary>
 	public static bool IsEdited(Node node)
 	{
-		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Reference did not have a valid parent");
+		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Node did not have a valid parent");
 
 		if (parent.Is(OperatorType.ACTION))
 		{

@@ -400,7 +400,7 @@ public class MemoryHandle : Handle
 			}
 			else
 			{
-				return $"{address}";
+				return address;
 			}
 		}
 
@@ -429,7 +429,7 @@ public class MemoryHandle : Handle
 			return new MemoryHandle(Unit, new Result(Start.Value, Start.Format), Offset);
 		}
 
-		throw new ApplicationException("Start of the memory handle was in invalid format for freeze operation");
+		throw new ApplicationException("Start of the memory handle was in invalid format during finalization");
 	}
 
 	public override bool Equals(object? other)
@@ -467,7 +467,7 @@ public class StackMemoryHandle : MemoryHandle
 			return new StackMemoryHandle(Unit, Offset, IsAbsolute);
 		}
 
-		throw new ApplicationException("Stack memory handle's register was invalid");
+		throw new ApplicationException("Stack memory handle did not use the stack pointer register");
 	}
 
 	public override bool Equals(object? other)
@@ -557,10 +557,7 @@ public class ComplexMemoryHandle : Handle
 		}
 		else if (Index.Value.Is(HandleInstanceType.CONSTANT))
 		{
-			var constant = Index.Value.To<ConstantHandle>();
-
-			var index = (long)constant.Value;
-			var value = index * Stride;
+			var value = (long)Index.Value.To<ConstantHandle>().Value * Stride;
 
 			if (Assembler.IsArm64)
 			{
