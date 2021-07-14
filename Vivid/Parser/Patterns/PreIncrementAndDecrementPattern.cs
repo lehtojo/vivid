@@ -21,23 +21,12 @@ class PreIncrementAndDecrementPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var destination = tokens[OBJECT];
-
-		if (destination is DynamicToken dynamic && !dynamic.Node.Is(NodeType.LINK, NodeType.INCREMENT, NodeType.DECREMENT))
-		{
-			return false;
-		}
-
 		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT || tokens[OPERATOR].To<OperatorToken>().Operator == Operators.DECREMENT;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		if (tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT)
-		{
-			return new IncrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OPERATOR].Position);
-		}
-
+		if (tokens[OPERATOR].To<OperatorToken>().Operator == Operators.INCREMENT) return new IncrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OPERATOR].Position);
 		return new DecrementNode(Singleton.Parse(context, tokens[OBJECT]), tokens[OPERATOR].Position);
 	}
 }

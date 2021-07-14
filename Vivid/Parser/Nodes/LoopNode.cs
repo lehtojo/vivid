@@ -92,4 +92,6 @@ public class LoopNode : Node, IResolvable, IScope
 	{
 		return HashCode.Combine(Instance, Position, Context.Identity, Body.Context.Identity, IsForeverLoop);
 	}
+
+	public override string ToString() => "Loop";
 }

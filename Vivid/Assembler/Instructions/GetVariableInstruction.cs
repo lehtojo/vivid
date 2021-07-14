@@ -20,23 +20,18 @@ public class GetVariableInstruction : Instruction
 		IsAbstract = true;
 		Description = $"Get the current handle of variable '{variable.Name}'";
 
-		if (Self != null)
-		{
-			Dependencies = new[] { Result, Self };
-		}
+		if (Self != null) { Dependencies = new[] { Result, Self }; }
 
 		Result.Value = References.CreateVariableHandle(unit, Self, self_type, variable);
 		Result.Format = variable.Type!.Format;
+
+		OnSimulate();
 	}
 
 	public override void OnSimulate()
 	{
-		var current = Unit.GetCurrentVariableHandle(Variable);
-
-		if (current == null)
-		{
-			return;
-		}
+		var current = Unit.GetVariableValue(Variable);
+		if (current == null) return;
 
 		Result.Join(current);
 	}

@@ -17,7 +17,7 @@ public class TemplateFunction : Function
 
 		for (var i = 0; i < TemplateArgumentNames.Count; i++)
 		{
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
 		}
 	}
 
@@ -29,13 +29,13 @@ public class TemplateFunction : Function
 		for (var i = 0; i < arguments; i++)
 		{
 			TemplateArgumentNames.Add($"T{i}");
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT));
+			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
 		}
 	}
 
 	private Function? TryGetVariant(Type[] template_parameters)
 	{
-		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(a => a.Name));
+		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
 
 		if (Variants.TryGetValue(identifier, out Function? variant))
 		{

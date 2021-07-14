@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class TypeNode : Node, IScope
+public class TypeNode : Node, IScope, IResolvable
 {
 	public Type Type { get; private set; }
 	public bool IsDefinition { get; set; } = false;
@@ -52,7 +52,7 @@ public class TypeNode : Node, IScope
 		}
 
 		// Parse all the subtypes
-		FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
+		FindAll(NodeType.TYPE).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
 
 		// Find all expressions which represent type initialization
 		var expressions = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
@@ -88,4 +88,44 @@ public class TypeNode : Node, IScope
 	{
 		return Type;
 	}
+
+	public Node? Resolve(Context context) => null;
+
+	public Status GetStatus()
+	{
+		if (Parent == null || !Parent.Is(NodeType.LINK) || Parent.Left != this) return Status.OK;
+
+		var right = Next!;
+		var accessed_object_parent_type = (Type?)null;
+
+		if (right.Is(NodeType.VARIABLE))
+		{
+			var variable = right.To<VariableNode>().Variable;
+			if (variable.IsStatic) return Status.OK;
+
+			accessed_object_parent_type = (Type)variable.Context;
+		}
+		else if (right.Is(NodeType.FUNCTION))
+		{
+			var function = right.To<FunctionNode>().Function;
+			if (function.IsStatic) return Status.OK;
+
+			accessed_object_parent_type = (Type)function.Parent!;
+		}
+		else
+		{
+			return Status.OK;
+		}
+
+		var scope_parent_type = GetContext().FindTypeParent();
+
+		if (scope_parent_type == null || (scope_parent_type != accessed_object_parent_type && !scope_parent_type.IsTypeInherited(accessed_object_parent_type)))
+		{
+			return Status.Error(Position, "Can not access the right operand, because it is not static");
+		}
+
+		return Status.OK;
+	}
+
+	public override string ToString() => $"Type {Type}";
 }

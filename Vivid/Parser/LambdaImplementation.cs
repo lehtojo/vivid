@@ -97,10 +97,9 @@ public class LambdaImplementation : FunctionImplementation
 	/// <summary>
 	/// Implements the function using the given blueprint
 	/// </summary>
-	/// <param name="blueprint">Tokens from which to implement the function</param>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(GetRoot(), Identity, Modifier.DEFAULT);
+		Type = new Type(GetRoot(), Identity, Modifier.DEFAULT, Metadata.Start);
 		Type.AddRuntimeConfiguration();
 
 		Type.AddConstructor(Constructor.Empty(Type, Metadata.Start, Metadata.End));

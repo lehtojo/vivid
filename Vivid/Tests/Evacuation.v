@@ -1,12 +1,12 @@
 import large_function()
 
-export evacuation(a, b) {
+export evacuation(a: large, b: large) {
 	c = a * b + 10
 	large_function()
 	=> a + b + c
 }
 
-export evacuation_with_memory(a, b) {
+export evacuation_with_memory(a: large, b: large) {
 	c = a * b + 10
 	d = a * b + 10
 	e = a * b + 10
@@ -16,8 +16,4 @@ export evacuation_with_memory(a, b) {
 
 init() {
 	=> 1
-	
-	# Dummy for type resolvation
-	evacuation(1, 1)
-	evacuation_with_memory(1, 1)
 }

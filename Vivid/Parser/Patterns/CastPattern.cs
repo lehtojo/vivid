@@ -14,7 +14,7 @@ public class CastPattern : Pattern
 	public CastPattern() : base
 	(
 		TokenType.OBJECT,
-		TokenType.KEYWORD | TokenType.OPERATOR
+		TokenType.KEYWORD
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -34,6 +34,6 @@ public class CastPattern : Pattern
 
 		if (type == null) throw Errors.Get(tokens[TYPE].Position, "Can not resolve the cast type");
 
-		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position));
+		return new CastNode(source, new TypeNode(type, tokens[TYPE].Position), tokens[CAST].Position);
 	}
 }

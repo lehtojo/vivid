@@ -46,7 +46,7 @@ public class Mangle
 {
 	public const string EXPORT_TYPE_TAG = "_T";
 	public const string VIVID_LANGUAGE_TAG = "_V";
-	public const string C_LANGUAGE_TAG = "_Z";
+	public const string CPP_LANGUAGE_TAG = "_Z";
 
 	public const char START_LOCATION_COMMAND = 'N';
 
@@ -67,6 +67,8 @@ public class Mangle
 	public const char START_FUNCTION_POINTER_COMMAND = 'F';
 	public const char START_MEMBER_VARIABLE_COMMAND = 'V';
 	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
+
+	public const string VIRTUAL_FUNCTION_POSTFIX = "_v";
 
 	private List<MangleDefinition> Definitions { get; set; } = new List<MangleDefinition>();
 	public string Value { get; set; } = string.Empty;
@@ -152,11 +154,9 @@ public class Mangle
 	/// <summary>
 	/// Adds the specified type to this mangled identifier
 	/// </summary>
-	/// <param name="pointers">How many nested pointers does this type have</param>
-	/// <param name="full">If set to true, the full location of the specified type is appended, otherwise only the name of the type and potential template arguments are appended</param>
 	public void Add(Type type, int pointers = 0, bool full = true)
 	{
-		if (pointers == 0 && Primitives.IsPrimitive(type))
+		if (pointers == 0 && type.IsPrimitive && type.Name != Primitives.LINK && type is not ArrayType)
 		{
 			Value += type.Identifier;
 			return;
@@ -183,7 +183,7 @@ public class Mangle
 			}
 
 			// Add the default definition without pointers if the type is not a primitive
-			if (!Primitives.IsPrimitive(type))
+			if (!type.IsPrimitive || type.Name == Primitives.LINK || type is ArrayType)
 			{
 				Definitions.Add(new MangleDefinition(type, Definitions.Count, 0));
 			}
@@ -201,7 +201,7 @@ public class Mangle
 				}
 				else
 				{
-					pointers = Primitives.IsPrimitive(type) || type is Link ? 0 : 1;
+					pointers = type.IsPrimitive ? 0 : 1;
 					Add(type, pointers);
 				}
 
@@ -210,12 +210,12 @@ public class Mangle
 				return;
 			}
 
-			if (type is Link)
+			if (type is Link || type is ArrayType)
 			{
 				Value += POINTER_COMMAND;
 				
 				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
-				pointers = Primitives.IsPrimitive(type) || type is Link ? 0 : 1;
+				pointers = argument.IsPrimitive ? 0 : 1;
 				
 				Add(argument, pointers);
 				return;
@@ -270,7 +270,7 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, Primitives.IsPrimitive(type) || type is Link ? 0 : 1);
+			Add(type, type.IsPrimitive ? 0 : 1);
 		}
 	}
 
@@ -291,9 +291,10 @@ public class Context : IComparable<Context>
 	public Context? Parent { get; set; }
 	public List<Context> Subcontexts { get; private set; } = new List<Context>();
 
-	public bool IsGlobal => GetTypeParent() == null;
-	public bool IsMember => GetTypeParent() != null;
+	public bool IsGlobal => FindTypeParent() == null;
+	public bool IsMember => FindTypeParent() != null;
 	public bool IsType => this is Type;
+	public bool IsNamespace => this is Type && To<Type>().IsStatic;
 	public bool IsFunction => this is Function;
 	public bool IsLambda => this is Lambda;
 	public bool IsImplementation => this is FunctionImplementation;
@@ -301,7 +302,6 @@ public class Context : IComparable<Context>
 
 	public bool IsInsideLambda => IsLambdaImplementation || IsLambda || GetImplementationParent() is LambdaImplementation || GetFunctionParent() is Lambda;
 	public bool IsInsideFunction => IsImplementation || IsFunction || GetImplementationParent() != null || GetFunctionParent() != null;
-	public bool IsInsideType => IsType || GetTypeParent() != null;
 
 	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
 	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
@@ -328,11 +328,11 @@ public class Context : IComparable<Context>
 	public Context(Context parent)
 	{
 		Identity = parent.Identity + '.' + parent.Indexer[Indexer.CONTEXT];
-		Link(parent);
+		Connect(parent);
 	}
 
 	/// <summary>
-	/// Returns whether the given context is a parent context or higher to this context
+	/// Returns whether the specified context is this context or one of the parent contexts
 	/// </summary>
 	public bool IsInside(Context context)
 	{
@@ -440,12 +440,21 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Links this context with the given context, allowing access to the information of the given context
 	/// </summary>
-	/// <param name="context">Context to link with</param>
-	public void Link(Context context)
+	public void Connect(Context context)
 	{
 		Parent = context;
 		Parent.Subcontexts.Add(this);
 		Update();
+	}
+	
+	/// <summary>
+	/// Diconnects this context from its parent
+	/// </summary>
+	public void Disconnect()
+	{
+		if (Parent == null) return;
+		Parent.Subcontexts.Remove(this);
+		Parent = null;
 	}
 
 	/// <summary>
@@ -490,7 +499,6 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Declares a type into the context
 	/// </summary>
-	/// <param name="type">Type to declare</param>
 	public void Declare(Type type)
 	{
 		if (IsLocalTypeDeclared(type.Name))
@@ -504,18 +512,18 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Declares a function into the context
 	/// </summary>
-	/// <param name="function">Function to declare</param>
 	public void Declare(Function function)
 	{
 		FunctionList entry;
 
-		if (IsLocalFunctionDeclared(function.Name))
+		if (Functions.ContainsKey(function.Name))
 		{
 			entry = Functions[function.Name];
 		}
 		else
 		{
-			Functions.Add(function.Name, (entry = new FunctionList()));
+			entry = new FunctionList();
+			Functions.Add(function.Name, entry);
 		}
 
 		entry.Add(function);
@@ -524,7 +532,6 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Declares a variable into the context
 	/// </summary>
-	/// <param name="variable">Variable to declare</param>
 	public void Declare(Variable variable)
 	{
 		if (Variables.ContainsKey(variable.Name))
@@ -558,13 +565,12 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, category, $"{Indexer.HIDDEN.ToLowerInvariant()}.{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
+		return Variable.Create(this, type, category, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
 	}
 
 	/// <summary>
 	/// Declares a label into the context
 	/// </summary>
-	/// <param name="label">Label to declare</param>
 	public void Declare(Label label)
 	{
 		if (IsLocalLabelDeclared(label.GetName()))
@@ -803,14 +809,14 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Tries to returns the first parent context which is a type
 	/// </summary>
-	public Type? GetTypeParent()
+	public Type? FindTypeParent()
 	{
 		if (IsType)
 		{
 			return (Type)this;
 		}
 
-		return Parent?.GetTypeParent();
+		return Parent?.FindTypeParent();
 	}
 
 	/// <summary>
@@ -850,11 +856,6 @@ public class Context : IComparable<Context>
 	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
 	{
 		return Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations).Where(i => i.Node != null);
-	}
-
-	public virtual IEnumerable<FunctionImplementation> GetFunctionImplementations()
-	{
-		return Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations);
 	}
 
 	public virtual Label CreateLabel()

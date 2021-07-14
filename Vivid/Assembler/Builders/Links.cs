@@ -11,7 +11,7 @@ public static class Links
 		}
 
 		// Retrieve the context where the function is defined
-		var function_context = function.Function.Metadata!.GetTypeParent()!;
+		var function_context = function.Function.Metadata!.FindTypeParent()!;
 		var self = References.Get(unit, self_node);
 
 		// If the function is not defined inside the type of the self pointer, it means it must have been defined in its supertypes, therefore casting is needed
@@ -29,23 +29,21 @@ public static class Links
 
 		if (node.Right.Is(NodeType.VARIABLE))
 		{
-			var variable = node.Right.To<VariableNode>().Variable;
+			var member = node.Right.To<VariableNode>().Variable;
 
-			if (variable.Category == VariableCategory.GLOBAL)
+			// Link nodes can also access static variables for example
+			if (member.IsGlobal)
 			{
-				return References.GetVariable(unit, variable, mode);
+				return References.GetVariable(unit, member, mode);
 			}
 
-			var start = References.Get(unit, node.Left);
-			var alignment = variable.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
+			var left = References.Get(unit, node.Left);
+			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
 
-			return new GetObjectPointerInstruction(unit, variable, start, alignment, mode).Execute();
+			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
 		}
 
-		if (!node.Right.Is(NodeType.FUNCTION))
-		{
-			throw new NotImplementedException("Unsupported member node");
-		}
+		if (!node.Right.Is(NodeType.FUNCTION)) throw new NotImplementedException("Unsupported member node");
 
 		return GetMemberFunctionCall(unit, node.Right.To<FunctionNode>(), node.Left, self_type);
 	}

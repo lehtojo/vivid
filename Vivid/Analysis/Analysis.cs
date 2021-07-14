@@ -278,6 +278,17 @@ public static class Analysis
 			return SimplifyDivision(left_components, right_components);
 		}
 
+		#warning Enable in the future
+		// if (Equals(node.Operator, Operators.SHIFT_LEFT))
+		// {
+		// 	return SimplifyShiftLeft(left_components, right_components);
+		// }
+
+		// if (Equals(node.Operator, Operators.SHIFT_RIGHT))
+		// {
+		// 	return SimplifyShiftRight(left_components, right_components);
+		// }
+
 		return new List<Component>
 		{
 			new ComplexComponent(new OperatorNode(node.Operator).SetOperands(Recreate(left_components), Recreate(right_components)))
@@ -385,6 +396,56 @@ public static class Analysis
 	}
 
 	/// <summary>
+	/// Simplifies left shift between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyShiftLeft(List<Component> left_components, List<Component> right_components)
+	{
+		if (right_components.Count != 1 || right_components.First() is not NumberComponent right || right.Value is not long shifter)
+		{
+			return new List<Component>
+			{
+				new ComplexComponent(new OperatorNode(Operators.SHIFT_LEFT).SetOperands(Recreate(left_components), Recreate(right_components)))
+			};
+		}
+
+		var components = new List<Component>();
+		var multiplier = new NumberComponent(1L << (int)shifter);
+
+		foreach (var component in left_components)
+		{
+			var result = component * multiplier;
+			components.Add(result ?? new ComplexComponent(new OperatorNode(Operators.MULTIPLY).SetOperands(Recreate(component), Recreate(multiplier))));
+		}
+
+		return components;
+	}
+
+	/// <summary>
+	/// Simplifies left shift between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyShiftRight(List<Component> left_components, List<Component> right_components)
+	{
+		if (right_components.Count != 1 || right_components.First() is not NumberComponent right || right.Value is not long shifter)
+		{
+			return new List<Component>
+			{
+				new ComplexComponent(new OperatorNode(Operators.SHIFT_RIGHT).SetOperands(Recreate(left_components), Recreate(right_components)))
+			};
+		}
+
+		var components = new List<Component>();
+		var divider = new NumberComponent(1L << (int)shifter);
+
+		foreach (var component in left_components)
+		{
+			var result = component / divider;
+			components.Add(result ?? new ComplexComponent(new OperatorNode(Operators.DIVIDE).SetOperands(Recreate(component), Recreate(divider))));
+		}
+
+		return components;
+	}
+
+	/// <summary>
 	/// Tries to simplify the specified node
 	/// </summary>
 	public static Node GetSimplifiedValue(Node value)
@@ -401,7 +462,7 @@ public static class Analysis
 	/// </summary>
 	public static bool OptimizeComparisons(Node root)
 	{
-		var comparisons = root.FindAll(n => n.Is(NodeType.OPERATOR) && n.To<OperatorNode>().Operator.Type == OperatorType.COMPARISON);
+		var comparisons = root.FindAll(i => i.Is(OperatorType.COMPARISON));
 		var precomputed = false;
 
 		foreach (var comparison in comparisons)
@@ -478,6 +539,31 @@ public static class Analysis
 			}
 		}
 
+		var precomputations = root.FindAll(i => i.Is(OperatorType.LOGIC));
+		precomputations.Reverse();
+
+		foreach (var condition in precomputations)
+		{
+			var parent = condition.Parent;
+
+			if (condition.Left.Is(NodeType.NUMBER))
+			{
+				var passes = !Numbers.IsZero(condition.Left.To<NumberNode>().Value);
+				if (condition.Is(Operators.AND)) condition.Replace(passes ? condition.Right : condition.Left);
+				else condition.Replace(passes ? condition.Left : condition.Right);
+				precomputed = true;
+				continue;
+			}
+
+			if (condition.Right.Is(NodeType.NUMBER))
+			{
+				var passes = !Numbers.IsZero(condition.Right.To<NumberNode>().Value);
+				if (condition.Is(Operators.AND)) condition.Replace(passes ? condition.Left : condition.Right);
+				else condition.Replace(passes ? condition.Left : condition.Right);
+				precomputed = true;
+			}
+		}
+
 		return precomputed;
 	}
 	
@@ -487,19 +573,7 @@ public static class Analysis
 	public static void OptimizeAllExpressions(Node root)
 	{
 		// Find all top level operators
-		var expressions = new List<Node>();
-
-		foreach (var operation in FindTopLevelOperators(root))
-		{
-			if (operation.Operator.Type == OperatorType.ACTION)
-			{
-				expressions.Add(operation.Last!);
-			}
-			else
-			{
-				expressions.Add(operation);
-			}
-		}
+		var expressions = root.FindTop(i => i.Is(OperatorType.CLASSIC) || i.Is(NodeType.NEGATE));
 
 		foreach (var expression in expressions)
 		{
@@ -526,7 +600,7 @@ public static class Analysis
 	/// </summary>
 	private static Node? GetBranch(Node node)
 	{
-		return node.FindParent(p => p.Is(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE));
+		return node.FindParent(NodeType.LOOP, NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE);
 	}
 
 	/// <summary>
@@ -580,10 +654,7 @@ public static class Analysis
 		while ((branch = GetBranch(branch)) != null)
 		{
 			// If the perspective is inside the condition of the branch, it can still enter the other branches
-			if (IsInsideBranchCondition(perspective, branch))
-			{
-				continue;
-			}
+			if (IsInsideBranchCondition(perspective, branch)) continue;
 
 			DenyOtherBranches(denylist, branch);
 		}
@@ -594,7 +665,7 @@ public static class Analysis
 	/// <summary>
 	/// Returns whether the specified variable will be used in the future starting from the specified node perspective
 	/// NOTE: Usually the perspective node is a branch but it is not counted as one.
-	/// This behaviour is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
+	/// This behavior is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
 	/// </summary>
 	public static bool IsUsedLater(Variable variable, Node perspective, bool self = false)
 	{
@@ -602,22 +673,16 @@ public static class Analysis
 		var denylist = GetDenylist(perspective);
 
 		// If the it is allowed to count the perspective as a branch as well, append the other branches to the denylist
-		if (self)
-		{
-			DenyOtherBranches(denylist, perspective);
-		}
+		if (self) DenyOtherBranches(denylist, perspective);
 
 		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective)))
-		{
-			return true;
-		}
+		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective))) return true;
 
-		return perspective.FindParent(i => i.Is(NodeType.LOOP)) != null;
+		return perspective.FindParent(NodeType.LOOP) != null;
 	}
 
 	/// <summary>
-	/// Returns all operator nodes which are first encounter when decending from the specified node
+	/// Returns all operator nodes which are first encounter when descending from the specified node
 	/// </summary>
 	private static List<OperatorNode> FindTopLevelOperators(Node node)
 	{
@@ -733,6 +798,12 @@ public static class Analysis
 				iterator = iterator.Next;
 				continue;
 			}
+			else if (iterator.Is(NodeType.NEGATE))
+			{
+				result += STANDARD_OPERATOR_COST;
+				iterator = iterator.Next;
+				continue;
+			}
 
 			result += GetCost(iterator);
 
@@ -772,12 +843,9 @@ public static class Analysis
 				var overloads = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).Overloads;
 
 				// Check if there is already a function call using any of the overloads above, if so, no need to generate another call
-				var calls = iterator.Node!.FindAll(i => i.Is(NodeType.FUNCTION)).Cast<FunctionNode>();
+				var calls = iterator.Node!.FindAll(NodeType.FUNCTION).Cast<FunctionNode>();
 				
-				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i)))
-				{
-					continue;
-				}
+				if (calls.Any(i => overloads.Contains(i.Function.Metadata) && ReconstructionAnalysis.IsUsingLocalSelfPointer(i))) continue;
 
 				// Get the implementation which requires no arguments
 				var implementation = (iterator.IsConstructor ? supertype.Constructors : supertype.Destructors).GetImplementation();
@@ -805,14 +873,28 @@ public static class Analysis
 	}
 
 	/// <summary>
+	/// Returns whether the specified node accesses any member of the specified type and the access requires self pointer
+	/// </summary>
+	private static bool IsSelfPointerRequired(Node node)
+	{
+		if (!node.Is(NodeType.FUNCTION, NodeType.VARIABLE) || node.Parent!.Is(NodeType.CONSTRUCTION, NodeType.LINK)) return false;
+
+		if (node.Is(NodeType.FUNCTION))
+		{
+			var function = node.To<FunctionNode>().Function;
+			return function.IsMember && !function.IsStatic;
+		}
+
+		var variable = node.To<VariableNode>().Variable;
+		return variable.IsMember && !variable.IsStatic;
+	}
+
+	/// <summary>
 	/// Adds logic for allocating an instance of the specified type, registering virtual functions and initializing member variables to the constructors of the specified type
 	/// </summary>
 	private static void CompleteConstructors(Type type)
 	{
-		if (type.Configuration == null)
-		{
-			return;
-		}
+		if (type.Configuration == null) return;
 
 		var expressions = new List<OperatorNode>(type.Initialization);
 
@@ -823,9 +905,15 @@ public static class Analysis
 			foreach (var iterator in expressions)
 			{
 				var expression = iterator.Clone().To<OperatorNode>();
-				var members = expression.FindAll(i => i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsMember && !i.Parent!.Is(NodeType.LINK));
+				var edited = Analyzer.GetEdited(expression);
 
-				foreach (var member in members)
+				// Do not initialize constants in constructors
+				if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsConstant) continue;
+
+				var member_accessors = expression.FindAll(i => IsSelfPointerRequired(i));
+
+				// Add self pointer to all member accessors
+				foreach (var member in member_accessors)
 				{
 					member.Replace(new LinkNode(self.Clone(), member.Clone()));
 				}
@@ -849,10 +937,7 @@ public static class Analysis
 	/// </summary>
 	private static void CompleteDestructors(Type type)
 	{
-		if (!IsGarbageCollectorEnabled)
-		{
-			return;
-		}
+		if (!IsGarbageCollectorEnabled) return;
 		
 		foreach (var destructor in type.Destructors.Overloads.SelectMany(i => i.Implementations))
 		{
@@ -861,15 +946,12 @@ public static class Analysis
 
 			foreach (var member in type.Variables.Values)
 			{
-				// If the member is not destructable, it is not unlinkable, so skip it
-				if (member.IsStatic || !member.Type!.IsUserDefined)
-				{
-					continue;
-				}
+				// If the member is not destructible, it is not unlinkable, so skip it
+				if (member.IsStatic || !member.Type!.IsUserDefined) continue;
 
 				// Unlink the member variable
 				var implementation = Parser.UnlinkFunction!.Get(member.Type!) ?? throw new ApplicationException("Missing unlink function overload");;
-				root.Add(new FunctionNode(implementation).SetParameters(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
+				root.Add(new FunctionNode(implementation).SetArguments(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
 			}
 		}
 	}
@@ -879,7 +961,7 @@ public static class Analysis
 	/// </summary>
 	private static void CompleteInspections(Node root)
 	{
-		var inspections = root.FindAll(i => i.Is(NodeType.INSPECTION)).Cast<InspectionNode>();
+		var inspections = root.FindAll(NodeType.INSPECTION).Cast<InspectionNode>();
 
 		foreach (var inspection in inspections)
 		{
@@ -891,7 +973,7 @@ public static class Analysis
 			}
 			else if (inspection.Type == InspectionType.SIZE)
 			{
-				inspection.Replace(new NumberNode(Parser.Format, (long)type.ReferenceSize));
+				inspection.Replace(new NumberNode(Parser.Format, (long)type.AllocationSize));
 			}
 		}
 	}
@@ -924,29 +1006,20 @@ public static class Analysis
 	/// </summary>
 	public static void CaptureContextLeaks(Context context, Node root)
 	{
-		var variables = root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var variables = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find variables whose parent context is not defined inside the implementation, if even one is found it means something has leaked
-		if (variables.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (variables.Any()) { throw new ApplicationException("Found a context leak"); }
 
-		var declarations = root.FindAll(i => i.Is(NodeType.DECLARE)).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var declarations = root.FindAll(NodeType.DECLARE).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
-		if (declarations.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (declarations.Any()) { throw new ApplicationException("Found a context leak"); }
 
 		var subcontexts = root.FindAll(i => i is IScope && !i.Is(NodeType.TYPE)).Cast<IScope>().Where(i => !i.GetContext().IsInside(context));
 
 		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
-		if (subcontexts.Any())
-		{
-			throw new ApplicationException("Found a context leak");
-		}
+		if (subcontexts.Any()) { throw new ApplicationException("Found a context leak"); }
 	}
 
 	/// <summary>
@@ -958,10 +1031,7 @@ public static class Analysis
 		var verbose = Assembler.IsVerboseOutputEnabled;
 		var time = bundle.Get(ConfigurationPhase.OUTPUT_TIME, false);
 
-		if (time || verbose)
-		{
-			Console.WriteLine("1. Pass");
-		}
+		if (time || verbose) Console.WriteLine("1. Pass");
 
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
@@ -971,7 +1041,7 @@ public static class Analysis
 			var start = DateTime.UtcNow;
 			
 			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);
@@ -999,15 +1069,8 @@ public static class Analysis
 			}
 		}
 
-		if (!IsGarbageCollectorEnabled)
-		{
-			return;
-		}
-
-		if (time || verbose)
-		{
-			Console.WriteLine("2. Pass");
-		}
+		if (!IsGarbageCollectorEnabled) return;
+		if (time || verbose) Console.WriteLine("2. Pass");
 
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
@@ -1024,7 +1087,7 @@ public static class Analysis
 			GarbageCollector.Generate(implementation);
 			
 			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);

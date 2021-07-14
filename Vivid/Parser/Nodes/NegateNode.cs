@@ -25,4 +25,6 @@ public class NegateNode : Node, IResolvable
 		// Ensure the object is a number
 		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the negation operation");
 	}
+
+	public override string ToString() => "Negate";
 }

@@ -26,10 +26,7 @@ public class UnresolvedTypeComponent
 			var parameter = Arguments[i];
 			var replacement = Resolver.Resolve(context, parameter);
 
-			if (replacement == null)
-			{
-				continue;
-			}
+			if (replacement == null) continue;
 
 			Arguments[i] = replacement;
 		}
@@ -45,6 +42,7 @@ public class UnresolvedTypeComponent
 public class UnresolvedType : Type, IResolvable
 {
 	private UnresolvedTypeComponent[] Components { get; }
+	public ContentToken? Count { get; set; }
 
 	public UnresolvedType(string identifier) : base(string.Empty, Modifier.DEFAULT)
 	{
@@ -56,9 +54,10 @@ public class UnresolvedType : Type, IResolvable
 		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
 	}
 
-	public UnresolvedType(UnresolvedTypeComponent[] components) : base(string.Empty, Modifier.DEFAULT)
+	public UnresolvedType(UnresolvedTypeComponent[] components, ContentToken? count = null) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Components = components;
+		Count = count;
 	}
 
 	public override bool IsResolved()
@@ -117,6 +116,11 @@ public class UnresolvedType : Type, IResolvable
 			context = type;
 		}
 
+		if (Count != null)
+		{
+			return new TypeNode(new ArrayType(environment, context.To<Type>(), Count, Position));
+		}
+
 		return new TypeNode(context.To<Type>());
 	}
 
@@ -132,6 +136,6 @@ public class UnresolvedType : Type, IResolvable
 
 	public override string ToString()
 	{
-		return string.Join('.', (object[])Components);
+		return string.Join('.', (object[])Components) + (Count != null ? "[]" : string.Empty);
 	}
 }

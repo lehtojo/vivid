@@ -9,19 +9,16 @@ public static class Loops
 	/// </summary>
 	public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
 	{
-		if (node.Loop == null)
-		{
-			throw new ApplicationException("Loop control instruction was not inside a loop");
-		}
+		if (node.Loop == null) throw new ApplicationException("Loop control instruction was not inside a loop");
 
 		if (node.Condition != null)
 		{
 			Arithmetic.BuildCondition(unit, node.Condition);
 		}
 
-		var label = (Label?)null;
-
 		unit.Append(new MergeScopeInstruction(unit, node.Loop.Scope ?? throw new ApplicationException("Missing loop scope")));
+
+		var label = (Label?)null;
 
 		if (node.Instruction == Keywords.STOP)
 		{
@@ -104,6 +101,9 @@ public static class Loops
 			// Build the nodes around the actual condition by disabling the condition temporarily
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
+
+			// Initialization of the condition happens twice, therefore inner labels can duplicate
+			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
 
 			Builders.Build(unit, statement.Initialization.Next!);
 
@@ -242,7 +242,7 @@ public static class Loops
 			}
 		}
 
-		// Replace all occurances of the following pattern in the instructions:
+		// Replace all occurrences of the following pattern in the instructions:
 		// [Conditional jump] [Label 1]
 		// jmp [Label 2]
 		// [Label 1]:
@@ -271,12 +271,12 @@ public static class Loops
 
 		// Remove unused labels
 		var labels = instructions.Where(i => i.Is(InstructionType.LABEL)).Select(i => i.To<LabelInstruction>()).ToList();
-		var jumps = instructions.Where(i => i.Is(InstructionType.JUMP)).Select(j => j.To<JumpInstruction>()).ToArray();
+		var jumps = instructions.Where(i => i.Is(InstructionType.JUMP)).Select(j => j.To<JumpInstruction>());
 
 		foreach (var label in labels)
 		{
 			// Check if any jump instruction uses the current label
-			if (jumps.All(j => j.Label != label.Label))
+			if (!jumps.Any(i => i.Label == label.Label))
 			{
 				// Since the label is not used, it can be removed
 				instructions.Remove(label);
@@ -338,14 +338,16 @@ public static class Loops
 		if (condition.Is(NodeType.OPERATOR))
 		{
 			var operation = condition.To<OperatorNode>();
+			var type = operation.Operator.Type;
 
-			return operation.Operator.Type switch
+			if (type == OperatorType.LOGIC)
 			{
-				OperatorType.LOGIC => BuildLogicalCondition(unit, operation, success, failure),
-				OperatorType.COMPARISON => BuildComparison(unit, operation, success, failure),
-				_ => throw new ApplicationException(
-				   "Unsupported operator encountered while building a conditional statement")
-			};
+				return BuildLogicalCondition(unit, operation, success, failure);
+			}
+			else if (type == OperatorType.COMPARISON)
+			{
+				return BuildComparison(unit, operation, success, failure);
+			}
 		}
 
 		if (condition.Is(NodeType.CONTENT))
@@ -356,7 +358,7 @@ public static class Loops
 		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
 		condition.Replace(replacement);
 
-		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, condition.Position));
+		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, replacement.Position));
 
 		return BuildCondition(unit, replacement, success, failure);
 	}

@@ -25,4 +25,6 @@ public class ContextInlineNode : InlineNode, IScope
 	{
 		return HashCode.Combine(Instance, Position, Context.Identity);
 	}
+
+	public override string ToString() => "Context Inline";
 }

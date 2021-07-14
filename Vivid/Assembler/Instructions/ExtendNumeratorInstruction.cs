@@ -1,5 +1,5 @@
 ﻿/// <summary>
-/// Extends the sign of the quentient register
+/// Extends the sign of the quotient register
 /// This instruction works only on architecture x86-64
 /// </summary>
 public class ExtendNumeratorInstruction : Instruction

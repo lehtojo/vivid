@@ -39,8 +39,7 @@ public class RuntimeConfiguration
 	public const string REFERENCE_COUNT_VARIABLE = ".references";
 
 	public const string ZERO_TERMINATOR = "\\x00";
-	public const string INHERITANT_SEPARATOR = "\\x01";
-	public const string FULLNAME_END = "\\x02";
+	public const string FULLNAME_END = "\\x01";
 
 	public Table Entry { get; private set; }
 	public Table Descriptor { get; private set; }
@@ -50,20 +49,9 @@ public class RuntimeConfiguration
 
 	public bool IsCompleted { get; set; } = false;
 
-	private string GetFullname(Type type, bool start = false)
+	private static string GetFullname(Type type)
 	{
-		var a = type.Name;
-		var b = INHERITANT_SEPARATOR;
-
-		b += string.Join(string.Empty, type.Supertypes.Select(i => GetFullname(i)).ToArray());
-
-		if (start)
-		{
-			a += ZERO_TERMINATOR;
-			b += FULLNAME_END;
-		}
-
-		return a + b;
+		return type.Name + ZERO_TERMINATOR + string.Join(ZERO_TERMINATOR, type.GetAllSupertypes().Select(i => i.Name)) + FULLNAME_END;
 	}
 
 	public RuntimeConfiguration(Type type)
@@ -80,7 +68,7 @@ public class RuntimeConfiguration
 
 		Entry.Add(Descriptor);
 
-		Descriptor.Add(GetFullname(type, true), false);
+		Descriptor.Add(GetFullname(type), false);
 	}
 }
 
@@ -89,31 +77,30 @@ public class Type : Context
 	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
 	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
 
-	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOAD_FUNCTIONS = new();
+	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOADS = new();
 
 	static Type()
 	{
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ADD, "plus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.SUBTRACT, "minus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MULTIPLY, "times");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.DIVIDE, "divide");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.MODULUS, "remainder");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_ADD, "assign_plus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
-		OPERATOR_OVERLOAD_FUNCTIONS.Add(Operators.EQUALS, "equals");
+		OPERATOR_OVERLOADS.Add(Operators.ADD, "plus");
+		OPERATOR_OVERLOADS.Add(Operators.SUBTRACT, "minus");
+		OPERATOR_OVERLOADS.Add(Operators.MULTIPLY, "times");
+		OPERATOR_OVERLOADS.Add(Operators.DIVIDE, "divide");
+		OPERATOR_OVERLOADS.Add(Operators.MODULUS, "remainder");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_ADD, "assign_plus");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
+		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
+		OPERATOR_OVERLOADS.Add(Operators.EQUALS, "equals");
 	}
 
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
 
+	public bool IsInlining => Flag.Has(Modifiers, Modifier.INLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
-
 	public bool IsUnresolved => !IsResolved();
-
 	public bool IsPrimitive => Flag.Has(Modifiers, Modifier.PRIMITIVE);
 	public bool IsUserDefined => !IsPrimitive && Destructors.Overloads.Any();
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
@@ -121,14 +108,17 @@ public class Type : Context
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
 	public Format Format => GetFormat();
-	public int ReferenceSize => GetReferenceSize();
-	public int ContentSize => GetContentSize();
+
+	public int ReferenceSize => GetReferenceSize(); // Reference size describes how many bytes it requires to refer to an instance of this type
+	public int AllocationSize => GetAllocationSize(); // Allocation size describes how many bytes this type requires from its container
+	public int ContentSize => GetContentSize(); // Allocation size describes how many bytes this type contains
 
 	public RuntimeConfiguration? Configuration { get; set; }
 
 	public List<Type> Supertypes { get; } = new List<Type>();
 	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();
 	public Dictionary<string, FunctionList> Virtuals { get; } = new Dictionary<string, FunctionList>();
+	public Dictionary<string, FunctionList> Overrides { get; } = new Dictionary<string, FunctionList>();
 	public FunctionList Constructors { get; } = new FunctionList();
 	public FunctionList Destructors { get; } = new FunctionList();
 
@@ -175,24 +165,8 @@ public class Type : Context
 
 		Declare(destructor);
 	}
-	
-	/// <summary>
-	/// Returns all the constructors
-	/// </summary>
-	public FunctionList GetConstructors()
-	{
-		return Constructors;
-	}
 
-	/// <summary>
-	/// Returns all the destructors
-	/// </summary>
-	public FunctionList GetDestructors()
-	{
-		return Destructors;
-	}
-
-	public Type(Context context, string name, int modifiers, Position position) : base(name)
+	public Type(Context context, string name, int modifiers, Position? position) : base(name)
 	{
 		Name = name;
 		Identifier = Name;
@@ -203,7 +177,7 @@ public class Type : Context
 		AddConstructor(Constructor.Empty(this, position, position));
 		AddDestructor(Destructor.Empty(this, position, position));
 
-		Link(context);
+		Connect(context);
 		context.Declare(this);
 	}
 
@@ -214,7 +188,7 @@ public class Type : Context
 		Modifiers = modifiers;
 		Supertypes = new List<Type>();
 
-		Link(context);
+		Connect(context);
 		context.Declare(this);
 	}
 
@@ -227,10 +201,7 @@ public class Type : Context
 
 	public void AddRuntimeConfiguration()
 	{
-		if (Configuration != null)
-		{
-			return;
-		}
+		if (Configuration != null) return;
 
 		Configuration = new RuntimeConfiguration(this);
 	}
@@ -245,23 +216,21 @@ public class Type : Context
 		return Parser.Bytes;
 	}
 
-	public virtual int GetContentSize()
+	public virtual int GetAllocationSize()
 	{
-		var local_content_size = Variables
-			.Where(v => !v.Value.IsStatic)
-			.Sum(v => v.Value.Type?.ReferenceSize ?? throw new ApplicationException("Tried to get reference size of a unresolved member"));
-
-		return Supertypes.Sum(s => s.ContentSize) + local_content_size;
+		return GetReferenceSize();
 	}
 
-	public FunctionList GetOperatorFunction(Operator operation)
+	public virtual int GetContentSize()
 	{
-		return GetFunction(OPERATOR_OVERLOAD_FUNCTIONS[operation]) ?? throw new InvalidOperationException($"Could not find operator function '{OPERATOR_OVERLOAD_FUNCTIONS[operation]}'");
+		var bytes = Variables.Where(i => !i.Value.IsStatic).Sum(i => i.Value.Type?.AllocationSize ?? throw Errors.Get(i.Value.Position, "Missing member variable type"));
+
+		return Supertypes.Sum(i => i.ContentSize) + bytes;
 	}
 
 	public bool IsOperatorOverloaded(Operator operation)
 	{
-		return OPERATOR_OVERLOAD_FUNCTIONS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
+		return OPERATOR_OVERLOADS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
 	}
 
 	public int? GetSupertypeBaseOffset(Type type)
@@ -303,27 +272,27 @@ public class Type : Context
 
 	public bool IsSuperFunctionDeclared(string name)
 	{
-		return Supertypes.Any(t => t.IsLocalFunctionDeclared(name));
+		return Supertypes.Any(i => i.IsLocalFunctionDeclared(name));
 	}
 
 	public bool IsSuperVariableDeclared(string name)
 	{
-		return Supertypes.Any(t => t.IsLocalVariableDeclared(name));
+		return Supertypes.Any(i => i.IsLocalVariableDeclared(name));
 	}
 
 	public bool IsSuperTypeDeclared(Type supertype)
 	{
-		return Supertypes.Contains(supertype) || Supertypes.Any(t => t.IsSuperTypeDeclared(supertype));
+		return Supertypes.Contains(supertype) || Supertypes.Any(i => i.IsSuperTypeDeclared(supertype));
 	}
 
 	public FunctionList? GetSuperFunction(string name)
 	{
-		return Supertypes.First(t => t.IsLocalFunctionDeclared(name)).GetFunction(name);
+		return Supertypes.First(i => i.IsLocalFunctionDeclared(name)).GetFunction(name);
 	}
 
 	public Variable? GetSuperVariable(string name)
 	{
-		return Supertypes.First(t => t.IsLocalVariableDeclared(name)).GetVariable(name);
+		return Supertypes.First(i => i.IsLocalVariableDeclared(name)).GetVariable(name);
 	}
 
 	public override bool IsFunctionDeclared(string name)
@@ -377,7 +346,7 @@ public class Type : Context
 	/// </summary>
 	public List<VirtualFunction> GetAllVirtualFunctions()
 	{
-		return Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>().Concat(Supertypes.SelectMany(i => i.GetAllVirtualFunctions())).ToList();
+		return Supertypes.SelectMany(i => i.GetAllVirtualFunctions()).Concat(Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>()).ToList();
 	}
 
 	/// <summary>
@@ -421,7 +390,6 @@ public class Type : Context
 	/// <summary>
 	/// Declares a virtual function into the context
 	/// </summary>
-	/// <param name="function">Function to declare</param>
 	public void Declare(VirtualFunction function)
 	{
 		FunctionList? entry;
@@ -438,46 +406,57 @@ public class Type : Context
 				throw new InvalidOperationException("Tried to declare a virtual function with a name which was taken by one of supertypes");
 			}
 
-			Virtuals.Add(function.Name, (entry = new FunctionList()));
+			entry = new FunctionList();
+			Virtuals.Add(function.Name, entry);
 		}
-
-		function.Ordinal = Virtuals.Values.Sum(i => i.Overloads.Count);
 
 		entry.Add(function);
 	}
 
-	public override IEnumerable<FunctionImplementation> GetImplementedFunctions()
+	/// <summary>
+	/// Declares the specfied virtual function overload
+	/// </summary>
+	public void DeclareOverride(Function function)
 	{
-		// Take all the standard member functions and also the constructors and destructors
-		return base.GetImplementedFunctions()
-			.Concat(Constructors.Overloads.Concat(Destructors.Overloads)
-			.SelectMany(f => f.Implementations)
-			.Where(i => i.Node != null));
+		FunctionList entry;
+
+		if (Overrides.ContainsKey(function.Name))
+		{
+			entry = Overrides[function.Name];
+		}
+		else
+		{
+			entry = new FunctionList();
+			Overrides.Add(function.Name, entry);
+		}
+
+		entry.Add(function);
 	}
 
-	public override IEnumerable<FunctionImplementation> GetFunctionImplementations()
+	/// <summary>
+	/// Tries to find virtual function overrides with the specified name
+	/// </summary>
+	public FunctionList? GetOverride(string name)
 	{
-		// Take all the standard member functions and also the constructors and destructors
-		return base.GetImplementedFunctions()
-			.Concat(Constructors.Overloads.Concat(Destructors.Overloads)
-			.SelectMany(f => f.Implementations));
+		if (Overrides.ContainsKey(name)) return Overrides[name];
+
+		foreach (var supertype in Supertypes)
+		{
+			var result = supertype.GetOverride(name);
+			if (result != null) return result;
+		}
+
+		return null;
 	}
 
 	public bool IsInheritingAllowed(Type inheritant)
 	{
 		// Type inheriting itself is not allowed
-		if (inheritant == this)
-		{
-			return false;
-		}
+		if (inheritant == this) return false;
 
 		// The inheritant should not have this type as its supertype
 		var inheritant_supertypes = inheritant.GetAllSupertypes();
-
-		if (inheritant_supertypes.Contains(this))
-		{
-			return false;
-		}
+		if (inheritant_supertypes.Contains(this)) return false;
 
 		// Deny the inheritance if supertypes already contain the inheritant or if any supertype would be duplicated
 		var inheritor_supertypes = GetAllSupertypes();
@@ -517,10 +496,7 @@ public class Type : Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new();
-		hash.Add(Name);
-		hash.Add(Identity);
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Identity);
 	}
 
 	public override string ToString()

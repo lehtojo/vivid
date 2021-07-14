@@ -1,6 +1,3 @@
-true = 1i8
-false = 0i8
-
 Animal {
 	energy = 100i16
 	hunger = 0i8

@@ -400,7 +400,7 @@ public class MemoryHandle : Handle
 			}
 			else
 			{
-				return $"{address}";
+				return address;
 			}
 		}
 
@@ -429,7 +429,7 @@ public class MemoryHandle : Handle
 			return new MemoryHandle(Unit, new Result(Start.Value, Start.Format), Offset);
 		}
 
-		throw new ApplicationException("Start of the memory handle was in invalid format for freeze operation");
+		throw new ApplicationException("Start of the memory handle was in invalid format during finalization");
 	}
 
 	public override bool Equals(object? other)
@@ -467,7 +467,7 @@ public class StackMemoryHandle : MemoryHandle
 			return new StackMemoryHandle(Unit, Offset, IsAbsolute);
 		}
 
-		throw new ApplicationException("Stack memory handle's register was invalid");
+		throw new ApplicationException("Stack memory handle did not use the stack pointer register");
 	}
 
 	public override bool Equals(object? other)
@@ -517,43 +517,47 @@ public class TemporaryMemoryHandle : StackMemoryHandle
 public class ComplexMemoryHandle : Handle
 {
 	public Result Start { get; private set; }
-	public Result Offset { get; private set; }
+	public Result Index { get; private set; }
 	public int Stride { get; private set; }
+	public int Offset { get; private set; }
 
-	public ComplexMemoryHandle(Result start, Result offset, int stride) : base(HandleType.MEMORY, HandleInstanceType.COMPLEX_MEMORY)
+	public ComplexMemoryHandle(Result start, Result index, int stride, int offset = 0) : base(HandleType.MEMORY, HandleInstanceType.COMPLEX_MEMORY)
 	{
 		Start = start;
-		Offset = offset;
+		Index = index;
 		Stride = stride;
+		Offset = offset;
+
+		if (Assembler.IsArm64 && offset != 0)
+		{
+			throw new InvalidOperationException("Arm64 does not support memory handles with multiple offsets");
+		}
 	}
 
 	public override void Use(int position)
 	{
 		Start.Use(position);
-		Offset.Use(position);
+		Index.Use(position);
 	}
 
 	public override string ToString()
 	{
 		var offset = string.Empty;
 
-		if (Offset.IsStandardRegister || Offset.IsModifier)
+		if (Index.IsStandardRegister || Index.IsModifier)
 		{
 			if (Assembler.IsArm64)
 			{
-				offset = $", {Offset}" + (Stride == 1 ? string.Empty : $", {Instructions.Arm64.SHIFT_LEFT} #{(long)Math.Log2(Stride)}");
+				offset = $", {Index}" + (Stride == 1 ? string.Empty : $", {Instructions.Arm64.SHIFT_LEFT} #{(long)Math.Log2(Stride)}");
 			}
 			else
 			{
-				offset = "+" + Offset.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
+				offset = "+" + Index.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
 			}
 		}
-		else if (Offset.Value.Is(HandleInstanceType.CONSTANT))
+		else if (Index.Value.Is(HandleInstanceType.CONSTANT))
 		{
-			var constant = Offset.Value.To<ConstantHandle>();
-
-			var index = (long)constant.Value;
-			var value = index * Stride;
+			var value = (long)Index.Value.To<ConstantHandle>().Value * Stride;
 
 			if (Assembler.IsArm64)
 			{
@@ -579,6 +583,12 @@ public class ComplexMemoryHandle : Handle
 			return string.Empty;
 		}
 
+		if (Offset != 0)
+		{
+			if (Assembler.IsArm64) return string.Empty;
+			offset += $"+{Offset}";
+		}
+
 		if (Start.IsStandardRegister || Start.IsConstant)
 		{
 			var address = $"[{Start.Value}{offset}]";
@@ -598,9 +608,9 @@ public class ComplexMemoryHandle : Handle
 
 	public override Result[] GetRegisterDependentResults()
 	{
-		if (!Offset.IsConstant && !Offset.IsModifier)
+		if (!Index.IsConstant && !Index.IsModifier)
 		{
-			return new Result[] { Start, Offset };
+			return new Result[] { Start, Index };
 		}
 
 		return new Result[] { Start };
@@ -608,7 +618,7 @@ public class ComplexMemoryHandle : Handle
 
 	public override Result[] GetInnerResults()
 	{
-		return new[] { Start, Offset };
+		return new[] { Start, Index };
 	}
 
 	public override Handle Finalize()
@@ -616,8 +626,9 @@ public class ComplexMemoryHandle : Handle
 		return new ComplexMemoryHandle
 		(
 			new Result(Start.Value.Finalize(), Start.Format),
-			new Result(Offset.Value.Finalize(), Offset.Format),
-			Stride
+			new Result(Index.Value.Finalize(), Index.Format),
+			Stride,
+			Offset
 		);
 	}
 
@@ -625,13 +636,14 @@ public class ComplexMemoryHandle : Handle
 	{
 		return other is ComplexMemoryHandle handle &&
 			  Equals(Start.Value, handle.Start.Value) &&
-			  Equals(Offset.Value, handle.Offset.Value) &&
-			  Stride == handle.Stride;
+			  Equals(Index.Value, handle.Index.Value) &&
+			  Stride == handle.Stride &&
+			  Offset == handle.Offset;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Start, Offset, Stride);
+		return HashCode.Combine(Start, Index, Stride, Offset);
 	}
 }
 

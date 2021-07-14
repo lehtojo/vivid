@@ -16,7 +16,7 @@ public class ExpressionVariablePattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return context.IsInsideType && tokens[ARROW].Is(Operators.HEAVY_ARROW);
+		return (context.IsType || context.IsNamespace) && tokens[ARROW].Is(Operators.HEAVY_ARROW);
 	}
 
 	public override Node? Build(Context type, PatternState state, List<Token> tokens)

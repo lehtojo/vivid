@@ -27,4 +27,6 @@ public class StackAddressNode : Node
 	{
 		return HashCode.Combine(Instance, Position, Identity, Bytes);
 	}
+
+	public override string ToString() => $"Stack Allocation ({Bytes} bytes)";
 }

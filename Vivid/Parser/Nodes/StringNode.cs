@@ -38,4 +38,6 @@ public class StringNode : Node, ICloneable
 	{
 		return HashCode.Combine(Instance, Position, Text);
 	}
+
+	public override string ToString() => $"String {Text}";
 }

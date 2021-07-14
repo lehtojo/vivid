@@ -83,4 +83,6 @@ public class NumberNode : Node, ICloneable
 	{
 		return HashCode.Combine(Instance, Position, Type, Value);
 	}
+
+	public override string ToString() => $"Number {Value}";
 }

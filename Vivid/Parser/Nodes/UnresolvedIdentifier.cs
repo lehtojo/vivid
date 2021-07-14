@@ -53,16 +53,16 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 		lambda.Parameters.AddRange(parameters);
 
-		return new LambdaNode(lambda.Implement(types),position);
+		return new LambdaNode(lambda.Implement(types), position);
 	}
 
 	/// <summary>
 	/// Tries to convert this identifier into a function pointer
 	/// </summary>
-	private Node? TryResolveAsFunctionPointer(Context context)
+	private Node? TryResolveAsFunctionPointer(Context context, bool linked)
 	{
 		// Check whether a function with same name as this identifier exists
-		if (!context.IsFunctionDeclared(Value))
+		if (!context.IsFunctionDeclared(Value, linked))
 		{
 			return null;
 		}
@@ -130,7 +130,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 		var linked = Parent != null && Parent.Is(NodeType.LINK);
 		var result = Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), linked);
 
-		return result.Is(NodeType.UNRESOLVED_IDENTIFIER) ? TryResolveAsFunctionPointer(context) : result;
+		return result.Is(NodeType.UNRESOLVED_IDENTIFIER) ? TryResolveAsFunctionPointer(context, linked) : result;
 	}
 
 	public override Type? TryGetType()
@@ -141,11 +141,6 @@ public class UnresolvedIdentifier : Node, IResolvable
 	public Status GetStatus()
 	{
 		return Status.Error(Position, $"Can not resolve identifier '{Value}'");
-	}
-
-	public override string ToString()
-	{
-		return "?";
 	}
 
 	public override bool Equals(object? other)
@@ -159,4 +154,6 @@ public class UnresolvedIdentifier : Node, IResolvable
 	{
 		return HashCode.Combine(base.GetHashCode(), Value);
 	}
+
+	public override string ToString() => $"Unresolved Identifier {Value}";
 }

@@ -38,19 +38,11 @@ public class DivisionInstruction : DualParameterInstruction
 
 			if (Assigns && !First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
-				{
-					Type = MoveType.RELOCATE
-				});
-
+				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.RELOCATE });
 				return First;
 			}
 
-			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First)
-			{
-				Type = MoveType.COPY
-
-			}.Execute();
+			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.COPY }.Execute();
 		}
 		else if (!Assigns)
 		{
@@ -97,7 +89,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var flags = ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.WRITES | ParameterFlag.READS | ParameterFlag.LOCKED | (Assigns ? ParameterFlag.RELOCATE_TO_DESTINATION : ParameterFlag.NONE);
 
 		Build(
-			Instructions.X64.SIGNED_DIVIDE,
+			Unsigned ? Instructions.X64.UNSIGNED_DIVIDE : Instructions.X64.SIGNED_DIVIDE,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -127,7 +119,7 @@ public class DivisionInstruction : DualParameterInstruction
 		var flags = ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.HIDDEN | ParameterFlag.READS | ParameterFlag.LOCKED;
 
 		Build(
-			Instructions.X64.SIGNED_DIVIDE,
+			Unsigned ? Instructions.X64.UNSIGNED_DIVIDE : Instructions.X64.SIGNED_DIVIDE,
 			Assembler.Size,
 			new InstructionParameter(
 				numerator,
@@ -263,7 +255,7 @@ public class DivisionInstruction : DualParameterInstruction
 		// msub x0, x2, x1, x0 (assigns)
 
 		var first = Memory.LoadOperand(Unit, First, false, Assigns);
-		var division = new DivisionInstruction(Unit, false, first, Second, Format, false, Unsigned).Execute();
+		var division = new DivisionInstruction(Unit, false, first, Second, Result.Format, false, Unsigned).Execute();
 
 		if (Assigns)
 		{
@@ -325,7 +317,7 @@ public class DivisionInstruction : DualParameterInstruction
 	public void OnBuildArm64()
 	{
 		var is_decimal = First.Format.IsDecimal() || Second.Format.IsDecimal();
-		var instruction = is_decimal ? Instructions.Arm64.DECIMAL_DIVIDE : Instructions.Arm64.SIGNED_DIVIDE;
+		var instruction = is_decimal ? Instructions.Arm64.DECIMAL_DIVIDE : (Unsigned ? Instructions.Arm64.UNSIGNED_DIVIDE : Instructions.Arm64.SIGNED_DIVIDE);
 		var base_register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 		var types = is_decimal ? new[] { HandleType.MEDIA_REGISTER } : new[] { HandleType.REGISTER };
 
@@ -427,7 +419,7 @@ public class DivisionInstruction : DualParameterInstruction
 		return false;
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsArm64)
 		{

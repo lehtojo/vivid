@@ -1,5 +1,3 @@
-using System;
-
 /// <summary>
 /// Loads the specified variable into a modifiable location if it is constant
 /// This instruction works on all architectures
@@ -19,17 +17,8 @@ public class SetModifiableInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var handle = new GetVariableInstruction(Unit, Variable, AccessMode.READ).Execute();
-
-		if (handle == null)
-		{
-			throw new ApplicationException("Scope tried to edit an external variable which was not defined yet");
-		}
-
-		if (!handle.IsConstant)
-		{
-			return;
-		}
+		var handle = Unit.GetVariableValue(Variable);
+		if (handle == null || !handle.IsConstant) return;
 
 		var directives = Trace.GetDirectives(Unit, handle);
 		var is_media_register = handle.Format.IsDecimal();

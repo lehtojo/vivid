@@ -2,6 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 
+public struct InlineContainer
+{
+	public Node Destination { get; private set; }
+	public InlineNode Node { get; private set; }
+	public Variable Result { get; private set; }
+
+	public InlineContainer(Node destination, InlineNode node, Variable result)
+	{
+		Destination = destination;
+		Node = node;
+		Result = result;
+	}
+}
+
 public static class Common
 {
 	/// <summary>
@@ -20,36 +34,32 @@ public static class Common
 	/// <summary>
 	/// Tries to build a virtual function call which has a specified owner
 	/// </summary>
-	public static CallNode? TryGetVirtualFunctionCall(Node self, Type self_type, string name, Node parameters, List<Type?> parameter_types)
+	public static CallNode? TryGetVirtualFunctionCall(Node self, Type self_type, string name, Node parameters, List<Type?> parameter_types, Position? position)
 	{
-		if (!self_type.IsVirtualFunctionDeclared(name))
-		{
-			return null;
-		}
+		if (!self_type.IsVirtualFunctionDeclared(name)) return null;
 
 		// Ensure all the parameter types are resolved
-		if (parameter_types.Any(i => i == null || i.IsUnresolved))
-		{
-			return null;
-		}
+		if (parameter_types.Any(i => i == null || i.IsUnresolved)) return null;
 
 		// Try to find a virtual function with the parameter types
 		var overload = (VirtualFunction?)self_type.GetVirtualFunction(name)!.GetOverload(parameter_types!);
+		if (overload == null || overload.ReturnType == null) return null;
 
-		if (overload == null || self_type.Configuration == null)
-		{
-			return null;
-		}
+		var required_self_type = overload.FindTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
+		if (required_self_type.Configuration == null) return null;
 
-		var function_pointer = new OffsetNode(new LinkNode(self.Clone(), new VariableNode(self_type.Configuration.Variable)), new NumberNode(Parser.Format, overload.Alignment));
-		var required_self_type = overload.GetTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
+		var configuration = required_self_type.GetConfigurationVariable();
+		var alignment = (long)required_self_type.GetAllVirtualFunctions().IndexOf(overload);
+		if (alignment == -1) throw new ApplicationException("Could not compute virtual function alignment");
 
+		var function_pointer = new OffsetNode(new LinkNode(self.Clone(), new VariableNode(configuration)), new NumberNode(Parser.Format, alignment + 1));
+		
 		if (self_type != required_self_type)
 		{
 			self = new CastNode(self, new TypeNode(required_self_type), self.Position);
 		}
 
-		return new CallNode(self, function_pointer, parameters, new FunctionType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType));
+		return new CallNode(self, function_pointer, parameters, new FunctionType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType, position));
 	}
 
 	/// <summary>
@@ -60,29 +70,22 @@ public static class Common
 		var parameters = descriptor.GetParsedParameters(environment);
 		var parameter_types = parameters.Select(i => i.TryGetType()).ToList();
 
-		return TryGetVirtualFunctionCall(self, self_type, descriptor.Name, parameters, parameter_types!);
+		return TryGetVirtualFunctionCall(self, self_type, descriptor.Name, parameters, parameter_types!, descriptor.Position);
 	}
 
 	/// <summary>
 	/// Tries to build a virtual function call which uses the current self pointer
 	/// </summary>
-	public static CallNode? TryGetVirtualFunctionCall(Context environment, string name, Node parameters, List<Type?> parameter_types)
+	public static CallNode? TryGetVirtualFunctionCall(Context environment, string name, Node parameters, List<Type?> parameter_types, Position? position)
 	{
-		if (!environment.IsInsideFunction)
-		{
-			return null;
-		}
+		if (!environment.IsInsideFunction) return null;
 
-		var type = environment.GetTypeParent();
-
-		if (type == null)
-		{
-			return null;
-		}
+		var type = environment.FindTypeParent();
+		if (type == null) return null;
 
 		var self = GetSelfPointer(environment, null);
 
-		return TryGetVirtualFunctionCall(self, type, name, parameters, parameter_types);
+		return TryGetVirtualFunctionCall(self, type, name, parameters, parameter_types, position);
 	}
 
 	/// <summary>
@@ -90,17 +93,10 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetVirtualFunctionCall(Context environment, FunctionToken descriptor)
 	{
-		if (!environment.IsInsideFunction)
-		{
-			return null;
-		}
+		if (!environment.IsInsideFunction) return null;
 
-		var type = environment.GetTypeParent();
-
-		if (type == null)
-		{
-			return null;
-		}
+		var type = environment.FindTypeParent();
+		if (type == null) return null;
 
 		var self = GetSelfPointer(environment, null);
 
@@ -205,20 +201,9 @@ public static class Common
 		{
 			Pattern.Try(ConsumeType, state);
 
-			if (!Pattern.Consume(state, out Token? consumed, TokenType.OPERATOR))
-			{
-				return false;
-			}
-
-			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN)
-			{
-				return true;
-			}
-
-			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA)
-			{
-				continue;
-			}
+			if (!Pattern.Consume(state, out Token? consumed, TokenType.OPERATOR)) return false;
+			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN) return true;
+			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA) continue;
 
 			return false;
 		}
@@ -230,16 +215,10 @@ public static class Common
 	public static bool ConsumeFunctionType(PatternState state)
 	{
 		// Consume a normal parenthesis token
-		if (!Pattern.Consume(state, out Token? parameters, TokenType.CONTENT) || !parameters!.Is(ParenthesisType.PARENTHESIS))
-		{
-			return false;
-		}
+		if (!Pattern.Consume(state, out Token? parameters, TokenType.CONTENT) || !parameters!.Is(ParenthesisType.PARENTHESIS)) return false;
 
 		// Consume an arrow operator
-		if (!Pattern.Consume(state, out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW))
-		{
-			return false;
-		}
+		if (!Pattern.Consume(state, out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW)) return false;
 
 		// Consume the return type
 		return ConsumeType(state);
@@ -250,6 +229,7 @@ public static class Common
 	/// </summary>
 	public static bool ConsumeType(PatternState state)
 	{
+		#warning Stage 2 version: state.consume(TOKEN_TYPE_IDENTIFIER | TOKEN_TYPE_PARENTHESIS)
 		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
 		{
 			var next = Pattern.Peek(state);
@@ -282,6 +262,11 @@ public static class Common
 			{
 				if (!ConsumeFunctionType(state)) return false;
 			}
+			else if (next.Is(ParenthesisType.BRACKETS))
+			{
+				Pattern.Consume(state);
+				return true;
+			}
 			else
 			{
 				return true;
@@ -290,7 +275,7 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Consumes a template function call except the name in the begining
+	/// Consumes a template function call except the name in the beginning
 	/// Pattern: <$1, $2, ... $n> (...)
 	/// </summary>
 	public static bool ConsumeTemplateFunctionCall(PatternState state)
@@ -308,7 +293,7 @@ public static class Common
 	/// <summary>
 	/// Reads a type which represents a function from the specified tokens
 	/// </summary>
-	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens)
+	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens, Position? position)
 	{
 		// Dequeue the parameter types
 		var parameters = tokens.Dequeue().To<ContentToken>();
@@ -320,10 +305,7 @@ public static class Common
 		var return_type = ReadType(context, tokens);
 
 		// The return type must exist
-		if (return_type == null)
-		{
-			return null;
-		}
+		if (return_type == null) return null;
 
 		// Read all the parameter types
 		var parameter_types = parameters.GetSections().Select(i => ReadType(context, new Queue<Token>(i))).ToList();
@@ -334,7 +316,7 @@ public static class Common
 			return null;
 		}
 
-		return new FunctionType(parameter_types, return_type);
+		return new FunctionType(parameter_types, return_type, position);
 	}
 	
 	/// <summary>
@@ -361,16 +343,14 @@ public static class Common
 	public static Type? ReadType(Context context, Queue<Token> tokens)
 	{
 		var next = tokens.Peek();
+		var position = next.Position;
 
 		if (next.Is(TokenType.CONTENT))
 		{
-			return ReadFunctionType(context, tokens);
+			return ReadFunctionType(context, tokens, position);
 		}
 
-		if (!next.Is(TokenType.IDENTIFIER))
-		{
-			return null;
-		}
+		if (!next.Is(TokenType.IDENTIFIER)) return null;
 
 		var components = new List<UnresolvedTypeComponent>();
 
@@ -379,15 +359,23 @@ public static class Common
 			components.Add(ReadTypeComponent(context, tokens));
 
 			// Stop collecting type components if there are no tokens left or if the next token is not a dot operator
-			if (!tokens.Any() || !tokens.Peek().Is(Operators.DOT))
-			{
-				break;
-			}
+			if (!tokens.Any() || !tokens.Peek().Is(Operators.DOT)) break;
 
 			tokens.Dequeue();
 		}
 
 		var type = new UnresolvedType(components.ToArray());
+		type.Position = position;
+
+		if (tokens.Any())
+		{
+			next = tokens.Peek();
+
+			if (next.Is(ParenthesisType.BRACKETS))
+			{
+				type.Count = next.To<ContentToken>();
+			}
+		}
 
 		return type.TryResolveType(context) ?? type;
 	}
@@ -495,31 +483,21 @@ public static class Common
 	/// Pattern: <A, B, C, ...>
 	/// Returns: { A, B, C, ... }
 	/// </summary>
-	public static List<string> GetTemplateParameters(List<Token> template_argument_tokens, Position template_arguments_start)
+	public static List<string> GetTemplateParameters(List<Token> template_parameter_tokens, Position template_parameters_start)
 	{
-		var template_argument_names = new List<string>();
+		var template_parameters = new List<string>();
 
-		for (var i = 0; i < template_argument_tokens.Count; i++)
+		for (var i = 0; i < template_parameter_tokens.Count; i++)
 		{
-			if (i % 2 != 0)
-			{
-				continue;
-			}
+			if (i % 2 != 0) continue;
+			if (!template_parameter_tokens[i].Is(TokenType.IDENTIFIER)) throw Errors.Get(template_parameters_start, "Template type argument list is invalid");
 
-			if (!template_argument_tokens[i].Is(TokenType.IDENTIFIER))
-			{
-				throw Errors.Get(template_arguments_start, "Template type argument list is invalid");
-			}
-
-			template_argument_names.Add(template_argument_tokens[i].To<IdentifierToken>().Value);
+			template_parameters.Add(template_parameter_tokens[i].To<IdentifierToken>().Value);
 		}
 
-		if (template_argument_names.Count == 0)
-		{
-			throw Errors.Get(template_arguments_start, "Template type argument list can not be empty");
-		}
+		if (template_parameters.Count == 0) throw Errors.Get(template_parameters_start, "Template type argument list can not be empty");
 
-		return template_argument_names;
+		return template_parameters;
 	}
 
 	/// <summary>
@@ -534,14 +512,16 @@ public static class Common
 			{
 				typeof(CastPattern),
 				typeof(CommandPattern),
+				typeof(CompilesPattern),
 				typeof(HasPattern),
 				typeof(IsPattern),
 				typeof(LinkPattern),
 				typeof(NotPattern),
 				typeof(OffsetPattern),
 				typeof(OperatorPattern),
-				typeof(PreIncrementAndDecrementPattern),
 				typeof(PostIncrementAndDecrementPattern),
+				typeof(PreIncrementAndDecrementPattern),
+				typeof(RangePattern),
 				typeof(ReturnPattern),
 				typeof(UnarySignPattern)
 			}
@@ -552,6 +532,42 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Consumes a block of code which is considered to be a part of code which collapses into one dynamic token
+	/// </summary>
+	public static List<Token> ConsumeBlock(PatternState state)
+	{
+		return Parser.Consume(
+			new Context(string.Empty),
+			state,
+			new List<System.Type>()
+			{
+				typeof(AssignPattern),
+				typeof(CastPattern),
+				typeof(CommandPattern),
+				typeof(CompilesPattern),
+				typeof(HasPattern),
+				typeof(IfPattern),
+				typeof(IsPattern),
+				typeof(IterationLoopPattern),
+				typeof(LoopPattern),
+				typeof(LinkPattern),
+				typeof(NotPattern),
+				typeof(OffsetPattern),
+				typeof(OperatorPattern),
+				typeof(PostIncrementAndDecrementPattern),
+				typeof(PreIncrementAndDecrementPattern),
+				typeof(RangePattern),
+				typeof(ReturnPattern),
+				typeof(SingletonPattern),
+				typeof(TemplateFunctionCallPattern),
+				typeof(TypeInspectionPattern),
+				typeof(UnarySignPattern),
+				typeof(WhenPattern)
+			}
+		);
+	}
+
+	/// <summary>
 	/// Consumes curly brackets
 	/// </summary>
 	public static bool ConsumeBody(PatternState state)
@@ -559,12 +575,50 @@ public static class Common
 		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
 	}
 
+	/// <summary>
+	/// Tries to find the override for the specified virtual function and registers it to the specified runtime configuration.
+	/// This function returns the offset after registering the override function.
+	/// </summary>
+	private static int TryRegisterVirtualFunctionImplementation(Type type, VirtualFunction virtual_function, RuntimeConfiguration configuration, int offset)
+	{
+		// Find all possible implementations of the virtual function inside the specified type
+		var overloads = type.GetOverride(virtual_function.Name)?.Overloads;
+		if (overloads == null) return offset;
+
+		// Retrieve all parameter types of the virtual function declaration
+		var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
+
+		// Try to find a suitable implementation for the virtual function from the specified type
+		FunctionImplementation? implementation = null;
+
+		foreach (var overload in overloads)
+		{
+			var actual = overload.Parameters.Select(i => i.Type).ToList();
+
+			if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
+
+			implementation = overload.Get(expected!);
+			break;
+		}
+
+		if (implementation == null)
+		{
+			// It seems there is no implementation for this virtual function
+			return offset;
+		}
+
+		// Append configuration information only if it is not generated
+		if (!configuration.IsCompleted)
+		{
+			configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
+		}
+
+		 return offset + Parser.Bytes;
+	}
+
 	public static KeyValuePair<Type, DataPointer>[] CopyTypeDescriptors(Type type, List<Type> supertypes)
 	{
-		if (type.Configuration == null)
-		{
-			return Array.Empty<KeyValuePair<Type, DataPointer>>();
-		}
+		if (type.Configuration == null) return Array.Empty<KeyValuePair<Type, DataPointer>>();
 
 		var configuration = type.Configuration;
 		var descriptor_count = type.Supertypes.Any() ? supertypes.Count : supertypes.Count + 1;
@@ -588,6 +642,12 @@ public static class Common
 
 		var offset = Parser.Bytes;
 
+		// Look for default implementations of virtual functions in the specified type
+		foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+		{
+			offset = TryRegisterVirtualFunctionImplementation(type, virtual_function, configuration, offset);
+		}
+
 		for (var i = 0; i < supertypes.Count; i++)
 		{
 			var supertype = supertypes[i];
@@ -600,57 +660,17 @@ public static class Common
 			}
 
 			// Types should not inherited types which do not have runtime configurations such as standard integers
-			if (supertype.Configuration == null)
-			{
-				throw new ApplicationException("Type inherited a type which did not have runtime configuration");
-			}
+			if (supertype.Configuration == null) throw new ApplicationException("Type inherited a type which did not have runtime configuration");
 
 			descriptors[i] = new KeyValuePair<Type, DataPointer>(supertype, new DataPointer(configuration.Entry, offset));
 			offset += Parser.Bytes;
 
-			// Interate all virtual functions of this supertype and connect their implementations
-			foreach (var virtual_function in supertype.GetAllVirtualFunctions())
+			// Iterate all virtual functions of this supertype and connect their implementations
+			var perspective = i == 0 ? type : supertype;
+			
+			foreach (var virtual_function in perspective.GetAllVirtualFunctions())
 			{
-				// Find all possible implementations of the virtual function inside the specified type
-				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
-
-				if (overloads == null)
-				{
-					continue;
-				}
-
-				// Retrieve all parameter types of the virtual function declaration
-				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
-
-				// Try to find a suitable implementation for the virtual function from the specified type
-				FunctionImplementation? implementation = null;
-
-				foreach (var overload in overloads)
-				{
-					var actual = overload.Parameters.Select(i => i.Type).ToList();
-
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected))
-					{
-						continue;
-					}
-
-					implementation = overload.Get(expected!);
-					break;
-				}
-
-				if (implementation == null)
-				{
-					// It seems there is no implementation for this virtual function
-					continue;
-				}
-
-				// Append configuration information only if it is not generated
-				if (!configuration.IsCompleted)
-				{
-					configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
-				}
-
-				offset += Parser.Bytes;
+				offset = TryRegisterVirtualFunctionImplementation(type, virtual_function, configuration, offset);
 			}
 		}
 
@@ -661,15 +681,13 @@ public static class Common
 	/// <summary>
 	/// Constructs an object using heap memory
 	/// </summary>
-	public static Node CreateHeapConstruction(Type type, FunctionNode constructor)
+	public static InlineContainer CreateHeapConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+		var container = CreateInlineContainer(type, construction);
+		var position = construction.Position;
 
 		var size = Math.Max(1L, type.ContentSize);
-		var instance = inline.Context.DeclareHidden(type);
-
-		var arguments = new Node { new NumberNode(Assembler.Format, size) };
+		var arguments = new Node { new NumberNode(Assembler.Format, size, position) };
 		
 		if (Analysis.IsGarbageCollectorEnabled)
 		{
@@ -677,13 +695,14 @@ public static class Common
 
 			// The following example creates an instance of a type called Object
 			// Example: instance = link(allocate(sizeof(Object))) as Object
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(instance),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
 				new CastNode(
-					new FunctionNode(linker, constructor.Position).SetParameters(new Node {
-						new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments)
+					new FunctionNode(linker, position).SetArguments(new Node {
+						new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments)
 					}),
-					new TypeNode(type)
+					new TypeNode(type, position),
+					position
 				)
 			));
 		}
@@ -691,23 +710,37 @@ public static class Common
 		{
 			// The following example creates an instance of a type called Object
 			// Example: instance = allocate(sizeof(Object)) as Object
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(instance),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
 				new CastNode(
-					new FunctionNode(Parser.AllocationFunction!, constructor.Position).SetParameters(arguments),
-					new TypeNode(type)
+					new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments),
+					new TypeNode(type, position),
+					position
 				)
 			));
 		}
 
 		var supertypes = type.GetAllSupertypes();
+
+		// Remove supertypes, which cause a configuration variable duplication
+		for (var i = 0; i < supertypes.Count; i++)
+		{
+			var current = supertypes[i].GetConfigurationVariable();
+
+			for (var j = supertypes.Count - 1; j >= i + 1; j--)
+			{
+				if (current != supertypes[j].GetConfigurationVariable()) continue;
+				supertypes.RemoveAt(j);
+			}
+		}
+
 		var descriptors = CopyTypeDescriptors(type, supertypes);
 
 		// Register the runtime configurations
 		foreach (var iterator in descriptors)
 		{
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new LinkNode(new VariableNode(container.Result, position), new VariableNode(iterator.Key.GetConfigurationVariable(), position)),
 				iterator.Value
 			));
 		}
@@ -715,38 +748,49 @@ public static class Common
 		// Do not call the initializer function if it is empty
 		if (!constructor.Function.IsEmpty)
 		{
-			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+			container.Node.Add(new LinkNode(new VariableNode(container.Result, position), constructor, position));
 		}
 		
 		// The inline node must return the value of the constructed object
-		inline.Add(new VariableNode(instance));
+		container.Node.Add(new VariableNode(container.Result, position));
 
-		return inline;
+		return container;
 	}
 
 	/// <summary>
 	/// Constructs an object using stack memory
 	/// </summary>
-	public static Node CreateStackConstruction(Type type, FunctionNode constructor)
+	public static InlineContainer CreateStackConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var environment = constructor.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), constructor.Position);
+		var container = CreateInlineContainer(type, construction);
+		var position = construction.Position;
 
-		var instance = inline.Context.DeclareHidden(type);
-
-		inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(instance),
-			new CastNode(new StackAddressNode(inline.Context, type), new TypeNode(type))
+		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(container.Result, position),
+			new CastNode(new StackAddressNode(construction.GetParentContext(), type), new TypeNode(type, position))
 		));
 
 		var supertypes = type.GetAllSupertypes();
+		
+		// Remove supertypes, which cause a configuration variable duplication
+		for (var i = 0; i < supertypes.Count; i++)
+		{
+			var current = supertypes[i].GetConfigurationVariable();
+
+			for (var j = supertypes.Count - 1; j >= i + 1; j--)
+			{
+				if (current != supertypes[j].GetConfigurationVariable()) continue;
+				supertypes.RemoveAt(j);
+			}
+		}
+
 		var descriptors = CopyTypeDescriptors(type, supertypes);
 
 		// Register the runtime configurations
 		foreach (var iterator in descriptors)
 		{
-			inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-				new LinkNode(new VariableNode(instance), new VariableNode(iterator.Key.Configuration!.Variable)),
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new LinkNode(new VariableNode(container.Result, position), new VariableNode(iterator.Key.GetConfigurationVariable(), position)),
 				iterator.Value
 			));
 		}
@@ -754,13 +798,35 @@ public static class Common
 		// Do not call the initializer function if it is empty
 		if (!constructor.Function.IsEmpty)
 		{
-			inline.Add(new LinkNode(new VariableNode(instance), constructor, constructor.Position));
+			container.Node.Add(new LinkNode(new VariableNode(container.Result, position), constructor, position));
 		}
 
 		// The inline node must return the value of the constructed object
-		inline.Add(new VariableNode(instance));
+		container.Node.Add(new VariableNode(container.Result, position));
 
-		return inline;
+		return container;
+	}
+
+	/// <summary>
+	/// Determines the variable which will store the result and the node that should contain the inlined content
+	/// </summary>
+	public static InlineContainer CreateInlineContainer(Type type, Node node)
+	{
+		if (node.Parent != null && node.Parent.Is(Operators.ASSIGN))
+		{
+			var edited = Analyzer.GetEdited(node.Parent);
+
+			if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsPredictable)
+			{
+				return new InlineContainer(node.Parent, new InlineNode(node.Position), edited.To<VariableNode>().Variable);
+			}
+		}
+
+		var environment = node.GetParentContext();
+		var inline = new ContextInlineNode(new Context(environment), node.Position);
+		var instance = inline.Context.DeclareHidden(type);
+		
+		return new InlineContainer(node, inline, instance);
 	}
 
 	/// <summary>
@@ -770,7 +836,7 @@ public static class Common
 	{
 		var iterator = node;
 
-		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent))
+		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent) && !iterator.Parent.Is(NodeType.NORMAL))
 		{
 			iterator = iterator.Parent;
 		}
@@ -823,6 +889,26 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Collects all local function implementations from the specified context
+	/// </summary>
+	public static FunctionImplementation[] GetLocalFunctionImplementations(Context context)
+	{
+		if (context.IsType)
+		{
+			var type = context.To<Type>();
+
+			return type.Constructors.Overloads
+				.Concat(type.Destructors.Overloads)
+				.Concat(type.Functions.Values.SelectMany(i => i.Overloads))
+				.Concat(type.Overrides.Values.SelectMany(i => i.Overloads))
+				.SelectMany(i => i.Implementations)
+				.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+		}
+
+		return context.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations).ToArray();
+	}
+
+	/// <summary>
 	/// Collects all function implementations from the specified context
 	/// </summary>
 	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
@@ -833,14 +919,20 @@ public static class Common
 		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
 		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
 		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
-		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var type_virtuals = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var type_overrides = types.SelectMany(i => i.Overrides.Values.SelectMany(j => j.Overloads));
 		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
 
-		var implementations = type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).SelectMany(i => i.Implementations).ToArray();
+		var implementations = type_functions
+			.Concat(type_constructors)
+			.Concat(type_destructors)
+			.Concat(type_virtuals)
+			.Concat(type_overrides)
+			.Concat(context_functions)
+			.SelectMany(i => i.Implementations).ToArray();
 
-		// Concat all functions with lambdas, which can be found inside the collected functions
-		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
-			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+		// Combine all functions with lambdas, which can be found inside the collected functions
+		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i))).Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
 	}
 
 	/// <summary>
@@ -855,10 +947,17 @@ public static class Common
 		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
 		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
 		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
-		var type_virtual_functions = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var type_virtuals = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
+		var type_overrides = types.SelectMany(i => i.Overrides.Values.SelectMany(j => j.Overloads));
 		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
 
-		return type_functions.Concat(type_constructors).Concat(type_destructors).Concat(type_virtual_functions).Concat(context_functions).Distinct().ToArray();
+		return type_functions
+			.Concat(type_constructors)
+			.Concat(type_destructors)
+			.Concat(type_virtuals)
+			.Concat(type_overrides)
+			.Concat(context_functions)
+			.Distinct().ToArray();
 	}
 
 	/// <summary>
@@ -870,7 +969,7 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Returns whether the specified integer fullfills the following equation:
+	/// Returns whether the specified integer fulfills the following equation:
 	/// x = 2^y where y is an integer constant
 	/// </summary>
 	public static bool IsPowerOfTwo(long x)
@@ -957,15 +1056,33 @@ public static class Common
 		{
 			if (x < int.MinValue) return 64;
 			else if (x < short.MinValue) return 32;
-			else if (x < byte.MinValue) return 16;
+			else if (x < sbyte.MinValue) return 16;
 		}
 		else
 		{
 			if (x > int.MaxValue) return 64;
 			else if (x > short.MaxValue) return 32;
-			else if (x > byte.MaxValue) return 16;
+			else if (x > sbyte.MaxValue) return 16;
 		}
 
 		return 8;
+	}
+
+	/// <summary>
+	/// Returns the position which represents the end of the specified token
+	/// </summary>
+	public static Position? GetEndOfToken(Token token)
+	{
+		return token.Type switch
+		{
+			TokenType.CONTENT => token.To<ContentToken>().End ?? token.Position.Translate(1),
+			TokenType.FUNCTION => token.To<FunctionToken>().Identifier.End,
+			TokenType.IDENTIFIER => token.To<IdentifierToken>().End,
+			TokenType.KEYWORD => token.To<KeywordToken>().End,
+			TokenType.NUMBER => token.To<NumberToken>().End ?? token.Position.Translate(1),
+			TokenType.OPERATOR => token.To<OperatorToken>().End,
+			TokenType.STRING => token.To<StringToken>().End,
+			_ => null
+		};
 	}
 }

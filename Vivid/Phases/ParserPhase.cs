@@ -25,7 +25,7 @@ public class Parse
 
 public class ParserPhase : Phase
 {
-	public const string ROOT_CONTEXT_IDENTITY = "Root";
+	public const string ROOT_CONTEXT_IDENTITY = "0";
 
 	public const string OUTPUT = "parse";
 
@@ -34,7 +34,7 @@ public class ParserPhase : Phase
 	/// </summary>
 	public void ParseTypes(Node root)
 	{
-		var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+		var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
 
 		foreach (var type in types)
 		{
@@ -81,14 +81,14 @@ public class ParserPhase : Phase
 		}
 
 		// Implement all virtual function overloads
-		foreach (var type in context.Types.Values)
+		foreach (var type in Common.GetAllTypes(context))
 		{
 			// Find all virtual functions
 			var virtual_functions = type.GetAllVirtualFunctions();
 
 			foreach (var virtual_function in virtual_functions)
 			{
-				var overloads = type.GetFunction(virtual_function.Name)?.Overloads;
+				var overloads = type.GetOverride(virtual_function.Name)?.Overloads;
 
 				if (overloads == null) continue;
 
@@ -101,11 +101,16 @@ public class ParserPhase : Phase
 
 					var actual = overload.Parameters.Select(i => i.Type).ToList();
 
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
+					if (actual.Count != expected.Count || !actual.SequenceEqual(expected) || expected.Any(i => i == null || i.IsUnresolved)) continue;
 
 					var implementation = overload.Get(expected!) ?? throw new ApplicationException("Could not implement virtual function");
 					implementation.VirtualFunction = virtual_function;
-					implementation.ReturnType = virtual_function.ReturnType;
+
+					if (virtual_function.ReturnType != null)
+					{
+						implementation.ReturnType = virtual_function.ReturnType;
+					}
+					
 					break;
 				}
 			}
@@ -117,7 +122,7 @@ public class ParserPhase : Phase
 	/// </summary>
 	public static void ApplyExtensionFunctions(Context context, Node root)
 	{
-		var extensions = root.FindAll(i => i.Is(NodeType.EXTENSION_FUNCTION));
+		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION);
 
 		foreach (var extension in extensions)
 		{
@@ -142,7 +147,7 @@ public class ParserPhase : Phase
 			Run(() =>
 			{
 				var file = files[index];
-				var context = Parser.Initialize(index);
+				var context = Parser.CreateRootContext(index);
 				var root = new ScopeNode(context, null, null);
 
 				try
@@ -188,7 +193,7 @@ public class ParserPhase : Phase
 		}
 
 		// Merge all parsed files
-		var context = new Context(ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
+		var context = new Context(ROOT_CONTEXT_IDENTITY);
 		var root = Parser.CreateRootNode(context);
 		
 		// Prepare for importing libraries
@@ -210,7 +215,7 @@ public class ParserPhase : Phase
 		}
 
 		// Parse all the namespaces since all code has been merged
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>())
+		foreach (var iterator in root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>())
 		{
 			Run(() =>
 			{

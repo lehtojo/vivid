@@ -38,7 +38,10 @@ public static class References
 
 			case VariableCategory.LOCAL:
 			{
-				handle = new StackVariableHandle(unit, variable);
+				handle = variable.IsInlined()
+					? new InlineHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
+					: new StackVariableHandle(unit, variable);
+				
 				break;
 			}
 
@@ -47,7 +50,7 @@ public static class References
 				handle = new MemoryHandle
 				(
 					unit,
-					self ?? throw new ArgumentException("Member variable did not have its base pointer"),
+					self ?? throw new ArgumentException("Member variable did not have its self pointer"),
 					variable.GetAlignment(self_type!) ?? throw new ApplicationException("Member variable was not aligned")
 				);
 
@@ -73,16 +76,15 @@ public static class References
 
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
-		Result? self = null;
-		Type? self_type = null;
-
-		if (variable.Category == VariableCategory.MEMBER)
+		if (variable.IsMember)
 		{
-			self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Encountered member variable in non-member function"), AccessMode.READ).Execute();
-			self_type = unit.Self.Type!;
+			var self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ).Execute();
+			var self_type = unit.Self.Type!;
+			return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
 		}
 
-		return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
+		if (!Assembler.IsDebuggingEnabled && unit.IsInitialized(variable)) return unit.GetVariableValue(variable)!;
+		return new GetVariableInstruction(unit, null, null, variable, mode).Execute();
 	}
 
 	public static Result GetConstant(Unit unit, NumberNode node)

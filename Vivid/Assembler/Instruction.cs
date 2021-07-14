@@ -86,7 +86,7 @@ public class InstructionParameter
 
 		if (index == -1) throw new ArgumentException("Could not retrieve lower cost handle options since the current handle type was not valid");
 
-		// Return all handle types before the current handle's index (the handles at the top are lower in cost)
+		// Return all handle types before the index of the current handle (the handles at the top are lower in cost)
 		return Types.Take(index).ToArray();
 	}
 
@@ -95,11 +95,7 @@ public class InstructionParameter
 	/// </summary>
 	public void SetPrecise(bool visible)
 	{
-		if (Value == null)
-		{
-			return;
-		}
-
+		if (Value == null) return;
 		Value.IsPrecise = visible;
 	}
 
@@ -123,7 +119,7 @@ public class InstructionParameter
 			return bits <= ParameterFlag.GetBitLimit(Flags);
 		}
 
-		// Datasection address values should be moved into a register
+		// Datasection handles should be moved into a register
 		if (Result.Value.Is(HandleInstanceType.DATA_SECTION) || Result.Value.Is(HandleInstanceType.CONSTANT_DATA_SECTION))
 		{
 			var handle = Result.Value.To<DataSectionHandle>();
@@ -175,7 +171,7 @@ public class Instruction
 	{
 		Unit = unit;
 		Type = type;
-		Result = new Result(this);
+		Result = new Result();
 		Dependencies = new[] { Result };
 	}
 
@@ -210,7 +206,7 @@ public class Instruction
 
 		if (parameter.IsValid())
 		{
-			// Get the more preffered options for this parameter
+			// Get the more preferred options for this parameter
 			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
 
 			if (options.Contains(HandleType.REGISTER))
@@ -230,7 +226,7 @@ public class Instruction
 				}
 			}
 
-			// If the parameter size doesn't match the required size, it can be converted by moving it to register
+			// If the parameter size does not match the required size, it can be converted by moving it to register
 			// NOTE: The parameter shall not be converted if it represents a destination memory address which is being written to
 			if (parameter.Size != Size.NONE && parameter.Result.Size != parameter.Size)
 			{
@@ -257,7 +253,7 @@ public class Instruction
 	/// <summary>
 	/// Simulates the interactions between the instruction parameters such as relocating the source to the destination
 	/// </summary>
-	private void SimulateParameterFlags()
+	private void ApplyParameterFlags()
 	{
 		var destination = (Handle?)null;
 		var source = (Handle?)null;
@@ -272,7 +268,7 @@ public class Instruction
 				// There should not be multiple destinations
 				if (destination != null)
 				{
-					throw new ApplicationException("Instruction parameters had multiple destinations which is not allowed");
+					throw new ApplicationException("Instruction had multiple destinations");
 				}
 
 				destination = parameter.Value;
@@ -291,7 +287,7 @@ public class Instruction
 
 		if (destination != null)
 		{
-			if (destination.Is(HandleType.REGISTER) || destination.Is(HandleType.MEDIA_REGISTER))
+			if (destination.Is(HandleInstanceType.REGISTER))
 			{
 				var register = destination.To<RegisterHandle>().Register;
 				var attached = false;
@@ -308,7 +304,7 @@ public class Instruction
 					}
 				}
 
-				// If no result was attachted to the destination, the default action should be taken
+				// If no result was attached to the destination, the default action should be taken
 				if (!attached)
 				{
 					register.Handle = Result;
@@ -329,7 +325,7 @@ public class Instruction
 
 		if (source != null)
 		{
-			if (source.Is(HandleType.REGISTER) || source.Is(HandleType.MEDIA_REGISTER))
+			if (source.Is(HandleInstanceType.REGISTER))
 			{
 				var register = source.To<RegisterHandle>().Register;
 
@@ -435,7 +431,6 @@ public class Instruction
 			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
 			if (result.Value.Is(HandleInstanceType.REGISTER))
 			{
-				// Register locks have a destructor which releases the register so they are safe
 				locks.Add(new RegisterLock(result.Value.To<RegisterHandle>().Register));
 			}
 
@@ -449,7 +444,7 @@ public class Instruction
 		}
 
 		// Simulate the effects of the parameter flags
-		SimulateParameterFlags();
+		ApplyParameterFlags();
 
 		// Allow final touches to this instruction
 		Operation = operation;
@@ -464,7 +459,7 @@ public class Instruction
 		// Skip empty instructions
 		if (string.IsNullOrEmpty(Operation))
 		{
-			SimulateParameterFlags();
+			ApplyParameterFlags();
 			return;
 		}
 
@@ -506,7 +501,7 @@ public class Instruction
 		}
 
 		// Simulate the effects of the parameter flags
-		SimulateParameterFlags();
+		ApplyParameterFlags();
 
 		if (Parameters.Count > 0 && Parameters.Any(i => !i.IsHidden))
 		{
@@ -519,7 +514,7 @@ public class Instruction
 	public virtual void OnSimulate() { }
 	public virtual void OnBuild() { }
 	public virtual void OnPostBuild() { }
-	public virtual bool Redirect(Handle handle) { return false; }
+	public virtual bool Redirect(Handle handle, bool root) { return false; }
 
 	public void Build()
 	{
@@ -540,13 +535,16 @@ public class Instruction
 			}
 
 			// Simulate the effects of the parameter flags
-			SimulateParameterFlags();
+			ApplyParameterFlags();
 		}
 		else
 		{
 			IsBuilt = true;
+
+			// Reindex the inner results before and after building, so that their lifetimes are valid
 			Unit.Reindex(this);
 			OnBuild();
+			Unit.Reindex(this);
 		}
 
 		// Extend all inner results to last at least as long as their parents
@@ -569,10 +567,10 @@ public class Instruction
 	{
 		if (Dependencies == null)
 		{
-			return Parameters.Select(p => p.Result).Concat(GetResultReferences());
+			return Parameters.Select(i => i.Result).Concat(GetResultReferences());
 		}
 
-		return Parameters.Select(p => p.Result).Concat(Dependencies);
+		return Parameters.Select(i => i.Result).Concat(Dependencies);
 	}
 
 	public override string ToString()

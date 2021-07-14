@@ -66,7 +66,7 @@ public static class GarbageCollector
 		foreach (var variable in variables)
 		{
 			var implementation = Parser.UnlinkFunction!.Get(variable.Type!) ?? throw new ApplicationException("Missing unlink function overload");
-			destination.Add(new FunctionNode(implementation).SetParameters(new Node { new VariableNode(variable) }));
+			destination.Add(new FunctionNode(implementation).SetArguments(new Node { new VariableNode(variable) }));
 		}
 	}
 
@@ -92,7 +92,7 @@ public static class GarbageCollector
 	public static void DestructStackAllocations(Node root, Dictionary<Node, ScopeDestructionDescriptor> scopes)
 	{
 		// Find all the stack allocations inside the specified node
-		var allocations = root.FindAll(i => i.Is(NodeType.STACK_ADDRESS)).Distinct();
+		var allocations = root.FindAll(NodeType.STACK_ADDRESS).Distinct();
 
 		foreach (var allocation in allocations)
 		{
@@ -130,7 +130,7 @@ public static class GarbageCollector
 		// Add the root since it is a scoped node
 		scopes.Add(root, new ScopeDestructionDescriptor());
 
-		var returns = root.FindAll(i => i.Is(NodeType.RETURN)).Cast<ReturnNode>().ToArray();
+		var returns = root.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
 
 		// Register scopes which can not be exited
 		foreach (var statement in returns)
@@ -178,7 +178,7 @@ public static class GarbageCollector
 							implementation = Parser.LinkFunction!.Get(type) ?? throw new ApplicationException("Missing link function overload");
 							implementation.ReturnType = type;
 
-							statement.Add(new FunctionNode(implementation).SetParameters(new Node { value }));
+							statement.Add(new FunctionNode(implementation).SetArguments(new Node { value }));
 						}
 
 						continue;
@@ -201,7 +201,7 @@ public static class GarbageCollector
 
 						environment.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
 							new VariableNode(variable),
-							new FunctionNode(implementation).SetParameters(new Node { value })
+							new FunctionNode(implementation).SetArguments(new Node { value })
 						));
 					}
 					else
@@ -335,7 +335,7 @@ public static class GarbageCollector
 				implementation = Parser.LinkFunction!.Get(source_type) ?? throw new ApplicationException("Missing link function overload");
 				implementation.ReturnType = source_type;
 
-				source.Replace(new FunctionNode(implementation).SetParameters(new Node { source.Clone() }));
+				source.Replace(new FunctionNode(implementation).SetArguments(new Node { source.Clone() }));
 			}
 
 			var primitive = destination.Is(NodeType.VARIABLE);
@@ -392,7 +392,7 @@ public static class GarbageCollector
 
 			// Unlink the old value
 			implementation = Parser.UnlinkFunction!.Get(destination_type) ?? throw new ApplicationException("Missing link function overload");
-			inline.Add(new FunctionNode(implementation).SetParameters(new Node { new VariableNode(temporary) }));
+			inline.Add(new FunctionNode(implementation).SetArguments(new Node { new VariableNode(temporary) }));
 		}
 	}
 	
@@ -406,7 +406,7 @@ public static class GarbageCollector
 	private static void CreateIntermediateResults(Node root)
 	{
 		// Find all function calls
-		var calls = root.FindAll(i => i.Is(NodeType.FUNCTION, NodeType.CALL));
+		var calls = root.FindAll(NodeType.FUNCTION, NodeType.CALL);
 		
 		foreach (var call in calls)
 		{
@@ -419,7 +419,7 @@ public static class GarbageCollector
 
 			var type = call.GetType();
 
-			// If the return type of the function call is not destructable, then this function call can be skipped
+			// If the return type of the function call is not destructible, then this function call can be skipped
 			if (!type.IsUserDefined)
 			{
 				continue;

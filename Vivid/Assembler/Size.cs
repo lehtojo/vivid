@@ -22,6 +22,14 @@ public class Size
 		Bytes = bytes;
 	}
 
+	/// <summary>
+	/// Returns the size which is smaller
+	/// </summary>
+	public static Size Min(Size a, Size b)
+	{
+		return a.Bytes <= b.Bytes ? a : b;
+	}
+
 	public static Size FromBytes(int bytes)
 	{
 		return bytes switch

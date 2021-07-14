@@ -1,4 +1,4 @@
-Result<T, E> {
+Outcome<T, E> {
 	value: u64
 	is_error: bool
 
@@ -6,16 +6,16 @@ Result<T, E> {
 	get_value() => value as T
 }
 
-Result<T, E> Ok<T, E> {
+Outcome<T, E> Ok<T, E> {
 	init(value: T) {
-		this.value = value
+		this.value = value as u64
 		this.is_error = false
 	}
 }
 
-Result<T, E> Error<T, E> {
+Outcome<T, E> Error<T, E> {
 	init(value: E) {
-		this.value = value
+		this.value = value as u64
 		this.is_error = true
 	}
 

@@ -242,9 +242,10 @@ public static class Arithmetic
 	/// </summary>
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
 	{
+		var is_unsigned = operation.Left.GetType().Format.IsUnsigned();
 		var format = operation.GetType().To<Number>().Type;
 
-		if (Assembler.IsX64 && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
+		if (Assembler.IsX64 && !is_unsigned && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
 			return BuildConstantDivision(unit, operation.Left, (long)operation.Right.To<NumberNode>().Value, assigns);
 		}
@@ -253,11 +254,22 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var is_unsigned = operation.Left.GetType() is not Number number || number.IsUnsigned;
 
 		var result = new DivisionInstruction(unit, modulus, left, right, format, assigns, is_unsigned).Execute();
 
 		return result;
+	}
+
+	/// <summary>
+	/// Tries to determine the local variable the specified node and its result represent
+	/// </summary>
+	private static Variable? TryGetLocalVariable(Unit unit, Node node, Result result)
+	{
+		var local = unit.GetValueOwner(result);
+		if (local != null) return local;
+		if (result.Value.Is(HandleInstanceType.STACK_VARIABLE)) return result.Value.To<StackVariableHandle>().Variable;
+		if (node.Is(NodeType.VARIABLE) && node.To<VariableNode>().Variable.IsPredictable) return node.To<VariableNode>().Variable;
+		return null;
 	}
 
 	/// <summary>
@@ -268,9 +280,12 @@ public static class Arithmetic
 		var left = References.Get(unit, node.Left, AccessMode.WRITE);
 		var right = References.Get(unit, node.Right);
 
-		if (node.Condition == null && node.Left.Is(NodeType.VARIABLE) && node.Left.To<VariableNode>().Variable.IsPredictable && !Assembler.IsDebuggingEnabled)
+		var local = TryGetLocalVariable(unit, node.Left, left);
+
+		// Check if the destination represents a local variable and ensure the assignment is not conditional
+		if (node.Condition == null && local != null && !Assembler.IsDebuggingEnabled)
 		{
-			return new SetVariableInstruction(unit, node.Left.To<VariableNode>().Variable, right).Execute();
+			return new SetVariableInstruction(unit, local, right).Execute();
 		}
 
 		// Externally used variables need an immediate update 
@@ -311,10 +326,7 @@ public static class Arithmetic
 
 	private static long GetDivisorReciprocal(long divisor)
 	{
-		if (divisor == 1)
-		{
-			return 1;
-		}
+		if (divisor == 1) { return 1; }
 
 		var fraction = (decimal)1 / divisor;
 		var result = (long)0;
@@ -363,11 +375,11 @@ public static class Arithmetic
 		// Assign the result if needed
 		if (assigns)
 		{
-			/// NOTE: When a predictable variable is being assigned it must not be under nodes which hide it
-			if (left.Is(NodeType.VARIABLE) && left.To<VariableNode>().Variable.IsPredictable)
+			var local = TryGetLocalVariable(unit, left, destination);
+
+			if (local != null && !Assembler.IsDebuggingEnabled)
 			{
-				var variable = left.To<VariableNode>().Variable;
-				return new SetVariableInstruction(unit, variable, addition).Execute();
+				return new SetVariableInstruction(unit, local, addition).Execute();
 			}
 
 			return new MoveInstruction(unit, destination, addition).Execute();

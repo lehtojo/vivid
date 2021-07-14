@@ -44,4 +44,6 @@ public class DecrementNode : Node, IResolvable
 		hash.Add(Post);
 		return hash.ToHashCode();
 	}
+
+	public override string ToString() => "Decrement";
 }

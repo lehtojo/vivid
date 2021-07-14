@@ -37,4 +37,6 @@ public class ElseNode : Node, IResolvable
 	{
 		return Status.OK;
 	}
+
+	public override string ToString() => "Else";
 }

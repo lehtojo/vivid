@@ -22,7 +22,7 @@ public class MergeScopeInstruction : Instruction
 
 	private Result GetDestinationHandle(Variable variable)
 	{
-		return Scope.Outer?.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
+		return Scope.Outer?.GetVariableValue(variable) ?? GetVariableStackHandle(variable);
 	}
 
 	public override void OnBuild()
@@ -31,15 +31,19 @@ public class MergeScopeInstruction : Instruction
 
 		foreach (var variable in Scope.Actives)
 		{
-			var source = Unit.GetCurrentVariableHandle(variable) ?? GetVariableStackHandle(variable);
+			var source = Unit.GetVariableValue(variable) ?? GetVariableStackHandle(variable);
 
 			// Copy the destination value to prevent any relocation leaks
 			var handle = GetDestinationHandle(variable);
 			var destination = new Result(handle.Value, handle.Format);
 
-			if (destination.IsConstant)
+			if (destination.IsConstant) continue;
+			
+			// If the only difference between the source and destination, is the size, and the source size is larger than the destination size, no conversion is needed
+			/// NOTE: Move instruction should still be created, so that the destination is locked
+			if (destination.Value.Equals(source.Value) && Size.FromFormat(destination.Format).Bytes <= Size.FromFormat(source.Format).Bytes)
 			{
-				continue;
+				source = destination;
 			}
 
 			moves.Add(new MoveInstruction(Unit, destination, source)

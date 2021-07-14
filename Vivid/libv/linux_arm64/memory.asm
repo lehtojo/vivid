@@ -1,4 +1,17 @@
 //analyze
+
+// d0: Value
+.global _V15decimal_to_bitsd_rx
+_V15decimal_to_bitsd_rx:
+fmov x0, d0
+ret
+
+// x0: Value
+.global _V15bits_to_decimalx_rd
+_V15bits_to_decimalx_rd:
+fmov d0, x0
+ret
+
 // x0: Length
 .global _V17internal_allocatex_rPh
 _V17internal_allocatex_rPh:

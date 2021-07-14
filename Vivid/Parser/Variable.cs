@@ -28,16 +28,15 @@ public class Variable
 
 	public bool IsEdited => Writes.Count > 0;
 	public bool IsRead => Reads.Count > 0;
-	public bool IsCopied => Reads.Any(i => !i.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT))?.Is(NodeType.LINK) ?? true);
 
 	public bool IsUnresolved => Type == null || Type.IsUnresolved;
 	public bool IsResolved => !IsUnresolved;
 
+	public bool IsGlobal => Category == VariableCategory.GLOBAL;
 	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
-	public bool IsInlined => (Flag.Has(Modifiers, Modifier.INLINE) || !IsCopied) && !Flag.Has(Modifiers, Modifier.OUTLINE);
 	public bool IsHidden => Name.Contains('.');
 
 	public bool IsGenerated => Position == null;
@@ -90,7 +89,7 @@ public class Variable
 	/// </summary>
 	public bool IsEditedInside(Node node)
 	{
-		return Writes.Any(e => e.FindParent(p => p == node) != null);
+		return Writes.Any(i => i.FindParent(j => j == node) != null);
 	}
 
 	public int? GetAlignment(Type parent)
@@ -99,7 +98,7 @@ public class Variable
 		{
 			var local_alignment = LocalAlignment ?? throw new ApplicationException($"Variable '{Name}' was not aligned yet");
 
-			return parent.Supertypes.Sum(s => s.ContentSize) + local_alignment;
+			return parent.Supertypes.Sum(i => i.ContentSize) + local_alignment;
 		}
 
 		var position = 0;
@@ -117,6 +116,55 @@ public class Variable
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Returns whether this variable is inlined
+	/// </summary>
+	public bool IsInlined()
+	{
+		if (Flag.Has(Modifiers, Modifier.OUTLINE) || Type == null) return false;
+		if (Flag.Has(Modifiers, Modifier.INLINE)) return true;
+
+		// Inlining types should always be inlined
+		if (Type.IsInlining) return true;
+
+		return !Assembler.IsDebuggingEnabled && !Type.IsPrimitive && !IsCopied();
+	}
+
+	/// <summary>
+	/// Returns whether this variable is copied based on its usages
+	/// </summary>
+	public bool IsCopied()
+	{
+		foreach (var usage in Reads)
+		{
+			var link = usage.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT));
+			if (link == null) continue;
+			
+			// Only reading from this variable using links is allowed
+			if (!link.Is(NodeType.LINK)) return true;
+
+			// In the following situation the inspected member variable b is copied:
+			// x = a.b
+			// In the following situation the inspected member variable b is not copied:
+			// x = a.b.c
+			if (link.Right == usage)
+			{
+				if (link.Parent != null && !link.Parent.Is(NodeType.LINK)) return true;
+			}
+			else
+			{
+				/// NOTE: The usage must be in the left side
+				// In the following situation the inspected variable a might be copied in the member function by the self pointer
+				// a.b(c)
+				// In the following situation the inspected variable a is not copied
+				// x = a.b
+				if (!link.Right.Is(NodeType.VARIABLE)) return true;
+			}
+		}
+
+		return false;
 	}
 
 	public override string ToString()

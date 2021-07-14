@@ -16,8 +16,8 @@ public class VariableNode : Node
 	{
 		Variable = variable;
 		Instance = NodeType.VARIABLE;
-		Variable.References.Add(this);
 		Position = position;
+		Variable.References.Add(this);
 	}
 
 	public override Type? TryGetType()
@@ -36,4 +36,6 @@ public class VariableNode : Node
 	{
 		return HashCode.Combine(base.GetHashCode(), Variable);
 	}
+
+	public override string ToString() => $"Variable {Variable}";
 }

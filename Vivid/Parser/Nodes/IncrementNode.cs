@@ -44,4 +44,6 @@ public class IncrementNode : Node, IResolvable
 		hash.Add(Post);
 		return hash.ToHashCode();
 	}
+
+	public override string ToString() => "Increment";
 }

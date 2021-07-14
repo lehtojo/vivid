@@ -12,6 +12,15 @@
 	public int FriendlyLocal => Local + 1;
 	public int FriendlyAbsolute => Absolute + 1;
 
+	public Position(SourceFile? file, int line, int character)
+	{
+		File = file;
+		Line = line;
+		Character = character;
+		Local = 0;
+		Absolute = 0;
+	}
+
 	public Position(int line = 0, int character = 0, int local = 0, int absolute = 0)
 	{
 		Line = line;

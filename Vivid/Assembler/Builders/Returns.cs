@@ -6,7 +6,7 @@ public static class Returns
 	{
 		unit.TryAppendPosition(node);
 
-		var scope = (ScopeNode?)node.FindParent(i => i.Is(NodeType.SCOPE)) ?? throw new ApplicationException("Missing parent scope");
+		var scope = (ScopeNode?)node.FindParent(NodeType.SCOPE) ?? throw new ApplicationException("Missing parent scope");
 
 		if (node.Value != null)
 		{

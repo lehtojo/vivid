@@ -9,7 +9,7 @@ public static class Analyzer
 	/// </summary>
 	public static bool IsEdited(Node node)
 	{
-		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Reference did not have a valid parent");
+		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Node did not have a valid parent");
 
 		if (parent.Is(OperatorType.ACTION))
 		{
@@ -24,7 +24,7 @@ public static class Analyzer
 	/// </summary>
 	public static Node GetEdited(Node editor)
 	{
-		return editor.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Edit did not contain destination");
+		return editor.GetLeftWhile(i => i.Is(NodeType.CAST)) ?? throw new ApplicationException("Editor did not have a destination");
 	}
 
 	/// <summary>
@@ -82,7 +82,7 @@ public static class Analyzer
 
 	private static void ResetVariableUsages(Node root)
 	{
-		root.FindAll(i => i.Is(NodeType.VARIABLE))
+		root.FindAll(NodeType.VARIABLE)
 			.Select(i => i.To<VariableNode>().Variable)
 			.Distinct()
 			.ForEach(i => { i.References.Clear(); i.Writes.Clear(); i.Reads.Clear(); });
@@ -90,8 +90,9 @@ public static class Analyzer
 
 	private static void ResetVariableUsages(Context context)
 	{
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
+			if (implementation.Node == null) continue;
 			ResetVariableUsages(implementation.Node!);
 		}
 
@@ -140,7 +141,7 @@ public static class Analyzer
 			variable.Reads.Clear();
 		}
 
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>().Where(i => i.Variable == variable))
+		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable == variable))
 		{
 			variable.References.Add(iterator);
 
@@ -154,10 +155,31 @@ public static class Analyzer
 			}
 		}
 	}
+	
+	/// <summary>
+	/// Iterates through the usages of the specified variable and adds them to 'write' and 'read' lists accordingly
+	/// </summary>
+	private static void CategorizeUsages(Variable variable)
+	{
+		variable.Writes.Clear();
+		variable.Reads.Clear();
+
+		foreach (var usage in variable.References)
+		{
+			if (IsEdited(usage))
+			{
+				variable.Writes.Add(usage);
+			}
+			else
+			{
+				variable.Reads.Add(usage);
+			}
+		}
+	}
 
 	private static void AnalyzeVariableUsages(Node root)
 	{
-		foreach (var iterator in root.FindAll(i => i.Is(NodeType.VARIABLE)).Cast<VariableNode>())
+		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>())
 		{
 			iterator.Variable.References.Add(iterator);
 
@@ -193,8 +215,9 @@ public static class Analyzer
 			}
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
+			if (implementation.Node == null) continue;
 			AnalyzeVariableUsages(implementation.Node!);
 		}
 
@@ -229,53 +252,81 @@ public static class Analyzer
 		}
 	}
 
+	/// <summary>
+	/// Inserts the values of the constants in the specified into their usages
+	/// </summary>
 	public static void ApplyConstants(Context context)
 	{
 		var constants = context.Variables.Values.Where(i => i.IsConstant);
 
 		foreach (var constant in constants)
 		{
-			if (constant.Writes.Count == 0)
-			{
-				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
-			}
-			else if (constant.Writes.Count > 1)
-			{
-				throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned twice or more");
-			}
+			if (constant.Writes.Count == 0) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
+			if (constant.Writes.Count > 1) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned more than once");
 
-			var edit = constant.Writes.First().Parent;
+			var write = constant.Writes.First().Parent;
 
-			if (edit is OperatorNode assignment)
+			if (write == null || !write.Is(Operators.ASSIGN)) throw Errors.Get(constant.Position, $"Invalid assignment for constant '{constant.Name}'");
+			
+			var value = Analyzer.GetSource(write.Right);
+			if (!value.Is(NodeType.NUMBER) && !value.Is(NodeType.STRING)) throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
+
+			foreach (var usage in constant.Reads)
 			{
-				if (assignment.Right.Is(NodeType.NUMBER) || assignment.Right.Is(NodeType.STRING))
+				var destination = usage;
+
+				// If the parent of the constant is a link node, it needs to be replaced with the value of the constant
+				// Example:
+				// namespace A { C = 0 }
+				// print(A.C) => print(0)
+				if (usage.Parent != null && usage.Parent.Is(NodeType.LINK))
 				{
-					var value = (assignment.Right as ICloneable) ?? throw new NotImplementedException("Constant value did not support cloning");
+					destination = usage.Parent;
+				}
 
-					foreach (var reference in constant.Reads)
-					{
-						reference.Replace((Node)value.Clone());
-					}
-				}
-				else
-				{
-					throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
-				}
-			}
-			else
-			{
-				throw Errors.Get(constant.Position, $"Invalid value assignment for constant '{constant.Name}'");
+				destination.Replace(write.Right.Clone());
 			}
 		}
 
-		foreach (var subcontext in context.Subcontexts)
-		{
-			ApplyConstants(subcontext);
-		}
+		foreach (var subcontext in context.Subcontexts) ApplyConstants(subcontext);
+		foreach (var type in context.Types.Values) ApplyConstants(type);
+	}
 
-		foreach (var type in context.Types.Values)
+	/// <summary>
+	/// Finds all the constant usages in the specified node tree and inserts the values of the constants into their usages
+	/// </summary>
+	public static void ApplyConstants(Node root)
+	{
+		var constants = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable.IsConstant).ToArray();
+
+		foreach (var usage in constants)
 		{
-			ApplyConstants(type);
+			var constant = usage.Variable;
+
+			CategorizeUsages(constant);
+
+			if (constant.Writes.Count == 0) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
+			if (constant.Writes.Count > 1) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned more than once");
+
+			var write = constant.Writes.First().Parent;
+
+			if (write == null || !write.Is(Operators.ASSIGN)) throw Errors.Get(constant.Position, $"Invalid assignment for constant '{constant.Name}'");
+			
+			var value = Analyzer.GetSource(write.Right);
+			if (!value.Is(NodeType.NUMBER) && !value.Is(NodeType.STRING)) throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
+			
+			var destination = (Node)usage;
+
+			// If the parent of the constant is a link node, it needs to be replaced with the value of the constant
+			// Example:
+			// namespace A { C = 0 }
+			// print(A.C) => print(0)
+			if (usage.Parent != null && usage.Parent.Is(NodeType.LINK))
+			{
+				destination = usage.Parent;
+			}
+
+			destination.Replace(write.Right.Clone());
 		}
 	}
 

@@ -194,10 +194,7 @@ public class AdditionInstruction : DualParameterInstruction
 
 		if (Operation == Instructions.X64.EVALUATE)
 		{
-			if (!handle.Is(HandleType.REGISTER))
-			{
-				return false;
-			}
+			if (!handle.Is(HandleType.REGISTER)) return false;
 
 			Destination!.Value = handle;
 			return true;
@@ -239,7 +236,7 @@ public class AdditionInstruction : DualParameterInstruction
 		return false;
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsArm64)
 		{

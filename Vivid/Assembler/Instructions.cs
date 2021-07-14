@@ -62,6 +62,8 @@ public static class Instructions
 
 	public static class X64
 	{
+		public const int EVALUATE_MAX_MULTIPLIER = 8;
+
 		public const string DOUBLE_PRECISION_ADD = "addsd";
 		public const string SINGLE_PRECISION_ADD = "addss";
 
@@ -108,6 +110,7 @@ public static class Instructions
 		public const string DOUBLE_PRECISION_DIVIDE = "divsd";
 		public const string SINGLE_PRECISION_DIVIDE = "divss";
 		public const string SIGNED_DIVIDE = "idiv";
+		public const string UNSIGNED_DIVIDE = "div";
 
 		public const string JUMP_ABOVE = "ja";
 		public const string JUMP_ABOVE_OR_EQUALS = "jae";
@@ -252,6 +255,7 @@ public static class Instructions
 		public const string DECIMAL_COMPARE = "fcmp";
 
 		public const string SIGNED_DIVIDE = "sdiv";
+		public const string UNSIGNED_DIVIDE = "udiv";
 		public const string DECIMAL_DIVIDE = "fdiv";
 
 		public const string MULTIPLY_SUBTRACT = "msub";
@@ -306,10 +310,7 @@ public static class Instructions
 
 		public static void Initialize()
 		{
-			if (Descriptors.Count > 0)
-			{
-				return;
-			}
+			if (Descriptors.Count > 0) return;
 
 			Descriptors.Add(SHIFT_LEFT, new(StatusFlag.Arm64.C));
 			Descriptors.Add(SHIFT_RIGHT, new(StatusFlag.Arm64.C));

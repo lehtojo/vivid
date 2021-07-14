@@ -23,7 +23,7 @@ public class VariableState
 
 	public void Restore(Unit unit)
 	{
-		var handle = unit.GetCurrentVariableHandle(Variable);
+		var handle = unit.GetVariableValue(Variable);
 
 		if (Register.Handle != null && !Register.Handle.Equals(handle))
 		{
@@ -66,6 +66,19 @@ public class Indexer
 	public int this[string category] => Next(category);
 }
 
+public struct VariableLocation
+{
+	public Variable Variable { get; }
+	public Handle Handle { get; }
+
+	public VariableLocation(Variable variable, Result result)
+	{
+		Variable = variable;
+		Handle = result.Value.Finalize();
+		Handle.Format = result.Format;
+	}
+}
+
 public class Unit
 {
 	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
@@ -92,6 +105,8 @@ public class Unit
 
 	private StringBuilder Builder { get; } = new StringBuilder();
 	public Dictionary<object, string> Constants { get; } = new Dictionary<object, string>();
+
+	public Dictionary<Label, List<VariableLocation>> States { get; } = new Dictionary<Label, List<VariableLocation>>();
 
 	private Indexer Indexer { get; set; } = new Indexer();
 	public Variable? Self { get; set; }
@@ -151,7 +166,7 @@ public class Unit
 			new Register(Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
 			new Register(Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-			new Register(Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
+			new Register(Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
 			new Register(Size.YMMWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
 			new Register(Size.YMMWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
 			new Register(Size.YMMWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
@@ -206,7 +221,7 @@ public class Unit
 
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Assembler.Size, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
+			var register = new Register(Size.XMMWORD, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
 
 			if (i < 19)
 			{
@@ -232,8 +247,8 @@ public class Unit
 	public List<VariableState> GetState(int at)
 	{
 		return Scope!.Variables
-			.Where(v => v.Value.IsAnyRegister && v.Value.IsValid(at))
-			.Select(v => new VariableState(v.Key, v.Value.Value.To<RegisterHandle>().Register)).ToList();
+			.Where(i => i.Value.IsAnyRegister && i.Value.IsValid(at))
+			.Select(i => new VariableState(i.Key, i.Value.Value.To<RegisterHandle>().Register)).ToList();
 	}
 
 	public void Set(List<VariableState> state)
@@ -395,21 +410,24 @@ public class Unit
 	{
 		var value = register.Handle;
 
-		if (value == null)
-		{
-			return;
-		}
+		if (value == null) { return; }
 
 		if (value.IsReleasable(this))
 		{
 			foreach (var iterator in Scope!.Variables)
 			{
-				if (!iterator.Value.Equals(value))
+				if (!iterator.Value.Equals(value)) continue;
+
+				// Get the default handle of the variable
+				var handle = References.CreateVariableHandle(this, iterator.Key);
+
+				// The handle must be a memory handle, otherwise anything can happen
+				if (!handle.Is(HandleType.MEMORY))
 				{
-					continue;
+					handle = new TemporaryMemoryHandle(this);
 				}
 
-				var destination = new Result(References.CreateVariableHandle(this, iterator.Key), iterator.Key.Type!.Format);
+				var destination = new Result(handle, iterator.Key.Type!.Format);
 
 				var move = new MoveInstruction(this, destination, value)
 				{
@@ -519,7 +537,7 @@ public class Unit
 			return register;
 		}
 
-		// Since all registers contain intermediate values, one of them must be released a temporary memory location
+		// Since all registers contain intermediate values, one of them must be released to a temporary memory location
 		// NOTE: Some registers may be locked which prevents them from being used, but not all registers should be locked, otherwise something very strange has happened
 
 		// Find the next register which is not locked
@@ -556,7 +574,18 @@ public class Unit
 			return register;
 		}
 
-		throw new NotImplementedException("Could not find an available media register");
+		// Find the next media register which is not locked
+		register = MediaRegisters.Find(r => !r.IsLocked);
+
+		if (register == null)
+		{
+			// NOTE: This usually happens when there is a flaw in the algorithm and the compiler does not know how to handle a value for example
+			throw new ApplicationException("All media registers were locked or reserved, this should not happen");
+		}
+
+		Release(register);
+
+		return register;
 	}
 
 	/// <summary>
@@ -677,27 +706,18 @@ public class Unit
 
 			try
 			{
-				if (instruction.Scope == null)
-				{
-					throw new ApplicationException("Instruction was missing its scope");
-				}
+				if (instruction.Scope == null) throw new ApplicationException("Missing instruction scope");
 
 				Anchor = instruction;
 
-				if (Scope != instruction.Scope)
-				{
-					instruction.Scope.Enter(this);
-				}
+				if (Scope != instruction.Scope) instruction.Scope.Enter(this);
 
 				action(instruction);
 
 				instruction.OnSimulate();
 
 				// Exit the current scope if its end is reached
-				if (instruction == Scope?.End)
-				{
-					Scope.Exit();
-				}
+				if (instruction == Scope?.End) Scope.Exit();
 			}
 			catch (Exception e)
 			{
@@ -706,10 +726,7 @@ public class Unit
 
 			Position = instruction.Position;
 
-			if (Position + 1 >= Instructions.Count)
-			{
-				break;
-			}
+			if (Position + 1 >= Instructions.Count) break;
 
 			Position++;
 		}
@@ -718,9 +735,53 @@ public class Unit
 		Mode = UnitMode.DEFAULT;
 	}
 
-	public Result? GetCurrentVariableHandle(Variable variable)
+	/// <summary>
+	/// Updates the value of the specified variable in the current scope
+	/// </summary>
+	public void SetVariableValue(Variable variable, Result value)
 	{
-		return Scope?.GetCurrentVariableHandle(variable);
+		if (Scope == null) throw new ApplicationException("Unit did not have an active scope");
+		Scope.Variables[variable] = value;
+	}
+
+	/// <summary>
+	/// Tries to return the current value of the specified variable.
+	/// By default, this function goes through all scopes in order to return the value of the variable, but this can be turned off.
+	/// </summary>
+	public Result? GetVariableValue(Variable variable, bool recursive = true)
+	{
+		return Scope?.GetVariableValue(variable, recursive);
+	}
+
+	/// <summary>
+	/// Returns whether any variables owns the specified value
+	/// </summary>
+	public bool IsVariableValue(Result value)
+	{
+		return Scope != null && Scope.Variables.ContainsValue(value);
+	}
+
+	/// <summary>
+	/// Returns the variable which owns the specified value, if it is owned by any
+	/// </summary>
+	public Variable? GetValueOwner(Result value)
+	{
+		if (Scope == null) return null;
+
+		foreach (var iterator in Scope.Variables)
+		{
+			if (Equals(iterator.Value, value)) return iterator.Key;
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Returns whether a value has been assigned to the specified variable
+	/// </summary>
+	public bool IsInitialized(Variable variable)
+	{
+		return Scope != null && Scope.Variables.ContainsKey(variable);
 	}
 
 	public string Export()

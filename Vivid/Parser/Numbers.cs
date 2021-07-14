@@ -32,8 +32,6 @@ public static class Numbers
 	/// <summary>
 	/// Adds the two operands together
 	/// </summary>
-	/// <param name="x">First long or double operand</param>
-	/// <param name="y">Second long or double operand</param>
 	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
 	public static object Add(object x, object y)
 	{
@@ -48,8 +46,6 @@ public static class Numbers
 	/// <summary>
 	/// Subtracts the two operands together
 	/// </summary>
-	/// <param name="x">First long or double operand</param>
-	/// <param name="y">Second long or double operand</param>
 	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
 	public static object Subtract(object x, object y)
 	{
@@ -64,8 +60,6 @@ public static class Numbers
 	/// <summary>
 	/// Multiplies the two operands together
 	/// </summary>
-	/// <param name="x">First long or double operand</param>
-	/// <param name="y">Second long or double operand</param>
 	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
 	public static object Multiply(object x, object y)
 	{
@@ -80,8 +74,6 @@ public static class Numbers
 	/// <summary>
 	/// Divides the two operands together
 	/// </summary>
-	/// <param name="x">First long or double operand</param>
-	/// <param name="y">Second long or double operand</param>
 	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
 	public static object Divide(object x, object y)
 	{
@@ -96,8 +88,6 @@ public static class Numbers
 	/// <summary>
 	/// Divides the two operands together and returns the remainder
 	/// </summary>
-	/// <param name="x">First long or double operand</param>
-	/// <param name="y">Second long or double operand</param>
 	/// <returns>Returns the result of the operation. The result is a double if any of the operands is a double, otherwise  </returns>
 	public static object Remainder(object x, object y)
 	{

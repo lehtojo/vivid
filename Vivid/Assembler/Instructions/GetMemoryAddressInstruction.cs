@@ -21,17 +21,15 @@ public class GetMemoryAddressInstruction : Instruction
 		IsAbstract = true;
 		Dependencies = new[] { Result, Start, Offset };
 
-		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride) { Format = format };
+		Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 		Result.Format = Format;
 	}
 
 	private void ValidateHandle()
 	{
-		// Ensure the start value is a contant or in a register
-		if (!Start.IsConstant && !Start.IsInline && !Start.IsStandardRegister)
-		{
-			Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
-		}
+		// Ensure the start value is a constant or in a register
+		if (Start.IsConstant || Start.IsInline || Start.IsStandardRegister) return;
+		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
 	}
 
 	public override void OnBuild()

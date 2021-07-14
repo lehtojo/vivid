@@ -1,4 +1,4 @@
-export loops(start, count) {
+export loops(start: large, count: large) {
 	result = start
 
 	i = 0
@@ -118,14 +118,4 @@ export normal_for_loop_with_memory_evacuation(start: large, count: large) {
 
 init() {
 	=> 1
-	
-	# Dummy for type resolvation
-	loops(0, 0)
-	forever_loop()
-	conditional_loop(0)
-	conditional_action_loop(0)
-	normal_for_loop(0, 0)
-	normal_for_loop_with_stop(0, 0)
-	nested_for_loops(0 as link, 0)
-	normal_for_loop_with_memory_evacuation(0, 0)
 }

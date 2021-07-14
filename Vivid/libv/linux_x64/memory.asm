@@ -1,5 +1,18 @@
 #analyze
 .intel_syntax noprefix
+
+# xmm0: Value
+.global _V15decimal_to_bitsd_rx
+_V15decimal_to_bitsd_rx:
+movq rax, xmm0
+ret
+
+# rdi: Value
+.global _V15bits_to_decimalx_rd
+_V15bits_to_decimalx_rd:
+movq xmm0, rdi
+ret
+
 # rcx: Nanoseconds
 .global _V5sleepx
 _V5sleepx:

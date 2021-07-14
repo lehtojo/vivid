@@ -15,6 +15,11 @@ public class UnarySignPattern : Pattern
 		TokenType.OBJECT
 	) { }
 
+	public override int GetPriority(List<Token> tokens)
+	{
+		return PRIORITY;
+	}
+
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var sign = tokens[SIGN].To<OperatorToken>().Operator;
@@ -34,24 +39,10 @@ public class UnarySignPattern : Pattern
 
 		if (target is NumberNode number)
 		{
-			if (sign == Operators.SUBTRACT)
-			{
-				number.Negate();
-			}
-
+			if (sign == Operators.SUBTRACT) number.Negate();
 			return number;
 		}
 
-		if (sign == Operators.SUBTRACT)
-		{
-			return new NegateNode(target, tokens[SIGN].Position);
-		}
-
-		return target;
-	}
-
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
+		return sign == Operators.SUBTRACT ? new NegateNode(target, tokens[SIGN].Position) : target;
 	}
 }

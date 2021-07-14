@@ -42,7 +42,7 @@ Bar {
 		this.d = d
 	}
 
-	bar(): decimal
+	virtual bar(): decimal
 }
 
 Foo Bar Baz {
@@ -55,13 +55,18 @@ Foo Bar Baz {
 		e = x + 4
 	}
 
-	bar() {
+	override bar() {
 		if a + b == c + d {
 			=> a + b
 		}
 
 		=> c + d
 	}
+}
+
+# Creates an instance of Baz and returns it
+export create_baz() {
+	=> Baz(0.0)
 }
 
 # Creates an instance of the type Baz and tests whether the inner assignment statements work since they require conversions from the input type decimal

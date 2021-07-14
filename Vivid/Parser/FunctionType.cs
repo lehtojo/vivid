@@ -8,17 +8,19 @@ public class FunctionType : UnresolvedType
 	public List<Type?> Parameters { get; }
 	public Type? ReturnType { get; }
 
-	public FunctionType(List<Type?> parameters, Type? return_type) : base(string.Empty)
+	public FunctionType(List<Type?> parameters, Type? return_type, Position? position = null) : base(string.Empty)
 	{
 		Parameters = parameters;
 		ReturnType = return_type;
+		Position = position;
 	}
 
-	public FunctionType(Type self, List<Type?> parameters, Type? return_type) : base(string.Empty)
+	public FunctionType(Type self, List<Type?> parameters, Type? return_type, Position? position) : base(string.Empty)
 	{
 		Self = self;
 		Parameters = parameters;
 		ReturnType = return_type;
+		Position = position;
 	}
 
 	public override Node? Resolve(Context context)
@@ -45,7 +47,7 @@ public class FunctionType : UnresolvedType
 
 	public override Type? GetOffsetType()
 	{
-		return global::Link.GetVariant(Primitives.CreateNumber(Primitives.U64, Format.UINT64));
+		return Link.GetVariant(Primitives.CreateNumber(Primitives.U64, Format.UINT64));
 	}
 
 	public override bool Equals(object? other)
@@ -70,14 +72,13 @@ public class FunctionType : UnresolvedType
 	{
 		var hash = new HashCode();
 		hash.Add(base.GetHashCode());
-		hash.Add(Self);
-		hash.Add(Parameters);
+		foreach (var parameter in Parameters) hash.Add(parameter);
 		hash.Add(ReturnType);
 		return hash.ToHashCode();
 	}
 
 	public override string ToString()
 	{
-		return $"({string.Join(", ", Parameters.Select(p => p?.ToString() ?? "_").ToArray())}) -> {ReturnType?.ToString() ?? "_"}";
+		return $"({string.Join(", ", Parameters.Select(i => i?.ToString() ?? "_").ToArray())}) -> {ReturnType?.ToString() ?? "_"}";
 	}
 }

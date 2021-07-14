@@ -75,21 +75,22 @@ public class LambdaPattern : Pattern
 			blueprint.Insert(0, new OperatorToken(Operators.HEAVY_ARROW) { Position = tokens[OPERATOR].Position });
 		}
 
-		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
+		var start = tokens[PARAMETERS].Position;
+		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().End : null;
+
+		var environment = context.GetImplementationParent() ?? throw Errors.Get(start, "Lambda must be inside a function");
+		var name = environment.CreateLambda().ToString(CultureInfo.InvariantCulture);
 
 		// Create a function token manually since it contains some useful helper functions
 		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
 
-		var start = tokens[PARAMETERS].Position;
-		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().End : null;
-
-		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, start, end);
+		var lambda = new Lambda(environment, Modifier.DEFAULT, name, blueprint, start, end);
 
 		lambda.Parameters.AddRange(function.GetParameters(lambda));
 
-		if (lambda.Parameters.All(p => p.Type != null && !p.Type.IsUnresolved))
+		if (lambda.Parameters.All(i => i.Type != null && !i.Type.IsUnresolved))
 		{
-			var implementation = lambda.Implement(lambda.Parameters.Select(p => p.Type!));
+			var implementation = lambda.Implement(lambda.Parameters.Select(i => i.Type!));
 
 			return new LambdaNode(implementation, start);
 		}

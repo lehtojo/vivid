@@ -21,10 +21,10 @@ public static class UnwrapmentAnalysis
 {
 	public const int MAXIMUM_LOOP_UNWRAP_STEPS = 100;
 	
-	public static bool UnwrapStatements(Node root)
+	public static bool UnwrapStatements(FunctionImplementation implementation, Node root)
 	{
 		var unwrapped = false;
-		var statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+		var statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 
 		while (statements.Any())
 		{
@@ -33,11 +33,7 @@ public static class UnwrapmentAnalysis
 			if (iterator.Is(NodeType.IF))
 			{
 				var statement = iterator.To<IfNode>();
-
-				if (!statement.Condition.Is(NodeType.NUMBER))
-				{
-					continue;
-				}
+				if (!statement.Condition.Is(NodeType.NUMBER)) continue;
 
 				var successors = statement.GetSuccessors();
 
@@ -87,19 +83,15 @@ public static class UnwrapmentAnalysis
 			else if (iterator.Is(NodeType.LOOP))
 			{
 				var statement = iterator.To<LoopNode>();
-
-				if (statement.IsForeverLoop)
-				{
-					continue;
-				}
+				if (statement.IsForeverLoop) continue;
 
 				if (!statement.Condition.Is(NodeType.NUMBER))
 				{
-					if (TryUnwrapLoop(statement))
+					if (TryUnwrapLoop(implementation, statement))
 					{
 						// Statements must be reloaded, since the unwrap was successful
 						unwrapped = true;
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 
 					continue;
@@ -128,7 +120,7 @@ public static class UnwrapmentAnalysis
 					if (!initialization.IsEmpty)
 					{
 						// Reload is needed, since the condition initialization is cloned
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 				}
 				else
@@ -143,7 +135,7 @@ public static class UnwrapmentAnalysis
 					{
 						// Reload is needed, since the condition initialization is cloned
 						statement.Replace(initialization);
-						statements = new Queue<Node>(root.FindAll(i => i.Is(NodeType.IF, NodeType.LOOP)));
+						statements = new Queue<Node>(root.FindAll(NodeType.IF, NodeType.LOOP));
 					}
 					else
 					{
@@ -169,37 +161,26 @@ public static class UnwrapmentAnalysis
 		// Ensure there is only one condition present
 		var condition = loop.Condition;
 
-		if (loop.GetConditionInitialization().Any())
-		{
-			return null;
-		}
+		if (loop.GetConditionInitialization().Any()) return null;
 
-		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition))
-		{
-			return null;
-		}
+		// Unwrapping loops which have loop control nodes, is currently too complex
+		if (loop.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().Any(i => ReferenceEquals(i.Loop, loop))) return null;
+
+		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition)) return null;
 
 		// Ensure that the initialization is empty or it contains a definition of an integer variable
 		var initialization = loop.Initialization;
 
-		if (initialization.IsEmpty || initialization.First != initialization.Last)
-		{
-			return null;
-		}
+		if (initialization.IsEmpty || initialization.First != initialization.Last) return null;
 
 		initialization = initialization.First!;
 
-		if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE))
-		{
-			return null;
-		}
+		if (!initialization.Is(Operators.ASSIGN) || !initialization.First!.Is(NodeType.VARIABLE)) return null;
 
 		// Make sure the variable is predictable and it is an integer
 		var variable = initialization.First!.To<VariableNode>().Variable;
 
-		if (!variable.IsPredictable ||
-			!(initialization.First.To<VariableNode>().Variable.Type is Number) ||
-			!initialization.Last!.Is(NodeType.NUMBER))
+		if (!variable.IsPredictable || initialization.First.To<VariableNode>().Variable.Type is not Number || !initialization.Last!.Is(NodeType.NUMBER))
 		{
 			return null;
 		}
@@ -300,7 +281,7 @@ public static class UnwrapmentAnalysis
 			return null;
 		}
 
-		// Ensure that the condition contains atleast one initialization variable
+		// Ensure that the condition contains at least one initialization variable
 		if (!left.Concat(right).Any(c => c is VariableComponent x && x.Variable == variable))
 		{
 			return null;
@@ -358,32 +339,28 @@ public static class UnwrapmentAnalysis
 		return null;
 	}
 
-	public static bool TryUnwrapLoop(LoopNode loop)
+	public static bool TryUnwrapLoop(FunctionImplementation implementation, LoopNode loop)
 	{
 		var descriptor = TryGetLoopUnwrapDescriptor(loop);
-
-		if (descriptor == null || descriptor.Steps > MAXIMUM_LOOP_UNWRAP_STEPS)
-		{
-			return false;
-		}
+		if (descriptor == null || descriptor.Steps > MAXIMUM_LOOP_UNWRAP_STEPS) return false;
 
 		var environment = loop.GetParentContext();
 
 		loop.InsertChildren(loop.Initialization.Clone());
 
-		var action = ReconstructionAnalysis.TryRewriteAsAssignOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
+		var action = ReconstructionAnalysis.TryRewriteAsAssignmentOperation(loop.Action.First!) ?? loop.Action.First!.Clone();
 
 		for (var i = 0; i < descriptor.Steps; i++)
 		{
 			// Clone the body and localize its content
 			var clone = loop.Body.Clone();
-			Inlines.LocalizeLabels(environment, clone);
+			Inlines.LocalizeLabels(implementation, clone);
 
 			loop.InsertChildren(clone);
 
 			// Clone the action and localize its content
 			clone = action.Clone();
-			Inlines.LocalizeLabels(environment, clone);
+			Inlines.LocalizeLabels(implementation, clone);
 
 			loop.Insert(action.Clone());
 		}

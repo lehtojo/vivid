@@ -21,6 +21,6 @@ fibonacci(iterations) {
 }
 
 init() {
-   fibonacci(10)
-   => 0
+	fibonacci(10)
+	=> 0
 }

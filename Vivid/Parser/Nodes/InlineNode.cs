@@ -19,4 +19,6 @@ public class InlineNode : Node
 	{
 		return HashCode.Combine(Instance, Position, IsContext);
 	}
+
+	public override string ToString() => "Inline";
 }

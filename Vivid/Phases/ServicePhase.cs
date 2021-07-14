@@ -152,8 +152,8 @@ public class DocumentParse
 
 public class ServicePhase : Phase
 {
-	public const string FILE_SCHEME = "file";
-	public const string UNTITLED_FILE_SCHEME = "untitled";
+	public const string FILE_SCHEME = "file://";
+	public const string UNTITLED_FILE_SCHEME = "untitled:";
 	public const string SERVICE_BIND_ADDRESS = "localhost";
 
 	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
@@ -166,14 +166,21 @@ public class ServicePhase : Phase
 	/// </summary>
 	public static string ToPath(Uri uri)
 	{
-		if (string.IsNullOrEmpty(uri.ToString())) return string.Empty;
+		var text = uri.ToString().Replace("%3A", ":");
 
-		if (uri.Scheme == FILE_SCHEME)
+		if (string.IsNullOrEmpty(text)) return string.Empty;
+
+		if (text.StartsWith(FILE_SCHEME))
 		{
-			if (IsLinux) return uri.LocalPath;
+			text = text.Substring(FILE_SCHEME.Length);
+		}
+
+		if (text.First() == '/')
+		{
+			if (IsLinux) return text;
 			
 			// If the uri starts with a separator, remove it
-			var path = uri.LocalPath.FirstOrDefault() == '/' ? uri.LocalPath[1..] : uri.LocalPath;
+			var path = text[1..];
 			var i = path.IndexOf(':');
 			
 			// If the path does not have the drive name, return it
@@ -183,7 +190,7 @@ public class ServicePhase : Phase
 			return path.Substring(0, i).ToUpperInvariant() + path.Substring(i);
 		}
 
-		return uri.ToString();
+		return text;
 	}
 
 	/// <summary>
@@ -191,9 +198,9 @@ public class ServicePhase : Phase
 	/// </summary>
 	public static Uri ToUri(string path)
 	{
-		if (!path.StartsWith(UNTITLED_FILE_SCHEME + ':'))
+		if (!path.StartsWith(UNTITLED_FILE_SCHEME))
 		{
-			return new Uri(FILE_SCHEME + ":///" + path.Replace(":", "%3A"));
+			return new Uri(FILE_SCHEME + '/' + path.Replace(":", "%3A"));
 		}
 
 		return new Uri(path);
@@ -245,13 +252,20 @@ public class ServicePhase : Phase
 				surroundings.AddRange(GetAllCursorSurroundings(token.To<ContentToken>().Tokens, absolute));
 			}
 
-			if (token.Position.Absolute <= absolute)
-			{
-				continue;
-			}
+			if (token.Position.Absolute <= absolute) continue;
 
 			surroundings.Add(new[] { i - 1 < 0 ? new DocumentToken(tokens, i, token) : new DocumentToken(tokens, i - 1, tokens[i - 1]), new DocumentToken(tokens, i, token) });
 			break;
+		}
+
+		if (!surroundings.Any() && tokens.Any())
+		{
+			var end = Common.GetEndOfToken(tokens.Last());
+
+			if (end != null && end.Absolute == absolute)
+			{
+				surroundings.Add(new[] { new DocumentToken(tokens, tokens.Count - 1, tokens.Last()), new DocumentToken(tokens, tokens.Count - 1, tokens.Last()) });
+			}
 		}
 
 		return surroundings;
@@ -312,24 +326,6 @@ public class ServicePhase : Phase
 	}
 
 	/// <summary>
-	/// Returns the position which represents the end of the specified token
-	/// </summary>
-	private static Position? GetEndOfToken(Token token)
-	{
-		return token.Type switch
-		{
-			TokenType.CONTENT => token.To<ContentToken>().End ?? token.Position.Translate(1),
-			TokenType.FUNCTION => token.To<FunctionToken>().Identifier.End,
-			TokenType.IDENTIFIER => token.To<IdentifierToken>().End,
-			TokenType.KEYWORD => token.To<KeywordToken>().End,
-			TokenType.NUMBER => token.To<NumberToken>().End ?? token.Position.Translate(1),
-			TokenType.OPERATOR => token.To<OperatorToken>().End,
-			TokenType.STRING => token.To<StringToken>().End,
-			_ => null
-		};
-	}
-
-	/// <summary>
 	/// Figures out the ranges of the specified diagnostics by examining the specified tokens
 	/// </summary>
 	private void Map(List<Token> tokens, List<DocumentDiagnostic> diagnostics)
@@ -344,7 +340,7 @@ public class ServicePhase : Phase
 
 				diagnostics.RemoveAt(i);
 
-				var end = GetEndOfToken(token);
+				var end = Common.GetEndOfToken(token);
 				if (end == null) break;
 
 				diagnostic.Range.End = new DocumentPosition(end.Line, end.Character);
@@ -457,7 +453,7 @@ public class ServicePhase : Phase
 	}
 
 	/// <summary>
-	/// Sends an empty response to the specified receiver by serializing the reponse to JSON-format
+	/// Sends an empty response to the specified receiver by serializing the response to JSON-format
 	/// </summary>
 	private static void SendStatusCode(UdpClient socket, IPEndPoint receiver, Uri uri, int code, string message = "")
 	{
@@ -468,7 +464,7 @@ public class ServicePhase : Phase
 	}
 
 	/// <summary>
-	/// Sends the specified reponse to the specified receiver by serializing the reponse to JSON-format
+	/// Sends the specified response to the specified receiver by serializing the response to JSON-format
 	/// </summary>
 	private static void SendResponse(UdpClient socket, IPEndPoint receiver, DocumentAnalysisResponse response)
 	{
@@ -822,7 +818,7 @@ public class ServicePhase : Phase
 		// Prepare the standard library
 		LoadAndParseAll(files, Environment.CurrentDirectory + "/libv/");
 
-		// Prepare the openened folder if it is not empty
+		// Prepare the opened folder if it is not empty
 		if (!string.IsNullOrEmpty(folder)) LoadAndParseAll(files, folder);
 	}
 
@@ -883,7 +879,7 @@ public class ServicePhase : Phase
 		Lexer.RegisterFile(tokens, file);
 
 		// Parse the document
-		var context = Parser.Initialize(file.Index);
+		var context = Parser.CreateRootContext(file.Index);
 		var root = new ScopeNode(context, null, null);
 
 		Parser.Parse(root, context, tokens);
@@ -912,17 +908,17 @@ public class ServicePhase : Phase
 			if (root == null || context == null) continue;
 
 			// Find all the types under the parsed document and parse them completely
-			var types = root.FindAll(i => i.Is(NodeType.TYPE)).Cast<TypeNode>().ToArray();
+			var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
 			types.ForEach(i => i.Parse());
 
-			root.FindAll(i => i.Is(NodeType.NAMESPACE)).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
+			root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
 
 			// Applies all the extension functions
 			ParserPhase.ApplyExtensionFunctions(context, root);
 		}
 
 		// Merge all parsed files
-		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY.ToLowerInvariant());
+		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY);
 		root = Parser.CreateRootNode(context);
 
 		// Now merge all the parsed source files
@@ -991,7 +987,7 @@ public class ServicePhase : Phase
 			var data = Encoding.UTF8.GetString(bytes);
 			var request = (DocumentRequest?)JsonSerializer.Deserialize(data, typeof(DocumentRequest));
 
-			// If the request can not be deserialized, send back a reponse which states the request is invalid
+			// If the request can not be deserialized, send back a response which states the request is invalid
 			if (request == null)
 			{
 				SendStatusCode(socket, receiver, new Uri(string.Empty), DocumentResponseStatus.INVALID_REQUEST, "Could not understand the request");
@@ -1083,7 +1079,7 @@ public class ServicePhase : Phase
 			var data = Encoding.UTF8.GetString(bytes);
 			var request = (DocumentRequest?)JsonSerializer.Deserialize(data, typeof(DocumentRequest));
 
-			// If the request can not be deserialized, send back a reponse which states the request is invalid
+			// If the request can not be deserialized, send back a response which states the request is invalid
 			if (request == null)
 			{
 				SendStatusCode(socket, receiver, new Uri(string.Empty), DocumentResponseStatus.INVALID_REQUEST, "Could not understand the request");

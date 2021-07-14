@@ -28,19 +28,13 @@ public class VariableComponent : Component
 
 	public override Component? Add(Component other)
 	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
+		if (Numbers.IsZero(other)) { return Clone(); }
 
 		if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
 		{
 			var coefficient = Numbers.Add(Coefficient, x.Coefficient);
 
-			if (Numbers.IsZero(coefficient))
-			{
-				return new NumberComponent(0L);
-			}
+			if (Numbers.IsZero(coefficient)) { return new NumberComponent(0L); }
 
 			return new VariableComponent(Variable, coefficient, Order);
 		}
@@ -50,19 +44,13 @@ public class VariableComponent : Component
 
 	public override Component? Subtract(Component other)
 	{
-		if (Numbers.IsZero(other))
-		{
-			return Clone();
-		}
+		if (Numbers.IsZero(other)) { return Clone(); }
 
 		if (other is VariableComponent x && Equals(Variable, x.Variable) && Equals(Order, x.Order))
 		{
 			var coefficient = Numbers.Subtract(Coefficient, x.Coefficient);
 
-			if (Numbers.IsZero(coefficient))
-			{
-				return new NumberComponent(0L);
-			}
+			if (Numbers.IsZero(coefficient)) { return new NumberComponent(0L); }
 
 			return new VariableComponent(Variable, coefficient);
 		}
@@ -93,10 +81,10 @@ public class VariableComponent : Component
 			}
 
 			var coefficient = Numbers.Multiply(Coefficient, variable_component.Coefficient);
-			Coefficient = 1L;
-			variable_component.Coefficient = 1L;
+			var left = new VariableComponent(Variable, 1L, Order);
+			var right = new VariableComponent(variable_component.Variable, 1L, variable_component.Order);
 
-			return new VariableProductComponent(coefficient, new List<VariableComponent> { this, variable_component });
+			return new VariableProductComponent(coefficient, new List<VariableComponent> { left, right });
 		}
 
 		if (other is NumberComponent number_component)

@@ -45,7 +45,6 @@ public static class Casts
 		var to = node.GetType();
 
 		var result = References.Get(unit, node.Object, mode);
-		result.Format = to.Format;
 
 		return Cast(unit, result, from, to);
 	}

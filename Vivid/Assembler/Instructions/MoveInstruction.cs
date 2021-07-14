@@ -574,7 +574,7 @@ public class MoveInstruction : DualParameterInstruction
 			OnBuildDecimalConversion(flags_first, flags_second);
 			return;
 		}
-		else if (First.IsMediaRegister && Second.IsConstant && Numbers.IsZero(Second.Value.To<ConstantHandle>().Value))
+		else if ((First.IsMediaRegister || First.IsEmpty) && Second.IsConstant && Numbers.IsZero(Second.Value.To<ConstantHandle>().Value))
 		{
 			if (Assembler.IsArm64)
 			{
@@ -732,55 +732,83 @@ public class MoveInstruction : DualParameterInstruction
 	}
 
 	/// <summary>
-	/// Moves the second operand which must be a constant to the destination whose format must be decimal
+	/// Moves the second operand, which must be a constant, to the destination whose format must be decimal
 	/// </summary>
 	private void BuildDecimalConstantMoveX64(int flags_first, int flags_second)
 	{
-		var handle = Second.Value.To<ConstantHandle>();
-
-		var previous_format = Second.Format;
-		var previous_handle_format = handle.Format;
-		var previous_handle_value = handle.Value;
-
-		// Ensure the source value is in decimal format
-		if (Second.Format.IsDecimal())
+		if (Type == MoveType.RELOCATE)
 		{
-			handle.Value = BitConverter.DoubleToInt64Bits((double)previous_handle_value);
-			handle.Format = Assembler.Format;
+			var handle = Second.Value.To<ConstantHandle>();
+
+			if (Second.Format.IsDecimal())
+			{
+				handle.Value = BitConverter.DoubleToInt64Bits((double)handle.Value);
+				handle.Format = Assembler.Format;
+			}
+			else
+			{
+				handle.Value = BitConverter.DoubleToInt64Bits((double)(long)handle.Value);
+				handle.Format = Assembler.Format;
+			}
+
+			Second.Format = Assembler.Format;
+
+			Memory.MoveToRegister(Unit, Second, Assembler.Size, false);
+
+			// Example:
+			// xmm0 <- 10.0
+			// mov rax, 0x4024000000000000
+			// movq xmm0, rax
+
+			Build(
+				First.IsMemoryAddress ? Instructions.Shared.MOVE : Instructions.X64.RAW_MEDIA_REGISTER_MOVE,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.MEDIA_REGISTER,
+					HandleType.MEMORY
+				),
+				new InstructionParameter(
+					Second,
+					flags_second | ParameterFlag.BIT_LIMIT_64,
+					HandleType.REGISTER
+				)
+			);
 		}
 		else
 		{
-			handle.Value = BitConverter.DoubleToInt64Bits((double)(long)previous_handle_value);
-			handle.Format = Assembler.Format;
-		}
+			var handle = Second.Value.Finalize().To<ConstantHandle>();
 
-		Second.Format = Assembler.Format;
+			if (Second.Format.IsDecimal())
+			{
+				handle.Value = BitConverter.DoubleToInt64Bits((double)handle.Value);
+				handle.Format = Assembler.Format;
+			}
+			else
+			{
+				handle.Value = BitConverter.DoubleToInt64Bits((double)(long)handle.Value);
+				handle.Format = Assembler.Format;
+			}
 
-		// Example:
-		// xmm0 <- 10.0
-		// movq xmm0, 0x4024000000000000
+			// Example:
+			// xmm0 <- 10.0
+			// mov rax, 0x4024000000000000
+			// movq xmm0, rax
 
-		Build(
-			First.IsMemoryAddress ? Instructions.Shared.MOVE : Instructions.X64.RAW_MEDIA_REGISTER_MOVE,
-			new InstructionParameter(
-				First,
-				flags_first,
-				HandleType.MEDIA_REGISTER,
-				HandleType.MEMORY
-			),
-			new InstructionParameter(
-				Second,
-				flags_second | ParameterFlag.BIT_LIMIT_64,
-				HandleType.REGISTER
-			)
-		);
-
-		// Restore the previous values to the second operand if this is not a relocation move
-		if (Type != MoveType.RELOCATE)
-		{
-			handle.Value = previous_handle_value;
-			handle.Format = previous_handle_format;
-			Second.Format = previous_format;
+			Build(
+				First.IsMemoryAddress ? Instructions.Shared.MOVE : Instructions.X64.RAW_MEDIA_REGISTER_MOVE,
+				new InstructionParameter(
+					First,
+					flags_first,
+					HandleType.MEDIA_REGISTER,
+					HandleType.MEMORY
+				),
+				new InstructionParameter(
+					new Result(handle, Assembler.Format),
+					flags_second | ParameterFlag.BIT_LIMIT_64,
+					HandleType.REGISTER
+				)
+			);
 		}
 	}
 
@@ -890,15 +918,29 @@ public class MoveInstruction : DualParameterInstruction
 		UpdateResultFormat();
 
 		// Move should not happen if the source is the same as the destination
-		if (IsRedundant)
-		{
-			return;
-		}
+		if (IsRedundant) return;
 
 		// Ensure the destination is available if it is a register
 		if (IsSafe && First.IsAnyRegister)
 		{
 			Memory.ClearRegister(Unit, First.Value.To<RegisterHandle>().Register);
+		}
+
+		// If the source is empty, no actual instruction is needed, but relocating the source might be needed
+		if (Second.IsEmpty)
+		{
+			if (Type != MoveType.RELOCATE) return;
+
+			// Relocate the source to the destination
+			Second.Value = First.Value;
+
+			// Attach the source value to the destination, if it is a register
+			if (Second.IsAnyRegister)
+			{
+				Second.Value.To<RegisterHandle>().Register.Handle = Second;
+			}
+
+			return;
 		}
 
 		var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);
@@ -996,7 +1038,7 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (First.IsMemoryAddress)
+		else if (First.IsMemoryAddress && !(First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Address))
 		{
 			if (Assembler.IsArm64)
 			{
@@ -1291,15 +1333,22 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
-	private static readonly Variant[] Variants = new Variant[]
+	private static readonly Variant[] VariantsX64 = new Variant[]
 	{
 		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_XMMWORD_MOVE, Size.XMMWORD, Size.XMMWORD),
 		new(Size.YMMWORD, Size.YMMWORD, HandleType.MEMORY | HandleType.MEDIA_REGISTER, HandleType.MEMORY | HandleType.MEDIA_REGISTER, Instructions.X64.UNALIGNED_YMMWORD_MOVE, Size.YMMWORD, Size.YMMWORD),
 	};
 
+	private static readonly Variant[] VariantsArm64 = new Variant[]
+	{
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEDIA_REGISTER, HandleType.MEMORY, Instructions.Arm64.LOAD, Size.XMMWORD, Size.XMMWORD),
+		new(Size.XMMWORD, Size.XMMWORD, HandleType.MEMORY, HandleType.MEDIA_REGISTER, Instructions.Arm64.STORE, Size.XMMWORD, Size.XMMWORD),
+	};
+
 	private Variant? TryGetVariant()
 	{
-		return Variants.Where(i =>
+		var variants = Assembler.IsArm64 ? VariantsArm64 : VariantsX64;
+		return variants.Where(i =>
 			i.InputDestinationFormats.Contains(Destination!.Value!.Format) &&
 			i.InputSourceFormats.Contains(Source!.Value!.Format) &&
 			Flag.Has((int)i.InputDestinationTypes, (int)Destination!.Value!.Type) &&
@@ -1421,14 +1470,21 @@ public class MoveInstruction : DualParameterInstruction
 
 	public void OnPostBuildArm64()
 	{
+		var variant = TryGetVariant();
+
+		if (variant != null)
+		{
+			Operation = variant.Operation;
+			Destination!.Value!.Format = variant.OutputDestinationSize.ToFormat();
+			Source!.Value!.Format = variant.OutputSourceSize.ToFormat();
+			return;
+		}
+		
 		var source = Source!.Value!;
 		var destination = Destination!.Value!;
 
 		// Skip decimal formats
-		if (source.Format.IsDecimal() || destination.Format.IsDecimal())
-		{
-			return;
-		}
+		if (source.Format.IsDecimal() || destination.Format.IsDecimal()) return;
 
 		var is_load = IsLoadInstructionArm64();
 		var is_store = IsStoreInstructionArm64();
@@ -1588,7 +1644,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsX64)
 		{

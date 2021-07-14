@@ -8,90 +8,41 @@ public static class MemoryAccessAnalysis
 	/// Replaces the specified repetition with the specified variable.
 	/// Optionally loads the value of the repetition to the specified variable.
 	/// </summary>
-	private static Node ReplaceRepetition(Node repetition, Variable variable, bool store = false)
+	private static void ReplaceRepetition(Node repetition, Variable variable, bool access = false)
 	{
 		if (Analyzer.IsEdited(repetition))
 		{
-			var edit = Analyzer.GetEditor(repetition);
+			var editor = Analyzer.GetEditor(repetition);
 
-			if (edit.Is(Operators.ASSIGN))
-			{
-				// Store the value of the assignment to the specified variable
-				var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(variable),
-					edit.Right
-				);
+			if (!editor.Is(Operators.ASSIGN)) throw new ApplicationException("Encountered a complex editor node");
 
-				var inline = new InlineNode(edit.Position) { initialization };
+			// Store the value of the assignment to the specified variable
+			editor.Insert(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(variable),
+				editor.Right
+			));
 
-				edit.Replace(inline);
+			// Store the value into the repetition
+			editor.Replace(new OperatorNode(Operators.ASSIGN).SetOperands(
+				repetition.Clone(),
+				new VariableNode(variable)
+			));
 
-				// Store the value into the repetition
-				inline.Add(new OperatorNode(Operators.ASSIGN).SetOperands(
-					repetition.Clone(),
-					new VariableNode(variable)
-				));
-
-				// Add a result to the inline node if the return value of the edit is used
-				if (ReconstructionAnalysis.IsValueUsed(edit))
-				{
-					inline.Add(new VariableNode(variable));
-				}
-
-				return inline;
-			}
-
-			// Increments, decrements and special assignment operators should be unwrapped before unrepetition
-			throw new ApplicationException("Repetition was edited by increment, decrement or special assignment operator which should no happen");
+			return;
 		}
 
-		if (store)
+		if (access)
 		{
+			var position = ReconstructionAnalysis.GetExpressionExtractPosition(repetition);
+
 			// Store the value of the repetition to the specified variable
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+			position.Insert(new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(variable),
 				repetition.Clone()
-			);
-
-			// Replace the repetition with the initialization
-			var inline = new InlineNode(repetition.Position) { initialization, new VariableNode(variable) };
-			repetition.Replace(inline);
-
-			return inline;
+			));
 		}
 
-		var result = new VariableNode(variable);
-		repetition.Replace(result);
-
-		return result;
-	}
-
-	/// <summary>
-	/// Returns the first elements which satisfy the specified condition, while preferring the right side of assignment operators
-	/// </summary>
-	private static List<Node> FindTop(Node root, Predicate<Node> filter)
-	{
-		var nodes = new List<Node>();
-		var iterator = (IEnumerable<Node>)root;
-
-		if (root.Is(OperatorType.ACTION))
-		{
-			iterator = iterator.Reverse();
-		}
-
-		foreach (var i in iterator)
-		{
-			if (filter(i))
-			{
-				nodes.Add(i);
-			}
-			else
-			{
-				nodes.AddRange(FindTop(i, filter));
-			}
-		}
-
-		return nodes;
+		repetition.Replace(new VariableNode(variable));
 	}
 
 	/// <summary>
@@ -128,6 +79,14 @@ public static class MemoryAccessAnalysis
 	}
 
 	/// <summary>
+	/// Returns all member variables which are accessed in the specified expression
+	/// </summary>
+	private static Variable[] GetEditableMembers(Node expression)
+	{
+		return expression.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable.IsMember).Select(i => i.Variable).ToArray();
+	}
+
+	/// <summary>
 	/// Tries to find identical memory reads and localizes them, therefore it optimizes memory access
 	/// </summary>
 	public static Node Unrepeat(Node node)
@@ -135,7 +94,7 @@ public static class MemoryAccessAnalysis
 		var before = Analysis.GetCost(node);
 		var root = node.Clone();
 
-		var links = FindTop(root, i => i.Is(NodeType.LINK, NodeType.OFFSET));
+		var links = root.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
 
 		while (true)
 		{
@@ -143,112 +102,182 @@ public static class MemoryAccessAnalysis
 
 			if (!links.Any())
 			{
-				return Analysis.GetCost(node) < before ? root : node;
+				// Since there are no links left, it is time to choose whether to use the old node tree version or the new one
+				return Analysis.GetCost(root) < before ? root : node;
 			}
 
 			var repetitions = new List<Node>();
-			var start = links.First();
+			var first = links.First();
 
 			// Collect all parts of the start node which can be edited
-			var dependencies = GetEditables(start);
+			var dependencies = GetEditables(first);
+			var members = GetEditableMembers(first);
 
+			// Find all the other usages of the link 'start'
 			for (var i = links.Count - 1; i >= 1; i--)
 			{
 				var other = links[i];
 
 				// If the current link contains nodes which should not be moved, skip it
-				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT)) != null)
+				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT, NodeType.NUMBER)) != null)
 				{
 					links.RemoveAt(i);
 					continue;
 				}
 
-				if (!start.Equals(other))
+				// Add the link 'other' if it completely matches the link 'start'
+				if (first.Equals(other))
 				{
-					var sublinks = other.FindAll(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
-
-					foreach (var sublink in sublinks)
-					{
-						if (sublink.Equals(start))
-						{
-							repetitions.Insert(0, sublink);
-						}
-					}
-
+					repetitions.Insert(0, other);
 					continue;
 				}
+				
+				// Analyze the inner links, some of those can match the currently inspected link 'start'
+				var sublinks = other.FindAll(NodeType.LINK).Cast<LinkNode>();
 
-				repetitions.Insert(0, other);
+				foreach (var sublink in sublinks)
+				{
+					if (!sublink.Equals(first)) continue;
+					repetitions.Insert(0, sublink);
+				}
 			}
 
-			// The current is processed, so remove it now
-			links.RemoveAt(0);
+			links.RemoveAt(0); // Remove the first link 'start', since it has been processed
 
 			if (!repetitions.Any())
 			{
 				// Find inner links inside the current one and process them now
-				var inner = FindTop(start, i => i.Is(NodeType.LINK, NodeType.OFFSET));
+				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
 				links.InsertRange(0, inner);
-
 				continue;
 			}
 
-			// Remove all the repetitions from the link list since they are about to be modified
-			repetitions.ForEach(i => links.Remove(i));
+			repetitions.Insert(0, first);
 
-			/// NOTE: If a scope node does not have a parent, it must be the root scope
-			var context = start.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent == null)!.To<ScopeNode>().Context;
-			var variable = context.DeclareHidden(start.GetType());
+			var accesses = new bool[repetitions.Count];
+			accesses[0] = true;
 
-			// Initialize the variable
-			var scope = ReconstructionAnalysis.GetSharedScope(repetitions.Concat(new[] { start }).ToArray());
+			var start = first;
 
-			if (scope == null)
+			// Skip the first repetition
+			for (var i = 1; i < repetitions.Count; i++)
 			{
-				throw new ApplicationException("Repetitions did not have a shared scope");
-			}
+				// Load the current repetition
+				var repetition = repetitions[i];
 
-			// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
-			ReconstructionAnalysis.GetInsertPosition(start, scope).Insert(new DeclareNode(variable));
+				// All writes are memory accesses
+				if (Analyzer.IsEdited(repetition))
+				{
+					accesses[i] = true;
+				}
 
-			ReplaceRepetition(start, variable, true);
-
-			foreach (var repetition in repetitions)
-			{
-				var store = false;
+				if (accesses[i]) continue;
 
 				// Find all edits between the start and the repetition
 				var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ACTION) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
-
+				
 				// If any of the edits contain a destination which matches any of the dependencies, a store is required
 				foreach (var edit in edits)
 				{
 					var edited = Analyzer.GetEdited(edit);
 
+					// If the edited is one of the repetitions, no need to worry about that
+					if (repetitions.Any(i => ReferenceEquals(i, edited))) continue;
+					
+					// If the dependencies does not contain the edited node, loading might not be necessary
 					if (!dependencies.Contains(edited))
 					{
-						continue;
+						// If the current edit writes to any of the critical member variables, it may not be safe to use repetition without loading
+						var is_member_variable_edited = edited.Is(NodeType.LINK) && edited.Right.Is(NodeType.VARIABLE);
+						
+						if (!is_member_variable_edited || !members.Contains(edited.Right.To<VariableNode>().Variable))
+						{
+							// None of the edits must access raw memory, since they can edit the repetitions
+							if (!edited.Is(NodeType.OFFSET) && edited.Find(NodeType.OFFSET) == null) continue;
+						}
 					}
 
 					start = repetition;
-					store = true;
+					accesses[i] = true;
 					break;
 				}
 
-				// 1. If there are function calls between the start and the repetition, the function calls could edit the repetition, so a store is required
-				// 2. If the start is not always executed before the repetition, a store is needed
+				if (accesses[i]) continue;
+
+				// If there are function calls between the start and the repetition, the function calls could edit the repetition, so a store is required
 				if (flow.Between(start, repetition, i => i.Is(NodeType.FUNCTION, NodeType.CALL)))
 				{
 					start = repetition;
-					store = true;
-				}
-				else if (!flow.IsExecutedBefore(start, repetition))
-				{
-					start = repetition;
-					store = true;
+					accesses[i] = true;
+					continue;
 				}
 
-				ReplaceRepetition(repetition, variable, store);
+				// Access the memory if the current repetition can be reached without executing any of the previous loads
+				var loads = new List<Node>();
+
+				for (var j = 0; j < i; j++)
+				{
+					// Skip the repetition if it does not access the memory
+					if (!accesses[j]) continue;
+					
+					var load = repetitions[j];
+
+					if (Analyzer.IsEdited(load))
+					{
+						// Use the editor instead of the edited
+						load = Analyzer.GetEditor(load);
+					}
+
+					loads.Add(load);
+				}
+
+				var obstacles = loads.Select(i => flow.Indices[i]).ToArray();
+				var positions = new List<int> { flow.Indices[repetition] };
+
+				var result = flow.GetExecutablePositions(0, obstacles, positions, new SortedSet<int>());
+
+				if (result == null || result.Any())
+				{
+					start = repetition;
+					accesses[i] = true;
+				}
+			}
+
+			start = first;
+
+			// If every repetition needs to access the memory, then these repetitions can not be optimized
+			if (!accesses.Contains(false))
+			{
+				// Find inner links inside the current one and process them now
+				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
+				links.InsertRange(0, inner);
+				continue;
+			}
+
+			/// NOTE: If a scope node does not have a parent, it must be the root scope
+			var context = first.FindParent(i => i.Is(NodeType.SCOPE) && i.Parent == null)!.To<ScopeNode>().Context;
+			var variable = context.DeclareHidden(first.GetType());
+
+			// Initialize the variable
+			var scope = ReconstructionAnalysis.GetSharedScope(repetitions.Concat(new[] { first }).ToArray());
+			if (scope == null) throw new ApplicationException("Links did not have a shared scope");
+
+			// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
+			ReconstructionAnalysis.GetInsertPosition(first, scope).Insert(new DeclareNode(variable));
+
+			// Remove all the repetitions from the link list since they are about to be modified
+			repetitions.ForEach(i => links.Remove(i));
+
+			for (var i = 0; i < accesses.Length; i++)
+			{
+				var repetition = repetitions[i];
+				var access = accesses[i];
+
+				ReplaceRepetition(repetition, variable, access);
+
+				if (!access) continue;
+
+				start = repetition;
 			}
 		}
 	}

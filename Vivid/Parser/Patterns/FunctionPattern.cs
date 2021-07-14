@@ -4,7 +4,7 @@ class FunctionPattern : Pattern
 {
 	public const int PRIORITY = 20;
 
-	public const int HEADER = 0;
+	public const int FUNCTION = 0;
 	public const int BODY = 2;
 
 	// Pattern: $name (...) [\n] {...}
@@ -27,14 +27,14 @@ class FunctionPattern : Pattern
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var header = tokens[HEADER].To<FunctionToken>();
-		var body = tokens[BODY].To<ContentToken>();
+		var descriptor = tokens[FUNCTION].To<FunctionToken>();
+		var blueprint = tokens[BODY].To<ContentToken>();
 
-		var function = new Function(context, Modifier.DEFAULT, header.Name, body.Tokens, header.Position, body.End);
-		function.Parameters.AddRange(header.GetParameters(function));
+		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint.Tokens, descriptor.Position, blueprint.End);
+		function.Parameters.AddRange(descriptor.GetParameters(function));
 
 		context.Declare(function);
 
-		return new FunctionDefinitionNode(function, header.Position);
+		return new FunctionDefinitionNode(function, descriptor.Position);
 	}
 }

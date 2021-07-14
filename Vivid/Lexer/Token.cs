@@ -17,8 +17,7 @@ public class Token : ICloneable
 
 	public override bool Equals(object? other)
 	{
-		return other is Token token &&
-			   Type == token.Type;
+		return other is Token token && Type == token.Type;
 	}
 
 	public override int GetHashCode()

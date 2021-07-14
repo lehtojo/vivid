@@ -51,8 +51,6 @@ public class AvoidRegistersDirective : Directive
 
 public class Result
 {
-	public Instruction? Instruction { get; set; }
-
 	private Handle _Value;
 	public Handle Value
 	{
@@ -60,7 +58,7 @@ public class Result
 		set
 		{
 			_Value = value;
-			Connections.ForEach(c => c._Value = value);
+			Connections.ForEach(i => i._Value = value);
 		}
 	}
 
@@ -71,7 +69,7 @@ public class Result
 		set
 		{
 			_Format = value;
-			Connections.ForEach(c => c._Format = value);
+			Connections.ForEach(i => i._Format = value);
 		}
 	}
 
@@ -98,13 +96,7 @@ public class Result
 
 	public bool IsReleasable(Unit unit)
 	{
-		return unit.Scope!.Variables.Values.Any(i => i.Equals(this));
-	}
-
-	public Result(Instruction instruction)
-	{
-		_Value = new Handle();
-		Instruction = instruction;
+		return unit.IsVariableValue(this);
 	}
 
 	public Result(Handle value, Format format)
@@ -136,7 +128,6 @@ public class Result
 
 		foreach (var member in Others)
 		{
-			member.Instruction = Instruction;
 			member.Lifetime = Lifetime;
 		}
 	}

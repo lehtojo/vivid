@@ -77,6 +77,8 @@ public static class Units
 			AssemblerTests.OptimizationLevel = 2;
 		}
 
+		AssemblerTests.Initialize();
+
 		StartSection("Assembler");
 
 		Run("Arithmetic", AssemblerTests.Arithmetic);
@@ -99,6 +101,7 @@ public static class Units
 		Run("Linkage", AssemblerTests.Linkage);
 		Run("LogicalOperators", AssemblerTests.LogicalOperators);
 		Run("Loops", AssemblerTests.Loops);
+		Run("Memory", AssemblerTests.Memory);
 		Run("Namespaces", AssemblerTests.Namespaces);
 		Run("Objects", AssemblerTests.Objects);
 		Run("PI", AssemblerTests.PI);

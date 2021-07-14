@@ -54,7 +54,6 @@ public class LinkPattern : Pattern
 			template_arguments = Common.ReadTemplateArguments(environment, new Queue<Token>(tokens.Skip(STANDARD_TOKEN_COUNT)));
 		}
 
-		// Try to retrieve the primary context from the left token
 		var left = Singleton.Parse(environment, tokens[LEFT]);
 
 		// If the right operand is a content token, this is a cast expression
@@ -67,6 +66,7 @@ public class LinkPattern : Pattern
 			return new CastNode(left, new TypeNode(type, tokens[RIGHT].Position), tokens[OPERATOR].Position);
 		}
 
+		// Try to retrieve the primary context from the left token
 		var primary = left.TryGetType();
 
 		Node? right;
@@ -107,20 +107,17 @@ public class LinkPattern : Pattern
 			var types = function.Select(i => i.TryGetType()).ToList();
 
 			// Try to form a virtual function call
-			var result = Common.TryGetVirtualFunctionCall(left, primary, function.Name, function, types);
+			var position = tokens[OPERATOR].Position;
+			var result = Common.TryGetVirtualFunctionCall(left, primary, function.Name, function, types, position);
 
-			if (result != null)
-			{
-				result.Position = tokens[OPERATOR].Position;
-				return result;
-			}
+			if (result != null) return result;
 
 			// Try to form a lambda function call
 			result = Common.TryGetLambdaCall(primary, left, function.Name, function, types);
 
 			if (result != null)
 			{
-				result.Position = tokens[OPERATOR].Position;
+				result.Position = position;
 				return result;
 			}
 		}

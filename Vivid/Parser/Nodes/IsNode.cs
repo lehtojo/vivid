@@ -57,4 +57,6 @@ public class IsNode : Node, IResolvable
 	{
 		return HashCode.Combine(Instance, Position, Type);
 	}
+
+	public override string ToString() => "Is";
 }

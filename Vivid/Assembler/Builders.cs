@@ -2,6 +2,18 @@ using System;
 
 public static class Builders
 {
+	public static Result BuildChilds(Unit unit, Node node)
+	{
+		var result = (Result?)null;
+
+		foreach (var iterator in node)
+		{
+			result = References.Get(unit, iterator);
+		}
+
+		return result ?? new Result();
+	}
+
 	public static Result Build(Unit unit, Node node)
 	{
 		switch (node.Instance)
@@ -17,8 +29,9 @@ public static class Builders
 				}
 
 				var function_pointer = References.Get(unit, call.Pointer);
+				var self_type = call.Descriptor.Self ?? call.Self.GetType();
 
-				return Calls.Build(unit, self, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+				return Calls.Build(unit, self, self_type, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
 			}
 
 			case NodeType.FUNCTION:
@@ -39,9 +52,17 @@ public static class Builders
 			case NodeType.DECLARE:
 			{
 				var declaration = (DeclareNode)node;
-				var result = new DeclareInstruction(unit, declaration.Variable).Execute();
 
+				// Do not declare the variable twice
+				if (unit.IsInitialized(declaration.Variable)) return new Result();
+
+				var result = new DeclareInstruction(unit, declaration.Variable, declaration.ToRegister).Execute();
 				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
+			}
+
+			case NodeType.JUMP:
+			{
+				return Jumps.Build(unit, (JumpNode)node);
 			}
 
 			case NodeType.OPERATOR:
@@ -94,6 +115,11 @@ public static class Builders
 				return Arithmetic.BuildNegate(unit, (NegateNode)node);
 			}
 
+			case NodeType.LABEL:
+			{
+				return new LabelInstruction(unit, node.To<LabelNode>().Label).Execute();
+			}
+
 			case NodeType.LOOP_CONTROL:
 			{
 				return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
@@ -113,17 +139,7 @@ public static class Builders
 
 			case NodeType.DISABLED: return new Result();
 
-			default:
-			{
-				Result? reference = null;
-
-				foreach (var iterator in node)
-				{
-					reference = References.Get(unit, iterator);
-				}
-
-				return reference ?? new Result();
-			}
+			default: return BuildChilds(unit, node);
 		}
 	}
 }

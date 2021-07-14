@@ -28,7 +28,7 @@ public class ReturnInstruction : Instruction
 	/// </summary>
 	private bool IsValueInReturnRegister()
 	{
-		return Object!.Value.Is(HandleType.REGISTER) && Object!.Value.To<RegisterHandle>().Register == ReturnRegister;
+		return Object!.Value.Is(HandleInstanceType.REGISTER) && Object!.Value.To<RegisterHandle>().Register == ReturnRegister;
 	}
 
 	public override void OnBuild()
@@ -59,10 +59,7 @@ public class ReturnInstruction : Instruction
 		// ldp x2, x3, [sp, #16]
 		// ldp x0, x1, [sp], #64
 
-		if (!registers.Any())
-		{
-			return;
-		}
+		if (!registers.Any()) { return; }
 
 		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
 		var stack_pointer = Unit.GetStackPointer();
@@ -149,7 +146,7 @@ public class ReturnInstruction : Instruction
 
 	private static void RestoreRegistersX64(StringBuilder builder, List<Register> registers)
 	{
-		// Save all used non-volatile rgisters
+		// Save all used non-volatile registers
 		foreach (var register in registers)
 		{
 			builder.AppendLine($"{Instructions.X64.POP} {register}");
@@ -184,7 +181,7 @@ public class ReturnInstruction : Instruction
 			}
 		}
 
-		// Restore all used non-volatile rgisters
+		// Restore all used non-volatile registers
 		if (Assembler.IsX64)
 		{
 			RestoreRegistersX64(builder, recover_registers);

@@ -11,45 +11,43 @@ public class SetVariableInstruction : Instruction
 
 	public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit, InstructionType.SET_VARIABLE)
 	{
-		if (!variable.IsPredictable)
-		{
-			throw new ArgumentException("Tried to use Set-Variable-Instruction to update the value of an unpredictable variable");
-		}
+		if (!variable.IsPredictable) throw new ArgumentException("Setting value for unpredictable variables is not allowed");
 
 		Variable = variable;
 		Value = value;
+
+		// If the variable has a previous value, hold it until this instruction is executed
+		var previous = Unit.GetVariableValue(Variable, false);
+		if (previous != null) { Dependencies = new[] { Result, Value, previous }; }
+		else { Dependencies = new[] { Result, Value }; }
+		
 		Description = $"Updates the value of the variable '{variable.Name}'";
 		IsAbstract = true;
-		Dependencies = new[] { Result, Value };
 
 		Result.Format = Variable.GetRegisterFormat();
-
 		OnSimulate();
 	}
 
 	public override void OnSimulate()
 	{
 		// If the value does not represent another variable, it does not need to be copied
-		if (!Unit.Scope!.Variables.ContainsValue(Value))
+		if (!Unit.IsVariableValue(Value))
 		{
-			Unit.Scope!.Variables[Variable] = Value;
+			Unit.SetVariableValue(Variable, Value);
 			return;
 		}
 		
 		// Since the value represents another variable, the value has been copied to the result of this instruction
-		Unit.Scope!.Variables[Variable] = Result;
+		Unit.SetVariableValue(Variable, Result);
 	}
 
 	public override void OnBuild() 
 	{
 		// Do not copy the value if it does not represent another variable
-		if (!Unit.Scope!.Variables.ContainsValue(Value))
-		{
-			return;
-		}
+		if (!Unit.IsVariableValue(Value)) return;
 
 		// Try to get the current location of the variable to be updated
-		var current = Unit.GetCurrentVariableHandle(Variable);
+		var current = Unit.GetVariableValue(Variable);
 
 		// Use the location if it is available
 		if (current != null)

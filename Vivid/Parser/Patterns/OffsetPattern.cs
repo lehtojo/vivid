@@ -22,10 +22,7 @@ public class OffsetPattern : Pattern
 	{
 		var index = tokens[INDICES].To<ContentToken>();
 
-		if (!Equals(index.Type, ParenthesisType.BRACKETS))
-		{
-			return false;
-		}
+		if (!Equals(index.Type, ParenthesisType.BRACKETS)) return false;
 
 		return !index.IsEmpty;
 	}

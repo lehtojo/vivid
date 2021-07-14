@@ -21,7 +21,7 @@ public static class Evaluator
 	/// <summary>
 	/// Tries to return the value of the specified node
 	/// </summary>
-	private static object? TryGetValue(Node node)
+	public static object? TryGetValue(Node node)
 	{
 		return node.Instance switch
 		{
@@ -59,19 +59,10 @@ public static class Evaluator
 			return is_not_equals_operator;
 		}
 
-		if (left == null || right == null)
-		{
-			return null;
-		}
+		if (left == null || right == null) return null;
 
-		if (is_equals_operator)
-		{
-			return Equals(left, right);
-		}
-		if (is_not_equals_operator)
-		{
-			return !Equals(left, right);
-		}
+		if (is_equals_operator) return Equals(left, right);
+		if (is_not_equals_operator) return !Equals(left, right);
 
 		if (comparison.Operator == Operators.AND)
 		{
@@ -85,10 +76,7 @@ public static class Evaluator
 		}
 
 		// The following comparisons need the left and right side values to be comparable
-		if (left is not IComparable || right is not IComparable)
-		{
-			return null;
-		}
+		if (left is not IComparable || right is not IComparable) return null;
 
 		try
 		{
@@ -97,44 +85,20 @@ public static class Evaluator
 				var a = Convert.ToDouble(left, CultureInfo.InvariantCulture);
 				var b = Convert.ToDouble(right, CultureInfo.InvariantCulture);
 
-				if (comparison.Operator == Operators.GREATER_THAN)
-				{
-					return a > b;
-				}
-				if (comparison.Operator == Operators.LESS_THAN)
-				{
-					return a < b;
-				}
-				if (comparison.Operator == Operators.GREATER_OR_EQUAL)
-				{
-					return a >= b;
-				}
-				if (comparison.Operator == Operators.LESS_OR_EQUAL)
-				{
-					return a <= b;
-				}
+				if (comparison.Operator == Operators.GREATER_THAN) return a > b;
+				if (comparison.Operator == Operators.LESS_THAN) return a < b;
+				if (comparison.Operator == Operators.GREATER_OR_EQUAL) return a >= b;
+				if (comparison.Operator == Operators.LESS_OR_EQUAL) return a <= b;
 			}
 			else
 			{
 				var a = Convert.ToInt64(left, CultureInfo.InvariantCulture);
 				var b = Convert.ToInt64(right, CultureInfo.InvariantCulture);
 
-				if (comparison.Operator == Operators.GREATER_THAN)
-				{
-					return a > b;
-				}
-				if (comparison.Operator == Operators.LESS_THAN)
-				{
-					return a < b;
-				}
-				if (comparison.Operator == Operators.GREATER_OR_EQUAL)
-				{
-					return a >= b;
-				}
-				if (comparison.Operator == Operators.LESS_OR_EQUAL)
-				{
-					return a <= b;
-				}
+				if (comparison.Operator == Operators.GREATER_THAN) return a > b;
+				if (comparison.Operator == Operators.LESS_THAN) return a < b;
+				if (comparison.Operator == Operators.GREATER_OR_EQUAL) return a >= b;
+				if (comparison.Operator == Operators.LESS_OR_EQUAL) return a <= b;
 			}
 
 			return null;
@@ -155,14 +119,8 @@ public static class Evaluator
 
 		if (left == null || right == null) throw Errors.Get(comparison.Position, "Could not resolve a comparison operand");
 
-		if (comparison.Operator == Operators.EQUALS)
-		{
-			return Equals(left, right);
-		}
-		if (comparison.Operator == Operators.NOT_EQUALS)
-		{
-			return !Equals(left, right);
-		}
+		if (comparison.Operator == Operators.EQUALS) return Equals(left, right);
+		if (comparison.Operator == Operators.NOT_EQUALS) return !Equals(left, right);
 
 		if (comparison.Operator == Operators.AND)
 		{
@@ -176,27 +134,12 @@ public static class Evaluator
 		}
 
 		// The following comparisons need the left and right side values to be comparable
-		if (left is not IComparable x || right is not IComparable y)
-		{
-			throw new ArgumentException("One of the comparison operands was not comparable");
-		}
+		if (left is not IComparable x || right is not IComparable y) throw new ArgumentException("One of the comparison operands was not comparable");
 
-		if (comparison.Operator == Operators.GREATER_THAN)
-		{
-			return x.CompareTo(y) > 0;
-		}
-		if (comparison.Operator == Operators.LESS_THAN)
-		{
-			return x.CompareTo(y) < 0;
-		}
-		if (comparison.Operator == Operators.GREATER_OR_EQUAL)
-		{
-			return x.CompareTo(y) >= 0;
-		}
-		if (comparison.Operator == Operators.LESS_OR_EQUAL)
-		{
-			return x.CompareTo(y) <= 0;
-		}
+		if (comparison.Operator == Operators.GREATER_THAN) return x.CompareTo(y) > 0;
+		if (comparison.Operator == Operators.LESS_THAN) return x.CompareTo(y) < 0;
+		if (comparison.Operator == Operators.GREATER_OR_EQUAL) return x.CompareTo(y) >= 0;
+		if (comparison.Operator == Operators.LESS_OR_EQUAL) return x.CompareTo(y) <= 0;
 
 		throw new ArgumentException("Unsupported comparison");
 	}
@@ -218,10 +161,7 @@ public static class Evaluator
 
 		var successor = statement.Successor;
 
-		if (successor == null)
-		{
-			return null;
-		}
+		if (successor == null) return null;
 
 		if (successor.Is(NodeType.ELSE))
 		{
@@ -243,10 +183,7 @@ public static class Evaluator
 	{
 		foreach (var iterator in root)
 		{
-			if (!iterator.Is(NodeType.IF))
-			{
-				continue;
-			}
+			if (!iterator.Is(NodeType.IF)) continue;
 
 			var statement = iterator.To<IfNode>();
 			var result = Evaluate(statement);
@@ -273,10 +210,7 @@ public static class Evaluator
 			EvaluateLogicalOperator(expression.Right.To<OperatorNode>());
 		}
 
-		if (!expression.Left.Is(NodeType.NUMBER) && !expression.Right.Is(NodeType.NUMBER))
-		{
-			return;
-		}
+		if (!expression.Left.Is(NodeType.NUMBER) && !expression.Right.Is(NodeType.NUMBER)) return;
 
 		var a = expression.Left is NumberNode x && x.Value.Equals(0L);
 		var b = expression.Right is NumberNode y && y.Value.Equals(0L);
@@ -393,7 +327,7 @@ public static class Evaluator
 	/// </summary>
 	private static void EvaluateCompilesNodes(Node root)
 	{
-		var expressions = root.FindAll(i => i.Is(NodeType.COMPILES));
+		var expressions = root.FindAll(NodeType.COMPILES);
 
 		foreach (var expression in expressions)
 		{
@@ -418,8 +352,10 @@ public static class Evaluator
 			Evaluate(type);
 		}
 
-		foreach (var implementation in context.GetImplementedFunctions())
+		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
+			if (implementation.Node == null) continue;
+
 			// Should evaluate as long as the node tree changes
 			EvaluateCompilesNodes(implementation.Node!);
 			EvaluateLogicalOperators(implementation.Node!);
@@ -430,11 +366,11 @@ public static class Evaluator
 
 	public static Status Evaluate(Context context, Node root)
 	{
-		// Apply constants and such
-		Analyzer.Analyze(root, context);
-
 		try
 		{
+			// Apply constants and such
+			Analyzer.Analyze(root, context);
+
 			EvaluateNode(context, root);
 			return Status.OK;
 		}

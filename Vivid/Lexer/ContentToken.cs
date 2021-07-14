@@ -16,17 +16,13 @@ public class ContentToken : Token
 	public List<List<Token>> GetSections()
 	{
 		var sections = new List<List<Token>>();
-
-		if (IsEmpty)
-		{
-			return sections;
-		}
+		if (Tokens.Count == 0) return sections;
 
 		var section = new List<Token>();
 
 		foreach (var token in Tokens)
 		{
-			if (token.Type == TokenType.OPERATOR && token.To<OperatorToken>().Operator == Operators.COMMA)
+			if (token.Is(Operators.COMMA))
 			{
 				sections.Add(section);
 				section = new List<Token>();

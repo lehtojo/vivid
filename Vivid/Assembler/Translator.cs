@@ -4,6 +4,8 @@ using System.Linq;
 
 public static class Translator
 {
+	public static int TotalInstructions { get; set; } = 0;
+
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
 	{
 		return unit.Instructions.SelectMany(i => i.Parameters).Where(p => p.IsAnyRegister && !p.Value!.To<RegisterHandle>().Register.IsVolatile).Select(p => p.Value!.To<RegisterHandle>().Register).Distinct().ToList();
@@ -71,6 +73,8 @@ public static class Translator
 
 	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
 	{
+		TotalInstructions += unit.Instructions.Count;
+		
 		// Take only the instructions which are actual assembly instructions
 		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
 
@@ -87,7 +91,7 @@ public static class Translator
 		var constant_handles = GetAllConstantDataSectionHandles(unit);
 
 		// Determine how much additional memory must be allocated at the start based on the generated code
-		var required_local_memory = local_variables.Sum(i => i.Type!.ReferenceSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
+		var required_local_memory = local_variables.Sum(i => i.Type!.AllocationSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
 		var local_memory_top = 0;
 
 		// Append a return instruction at the end if there is no return instruction present

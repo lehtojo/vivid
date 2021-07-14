@@ -5,7 +5,7 @@ public class ConstructorPattern : Pattern
 {
 	public const int PRIORITY = 21;
 
-	private const int HEAD = 0;
+	private const int HEADER = 0;
 
 	// Pattern: init/deinit (...) [\n] {...}
 	public ConstructorPattern() : base
@@ -21,13 +21,10 @@ public class ConstructorPattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		// Constructors and destructors must be inside a type
-		if (!context.IsInsideType)
-		{
-			return false;
-		}
+		if (!context.IsType) return false;
 
 		// Ensure the function matches either a constructor or a destructor
-		var descriptor = tokens[HEAD].To<FunctionToken>();
+		var descriptor = tokens[HEADER].To<FunctionToken>();
 
 		if (descriptor.Name != Keywords.INIT.Identifier && descriptor.Name != Keywords.DEINIT.Identifier)
 		{
@@ -52,7 +49,7 @@ public class ConstructorPattern : Pattern
 		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
 
 		var function = (Function?)null;
-		var descriptor = tokens[HEAD].To<FunctionToken>();
+		var descriptor = tokens[HEADER].To<FunctionToken>();
 		var type = (Type)context;
 
 		var start = descriptor.Position;

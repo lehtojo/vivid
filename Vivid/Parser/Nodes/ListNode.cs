@@ -10,4 +10,6 @@
 			Add(node);
 		}
 	}
+
+	public override string ToString() => "List";
 }

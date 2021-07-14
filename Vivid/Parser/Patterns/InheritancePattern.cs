@@ -9,7 +9,8 @@ public class InheritancePattern : Pattern
 
 	public const int PRIORITY = 21;
 
-	// Pattern: $type [<$1, $2, ..., $n>] [\n] $type_definition
+	// NOTE: There can not be an optional line break since function import return types can be consumed accidentally for example
+	// Pattern: $type [<$1, $2, ..., $n>] $type_definition
 	public InheritancePattern() : base(TokenType.IDENTIFIER) { }
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
@@ -20,15 +21,12 @@ public class InheritancePattern : Pattern
 
 		if (!Common.ConsumeType(state)) return false;
 
-		// Consume a line break if one is present
-		Consume(state, TokenType.END);
-
 		return Consume(state, out Token? x, TokenType.DYNAMIC) && x is DynamicToken y && y.Node is TypeNode z && z.IsDefinition;
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var inheritant_tokens = tokens.Take(tokens.Count - 1).Where(i => !i.Is(TokenType.END)).ToArray();
+		var inheritant_tokens = tokens.Take(tokens.Count - 1).ToArray();
 
 		var inheritor_node = tokens.Last().To<DynamicToken>().Node.To<TypeNode>();
 		var inheritor = inheritor_node.Type;
@@ -38,7 +36,7 @@ public class InheritancePattern : Pattern
 			var template_type = inheritor.To<TemplateType>();
 
 			// If any of the inherited tokens represent a template argument, the inheritant tokens must be added to the template type
-			if (inheritant_tokens.Any(i => i is IdentifierToken x && template_type.TemplateArgumentNames.Any(j => x.Value == j)))
+			if (inheritant_tokens.Any(i => i is IdentifierToken x && template_type.TemplateParameters.Any(j => x.Value == j)))
 			{
 				template_type.Inherited.InsertRange(0, inheritant_tokens);
 				return inheritor_node;

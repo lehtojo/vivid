@@ -23,17 +23,14 @@ public class LinkNode : OperatorNode
 		var primary = Left.TryGetType();
 
 		// Do not try to resolve the right node without the type of the left
-		if (primary == null)
-		{
-			return null;
-		}
+		if (primary == null) return null;
 
 		if (Right.Is(NodeType.UNRESOLVED_FUNCTION))
 		{
 			var function = Right.To<UnresolvedFunction>();
 
 			// First, try to resolve the function normally
-			var resolved = function.Solve(environment, primary);
+			var resolved = function.Resolve(environment, primary);
 
 			if (resolved != null)
 			{
@@ -44,13 +41,8 @@ public class LinkNode : OperatorNode
 			var types = function.Select(i => i.TryGetType()).ToList();
 
 			// Try to form a virtual function call
-			resolved = Common.TryGetVirtualFunctionCall(Left, primary, function.Name, function, types);
-
-			if (resolved != null)
-			{
-				resolved.Position = Position;
-				return resolved;
-			}
+			resolved = Common.TryGetVirtualFunctionCall(Left, primary, function.Name, function, types, Position);
+			if (resolved != null) return resolved;
 
 			// Try to form a lambda function call
 			resolved = Common.TryGetLambdaCall(primary, Left, function.Name, function, types);
@@ -61,9 +53,16 @@ public class LinkNode : OperatorNode
 				return resolved;
 			}
 		}
-		else
+		else if (Right.Is(NodeType.UNRESOLVED_IDENTIFIER))
 		{
 			Resolver.Resolve(primary, Right);
+		}
+		else
+		{
+			/// NOTE: Environment context is required
+			/// Consider a situation where the right operand is a function call.
+			/// The function arguments need the environment context to be resolved.
+			Resolver.Resolve(environment, Right);
 		}
 		
 		return null;
@@ -78,4 +77,6 @@ public class LinkNode : OperatorNode
 	{
 		return Status.OK;
 	}
+
+	public override string ToString() => "Link";
 }

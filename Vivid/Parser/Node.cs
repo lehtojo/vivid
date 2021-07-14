@@ -102,12 +102,20 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public Node? FindParent(Predicate<Node> filter)
 	{
-		if (Parent == null)
-		{
-			return null;
-		}
-
+		if (Parent == null) return null;
 		return filter(Parent) ? Parent : Parent.FindParent(filter);
+	}
+
+	public Node? FindParent(NodeType type)
+	{
+		if (Parent == null) return null;
+		return Parent.Instance == type ? Parent : Parent.FindParent(type);
+	}
+
+	public Node? FindParent(params NodeType[] types)
+	{
+		if (Parent == null) return null;
+		return types.Contains(Parent.Instance) ? Parent : Parent.FindParent(types);
 	}
 
 	public List<Node> FindParents(Predicate<Node> filter)
@@ -131,7 +139,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public IScope FindContext()
 	{
-		return (IScope)FindParent(p => p is IScope)!;
+		return (IScope)FindParent(i => i is IScope)!;
 	}
 
 	public Context GetParentContext()
@@ -145,17 +153,44 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 		while (iterator != null)
 		{
-			if (filter(iterator))
-			{
-				return iterator;
-			}
+			if (filter(iterator)) return iterator;
 
 			var node = iterator.Find(filter);
+			if (node != null) return node;
 
-			if (node != null)
-			{
-				return node;
-			}
+			iterator = iterator.Next;
+		}
+
+		return null;
+	}
+
+	public Node? Find(NodeType type)
+	{
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (iterator.Instance == type) return iterator;
+
+			var node = iterator.Find(type);
+			if (node != null) return node;
+
+			iterator = iterator.Next;
+		}
+
+		return null;
+	}
+
+	public Node? Find(params NodeType[] types)
+	{
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (types.Contains(iterator.Instance)) return iterator;
+
+			var node = iterator.Find(types);
+			if (node != null) return node;
 
 			iterator = iterator.Next;
 		}
@@ -170,12 +205,45 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 		while (iterator != null)
 		{
-			if (filter(iterator))
-			{
-				nodes.Add(iterator);
-			}
+			if (filter(iterator)) nodes.Add(iterator);
 
 			var result = iterator.FindAll(filter);
+			nodes.AddRange(result);
+
+			iterator = iterator.Next;
+		}
+
+		return nodes;
+	}
+
+	public List<Node> FindAll(NodeType type)
+	{
+		var nodes = new List<Node>();
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (iterator.Instance == type) nodes.Add(iterator);
+
+			var result = iterator.FindAll(type);
+			nodes.AddRange(result);
+
+			iterator = iterator.Next;
+		}
+
+		return nodes;
+	}
+
+	public List<Node> FindAll(params NodeType[] types)
+	{
+		var nodes = new List<Node>();
+		var iterator = First;
+
+		while (iterator != null)
+		{
+			if (types.Contains(iterator.Instance)) nodes.Add(iterator);
+
+			var result = iterator.FindAll(types);
 			nodes.AddRange(result);
 
 			iterator = iterator.Next;
@@ -405,6 +473,9 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return Remove();
 	}
 
+	/// <summary>
+	/// Transfers the child nodes of the specified node to this node and detaches the specified node
+	/// </summary>
 	public void Merge(Node node)
 	{
 		foreach (var iterator in node)
@@ -414,7 +485,10 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 		node.Detach();
 	}
-
+	
+	/// <summary>
+	/// Removes all references from this node to other nodes
+	/// </summary>
 	public void Detach()
 	{
 		Parent = null;
@@ -487,7 +561,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 	/// <summary>
 	/// Returns whether this node is placed before the specified node
 	/// </summary>
-	/// <param name="other">The node used for comparison</param>
 	/// <returns>True if this node is before the specified node, otherwise false</returns>
 	public bool IsBefore(Node other)
 	{
@@ -529,7 +602,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 	/// <summary>
 	/// Returns whether this node is placed after the specified node
 	/// </summary>
-	/// <param name="other">The node used for comparison</param>
 	/// <returns>True if this node is after the specified node, otherwise false</returns>
 	public bool IsAfter(Node other)
 	{
@@ -610,10 +682,7 @@ public class Node : IEnumerable, IEnumerable<Node>
 
 	public Node? GetRightWhile(Predicate<Node> filter)
 	{
-		if (Last == null)
-		{
-			return null;
-		}
+		if (Last == null) return null;
 
 		var iterator = Last;
 

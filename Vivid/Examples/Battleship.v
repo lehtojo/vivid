@@ -70,7 +70,7 @@ collides(a, b) {
 		max = max(a.start.y, a.end.y)
 
 		loop (y = min, y <= max, y++) {
-			board[a.start.x, y] = true as bool
+			board[a.start.x, y] = true
 		}
 	}
 	else {
@@ -78,7 +78,7 @@ collides(a, b) {
 		max = max(a.start.x, a.end.x)
 
 		loop (x = min, x <= max, x++) {
-			board[x, a.start.y] = true as bool
+			board[x, a.start.y] = true
 		}
 	}
 
@@ -87,7 +87,7 @@ collides(a, b) {
 		max = max(b.start.y, b.end.y)
 
 		loop (y = min, y <= max, y++) {
-			if board[b.start.x, y] => true as bool
+			if board[b.start.x, y] => true
 		}
 	}
 	else {
@@ -95,11 +95,11 @@ collides(a, b) {
 		max = max(b.start.x, b.end.x)
 
 		loop (x = min, x <= max, x++) {
-			if (board[x, b.start.y]) => true as bool
+			if (board[x, b.start.y]) => true
 		}
 	}
 
-	=> false as bool
+	=> false
 }
 
 # Renders the specified board into the console
@@ -238,7 +238,7 @@ ask_for_position(message) {
 		print(message)
 		location = readln()
 
-		if location.length() != 2 {
+		if location.length != 2 {
 			println('Please specify a valid position')
 			continue
 		}
@@ -310,7 +310,7 @@ design(renderbuffer) {
 		print('Choose whether to create a ship, destroy a ship or start the game (C/D/S): ')
 		input = readln()
 
-		if input.length() != 1 {
+		if input.length != 1 {
 			println('Please enter a valid command')
 			continue
 		}

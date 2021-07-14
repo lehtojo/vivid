@@ -398,6 +398,16 @@ public struct IterationObject
 	[FieldOffset(16)] public bool Flag;
 }
 
+[SuppressMessage("Microsoft.Maintainability", "CA1051")]
+[SuppressMessage("Microsoft.Maintainability", "CA1815")]
+[StructLayout(LayoutKind.Explicit)]
+public struct MemoryObject
+{
+	[FieldOffset(8)] public int X;
+	[FieldOffset(12)] public double Y;
+	[FieldOffset(20)] public IntPtr Other;
+}
+
 namespace Vivid.Unit
 {
 	public static class AssemblerTests
@@ -408,6 +418,9 @@ namespace Vivid.Unit
 
 		private const string LIBV = "libv";
 		private const string TESTS = "Tests";
+
+		private static string[] StandardLibraryUtility { get; set; } = Array.Empty<string>();
+
 
 		[DllImport("Unit_Arithmetic", ExactSpelling = true)]
 		private static extern long _V10arithmeticxxx_rx(long a, long b, long c);
@@ -456,6 +469,18 @@ namespace Vivid.Unit
 
 		[DllImport("Unit_LargeFunctions", ExactSpelling = true)]
 		private static extern double _V1yxx_rd(long a, long b);
+
+		public static void Initialize()
+		{
+			StandardLibraryUtility = new[]
+			{
+				GetProjectFile("String.v", LIBV),
+				GetProjectFile("Console.v", LIBV),
+				GetProjectFile("Exceptions.v", LIBV),
+				GetProjectFile("List.v", LIBV),
+				GetProjectFile("Array.v", LIBV)
+			};
+		}
 
 		private static string GetExecutablePostfix()
 		{
@@ -586,6 +611,9 @@ namespace Vivid.Unit
 			return File.ReadAllText(Prefix + project + '.' + file + ".asm");
 		}
 
+		/// <summary>
+		/// Loads the specified assembly output file and returns the section which represents the specified function
+		/// </summary>
 		private static string LoadAssemblyFunction(string output, string function)
 		{
 			var assembly = File.ReadAllText(Prefix + output + ".asm");
@@ -595,6 +623,22 @@ namespace Vivid.Unit
 			if (start == -1 || end == -1)
 			{
 				Assert.Fail($"Could not load assembly function '{function}' from file '{Prefix + output + ".asm"}'");
+			}
+
+			return assembly[start..end];
+		}
+
+		/// <summary>
+		/// Returns the section which represents the specified function
+		/// </summary>
+		private static string GetFunctionFromAssembly(string assembly, string function)
+		{
+			var start = assembly.IndexOf(function + ':');
+			var end = assembly.IndexOf("\n\n", start);
+
+			if (start == -1 || end == -1)
+			{
+				Assert.Fail($"Could not load assembly function '{function}' from '{assembly}'");
 			}
 
 			return assembly[start..end];
@@ -621,7 +665,7 @@ namespace Vivid.Unit
 
 			foreach (var line in assembly.Split('\n'))
 			{
-				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains("lea"))
+				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains(Instructions.X64.EVALUATE))
 				{
 					count++;
 				}
@@ -634,7 +678,7 @@ namespace Vivid.Unit
 		{
 			foreach (var line in assembly.Split('\n'))
 			{
-				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains("lea"))
+				if (Regex.IsMatch(line, "\\[.*\\]") && !line.Contains(Instructions.X64.EVALUATE))
 				{
 					Assert.Fail("Assembly contained memory address(es)");
 				}
@@ -742,6 +786,9 @@ namespace Vivid.Unit
 		private static extern byte _V7casts_3x_rb(long a);
 
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
+		private static extern IntPtr _V10create_bazv_rP3Baz();
+
+		[DllImport("Unit_Conversions", ExactSpelling = true)]
 		private static extern IntPtr _V7casts_4d_rP3Baz(double a);
 
 		[DllImport("Unit_Conversions", ExactSpelling = true)]
@@ -825,7 +872,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(103, result.D);
 			Assert.AreEqual(104.0, result.E);
 
-			var baz = Marshal.AllocHGlobal(47); // sizeof(Baz) = 47
+			var baz = _V10create_bazv_rP3Baz();
 			Assert.AreEqual(baz, _V7casts_5P3Baz_rP3Foo(baz));
 			Assert.AreEqual(baz + 11, _V7casts_6P3Baz_rP3Bar(baz));
 
@@ -839,7 +886,7 @@ namespace Vivid.Unit
 			Marshal.WriteInt16(baz, 9, 1000); // baz.b = 1000
 
 			Marshal.WriteInt32(baz, 19, 505); // baz.c = 505
-			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505 !!!!!!!!!!!!!!!!Test!!!!!!!!!!!!!!
+			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505
 
 			Assert.AreEqual(1010.0, _V16automatic_cast_2P3Baz_rd(baz));
 
@@ -1077,15 +1124,6 @@ namespace Vivid.Unit
 		[DllImport("Unit_Assignment", ExactSpelling = true)]
 		private static extern void _V12assignment_2P8Sequence(ref Sequence instance);
 
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern void _V9preload_1P8Sequencex(ref Sequence instance, long i);
-
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern IntPtr _V9preload_2P8Sequence_rPd(ref Sequence instance);
-
-		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern long _V9preload_3Px_rS_(IntPtr address);
-
 		private static void Assignment_Test()
 		{
 			var holder = new Holder();
@@ -1108,18 +1146,6 @@ namespace Vivid.Unit
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456), Marshal.ReadInt64(sequence.Address, sizeof(double) * 0));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-987.654), Marshal.ReadInt64(sequence.Address, sizeof(double) * 1));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(101.010), Marshal.ReadInt64(sequence.Address, sizeof(double) * 2));
-
-			_V9preload_1P8Sequencex(ref sequence, 1);
-
-			Assert.AreEqual(buffer + sizeof(double), sequence.Address);
-			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456 + 0.5), Marshal.ReadInt64(sequence.Address));
-
-			var previous = sequence.Address;
-			Assert.AreEqual(previous, _V9preload_2P8Sequence_rPd(ref sequence));
-			Assert.AreEqual(previous + sizeof(double), sequence.Address);
-
-			Assert.AreEqual(sequence.Address + 1, _V9preload_3Px_rS_(sequence.Address));
-			Assert.AreEqual(sequence.Address + 1, Marshal.ReadIntPtr(sequence.Address));
 		}
 
 		public static void Assignment()
@@ -1215,7 +1241,7 @@ namespace Vivid.Unit
 
 		public static void PI()
 		{
-			if (!CompileExecutable("PI", new[] { "PI.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("PI", new[] { "PI.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1233,7 +1259,7 @@ namespace Vivid.Unit
 
 		public static void Fibonacci()
 		{
-			if (!CompileExecutable("Fibonacci", new[] { "Fibonacci.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Fibonacci", new[] { "Fibonacci.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1348,13 +1374,13 @@ namespace Vivid.Unit
 		private static extern long _V19logical_operators_1xx_rx(long a, long b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
-		private static extern bool _V14single_booleanb_rx(bool b);
+		private static extern bool _V14single_booleanb_rb(bool b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
 		private static extern long _V12two_booleansbb_rx(bool a, bool b);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
-		private static extern bool _V20nested_if_statementsxxx_rx(long a, long b, long c);
+		private static extern bool _V20nested_if_statementsxxx_rb(long a, long b, long c);
 
 		[DllImport("Unit_LogicalOperators", ExactSpelling = true)]
 		private static extern long _V27logical_and_in_if_statementbb_rx(bool a, bool b);
@@ -1368,8 +1394,8 @@ namespace Vivid.Unit
 		private static void LogicalOperators_Test()
 		{
 			// Single boolean as input
-			Assert.False(_V14single_booleanb_rx(true));
-			Assert.True(_V14single_booleanb_rx(false));
+			Assert.False(_V14single_booleanb_rb(true));
+			Assert.True(_V14single_booleanb_rb(false));
 
 			// Two booleans as input
 			Assert.AreEqual(1, _V12two_booleansbb_rx(true, false));
@@ -1379,26 +1405,26 @@ namespace Vivid.Unit
 			// Nested if-statement:
 
 			// All correct inputs
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 3));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 2, 4));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, 1));
-			Assert.True(_V20nested_if_statementsxxx_rx(1, 0, -1));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 2, 3));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 2, 4));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 0, 1));
+			Assert.True(_V20nested_if_statementsxxx_rb(1, 0, -1));
 
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 8));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 4, 6));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 4));
-			Assert.True(_V20nested_if_statementsxxx_rx(2, 3, 5));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 4, 8));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 4, 6));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 3, 4));
+			Assert.True(_V20nested_if_statementsxxx_rb(2, 3, 5));
 
 			// Most of the paths for returning false
-			Assert.False(_V20nested_if_statementsxxx_rx(0, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(0, 0, 0));
 
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 1, 1));
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 2, 5));
-			Assert.False(_V20nested_if_statementsxxx_rx(1, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 1, 1));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 2, 5));
+			Assert.False(_V20nested_if_statementsxxx_rb(1, 0, 0));
 
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 0, 0));
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 4, 7));
-			Assert.False(_V20nested_if_statementsxxx_rx(2, 3, 6));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 0, 0));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 4, 7));
+			Assert.False(_V20nested_if_statementsxxx_rb(2, 3, 6));
 
 			// Logical and
 			Assert.AreEqual(10, _V27logical_and_in_if_statementbb_rx(true, true));
@@ -1468,7 +1494,7 @@ namespace Vivid.Unit
 
 		public static void Objects()
 		{
-			if (!Compile("Objects", new[] { "Objects.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!Compile("Objects", new[] { "Objects.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1477,26 +1503,26 @@ namespace Vivid.Unit
 		}
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V11create_packv_rP4PackIP7ProductP5PriceE();
+		private static extern IntPtr _V13create_bundlev_rP6BundleIP7ProductP5PriceE();
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V11set_productP4PackIP7ProductP5PriceExPhxc(IntPtr pack, long index, IntPtr name, long value, byte currency);
+		private static extern IntPtr _V11set_productP6BundleIP7ProductP5PriceExPhxc(IntPtr bundle, long index, IntPtr name, long value, byte currency);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern IntPtr _V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(IntPtr pack, long index);
+		private static extern IntPtr _V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern void _V15enchant_productP4PackIP7ProductP5PriceEx(IntPtr pack, long index);
+		private static extern void _V15enchant_productP6BundleIP7ProductP5PriceEx(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern bool _V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(IntPtr pack, long index);
+		private static extern bool _V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(IntPtr bundle, long index);
 
 		[DllImport("Unit_Templates", ExactSpelling = true)]
-		private static extern double _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(IntPtr pack, long index, byte currency);
+		private static extern double _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(IntPtr bundle, long index, byte currency);
 
 		private static void Templates_Test()
 		{
-			var pack = _V11create_packv_rP4PackIP7ProductP5PriceE();
+			var bundle = _V13create_bundlev_rP6BundleIP7ProductP5PriceE();
 
 			var car = new String("Car");
 			var banana = new String("Banana");
@@ -1506,36 +1532,36 @@ namespace Vivid.Unit
 			const int DOLLARS = 1;
 
 			// fsetproduct_a_tproduct_a_tprice_tpack_tlarge_tlink_ttiny
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 0, car.Data, 700000, EUROS);
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 2, lawnmower.Data, 40000, DOLLARS);
-			_V11set_productP4PackIP7ProductP5PriceExPhxc(pack, 1, banana.Data, 100, DOLLARS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 0, car.Data, 700000, EUROS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 2, lawnmower.Data, 40000, DOLLARS);
+			_V11set_productP6BundleIP7ProductP5PriceExPhxc(bundle, 1, banana.Data, 100, DOLLARS);
 
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("Car");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("Banana");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 2)).Assert("Lawnmower");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 0)).Assert("Car");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 1)).Assert("Banana");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 2)).Assert("Lawnmower");
 
-			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 0);
-			_V15enchant_productP4PackIP7ProductP5PriceEx(pack, 1);
+			_V15enchant_productP6BundleIP7ProductP5PriceEx(bundle, 0);
+			_V15enchant_productP6BundleIP7ProductP5PriceEx(bundle, 1);
 
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 0));
-			Assert.True(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 1));
-			Assert.False(_V20is_product_enchantedP4PackIP7ProductP5PriceEx_rx(pack, 2));
+			Assert.True(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 0));
+			Assert.True(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 1));
+			Assert.False(_V20is_product_enchantedP6BundleIP7ProductP5PriceEx_rb(bundle, 2));
 
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 0)).Assert("iCar");
-			String.From(_V16get_product_nameP4PackIP7ProductP5PriceEx_rP6String(pack, 1)).Assert("iBanana");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 0)).Assert("iCar");
+			String.From(_V16get_product_nameP6BundleIP7ProductP5PriceEx_rP6String(bundle, 1)).Assert("iBanana");
 
-			Assert.AreEqual(700000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, EUROS));
-			Assert.AreEqual(100.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, EUROS));
-			Assert.AreEqual(40000.0 * 0.8, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, EUROS));
+			Assert.AreEqual(700000.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 0, EUROS));
+			Assert.AreEqual(100.0 * 0.8, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 1, EUROS));
+			Assert.AreEqual(40000.0 * 0.8, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 2, EUROS));
 
-			Assert.AreEqual(700000.0 * 1.25, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 0, DOLLARS));
-			Assert.AreEqual(100.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 1, DOLLARS));
-			Assert.AreEqual(40000.0, _V17get_product_priceP4PackIP7ProductP5PriceExc_rd(pack, 2, DOLLARS));
+			Assert.AreEqual(700000.0 * 1.25, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 0, DOLLARS));
+			Assert.AreEqual(100.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 1, DOLLARS));
+			Assert.AreEqual(40000.0, _V17get_product_priceP6BundleIP7ProductP5PriceExc_rd(bundle, 2, DOLLARS));
 		}
 
 		public static void Templates()
 		{
-			if (!Compile("Templates", new[] { "Templates.v", GetProjectFile("String.v", LIBV) }))
+			if (!Compile("Templates", new[] { "Templates.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1813,7 +1839,7 @@ namespace Vivid.Unit
 
 		public static void Lambdas()
 		{
-			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Lambdas", new[] { "Lambdas.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1831,7 +1857,7 @@ namespace Vivid.Unit
 
 		public static void Virtuals()
 		{
-			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Virtuals", new[] { "Virtuals.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1842,6 +1868,30 @@ namespace Vivid.Unit
 		[DllImport("Unit_Whens", ExactSpelling = true)]
 		private static extern long _V14numerical_whenx_rx(long x);
 
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V13create_stringPhx_rP6String(StringBuilder characters, long length);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V11string_whenP6String_rx(IntPtr text);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V10create_boov_rP3Boo();
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V11create_babax_rP4Baba(long x);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V10create_buix_rP3Bui(long x);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern IntPtr _V14create_bababuixx_rP7Bababui(long x, long y);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V7is_whenP3Boo_rx(IntPtr boo);
+
+		[DllImport("Unit_Whens", ExactSpelling = true)]
+		private static extern long _V10range_whenx_rx(long x);
+
 		private static void Whens_Test()
 		{
 			Assert.AreEqual(49, _V14numerical_whenx_rx(7));
@@ -1851,11 +1901,35 @@ namespace Vivid.Unit
 			Assert.AreEqual(42, _V14numerical_whenx_rx(42));
 			Assert.AreEqual(-100, _V14numerical_whenx_rx(-100));
 			Assert.AreEqual(0, _V14numerical_whenx_rx(0));
+
+			Assert.AreEqual(0, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Foo"), 3)));
+			Assert.AreEqual(1, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Bar"), 3)));
+			Assert.AreEqual(2, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Baz"), 3)));
+			Assert.AreEqual(-1, _V11string_whenP6String_rx(_V13create_stringPhx_rP6String(new StringBuilder("Bababui"), 7)));
+		
+			var boo = _V10create_boov_rP3Boo();
+			var baba = _V11create_babax_rP4Baba(42);
+			var bui = _V10create_buix_rP3Bui(777);
+			var bababui = _V14create_bababuixx_rP7Bababui(-123, 321);
+
+			Assert.AreEqual(-1, _V7is_whenP3Boo_rx(boo));
+			Assert.AreEqual(42 * 42, _V7is_whenP3Boo_rx(baba));
+			Assert.AreEqual(777 + 777, _V7is_whenP3Boo_rx(bui));
+			Assert.AreEqual(321 * (-123 * -123), _V7is_whenP3Boo_rx(bababui));
+
+			Assert.AreEqual(10, _V10range_whenx_rx(10));
+			Assert.AreEqual(11 * 11, _V10range_whenx_rx(11));
+			Assert.AreEqual(100 * 100, _V10range_whenx_rx(100));
+			Assert.AreEqual(-6, _V10range_whenx_rx(-6));
+			Assert.AreEqual(2 * -7, _V10range_whenx_rx(-7));
+			Assert.AreEqual(2 * -8, _V10range_whenx_rx(-8));
+			Assert.AreEqual(2 * -42, _V10range_whenx_rx(-42));
+			Assert.AreEqual(3, _V10range_whenx_rx(3));
 		}
 
 		public static void Whens()
 		{
-			if (!Compile("Whens", new[] { "Whens.v" }))
+			if (!Compile("Whens", new[] { "Whens.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1958,7 +2032,7 @@ namespace Vivid.Unit
 
 		public static void Is()
 		{
-			if (!Compile("Is", new[] { "Is.v", GetProjectFile("String.v", LIBV), GetProjectFile("Array.v", LIBV), GetProjectFile("List.v", LIBV), GetProjectFile("Math.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Math.v", LIBV) }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -1976,7 +2050,7 @@ namespace Vivid.Unit
 
 		public static void ExpressionVariables()
 		{
-			if (!CompileExecutable("ExpressionVariables", new[] { "ExpressionVariables.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("ExpressionVariables", new[] { "ExpressionVariables.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -2143,7 +2217,7 @@ namespace Vivid.Unit
 
 		public static void Namespaces()
 		{
-			if (!CompileExecutable("Namespaces", new[] { "Namespaces.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Namespaces", new[] { "Namespaces.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
@@ -2161,12 +2235,163 @@ namespace Vivid.Unit
 
 		public static void Extensions()
 		{
-			if (!CompileExecutable("Extensions", new[] { "Extensions.v", GetProjectFile("String.v", LIBV), GetProjectFile("Console.v", LIBV) }))
+			if (!CompileExecutable("Extensions", new[] { "Extensions.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
 
 			Extensions_Test();
+		}
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V13memory_case_1P6Objecti_ri(ref MemoryObject instance, int value);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern byte _V13memory_case_2Phi_rh(IntPtr memory, int i);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_3P6Objectdd_rd(ref MemoryObject instance, double value);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V13memory_case_4P6ObjectS0__ri(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_5P6ObjectPh_rd(IntPtr instance, IntPtr memory);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_6P6Object_rd(ref MemoryObject a);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_7P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_8P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V13memory_case_9P6ObjectS0__rd(ref MemoryObject a, IntPtr b);
+		
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern double _V14memory_case_10P6ObjectS0__rd(ref MemoryObject a, ref MemoryObject b);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern void _V14memory_case_11P6Objectx(ref MemoryObject a, int i);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern int _V14memory_case_12P6Objectx_ri(ref MemoryObject a, int i);
+
+		[DllImport("Unit_Memory", ExactSpelling = true)]
+		private static extern void _V14memory_case_13P6Objectx(ref MemoryObject a, int i);
+
+		public static void Memory_Test()
+		{
+			var a = new MemoryObject();
+			var x = Marshal.AllocHGlobal(28);
+			a.Other = x;
+
+			var b = new MemoryObject();
+			var y = Marshal.AllocHGlobal(28);
+			b.Other = y;
+
+			Assert.AreEqual(10, _V13memory_case_1P6Objecti_ri(ref a, 10));
+			Assert.AreEqual(10, a.X);
+
+			var memory = Marshal.AllocHGlobal(10);
+			Assert.AreEqual(7, _V13memory_case_2Phi_rh(memory, 6));
+			Assert.AreEqual(7, Marshal.ReadByte(memory, 6));
+
+			a.Y = 1.718281;
+			var result = _V13memory_case_3P6Objectdd_rd(ref a, 8.8);
+			if (result != 1.718281 + 1.0 + 8.0 && result != 10.718281) Assert.Fail("Values are not equal");
+
+			Assert.AreEqual(8, a.X);
+			Assert.AreEqual(1.718281 + 1.0, a.Y);
+
+			Assert.AreEqual(2, _V13memory_case_4P6ObjectS0__ri(ref a, ref a));
+			Assert.AreEqual(2, a.X);
+
+			Assert.AreEqual(120.11225, _V13memory_case_5P6ObjectPh_rd(memory, memory + 12));
+
+			Assert.AreEqual(-3.14159, _V13memory_case_6P6Object_rd(ref a));
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+			
+			a.Y = 1.0;
+			b.Y = -1.0;
+			var previous = a.Other;
+			Assert.AreEqual(-1.0, _V13memory_case_7P6ObjectS0__rd(ref a, ref b));
+			Assert.AreNotEqual(previous, a.Other);
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(previous, 12)));
+			a.Other = previous;
+
+			Marshal.WriteInt64(b.Other, 12, BitConverter.DoubleToInt64Bits(101.1000));
+			Assert.AreEqual(101.1000, _V13memory_case_8P6ObjectS0__rd(ref a, ref b));
+
+			Assert.AreEqual(10.0, _V13memory_case_9P6ObjectS0__rd(ref a, a.Other));
+			Assert.AreEqual(10.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+
+			a.Y = 13579.2468;
+			Assert.AreEqual(13579.2468, _V14memory_case_10P6ObjectS0__rd(ref a, ref a));
+			
+			a.X = 10;
+			a.Other = x;
+			Marshal.WriteInt32(a.Other, 8, 20);
+			_V14memory_case_11P6Objectx(ref a, 7);
+			Assert.AreEqual(11, a.X);
+			Assert.AreEqual(21, Marshal.ReadInt32(a.Other, 8));
+			
+			_V14memory_case_11P6Objectx(ref a, -3);
+			Assert.AreEqual(12, a.X);
+			Assert.AreEqual(22, Marshal.ReadInt32(a.Other, 8));
+
+			a.Y = -2.25;
+			Assert.AreEqual(-2, _V14memory_case_12P6Objectx_ri(ref a, 555));
+			Assert.AreEqual(-2, a.X);
+			Assert.AreEqual(-2.25, a.Y);
+
+			a.X = 101;
+			Assert.AreEqual(101, _V14memory_case_12P6Objectx_ri(ref a, -111));
+			Assert.AreEqual(101, a.X);
+			Assert.AreEqual(101.0, a.Y);
+
+			a.X = 3;
+			a.Y = 92.001;
+			_V14memory_case_13P6Objectx(ref a, 7);
+			Assert.AreEqual(10, a.X);
+			Assert.AreEqual(100.001, a.Y);
+
+			a.X = 7;
+			a.Y = 6.0;
+			_V14memory_case_13P6Objectx(ref a, -7);
+			Assert.AreEqual(0, a.X);
+			Assert.AreEqual(0.0, a.Y);
+
+			if (OptimizationLevel < 1) return;
+
+			// Load the generated assembly
+			var assembly = LoadAssemblyOutput("Memory");
+			
+			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_1P6Objecti_ri")));
+			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_2Phi_rh")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectdd_rd")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_4P6ObjectS0__ri")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_5P6ObjectPh_rd")));
+			Assert.AreEqual(2, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_6P6Object_rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_7P6ObjectS0__rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_8P6ObjectS0__rd")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_9P6ObjectS0__rd")));
+			Assert.AreEqual(5, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_10P6ObjectS0__rd")));
+			Assert.AreEqual(6, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_11P6Objectx")));
+			Assert.AreEqual(4, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_12P6Objectx_ri")));
+			Assert.AreEqual(6, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V14memory_case_13P6Objectx")));
+		}
+
+		public static void Memory()
+		{
+			if (!Compile("Memory", new[] { "Memory.v" }))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Memory_Test();
 		}
 	}
 }

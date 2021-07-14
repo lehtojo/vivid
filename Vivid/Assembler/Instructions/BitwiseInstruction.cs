@@ -44,7 +44,7 @@ public class BitwiseInstruction : DualParameterInstruction
 	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.BITWISE)
 	{
 		Instruction = instruction;
-		Description = "Executes bitwise XOR-operation between the operands";
+		Description = "Executes a bitwise operation between the operands";
 		Assigns = assigns;
 	}
 
@@ -77,7 +77,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 			}.Execute();
 
-			// Lock the shift register since it is very important it doesn't get relocated
+			// Lock the shift register since it is very important it does not get relocated
 			LockStateInstruction.Lock(Unit, register).Execute();
 			unlock = LockStateInstruction.Unlock(Unit, register);
 		}
@@ -287,7 +287,7 @@ public class BitwiseInstruction : DualParameterInstruction
 		return true;
 	}
 
-	public override bool Redirect(Handle handle)
+	public override bool Redirect(Handle handle, bool root)
 	{
 		if (Assembler.IsArm64)
 		{
@@ -295,7 +295,7 @@ public class BitwiseInstruction : DualParameterInstruction
 		}
 		else
 		{
-			return RedirectX64(handle);
+			return root && RedirectX64(handle);
 		}
 	}
 }

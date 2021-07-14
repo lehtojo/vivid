@@ -39,8 +39,8 @@ public class ParenthesisType
 	{
 		return other is ParenthesisType type &&
 				base.Equals(other) &&
-			   	Opening == type.Opening &&
-			   	Closing == type.Closing;
+				Opening == type.Opening &&
+				Closing == type.Closing;
 	}
 
 	public override int GetHashCode()

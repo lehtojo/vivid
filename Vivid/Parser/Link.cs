@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 public class Link : Number
@@ -52,5 +53,20 @@ public class Link : Number
 	public override int GetContentSize()
 	{
 		return GetOffsetType().ReferenceSize;
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is Link link && Name == link.Name && Identifier == link.Identifier && Equals(GetOffsetType(), link.GetOffsetType());
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Name, Identifier, GetOffsetType());
+	}
+
+	public override string ToString()
+	{
+		return Name + '<' + GetOffsetType() + '>';
 	}
 }

@@ -7,7 +7,6 @@ public class Chain
 	/// <summary>
 	/// Creates a chain of phases
 	/// </summary>
-	/// <param name="phases">Phases to execute in order when invoked</param>
 	public Chain(params System.Type[] phases)
 	{
 		Phases = phases;
@@ -16,7 +15,6 @@ public class Chain
 	/// <summary>
 	/// Executes the configured phases with the given bundle
 	/// </summary>
-	/// <param name="bundle">Bundle to pass to the phases</param>
 	public bool Execute(Bundle bundle)
 	{
 		foreach (var template in Phases)

@@ -9,8 +9,8 @@ LinkedListElement<T> {
 
 LinkedList<T> {
 	private:
-	head: LinkedListElement<T> = none
-	tail: LinkedListElement<T> = none
+	head: LinkedListElement<T> = none as LinkedListElement<T>
+	tail: LinkedListElement<T> = none as LinkedListElement<T>
 
 	public:
 
@@ -33,8 +33,8 @@ LinkedList<T> {
 
 		loop (iterator) {
 			if iterator.value == value {
-					remove(previous, iterator)
-					=> true
+				remove(previous, iterator)
+				=> true
 			}
 
 			iterator = iterator.next

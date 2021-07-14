@@ -118,15 +118,15 @@ public static class Memory
 	/// </summary>
 	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves, out List<Register> registers)
 	{
-		var locks = moves.Where(m => m.IsRedundant && m.First.IsStandardRegister).Select(m => LockStateInstruction.Lock(unit, m.First.Value.To<RegisterHandle>().Register)).ToList();
-		var unlocks = locks.Select(l => LockStateInstruction.Unlock(unit, l.Register)).ToList();
+		var locks = moves.Where(i => i.IsRedundant && i.First.IsStandardRegister).Select(i => LockStateInstruction.Lock(unit, i.First.Value.To<RegisterHandle>().Register)).ToList();
+		var unlocks = locks.Select(i => LockStateInstruction.Unlock(unit, i.Register)).ToList();
 
 		registers = locks.Select(i => i.Register).ToList();
 
 		// Now remove all redundant moves
-		moves.RemoveAll(m => m.IsRedundant);
+		moves.RemoveAll(i => i.IsRedundant);
 
-		var optimized = Align(unit, moves.Select(m => m.To<DualParameterInstruction>()).ToList());
+		var optimized = Align(unit, moves.Select(i => i.To<DualParameterInstruction>()).ToList());
 
 		for (var i = optimized.Count - 1; i >= 0; i--)
 		{
@@ -271,7 +271,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Determines the next register
+	/// Determines the next register to use
 	/// </summary>
 	public static Register GetNextRegister(Unit unit, bool media_register, List<Directive>? directives = null, bool is_result = false)
 	{
@@ -300,7 +300,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Tries to get a register without releasing based on the specified hint
+	/// Tries to get a register without releasing based on the specified directives
 	/// </summary>
 	private static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, List<Directive>? directives = null)
 	{
@@ -329,7 +329,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Copies the given result to a register
+	/// Copies the specified result to a register
 	/// </summary>
 	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
@@ -356,11 +356,11 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to a register considering the specified hints
+	/// Moves the specified result to a register considering the specified directives
 	/// </summary>
 	public static Result MoveToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
-		// Prevents reduntant moving to registers
+		// Prevents redundant moving to registers
 		if (result.Value.Type == (media_register ? HandleType.MEDIA_REGISTER : HandleType.REGISTER))
 		{
 			return result;
@@ -379,7 +379,7 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Moves the given result to a register considering the specified hints
+	/// Moves the specified result to a register considering the specified directives
 	/// </summary>
 	public static Result Convert(Unit unit, Result result, Size size, List<Directive>? directives = null)
 	{
@@ -399,11 +399,7 @@ public static class Memory
 		}
 		else if (result.IsStandardRegister)
 		{
-			if (result.Size.Bytes >= size.Bytes)
-			{
-				//result.Format = format;
-				return result;
-			}
+			if (result.Size.Bytes >= size.Bytes) return result;
 		}
 		else if (result.IsMemoryAddress)
 		{
@@ -422,26 +418,9 @@ public static class Memory
 			throw new ArgumentException("Unsupported conversion requested");
 		}
 
-		// Try to use the specified directives
-		if (directives != null)
-		{
-			foreach (var directive in directives)
-			{
-				var option = Consider(unit, directive, format.IsDecimal());
-
-				if (option != null && format.IsDecimal() == option.IsMediaRegister && option.IsAvailable(unit.Position))
-				{
-					register = option;
-					break;
-				}
-			}
-		}
-
-		// If the hint did not produce any register, the register of the result can be used
-		if (register == null)
-		{
-			register = result.Value.To<RegisterHandle>().Register;
-		}
+		// Use the register of the result to extend the value
+		/// NOTE: This will always extend the value, so there will be no loss of information
+		register = result.Value.To<RegisterHandle>().Register;
 
 		destination = new Result(new RegisterHandle(register), format);
 
@@ -484,11 +463,7 @@ public static class Memory
 		foreach (var type in types)
 		{
 			var converted = TryConvert(unit, result, size, type, protect, directives);
-
-			if (converted != null)
-			{
-				return converted;
-			}
+			if (converted != null) return converted;
 		}
 
 		throw new ArgumentException("Could not convert reference to the requested format");

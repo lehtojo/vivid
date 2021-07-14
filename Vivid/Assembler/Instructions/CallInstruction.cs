@@ -9,21 +9,18 @@ using System.Linq;
 public class CallInstruction : Instruction
 {
 	public Result Function { get; }
-
-	// Represents the instructions which pass the required parameters
-	public List<Instruction> Instructions { get; } = new List<Instruction>();
+	public Type? ReturnType { get; private set; }
 	
-	// Represents the destinations where the required parameters are passed to
+	// Represents the destination handles where the required parameters are passed to
 	public List<Handle> Destinations { get; } = new List<Handle>();
 
 	// This call is a tail call if it uses jump instruction
-	public bool IsTailCall => Operation == global::Instructions.X64.JUMP || Operation == global::Instructions.Arm64.JUMP_LABEL || Operation == global::Instructions.Arm64.JUMP_REGISTER;
-
-	private bool IsParameterInstructionListExtracted => IsBuilt;
+	public bool IsTailCall => Operation == Instructions.X64.JUMP || Operation == Instructions.Arm64.JUMP_LABEL || Operation == Instructions.Arm64.JUMP_REGISTER;
 
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
+		ReturnType = return_type;
 		Dependencies = null;
 		Description = "Calls function " + Function;
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
@@ -34,6 +31,7 @@ public class CallInstruction : Instruction
 	public CallInstruction(Unit unit, Result function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
 		Function = function;
+		ReturnType = return_type;
 		Dependencies = null;
 		Description = "Calls the function handle";
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
@@ -49,25 +47,9 @@ public class CallInstruction : Instruction
 		foreach (var register in Unit.VolatileRegisters)
 		{
 			/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
-			if (register.Handle == null || !register.Handle.IsValid(Position + 1) || register.IsHandleCopy())
-			{
-				continue;
-			}
-
+			if (register.Handle == null || !register.Handle.IsValid(Position + 1) || register.IsHandleCopy()) continue;
 			throw new ApplicationException("Register evacuation failed");
 		}
-	}
-
-	/// <summary>
-	/// Unpacks the parameter instructions by executing them
-	/// </summary>
-	private List<Register> ExecuteParameterInstructions()
-	{
-		var moves = Instructions.Select(i => i.To<MoveInstruction>()).ToList();
-
-		Unit.Append(Memory.Align(Unit, moves, out List<Register> registers));
-
-		return registers;
 	}
 
 	/// <summary>
@@ -96,7 +78,7 @@ public class CallInstruction : Instruction
 			var register = non_volatile ? Unit.GetNextNonVolatileRegister(false, true) : Unit.GetNextRegister();
 
 			// There should always be a register available, since the function call above can release values into memory
-			if (register == null) throw new ApplicationException("Could not validate call handle");
+			if (register == null) throw new ApplicationException("Could not validate call memory handle");
 
 			var destination = new RegisterHandle(register);
 
@@ -126,7 +108,7 @@ public class CallInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var registers = ExecuteParameterInstructions();
+		var registers = Destinations.Where(i => i.Is(HandleType.REGISTER)).Select(i => i.To<RegisterHandle>().Register).ToArray();
 
 		// Lock the parameter registers
 		Unit.Append(registers.Select(i => LockStateInstruction.Lock(Unit, i)).ToList());
@@ -156,7 +138,7 @@ public class CallInstruction : Instruction
 			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
-				is_address ? global::Instructions.Arm64.CALL_LABEL : global::Instructions.Arm64.CALL_REGISTER,
+				is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.ALLOW_ADDRESS,
@@ -189,7 +171,7 @@ public class CallInstruction : Instruction
 			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
 
 			Build(
-				global::Instructions.X64.CALL,
+				Instructions.X64.CALL,
 				new InstructionParameter(
 					Function,
 					ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS,
@@ -208,7 +190,7 @@ public class CallInstruction : Instruction
 		Unit.Append(registers.Select(i => LockStateInstruction.Unlock(Unit, i)).ToList());
 
 		// After a call all volatile registers might be changed
-		Unit.VolatileRegisters.ForEach(r => r.Reset());
+		Unit.VolatileRegisters.ForEach(i => i.Reset());
 
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();
@@ -219,15 +201,6 @@ public class CallInstruction : Instruction
 
 	public override Result[] GetResultReferences()
 	{
-		// The source values of the parameter instructions must be referenced so that they are not overriden before this call
-		if (!IsParameterInstructionListExtracted)
-		{
-			return Instructions
-				.Where(i => i.Is(InstructionType.MOVE))
-				.Select(i => i.To<DualParameterInstruction>().Second)
-				.Concat(new[] { Result, Function }).ToArray();
-		}
-
 		return new[] { Result, Function };
 	}
 }

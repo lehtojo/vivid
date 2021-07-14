@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
@@ -8,7 +10,7 @@ using System.Text;
 /// </summary>
 public class InitializeInstruction : Instruction
 {
-	public const string DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET = ".cfi_def_cfa_offset 16";
+	public const string DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET = ".cfi_def_cfa_offset ";
 
 	public int LocalMemoryTop { get; private set; }
 
@@ -19,37 +21,24 @@ public class InitializeInstruction : Instruction
 
 	private static int GetRequiredCallMemory(CallInstruction[] calls)
 	{
-		if (!calls.Any())
-		{
-			return 0;
-		}
+		if (!calls.Any()) return 0;
 
 		// Find all parameter move instructions which move the source value into memory
-		var parameter_instructions = calls.SelectMany(c => c.Instructions)
-			.Where(i => i.Type == InstructionType.MOVE).Cast<MoveInstruction>()
-			.Where(m => m.Destination?.IsMemoryAddress ?? false).ToArray();
+		var parameter_memory_addresses = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
 
-		if (!parameter_instructions.Any())
+		if (!parameter_memory_addresses.Any())
 		{
-			if (IsShadowSpaceRequired)
-			{
-				// Even though no instruction writes to memory, on Windows x64 there's a requirement to allocate so called 'shadow space' for the first four parameters
-				return Calls.SHADOW_SPACE_SIZE;
-			}
-			
+			// Even though no instruction writes to memory, on Windows x64 there is a requirement to allocate so called 'shadow space' for the first four parameters
+			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
 			return 0;
 		}
 
-		// Find the memory handle which has the greatest offset, that tells how much memory should be allocated for calls
-		return parameter_instructions.Select(i => i.Destination!.Value!.To<MemoryHandle>().Offset).Max() + Assembler.Size.Bytes;
+		return parameter_memory_addresses.Max() + Assembler.Size.Bytes;
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)
 	{
-		if (!registers.Any())
-		{
-			return;
-		}
+		if (!registers.Any()) return;
 
 		var stack_pointer = Unit.GetStackPointer();
 		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
@@ -139,7 +128,7 @@ public class InitializeInstruction : Instruction
 
 	private void SaveRegistersX64(StringBuilder builder, List<Register> registers)
 	{
-		// Save all used non-volatile rgisters
+		// Save all used non-volatile registers
 		foreach (var register in registers)
 		{
 			builder.AppendLine($"{Instructions.X64.PUSH} {register}");
@@ -165,7 +154,7 @@ public class InitializeInstruction : Instruction
 			save_registers.Add(Unit.GetReturnAddressRegister());
 		}
 
-		// Save all used non-volatile rgisters
+		// Save all used non-volatile registers
 		if (Assembler.IsX64)
 		{
 			SaveRegistersX64(builder, save_registers);
@@ -173,12 +162,6 @@ public class InitializeInstruction : Instruction
 		else
 		{
 			SaveRegistersArm64(builder, save_registers);
-		}
-
-		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
-		if (Assembler.IsDebuggingEnabled)
-		{
-			builder.AppendLine(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
 		}
 
 		// Local variables in memory start now
@@ -214,12 +197,19 @@ public class InitializeInstruction : Instruction
 
 			if (Assembler.IsX64)
 			{
-				builder.Append($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {additional_memory}");
+				builder.AppendLine($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {additional_memory}");
 			}
 			else
 			{
-				builder.Append($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {stack_pointer}, #{additional_memory}");
+				builder.AppendLine($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {stack_pointer}, #{additional_memory}");
 			}
+		}
+
+		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
+		if (Assembler.IsDebuggingEnabled)
+		{
+			builder.Append(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
+			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString(CultureInfo.InvariantCulture));
 		}
 		
 		Build(builder.ToString().TrimEnd());

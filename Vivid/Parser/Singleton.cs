@@ -7,14 +7,13 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build identifier into a node
 	/// </summary>
-	/// <param name="linked">Is the identifier requested by a link node</param>
 	public static Node GetIdentifier(Context context, IdentifierToken identifier, bool linked = false)
 	{
 		if (context.IsVariableDeclared(identifier.Value, linked))
 		{
 			var variable = context.GetVariable(identifier.Value)!;
 
-			if (variable.IsMember && !linked)
+			if (variable.IsMember && !variable.IsConstant && !linked)
 			{
 				var self = Common.GetSelfPointer(context, identifier.Position);
 
@@ -57,7 +56,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to find function or constructor by name with the specified parameter types
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, bool linked)
 	{
 		return GetFunctionByName(context, name, parameters, Array.Empty<Type>(), linked);
@@ -66,7 +64,6 @@ public static class Singleton
 	/// <summary>
 	/// Tries to find function or constructor by name with the specified template parameter types and parameter types.
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, Type[] template_arguments, bool linked)
 	{
 		FunctionList functions;
@@ -79,40 +76,25 @@ public static class Singleton
 			if (template_arguments.Any())
 			{
 				// If there are template arguments and if any of the template parameters is unresolved, then this function should fail
-				if (template_arguments.Any(i => i.IsUnresolved))
-				{
-					return null;
-				}
+				if (template_arguments.Any(i => i.IsUnresolved)) return null;
 
-				if (type is TemplateType template_type)
+				if (type.IsTemplateType)
 				{
 					// Since the function name refers to a type, the constructors of the type should be explored next
-					functions = template_type.GetVariant(template_arguments).GetConstructors();
+					functions = type.To<TemplateType>().GetVariant(template_arguments).Constructors;
 				}
-				else
-				{
-					return null;
-				}
+				else return null;
 			}
-			else
-			{
-				functions = context.GetType(name)!.GetConstructors();
-			}
+			else { functions = type.Constructors; }
 		}
 		else if (context.IsFunctionDeclared(name, linked))
 		{
 			functions = context.GetFunction(name)!;
 
 			// If there are template parameters, then the function should be retrieved based on them
-			if (template_arguments.Any())
-			{
-				return functions.GetImplementation(parameters, template_arguments);
-			}
+			if (template_arguments.Any()) return functions.GetImplementation(parameters, template_arguments);
 		}
-		else
-		{
-			return null;
-		}
+		else return null;
 
 		return functions.GetImplementation(parameters);
 	}
@@ -120,17 +102,16 @@ public static class Singleton
 	/// <summary>
 	/// Tries to build function into a node
 	/// </summary>
-	/// <param name="linked">Is the identifier requested by a link node</param>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked)
 	{
 		var descriptor = (FunctionToken)token.Clone();
-		var parameters = descriptor.GetParsedParameters(environment);
+		var arguments = descriptor.GetParsedParameters(environment);
 
-		var types = Resolver.GetTypes(parameters);
+		var types = Resolver.GetTypes(arguments);
 
 		if (types == null)
 		{
-			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
 		}
 
 		if (!linked)
@@ -149,11 +130,11 @@ public static class Singleton
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetArguments(arguments);
 
 			if (function.IsConstructor)
 			{
-				var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+				var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 				// Consider the following situations:
 				// Namespace.Type() <- Construction
@@ -187,13 +168,12 @@ public static class Singleton
 			}
 		}
 
-		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
 	}
 
 	/// <summary>
 	/// Tries to build function into a node
 	/// </summary>
-	/// <param name="linked">Is the function requested by a link node</param>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken descriptor, Type[] template_arguments, bool linked)
 	{
 		var parameters = descriptor.GetParsedParameters(environment);
@@ -201,18 +181,18 @@ public static class Singleton
 
 		if (types == null || template_arguments.Any(i => i.IsUnresolved))
 		{
-			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
+			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
 		}
 
 		var function = GetFunctionByName(primary, descriptor.Name, types, template_arguments, linked);
 
 		if (function != null)
 		{
-			var node = new FunctionNode(function, descriptor.Position).SetParameters(parameters);
+			var node = new FunctionNode(function, descriptor.Position).SetArguments(parameters);
 
 			if (function.IsConstructor)
 			{
-				var type = function.GetTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
+				var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
 
 				// Consider the following situations:
 				// Namespace.Type() <- Construction
@@ -234,7 +214,7 @@ public static class Singleton
 		}
 
 		// NOTE: Template lambdas are not supported
-		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetParameters(parameters);
+		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
 	}
 
 	/// <summary>
@@ -317,9 +297,9 @@ public static class Singleton
 		{
 			TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value, token.To<IdentifierToken>().Position),
 
-			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetParameters(token.To<FunctionToken>().GetParsedParameters(environment)),
+			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetArguments(token.To<FunctionToken>().GetParsedParameters(environment)),
 
-			_ => throw new Exception($"Could not create unresolved token ({token.Type})"),
+			_ => throw new Exception($"Could not create unresolved node"),
 		};
 	}
 }

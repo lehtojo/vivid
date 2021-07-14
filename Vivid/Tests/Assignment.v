@@ -8,19 +8,6 @@ Holder {
 
 Sequence {
 	address: link<decimal>
-
-	# Takes the current values from the memory address and moves to the next element
-	pop() {
-		value = address[0]
-		address += sizeof(decimal)
-		=> value
-	}
-	
-	# Moves to the next element
-	next() {
-		address += sizeof(decimal)
-		=> 0
-	}
 }
 
 # Tests whether the compiler can store values into object instances
@@ -37,22 +24,6 @@ export assignment_2(instance: Sequence) {
 	instance.address[0] = -123.456
 	instance.address[1] = -987.654
 	instance.address[2] = 101.010
-}
-
-# Tests whether the compiler loads the destination before executing the function call which modifies the address
-export preload_1(instance: Sequence, i: large) {
-	instance.address[i] = instance.pop() + 0.5
-}
-
-# Tests whether the compiler loads the left operand completely before executing the function call which modifies the address
-export preload_2(instance: Sequence) {
-	=> instance.address + instance.next()
-}
-
-# Tests whether the compiler loads the destination before incrementing it
-export preload_3(address: link<large>) {
-	address[0] = ++address
-	=> address
 }
 
 init() => true

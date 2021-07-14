@@ -1,7 +1,3 @@
-none = 0
-true = 1
-false = 0
-
 CURRENCY_EUROS = 0i8
 CURRENCY_DOLLARS = 1i8
 
@@ -15,7 +11,7 @@ Pair<A, B> {
 	}
 }
 
-Pack<A, B> {
+Bundle<A, B> {
 	first: Pair<A, B>
 	second: Pair<A, B>
 	third: Pair<A, B>
@@ -82,11 +78,11 @@ Price {
 	}
 }
 
-export create_pack() {
-	=> Pack<Product, Price>()
+export create_bundle() {
+	=> Bundle<Product, Price>()
 }
 
-export set_product(pack: Pack<Product, Price>, i: large, name: link, value: large, currency: tiny) {
+export set_product(bundle: Bundle<Product, Price>, i: large, name: link, value: large, currency: tiny) {
 	product = Product()
 	product.name = String(name)
 
@@ -94,32 +90,32 @@ export set_product(pack: Pack<Product, Price>, i: large, name: link, value: larg
 	price.value = value
 	price.currency = currency
 
-	pack[i] = Pair<Product, Price>(product, price)
+	bundle[i] = Pair<Product, Price>(product, price)
 }
 
-export get_product_name(pack: Pack<Product, Price>, i: large) {
-	=> pack[i].first.name
+export get_product_name(bundle: Bundle<Product, Price>, i: large) {
+	=> bundle[i].first.name
 }
 
-export enchant_product(pack: Pack<Product, Price>, i: large) {
-	pack[i].first.enchant()
+export enchant_product(bundle: Bundle<Product, Price>, i: large) {
+	bundle[i].first.enchant()
 }
 
-export is_product_enchanted(pack: Pack<Product, Price>, i: large) {
-	=> pack[i].first.is_enchanted()
+export is_product_enchanted(bundle: Bundle<Product, Price>, i: large) {
+	=> bundle[i].first.is_enchanted()
 }
 
-export get_product_price(pack: Pack<Product, Price>, i: large, currency: tiny) {
-	=> pack[i].second.convert(currency)
+export get_product_price(bundle: Bundle<Product, Price>, i: large, currency: tiny) {
+	=> bundle[i].second.convert(currency)
 }
 
 init() {
 	=> true
 
-	pack = create_pack()
-	set_product(pack, 0, 0 as link, 0, 0 as tiny)
-	get_product_name(pack, 0)
-	enchant_product(pack, 0)
-	is_product_enchanted(pack, 0)
-	get_product_price(pack, 0, 0i8)
+	bundle = create_bundle()
+	set_product(bundle, 0, 0 as link, 0, 0 as tiny)
+	get_product_name(bundle, 0)
+	enchant_product(bundle, 0)
+	is_product_enchanted(bundle, 0)
+	get_product_price(bundle, 0, 0i8)
 }

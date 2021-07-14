@@ -3,6 +3,7 @@ using System;
 public class JumpNode : Node
 {
 	public Label Label { get; set; }
+	public Condition? Condition { get; set; } = null;
 	public bool IsConditional { get; set; } = false;
 
 	public JumpNode(Label label)
@@ -22,4 +23,6 @@ public class JumpNode : Node
 	{
 		return HashCode.Combine(Instance, Position, Label.GetName(), IsConditional);
 	}
+
+	public override string ToString() => $"Jump {Label}";
 }

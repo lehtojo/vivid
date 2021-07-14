@@ -2,13 +2,12 @@ using System;
 
 public class Label
 {
-	protected string Name { get; set; }
+	public string Name { get; set; }
 
 	public Label(string name = "")
 	{
 		Name = name;
 	}
-
 	public virtual string GetName()
 	{
 		return Name;
@@ -21,8 +20,7 @@ public class Label
 
 	public override bool Equals(object? other)
 	{
-		return other is Label label &&
-			   Name == label.Name;
+		return other is Label label && Name == label.Name;
 	}
 
 	public override int GetHashCode()

@@ -1,3 +1,5 @@
+using System;
+
 public class Number : Type
 {
 	public Format Type { get; private set; }
@@ -26,5 +28,15 @@ public class Number : Type
 	public override int GetContentSize()
 	{
 		return Bytes;
+	}
+
+	public override bool Equals(object? other)
+	{
+		return other is Number number && number.IsPrimitive && Identifier == number.Identifier && Bytes == number.Bytes && Type == number.Type;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Identifier, Bytes, Type);
 	}
 }

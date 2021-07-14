@@ -22,12 +22,7 @@ public class IfPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var keyword = tokens[IF].To<KeywordToken>();
-
-		if (keyword.Keyword != Keywords.IF)
-		{
-			return false;
-		}
+		if (tokens[IF].To<KeywordToken>().Keyword != Keywords.IF) return false;
 
 		Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
 		return true;
@@ -46,11 +41,7 @@ public class IfPattern : Pattern
 		if (body == null)
 		{
 			body = new List<Token>();
-
-			if (!Common.ConsumeBlock(context, state, body))
-			{
-				throw Errors.Get(tokens[IF].Position, "If-statement has an empty body");
-			}
+			if (!Common.ConsumeBlock(context, state, body)) throw Errors.Get(tokens[IF].Position, "If-statement has an empty body");
 		}
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);

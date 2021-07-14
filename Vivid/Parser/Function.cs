@@ -3,6 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
+public enum FunctionLanguage
+{
+	OTHER,
+	CPP,
+	VIVID
+}
+
 public class Parameter
 {
 	public string Name { get; set; }
@@ -55,6 +62,7 @@ public class Function : Context
 	public const string SELF_POINTER_IDENTIFIER = "this";
 
 	public int Modifiers { get; set; }
+	public FunctionLanguage Language { get; set; } = FunctionLanguage.VIVID;
 
 	public Variable? Self { get; protected set; }
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
@@ -77,10 +85,6 @@ public class Function : Context
 	/// <summary>
 	/// Creates a unimplemented function
 	/// </summary>
-	/// <param name="context">Context to link into</param>
-	/// <param name="modifiers">Function access modifiers</param>
-	/// <param name="name">Function name</param>
-	/// <param name="blueprint">Function blueprint is used to create implementations of this function</param>
 	public Function(Context context, int modifiers, string name, List<Token> blueprint, Position? start, Position? end) : base(context)
 	{
 		Parent = context;
@@ -94,9 +98,6 @@ public class Function : Context
 	/// <summary>
 	/// Creates a unimplemented function
 	/// </summary>
-	/// <param name="context">Context to link into</param>
-	/// <param name="modifiers">Function access modifiers</param>
-	/// <param name="name">Function name</param>
 	public Function(Context context, int modifiers, string name, Position? start, Position? end) : base(context)
 	{
 		Parent = context;
@@ -110,18 +111,14 @@ public class Function : Context
 	/// <summary>
 	/// Creates a function with default implementation using the parameters and the return type
 	/// </summary>
-	/// <param name="modifiers">Function access modifiers</param>
-	/// <param name="name">Function name</param>
-	/// <param name="result">Function return type</param>
-	/// <param name="parameters">Function parameters</param>
-	public Function(Context context, int modifiers, string name, Type? result, params Parameter[] parameters) : base(context)
+	public Function(Context context, int modifiers, string name, Type? return_type, params Parameter[] parameters) : base(context)
 	{
 		Modifiers = modifiers;
 		Name = name;
 		Parameters = parameters.ToList();
 		Blueprint = new List<Token>();
 
-		var implementation = new FunctionImplementation(this, parameters.ToList(), result, context);
+		var implementation = new FunctionImplementation(this, parameters.ToList(), return_type, context);
 		Implementations.Add(implementation);
 
 		implementation.Implement(Blueprint);
@@ -132,7 +129,7 @@ public class Function : Context
 	/// </summary>
 	public void DeclareSelfPointer()
 	{
-		Self = new Variable(this, GetTypeParent(), VariableCategory.PARAMETER, SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
+		Self = new Variable(this, FindTypeParent(), VariableCategory.PARAMETER, SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 		{
 			IsSelfPointer = true,
 			Position = Start
@@ -150,7 +147,6 @@ public class Function : Context
 	/// <summary>
 	/// Implements the function with parameter types
 	/// </summary>
-	/// <param name="types">Parameter types</param>
 	/// <returns>Function implementation</returns>
 	public virtual FunctionImplementation Implement(IEnumerable<Type> types)
 	{
@@ -177,9 +173,20 @@ public class Function : Context
 
 		for (var i = 0; i < Parameters.Count; i++)
 		{
-			if (Parameters[i].Type == null) continue;
+			var expected = Parameters[i].Type;
+			if (expected == null) continue;
 
-			if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null) return false;
+			var actual = types[i];
+			if (Equals(expected, actual)) continue;
+			
+			if (!expected.IsPrimitive || !actual.IsPrimitive)
+			{
+				if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
+			}
+			else if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null)
+			{
+				return false;
+			}
 		}
 
 		return true;
@@ -194,7 +201,7 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Tries to find function implementation with the specified parameter
+	/// Tries to find function implementation with the specified parameter type
 	/// </summary>
 	public FunctionImplementation? Get(Type type)
 	{
@@ -230,6 +237,17 @@ public class Function : Context
 
 	public override void OnMangle(Mangle mangle)
 	{
+		if (Language == FunctionLanguage.OTHER)
+		{
+			mangle.Value = Name;
+			return;
+		}
+
+		if (Language == FunctionLanguage.CPP)
+		{
+			mangle.Value = Mangle.CPP_LANGUAGE_TAG;
+		}
+
 		if (IsMember)
 		{
 			mangle += Mangle.START_LOCATION_COMMAND;

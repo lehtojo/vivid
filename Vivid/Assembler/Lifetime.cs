@@ -12,7 +12,7 @@ public class Lifetime
 	}
 
 	/// <summary>
-	/// Returns whether this lifetime is active, that is, whether the lifetime has started but not ended from the specified instruction position's perspective
+	/// Returns whether this lifetime is active, that is, whether the lifetime has started but not ended from the perspective of the specified position
 	/// </summary>
 	public bool IsActive(int position)
 	{
@@ -29,10 +29,7 @@ public class Lifetime
 
 	public override string ToString()
 	{
-		if (Start == -1 && End == -1)
-		{
-			return "static";
-		}
+		if (Start == -1 && End == -1) return "static";
 
 		return (Start == -1 ? string.Empty : Start.ToString(CultureInfo.InvariantCulture)) + ".." + (End == -1 ? string.Empty : End.ToString(CultureInfo.InvariantCulture));
 	}
