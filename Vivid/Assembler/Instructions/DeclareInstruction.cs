@@ -5,17 +5,17 @@
 public class DeclareInstruction : Instruction
 {
 	public Variable Variable { get; }
-	public bool ToRegister { get; private set; }
+	public bool Registerize { get; private set; }
 
-	public DeclareInstruction(Unit unit, Variable variable, bool to_register) : base(unit, InstructionType.DECLARE)
+	public DeclareInstruction(Unit unit, Variable variable, bool registerize) : base(unit, InstructionType.DECLARE)
 	{
 		Variable = variable;
-		ToRegister = to_register;
+		Registerize = registerize;
 	}
 
 	public override void OnBuild()
 	{
-		if (!ToRegister)
+		if (!Registerize)
 		{
 			Result.Value = new Handle();
 			return;

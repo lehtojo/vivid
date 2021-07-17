@@ -3,7 +3,7 @@ using System;
 public class DeclareNode : Node
 {
 	public Variable Variable { get; set; }
-	public bool ToRegister { get; set; } = true;
+	public bool Registerize { get; set; } = true;
 
 	public DeclareNode(Variable variable)
 	{

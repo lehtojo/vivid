@@ -278,16 +278,15 @@ public static class Analysis
 			return SimplifyDivision(left_components, right_components);
 		}
 
-		#warning Enable in the future
-		// if (Equals(node.Operator, Operators.SHIFT_LEFT))
-		// {
-		// 	return SimplifyShiftLeft(left_components, right_components);
-		// }
+		if (Equals(node.Operator, Operators.SHIFT_LEFT))
+		{
+			return SimplifyShiftLeft(left_components, right_components);
+		}
 
-		// if (Equals(node.Operator, Operators.SHIFT_RIGHT))
-		// {
-		// 	return SimplifyShiftRight(left_components, right_components);
-		// }
+		if (Equals(node.Operator, Operators.SHIFT_RIGHT))
+		{
+			return SimplifyShiftRight(left_components, right_components);
+		}
 
 		return new List<Component>
 		{

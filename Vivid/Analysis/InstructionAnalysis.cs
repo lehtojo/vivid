@@ -724,10 +724,7 @@ public static class InstructionAnalysis
 				var obstacle = instructions[position - 1];
 
 				// If the current instruction is dependent on the CPU-flags and the obstacle modifies them, the current instruction can not be placed above the obstacle
-				if (Instructions.IsConditional(instruction) && Instructions.ModifiesFlags(obstacle))
-				{
-					break;
-				}
+				if ((Instructions.IsConditional(instruction) && Instructions.ModifiesFlags(obstacle)) || (Instructions.IsConditional(obstacle) && Instructions.ModifiesFlags(instruction))) break;
 
 				// If the obstacle represents an instruction which affects the execution heavily, this instruction should not be moved above it
 				if (obstacle.Is(InstructionType.CALL, InstructionType.INITIALIZE, InstructionType.JUMP, InstructionType.LABEL, InstructionType.DIVISION, InstructionType.RETURN, InstructionType.REORDER))

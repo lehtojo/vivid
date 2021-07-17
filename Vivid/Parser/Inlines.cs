@@ -241,7 +241,7 @@ public static class Inlines
 			if (return_statements.Any())
 			{
 				end = environment.CreateLabel();
-				body.Add(new DeclareNode(container.Result) { ToRegister = false });
+				body.Add(new DeclareNode(container.Result) { Registerize = false });
 				body.Add(new JumpNode(end));
 				body.Add(new LabelNode(end));
 			}

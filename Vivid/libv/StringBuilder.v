@@ -80,6 +80,10 @@ StringBuilder {
 		position -= count
 	}
 
+	get(i: large) {
+		=> buffer[i]
+	}
+
 	string() {
 		=> String(buffer, position)
 	}

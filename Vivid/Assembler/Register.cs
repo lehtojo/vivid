@@ -66,7 +66,7 @@ public class Register
 		return !IsLocked && (Handle == null || Handle.IsReleasable(unit));
 	}
 
-	public void Reset(bool full = false)
+	public void Reset()
 	{
 		_Value = null;
 	}
