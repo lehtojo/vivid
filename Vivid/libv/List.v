@@ -163,6 +163,17 @@ List<T> {
 	slice(start: large, end: large) {
 		=> List<T>(elements + start * sizeof(T), end - start)
 	}
+
+	# Summary: Reverses the order of the elements
+	reverse() {
+		position: large = this.position
+
+		loop (i = 0, i < position / 2, i++) {
+			element = elements[i]
+			elements[i] = elements[position - i - 1]
+			elements[position - i - 1] = element
+		}
+	}
 	
 	# Summary: Sets the value of the element at the specified index
 	set(i: large, value: T) {

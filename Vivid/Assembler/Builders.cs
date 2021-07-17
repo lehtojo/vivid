@@ -56,7 +56,7 @@ public static class Builders
 				// Do not declare the variable twice
 				if (unit.IsInitialized(declaration.Variable)) return new Result();
 
-				var result = new DeclareInstruction(unit, declaration.Variable, declaration.ToRegister).Execute();
+				var result = new DeclareInstruction(unit, declaration.Variable, declaration.Registerize).Execute();
 				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
 			}
 

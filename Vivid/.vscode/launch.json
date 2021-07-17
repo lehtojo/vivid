@@ -17,10 +17,7 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			//"args": [ "${workspaceFolder}/Tests/PI.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Exceptions.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st", "-O1", "-time" ],
-			
-			//"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
-			"args": [ "${workspaceFolder}/Tests/Is.v", "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "-f", "-a", "-st" ],
+			"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

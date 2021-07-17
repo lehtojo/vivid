@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using System;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
@@ -24,16 +23,16 @@ public class InitializeInstruction : Instruction
 		if (!calls.Any()) return 0;
 
 		// Find all parameter move instructions which move the source value into memory
-		var parameter_memory_addresses = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
+		var parameter_memory_offsets = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
 
-		if (!parameter_memory_addresses.Any())
+		if (!parameter_memory_offsets.Any())
 		{
 			// Even though no instruction writes to memory, on Windows x64 there is a requirement to allocate so called 'shadow space' for the first four parameters
 			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
 			return 0;
 		}
 
-		return parameter_memory_addresses.Max() + Assembler.Size.Bytes;
+		return parameter_memory_offsets.Max() + Assembler.Size.Bytes;
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)

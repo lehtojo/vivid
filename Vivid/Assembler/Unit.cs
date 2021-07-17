@@ -254,10 +254,10 @@ public class Unit
 	public void Set(List<VariableState> state)
 	{
 		// Reset all registers
-		Registers.ForEach(r => r.Reset());
+		Registers.ForEach(i => i.Reset());
 
 		// Restore all the variables to their own registers
-		state.ForEach(s => s.Restore(this));
+		state.ForEach(i => i.Restore(this));
 	}
 
 	public void Append(Instruction instruction, bool after = false)
@@ -671,7 +671,7 @@ public class Unit
 
 	public void Reset()
 	{
-		Registers.ForEach(r => r.Reset(true));
+		Registers.ForEach(i => i.Reset());
 	}
 
 	public void Execute(UnitMode mode, Action action)
@@ -849,12 +849,7 @@ public class Unit
 
 	public bool TryAppendPosition(Node node)
 	{
-		if (!Assembler.IsDebuggingEnabled) return true;
-		if (node.Position == null) return false;
-
-		Append(new AppendPositionInstruction(this, node.Position));
-
-		return true;
+		return TryAppendPosition(node.Position);
 	}
 
 	public bool TryAppendPosition(Position? position)

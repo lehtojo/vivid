@@ -124,10 +124,7 @@ public static class Translator
 		// Build all initialization instructions
 		foreach (var instruction in instructions)
 		{
-			if (!instruction.Is(InstructionType.INITIALIZE))
-			{
-				continue;
-			}
+			if (!instruction.Is(InstructionType.INITIALIZE)) continue;
 
 			var initialization = instruction.To<InitializeInstruction>();
 
@@ -141,10 +138,7 @@ public static class Translator
 		// Build all return instructions
 		foreach (var instruction in instructions)
 		{
-			if (!instruction.Is(InstructionType.RETURN))
-			{
-				continue;
-			}
+			if (!instruction.Is(InstructionType.RETURN)) continue;
 
 			// Save the local memory size for later use
 			unit.Function.SizeOfLocals = unit.StackOffset - local_memory_top;
