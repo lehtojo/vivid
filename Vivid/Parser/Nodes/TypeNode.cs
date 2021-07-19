@@ -36,7 +36,7 @@ public class TypeNode : Node, IScope, IResolvable
 	public void Parse()
 	{
 		// Static types can not be constructed
-		if (!Type.IsStatic)
+		if (!Type.IsStatic && !Type.IsPlain)
 		{
 			Type.AddRuntimeConfiguration();
 		}

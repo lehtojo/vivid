@@ -14,7 +14,8 @@ export memory_case_2(a: link, i: normal) {
 	=> a[i]
 }
 
-export memory_case_3(object: Object, empty: decimal, value: decimal) {
+# TODO: Does not work on Windows, add second parameter 'empty: decimal'
+export memory_case_3(object: Object, value: decimal) {
 	object.y++
 	object.x = value
 	=> object.x + object.y

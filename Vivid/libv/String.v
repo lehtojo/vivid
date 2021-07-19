@@ -292,6 +292,11 @@ String {
 	}
 
 	# Summary: Returns whether the first characters match the specified string
+	starts_with(start: String) {
+		=> starts_with(start.text)
+	}
+
+	# Summary: Returns whether the first characters match the specified string
 	starts_with(start: link) {
 		a = length_of(start)
 		if a == 0 or a > length => false

@@ -17,7 +17,10 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
+			//"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
+			
+			"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/Core.v", "-o", "v", "-a", "-f", "-st" ],
+			//"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-st" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
@@ -35,6 +38,7 @@
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"args": [ "-O2" ],
+			"env": { "LD_LIBRARY_PATH": "LD_LIBRARY_PATH:${workspaceFolder}" },
 			"stopAtEntry": false,
 			"logging": {
 				"moduleLoad": false
@@ -44,7 +48,7 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
-			"program": "${workspaceRoot}/v.exe",
+			"program": "${workspaceRoot}/v",
 			"cwd": "${workspaceRoot}",
 			"programArgs": "C:\\Users\\joona\\vivid\\Vivid\\Examples\\Test.v"
 		},

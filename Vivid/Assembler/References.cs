@@ -26,47 +26,44 @@ public static class References
 			throw new InvalidOperationException("Tried to create variable handle which used a self pointer without its type");
 		}
 
-		Handle? handle;
-
 		switch (variable.Category)
 		{
 			case VariableCategory.PARAMETER:
 			{
-				handle = new StackVariableHandle(unit, variable);
-				break;
+				return new StackVariableHandle(unit, variable);
 			}
 
 			case VariableCategory.LOCAL:
 			{
-				handle = variable.IsInlined()
+				return variable.IsInlined()
 					? new InlineHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
 					: new StackVariableHandle(unit, variable);
-				
-				break;
 			}
 
 			case VariableCategory.MEMBER:
 			{
-				handle = new MemoryHandle
+				return new MemoryHandle
 				(
 					unit,
 					self ?? throw new ArgumentException("Member variable did not have its self pointer"),
 					variable.GetAlignment(self_type!) ?? throw new ApplicationException("Member variable was not aligned")
 				);
-
-				break;
 			}
 
 			case VariableCategory.GLOBAL:
 			{
-				handle = new DataSectionHandle(variable.GetStaticName());
-				break;
+				var handle = new DataSectionHandle(variable.GetStaticName());
+
+				if (Assembler.IsPositionIndependent)
+				{
+					handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
+				}
+
+				return handle;
 			}
 
 			default: throw new NotImplementedException("Unrecognized variable category");
 		}
-
-		return handle;
 	}
 
 	public static Result GetVariable(Unit unit, VariableNode node, AccessMode mode)
@@ -94,19 +91,43 @@ public static class References
 
 	public static Result GetString(Unit unit, StringNode node)
 	{
-		return new Result(new DataSectionHandle(node.GetIdentifier(unit), true), Assembler.Format);
+		var handle = new DataSectionHandle(node.GetIdentifier(unit), true);
+
+		if (Assembler.IsPositionIndependent)
+		{
+			handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
+		}
+
+		return new Result(handle, Assembler.Format);
 	}
 
 	public static Result GetDataPointer(DataPointer node)
 	{
-		return node.Data switch
+		if (node.Data is FunctionImplementation implementation)
 		{
-			FunctionImplementation implementation => new Result(new DataSectionHandle(implementation.GetFullname(), node.Offset, true), Assembler.Format),
+			var handle = new DataSectionHandle(implementation.GetFullname(), node.Offset, true);
+			
+			if (Assembler.IsPositionIndependent)
+			{
+				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
+			}
 
-			Table table => new Result(new DataSectionHandle(table.Name, node.Offset, true), Assembler.Format),
+			return new Result(handle, Assembler.Format);
+		}
 
-			_ => throw new ApplicationException("Could not build data pointer")
-		};
+		if (node.Data is Table table)
+		{
+			var handle = new DataSectionHandle(table.Name, node.Offset, true);
+
+			if (Assembler.IsPositionIndependent)
+			{
+				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
+			}
+
+			return new Result(handle, Assembler.Format);
+		}
+
+		throw new ApplicationException("Could not build data pointer");
 	}
 
 	public static Result Get(Unit unit, Node node, AccessMode mode = AccessMode.READ)

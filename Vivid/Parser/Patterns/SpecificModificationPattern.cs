@@ -16,13 +16,10 @@ public class SpecificModificationPattern : Pattern
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
 		var modifier = tokens[MODIFIER].To<KeywordToken>();
+		if (modifier.Keyword.Type != KeywordType.MODIFIER) return false;
 
-		if (modifier.Keyword.Type != KeywordType.MODIFIER)
-		{
-			return false;
-		}
-
-		return tokens[OBJECT].To<DynamicToken>().Node.Is(NodeType.VARIABLE, NodeType.FUNCTION_DEFINITION, NodeType.TYPE);
+		var node = tokens[OBJECT].To<DynamicToken>().Node;
+		return node.Is(NodeType.CONSTRUCTION, NodeType.VARIABLE, NodeType.FUNCTION_DEFINITION, NodeType.TYPE) || (node.Is(NodeType.LINK) && node.Right.Is(NodeType.CONSTRUCTION));
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
@@ -55,6 +52,20 @@ public class SpecificModificationPattern : Pattern
 			{
 				var type = destination.To<TypeNode>().Type;
 				type.Modifiers = Modifier.Combine(type.Modifiers, modifiers);
+				return destination;
+			}
+
+			case NodeType.CONSTRUCTION:
+			{
+				var construction = destination.To<ConstructionNode>();
+				construction.IsStackAllocated = Flag.Has(modifiers, Modifier.INLINE);
+				return destination;
+			}
+
+			case NodeType.LINK:
+			{
+				var construction = destination.Right.To<ConstructionNode>();
+				construction.IsStackAllocated = Flag.Has(modifiers, Modifier.INLINE);
 				return destination;
 			}
 

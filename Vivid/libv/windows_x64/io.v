@@ -63,7 +63,7 @@ export get_folder_files(folder: link, all: bool) {
 
 # Summary: Returns all the filenames inside the specified folder
 export get_folder_files(folder: String, all: bool) {
-	inline iterator = internal.FileIterator()
+	iterator = inline internal.FileIterator()
 
 	filename: char[internal.MAXIMUM_PATH_LENGTH]
 	
@@ -299,8 +299,6 @@ find_argument_ending(text: String, ending: char, i: large) {
 export get_command_line_arguments() {
 	text = String(internal.GetCommandLineA())
 	empty = String('')
-
-	println(text)
 
 	arguments = List<String>()
 	argument = empty

@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 
-public class ArrayType : Type, IResolvable
+public class ArrayType : Number, IResolvable
 {
 	public Type Element { get; private set; }
 	private List<Token> Tokens { get; set; }
 	public Node? Expression { get; private set; }
 
-	public ArrayType(Context context, Type element, ContentToken count, Position? position) : base(element.ToString() + "[]", Modifier.DEFAULT | Modifier.PRIMITIVE | Modifier.INLINE)
+	public ArrayType(Context context, Type element, ContentToken count, Position? position) : base(Parser.Format, Size.QWORD.Bits, true, element.ToString() + "[]")
 	{
+		Modifiers = Modifier.DEFAULT | Modifier.PRIMITIVE | Modifier.INLINE;
 		Element = element;
 		Tokens = count.Tokens;
 		Position = position;

@@ -575,6 +575,7 @@ public class ResolverPhase : Phase
 		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing the allocation function, please implement it or include the standard library");
 		var deallocation_function = context.GetFunction("deallocate") ?? throw new ApplicationException("Missing the deallocation function, please implement it or include the standard library");
 		var inheritance_function = context.GetFunction("internal_is") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
+		var initialization_function = context.GetFunction("internal_init");
 
 		var type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 
@@ -585,6 +586,11 @@ public class ResolverPhase : Phase
 		Assembler.DeallocationFunction = deallocation_function.GetOverload(new Link());
 
 		Parser.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link());
+
+		if (initialization_function != null)
+		{
+			Assembler.InitializationFunction = initialization_function.GetImplementation();
+		}
 
 		GarbageCollector.CreateReferenceCountingFunctions(context);
 	}

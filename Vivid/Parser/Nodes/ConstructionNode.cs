@@ -1,6 +1,7 @@
 public class ConstructionNode : Node, IResolvable
 {
 	public FunctionNode Constructor => First!.To<FunctionNode>();
+	public bool IsStackAllocated { get; set; } = false;
 
 	public ConstructionNode(FunctionNode constructor, Position? position = null)
 	{

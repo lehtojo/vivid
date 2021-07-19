@@ -1036,7 +1036,6 @@ public static class Analysis
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
-
 			var start = DateTime.UtcNow;
 			
 			// Reconstruct necessary nodes in the function implementation

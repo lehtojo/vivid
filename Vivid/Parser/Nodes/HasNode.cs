@@ -25,25 +25,13 @@ public class HasNode : Node, IResolvable
 		Resolver.Resolve(environment, Source);
 
 		var type = Source.TryGetType();
-
-		if (type == null || type.IsUnresolved)
-		{
-			return null;
-		}
+		if (type == null || type.IsUnresolved) return null;
 
 		var has_value_function = type.GetFunction(RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
-
-		if (has_value_function == null || !Primitives.IsPrimitive(has_value_function.ReturnType, Primitives.BOOL))
-		{
-			return null;
-		}
+		if (has_value_function == null || !Primitives.IsPrimitive(has_value_function.ReturnType, Primitives.BOOL)) return null;
 
 		var get_value_function = type.GetFunction(RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
-
-		if (get_value_function == null)
-		{
-			return null;
-		}
+		if (get_value_function == null || get_value_function.ReturnType == null || get_value_function.ReturnType.IsUnresolved) return null;
 
 		var inline_context = new Context(environment);
 
@@ -51,7 +39,14 @@ public class HasNode : Node, IResolvable
 		var result_variable = inline_context.DeclareHidden(Primitives.CreateBool());
 
 		// Declare the result variable at the start of the function
-		var declaration = new DeclareNode(Result.Variable);
+		var declaration = new OperatorNode(Operators.ASSIGN, Position).SetOperands(
+			new VariableNode(Result.Variable, Position),
+			new CastNode(
+				new NumberNode(Parser.Format, 0L, Position),
+				new TypeNode(get_value_function.ReturnType, Position),
+				Position
+			)
+		);
 
 		ReconstructionAnalysis.GetInsertPosition(this).Insert(declaration);
 

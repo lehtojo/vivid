@@ -153,3 +153,44 @@ _V16deallocate_stackx:
 pop rax
 add rsp, rdi
 jmp rax
+
+.global _V17get_stack_pointerv_rPh
+_V17get_stack_pointerv_rPh:
+lea rax, [rsp+8]
+ret
+
+.global system_read
+system_read:
+mov rax, 0 # System call: sys_read
+syscall
+ret
+
+.global system_write
+system_write:
+mov rax, 1 # System call: sys_write
+syscall
+ret
+
+.global system_open
+system_open:
+mov rax, 2 # System call: sys_open
+syscall
+ret
+
+.global system_close
+system_close:
+mov rax, 3 # System call: sys_close
+syscall
+ret
+
+.global system_status
+system_status:
+mov rax, 4 # System call: sys_stat
+syscall
+ret
+
+.global system_get_directory_entries
+system_get_directory_entries:
+mov rax, 217 # System call: sys_getdents
+syscall
+ret

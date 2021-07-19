@@ -1038,10 +1038,32 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (First.IsMemoryAddress && !(First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Address))
+		else if (First.IsMemoryAddress)
 		{
+			if (First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Address) throw new ApplicationException("Destination can not be an address value");
+
 			if (Assembler.IsArm64)
 			{
+				// Prepare the destination handle, if it has a modifier
+				if (First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Modifier != DataSectionModifier.NONE)
+				{
+					// Example:
+					// x1 => [S0]
+					//
+					// adrp x0, :got:S0
+					// ldr x0, [x0, :got_lo12:S0]
+					// str x1, [x0]
+
+					var handle = First.Value.To<DataSectionHandle>();
+
+					var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+					var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
+					var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
+
+					// Since the address is evaluated the second must use it
+					First.Value = new MemoryHandle(Unit, address, (int)handle.Offset);
+				}
+
 				// Examples:
 				// str x0, [x1]
 				// str x0, [sp, #8]
@@ -1059,6 +1081,30 @@ public class MoveInstruction : DualParameterInstruction
 					)
 				);
 
+				return;
+			}
+
+			// Prepare the destination handle, if it has a modifier
+			if (First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Modifier != DataSectionModifier.NONE)
+			{
+				// Save the data section handle offset
+				var offset = (int)First.Value.To<DataSectionHandle>().Offset;
+
+				var address = new Result();
+				Memory.GetRegisterFor(Unit, address, false);
+
+				// Example:
+				// mov rax, [rip+x@GOTPCREL]
+				// mov qword ptr [rax+8], 1
+				Build(
+					Instructions.Shared.MOVE,
+					new InstructionParameter(address, ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_DESTINATION | ParameterFlag.WRITE_ACCESS, HandleType.REGISTER),
+					new InstructionParameter(First, ParameterFlag.NONE, HandleType.MEMORY)
+				);
+
+				First.Value = new MemoryHandle(Unit, address, offset);
+
+				Unit.Append(new MoveInstruction(Unit, First, Second) { Type = Type }, true);
 				return;
 			}
 
@@ -1080,28 +1126,57 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsX64 && Second.IsDataSectionHandle && Second.Value.To<DataSectionHandle>().Address)
+		else if (Assembler.IsX64 && Second.IsDataSectionHandle)
 		{
+			/// NOTE: Here the destination will always be a register, because memory address destinations are handled above
 			var handle = Second.Value.To<DataSectionHandle>();
-			var address = handle.Address;
 
+			if (handle.Modifier != DataSectionModifier.NONE)
+			{
+				if (handle.Address)
+				{
+					handle.Address = false;
+
+					// Example:
+					// mov rax, [rip+x@GOTPCREL]
+					// add rax, 8
+					Build(Instructions.Shared.MOVE,
+						new InstructionParameter(First, flags_first, HandleType.REGISTER),
+						new InstructionParameter(Second, flags_second, HandleType.MEMORY)
+					);
+
+					// Add the handle offset
+					if (handle.Offset != 0)
+					{
+						Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+					}
+
+					handle.Address = true;
+					return;
+				}
+
+				// Example:
+				// mov rax, [rip+x@GOTPCREL]
+				// mov rax, [rax+8]
+				Build(Instructions.Shared.MOVE,
+					new InstructionParameter(First, ParameterFlag.DESTINATION, HandleType.REGISTER),
+					new InstructionParameter(Second, ParameterFlag.NONE, HandleType.MEMORY)
+				);
+
+				Second.Value = new MemoryHandle(Unit, First, (int)handle.Offset);
+
+				var instruction = new MoveInstruction(Unit, First, Second) { Type = Type };
+				Unit.Append(instruction, true);
+				return;
+			}
+
+			var address = handle.Address;
 			handle.Address = false;
 
-			// Example:
-			// mov rax, function_f_S0 => lea rax, [rip+function_f_S0]
-
-			Build(
-				Instructions.X64.EVALUATE,
-				new InstructionParameter(
-					First,
-					flags_first,
-					HandleType.REGISTER
-				),
-				new InstructionParameter(
-					Second,
-					flags_second,
-					HandleType.MEMORY
-				)
+			// Example: lea rax, [rip+S0] / mov rax, [rip+S0]
+			Build(address ? Instructions.X64.EVALUATE : Instructions.Shared.MOVE,
+				new InstructionParameter(First, flags_first, HandleType.REGISTER),
+				new InstructionParameter(Second, flags_second, HandleType.MEMORY)
 			);
 
 			handle.Address = address;

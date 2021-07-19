@@ -111,18 +111,11 @@ export range_4(a: large, b: large) {
 }
 
 init() {
-	object1 = Object()
-	object1.value = -123.456
-	object2 = Object()
-	object2.value = -1.333333
-	object3 = Object()
-	object3.value = 1010
-	
-	array = Array<Object>(3)
-	array[0] = object1
-	array[1] = object2
-	array[2] = object3
+	array = Array<large>(3)
+	array[0] = 1
+	array[1] = 2
+	array[2] = 3
 
-	iteration_4(array)
+	iteration_1(array, allocate(100))
 	=> 1
 }

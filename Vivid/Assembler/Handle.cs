@@ -137,16 +137,26 @@ public class ConstantDataSectionHandle : DataSectionHandle
 	}
 }
 
+public enum DataSectionModifier
+{
+	NONE = 0,
+	GLOBAL_OFFSET_TABLE = 1,
+	PROCEDURE_LINKAGE_TABLE = 2
+}
+
 public class DataSectionHandle : Handle
 {
-	public const string GLOBAL_OFFSET_TABLE_PREFIX = ":got:";
+	public const string X64_GLOBAL_OFFSET_TABLE = "@GOTPCREL";
+	public const string X64_PROCEDURE_LINKAGE_TABLE = "@PLT";
+
+	public const string ARM64_GLOBAL_OFFSET_TABLE = ":got:";
 
 	public string Identifier { get; set; }
 	public long Offset { get; set; } = 0;
 
 	// Address means whether to use the value of the address or not
 	public bool Address { get; set; } = false;
-	public bool GlobalOffsetTable { get; set; } = false;
+	public DataSectionModifier Modifier { get; set; } = DataSectionModifier.NONE;
 
 	public DataSectionHandle(string identifier, bool address = false) : base(HandleType.MEMORY, HandleInstanceType.DATA_SECTION)
 	{
@@ -166,33 +176,40 @@ public class DataSectionHandle : Handle
 		// If the value of the address is only required, return it
 		if (Address)
 		{
-			return (Assembler.IsArm64 && GlobalOffsetTable) ? GLOBAL_OFFSET_TABLE_PREFIX + Identifier : Identifier;
+			if (Assembler.IsX64)
+			{
+				if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return string.Empty;
+				if (Modifier == DataSectionModifier.PROCEDURE_LINKAGE_TABLE) return Identifier + X64_PROCEDURE_LINKAGE_TABLE;
+			}
+			else if (Assembler.IsArm64)
+			{
+				if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return ARM64_GLOBAL_OFFSET_TABLE + Identifier;
+			}
+
+			return Identifier;
+		}
+
+		// When building for Arm64, the code below should not execute
+		if (Assembler.IsArm64) return string.Empty;
+
+		// If a modifier is attached, the offset is taken into account elsewhere
+		if (Modifier != DataSectionModifier.NONE)
+		{
+			if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return IsPrecise ? $"{Size} ptr [rip+{Identifier + X64_GLOBAL_OFFSET_TABLE}]" : $"[rip+{Identifier + X64_GLOBAL_OFFSET_TABLE}]";
+			if (Modifier == DataSectionModifier.PROCEDURE_LINKAGE_TABLE) return IsPrecise ? $"{Size} ptr [rip+{Identifier + X64_PROCEDURE_LINKAGE_TABLE}]" : $"[rip+{Identifier + X64_PROCEDURE_LINKAGE_TABLE}]";
+			return string.Empty;
 		}
 
 		// Apply the offset if it is not zero
 		if (Offset != 0)
 		{
 			var offset = Offset.ToString(CultureInfo.InvariantCulture);
+			if (Offset > 0) { offset = '+' + offset; }
 
-			if (Offset > 0)
-			{
-				offset = '+' + offset;
-			}
-
-			if (Assembler.Is64Bit)
-			{
-				return IsPrecise ? $"{Size} ptr [rip+{Identifier}{offset}]" : $"[rip+{Identifier}{offset}]";
-			}
-
-			return IsPrecise ? $"{Size} ptr [{Identifier}{offset}]" : $"[{Identifier}{offset}]";
+			return IsPrecise ? $"{Size} ptr [rip+{Identifier}{offset}]" : $"[rip+{Identifier}{offset}]";
 		}
 
-		if (Assembler.Is64Bit)
-		{
-			return IsPrecise ? $"{Size} ptr [rip+{Identifier}]" : $"[rip+{Identifier}]";
-		}
-
-		return IsPrecise ? $"{Size} ptr [{Identifier}]" : $"[{Identifier}]";
+		return IsPrecise ? $"{Size} ptr [rip+{Identifier}]" : $"[rip+{Identifier}]";
 	}
 
 	public override Handle Finalize()
@@ -245,16 +262,24 @@ public class ConstantHandle : Handle
 
 	public string ToStringShared()
 	{
-		var result = Value.ToString()?.Replace(',', '.');
+		var result = (string?)null;
 
-		if (result == null)
+		if (Format.IsDecimal())
 		{
-			return string.Empty;
+			var value = (double)Value;
+			if (value >= 0) { result = value.ToString(CultureInfo.InvariantCulture); }
+			else { result = '-' + (-value).ToString(CultureInfo.InvariantCulture); }
+
+			// Use dots as decimal separators
+			result = result.Replace(',', '.');
+
+			if (!result.Contains('.')) return result + ".0";
 		}
-
-		if (Format.IsDecimal() && !result.Contains('.'))
+		else
 		{
-			return result + ".0";
+			var value = (long)Value;
+			if (value >= 0) { result = value.ToString(CultureInfo.InvariantCulture); }
+			else { result = '-' + (-value).ToString(CultureInfo.InvariantCulture); }
 		}
 
 		return result;
@@ -373,35 +398,20 @@ public class MemoryHandle : Handle
 
 		if (Assembler.IsArm64)
 		{
-			if (offset != 0)
-			{
-				constant = $", #{offset}";
-			}
+			if (offset != 0) { constant = $", #{offset}"; }
 		}
 		else
 		{
-			if (offset > 0)
-			{
-				constant = $"+{offset}";
-			}
-			else if (offset < 0)
-			{
-				constant = offset.ToString(CultureInfo.InvariantCulture);
-			}
+			if (offset > 0) { constant = $"+{offset}"; }
+			else if (offset < 0) { constant = $"-{-offset}"; }
 		}
 
 		if (start.Is(HandleType.REGISTER) || start.Is(HandleType.CONSTANT))
 		{
 			var address = $"[{start}{constant}]";
 
-			if (IsPrecise && Assembler.IsX64)
-			{
-				return $"{Size} ptr {address}";
-			}
-			else
-			{
-				return address;
-			}
+			if (IsPrecise && Assembler.IsX64) { return $"{Size} ptr {address}"; }
+			else { return address; }
 		}
 
 		return string.Empty;
@@ -474,7 +484,7 @@ public class StackMemoryHandle : MemoryHandle
 	{
 		return other is StackMemoryHandle handle &&
 				 Offset == handle.Offset &&
-				  IsAbsolute == handle.IsAbsolute;
+				 IsAbsolute == handle.IsAbsolute;
 	}
 
 	public override int GetHashCode()
@@ -563,19 +573,14 @@ public class ComplexMemoryHandle : Handle
 			{
 				if (value != 0)
 				{
-					offset = $", #{value}";
+					if (value > 0) { offset = $", #{value}"; }
+					else if (value < 0) { offset = $", #-{-value}"; }
 				}
 			}
 			else
 			{
-				if (value > 0)
-				{
-					offset = $"+{value}";
-				}
-				else if (value < 0)
-				{
-					offset = value.ToString(CultureInfo.InvariantCulture);
-				}
+				if (value > 0) { offset = $"+{value}"; }
+				else if (value < 0) { offset = $"-{-value}"; }
 			}
 		}
 		else
@@ -740,9 +745,13 @@ public class ExpressionHandle : Handle
 
 		var empty = string.IsNullOrEmpty(result);
 
-		if (constant != 0 || empty)
+		if (constant > 0 || empty)
 		{
-			result += (constant > 0 && !empty ? "+" : "") + constant;
+			result += empty ? constant : $"+{constant}";
+		}
+		else if (constant < 0)
+		{
+			result += $"-{-constant}";
 		}
 
 		return '[' + result + ']';
@@ -780,11 +789,12 @@ public class ExpressionHandle : Handle
 
 		if (constant != 0)
 		{
-			result += ", #" + constant;
+			if (constant >= 0) { result += $", #{constant}"; }
+			else { result += $", #-{-constant}"; }
 		}
 		else
 		{
-			result += ", xzr";
+			result += $", {ARM64_ZERO_REGISTER}";
 		}
 
 		return result;
@@ -890,18 +900,12 @@ public class InlineHandle : Handle
 
 		if (Assembler.IsArm64)
 		{
-			return stack_pointer.ToString() + ", #" + offset;
+			if (offset >= 0) return stack_pointer.ToString() + ", #" + offset;
+			return stack_pointer.ToString() + ", #-" + (-offset);
 		}
 
-		if (offset > 0)
-		{
-			return '[' + stack_pointer.ToString() + '+' + offset + ']';
-		}
-
-		if (offset < 0)
-		{
-			return '[' + stack_pointer.ToString() + offset + ']';
-		}
+		if (offset > 0) return '[' + stack_pointer.ToString() + '+' + offset + ']';
+		if (offset < 0) return '[' + stack_pointer.ToString() + '-' + (-offset) + ']';
 
 		return '[' + stack_pointer.ToString() + ']';
 	}
@@ -998,7 +1002,7 @@ public class Lower12Bits : Handle
 	public Lower12Bits(DataSectionHandle handle, bool global_offset_table) : base(HandleType.MODIFIER, HandleInstanceType.LOWER_12_BITS)
 	{
 		var copy = (DataSectionHandle)handle.Finalize();
-		copy.GlobalOffsetTable = false;
+		copy.Modifier = DataSectionModifier.NONE;
 		copy.Address = true;
 
 		Handle = new Result(copy, Assembler.Format);

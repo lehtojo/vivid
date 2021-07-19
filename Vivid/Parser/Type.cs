@@ -101,6 +101,7 @@ public class Type : Context
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
 	public bool IsUnresolved => !IsResolved();
+	public bool IsPlain => Flag.Has(Modifiers, Modifier.PLAIN);
 	public bool IsPrimitive => Flag.Has(Modifiers, Modifier.PRIMITIVE);
 	public bool IsUserDefined => !IsPrimitive && Destructors.Overloads.Any();
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);

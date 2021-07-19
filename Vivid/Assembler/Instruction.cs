@@ -124,11 +124,9 @@ public class InstructionParameter
 		{
 			var handle = Result.Value.To<DataSectionHandle>();
 
-			if (Assembler.IsArm64)
-			{
-				return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
-			}
+			if (Assembler.IsArm64) return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
 
+			// Using the address value can be allowed, if the bit limit has been raised to 64-bit
 			return Flag.Has(Flags, ParameterFlag.BIT_LIMIT_64) || !handle.Address;
 		}
 

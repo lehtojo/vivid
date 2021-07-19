@@ -19,7 +19,14 @@ public class CallInstruction : Instruction
 
 	public CallInstruction(Unit unit, string function, Type? return_type) : base(unit, InstructionType.CALL)
 	{
-		Function = new Result(new DataSectionHandle(function, true), Assembler.Format);
+		var handle = new DataSectionHandle(function, true);
+
+		if (Assembler.IsPositionIndependent)
+		{
+			handle.Modifier = DataSectionModifier.PROCEDURE_LINKAGE_TABLE;
+		}
+
+		Function = new Result(handle, Assembler.Format);
 		ReturnType = return_type;
 		Dependencies = null;
 		Description = "Calls function " + Function;
@@ -40,7 +47,7 @@ public class CallInstruction : Instruction
 	}
 
 	/// <summary>
-	/// Iterates through the volatile registers and ensures that they don't contain any important values which are needed later
+	/// Iterates through the volatile registers and ensures that they do not contain any important values which are needed later
 	/// </summary>
 	private void ValidateEvacuation()
 	{

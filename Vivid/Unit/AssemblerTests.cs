@@ -11,315 +11,85 @@ using System.Text.RegularExpressions;
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Foo : IEquatable<Foo>
+public class Foo
 {
 	[FieldOffset(8)] public byte A;
 	[FieldOffset(9)] public short B;
-
-	public override bool Equals(object? other)
-	{
-		return other is Foo foo && Equals(foo);
-	}
-
-	public bool Equals(Foo other)
-	{
-		return A == other.A && B == other.B;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(A, B);
-	}
-
-	public static bool operator ==(Foo left, Foo right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Foo left, Foo right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Bar : IEquatable<Bar>
+public class Bar
 {
 	[FieldOffset(8)] public int C;
 	[FieldOffset(12)] public long D;
-
-	public override bool Equals(object? other)
-	{
-		return other is Bar bar && Equals(bar);
-	}
-
-	public bool Equals(Bar other)
-	{
-		return C == other.C && D == other.D;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(C, D);
-	}
-
-	public static bool operator ==(Bar left, Bar right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Bar left, Bar right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Baz : IEquatable<Baz>
+public class Baz
 {
 	[FieldOffset(8)] public byte A;
 	[FieldOffset(9)] public short B;
 	[FieldOffset(19)] public int C;
 	[FieldOffset(23)] public long D;
 	[FieldOffset(39)] public double E;
-
-	public override bool Equals(object? other)
-	{
-		return other is Baz baz && Equals(baz);
-	}
-
-	public bool Equals(Baz other)
-	{
-		return A == other.A && B == other.B && C == other.C && D == other.D && E == other.E;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(C, D);
-	}
-
-	public static bool operator ==(Baz left, Baz right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Baz left, Baz right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct B : IEquatable<B>
+public class B
 {
 	[FieldOffset(8)] public long X;
 	[FieldOffset(16)] public short Y;
 	[FieldOffset(18)] public double Z;
-
-	public override bool Equals(object? other)
-	{
-		return other is B b && Equals(b);
-	}
-
-	public bool Equals(B other)
-	{
-		return X == other.X && Y == other.Y && Z == other.Z;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(X, Y, Z);
-	}
-
-	public static bool operator ==(B left, B right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(B left, B right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct A : IEquatable<A>
+public class A
 {
 	[FieldOffset(8)] public IntPtr B;
-
-	public override bool Equals(object? other)
-	{
-		return other is A a && Equals(a);
-	}
-
-	public bool Equals(A other)
-	{
-		return B == other.B;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(B);
-	}
-
-	public static bool operator ==(A left, A right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(A left, A right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Holder : IEquatable<Holder>
+public class Holder
 {
 	[FieldOffset(8)] public int Normal;
 	[FieldOffset(12)] public byte Tiny;
 	[FieldOffset(13)] public double Double;
 	[FieldOffset(21)] public long Large;
 	[FieldOffset(29)] public short Small;
-
-	public override bool Equals(object? other)
-	{
-		return other is Holder holder && Equals(holder);
-	}
-
-	public bool Equals(Holder other)
-	{
-		return Normal == other.Normal;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Normal);
-	}
-
-	public static bool operator ==(Holder left, Holder right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Holder left, Holder right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Sequence : IEquatable<Sequence>
+public class Sequence
 {
 	[FieldOffset(8)] public IntPtr Address;
-
-	public override bool Equals(object? other)
-	{
-		return other is Sequence sequence && Equals(sequence);
-	}
-
-	public bool Equals(Sequence other)
-	{
-		return Address == other.Address;
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Address);
-	}
-
-	public static bool operator ==(Sequence left, Sequence right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Sequence left, Sequence right)
-	{
-		return !(left == right);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Apple : IEquatable<Apple>
+public class Apple
 {
 	[FieldOffset(8)] public long Weight;
 	[FieldOffset(16)] public double Price;
-
-	public override bool Equals(object? other)
-	{
-		return other is Apple apple &&
-			Weight == apple.Weight &&
-			Price == apple.Price;
-	}
-
-	public bool Equals(Apple other)
-	{
-		return Weight == other.Weight && Price == other.Price;
-	}
-
-	public static bool operator ==(Apple left, Apple right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Apple left, Apple right)
-	{
-		return !(left == right);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Weight, Price);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct Car : IEquatable<Car>
+public class Car
 {
 	[FieldOffset(8)] public long Weight;
 	[FieldOffset(16)] public IntPtr Brand;
 	[FieldOffset(24)] public double Price;
-
-	public override bool Equals(object? other)
-	{
-		return other is Car car &&
-			Price == car.Price &&
-			Weight == car.Weight &&
-			Brand.Equals(car.Brand);
-	}
-
-	public bool Equals(Car other)
-	{
-		return Price == other.Price && Weight == other.Weight && Brand == other.Brand;
-	}
-
-	public static bool operator ==(Car left, Car right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(Car left, Car right)
-	{
-		return !(left == right);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Price, Weight, Brand);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
-public struct String : IEquatable<String>
+public class String
 {
 	[FieldOffset(8)] public IntPtr Data;
 
@@ -335,6 +105,8 @@ public struct String : IEquatable<String>
 		Marshal.WriteByte(Data, text.Length, 0);
 	}
 
+	public String() {}
+
 	public void Assert(string expected)
 	{
 		var expected_bytes = Encoding.UTF8.GetBytes(expected);
@@ -344,37 +116,12 @@ public struct String : IEquatable<String>
 		global::Assert.AreEqual(expected_bytes, actual_bytes);
 		global::Assert.AreEqual((byte)0, Marshal.ReadByte(Data, expected_bytes.Length));
 	}
-
-	public override bool Equals(object? other)
-	{
-		return other is String text && Data.Equals(text.Data);
-	}
-
-	public bool Equals(String other)
-	{
-		return Data == other.Data;
-	}
-
-	public static bool operator ==(String left, String right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(String left, String right)
-	{
-		return !(left == right);
-	}
-
-	public override int GetHashCode()
-	{
-		return HashCode.Combine(Data);
-	}
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [SuppressMessage("Microsoft.Maintainability", "CA1815")]
 [StructLayout(LayoutKind.Explicit)]
-public struct IterationArray
+public class IterationArray
 {
 	[FieldOffset(8)] public IntPtr Data;
 	[FieldOffset(16)] public long Count;
@@ -383,7 +130,7 @@ public struct IterationArray
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [SuppressMessage("Microsoft.Maintainability", "CA1815")]
 [StructLayout(LayoutKind.Explicit)]
-public struct IterationRange
+public class IterationRange
 {
 	[FieldOffset(8)] public long Start;
 	[FieldOffset(16)] public long End;
@@ -392,7 +139,7 @@ public struct IterationRange
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [SuppressMessage("Microsoft.Maintainability", "CA1815")]
 [StructLayout(LayoutKind.Explicit)]
-public struct IterationObject
+public class IterationObject
 {
 	[FieldOffset(8)] public double Value;
 	[FieldOffset(16)] public bool Flag;
@@ -866,7 +613,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(100, _V7casts_3x_rb(100));
 
 			var result = Marshal.PtrToStructure<Baz>(_V7casts_4d_rP3Baz(100));
-			Assert.AreEqual(100, result.A);
+			Assert.AreEqual(100, result!.A);
 			Assert.AreEqual(101, result.B);
 			Assert.AreEqual(102, result.C);
 			Assert.AreEqual(103, result.D);
@@ -1119,15 +866,15 @@ namespace Vivid.Unit
 		}
 
 		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern void _V12assignment_1P6Holder(ref Holder instance);
+		private static extern void _V12assignment_1P6Holder(Holder instance);
 
 		[DllImport("Unit_Assignment", ExactSpelling = true)]
-		private static extern void _V12assignment_2P8Sequence(ref Sequence instance);
+		private static extern void _V12assignment_2P8Sequence(Sequence instance);
 
 		private static void Assignment_Test()
 		{
 			var holder = new Holder();
-			_V12assignment_1P6Holder(ref holder);
+			_V12assignment_1P6Holder(holder);
 
 			Assert.AreEqual(64, holder.Tiny);
 			Assert.AreEqual(12345, holder.Small);
@@ -1141,7 +888,7 @@ namespace Vivid.Unit
 			Marshal.WriteInt64(buffer, sizeof(double) * 2, BitConverter.DoubleToInt64Bits(0.0));
 
 			var sequence = new Sequence() { Address = buffer };
-			_V12assignment_2P8Sequence(ref sequence);
+			_V12assignment_2P8Sequence(sequence);
 
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-123.456), Marshal.ReadInt64(sequence.Address, sizeof(double) * 0));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(-987.654), Marshal.ReadInt64(sequence.Address, sizeof(double) * 1));
@@ -2178,22 +1925,22 @@ namespace Vivid.Unit
 
 			range = Marshal.PtrToStructure<IterationRange>(_V7range_1v_rP5Range());
 
-			Assert.AreEqual(1, range.Start);
+			Assert.AreEqual(1, range!.Start);
 			Assert.AreEqual(10, range.End);
 
 			range = Marshal.PtrToStructure<IterationRange>(_V7range_2v_rP5Range());
 
-			Assert.AreEqual((long)-5e2, range.Start);
+			Assert.AreEqual((long)-5e2, range!.Start);
 			Assert.AreEqual((long)10e10, range.End);
 
 			range = Marshal.PtrToStructure<IterationRange>(_V7range_3xx_rP5Range(314159, -42));
 
-			Assert.AreEqual((long)314159, range.Start);
+			Assert.AreEqual((long)314159, range!.Start);
 			Assert.AreEqual((long)-42, range.End);
 
 			range = Marshal.PtrToStructure<IterationRange>(_V7range_4xx_rP5Range(-12, -14));
 
-			Assert.AreEqual(12 * 12, range.Start);
+			Assert.AreEqual(12 * 12, range!.Start);
 			Assert.AreEqual(14 * 14, range.End);
 		}
 
@@ -2243,16 +1990,16 @@ namespace Vivid.Unit
 			Extensions_Test();
 		}
 
-		[DllImport("Unit_Memory", ExactSpelling = true)]
+		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
 		private static extern int _V13memory_case_1P6Objecti_ri(ref MemoryObject instance, int value);
 		
-		[DllImport("Unit_Memory", ExactSpelling = true)]
+		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
 		private static extern byte _V13memory_case_2Phi_rh(IntPtr memory, int i);
 		
-		[DllImport("Unit_Memory", ExactSpelling = true)]
-		private static extern double _V13memory_case_3P6Objectdd_rd(ref MemoryObject instance, double value);
+		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
+		private static extern double _V13memory_case_3P6Objectd_rd(ref MemoryObject instance, double value);
 		
-		[DllImport("Unit_Memory", ExactSpelling = true)]
+		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
 		private static extern int _V13memory_case_4P6ObjectS0__ri(ref MemoryObject a, ref MemoryObject b);
 		
 		[DllImport("Unit_Memory", ExactSpelling = true)]
@@ -2300,7 +2047,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(7, Marshal.ReadByte(memory, 6));
 
 			a.Y = 1.718281;
-			var result = _V13memory_case_3P6Objectdd_rd(ref a, 8.8);
+			var result = _V13memory_case_3P6Objectd_rd(ref a, 8.8);
 			if (result != 1.718281 + 1.0 + 8.0 && result != 10.718281) Assert.Fail("Values are not equal");
 
 			Assert.AreEqual(8, a.X);
@@ -2371,7 +2118,7 @@ namespace Vivid.Unit
 			
 			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_1P6Objecti_ri")));
 			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_2Phi_rh")));
-			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectdd_rd")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectd_rd")));
 			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_4P6ObjectS0__ri")));
 			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_5P6ObjectPh_rd")));
 			Assert.AreEqual(2, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_6P6Object_rd")));

@@ -409,7 +409,9 @@ public static class ReconstructionAnalysis
 
 		foreach (var construction in constructions)
 		{
-			if (!IsStackConstructionPreferred(root, construction)) continue;
+			// 1. Use stack allocation, if the user forces it
+			// 2. Try to automatically detect whether to use stack allocation here
+			if (!construction.IsStackAllocated && !IsStackConstructionPreferred(root, construction)) continue;
 
 			var container = Common.CreateStackConstruction(construction.GetType(), construction, construction.Constructor);
 			container.Destination.Replace(container.Node);

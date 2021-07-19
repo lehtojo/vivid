@@ -10,7 +10,7 @@ public class GetRelativeAddressInstruction : Instruction
 	{
 		// Copy the data section handle and the only the address
 		Handle = (DataSectionHandle)handle.Finalize();
-		Handle.GlobalOffsetTable = true;
+		Handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 		Handle.Address = true;
 
 		Result.Format = Assembler.Format;

@@ -10,6 +10,7 @@ public static class Assembler
 {
 	public static Function? AllocationFunction { get; set; }
 	public static Function? DeallocationFunction { get; set; }
+	public static FunctionImplementation? InitializationFunction { get; set; }
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
@@ -24,6 +25,8 @@ public static class Assembler
 
 	public static bool IsArm64 => Architecture == Architecture.Arm64;
 	public static bool IsX64 => Architecture == Architecture.X64;
+
+	public static bool IsPositionIndependent { get; set; } = false;
 
 	public static bool IsDebuggingEnabled { get; set; } = false;
 	public static bool IsVerboseOutputEnabled { get; set; } = false;
@@ -718,7 +721,6 @@ public static class Assembler
 
 				var name = node.Identifier;
 
-				builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 				builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 				builder.AppendLine($"{name}:");
 				builder.AppendLine(AllocateString(node.Text));
@@ -809,7 +811,6 @@ public static class Assembler
 				allocator = constant.Size.Allocator;
 			}
 
-			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
 			builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 			builder.AppendLine($"{name}:");
 			builder.AppendLine($"{allocator} {text}");
@@ -897,6 +898,8 @@ public static class Assembler
 			Instructions.X64.Initialize();
 		}
 
+		Assembler.IsPositionIndependent = output_type == BinaryType.SHARED_LIBRARY;
+
 		var result = new Dictionary<SourceFile, string>();
 
 		var entry_function = context.GetFunction(Keywords.INIT.Identifier)?.Overloads.FirstOrDefault()?.Implementations.FirstOrDefault();
@@ -905,6 +908,12 @@ public static class Assembler
 		if (entry_function != null)
 		{
 			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
+		}
+
+		// Use the internal initialization function, if it exists
+		if (InitializationFunction != null)
+		{
+			entry_function = InitializationFunction;
 		}
 
 		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);
