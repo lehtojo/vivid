@@ -1,5 +1,36 @@
-import system_call(identifier: large)
 import get_stack_pointer(): link
+
+export internal_init(root: link) {
+	count = root.(link<large>)[0]
+
+	arguments = List<String>(count, false)
+	environment_variables = List<String>()
+
+	# Load all the command line arguments
+	loop (i = 0, i < count, i++) {
+		argument = root.(link<link>)[i + 1]
+		arguments.add(String.from(argument, length_of(argument)))
+	}
+
+	# Load all the environment variables
+	i = count + 2 # Skip over the argument count, all the arguments and a none pointer
+
+	# Load environment variables as long as the pointer is not none
+	loop {
+		environment_variable = root.(link<link>)[i]
+		if environment_variable == none stop
+
+		environment_variables.add(String.from(environment_variable, length_of(environment_variable)))
+		i++
+	}
+
+	io.internal.arguments = arguments
+	io.internal.environment_variables = environment_variables
+	io.internal.executable = arguments[0]
+
+	# Call the actual init function here
+	init()
+}
 
 namespace io
 
@@ -183,7 +214,8 @@ export read_file(filename: link) {
 	position = 0
 
 	loop {
-		result = internal.system_read(file_descriptor, buffer + position, size - position)
+		available = size - position
+		result = internal.system_read(file_descriptor, buffer + position, available)
 
 		# If the resutl is -1, it means the read failed
 		if result == -1 {
@@ -196,7 +228,7 @@ export read_file(filename: link) {
 		if result == 0 stop
 
 		# If the buffer is too small, double its size
-		if result == size {
+		if result == available {
 			buffer = resize(buffer, size, size * 2)
 			size *= 2
 		}
@@ -251,37 +283,6 @@ export size(path: link) {
 }
 
 # TODO: Move into a separate namespace such as 'environment'
-export internal_init() {
-	root = get_stack_pointer()
-	count = root.(link<large>)[0]
-
-	internal.arguments = List<String>(count, false)
-	internal.environment_variables = List<String>()
-
-	# Load all the command line arguments
-	loop (i = 0, i < count, i++) {
-		argument = root.(link<link>)[i + 1]
-		internal.arguments.add(String.from(argument, length_of(argument)))
-	}
-
-	internal.executable = internal.arguments[0]
-
-	# Load all the environment variables
-	i = count + 2 # Skip over the argument count, all the arguments and a none pointer
-
-	# Load environment variables as long as the pointer is not none
-	loop {
-		environment_variable = root.(link<link>)[i]
-		if environment_variable == none stop
-
-		internal.environment_variables.add(String.from(environment_variable, length_of(environment_variable)))
-		i++
-	}
-
-	# Call the actual init function here
-	init()
-}
-
 # Summary: Tries to find the specified enviroment variable and return its value, on failure none is returned.
 export get_environment_variable(name: link) {
 	start = String.from(name, length_of(name)) + '='

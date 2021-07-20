@@ -589,7 +589,7 @@ public class ResolverPhase : Phase
 
 		if (initialization_function != null)
 		{
-			Assembler.InitializationFunction = initialization_function.GetImplementation();
+			Assembler.InitializationFunction = initialization_function.GetImplementation(new Link());
 		}
 
 		GarbageCollector.CreateReferenceCountingFunctions(context);

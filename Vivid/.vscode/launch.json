@@ -17,9 +17,8 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			//"args": [ "C:\\Users\\joona\\vivid\\Vivid\\libv\\", "C:\\Users\\joona\\vivid-2\\", "-o", "v", "-a", "-f", "-st", "-d" ],
+			"args": [ "/home/jolehto/vivid-2/", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
 			
-			"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/Core.v", "-o", "v", "-a", "-f", "-st" ],
 			//"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-st" ],
 
 			"cwd": "${workspaceFolder}",
@@ -50,7 +49,7 @@
 			"name": "Vivid Debug",
 			"program": "${workspaceRoot}/v",
 			"cwd": "${workspaceRoot}",
-			"programArgs": "C:\\Users\\joona\\vivid\\Vivid\\Examples\\Test.v"
+			"programArgs": "C:/Users/joona/vivid/Vivid/Examples/Test.v"
 		},
 		{
 			"request": "launch",

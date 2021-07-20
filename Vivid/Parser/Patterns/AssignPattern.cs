@@ -53,7 +53,15 @@ public class AssignPattern : Pattern
 
 		variable = context.GetVariable(name)!;
 
-		if (variable.IsMember)
+		if (variable.IsStatic)
+		{
+			return new LinkNode(
+				new TypeNode((Type)variable.Context, destination.Position),
+				new VariableNode(variable, destination.Position),
+				destination.Position
+			);
+		}
+		else if (variable.IsMember)
 		{
 			var self = Common.GetSelfPointer(context, destination.Position);
 

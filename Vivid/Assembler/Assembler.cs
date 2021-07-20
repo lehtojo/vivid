@@ -48,7 +48,7 @@ public static class Assembler
 	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER =
 		".global _start" + "\n" +
 		"_start:" + "\n" +
-		"call {0}" + "\n" +
+		"{0}" + "\n" +
 		"mov rax, 60" + "\n" +
 		"xor rdi, rdi" + "\n" +
 		"syscall" + SEPARATOR;
@@ -56,12 +56,12 @@ public static class Assembler
 	private const string FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER =
 		".global main" + "\n" +
 		"main:" + "\n" +
-		"jmp {0}" + SEPARATOR;
+		"{0}" + SEPARATOR;
 
 	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER =
 		".global _start" + "\n" +
 		"_start:" + "\n" +
-		"bl {0}" + "\n" +
+		"{0}" + "\n" +
 		"mov x8, #93" + "\n" +
 		"mov x0, xzr" + "\n" +
 		"svc #0" + SEPARATOR;
@@ -69,7 +69,7 @@ public static class Assembler
 	private const string FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER =
 		".global main" + "\n" +
 		"main:" + "\n" +
-		"b {0}" + SEPARATOR;
+		"{0}" + SEPARATOR;
 
 	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
 	private const string SEPARATOR = "\n\n";
@@ -910,12 +910,6 @@ public static class Assembler
 			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
 		}
 
-		// Use the internal initialization function, if it exists
-		if (InitializationFunction != null)
-		{
-			entry_function = InitializationFunction;
-		}
-
 		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);
 		var data_sections = GetDataSections(context, exports);
 		var debug_sections = GetDebugSections(context);
@@ -951,14 +945,44 @@ public static class Assembler
 			// Append the text section header only if the output type represents executable
 			if (output_type != BinaryType.STATIC_LIBRARY && entry_function_file == file)
 			{
-				var header = IsTargetWindows ? FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+				if (entry_function == null) throw new ApplicationException("Missing entry function");
+
+				var template = IsTargetWindows ? FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+				var instructions = string.Empty;
 
 				if (Assembler.IsArm64)
 				{
-					header = IsTargetWindows ? FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER;
+					template = IsTargetWindows ? FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER;
 				}
 
-				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, header, entry_function!.GetFullname()));
+				var function = entry_function;
+
+				// Load the stack pointer as the first parameter
+				if (Assembler.InitializationFunction != null)
+				{
+					if (Assembler.IsX64)
+					{
+						if (IsTargetWindows) { instructions = "mov rcx, rsp\n"; }
+						else { instructions = "mov rdi, rsp\n"; }
+					}
+					else { instructions = "mov x0, sp\n"; }
+
+					function = Assembler.InitializationFunction;
+				}
+
+				// Now determine the instruction, which will call the first function
+				if (Assembler.IsTargetWindows)
+				{
+					if (Assembler.IsX64) { instructions += $"jmp {function.GetFullname()}"; }
+					else { instructions += $"b {function.GetFullname()}"; }
+				}
+				else
+				{
+					if (Assembler.IsX64) { instructions += $"call {function.GetFullname()}"; }
+					else { instructions += $"bl {function.GetFullname()}"; }
+				}
+
+				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, template, instructions));
 			}
 
 			if (text_sections.TryGetValue(file, out string? text_section))

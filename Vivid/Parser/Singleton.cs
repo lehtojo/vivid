@@ -13,7 +13,17 @@ public static class Singleton
 		{
 			var variable = context.GetVariable(identifier.Value)!;
 
-			if (variable.IsMember && !variable.IsConstant && !linked)
+			// Static variables must be accessed using their parent types
+			if (variable.IsStatic && !linked)
+			{
+				return new LinkNode(
+					new TypeNode((Type)variable.Context, identifier.Position),
+					new VariableNode(variable, identifier.Position),
+					identifier.Position
+				);
+			}
+
+			if (variable.IsMember && !variable.IsStatic && !variable.IsConstant && !linked)
 			{
 				var self = Common.GetSelfPointer(context, identifier.Position);
 
