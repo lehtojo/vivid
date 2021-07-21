@@ -183,7 +183,7 @@ public class Function : Context
 			{
 				if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
 			}
-			else if (Resolver.GetSharedType(Parameters[i].Type, types[i]) == null)
+			else if (Resolver.GetSharedType(expected, actual) == null)
 			{
 				return false;
 			}

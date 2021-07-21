@@ -51,15 +51,14 @@ public class ExtensionFunctionNode : Node, IResolvable
 
 		if (TemplateParameters.Any())
 		{
-			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters, Start, End);
+			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters, Descriptor.Parameters.Tokens, Start, End);
 			function.Blueprint.AddRange(new[] { Descriptor, (Token)new ContentToken(Body) { Type = ParenthesisType.CURLY_BRACKETS } });
 		}
 		else
 		{
 			function = new Function(Destination, Modifier.DEFAULT, Descriptor.Name, Body, Start, End);
+			function.Parameters.AddRange(Descriptor.GetParameters(function));
 		}
-
-		function.Parameters.AddRange(Descriptor.GetParameters(function));
 
 		// If the destination is a namespace, mark the function as a static function
 		if (Destination.IsStatic)

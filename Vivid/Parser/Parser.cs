@@ -382,7 +382,7 @@ public static class Parser
 	{
 		if (patterns.Exists(i => !i.IsSubclassOf(typeof(Pattern)))) throw new ArgumentException("Pattern list contained a non-pattern type");
 
-		var clone = new List<Token>(state.Tokens);
+		var clone = new List<Token>(state.Tokens.Select(i => (Token)i.Clone()));
 		var consumption = new List<Consumption>();
 
 		for (var priority = state.Max; priority >= state.Min;)

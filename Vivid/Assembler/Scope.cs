@@ -33,7 +33,7 @@ public sealed class Scope : IDisposable
 	public const int CIRCULAR_SCOPE_THRESHOLD = 1000000;
 
 	/// <summary>
-	/// Returns whether the given variable is a non-local variable
+	/// Returns whether the specified variable is a non-local variable
 	/// </summary>
 	private static bool IsNonLocalVariable(Variable variable, Context[] local_contexts)
 	{
@@ -41,7 +41,7 @@ public sealed class Scope : IDisposable
 	}
 
 	/// <summary>
-	/// Analyzes how many times each variable in the given node tree is used and sorts the result as well
+	/// Analyzes how many times each variable in the specified node tree is used and sorts the result as well
 	/// </summary>
 	private static Dictionary<Variable, int> GetNonLocalVariableUsageCount(Unit unit, Node root, params Context[] local_contexts)
 	{
@@ -63,11 +63,7 @@ public sealed class Scope : IDisposable
 				}
 				else if (!node.Parent?.Is(NodeType.LINK) ?? false)
 				{
-					if (unit.Self == null)
-					{
-						throw new ApplicationException("Missing self pointer");
-					}
-
+					if (unit.Self == null) throw new ApplicationException("Missing self pointer");
 					variables[unit.Self] = variables.GetValueOrDefault(unit.Self, 0) + 1;
 				}
 			}
@@ -88,10 +84,7 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	private static List<VariableUsageDescriptor> GetAllVariableUsages(Unit unit, Node[] roots, Context[] contexts)
 	{
-		if (roots.Length != contexts.Length)
-		{
-			throw new ArgumentException("Each root must have a corresponding context");
-		}
+		if (roots.Length != contexts.Length) throw new ArgumentException("Each root must have a corresponding context");
 
 		var result = new Dictionary<Variable, int>();
 

@@ -100,7 +100,7 @@ public class FunctionList
 	{
 		if (template_arguments.Any())
 		{
-			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateArgumentNames.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
+			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateParameters.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
 
 			if (candidates.Count <= 1)
 			{
@@ -136,7 +136,7 @@ public class FunctionList
 	{
 		if (template_arguments.Any())
 		{
-			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateArgumentNames.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
+			var candidates = Overloads.FindAll(i => i is TemplateFunction function && function.TemplateParameters.Count == template_arguments.Length && function.Passes(parameters, template_arguments)).Cast<TemplateFunction>().ToList();
 
 			if (candidates.Count <= 1)
 			{

@@ -244,7 +244,7 @@ public static class Singleton
 
 		foreach (var section in content.GetSections())
 		{
-			Parser.Parse(node, context, section);
+			Parser.Parse(node, context, section, 0, Parser.MAX_FUNCTION_BODY_PRIORITY);
 		}
 
 		return node;

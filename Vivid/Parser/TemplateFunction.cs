@@ -4,43 +4,50 @@ using System.Linq;
 
 public class TemplateFunction : Function
 {
-	private const int HEAD = 0;
-
-	public List<string> TemplateArgumentNames { get; private set; }
-	public List<Type> TemplateArgumentTypes { get; }
+	public List<string> TemplateParameters { get; private set; }
+	private FunctionToken Header { get; set; }
 	private Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
 
-	public TemplateFunction(Context context, int modifiers, string name, List<string> template_argument_names, Position? start, Position? end) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, start, end)
+	public TemplateFunction(Context context, int modifiers, string name, List<string> template_parameters, List<Token> parameter_tokens, Position? start, Position? end) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, start, end)
 	{
-		TemplateArgumentNames = template_argument_names;
-		TemplateArgumentTypes = new List<Type>();
-
-		for (var i = 0; i < TemplateArgumentNames.Count; i++)
-		{
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
-		}
+		TemplateParameters = template_parameters;
+		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
+		LoadTypelessParameters();
 	}
 
-	public TemplateFunction(Context context, int modifiers, string name, int arguments) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
+	public TemplateFunction(Context context, int modifiers, string name, int parameters, int arguments) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
 	{
-		TemplateArgumentNames = new List<string>();
-		TemplateArgumentTypes = new List<Type>();
+		TemplateParameters = new List<string>();
 
-		for (var i = 0; i < arguments; i++)
+		// Generate parameter names based on the specified parameter count
+		var parameter_tokens = new List<Token>();
+
+		for (var i = 0; i < parameters; i++)
 		{
-			TemplateArgumentNames.Add($"T{i}");
-			TemplateArgumentTypes.Add(new Type(this, TemplateArgumentNames[i], Modifier.DEFAULT, Start));
+			parameter_tokens.Add(new IdentifierToken($"P{i}"));
+			parameter_tokens.Add(new OperatorToken(Operators.COMMA));
 		}
+
+		// Remove the unnecessary comma from the end
+		if (parameters > 0) parameter_tokens.RemoveAt(parameter_tokens.Count - 1);
+
+		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
+		LoadTypelessParameters();
+	}
+
+	/// <summary>
+	/// Creates the parameters of this function in a way that they do not have types
+	/// </summary>
+	private void LoadTypelessParameters()
+	{
+		Parameters.AddRange(Header.GetParameters(new Context(string.Empty)));
 	}
 
 	private Function? TryGetVariant(Type[] template_parameters)
 	{
-		var identifier = string.Join(", ", template_parameters.Take(TemplateArgumentNames.Count).Select(i => i.ToString()));
+		var identifier = string.Join(", ", template_parameters.Take(TemplateParameters.Count).Select(i => i.ToString()));
 
-		if (Variants.TryGetValue(identifier, out Function? variant))
-		{
-			return variant;
-		}
+		if (Variants.TryGetValue(identifier, out Function? variant)) return variant;
 
 		return null;
 	}
@@ -51,12 +58,8 @@ public class TemplateFunction : Function
 		{
 			if (tokens[i].Type == TokenType.IDENTIFIER)
 			{
-				var j = TemplateArgumentNames.IndexOf(tokens[i].To<IdentifierToken>().Value);
-
-				if (j == -1)
-				{
-					continue;
-				}
+				var j = TemplateParameters.IndexOf(tokens[i].To<IdentifierToken>().Value);
+				if (j == -1) continue;
 
 				var position = tokens[i].To<IdentifierToken>().Position;
 
@@ -80,7 +83,7 @@ public class TemplateFunction : Function
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
-		blueprint[HEAD].To<FunctionToken>().Identifier.Value = Name + $"<{identifier}>";
+		blueprint.First().To<FunctionToken>().Identifier.Value = Name + $"<{identifier}>";
 
 		InsertArguments(blueprint, template_arguments);
 
@@ -104,30 +107,34 @@ public class TemplateFunction : Function
 		throw new InvalidOperationException("Tried to execute pass function without template parameters");
 	}
 
-	public new bool Passes(List<Type> parameters, Type[] template_arguments)
+	public new bool Passes(List<Type> actual_types, Type[] template_arguments)
 	{
-		if (parameters.Count != Parameters.Count || template_arguments.Length != TemplateArgumentNames.Count)
+		if (template_arguments.Length != TemplateParameters.Count) return false;
+
+		// None of the types can be unresolved
+		if (actual_types.Any(i => i.IsUnresolved) || template_arguments.Any(i => i.IsUnresolved)) return false;
+
+		// Clone the header, insert the template arguments and determine the expected parameters
+		var header = (FunctionToken)Header.Clone();
+		InsertArguments(header.Parameters.Tokens, template_arguments);
+
+		var container = new Context(this);
+		var expected_types = header.GetParameters(container).Select(i => i.Type).ToList();
+		if (expected_types.Count != actual_types.Count) return false;
+
+		for (var i = 0; i < actual_types.Count; i++)
 		{
-			return false;
-		}
+			var expected = expected_types[i];
+			if (expected == null) continue;
 
-		for (var i = 0; i < Parameters.Count; i++)
-		{
-			if (Parameters[i].Type == null)
+			var actual = actual_types[i];
+			if (Equals(expected, actual)) continue;
+			
+			if (!expected.IsPrimitive || !actual.IsPrimitive)
 			{
-				continue;
+				if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
 			}
-
-			var j = TemplateArgumentTypes.FindIndex(l => l == Parameters[i].Type);
-
-			if (j != -1)
-			{
-				if (parameters[i] != template_arguments[j])
-				{
-					return false;
-				}
-			}
-			else if (Resolver.GetSharedType(Parameters[i].Type, parameters[i]) == null)
+			else if (Resolver.GetSharedType(expected, actual) == null)
 			{
 				return false;
 			}
@@ -143,7 +150,7 @@ public class TemplateFunction : Function
 
 	public FunctionImplementation? Get(List<Type> parameters, Type[] template_arguments)
 	{
-		if (template_arguments.Length != TemplateArgumentNames.Count)
+		if (template_arguments.Length != TemplateParameters.Count)
 		{
 			throw new ApplicationException("Missing template arguments");
 		}
@@ -165,6 +172,6 @@ public class TemplateFunction : Function
 
 	public override string ToString()
 	{
-		return Name + '<' + string.Join(", ", TemplateArgumentNames) + $">({string.Join(", ", Parameters)})";
+		return Name + '<' + string.Join(", ", TemplateParameters) + $">({string.Join(", ", Parameters)})";
 	}
 }

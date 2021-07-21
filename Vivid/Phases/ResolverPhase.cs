@@ -484,10 +484,10 @@ public class ResolverPhase : Phase
 
 		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads))
 		{
-			if (overload.Parameters.All(i => i.Type == null || !i.Type.IsUnresolved))
-			{
-				continue;
-			}
+			if (overload.Parameters.All(i => i.Type == null || !i.Type.IsUnresolved)) continue;
+
+			// Template functions can have unresolved parameter types, since the parameter types can require template arguments, but only the variants matter
+			if (overload.IsTemplateFunction) continue;
 
 			if (functions.Length > 0)
 			{

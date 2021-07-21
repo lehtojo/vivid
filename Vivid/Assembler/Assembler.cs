@@ -222,7 +222,7 @@ public static class Assembler
 	{
 		builder.Append(GetModifiers(function.Modifiers));
 		builder.Append(' ');
-		builder.Append(CreateTemplateName(function.Name, function.TemplateArgumentNames));
+		builder.Append(CreateTemplateName(function.Name, function.TemplateParameters));
 		builder.Append(ParenthesisType.PARENTHESIS.Opening);
 		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
 		builder.Append(ParenthesisType.PARENTHESIS.Closing);

@@ -1,10 +1,10 @@
 List<T> {
 	private:
-	elements: link<T>
 	capacity: large
 	position: large
 
 	public:
+	readonly elements: link<T>
 
 	# Summary: Creates a list with the specified initial size
 	init(size: large, fill: bool) {
@@ -148,6 +148,24 @@ List<T> {
 
 		elements[--position] = none as T
 		=> first
+	}
+
+	# Summary: Returns the index, which contains the specified element. If it is not found, this function returns -1.
+	index_of(element: T) {
+		loop (i = 0, i < position, i++) {
+			if elements[i] == element => i
+		}
+
+		=> -1
+	}
+
+	# Summary: Returns the index of the last occurance of the specified element. If the specified element is not in the list, this function returns -1.
+	last_index_of(element: T) {
+		loop (i = position - 1, i >= 0, i--) {
+			if elements[i] == element => i
+		}
+
+		=> -1
 	}
 
 	# Summary: Returns whether the list contains the specified element

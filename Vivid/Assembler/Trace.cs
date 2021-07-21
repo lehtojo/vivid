@@ -17,7 +17,7 @@ public static class Trace
 		
 		if (unit.Position > 0 && unit.Position > start) { start = unit.Position; }
 
-		// Do not process result which have already expired
+		// Do not process results, which have already expired
 		if (start > end) { return new List<Directive>(); }
 
 		for (var i = start; i <= end; i++)

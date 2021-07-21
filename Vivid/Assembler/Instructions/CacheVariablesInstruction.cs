@@ -20,7 +20,7 @@ public class CacheVariablesInstruction : Instruction
 		IsAbstract = true;
 
 		// Load all the variables before caching
-		Usages.ForEach(u => u.Reference = References.GetVariable(unit, u.Variable, AccessMode.READ));
+		Usages.ForEach(i => i.Reference = References.GetVariable(unit, i.Variable, AccessMode.READ));
 	}
 
 	/// <summary>
