@@ -6,13 +6,13 @@ public class TemplateTypePattern : Pattern
 	public const int PRIORITY = 22;
 
 	public const int NAME = 0;
-	public const int TEMPLATE_ARGUMENTS = 1;
+	public const int TEMPLATE_PARAMETERS = 1;
 	public const int BODY = 3;
 
-	public const int TEMPLATE_ARGUMENTS_START = 2;
-	public const int TEMPLATE_ARGUMENTS_END = 3;
+	public const int TEMPLATE_PARAMETERS_START = 2;
+	public const int TEMPLATE_PARAMETERS_END = 3;
 
-	// Pattern: $name <$1, $2, ... $n> [\n] {}
+	// Pattern: $name <$1, $2, ... $n> [\n] {...}
 	public TemplateTypePattern() : base
 	(
 		TokenType.IDENTIFIER
@@ -68,12 +68,12 @@ public class TemplateTypePattern : Pattern
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens.Last().To<ContentToken>();
 
-		var template_argument_tokens = tokens.GetRange(TEMPLATE_ARGUMENTS_START, tokens.Count - TEMPLATE_ARGUMENTS_END - TEMPLATE_ARGUMENTS_START);
-		var template_argument_names = Common.GetTemplateParameters(template_argument_tokens, tokens[TEMPLATE_ARGUMENTS].Position);
+		var template_parameter_tokens = tokens.GetRange(TEMPLATE_PARAMETERS_START, tokens.Count - TEMPLATE_PARAMETERS_END - TEMPLATE_PARAMETERS_START);
+		var template_parameters = Common.GetTemplateParameters(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS].Position);
 
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 
-		var template_type = new TemplateType(context, name.Value, Modifier.DEFAULT, blueprint, template_argument_names, name.Position);
+		var template_type = new TemplateType(context, name.Value, Modifier.DEFAULT, blueprint, template_parameters, name.Position);
 
 		return new TypeNode(template_type, name.Position) { IsDefinition = true };
 	}

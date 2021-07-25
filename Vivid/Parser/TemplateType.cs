@@ -89,10 +89,10 @@ public class TemplateType : Type
 		var identifier = string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
-		var tokens = Inherited.Select(t => (Token)t.Clone()).ToList();
+		var tokens = Inherited.Select(i => (Token)i.Clone()).ToList();
 
-		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
-		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateParameters.Count).Select(a => a.Name)) + '>';
+		var blueprint = Blueprint.Select(i => (Token)i.Clone()).ToList();
+		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.Name)) + '>';
 
 		tokens.AddRange(blueprint);
 

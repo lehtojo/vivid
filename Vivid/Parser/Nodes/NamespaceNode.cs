@@ -22,10 +22,7 @@ public class NamespaceNode : Node
 	{
 		for (var i = 0; i < Name.Count; i += 2)
 		{
-			if (!Name[i].Is(TokenType.IDENTIFIER))
-			{
-				throw new ApplicationException("Invalid namespace tokens");
-			}
+			if (!Name[i].Is(TokenType.IDENTIFIER)) throw new ApplicationException("Invalid namespace tokens");
 
 			var name = Name[i].To<IdentifierToken>().Value;
 			var type = context.GetType(name);

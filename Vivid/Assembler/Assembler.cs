@@ -932,10 +932,12 @@ public static class Assembler
 				builder.AppendLine(":");
 
 				var fullname = file.Fullname;
+				var current_folder = Environment.CurrentDirectory.Replace('\\', '/');
+				if (!current_folder.EndsWith('/')) { current_folder += '/'; }
 
-				if (fullname.StartsWith(Environment.CurrentDirectory))
+				if (fullname.StartsWith(current_folder))
 				{
-					fullname = fullname.Remove(0, Environment.CurrentDirectory.Length);
+					fullname = fullname.Remove(0, current_folder.Length);
 					fullname = fullname.Insert(0, ".");
 				}
 

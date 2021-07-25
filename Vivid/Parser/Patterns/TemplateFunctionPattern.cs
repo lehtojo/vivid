@@ -97,6 +97,7 @@ public class TemplateFunctionPattern : Pattern
 		var descriptor = new FunctionToken(name, parameters) { Position = start };
 
 		var template_function = new TemplateFunction(context, Modifier.DEFAULT, name.Value, template_parameter_names, parameters.Tokens, start, end);
+		template_function.Initialize();
 
 		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
 		if (template_function.IsMember && !template_function.IsStatic)

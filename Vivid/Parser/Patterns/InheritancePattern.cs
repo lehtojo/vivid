@@ -36,6 +36,7 @@ public class InheritancePattern : Pattern
 			var template_type = inheritor.To<TemplateType>();
 
 			// If any of the inherited tokens represent a template argument, the inheritant tokens must be added to the template type
+			/// NOTE: Inherited types, which are not dependent on template arguments, can be added as a supertype directly
 			if (inheritant_tokens.Any(i => i is IdentifierToken x && template_type.TemplateParameters.Any(j => x.Value == j)))
 			{
 				template_type.Inherited.InsertRange(0, inheritant_tokens);

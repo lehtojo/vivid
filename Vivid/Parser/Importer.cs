@@ -391,6 +391,8 @@ public static class Importer
 			}
 
 			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, parameter_types.Count, template_arguments.Length);
+			template_function.Initialize();
+
 			implementation = template_function.Get(parameter_types, template_arguments);
 
 			if (implementation == null) return null;

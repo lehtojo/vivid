@@ -20,7 +20,7 @@ public class TemplateFunctionCallPattern : Pattern
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var name = tokens.First().To<IdentifierToken>();	
+		var name = tokens.First().To<IdentifierToken>();
 		var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
 		var template_arguments = Common.ReadTemplateArguments(context, new Queue<Token>(tokens.Skip(1)));
 

@@ -108,17 +108,11 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetLambdaCall(Context primary, Node left, string name, Node parameters, List<Type?> parameter_types)
 	{
-		if (!primary.IsVariableDeclared(name))
-		{
-			return null;
-		}
+		if (!primary.IsVariableDeclared(name)) return null;
 
 		var variable = primary.GetVariable(name)!;
 
-		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types)))
-		{
-			return null;
-		}
+		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types))) return null;
 
 		var self = new LinkNode(left, new VariableNode(variable));
 		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
@@ -210,7 +204,8 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Consumes a lambda type
+	/// Consumes a function type
+	/// Pattern: (...) -> $type
 	/// </summary>
 	public static bool ConsumeFunctionType(PatternState state)
 	{
@@ -1026,7 +1021,6 @@ public static class Common
 
 			var arguments = type.TemplateArguments.Select(i => GetTokens(i, position)).ToArray();
 			var separator = new OperatorToken(Operators.COMMA) { Position = position };
-
 			result.AddRange(Join(separator, arguments));
 
 			result.Add(new OperatorToken(Operators.GREATER_THAN) { Position = position });

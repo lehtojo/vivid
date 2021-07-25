@@ -69,7 +69,10 @@ public class IterationLoopPattern : Pattern
 			Position = tokens[IN].Position
 		};
 
-		var value = GetIterator(environment, tokens);
+		var steps_context = new Context(environment);
+		var body_context = new Context(steps_context);
+
+		var value = GetIterator(steps_context, tokens);
 
 		var load = new OperatorNode(Operators.ASSIGN, iterator_position).SetOperands(
 			new VariableNode(value, iterator_position),
@@ -79,14 +82,13 @@ public class IterationLoopPattern : Pattern
 			)
 		);
 
-		var context = new Context(environment);
 		var steps = new Node { new Node() { initialization }, new Node { condition }, new Node() };
 
 		var token = tokens[BODY].To<ContentToken>();
-		var body = new ScopeNode(context, token.Position, token.End) { load };
+		var body = new ScopeNode(body_context, token.Position, token.End) { load };
 
-		Parser.Parse(context, token.To<ContentToken>().Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
+		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(i => body.Add(i));
 
-		return new LoopNode(context, steps, body, tokens[LOOP].Position);
+		return new LoopNode(steps_context, steps, body, tokens[LOOP].Position);
 	}
 }

@@ -47,21 +47,21 @@ List<T> {
 		position = 0
 	}
 
-	# Summary: Grows the list by doubling its size
-	private grow() {
-		memory = allocate(capacity * 2 * sizeof(T))
-		zero(memory + capacity * sizeof(T), capacity * sizeof(T))
-		copy(elements, capacity * sizeof(T), memory)
+	# Summary: Grows the list to the specified size
+	private grow(to: large) {
+		memory = allocate(to * sizeof(T))
+		zero(memory + position * sizeof(T), (to - position) * sizeof(T))
+		copy(elements, position * sizeof(T), memory)
 		deallocate(elements)
 
 		elements = memory
-		capacity = capacity * 2
+		capacity = to
 	}
 
 	# Summary: Adds the specified element to this list
 	add(element: T) {
 		if position == capacity {
-			grow()
+			grow(capacity * 2)
 		}
 
 		elements[position] = element
@@ -75,17 +75,7 @@ List<T> {
 		# Ensure there is enough space left
 		if capacity - position < count {
 			# Double the size needed for the result in order to prepare for more elements in the future
-			capacity = (capacity + count) * 2
-
-			# Allocate a chunk of memory which has the new capacity
-			memory = allocate(capacity * sizeof(T))
-			zero(memory, capacity * sizeof(T))
-
-			# Copy the already existing elements to the memory chunk and deallocate the old memory chunk
-			copy(elements, position * sizeof(T), memory)
-			deallocate(elements)
-
-			elements = memory
+			grow([capacity + count] * 2)
 		}
 
 		# Copy the new elements to the memory after the already existing elements
@@ -96,7 +86,7 @@ List<T> {
 	# Summary: Puts the specified element at the specified index without removing other elements
 	insert(at: large, element: T) {
 		if position >= capacity {
-			grow()
+			grow(capacity * 2)
 		}
 
 		count = position - at
@@ -108,6 +98,28 @@ List<T> {
 
 		elements[at] = element
 		position++
+	}
+
+	# Summary: Puts the specified range at the specified index without removing other elements
+	insert_range(at: large, other: List<T>) {
+		count = other.size()
+		if count == 0 return
+
+		# Ensure there is enough space left
+		if capacity - position < count {
+			# Double the size needed for the result in order to prepare for more elements in the future
+			grow([capacity + count] * 2)
+		}
+
+		# Determine the address where the new elements should be inserted
+		start = elements + at * sizeof(T)
+
+		# Determine how many elements must be slided to the right
+		slide = position - at
+		if slide > 0 move(start, start + count * sizeof(T), slide * sizeof(T))
+
+		copy(other.elements, count * sizeof(T), start)
+		position += count
 	}
 
 	# Summary: Removes the element which is located at the specified index

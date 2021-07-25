@@ -12,7 +12,6 @@ public class TemplateFunction : Function
 	{
 		TemplateParameters = template_parameters;
 		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
-		LoadTypelessParameters();
 	}
 
 	public TemplateFunction(Context context, int modifiers, string name, int parameters, int arguments) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
@@ -32,20 +31,19 @@ public class TemplateFunction : Function
 		if (parameters > 0) parameter_tokens.RemoveAt(parameter_tokens.Count - 1);
 
 		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
-		LoadTypelessParameters();
 	}
 
 	/// <summary>
 	/// Creates the parameters of this function in a way that they do not have types
 	/// </summary>
-	private void LoadTypelessParameters()
+	public void Initialize()
 	{
 		Parameters.AddRange(Header.GetParameters(new Context(string.Empty)));
 	}
 
-	private Function? TryGetVariant(Type[] template_parameters)
+	private Function? TryGetVariant(Type[] template_arguments)
 	{
-		var identifier = string.Join(", ", template_parameters.Take(TemplateParameters.Count).Select(i => i.ToString()));
+		var identifier = string.Join(", ", template_arguments.Take(TemplateParameters.Count).Select(i => i.ToString()));
 
 		if (Variants.TryGetValue(identifier, out Function? variant)) return variant;
 
@@ -79,10 +77,10 @@ public class TemplateFunction : Function
 
 	private Function? CreateVariant(Type[] template_arguments)
 	{
-		var identifier = string.Join(", ", template_arguments.Select(a => a.ToString()));
+		var identifier = string.Join(", ", template_arguments.Select(i => i.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
-		var blueprint = Blueprint.Select(t => (Token)t.Clone()).ToList();
+		var blueprint = Blueprint.Select(i => (Token)i.Clone()).ToList();
 		blueprint.First().To<FunctionToken>().Identifier.Value = Name + $"<{identifier}>";
 
 		InsertArguments(blueprint, template_arguments);
