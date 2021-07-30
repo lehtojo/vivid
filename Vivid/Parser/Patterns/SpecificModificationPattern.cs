@@ -33,44 +33,46 @@ public class SpecificModificationPattern : Pattern
 			{
 				var variable = destination.To<VariableNode>().Variable;
 				variable.Modifiers = Modifier.Combine(variable.Modifiers, modifiers);
-				return destination;
+				break;
 			}
 
 			case NodeType.FUNCTION_DEFINITION:
 			{
 				if (Flag.Has(Modifier.IMPORTED, modifiers))
 				{
-					throw Errors.Get(tokens[MODIFIER].Position, "Can not add external modifier to the function definition since it is a definition");
+					throw Errors.Get(tokens[MODIFIER].Position, "Can not add modifier 'import' to a function definition");
 				}
 
 				var function = destination.To<FunctionDefinitionNode>().Function;
 				function.Modifiers = Modifier.Combine(function.Modifiers, modifiers);
-				return destination;
+				break;
 			}
 
 			case NodeType.TYPE:
 			{
 				var type = destination.To<TypeNode>().Type;
 				type.Modifiers = Modifier.Combine(type.Modifiers, modifiers);
-				return destination;
+				break;
 			}
 
 			case NodeType.CONSTRUCTION:
 			{
 				var construction = destination.To<ConstructionNode>();
 				construction.IsStackAllocated = Flag.Has(modifiers, Modifier.INLINE);
-				return destination;
+				break;
 			}
 
 			case NodeType.LINK:
 			{
 				var construction = destination.Right.To<ConstructionNode>();
 				construction.IsStackAllocated = Flag.Has(modifiers, Modifier.INLINE);
-				return destination;
+				break;
 			}
 
-			default: return tokens[OBJECT].To<DynamicToken>().Node;
+			default: break;
 		}
+
+		return destination;
 	}
 
 	public override int GetPriority(List<Token> tokens)

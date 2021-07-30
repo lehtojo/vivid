@@ -421,6 +421,7 @@ public class Instruction
 			{
 				// Set the result to be equal to the destination
 				Result.Value = result.Value;
+				Result.Format = result.Format;
 			}
 
 			// Prepare the handle for use

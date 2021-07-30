@@ -956,7 +956,7 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Evaluates the values of size nodes
+	/// Evaluates the values of inspection nodes
 	/// </summary>
 	private static void CompleteInspections(Node root)
 	{

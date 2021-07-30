@@ -25,7 +25,7 @@ public class TypeInspectionPattern : Pattern
 			return false;
 		}
 
-		// Create a temporary state which is used to check whether the parameters contains a type
+		// Create a temporary state which in order to check whether the parameters contains a type
 		state = new PatternState(descriptor.Parameters.Tokens);
 
 		return Common.ConsumeType(state) && state.End == state.Tokens.Count;
