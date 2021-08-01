@@ -172,7 +172,7 @@ public class ServicePhase : Phase
 
 		if (text.StartsWith(FILE_SCHEME))
 		{
-			text = text.Substring(FILE_SCHEME.Length);
+			text = text[FILE_SCHEME.Length..];
 		}
 
 		if (text.First() == '/')
@@ -187,7 +187,7 @@ public class ServicePhase : Phase
 			if (i == -1) return path;
 
 			// Ensure the drive name is in upper case
-			return path.Substring(0, i).ToUpperInvariant() + path.Substring(i);
+			return path.Substring(0, i).ToUpperInvariant() + path[i..];
 		}
 
 		return text;

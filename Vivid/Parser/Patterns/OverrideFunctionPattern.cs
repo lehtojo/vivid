@@ -43,6 +43,7 @@ class OverrideFunctionPattern : Pattern
 		var blueprint = (List<Token>?)null;
 		var end = (Position?)null;
 
+		// Load the function blueprint
 		if (tokens.Last().Is(Operators.HEAVY_ARROW))
 		{
 			var position = tokens.Last().Position;
@@ -59,10 +60,11 @@ class OverrideFunctionPattern : Pattern
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
 		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint, descriptor.Position, end);
 
+		// Parse the function parameters
 		function.Parameters.AddRange(descriptor.GetParameters(function));
 
+		// Declare the override function and return a function definition node
 		context.To<Type>().DeclareOverride(function);
-
 		return new FunctionDefinitionNode(function, descriptor.Position);
 	}
 }

@@ -15,13 +15,13 @@ public class Lambda : Function
 	}
 
 	/// <summary>
-	/// Implements the lambda with parameter types
+	/// Implements the lambda using the specified parameter types
 	/// </summary>
 	public override FunctionImplementation Implement(IEnumerable<Type> types)
 	{
 		if (Implementations.Any())
 		{
-			throw new ApplicationException("Tried to implement a short function twice");
+			throw new ApplicationException("Tried to implement a lambda twice");
 		}
 
 		// Pack parameters with names and types
@@ -30,7 +30,7 @@ public class Lambda : Function
 		// Create a function implementation
 		var implementation = new LambdaImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
 
-		// Add the created implementation to the list
+		// Add the created implementation to the implementations list
 		Implementations.Add(implementation);
 
 		implementation.Implement(Blueprint);

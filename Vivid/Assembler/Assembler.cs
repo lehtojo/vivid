@@ -338,10 +338,7 @@ public static class Assembler
 		{
 			foreach (var type in iterator)
 			{
-				if (!type.IsTemplateType)
-				{
-					continue;
-				}
+				if (!type.IsTemplateType || type.IsTemplateTypeVariant) continue;
 
 				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
 				{

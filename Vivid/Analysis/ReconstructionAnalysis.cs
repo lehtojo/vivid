@@ -1139,11 +1139,11 @@ public static class ReconstructionAnalysis
 			var environment = lambda.GetParentContext();
 			var inline = new ContextInlineNode(new Context(environment));
 
-			var lambda_implementation = (LambdaImplementation)lambda.Implementation!;
+			var implementation = (LambdaImplementation)lambda.Implementation!;
 
-			lambda_implementation.Seal();
+			implementation.Seal();
 
-			var type = lambda_implementation.Type!;
+			var type = implementation.Type!;
 			var allocator = (Node?)null;
 
 			if (IsStackConstructionPreferred(root, lambda))
@@ -1169,13 +1169,13 @@ public static class ReconstructionAnalysis
 
 			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN).SetOperands
 			(
-				new LinkNode(new VariableNode(container), new VariableNode(lambda_implementation.Function!)),
-				new DataPointer(lambda_implementation)
+				new LinkNode(new VariableNode(container), new VariableNode(implementation.Function!)),
+				new DataPointer(implementation)
 			);
 
 			inline.Add(function_pointer_assignment);
 
-			foreach (var capture in lambda_implementation.Captures)
+			foreach (var capture in implementation.Captures)
 			{
 				var assignment = new OperatorNode(Operators.ASSIGN).SetOperands
 				(

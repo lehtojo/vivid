@@ -49,6 +49,7 @@ List<T> {
 
 	# Summary: Grows the list to the specified size
 	private grow(to: large) {
+		if to == 0 { to = 1 }
 		memory = allocate(to * sizeof(T))
 		zero(memory + position * sizeof(T), (to - position) * sizeof(T))
 		copy(elements, position * sizeof(T), memory)
@@ -146,6 +147,15 @@ List<T> {
 				stop
 			}
 		}
+	}
+
+	# Summary: Removes the specified range from this list
+	remove_range(start: large, end: large) {
+		count = end - start
+		if count == 0 return
+		slide = position - end
+		move(elements + end * sizeof(T), elements + start * sizeof(T), slide * sizeof(T))
+		position -= count
 	}
 
 	# Summary: Takes the value of the first element and removes it from the begining of the list

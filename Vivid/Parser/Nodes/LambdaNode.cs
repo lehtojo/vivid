@@ -12,7 +12,7 @@ public class LambdaNode : Node, IResolvable
 	{
 		Function = lambda;
 		Position = position;
-		Status = Status.Error(Position, "Can not resolve parameter types of the short function");
+		Status = Status.Error(Position, "Can not resolve parameter types of this lambda");
 		Instance = NodeType.LAMBDA;
 	}
 

@@ -14,7 +14,7 @@ public class TemplateFunction : Function
 		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
 	}
 
-	public TemplateFunction(Context context, int modifiers, string name, int parameters, int arguments) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
+	public TemplateFunction(Context context, int modifiers, string name, int parameters) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
 	{
 		TemplateParameters = new List<string>();
 

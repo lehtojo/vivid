@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 public class HasNode : Node, IResolvable
 {
 	public const string RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER = "has_value";

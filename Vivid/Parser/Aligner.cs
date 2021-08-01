@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 
 public static class Aligner
 {
-	private static int MemberFunctionParameterOffset => Assembler.IsArm64 ? 1 : 2;
 	private static int GlobalFunctionParameterOffset => Assembler.IsArm64 ? 0 : 1;
 
 	/// <summary>

@@ -184,14 +184,7 @@ public static class Resolver
 			}
 			catch (Exception e)
 			{
-				if (node.Position != null)
-				{
-					Console.WriteLine($"{YELLOW}Internal warning{RESET}: {Errors.FormatPosition(node.Position)} {e.Message}");
-				}
-				else
-				{
-					Console.WriteLine($"{YELLOW}Internal warning{RESET}: {e.Message}");
-				}
+				Console.WriteLine($"{YELLOW}Internal warning{RESET}: {e.Message}");
 			}
 
 			return null;

@@ -390,7 +390,7 @@ public static class Importer
 				return (implementation.Metadata, position);
 			}
 
-			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, parameter_types.Count, template_arguments.Length);
+			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, parameter_types.Count);
 			template_function.Initialize();
 
 			implementation = template_function.Get(parameter_types, template_arguments);
