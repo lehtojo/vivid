@@ -8,14 +8,13 @@ export to_string(n: large) {
 	number = String('')
 	sign = String('')
 
-	if n < 0 {
-		sign = String('-')
-		n = -n
-	}
+	if n < 0 { sign = String('-') }
 
 	loop {
 		remainder = n % 10
 		n = n / 10
+
+		if n < 0 { remainder = -remainder }
 
 		number = number.insert(0, `0` + remainder)
 
@@ -31,13 +30,13 @@ Summary: Converts the specified decimal number into a string
 export to_string(n: decimal) {
 	result = to_string(n as large)
 
-	if n < 0 {
-		n = -n
-	}
-
 	# Remove the integer part
 	n -= n as large
 
+	# Ensure n is a positive number
+	if n < 0 { n = -n }
+
+	# If n is zero, skip the fractional part computation
 	if n == 0 => result.combine(String(',0'))
 
 	# Append comma
@@ -88,7 +87,7 @@ export to_decimal(text: String) {
 	a = text.slice(0, i)
 	b = text.slice(i + 1, text.length)
 
-	value = to_number(text) as decimal
+	value = to_number(a) as decimal
 	k = STRING_MINIMUM_DECIMAL
 
 	loop (i = STRING_DECIMAL_PRECISION - 1, i >= 0, i--) {

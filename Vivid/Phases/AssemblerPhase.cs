@@ -122,7 +122,7 @@ public class AssemblerPhase : Phase
 		var keep_assembly = bundle.Get("assembly", false);
 		var arguments = new List<string>();
 
-		// Add assembler format and output filename
+		// Add output file, input file and enable debug information using the arguments
 		arguments.AddRange(new string[]
 		{
 			$"-o {output_file}",
@@ -136,7 +136,7 @@ public class AssemblerPhase : Phase
 		{
 			try
 			{
-				//File.Delete(input_file);
+				File.Delete(input_file);
 			}
 			catch
 			{
@@ -323,6 +323,7 @@ public class AssemblerPhase : Phase
 
 		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
 		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
+		var objects = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());
 
 		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
 		var output_type = bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
@@ -381,7 +382,7 @@ public class AssemblerPhase : Phase
 			return StaticLibraryFormat.Export(context, output_name, exports);
 		}
 
-		var object_files = files.Select(i => GetObjectFileName(i, output_name)).ToArray();
+		var object_files = files.Select(i => GetObjectFileName(i, output_name)).Concat(objects).ToList();
 
 		if (IsLinux)
 		{

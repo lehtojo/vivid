@@ -506,18 +506,7 @@ public static class Assembler
 			builder.AppendLine($"{name}: {BYTE_ZERO_ALLOCATOR} {size}");
 		}
 
-		foreach (var subtype in type.Supertypes)
-		{
-			builder.Append(SEPARATOR);
-			builder.AppendLine(GetStaticVariables(subtype));
-		}
-
 		return builder.ToString();
-	}
-
-	private static IEnumerable<StringNode> GetStringNodes(Node root)
-	{
-		return root.FindAll(NodeType.STRING).Cast<StringNode>();
 	}
 
 	private static string AllocateString(string text)
@@ -704,7 +693,7 @@ public static class Assembler
 
 			foreach (var implementation in iterator.Where(i => i.Node != null))
 			{
-				nodes.AddRange(GetStringNodes(implementation.Node!));
+				nodes.AddRange(implementation.Node!.FindAll(NodeType.STRING).Cast<StringNode>());
 			}
 
 			var builder = sections.GetValueOrDefault(iterator.Key, new StringBuilder())!;

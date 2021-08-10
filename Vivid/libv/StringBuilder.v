@@ -1,8 +1,8 @@
 StringBuilder {
-	private buffer: link
 	private capacity: large
 	private position: large
 
+	buffer: link
 	length => position
 
 	init() {
@@ -63,6 +63,11 @@ StringBuilder {
 
 	append_line(text: decimal) {
 		append_line(to_string(text))
+	}
+
+	append_line(character: char) {
+		append(character)
+		append(`\n`)
 	}
 
 	append(character: char) {

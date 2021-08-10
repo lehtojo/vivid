@@ -846,7 +846,7 @@ public class ServicePhase : Phase
 	/// </summary>
 	private static void LoadAndParseAll(Dictionary<SourceFile, DocumentParse> files, string folder)
 	{
-		var filenames = Directory.GetFiles(folder, $"*{ConfigurationPhase.EXTENSION}", SearchOption.AllDirectories);
+		var filenames = Directory.GetFiles(folder, $"*{ConfigurationPhase.VIVID_EXTENSION}", SearchOption.AllDirectories);
 
 		for (var i = 0; i < filenames.Length; i++)
 		{

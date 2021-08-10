@@ -293,7 +293,7 @@ public class MoveInstruction : DualParameterInstruction
 					),
 					new InstructionParameter(
 						Second,
-						flags_second,
+						flags_second | ParameterFlag.BIT_LIMIT_64,
 						HandleType.CONSTANT
 					)
 				);

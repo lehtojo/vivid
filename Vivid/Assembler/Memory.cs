@@ -466,7 +466,7 @@ public static class Memory
 			if (converted != null) return converted;
 		}
 
-		throw new ArgumentException("Could not convert reference to the requested format");
+		throw new ArgumentException("Could not convert the result to the requested format");
 	}
 
 	private static Result? TryConvert(Unit unit, Result result, Size size, HandleType type, bool protect, List<Directive>? directives)

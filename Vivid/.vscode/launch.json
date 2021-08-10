@@ -17,9 +17,9 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			"args": [ "/home/jolehto/vivid-2/", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
+			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/entries/tests.v", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
 			
-			//"args": [ "${workspaceFolder}/Tests/Iteration.v", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-st" ],
+			"args": [ "${workspaceFolder}/Examples/Assert.v", "${workspaceFolder}/libv/",  "-o", "v", "-a", "-f", "-static" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

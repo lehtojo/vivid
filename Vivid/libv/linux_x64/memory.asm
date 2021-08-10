@@ -194,3 +194,40 @@ system_get_directory_entries:
 mov rax, 217 # System call: sys_getdents
 syscall
 ret
+
+.global system_fork
+system_fork:
+mov rax, 57 # System call: sys_fork
+syscall
+ret
+
+.global system_change_folder
+system_change_folder:
+mov rax, 80 # System call: sys_chdir
+syscall
+ret
+
+.global system_execute
+system_execute:
+mov rax, 59 # System call: sys_execve
+syscall
+ret
+
+.global system_remove_folder
+system_remove_folder:
+mov rax, 84 # System call: sys_rmdir
+syscall
+ret
+
+.global system_unlink
+system_unlink:
+mov rax, 87 # System call: sys_unlink
+syscall
+ret
+
+.global system_wait_id
+system_wait_id:
+mov rax, 247 # System call: sys_waitid
+mov r10, rcx
+syscall
+ret

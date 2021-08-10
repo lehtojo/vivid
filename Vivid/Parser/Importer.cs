@@ -748,7 +748,7 @@ public static class Importer
 			var header = headers[i];
 
 			// Ensure the file ends with the extension of this language
-			if (!header.Filename.EndsWith(ConfigurationPhase.EXTENSION)) continue;
+			if (!header.Filename.EndsWith(ConfigurationPhase.VIVID_EXTENSION)) continue;
 
 			var start = header.Data;
 			var end = start + header.Size;

@@ -58,6 +58,37 @@ namespace internal {
 	# Summary: Closes the specified file descriptor
 	import 'C' system_close(file_descriptor: large): large
 
+	# Summary: Forks the current process
+	import 'C' system_fork(): large
+
+	# Summary: Changes the working folder of the current process
+	import 'C' system_change_folder(folder: link)
+
+	# Summary: Replaces the current process image with the specified executable and arguments
+	import 'C' system_execute(executable: link, arguments: link<link>, environment_variables: link<link>): large
+
+	# Summary: Deletes a folder
+	import 'C' system_remove_folder(folder: link): large
+
+	# Summary: Deletes a name and possibly the file it refers to
+	import 'C' system_unlink(path: link): large
+
+	plain SignalInformation {
+		signal_number: normal
+		error: normal
+		signal_code: normal
+		pid: normal
+		uid: u32
+		status: normal
+		reserved: large[2]
+	}
+
+	constant ID_TYPE_PID = 1
+	constant WAIT_OPTIONS_EXITED = 4
+
+	# Summary: Waits for the specified process to change the its state
+	import 'C' system_wait_id(id_type: large, id: large, information: SignalInformation, options: large, unknown: link): large
+
 	constant FILE_TYPE_MASK = 61440
 
 	plain FileStatus {
@@ -282,7 +313,108 @@ export size(path: link) {
 	=> result.size
 }
 
-# TODO: Move into a separate namespace such as 'environment'
+# Summary: Deletes the specified file system object
+export delete(path: link) {
+	if is_folder(path) => internal.system_remove_folder(path) == 0
+	=> internal.system_unlink(path) == 0
+}
+
+# Summary: Deletes the specified file system object
+export delete(path: String) {
+	=> delete(path.text)
+}
+
+# TODO: Seperate files?
+# Processes:
+start_process(executable: String, command_line_arguments: List<String>, working_folder: String) {
+	result = internal.system_fork()
+	if result == -1 => -1
+
+	if result == 0 {
+		# Executes in the child process:
+
+		# If a seperate working folder is defined, change the current folder to it
+		if working_folder != none internal.system_change_folder(working_folder.text)
+
+		# Linux needs the internal data pointers of the specified command line argument strings
+		arguments = List<link>(4, false)
+		arguments.add('/usr/bin/sh') # TODO: Use environment variables to determine the shell to use
+		arguments.add('-c')
+
+		builder = StringBuilder()
+		builder.append(executable.text)
+		builder.append(` `)
+
+		loop command_line_argument in command_line_arguments {
+			builder.append(command_line_argument.text)
+			builder.append(` `)
+		}
+
+		arguments.add(builder.buffer)
+		arguments.add(none as link)
+
+		# Linux needs the internal data pointers of the current environment variable strings
+		environment_variables = List<link>(internal.environment_variables.size + 1, false)
+		loop environment_variable in internal.environment_variables { environment_variables.add(environment_variable.text) }
+		environment_variables.add(none as link)
+
+		result = internal.system_execute('/usr/bin/sh', arguments.elements, environment_variables.elements)
+		exit(result)
+		=> -1
+	}
+
+	# Executes in the parent process:
+	# Return the process id of the created process
+	=> result
+}
+
+start_process(executable: String, command_line_arguments: List<String>) {
+	=> start_process(executable, command_line_arguments, none as String)
+}
+
+shell(command: String, working_folder: String) {
+	result = internal.system_fork()
+	if result == -1 => -1
+
+	if result == 0 {
+		# Executes in the child process:
+
+		# If a seperate working folder is defined, change the current folder to it
+		if working_folder != none internal.system_change_folder(working_folder.text)
+
+		# Linux needs the internal data pointers of the specified command line argument strings
+		arguments = List<link>(4, false)
+		arguments.add('/usr/bin/sh') # TODO: Use environment variables to determine the shell to use
+		arguments.add('-c')
+		arguments.add(command.text)
+		arguments.add(none as link)
+
+		# Linux needs the internal data pointers of the current environment variable strings
+		environment_variables = List<link>(internal.environment_variables.size + 1, false)
+		loop environment_variable in internal.environment_variables { environment_variables.add(environment_variable.text) }
+		environment_variables.add(none as link)
+
+		result = internal.system_execute('/usr/bin/sh', arguments.elements, environment_variables.elements)
+		exit(result)
+		=> -1
+	}
+
+	# Executes in the parent process: Wait for the process to exit and return its exit code or signal
+	=> wait_for_exit(result)
+}
+
+shell(command: String) {
+	=> shell(command, none as String)
+}
+
+# Summary: Waits for the specified process to exit
+wait_for_exit(pid: large) {
+	information = inline internal.SignalInformation()
+	internal.system_wait_id(internal.ID_TYPE_PID, pid, information, internal.WAIT_OPTIONS_EXITED, none)
+	=> information.status
+}
+
+# Command line:
 # Summary: Tries to find the specified enviroment variable and return its value, on failure none is returned.
 export get_environment_variable(name: link) {
 	start = String.from(name, length_of(name)) + '='
@@ -302,7 +434,7 @@ export get_process_filename() {
 # Summary: Returns the folder which contains the current process executable
 export get_process_folder() {
 	filename = get_process_filename()
-	if filename == none => none as String
+	if filename as link == none => none as String
 
 	# Find the index of the last separator
 	i = filename.last_index_of(`/`)

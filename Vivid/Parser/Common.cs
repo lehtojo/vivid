@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public struct InlineContainer
@@ -1078,5 +1079,39 @@ public static class Common
 			TokenType.STRING => token.To<StringToken>().End,
 			_ => null
 		};
+	}
+
+	public static string ToString(this long value, bool sign)
+	{
+		var result = value.ToString(CultureInfo.InvariantCulture);
+
+		if (value < 0) { result = '-' + result[1..]; }
+		else if (sign) { result = '+' + result; }
+
+		return result;
+	}
+
+	public static string ToString(this int value, bool sign)
+	{
+		var result = value.ToString(CultureInfo.InvariantCulture);
+
+		if (value < 0) { result = '-' + result[1..]; }
+		else if (sign) { result = '+' + result; }
+
+		return result;
+	}
+
+	public static string ToString(this double value, bool sign)
+	{
+		var result = value.ToString(CultureInfo.InvariantCulture);
+
+		if (value < 0) { result = '-' + result[1..]; }
+		else if (sign) { result = '+' + result; }
+
+		// Use dots as decimal separators
+		result = result.Replace(',', '.');
+
+		if (!result.Contains('.')) return result + ".0";
+		return result;
 	}
 }

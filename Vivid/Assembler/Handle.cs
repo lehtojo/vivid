@@ -254,7 +254,14 @@ public class ConstantHandle : Handle
 		}
 		else
 		{
-			Value = System.Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+			if (Format == Format.DECIMAL && double.IsInfinity((double)Value))
+			{
+				Value = double.IsPositiveInfinity((double)Value) ? long.MaxValue : long.MinValue;
+			}
+			else
+			{
+				Value = System.Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+			}
 		}
 
 		Format = format;
@@ -262,27 +269,7 @@ public class ConstantHandle : Handle
 
 	public string ToStringShared()
 	{
-		var result = (string?)null;
-
-		if (Format.IsDecimal())
-		{
-			var value = (double)Value;
-			if (value >= 0) { result = value.ToString(CultureInfo.InvariantCulture); }
-			else { result = '-' + (-value).ToString(CultureInfo.InvariantCulture); }
-
-			// Use dots as decimal separators
-			result = result.Replace(',', '.');
-
-			if (!result.Contains('.')) return result + ".0";
-		}
-		else
-		{
-			var value = (long)Value;
-			if (value >= 0) { result = value.ToString(CultureInfo.InvariantCulture); }
-			else { result = '-' + (-value).ToString(CultureInfo.InvariantCulture); }
-		}
-
-		return result;
+		return Format.IsDecimal() ? ((double)Value).ToString(false) : ((long)Value).ToString(false);
 	}
 
 	public override string ToString()
@@ -904,8 +891,7 @@ public class InlineHandle : Handle
 			return stack_pointer.ToString() + ", #-" + (-offset);
 		}
 
-		if (offset > 0) return '[' + stack_pointer.ToString() + '+' + offset + ']';
-		if (offset < 0) return '[' + stack_pointer.ToString() + '-' + (-offset) + ']';
+		if (offset != 0) return '[' + stack_pointer.ToString() + offset.ToString(true) + ']';
 
 		return '[' + stack_pointer.ToString() + ']';
 	}

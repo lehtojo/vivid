@@ -67,7 +67,6 @@ public class RuntimeConfiguration
 		Descriptor = new Table(type.GetFullname() + Mangle.DESCRIPTOR_COMMAND + Mangle.END_COMMAND);
 
 		Entry.Add(Descriptor);
-
 		Descriptor.Add(GetFullname(type), false);
 	}
 }

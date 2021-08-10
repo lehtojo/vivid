@@ -11,6 +11,7 @@ public class ConfigurationPhase : Phase
 
 	public const string ARGUMENTS = "arguments";
 	public const string FILES = "filenames";
+	public const string OBJECTS = "objects";
 	public const string LIBRARIES = "libraries";
 
 	public const string OUTPUT_NAME = "output_name";
@@ -22,12 +23,13 @@ public class ConfigurationPhase : Phase
 
 	public const string SERVICE_FLAG = "service";
 
-	public const string EXTENSION = ".v";
+	public const string VIVID_EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "v";
 
 	private List<string> Folders { get; set; } = new List<string>();
 	private List<string> Libraries { get; set; } = new List<string>();
 	private List<string> Files { get; set; } = new List<string>();
+	private List<string> Objects { get; set; } = new List<string>();
 
 	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
@@ -66,7 +68,7 @@ public class ConfigurationPhase : Phase
 	{
 		foreach (var item in folder.GetFiles())
 		{
-			if (item.Extension == EXTENSION)
+			if (item.Extension == VIVID_EXTENSION)
 			{
 				Files.Add(item.FullName);
 			}
@@ -389,14 +391,19 @@ public class ConfigurationPhase : Phase
 
 				if (file.Exists)
 				{
-					if (file.Extension == EXTENSION)
+					if (file.Extension == VIVID_EXTENSION)
 					{
 						Files.Add(file.FullName);
 						continue;
 					}
+					else if (file.Extension == AssemblerPhase.ObjectFileExtension)
+					{
+						Objects.Add(file.FullName);
+						continue;
+					}
 					else
 					{
-						return Status.Error($"Source file must have '{EXTENSION}' extension");
+						return Status.Error($"Source file must have '{VIVID_EXTENSION}' extension");
 					}
 				}
 
@@ -415,6 +422,7 @@ public class ConfigurationPhase : Phase
 		Assembler.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
 
 		bundle.Put(FILES, Files.Distinct().ToArray());
+		bundle.Put(OBJECTS, Objects.Distinct().ToArray());
 		bundle.Put(LIBRARIES, Libraries.ToArray());
 
 		if (!bundle.Contains(OUTPUT_NAME))
