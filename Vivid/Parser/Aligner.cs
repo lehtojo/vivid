@@ -29,7 +29,7 @@ public static class Aligner
 	}
 
 	/// <summary>
-	/// Aligns the local memory used by a function
+	/// Align all used local variables and allocate memory for other kinds of local memory such as temporary handles and stack allocation handles
 	/// </summary>
 	public static void AlignLocalMemory(IEnumerable<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<InlineHandle> inline_handles, int top)
 	{

@@ -4,7 +4,12 @@
 /// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
 {
-	public LongMultiplicationInstruction(Unit unit, Result first, Result second, Format format) : base(unit, first, second, format, InstructionType.LONG_MULTIPLICATION) { }
+	public bool IsUnsigned { get; set; }
+
+	public LongMultiplicationInstruction(Unit unit, Result first, Result second, bool is_unsigned) : base(unit, first, second, Assembler.Format, InstructionType.LONG_MULTIPLICATION)
+	{
+		IsUnsigned = is_unsigned;
+	}
 
 	private Result CorrectDestinationOperandLocation()
 	{
@@ -58,7 +63,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		Result.Value = new RegisterHandle(remainder);
 
 		Build(
-			Instructions.X64.UNSIGNED_MULTIPLY,
+			IsUnsigned ? Instructions.X64.UNSIGNED_MULTIPLY : Instructions.X64.SIGNED_MULTIPLY,
 			Assembler.Size,
 			new InstructionParameter(
 				Result,

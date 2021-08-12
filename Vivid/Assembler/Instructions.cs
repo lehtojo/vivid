@@ -147,6 +147,7 @@ public static class Instructions
 
 		public const string SHIFT_LEFT = "sal";
 		public const string SHIFT_RIGHT = "sar";
+		public const string SHIFT_RIGHT_UNSIGNED = "shr";
 
 		public const string DOUBLE_PRECISION_SUBTRACT = "subsd";
 		public const string SINGLE_PRECISION_SUBTRACT = "subss";
@@ -248,6 +249,7 @@ public static class Instructions
 
 		public const string SHIFT_LEFT = "lsl";
 		public const string SHIFT_RIGHT = "asr";
+		public const string SHIFT_RIGHT_UNSIGNED = "lsr";
 
 		public const string CALL_LABEL = "bl";
 		public const string CALL_REGISTER = "blr";

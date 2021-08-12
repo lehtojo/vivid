@@ -9,6 +9,7 @@ public class BitwiseInstruction : DualParameterInstruction
 {
 	public string Instruction { get; private set; }
 
+	public bool IsUnsigned { get; set; } = false;
 	public bool Assigns { get; set; } = false;
 
 	public static BitwiseInstruction And(Unit unit, Result first, Result second, Format format, bool assigns = false)
@@ -36,15 +37,28 @@ public class BitwiseInstruction : DualParameterInstruction
 		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_LEFT : Instructions.X64.SHIFT_LEFT, first, second, format, assigns);
 	}
 
-	public static BitwiseInstruction ShiftRight(Unit unit, Result first, Result second, Format format, bool assigns = false)
+	public static BitwiseInstruction ShiftRight(Unit unit, Result first, Result second, Format format, bool is_unsigned, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_RIGHT : Instructions.X64.SHIFT_RIGHT, first, second, format, assigns);
+		var instruction = string.Empty;
+
+		if (Assembler.IsX64) { instruction = is_unsigned ? Instructions.X64.SHIFT_RIGHT_UNSIGNED : Instructions.X64.SHIFT_RIGHT; }
+		else { instruction = is_unsigned ? Instructions.Arm64.SHIFT_RIGHT_UNSIGNED : Instructions.Arm64.SHIFT_RIGHT; }
+
+		return new BitwiseInstruction(unit, instruction, first, second, format, is_unsigned, assigns);
 	}
 
 	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.BITWISE)
 	{
 		Instruction = instruction;
 		Description = "Executes a bitwise operation between the operands";
+		Assigns = assigns;
+	}
+
+	private BitwiseInstruction(Unit unit, string instruction, Result first, Result second, Format format, bool is_unsigned, bool assigns) : base(unit, first, second, format, InstructionType.BITWISE)
+	{
+		Instruction = instruction;
+		Description = "Executes a bitwise operation between the operands";
+		IsUnsigned = is_unsigned;
 		Assigns = assigns;
 	}
 

@@ -1,4 +1,4 @@
-﻿REQUIREMENT_EXIT_CODE = 1
+REQUIREMENT_EXIT_CODE = 1
 
 MemoryIterator<T> {
 	elements: link<T>

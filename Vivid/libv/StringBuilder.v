@@ -85,6 +85,51 @@ StringBuilder {
 		position -= count
 	}
 
+	insert(index: large, text: link, length: large) {
+		if length == 0 return
+		if position + length > capacity grow(length)
+
+		move(buffer + index, buffer + index + length, position - index)
+		offset_copy(text, length, buffer, index)
+		position += length
+	}
+
+	insert(index: large, text: link) {
+		=> insert(index, text, length_of(text))
+	}
+
+	replace(from: link, to: link) {
+		a = length_of(from)
+		b = length_of(to)
+
+		if a == 0 return
+
+		loop (i = position - a, i >= 0, i--) {
+			match = true
+
+			loop (j = 0, j < a, j++) {
+				if buffer[i + j] == from[j] continue
+				match = false
+				stop
+			}
+
+			if not match continue
+
+			remove(i, i + a)
+			insert(i, to)
+		}
+	}
+
+	reverse() {
+		count = position / 2
+
+		loop (i = 0, i < count, i++) {
+			temporary = buffer[i]
+			buffer[i] = buffer[position - i - 1]
+			buffer[position - i - 1] = temporary
+		}
+	}
+
 	get(i: large) {
 		=> buffer[i]
 	}

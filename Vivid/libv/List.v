@@ -213,8 +213,24 @@ List<T> {
 			elements[i] = elements[position - i - 1]
 			elements[position - i - 1] = element
 		}
+
+		=> this
 	}
-	
+
+	# Summary: Returns duplicated elements from this list
+	distinct() {
+		loop (i = 0, i < position, i++) {
+			current = elements[i]
+
+			loop (j = position - 1, j > i, j--) {
+				if not (elements[j] == current) continue
+				remove_at(j)
+			}
+		}
+
+		=> this
+	}
+
 	# Summary: Sets the value of the element at the specified index
 	set(i: large, value: T) {
 		elements[i] = value
@@ -224,7 +240,7 @@ List<T> {
 	get(i: large) {
 		=> elements[i]
 	}
-	
+
 	# Summary: Adds the specified element to this list
 	assign_plus(element: T) {
 		add(element)

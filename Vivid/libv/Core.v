@@ -1,4 +1,4 @@
-﻿import exit(code: large)
+import exit(code: large)
 
 import decimal_to_bits(value: decimal): large
 import bits_to_decimal(value: large): decimal

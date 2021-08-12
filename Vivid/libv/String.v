@@ -5,23 +5,35 @@ STRING_MINIMUM_DECIMAL = 0.000000000000001 # 0.1 ^ STRING_DECIMAL_PRECISION
 Summary: Converts the specified integer number into a string
 ###
 export to_string(n: large) {
-	number = String('')
-	sign = String('')
+	number = StringBuilder()
 
-	if n < 0 { sign = String('-') }
+	if n < 0 {
+		loop {
+			a = n / 10
+			remainder = n - a * 10
+			n = a
 
-	loop {
-		remainder = n % 10
-		n = n / 10
+			number.append([`0` - remainder] as char)
 
-		if n < 0 { remainder = -remainder }
+			if n == 0 stop
+		}
 
-		number = number.insert(0, `0` + remainder)
+		number.append(`-`)
+	}
+	else {
+		loop {
+			a = n / 10
+			remainder = n - a * 10
+			n = a
 
-		if n == 0 {
-			=> sign.combine(number)
+			number.append([`0` + remainder] as char)
+
+			if n == 0 stop
 		}
 	}
+
+	number.reverse()
+	=> number.string()
 }
 
 ###
@@ -88,15 +100,20 @@ export to_decimal(text: String) {
 	b = text.slice(i + 1, text.length)
 
 	value = to_number(a) as decimal
-	k = STRING_MINIMUM_DECIMAL
+	fraction = 0
+	scale = 1
+	precision = b.length
 
-	loop (i = STRING_DECIMAL_PRECISION - 1, i >= 0, i--) {
-		if i >= b.length continue
-		value += k * (b[i] - `0`)
-		k *= 10
+	# Limit the precision
+	if precision > STRING_DECIMAL_PRECISION { precision = STRING_DECIMAL_PRECISION }
+
+	loop (i = 0, i < precision, i++) {
+		fraction = fraction * 10 + (b[i] - `0`)
+		scale *= 10
 	}
 
-	=> value
+	if value < 0 => value - fraction / (scale as decimal)
+	=> value + fraction / (scale as decimal)
 }
 
 # Summary: Tries to convert the specified string to a decimal number
@@ -373,6 +390,47 @@ String {
 
 		loop (i = start, i < a, i++) {
 			if text[i] == value => i
+		}
+
+		=> -1
+	}
+
+	# Summary: Returns the index of the first occurance of the specified string
+	index_of(value: String) {
+		=> index_of(value.text, value.length, 0)
+	}
+
+	# Summary: Returns the index of the first occurance of the specified string
+	index_of(value: link) {
+		=> index_of(value, length_of(value), 0)
+	}
+
+	# Summary: Returns the index of the first occurance of the specified string
+	index_of(value: String, start: large) {
+		=> index_of(value.text, value.length, start)
+	}
+
+	# Summary: Returns the index of the first occurance of the specified string
+	index_of(value: link, start: large) {
+		=> index_of(value, length_of(value), start)
+	}
+
+	# Summary: Returns the index of the first occurance of the specified string
+	index_of(value: link, value_length: large, start: large) {
+		if start < 0 => -1
+
+		length: large = this.length
+
+		loop (i = start, i <= length - value_length, i++) {
+			match = true
+
+			loop (j = 0, j < value_length, j++) {
+				if text[i + j] == value[j] continue
+				match = false
+				stop
+			}
+
+			if match => i
 		}
 
 		=> -1

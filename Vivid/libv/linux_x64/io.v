@@ -131,6 +131,8 @@ namespace internal {
 	# On failure, -1 is returned.
 	# When the end of the directory is reached, 0 is returned.
 	import 'C' system_get_directory_entries(file_descriptor: large, buffer: link, size: large): large
+
+	import 'C' system_get_working_folder(buffer: link, size: large): link
 }
 
 FolderItem {
@@ -442,6 +444,19 @@ export get_process_folder() {
 	
 	# Include the separator to the folder path
 	=> filename.slice(0, i + 1)
+}
+
+# Summary: Returns the current working folder of the running process
+export get_process_working_folder() {
+	buffer = allocate(50)
+	size = 50
+
+	loop {
+		if internal.system_get_working_folder(buffer, size) != 0 => String.from(buffer, length_of(buffer))
+		deallocate(buffer)
+		size = size * 2
+		buffer = allocate(size)
+	}
 }
 
 # Summary: Returns the list of the arguments passed to this application

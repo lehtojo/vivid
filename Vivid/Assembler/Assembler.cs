@@ -49,8 +49,8 @@ public static class Assembler
 		".global _start" + "\n" +
 		"_start:" + "\n" +
 		"{0}" + "\n" +
+		"mov rdi, rax" + "\n" +
 		"mov rax, 60" + "\n" +
-		"xor rdi, rdi" + "\n" +
 		"syscall" + SEPARATOR;
 
 	private const string FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER =
@@ -63,7 +63,6 @@ public static class Assembler
 		"_start:" + "\n" +
 		"{0}" + "\n" +
 		"mov x8, #93" + "\n" +
-		"mov x0, xzr" + "\n" +
 		"svc #0" + SEPARATOR;
 
 	private const string FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER =
@@ -924,7 +923,7 @@ public static class Assembler
 				if (fullname.StartsWith(current_folder))
 				{
 					fullname = fullname.Remove(0, current_folder.Length);
-					fullname = fullname.Insert(0, ".");
+					fullname = fullname.Insert(0, "./");
 				}
 
 				builder.AppendLine(FILE_DIRECTIVE + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");

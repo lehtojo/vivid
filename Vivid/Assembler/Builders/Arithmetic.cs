@@ -116,7 +116,7 @@ public static class Arithmetic
 		var left = References.Get(unit, shift.Left);
 		var right = References.Get(unit, shift.Right);
 
-		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format).Execute();
+		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format, shift.Left.GetType().Format.IsUnsigned()).Execute();
 	}
 
 	/// <summary>
@@ -324,25 +324,17 @@ public static class Arithmetic
 		return result;
 	}
 
-	private static long GetDivisorReciprocal(long divisor)
+	/// <summary>
+	/// Returns the index of the last bit set to one
+	/// </summary>
+	private static int GetLastSetBitIndex(ulong value)
 	{
-		if (divisor == 1) { return 1; }
-
-		var fraction = (decimal)1 / divisor;
-		var result = (long)0;
-
-		for (var i = 0; i < 64; i++)
+		for (var i = 63; i >= 0; i--)
 		{
-			fraction *= 2;
-
-			if (fraction >= 1)
-			{
-				result |= 1L << (63 - i);
-				fraction -= (int)fraction;
-			}
+			if ((value & (1UL << i)) != 0) return i;
 		}
 
-		return result + 1;
+		throw new ApplicationException("Value must not be zero");
 	}
 
 	private static Result BuildConstantDivision(Unit unit, Node left, long divisor, bool assigns = false)
@@ -353,21 +345,37 @@ public static class Arithmetic
 		var destination = References.Get(unit, left, access);
 		var dividend = destination;
 
-		// Multiply the variable with the divisor's reciprocal
-		var reciprocal = new ConstantHandle(GetDivisorReciprocal(divisor));
+		// Multiply the variable with the reciprocal of the divisor
+		var reciprocal = new Uint128(1UL, 0UL) / new Uint128((ulong)Math.Abs(divisor));
+		var padding = Math.Min(63 - GetLastSetBitIndex(reciprocal.Low) - 1, 7);
+
+		if (padding > 0)
+		{
+			// Remove the padding
+			reciprocal = new Uint128(1UL << padding, 0UL) / new Uint128((ulong)Math.Abs(divisor));
+		}
+
+		reciprocal.Low += 1;
+
 		var multiplication = (Result?)null;
 
 		if (Assembler.IsArm64)
 		{
-			multiplication = new MultiplicationInstruction(unit, dividend, new Result(reciprocal, Assembler.Format), Assembler.Format, false).Execute();
+			multiplication = new MultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), Assembler.Format, false).Execute();
 		}
 		else
 		{
-			multiplication = new LongMultiplicationInstruction(unit, dividend, new Result(reciprocal, Assembler.Format), Assembler.Format).Execute();
+			multiplication = new LongMultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), left.GetType().Format.IsUnsigned()).Execute();
 		}
 
 		// The following offset fixes the result of the division when the result is negative by setting the offset's value to one if the result is negative, otherwise zero
-		var offset = BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle(63L), Assembler.Format), multiplication.Format).Execute();
+		var offset = BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle(63L), Assembler.Format), multiplication.Format, true).Execute();
+
+		if (padding > 0)
+		{
+			// Shift the result to the right by the padding
+			BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle((long)padding), Assembler.Format), Assembler.Format, false, true).Execute();
+		}
 
 		// Fix the division by adding the offset to the multiplication
 		var addition = new AdditionInstruction(unit, offset, multiplication, multiplication.Format, false).Execute();

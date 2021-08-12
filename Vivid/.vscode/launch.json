@@ -17,9 +17,10 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/entries/tests.v", "${workspaceFolder}/libv/", "${workspaceFolder}/libv/linux_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
+			//"args": [ "C:/Users/jeljoon/Downloads/Test/vivid-2/", "C:/Users/jeljoon/Downloads/Test/vivid-2/entries/tests.v", "C:/Users/jeljoon/Downloads/Test/vivid-2/libv/", "C:/Users/jeljoon/Downloads/Test/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
 			
-			"args": [ "${workspaceFolder}/Examples/Assert.v", "${workspaceFolder}/libv/",  "-o", "v", "-a", "-f", "-static" ],
+			//"args": [ "${workspaceFolder}/Examples/Assert.v", "${workspaceFolder}/libv/",  "-o", "v", "-a", "-f", "-static" ],
+			"args": [ "${workspaceFolder}/Examples/Test.v", "${workspaceFolder}/libv/",  "-o", "v", "-a", "-f", "-d" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
@@ -47,7 +48,7 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
-			"program": "${workspaceRoot}/v",
+			"program": "${workspaceRoot}/v.exe",
 			"cwd": "${workspaceRoot}",
 			"programArgs": "C:/Users/joona/vivid/Vivid/Examples/Test.v"
 		},

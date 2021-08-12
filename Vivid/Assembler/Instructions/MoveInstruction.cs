@@ -438,6 +438,12 @@ public class MoveInstruction : DualParameterInstruction
 						return;
 					}
 
+					// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
+					if (Second.IsMemoryAddress)
+					{
+						Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, Second));
+					}
+
 					// Example:
 					// xmm0 (decimal) => [rsp+16] (integer)
 					// Register xmm0 is converted to integer by requiring standard register rax
@@ -1106,6 +1112,12 @@ public class MoveInstruction : DualParameterInstruction
 
 				Unit.Append(new MoveInstruction(Unit, First, Second) { Type = Type }, true);
 				return;
+			}
+
+			// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
+			if (Second.IsMemoryAddress)
+			{
+				Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, Second));
 			}
 
 			// Examples:

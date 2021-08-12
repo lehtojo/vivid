@@ -1,6 +1,8 @@
 namespace io
 
 namespace internal {
+	constant INFINITE = 4294967295 # 0xFFFFFFFF
+
 	constant GENERIC_WRITE = 1073741824
 	constant GENERIC_READ = 2147483648
 	
@@ -54,6 +56,53 @@ namespace internal {
 	import 'C' GetModuleFileNameA(module: link, buffer: link, size: large): large
 
 	import 'C' GetCommandLineA(): link
+
+	plain StartupInformation {
+		size: normal
+		reserved_1: link
+		desktop: link
+		title: link
+		x: normal
+		y: normal
+		width: normal
+		height: normal
+		console_width: normal
+		console_height: normal
+		fill_attributes: normal
+		flags: normal
+		show_window: small
+		reserved_2: small
+		reserved_3: link
+		standard_input_handle: link
+		standard_output_handle: link
+		standard_error_handle: link
+	}
+
+	plain ProcessInformation {
+		handle: link
+		thread: link
+		pid: normal
+		tid: normal
+	}
+
+	import 'C' CreateProcessA(name: link, command_line: link, process_attributes: link, thread_attributes: link, inherit_handles: bool, creation_flags: large, environment: link, working_folder: link, startup_information: StartupInformation, process_information: ProcessInformation): bool
+
+	constant PROCESS_ACCESS_SYNCHRONIZE = 1048576
+
+	import 'C' OpenProcess(desired_access: normal, inherit_handles: bool, pid: normal): link
+	import 'C' WaitForSingleObject(handle: link, milliseconds: normal): normal
+
+	import 'C' GetCurrentDirectoryA(size: large, buffer: link): large
+}
+
+FolderItem {
+	fullname: String
+	is_folder: bool
+
+	init(fullname: String, is_folder: bool) {
+		this.fullname = fullname
+		this.is_folder = is_folder
+	}
 }
 
 # Summary: Returns all the filenames inside the specified folder
@@ -76,7 +125,7 @@ export get_folder_files(folder: String, all: bool) {
 	copy(filter.data(), internal.MAXIMUM_PATH_LENGTH, filename as link)
 
 	file = internal.FindFirstFileA(filename as link, (iterator as link + 8) as internal.FileIterator)
-	files = List<String>()
+	files = List<FolderItem>()
 
 	# If the handle is none, return an empty list of files
 	if file == none => files
@@ -86,7 +135,7 @@ export get_folder_files(folder: String, all: bool) {
 
 		# Add the current value to files, if it does not have the folder flag
 		if (iterator.attributes & internal.FILE_ATTRIBUTE_FOLDER) == 0 {
-			files.add(folder + name)
+			files.add(FolderItem(folder + name, false))
 		}
 		else all and not (name == '.' or name == '..') {
 			files.add_range(get_folder_files(folder + name, true))
@@ -193,7 +242,7 @@ export size(path: link) {
 
 		loop (i = 0, i < files.size(), i++) {
 			# Try to get the size of the file
-			result = size(files[i])
+			result = size(files[i].fullname)
 
 			# If the size if negative, it means an error has occured
 			if result < 0 => -1
@@ -222,8 +271,67 @@ export size(path: link) {
 	=> size[0]
 }
 
-# TODO: Move into a separate namespace such as 'environment'
+# Processes:
+start_process(executable: String, command_line_arguments: List<String>, working_folder: link) {
+	startup_information = inline internal.StartupInformation()
+	startup_information.size = 96
+	zero(startup_information as link, 96)
 
+	process_information = inline internal.ProcessInformation()
+
+	# Combine all the command line arguments to a single command line string
+	command_line = String.join(` `, command_line_arguments)
+
+	# Try to create the requested process: Return -1, if the process creation fails, otherwise return the PID
+	if not internal.CreateProcessA(executable.text, command_line.text, none as link, none as link, true, 0, none as link, working_folder, startup_information, process_information) => -1
+	
+	=> process_information.pid
+}
+
+start_process(executable: String, command_line_arguments: List<String>, working_folder: String) {
+	if working_folder as link != none => start_process(executable, command_line_arguments, working_folder.text)
+	=> start_process(executable, command_line_arguments, none as link)
+}
+
+start_process(executable: String, command_line_arguments: List<String>) {
+	=> start_process(executable, command_line_arguments, none as link)
+}
+
+shell(command: String, working_folder: link) {
+	shell = get_environment_variable('COMSPEC')
+	if shell as link == none => -1
+
+	startup_information = inline internal.StartupInformation()
+	startup_information.size = 96
+	zero(startup_information as link, 96)
+
+	process_information = inline internal.ProcessInformation()
+
+	command = String('/C ') + command
+
+	# Try to create the requested process: Return -1, if the process creation fails, otherwise return the PID
+	if not internal.CreateProcessA(shell.text, command.text, none as link, none as link, true, 0, none as link, working_folder, startup_information, process_information) => -1
+	
+	=> process_information.pid
+}
+
+shell(command: String, working_folder: String) {
+	if working_folder != none => shell(command, working_folder.text)
+	=> shell(command, none as link)
+}
+
+shell(command: String) {
+	=> shell(command, none as link)
+}
+
+# Summary: Waits for the specified process to exit
+wait_for_exit(pid: large) {
+	handle = internal.OpenProcess(internal.PROCESS_ACCESS_SYNCHRONIZE, false, pid)
+	internal.WaitForSingleObject(handle, internal.INFINITE)
+	internal.CloseHandle(handle)
+}
+
+# Command line:
 export get_environment_variable(name: link) {
 	# Try to get the size of the environment variable
 	temporary: byte[1]
@@ -263,6 +371,18 @@ export get_process_filename() {
 		size *= 2
 		filename = allocate(size)
 	}
+}
+
+# Summary: Returns the working directory of the currently running process
+export get_process_working_folder() {
+	# First, we need to get the size of the working folder. This can be done by requesting the working folder with an empty buffer
+	size = internal.GetCurrentDirectoryA(0, none as link)
+
+	buffer = allocate(size)
+	buffer[size] = 0
+	internal.GetCurrentDirectoryA(size, buffer)
+
+	=> String.from(buffer, size - 1)
 }
 
 # Summary: Returns the folder which contains the current process executable
