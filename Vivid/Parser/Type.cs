@@ -129,7 +129,7 @@ public class Type : Context
 	/// </summary>
 	public void AddConstructor(Constructor constructor)
 	{
-		if (!Constructors.Overloads.Any() || !((Constructor)Constructors.Overloads.First()).IsDefault)
+		if (!Constructors.Overloads.Any() || !Constructors.Overloads.First().To<Constructor>().IsDefault)
 		{
 			Constructors.Add(constructor);
 			Declare(constructor);
@@ -141,7 +141,6 @@ public class Type : Context
 		Constructors.Overloads.Clear();
 
 		Constructors.Add(constructor);
-
 		Declare(constructor);
 	}
 
@@ -150,7 +149,7 @@ public class Type : Context
 	/// </summary>
 	public void AddDestructor(Destructor destructor)
 	{
-		if (!IsUserDefined || !((Destructor)Destructors.Overloads.First()).IsDefault)
+		if (!IsUserDefined || !Destructors.Overloads.First().To<Destructor>().IsDefault)
 		{
 			Destructors.Add(destructor);
 			Declare(destructor);
@@ -162,7 +161,6 @@ public class Type : Context
 		Destructors.Overloads.Clear();
 
 		Destructors.Add(destructor);
-
 		Declare(destructor);
 	}
 

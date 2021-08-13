@@ -332,6 +332,11 @@ public class Node : IEnumerable, IEnumerable<Node>
 	{
 		if (position == null)
 		{
+			if (child.Parent != null)
+			{
+				child.Parent.Remove(child);
+			}
+
 			Add(child);
 			return;
 		}

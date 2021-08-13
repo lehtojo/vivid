@@ -987,7 +987,8 @@ public static class Analysis
 		foreach (var type in Common.GetAllTypes(context))
 		{
 			AddDefaultConstructorCalls(type, denylist);
-			CompleteConstructors(type);
+			#warning Remove if constructors work
+			//CompleteConstructors(type);
 			CompleteDestructors(type);
 		}
 

@@ -329,7 +329,7 @@ public static class Lexer
 			// Skip to the end of the multiline comment
 			end += MULTILINE_COMMENT.Length;
 
-			// Count how many line ending are there inside the comment
+			// Count how many line endings there are inside the comment
 			var comment = text[start.Local..end];
 			var lines = comment.Count(i => i == LINE_ENDING);
 

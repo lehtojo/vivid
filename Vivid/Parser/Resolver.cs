@@ -75,10 +75,11 @@ public static class Resolver
 			ResolveVariables(type);
 			ResolveContext(type);
 
-			foreach (var iterator in type.Initialization)
-			{
-				Resolve(type, iterator);
-			}
+			#warning Remove if constructors work
+			// foreach (var iterator in type.Initialization)
+			// {
+			// 	Resolve(type, iterator);
+			// }
 
 			// Virtual functions do not have return types defined sometimes, the return types of those virtual functions are dependent on their default implementations
 			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())

@@ -23,7 +23,9 @@ export are_equal(a: decimal, b: decimal) {
 	print(' == ')
 	println(b)
 
-	if abs(a - b) <= DECIMAL_PRECISION return
+	d = a - b
+
+	if d >= -DECIMAL_PRECISION and d <= DECIMAL_PRECISION return
 	exit(1)
 }
 

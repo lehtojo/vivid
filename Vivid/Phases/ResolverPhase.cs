@@ -228,16 +228,17 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
-			foreach (var iterator in type.Initialization)
-			{
-				foreach (var resolvable in iterator.FindAll(i => i is IResolvable))
-				{
-					var status = ((IResolvable)resolvable).GetStatus();
-					if (!status.IsProblematic) continue;
+			#warning Remove if constructors work
+			// foreach (var iterator in type.Initialization)
+			// {
+			// 	foreach (var resolvable in iterator.FindAll(i => i is IResolvable))
+			// 	{
+			// 		var status = ((IResolvable)resolvable).GetStatus();
+			// 		if (!status.IsProblematic) continue;
 
-					diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
-				}
-			}
+			// 		diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
+			// 	}
+			// }
 
 			diagnostics.AddRange(FindUnconstructedSupertypes(type));
 
@@ -438,15 +439,16 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
-			foreach (var iterator in type.Initialization)
-			{
-				var errors = iterator.FindAll(i => i is IResolvable).Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic);
+			#warning REMOVE THIS
+			// foreach (var iterator in type.Initialization)
+			// {
+			// 	var errors = iterator.FindAll(i => i is IResolvable).Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic);
 
-				foreach (var error in errors)
-				{
-					types.AppendLine(error.Description);
-				}
-			}
+			// 	foreach (var error in errors)
+			// 	{
+			// 		types.AppendLine(error.Description);
+			// 	}
+			// }
 
 			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(type.Position?.File, i.Range.Start.Line, i.Range.Start.Character), i.Message)))
 			{
