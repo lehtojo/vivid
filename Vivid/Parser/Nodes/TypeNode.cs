@@ -55,8 +55,10 @@ public class TypeNode : Node, IScope, IResolvable
 		FindAll(NodeType.TYPE).Cast<TypeNode>().Where(i => i.IsDefinition).ForEach(i => i.Parse());
 
 		// Find all expressions which represent type initialization
-		var expressions = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
-		Type.Initialization = Type.Initialization.Concat(expressions).ToArray();
+		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
+
+		// Add member initialization to the constructors that have been created before loading the member initializations
+		Type.Constructors.Overloads.ForEach(i => i.To<Constructor>().AddMemberInitializations());
 	}
 
 	public override Type TryGetType()
