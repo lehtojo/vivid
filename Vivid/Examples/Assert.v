@@ -39,9 +39,9 @@ export are_equal(a: String, b: String) {
 }
 
 export are_equal(a: link, b: link) {
-	print(a)
+	print(a as large)
 	print(' == ')
-	println(b)
+	println(b as large)
 
 	if a == b return
 	exit(1)

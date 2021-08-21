@@ -222,6 +222,7 @@ namespace Vivid.Unit
 			StandardLibraryUtility = new[]
 			{
 				GetProjectFile("String.v", LIBV),
+				GetProjectFile("StringBuilder.v", LIBV),
 				GetProjectFile("Console.v", LIBV),
 				GetProjectFile("Exceptions.v", LIBV),
 				GetProjectFile("List.v", LIBV),
@@ -1990,16 +1991,16 @@ namespace Vivid.Unit
 			Extensions_Test();
 		}
 
-		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
+		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern int _V13memory_case_1P6Objecti_ri(ref MemoryObject instance, int value);
 		
-		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
+		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern byte _V13memory_case_2Phi_rh(IntPtr memory, int i);
 		
-		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
+		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern double _V13memory_case_3P6Objectd_rd(ref MemoryObject instance, double value);
 		
-		[DllImport("/home/jolehto/vivid/Vivid/libUnit_Memory.so", ExactSpelling = true)]
+		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern int _V13memory_case_4P6ObjectS0__ri(ref MemoryObject a, ref MemoryObject b);
 		
 		[DllImport("Unit_Memory", ExactSpelling = true)]

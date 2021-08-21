@@ -72,33 +72,16 @@ public static class Memory
 
 		for (var i = 0; i < result.Count; i++)
 		{
-			for (var j = i; j < result.Count; j++)
+			for (var j = i + 1; j < result.Count; j++)
 			{
-				if (i == j || optimized_indices.Contains(i) || optimized_indices.Contains(j))
-				{
-					continue;
-				}
-
 				var a = result[i];
 				var b = result[j];
 
-				if (a.First.Value.Equals(b.Second.Value))
-				{
-					// Swap
-					var y = result[j];
-					result.RemoveAt(j);
+				if (!a.First.Value.Equals(b.Second.Value)) continue;
 
-					var x = result[i];
-					result.RemoveAt(i);
-
-					result.Insert(i, y);
-					result.Insert(j, x);
-
-					optimized_indices.Add(i);
-					optimized_indices.Add(j);
-
-					goto Start;
-				}
+				// Swap:
+				result[i] = b;
+				result[j] = a;
 			}
 		}
 

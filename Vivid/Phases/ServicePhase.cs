@@ -304,10 +304,7 @@ public class ServicePhase : Phase
 		{
 			var token = tokens[i];
 
-			if (!token.Is(TokenType.CONTENT))
-			{
-				continue;
-			}
+			if (!token.Is(TokenType.CONTENT)) continue;
 
 			if (token.Is(ParenthesisType.PARENTHESIS) && token.Position.Line == line && token.Position.Character + 1 == character)
 			{
@@ -315,11 +312,7 @@ public class ServicePhase : Phase
 			}
 
 			var result = FindCursorCallParenthesis(token.To<ContentToken>().Tokens, line, character);
-
-			if (result != null)
-			{
-				return result;
-			}
+			if (result != null) return result;
 		}
 
 		return null;
@@ -587,6 +580,15 @@ public class ServicePhase : Phase
 	}
 
 	/// <summary>
+	/// Finds the function, whose blueprint contains the cursor
+	/// </summary>
+	private Function? FindCursorFunction(Context context)
+	{
+		// Find the function that contains the cursor
+		return Common.GetAllVisibleFunctions(context).FirstOrDefault(i => i.Blueprint.Exists(i => i.Position.IsCursor));
+	}
+
+	/// <summary>
 	/// Sends completions to the requester based on the specified request
 	/// </summary>
 	private void SendCompletions(Dictionary<SourceFile, DocumentParse> files, UdpClient socket, IPEndPoint receiver, DocumentRequest request)
@@ -620,12 +622,21 @@ public class ServicePhase : Phase
 
 		ParseAll(files);
 
+		// Find the function that contains the cursor
+		var cursor_function = FindCursorFunction(files[file].Context!);
+
+		if (cursor_function == null)
+		{
+			SendStatusCode(socket, receiver, request.Uri, DocumentResponseStatus.ERROR);
+			return;
+		}
+
 		// Finally, build the document
 		/// NOTE: Build all the source files if the request is 'FIND_REFERENCES'
-		var parse = Build(files, filename, request.Type == DocumentRequestType.FIND_REFERENCES);
+		var parse = Build(files, filename, request.Type == DocumentRequestType.FIND_REFERENCES, cursor_function);
 
 		// Now find the cursor and return completions based on its position
-		foreach (var implementation in Common.GetAllFunctionImplementations(parse.Context))
+		foreach (var implementation in cursor_function.Implementations)
 		{
 			var cursor = implementation.Node!.Find(i => i.Position != null && i.Position.IsCursor);
 
@@ -892,7 +903,7 @@ public class ServicePhase : Phase
 	/// Builds the specified file.
 	/// If the flag 'all' is set to true, all the source files will be implemented
 	/// </summary>
-	private static Parse Build(Dictionary<SourceFile, DocumentParse> files, string filename, bool all = false)
+	private static Parse Build(Dictionary<SourceFile, DocumentParse> files, string filename, bool all = false, Function? function_filter = null)
 	{
 		// Find the source file which has the same filename as the specified filename
 		var filter = files.Keys.First(i => i.Fullname == filename);
@@ -912,9 +923,6 @@ public class ServicePhase : Phase
 			types.ForEach(i => i.Parse());
 
 			root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>().ForEach(i => i.Parse(context));
-
-			// Applies all the extension functions
-			ParserPhase.ApplyExtensionFunctions(context, root);
 		}
 
 		// Merge all parsed files
@@ -930,8 +938,19 @@ public class ServicePhase : Phase
 			root.Merge(file.Root.Clone());
 		}
 
+		// Applies all the extension functions
+		ParserPhase.ApplyExtensionFunctions(context, root);
+
 		// Preprocess the 'hull' of the code before creating functions
 		Evaluator.Evaluate(context, root);
+
+		if (function_filter != null)
+		{
+			var parameter_types = function_filter!.Parameters.Select(i => i.Type).ToArray();
+			if (parameter_types.Any(i => i == null || i.IsUnresolved)) return new Parse(context, root, files[filter].Tokens);
+
+			function_filter.Implement(parameter_types!);
+		}
 
 		var report = ResolverPhase.GetReport(context);
 		var evaluated = false;
@@ -941,12 +960,22 @@ public class ServicePhase : Phase
 		{
 			var previous = report;
 
-			// Try to resolve any problems in the node tree
-			ParserPhase.ApplyExtensionFunctions(context, root);
-			ParserPhase.ImplementFunctions(context, all ? null : filter, true);
+			if (function_filter != null)
+			{
+				foreach (var implementation in function_filter!.Implementations)
+				{
+					Resolver.ResolveImplementation(implementation);
+				}
+			}
+			else
+			{
+				// Try to resolve any problems in the node tree
+				ParserPhase.ApplyExtensionFunctions(context, root);
+				ParserPhase.ImplementFunctions(context, all ? null : filter, true);
 
-			Resolver.ResolveContext(context);
-			report = ResolverPhase.GetReport(context);
+				Resolver.ResolveContext(context);
+				report = ResolverPhase.GetReport(context);
+			}
 
 			// Try again only if the errors have changed
 			if (report != previous) continue;

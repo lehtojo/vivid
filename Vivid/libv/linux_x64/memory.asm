@@ -231,3 +231,9 @@ mov rax, 247 # System call: sys_waitid
 mov r10, rcx
 syscall
 ret
+
+.global system_get_working_folder
+system_get_working_folder:
+mov rax, 79 # System call: sys_getcwd
+syscall
+ret

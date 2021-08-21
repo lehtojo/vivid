@@ -127,9 +127,7 @@ public class Variable
 		if (Flag.Has(Modifiers, Modifier.INLINE)) return true;
 
 		// Inlining types should always be inlined
-		if (Type.IsInlining) return true;
-
-		return !Assembler.IsDebuggingEnabled && !Type.IsPrimitive && !IsCopied();
+		return Type.IsInlining;
 	}
 
 	/// <summary>

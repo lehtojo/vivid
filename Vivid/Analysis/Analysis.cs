@@ -874,7 +874,7 @@ public static class Analysis
 	/// <summary>
 	/// Returns whether the specified node accesses any member of the specified type and the access requires self pointer
 	/// </summary>
-	private static bool IsSelfPointerRequired(Node node)
+	public static bool IsSelfPointerRequired(Node node)
 	{
 		if (!node.Is(NodeType.FUNCTION, NodeType.VARIABLE) || node.Parent!.Is(NodeType.CONSTRUCTION, NodeType.LINK)) return false;
 
@@ -886,49 +886,6 @@ public static class Analysis
 
 		var variable = node.To<VariableNode>().Variable;
 		return variable.IsMember && !variable.IsStatic;
-	}
-
-	/// <summary>
-	/// Adds logic for allocating an instance of the specified type, registering virtual functions and initializing member variables to the constructors of the specified type
-	/// </summary>
-	private static void CompleteConstructors(Type type)
-	{
-		if (type.Configuration == null) return;
-
-		var expressions = new List<OperatorNode>(type.Initialization);
-
-		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).Where(i => i.Node != null))
-		{
-			var self = Common.GetSelfPointer(constructor, null);
-
-			foreach (var iterator in expressions)
-			{
-				var expression = iterator.Clone().To<OperatorNode>();
-				var edited = Analyzer.GetEdited(expression);
-
-				// Do not initialize constants in constructors
-				if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsConstant) continue;
-
-				var member_accessors = expression.FindAll(i => IsSelfPointerRequired(i));
-
-				// Add self pointer to all member accessors
-				foreach (var member in member_accessors)
-				{
-					member.Replace(new LinkNode(self.Clone(), member.Clone()));
-				}
-
-				var position = constructor.Node!.First;
-
-				if (position == null)
-				{
-					constructor.Node!.Add(expression);
-				}
-				else
-				{
-					constructor.Node!.Insert(position, expression);
-				}
-			}
-		}
 	}
 
 	/// <summary>

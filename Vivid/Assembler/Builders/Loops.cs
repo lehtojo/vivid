@@ -11,34 +11,52 @@ public static class Loops
 	{
 		if (node.Loop == null) throw new ApplicationException("Loop control instruction was not inside a loop");
 
-		if (node.Condition != null)
-		{
-			Arithmetic.BuildCondition(unit, node.Condition);
-		}
-
-		unit.Append(new MergeScopeInstruction(unit, node.Loop.Scope ?? throw new ApplicationException("Missing loop scope")));
-
-		var label = (Label?)null;
+		var scope = node.Loop.Scope ?? throw new ApplicationException("Missing loop scope");
 
 		if (node.Instruction == Keywords.STOP)
 		{
-			label = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
+			if (node.Condition != null) Arithmetic.BuildCondition(unit, node.Condition);
+
+			unit.Append(new MergeScopeInstruction(unit, scope));
+			var label = node.Loop.Exit ?? throw new ApplicationException("Missing loop exit label");
+
+			if (node.Condition != null) return new JumpInstruction(unit, node.Condition.Operator, false, !node.Condition.IsDecimal, label).Execute();
+
+			return new JumpInstruction(unit, label).Execute();
 		}
 		else if (node.Instruction == Keywords.CONTINUE)
 		{
-			label = node.Loop.Continue ?? throw new ApplicationException("Missing loop continue label");
+			var statement = node.Loop;
+			var start = statement.Start ?? throw new ApplicationException("Missing loop start label");
+
+			if (statement.IsForeverLoop)
+			{
+				unit.Append(new MergeScopeInstruction(unit, scope));
+				return new JumpInstruction(unit, statement.Start).Execute();
+			}
+
+			// Build the nodes around the actual condition by disabling the condition temporarily
+			var instance = statement.Condition.Instance;
+			statement.Condition.Instance = NodeType.DISABLED;
+
+			// Initialization of the condition happens twice, therefore inner labels can duplicate
+			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
+
+			Builders.Build(unit, statement.Initialization.Next!);
+
+			statement.Condition.Instance = instance;
+
+			unit.Append(new MergeScopeInstruction(unit, scope));
+
+			var exit = statement.Exit ?? throw new ApplicationException("Missing loop exit label");
+			BuildEndCondition(unit, statement.Condition, start, exit);
+			
+			return new Result();
 		}
 		else
 		{
 			throw new NotImplementedException("Unknown loop control instruction");
 		}
-
-		if (node.Condition != null)
-		{
-			return new JumpInstruction(unit, node.Condition.Operator, false, !node.Condition.IsDecimal, label).Execute();
-		}
-
-		return new JumpInstruction(unit, label).Execute();
 	}
 
 	/// <summary>
@@ -96,8 +114,6 @@ public static class Loops
 				Builders.Build(unit, statement.Action);
 			}
 
-			unit.Append(new MergeScopeInstruction(unit, scope));
-
 			// Build the nodes around the actual condition by disabling the condition temporarily
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
@@ -109,6 +125,7 @@ public static class Loops
 
 			statement.Condition.Instance = instance;
 
+			unit.Append(new MergeScopeInstruction(unit, scope));
 			BuildEndCondition(unit, statement.Condition, start.Label);
 		}
 
@@ -135,7 +152,6 @@ public static class Loops
 
 		// Register the start and exit label to the loop for control keywords
 		statement.Start = unit.GetNextLabel();
-		statement.Continue = statement.Start;
 		statement.Exit = unit.GetNextLabel();
 
 		// Append the start label
@@ -185,14 +201,6 @@ public static class Loops
 		// Load constants which might be edited inside the loop
 		Scope.LoadConstants(unit, statement, statement.Body.Context);
 
-		// Try to find a loop control node which targets the current loop
-		if (statement.Body.Find(i => i.Is(NodeType.LOOP_CONTROL) && i.To<LoopControlNode>().Instruction == Keywords.CONTINUE && i.To<LoopControlNode>().Loop == statement) != null)
-		{
-			// Append a label which can be used by the continue-commands
-			statement.Continue = unit.GetNextLabel();
-			unit.Append(new LabelInstruction(unit, statement.Continue));
-		}
-
 		// Build the nodes around the actual condition by disabling the condition temporarily
 		var instance = statement.Condition.Instance;
 		statement.Condition.Instance = NodeType.DISABLED;
@@ -218,12 +226,14 @@ public static class Loops
 	/// <summary>
 	/// Builds the the specified condition which should be placed at the end of a loop
 	/// </summary>
-	private static void BuildEndCondition(Unit unit, Node condition, Label success)
+	private static void BuildEndCondition(Unit unit, Node condition, Label success, Label? failure = null)
 	{
-		var failure = unit.GetNextLabel();
+		var exit = unit.GetNextLabel();
 
-		var instructions = BuildCondition(unit, condition, success, failure);
-		instructions.Add(new LabelInstruction(unit, failure));
+		var instructions = BuildCondition(unit, condition, success, exit);
+		instructions.Add(new LabelInstruction(unit, exit));
+
+		if (failure != null) instructions.Add(new JumpInstruction(unit, failure));
 
 		// Remove all occurrences of the following pattern from the instructions:
 		// jmp [Label]

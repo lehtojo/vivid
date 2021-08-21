@@ -307,7 +307,7 @@ public static class Conditionals
 	private static bool IsBranchlessExecutionPossible(Node root)
 	{
 		// If the specified node contains a function call, branchless execution is not possible
-		return root.Find(NodeType.FUNCTION, NodeType.CALL, NodeType.IF, NodeType.RETURN) == null;
+		return root.Find(NodeType.FUNCTION, NodeType.CALL, NodeType.IF, NodeType.RETURN, NodeType.LOOP_CONTROL) == null;
 	}
 
 	/// <summary>

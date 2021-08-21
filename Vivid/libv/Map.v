@@ -1,11 +1,4 @@
-BUCKET_SIZE = 1000
-MAXIMUM_SLOT_SIZE = 10
-
-MAP_OK = 1
-MAP_FAIL = 0
-MAP_KEY_DUPLICATION = -1
-
-MapElement<K, V> {
+KeyValuePair<K, V> {
 	key: K
 	value: V
 
@@ -15,284 +8,217 @@ MapElement<K, V> {
 	}
 }
 
-MapBucket<K, V> {
-	slots: Array<LinkedList<MapElement<K, V>>>
-
-	init() {
-		# Initialize all the slots in this bucket
-		slots = Array<LinkedList<MapElement<K, V>>>(BUCKET_SIZE)
-
-		loop (i = 0, i < BUCKET_SIZE, i++) {
-			slots[i] = LinkedList<MapElement<K, V>>()
-		}
-	}
-
-	set(key: K, value: V) {
-		# Determine the slot where the value might be stored
-		destination = 0
-
-		if compiles { key.hash() } { destination = key.hash() % BUCKET_SIZE }
-		else { destination = (key as large) % BUCKET_SIZE }
-		if destination < 0 { destination += BUCKET_SIZE }
-
-		slot = slots[destination]
-
-		# Try to find the key from the slot
-		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
-			if iterator.value.key != key continue
-			iterator.value.value = value
-			=> MAP_OK
-		}
-
-		=> MAP_FAIL
-	}
-
-	add(key: K, value: V) {
-		destination = 0
-
-		if compiles { key.hash() } { destination = key.hash() % BUCKET_SIZE }
-		else { destination = (key as large) % BUCKET_SIZE }
-		if destination < 0 { destination += BUCKET_SIZE }
-
-		slot = slots[destination]
-
-		# The slot is not allowed to grow past a specific size
-		if slot.size() >= MAXIMUM_SLOT_SIZE => MAP_FAIL
-
-		# Two identical keys can not be stored at the same time
-		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
-			if iterator.value.key == key => MAP_KEY_DUPLICATION
-		}
-
-		slot.add(MapElement<K, V>(key, value))
-		=> MAP_OK
-	}
-
-	contains_key(key: K) {
-		location = 0
-
-		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
-		else { location = (key as large) % BUCKET_SIZE }
-		if location < 0 { location += BUCKET_SIZE }
-		
-		slot = slots[location]
-		
-		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
-			if iterator.value.key == key => true
-		}
-
-		=> false
-	}
-
-	get(key: K) {
-		location = 0
-
-		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
-		else { location = (key as large) % BUCKET_SIZE }
-		if location < 0 { location += BUCKET_SIZE }
-		
-		slot = slots[location]
-		
-		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
-			if iterator.value.key == key {
-				=> Optional<V>(iterator.value.value)
-			}
-		}
-
-		=> Optional<V>()
-	}
-
-	remove(key: K) {
-		location = 0
-
-		if compiles { key.hash() } { location = key.hash() % BUCKET_SIZE }
-		else { location = (key as large) % BUCKET_SIZE }
-		if location < 0 { location += BUCKET_SIZE }
-
-		slot = slots[location]
-
-		previous = 0 as LinkedListElement<MapElement<K, V>>
-
-		loop (iterator = slot.iterator(), iterator, iterator = iterator.next) {
-			if iterator.value.key == key {
-				slot.remove(previous, iterator)
-				=> MAP_OK
-			}
-
-			previous = iterator
-		}
-
-		=> MAP_FAIL
-	}
-
-	size() {
-		size = 0
-
-		loop (i = 0, i < BUCKET_SIZE, i++) {
-			size += slots[i].size()
-		}
-
-		=> size
-	}
-}
-
-MapIterator<K, V> {
-	buckets: LinkedList<MapBucket<K, V>>
-	bucket: LinkedListElement<MapBucket<K, V>>
-	slot: normal
-	element: LinkedListElement<MapElement<K, V>>
-
-	init(buckets: LinkedList<MapBucket<K, V>>) {
-		this.buckets = buckets
-		this.bucket = none as LinkedListElement<MapBucket<K, V>>
-	}
-
-	value() => element.value
-
-	private next_element() {
-		# Ensure the current bucket is not none
-		loop (bucket != none) {
-			slot++ # Move to the next slot
-
-			# If the current bucket does not contain the current slot index, move to the next bucket
-			if slot >= bucket.value.slots.count {
-				slot = -1
-				bucket = bucket.next
-				continue
-			}
-
-			# Load the first element from the current slot and ensure it exists, move to the next slot otherwise
-			value = bucket.value.slots[slot].iterator()
-			if value == none continue
-
-			element = value
-			=> true
-		}
-
-		=> false
-	}
-
-	next() {
-		# At beginning the iterator does not have the first bucket loaded
-		if bucket == none {
-			bucket = buckets.iterator()
-			slot = -1
-			=> next_element()
-		}
-		
-		# If the element is none at this point, nothing can be done
-		if element == none => false
-		
-		# Try to access the next element
-		element = element.next
-		if element != none => true
-
-		# Since the element is none currently, try to get the next element from the next slot
-		=> next_element()
-	}
-
-	reset() {
-		bucket = none
-	}
-}
+MAX_SLOT_OFFSET = 10
+MAX_LEVEL_SIZE = 1024
 
 Map<K, V> {
 	private:
-	buckets: LinkedList<MapBucket<K, V>>
-	items: List<MapElement<K, V>>
+	values: link<V>
+	keys: link<K>
+	states: link<bool>
+	items: List<KeyValuePair<K, V>> = List<KeyValuePair<K, V>>()
+	ground: tiny
+	levels: normal = 1
 
 	public:
+	init(ground: tiny) {
+		count = 1 <| ground
+		values_size = count * sizeof(V)
+		keys_size = count * sizeof(K)
+
+		values: link = allocate(values_size)
+		keys: link = allocate(keys_size)
+		states: link = allocate(count)
+
+		zero(values, values_size)
+		zero(keys, keys_size)
+		zero(states, count)
+
+		this.ground = ground
+		this.values = values
+		this.keys = keys
+		this.states = states
+	}
+
 	init() {
-		buckets = LinkedList<MapBucket<K, V>>()
-		items = List<MapElement<K, V>>()
-		buckets.add(MapBucket<K, V>())
+		count = 1 <| 6
+		values_size = count * sizeof(V)
+		keys_size = count * sizeof(K)
+
+		values: link = allocate(values_size)
+		keys: link = allocate(keys_size)
+		states: link = allocate(count)
+
+		zero(values, values_size)
+		zero(keys, keys_size)
+		zero(states, count)
+
+		this.ground = 6
+		this.values = values
+		this.keys = keys
+		this.states = states
+	}
+
+	grow() {
+		count = 0
+
+		loop (i = ground, i < ground + levels, i++) {
+			count += min(1 <| i, MAX_LEVEL_SIZE)
+		}
+
+		values_size = count * sizeof(V)
+		keys_size = count * sizeof(K)
+
+		extended_values = allocate(values_size)
+		extended_keys = allocate(keys_size)
+		extended_states = allocate(count)
+
+		zero(extended_values, values_size)
+		zero(extended_keys, keys_size)
+		zero(extended_states, count)
+
+		previous_count = count - min(1 <| [ground + levels - 1], MAX_LEVEL_SIZE)
+
+		copy(values, previous_count * sizeof(V), extended_values)
+		copy(keys, previous_count * sizeof(K), extended_keys)
+		copy(states, previous_count, extended_states)
+
+		deallocate(values)
+		deallocate(keys)
+		deallocate(states)
+
+		values = extended_values
+		keys = extended_keys
+		states = extended_states
+	}
+
+	force_add(key: K, value: V) {
+		items.add(KeyValuePair<K, V>(key, value))
+
+		hash = key as large
+		if compiles { key.hash() } { hash = key.hash() }
+
+		position = 0
+		location = 0
+		size = 1
+
+		loop (i = ground, i < ground + levels, i++) {
+			size = min(1 <| i, MAX_LEVEL_SIZE)
+
+			location = hash % size
+			if location < 0 { location += size }
+
+			start = position + location
+			n = min(MAX_SLOT_OFFSET, position + size - location)
+
+			loop (j = 0, j < n, j++) {
+				offset = start + j
+				if states[offset] continue
+				states[offset] = true
+				keys[offset] = key
+				values[offset] = value
+				return
+			}
+
+			position += size
+		}
+
+		levels++
+		grow()
+
+		size = min(1 <| (ground + levels - 1), MAX_LEVEL_SIZE)
+		location = hash % size
+		if location < 0 { location += size }
+
+		position += location
+		states[position] = true
+		keys[position] = key
+		values[position] = value
 	}
 
 	add(key: K, value: V) {
-		loop (iterator = buckets.iterator(), iterator, iterator = iterator.next) {
-			result = iterator.value.add(key, value)
+		if contains_key(key) require(false, 'Map already contains the specified key')
+		force_add(key, value)
+	}
 
-			if result == MAP_OK {
-				items.add(MapElement<K, V>(key, value))
-				=> true
-			}
-
-			if result == MAP_KEY_DUPLICATION => false
-		}
-
-		bucket = MapBucket<K, V>()
-		bucket.add(key, value)
-		items.add(MapElement<K, V>(key, value))
-
-		buckets.add(bucket)
-
+	try_add(key: K, value: V) {
+		if contains_key(key) => false
+		force_add(key, value)
 		=> true
 	}
 
 	set(key: K, value: V) {
-		# First try to update the value, if the key has been added already
-		loop (iterator = buckets.iterator(), iterator, iterator = iterator.next) {
-			result = iterator.value.set(key, value)
-			if result == MAP_OK => true
+		location = try_find(key)
+
+		if location >= 0 {
+			keys[location] = key
+			values[location] = value
+			return
 		}
 
-		# Since the map does not contain the key, add the value with the key
-		add(key, value)
+		force_add(key, value)
+	}
+
+	try_find(key: K) {
+		hash = key as large
+		if compiles { key.hash() } { hash = key.hash() }
+
+		position = 0
+		size = 1
+
+		loop (i = ground, i < ground + levels, i++) {
+			size = min(1 <| i, MAX_LEVEL_SIZE)
+
+			location = hash % size
+			if location < 0 { location += size }
+			
+			start = position + location
+			n = min(MAX_SLOT_OFFSET, position + size - start)
+
+			loop (j = 0, j < n, j++) {
+				offset = start + j
+				if states[offset] and keys[offset] == key => offset
+			}
+
+			position += size
+		}
+
+		=> -1
 	}
 
 	contains_key(key: K) {
-		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			if bucket.value.contains_key(key) => true
-		}
-
-		=> false
+		=> try_find(key) >= 0
 	}
 
 	try_get(key: K) {
-		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			result = bucket.value.get(key)
-
-			if not result.empty => result
-		}
-
+		location = try_find(key)
+		if location >= 0 => Optional<V>(values[location])
 		=> Optional<V>()
 	}
 
 	get(key: K) {
-		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			result = bucket.value.get(key)
-
-			if not result.empty => result.value
-		}
-
+		location = try_find(key)
+		if location >= 0 => values[location]
 		require(false, 'Map did not contain the specified key')
 	}
 
 	remove(key: K) {
-		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			if not bucket.value.remove(key) continue
+		location = try_find(key)
+		if location < 0 => false
+		
+		states[location] = false
 
-			# Remove the key and value pair from the items list as well
-			loop (i = items.size - 1, i >= 0, i--) {
-				if items[i].key != key continue
-				items.remove_at(i)
-				stop
-			}
-
-			=> true
+		loop (i = 0, i < items.size, i++) {
+			if not (items[i].key == key) continue
+			items.remove_at(i)
+			stop
 		}
 
-		=> false
+		=> true
 	}
 
 	size() {
-		size = 0
-
-		loop (bucket = buckets.iterator(), bucket, bucket = bucket.next) {
-			size += bucket.value.size()
-		}
-
-		=> size
+		=> items.size
 	}
 
 	iterator() {

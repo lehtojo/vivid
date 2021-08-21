@@ -58,6 +58,45 @@ public static class Resolver
 	}
 
 	/// <summary>
+	/// Tries to resolve the specified function implementation
+	/// </summary>
+	public static void ResolveImplementation(FunctionImplementation implementation)
+	{
+		ResolveVariables(implementation);
+
+		// Check if the implementation has a return type and if it is unresolved
+		if (implementation.ReturnType != null)
+		{
+			if (implementation.ReturnType.IsUnresolved)
+			{
+				var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
+
+				if (type != null)
+				{
+					implementation.ReturnType = type;
+				}
+			}
+		}
+		else
+		{
+			ResolveReturnType(implementation);
+		}
+
+		if (implementation.Node != null)
+		{
+			if (!implementation.Metadata!.IsImported && implementation.Node.Find(NodeType.RETURN) == null)
+			{
+				implementation.ReturnType = Primitives.CreateUnit();
+			}
+
+			ResolveTree(implementation, implementation.Node!);
+		}
+
+		// Resolve short functions
+		ResolveContext(implementation);
+	}
+
+	/// <summary>
 	/// Tries to resolve the problems in the given context
 	/// </summary>
 	public static void ResolveContext(Context context)
@@ -74,12 +113,6 @@ public static class Resolver
 			ResolveSupertypes(context, type);
 			ResolveVariables(type);
 			ResolveContext(type);
-
-			#warning Remove if constructors work
-			// foreach (var iterator in type.Initialization)
-			// {
-			// 	Resolve(type, iterator);
-			// }
 
 			// Virtual functions do not have return types defined sometimes, the return types of those virtual functions are dependent on their default implementations
 			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
@@ -137,38 +170,7 @@ public static class Resolver
 
 		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
-			ResolveVariables(implementation);
-
-			// Check if the implementation has a return type and if it is unresolved
-			if (implementation.ReturnType != null)
-			{
-				if (implementation.ReturnType.IsUnresolved)
-				{
-					var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
-
-					if (type != null)
-					{
-						implementation.ReturnType = type;
-					}
-				}
-			}
-			else
-			{
-				ResolveReturnType(implementation);
-			}
-
-			if (implementation.Node != null)
-			{
-				if (!implementation.Metadata!.IsImported && implementation.Node.Find(NodeType.RETURN) == null)
-				{
-					implementation.ReturnType = Primitives.CreateUnit();
-				}
-
-				ResolveTree(implementation, implementation.Node!);
-			}
-
-			// Resolve short functions
-			ResolveContext(implementation);
+			ResolveImplementation(implementation);
 		}
 	}
 

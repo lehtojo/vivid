@@ -12,7 +12,6 @@ public class LoopNode : Node, IResolvable, IScope
 	public Node Action => Steps.Last!;
 
 	public Scope? Scope { get; set; } = null;
-	public Label? Continue { get; set; } = null;
 	public Label? Start { get; set; } = null;
 	public Label? Exit { get; set; } = null;
 

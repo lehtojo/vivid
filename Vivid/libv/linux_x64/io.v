@@ -42,6 +42,7 @@ namespace internal {
 	constant FLAG_DIRECTORY = 65536
 	constant FLAG_CREATE = 64
 	constant FLAG_WRITE = 1
+	constant FLAG_TRUNCATE = 512
 	constant FLAG_READ_AND_WRITE = 2
 
 	constant DEFAULT_FILE_MODE = 438 # rw-rw-rw-
@@ -148,7 +149,7 @@ FolderItem {
 export get_folder_items(folder: String, all: bool) {
 	# Try to open the specified folder
 	file_descriptor = internal.system_open(folder.text, internal.FLAG_DIRECTORY, 0)
-	if file_descriptor == -1 => none as List<FolderItem>
+	if file_descriptor < 0 => none as List<FolderItem>
 
 	items = List<FolderItem>()
 	buffer: char[1000]
@@ -156,7 +157,7 @@ export get_folder_items(folder: String, all: bool) {
 	loop {
 		# Get the next batch of directory entries
 		result = internal.system_get_directory_entries(file_descriptor, buffer as link, 1000)
-		if result == -1 {
+		if result < 0 {
 			internal.system_close(file_descriptor)
 			=> none as List<FolderItem>
 		}
@@ -224,11 +225,11 @@ export write_file(filename: link, text: String) {
 
 # Summary: Writes the specified byte array to the specified file
 export write_file(filename: link, bytes: Array<byte>) {
-	file_descriptor = internal.system_open(filename, internal.FLAG_CREATE | internal.FLAG_WRITE, internal.DEFAULT_FILE_MODE)
-	if file_descriptor == -1 => false
+	file_descriptor = internal.system_open(filename, internal.FLAG_CREATE | internal.FLAG_WRITE | internal.FLAG_TRUNCATE, internal.DEFAULT_FILE_MODE)
+	if file_descriptor < 0 => false
 
 	result = internal.system_write(file_descriptor, bytes.data, bytes.count)
-	if result == -1 => false
+	if result < 0 => false
 
 	internal.system_close(file_descriptor)
 	=> true
@@ -239,8 +240,8 @@ export read_file(filename: String) => read_file(filename.text)
 
 # Summary: Opens the specified file and returns its contents
 export read_file(filename: link) {
-	file_descriptor = internal.system_open(filename, internal.FLAG_CREATE, 0)
-	if file_descriptor == -1 => Optional<Array<byte>>()
+	file_descriptor = internal.system_open(filename, 0, 0)
+	if file_descriptor < 0 => Optional<Array<byte>>()
 
 	buffer = allocate(100)
 	size = 100
@@ -251,7 +252,7 @@ export read_file(filename: link) {
 		result = internal.system_read(file_descriptor, buffer + position, available)
 
 		# If the resutl is -1, it means the read failed
-		if result == -1 {
+		if result < 0 {
 			deallocate(buffer)
 			internal.system_close(file_descriptor)
 			=> Optional<Array<byte>>()
