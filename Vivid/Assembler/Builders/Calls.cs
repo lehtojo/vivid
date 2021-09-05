@@ -82,10 +82,37 @@ public static class Calls
 	}
 
 	/// <summary>
+	/// Passes the specified disposable pack by passing its member one by one
+	/// </summary>
+	public static void PassPack(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack)
+	{
+		foreach (var iterator in pack.Members)
+		{
+			var member = iterator.Key;
+			var value = iterator.Value;
+
+			if (member.Type!.IsPack)
+			{
+				PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
+			}
+			else
+			{
+				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.GetRegisterFormat());
+			}
+		}
+	}
+
+	/// <summary>
 	/// Passes the specified argument using a register or the specified stack position depending on the situation
 	/// </summary>
-	private static void PassArgument(List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Format format)
+	public static void PassArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Format format)
 	{
+		if (value.Value.Instance == HandleInstanceType.DISPOSABLE_PACK)
+		{
+			PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
+			return;
+		}
+
 		// Determine the parameter register
 		var is_decimal = format.IsDecimal();
 		var register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
@@ -134,8 +161,7 @@ public static class Calls
 		if (self_pointer != null)
 		{
 			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
-
-			PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
@@ -145,7 +171,7 @@ public static class Calls
 			var type = parameter_types[i];
 
 			value = Casts.Cast(unit, value, parameter.GetType(), type);
-			PassArgument(destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type.GetRegisterFormat());
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type.GetRegisterFormat());
 		}
 
 		call.Destinations.AddRange(destinations);

@@ -4,6 +4,13 @@ Outcome<T, E> {
 
 	has_value() => !is_error
 	get_value() => value as T
+
+	# Summary: Returns the specified fallback value if the outcome represents an error, otherwise the contained value is returned
+	value_or(fallback: T) {
+		result = value
+		if is_error { result = fallback }
+		=> result
+	}
 }
 
 Outcome<T, E> Ok<T, E> {

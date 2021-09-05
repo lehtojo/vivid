@@ -114,4 +114,9 @@ public class LambdaImplementation : FunctionImplementation
 	{
 		return Self ?? GetVariable(global::Function.SELF_POINTER_IDENTIFIER);
 	}
+
+	public override string GetHeader()
+	{
+		return $"{Parent!.ToString()} Lambda #{Name}";
+	}
 }

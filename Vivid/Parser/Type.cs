@@ -105,6 +105,7 @@ public class Type : Context
 	public bool IsUserDefined => !IsPrimitive && Destructors.Overloads.Any();
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
+	public bool IsPack => Flag.Has(Modifiers, Modifier.PACK);
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
 	public Format Format => GetFormat();
@@ -216,6 +217,7 @@ public class Type : Context
 
 	public virtual int GetAllocationSize()
 	{
+		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Count * Parser.Bytes;
 		return GetReferenceSize();
 	}
 

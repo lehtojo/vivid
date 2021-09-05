@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public static class Builders
 {
@@ -132,12 +133,24 @@ public static class Builders
 				return new Result();
 			}
 
+			case NodeType.PACK:
+			{
+				var values = new List<Result>();
+				foreach (var iterator in node) { values.Add(References.Get(unit, iterator)); }
+				return new CreatePackInstruction(unit, node.GetType(), values).Execute();
+			}
+
 			case NodeType.STACK_ADDRESS:
 			{
 				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Execute();
 			}
 
 			case NodeType.DISABLED: return new Result();
+
+			case NodeType.UNDEFINED:
+			{
+				return new AllocateRegisterInstruction(unit, node.To<UndefinedNode>().Format).Execute();
+			}
 
 			default: return BuildChilds(unit, node);
 		}

@@ -263,7 +263,10 @@ public static class MemoryAccessAnalysis
 			if (scope == null) throw new ApplicationException("Links did not have a shared scope");
 
 			// Since the repetitions are ordered find the insert position using the first repetition and the shared scope
-			ReconstructionAnalysis.GetInsertPosition(first, scope).Insert(new DeclareNode(variable));
+			ReconstructionAnalysis.GetInsertPosition(first, scope).Insert(new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(variable),
+				new UndefinedNode(variable.Type!, variable.GetRegisterFormat())
+			));
 
 			// Remove all the repetitions from the link list since they are about to be modified
 			repetitions.ForEach(i => links.Remove(i));

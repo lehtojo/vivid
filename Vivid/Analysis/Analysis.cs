@@ -591,7 +591,7 @@ public static class Analysis
 	/// <returns>True if the definition is primitive, otherwise false</returns>
 	public static bool IsPrimitive(Node node)
 	{
-		return node.Find(n => !(n.Is(NodeType.NUMBER) || n.Is(NodeType.OPERATOR) || n.Is(NodeType.VARIABLE) && n.To<VariableNode>().Variable.IsPredictable)) == null;
+		return node.Find(i => !(i.Is(NodeType.NUMBER) || i.Is(NodeType.OPERATOR) || i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsPredictable)) == null;
 	}
 
 	/// <summary>
@@ -944,8 +944,6 @@ public static class Analysis
 		foreach (var type in Common.GetAllTypes(context))
 		{
 			AddDefaultConstructorCalls(type, denylist);
-			#warning Remove if constructors work
-			//CompleteConstructors(type);
 			CompleteDestructors(type);
 		}
 
@@ -990,7 +988,7 @@ public static class Analysis
 
 		if (time || verbose) Console.WriteLine("1. Pass");
 
-		// Optimize all function implementations
+		// Reconstruct all implementations before doing anything
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
@@ -998,6 +996,13 @@ public static class Analysis
 			
 			// Reconstruct necessary nodes in the function implementation
 			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
+		}
+
+		// Optimize all function implementations
+		for (var i = 0; i < implementations.Count; i++)
+		{
+			var implementation = implementations[i];
+			var start = DateTime.UtcNow;
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);

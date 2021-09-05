@@ -1,7 +1,54 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+
+public class LinuxParameterAligner
+{
+	public int StandardRegisters { get; set; }
+	public int DecimalRegisters { get; set; }
+	public int Position { get; set; } = 0;
+
+	public LinuxParameterAligner(int position)
+	{
+		StandardRegisters = Calls.GetStandardParameterRegisters().Count();
+		DecimalRegisters = Calls.GetMaxMediaRegisterParameters();
+		Position = position;
+	}
+
+	/// <summary>
+	/// Consumes the specified type while taking into account if it is a pack
+	/// </summary>
+	private void Align(Variable parameter)
+	{
+		var type = parameter.Type!;
+
+		if (type.IsPack)
+		{
+			var representives = Common.GetPackRepresentives(parameter);
+			foreach (var representive in representives) { Align(representive); }
+			return;
+		}
+
+		// First, try to consume a register for the parameter
+		if (type.Format.IsDecimal() && DecimalRegisters-- > 0 || !type.Format.IsDecimal() && StandardRegisters-- > 0)
+		{
+			#warning Support Windows
+			return;
+		}
+
+		// Normal parameters consume one stack unit
+		parameter.LocalAlignment = Position;
+		Position += Parser.Bytes;
+	}
+
+	/// <summary>
+	/// Aligns the specified parameters
+	/// </summary>
+	public void Align(List<Variable> parametes)
+	{
+		foreach (var parameter in parametes) { Align(parameter); }
+	}
+}
 
 public static class Aligner
 {
@@ -113,59 +160,32 @@ public static class Aligner
 		// Align all lambdas
 		Align(function);
 
+		var parameters = new List<Variable>(function.Parameters);
+
+		// Align the self pointer as well, if it exists
+		if (function.Variables.ContainsKey(Function.SELF_POINTER_IDENTIFIER))
+		{
+			parameters.Add(function.Variables[Function.SELF_POINTER_IDENTIFIER]);
+		}
+		else if (function.Variables.ContainsKey(Lambda.SELF_POINTER_IDENTIFIER))
+		{
+			parameters.Add(function.Variables[Lambda.SELF_POINTER_IDENTIFIER]);
+		}
+
 		if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 		{
-			var standard_register_count = Calls.GetStandardParameterRegisters().Count();
-			var media_register_count = Calls.GetMaxMediaRegisterParameters();
-
-			if (standard_register_count == 0)
-			{
-				throw new ApplicationException("There were no standard registers reserved for parameter passage");
-			}
-
-			// The self pointer uses one standard register
-			if (function.Variables.ContainsKey(Function.SELF_POINTER_IDENTIFIER) || function.Variables.ContainsKey(Lambda.SELF_POINTER_IDENTIFIER))
-			{
-				standard_register_count--;
-			}
-
-			var position = Assembler.IsArm64 ? 0 : Parser.Bytes;
-
-			foreach (var parameter in function.Parameters)
-			{
-				if (!parameter.IsParameter) continue;
-
-				var type = parameter.Type!;
-				if (type.Format.IsDecimal() && media_register_count-- > 0 || !type.Format.IsDecimal() && standard_register_count-- > 0) continue;
-
-				parameter.LocalAlignment = position;
-				position += Parser.Bytes;
-			}
+			var aligner = new LinuxParameterAligner(Assembler.IsArm64 ? 0 : Parser.Bytes);
+			aligner.Align(parameters);
 		}
 		else
 		{
+			#warning Support Windows
 			var position = offset * Parser.Bytes;
-			var self = (Variable?)null;
 
-			// Align the this pointer if it exists
-			if (function.Variables.TryGetValue(Function.SELF_POINTER_IDENTIFIER, out self))
+			foreach (var parameter in parameters)
 			{
-				self.LocalAlignment = position;
-				position += Parser.Bytes;
-			}
-			else if (function.Variables.TryGetValue(Lambda.SELF_POINTER_IDENTIFIER, out self))
-			{
-				self.LocalAlignment = position - Parser.Bytes;
-				position += Parser.Bytes;
-			}
-
-			// Align the other parameters
-			foreach (var parameter in function.Parameters)
-			{
-				if (!parameter.IsParameter) continue;
-
 				parameter.LocalAlignment = position;
-				position += Parser.Bytes;
+				position += parameter.Type!.AllocationSize;
 			}
 		}
 	}

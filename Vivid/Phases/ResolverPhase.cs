@@ -228,18 +228,6 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
-			#warning Remove if constructors work
-			// foreach (var iterator in type.Initialization)
-			// {
-			// 	foreach (var resolvable in iterator.FindAll(i => i is IResolvable))
-			// 	{
-			// 		var status = ((IResolvable)resolvable).GetStatus();
-			// 		if (!status.IsProblematic) continue;
-
-			// 		diagnostics.Add(new DocumentDiagnostic(resolvable.Position, status.Description, DocumentDiagnosticSeverity.ERROR));
-			// 	}
-			// }
-
 			diagnostics.AddRange(FindUnconstructedSupertypes(type));
 
 			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
@@ -439,16 +427,11 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
-			#warning REMOVE THIS
-			// foreach (var iterator in type.Initialization)
-			// {
-			// 	var errors = iterator.FindAll(i => i is IResolvable).Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic);
-
-			// 	foreach (var error in errors)
-			// 	{
-			// 		types.AppendLine(error.Description);
-			// 	}
-			// }
+			// TODO: Support pack supertypes
+			if (type.IsPack && type.Supertypes.Any())
+			{
+				types.AppendLine("Packs do not support supertypes currently");
+			}
 
 			foreach (var diagnostic in FindUnconstructedSupertypes(type).Select(i => Status.Error(new Position(type.Position?.File, i.Range.Start.Line, i.Range.Start.Character), i.Message)))
 			{
@@ -466,6 +449,13 @@ public class ResolverPhase : Phase
 				types.AppendLine(Errors.Format(virtual_function.Start, "Can not resolve virtual function return type"));
 			}
 
+			// Look for override functions, which do not override anything
+			foreach (var override_function in type.Overrides.Values.SelectMany(i => i.Overloads))
+			{
+				if (override_function.Implementations.Count > 0) continue;
+				types.AppendLine(Errors.Format(override_function.Start, "Override function has no matching virtual function"));
+			}
+
 			if (type.IsUserDefined && type.Destructors.Overloads.All(i => i.Parameters.Count > 0))
 			{
 				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' does not have a default destructor"));
@@ -473,10 +463,7 @@ public class ResolverPhase : Phase
 
 			var report = GetReport(type);
 
-			if (string.IsNullOrEmpty(report))
-			{
-				continue;
-			}
+			if (string.IsNullOrEmpty(report)) continue;
 
 			types.Append(report);
 			types.AppendLine();
@@ -509,10 +496,8 @@ public class ResolverPhase : Phase
 			var report = GetFunctionReport(implementation);
 			var subreport = GetReport(implementation);
 
-			if (!string.IsNullOrEmpty(report))
-			{
-				report += "\n" + subreport;
-			}
+			if (!string.IsNullOrEmpty(report)) { report += "\n" + subreport; }
+			else { report = subreport; }
 
 			if (!string.IsNullOrEmpty(report))
 			{
@@ -552,10 +537,7 @@ public class ResolverPhase : Phase
 		var report = GetReport(context);
 		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION).Cast<ExtensionFunctionNode>();
 
-		if (!extensions.Any())
-		{
-			return report;
-		}
+		if (!extensions.Any()) return report;
 
 		var builder = new StringBuilder();
 

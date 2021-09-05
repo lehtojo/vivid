@@ -808,13 +808,15 @@ public static class Common
 	/// </summary>
 	public static InlineContainer CreateInlineContainer(Type type, Node node)
 	{
-		if (node.Parent != null && node.Parent.Is(Operators.ASSIGN))
+		var editor = Analyzer.TryGetEditor(node);
+
+		if (editor != null && editor.Is(Operators.ASSIGN))
 		{
-			var edited = Analyzer.GetEdited(node.Parent);
+			var edited = Analyzer.GetEdited(editor);
 
 			if (edited.Is(NodeType.VARIABLE) && edited.To<VariableNode>().Variable.IsPredictable)
 			{
-				return new InlineContainer(node.Parent, new InlineNode(node.Position), edited.To<VariableNode>().Variable);
+				return new InlineContainer(editor, new InlineNode(node.Position), edited.To<VariableNode>().Variable);
 			}
 		}
 
@@ -832,9 +834,14 @@ public static class Common
 	{
 		var iterator = node;
 
-		while (iterator.Parent != null && !ReconstructionAnalysis.IsStatement(iterator.Parent) && !iterator.Parent.Is(NodeType.NORMAL))
+		while (true)
 		{
-			iterator = iterator.Parent;
+			var next = iterator.Parent;
+			if (next == null) break;
+
+			if (next.Is(NodeType.OPERATOR) && !next.Is(OperatorType.ACTION)) { iterator = next; }
+			else if (next.Is(NodeType.CONTENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.PACK)) { iterator = next; }
+			else { break; }
 		}
 
 		return iterator;
@@ -1113,5 +1120,39 @@ public static class Common
 
 		if (!result.Contains('.')) return result + ".0";
 		return result;
+	}
+
+	/// <summary>
+	/// Returns all local variables, which represent the specified pack variable
+	/// </summary>
+	private static List<Variable> GetPackRepresentives(Context context, string prefix, Type type, VariableCategory category)
+	{
+		var representives = new List<Variable>();
+
+		foreach (var member in type.Variables.Values)
+		{
+			var name = prefix + '.' + member.Name;
+
+			if (member.Type!.IsPack)
+			{
+				representives.AddRange(GetPackRepresentives(context, name, member.Type!, category));
+			}
+			else
+			{
+				var representive = context.GetVariable(name);
+				if (representive == null) { representive = context.Declare(member.Type!, category, name); }
+				representives.Add(representive);
+			}
+		}
+
+		return representives;
+	}
+
+	/// <summary>
+	/// Returns all local variables, which represent the specified pack variable
+	/// </summary>
+	public static List<Variable> GetPackRepresentives(Variable pack)
+	{
+		return GetPackRepresentives(pack.Context, '.' + pack.Name, pack.Type!, pack.Category);
 	}
 }

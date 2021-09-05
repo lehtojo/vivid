@@ -22,6 +22,7 @@ public static class Keywords
 	public static readonly Keyword NOT = new("not", KeywordType.FLOW);
 	public static readonly Keyword OUTLINE = new ModifierKeyword("outline", Modifier.OUTLINE);
 	public static readonly Keyword OVERRIDE = new("override");
+	public static readonly Keyword PACK = new ModifierKeyword("pack", Modifier.PACK);
 	public static readonly Keyword PLAIN = new ModifierKeyword("plain", Modifier.PLAIN);
 	public static readonly Keyword PRIVATE = new ModifierKeyword("private", Modifier.PRIVATE);
 	public static readonly Keyword PROTECTED = new ModifierKeyword("protected", Modifier.PROTECTED);
@@ -54,6 +55,7 @@ public static class Keywords
 		Values.Add(NOT.Identifier, NOT);
 		Values.Add(OUTLINE.Identifier, OUTLINE);
 		Values.Add(OVERRIDE.Identifier, OVERRIDE);
+		Values.Add(PACK.Identifier, PACK);
 		Values.Add(PLAIN.Identifier, PLAIN);
 		Values.Add(PRIVATE.Identifier, PRIVATE);
 		Values.Add(PROTECTED.Identifier, PROTECTED);

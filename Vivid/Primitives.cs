@@ -74,6 +74,57 @@ public static class Primitives
 	}
 
 	/// <summary>
+	/// Creates a primitive number which matches the specified settings
+	/// </summary>
+	public static Number CreateNumber(int bits, bool signed, bool is_decimal)
+	{
+		var number = (Number?)null;
+
+		if (is_decimal)
+		{
+			number = new Number(Format.DECIMAL, 64, false, DECIMAL);
+		}
+		else if (signed)
+		{
+			number = bits switch
+			{
+				8 => new Number(Format.INT8, 8, false, TINY),
+				16 => new Number(Format.INT16, 16, false, SMALL),
+				32 => new Number(Format.INT32, 32, false, NORMAL),
+				64 => new Number(Format.INT64, 64, false, LARGE),
+				_ => new Number(Format.INT64, 64, false, LARGE)
+			};
+		}
+		else
+		{
+			number = bits switch
+			{
+				8 => new Number(Format.UINT8, 8, false, U8),
+				16 => new Number(Format.UINT16, 16, false, U16),
+				32 => new Number(Format.UINT32, 32, false, U32),
+				64 => new Number(Format.UINT64, 64, false, U64),
+				_ => new Number(Format.UINT64, 64, false, U64)
+			};
+		}
+
+		number.Identifier = number.Name switch
+		{
+			DECIMAL => DECIMAL_IDENTIFIER,
+			LARGE => LARGE_IDENTIFIER,
+			NORMAL => NORMAL_IDENTIFIER,
+			SMALL => SMALL_IDENTIFIER,
+			TINY => TINY_IDENTIFIER,
+			U64 => U64_IDENTIFIER,
+			U32 => U32_IDENTIFIER,
+			U16 => U16_IDENTIFIER,
+			U8 => U8_IDENTIFIER,
+			_ => number.Name
+		};
+
+		return number;
+	}
+
+	/// <summary>
 	/// Creates a primitive unit type
 	/// </summary>
 	public static Type CreateUnit()

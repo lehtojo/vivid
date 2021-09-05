@@ -8,6 +8,7 @@ public class GetObjectPointerInstruction : Instruction
 	public Result Start { get; private set; }
 	public int Offset { get; private set; }
 	public AccessMode Mode { get; private set; }
+	public DisposablePackHandle? Pack { get; private set; } = null;
 
 	public GetObjectPointerInstruction(Unit unit, Variable variable, Result start, int offset, AccessMode mode) : base(unit, InstructionType.GET_OBJECT_POINTER)
 	{
@@ -19,6 +20,39 @@ public class GetObjectPointerInstruction : Instruction
 		Dependencies = new[] { Result, Start };
 
 		Result.Format = Variable.Type!.Format;
+
+		if (Variable.Type!.IsPack)
+		{
+			Pack = new DisposablePackHandle(unit, Variable.Type!);
+
+			OutputPack(Pack, 0);
+
+			Result.Value = Pack;
+			Result.Format = Assembler.Format;
+			return;
+		}
+	}
+
+	private int OutputPack(DisposablePackHandle pack, int position)
+	{
+		foreach (var iterator in pack.Members)
+		{
+			var member = iterator.Key;
+			var value = iterator.Value;
+
+			if (member.Type!.IsPack)
+			{
+				position = OutputPack(value.Value.To<DisposablePackHandle>(), position);
+			}
+			else
+			{
+				value.Value = new MemoryHandle(Unit, Start, Offset + position);
+				value.Format = member.GetRegisterFormat();
+				position += member.Type!.AllocationSize;
+			}
+		}
+
+		return position;
 	}
 
 	private void ValidateHandle()
@@ -33,6 +67,14 @@ public class GetObjectPointerInstruction : Instruction
 	public override void OnBuild()
 	{
 		ValidateHandle();
+
+		if (Pack != null)
+		{
+			OutputPack(Pack, 0);
+			Result.Value = Pack;
+			Result.Format = Assembler.Format;
+			return;
+		}
 
 		/// NOTE: Addresses of inlined member variables can not be modified, therefore the text below does not affect inlined member variables
 		if (Variable.IsInlined())

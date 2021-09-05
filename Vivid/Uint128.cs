@@ -127,6 +127,16 @@ public struct Uint128
 		return new Uint128(value).ShiftRight(amount);
 	}
 
+	public override bool Equals(object? other)
+	{
+		return other is Uint128 value && this == value;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(High, Low);
+	}
+
 	/// <summary>
 	/// Returns the index of the last bit set to one
 	/// </summary>

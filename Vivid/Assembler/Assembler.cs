@@ -428,11 +428,21 @@ public static class Assembler
 				unit.Append(new InitializeInstruction(unit));
 
 				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
-				var parameters = unit.Function.Parameters;
+				var parameters = new List<Variable>(unit.Function.Parameters);
 
 				if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
 				{
 					parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
+				}
+
+				// Include pack representives as well
+				var parameter_count = parameters.Count;
+
+				for (var i = 0; i < parameter_count; i++)
+				{
+					var parameter = parameters[i];
+					if (!parameter.Type!.IsPack) continue;
+					parameters.AddRange(Common.GetPackRepresentives(parameter));
 				}
 
 				unit.Append(new RequireVariablesInstruction(unit, parameters));

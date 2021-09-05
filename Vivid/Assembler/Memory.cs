@@ -68,8 +68,6 @@ public static class Memory
 		// Order the move instructions so that intersections are minimized
 		var optimized_indices = new SortedSet<int>();
 
-	Start:
-
 		for (var i = 0; i < result.Count; i++)
 		{
 			for (var j = i + 1; j < result.Count; j++)

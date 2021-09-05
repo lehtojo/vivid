@@ -169,12 +169,6 @@ init() {
 	gabe = create_gabe()
 	steve = create_steve()
 
-	array = create_array(4)
-	set(array, pig, 0)
-	set(array, bus, 1)
-	set(array, car, 2)
-	set(array, banana, 3)
-
-	get_reliable_vehicles(array, -1000000)
+	can_use(john, car)
 	=> true
 }

@@ -34,8 +34,9 @@ public class ReturnInstruction : Instruction
 	public override void OnBuild()
 	{
 		// 1. Skip if there is no return value
-		// 2. Ensure the return value is in the correct register
-		if (Object == null || IsValueInReturnRegister())
+		// 2. Packs are handled separately
+		// 3. Ensure the return value is in the correct register
+		if (Object == null || (ReturnType != null && ReturnType.IsPack) || IsValueInReturnRegister())
 		{
 			return;
 		}

@@ -32,14 +32,14 @@ public static class Links
 			var member = node.Right.To<VariableNode>().Variable;
 
 			// Link nodes can also access static variables for example
-			if (member.IsGlobal)
-			{
-				return References.GetVariable(unit, member, mode);
-			}
+			if (member.IsGlobal) return References.GetVariable(unit, member, mode);
 
 			var left = References.Get(unit, node.Left);
-			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
 
+			// Packs:
+			if (left.Value.Instance == HandleInstanceType.DISPOSABLE_PACK) return left.Value.To<DisposablePackHandle>().Members[member];
+
+			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
 			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
 		}
 

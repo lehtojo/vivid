@@ -346,7 +346,10 @@ public static class ReconstructionAnalysis
 			var object_variable = expression_context.DeclareHidden(object_type);
 
 			// Object variable should be declared
-			initialization = new DeclareNode(object_variable);
+			initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
+				new VariableNode(object_variable),
+				new UndefinedNode(object_variable.Type!, object_variable.GetRegisterFormat())
+			);
 
 			GetInsertPosition(expression).Insert(initialization);
 
@@ -377,6 +380,52 @@ public static class ReconstructionAnalysis
 
 			// Replace the expression with the logic above
 			expression.Replace(new InlineNode(expression.Position) { load, conditional_assignment, result_condition });
+		}
+	}
+
+	/// <summary>
+	/// Rewrites when-expressions so that they use nodes which can be compiled
+	/// </summary>
+	private static void RewriteWhenExpressions(Node root)
+	{
+		var expressions = root.FindAll(NodeType.WHEN).Cast<WhenNode>();
+
+		foreach (var expression in expressions)
+		{
+			var position = expression.Position;
+			var return_type = Resolver.GetSharedType(expression.Sections.Select(i => expression.GetSectionBody(i).Last!.GetType()).ToArray()) ?? throw Errors.Get(position, "Could not resolve the return type of the statement");
+			var container = Common.CreateInlineContainer(return_type, expression);
+
+			// The load must be executed before the actual when-statement
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				expression.Inspected.Clone(),
+				expression.Value
+			));
+
+			// Define the result variable
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result),
+				new UndefinedNode(return_type, return_type.GetRegisterFormat())
+			));
+
+			foreach (var section in expression.Sections)
+			{
+				var body = expression.GetSectionBody(section);
+
+				// Load the return value of the section to the return value variable
+				var value = body.Last!;
+				var destination = new Node();
+				value.Replace(destination);
+
+				destination.Replace(new OperatorNode(Operators.ASSIGN, value.Position).SetOperands(
+					new VariableNode(container.Result, value.Position),
+					value
+				));
+
+				container.Node.Add(section);
+			}
+
+			container.Destination.Replace(container.Node);
 		}
 	}
 
@@ -431,15 +480,15 @@ public static class ReconstructionAnalysis
 	/// Example:
 	/// element.is_visible = element.color.alpha > 0
 	/// </summary>
-	private static List<OperatorNode> FindBooleanValues(Node root)
+	private static List<OperatorNode> FindBoolValues(Node root)
 	{
 		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.Is(OperatorType.COMPARISON) || i.Is(OperatorType.LOGIC))).Cast<OperatorNode>();
 
 		return candidates.Where(candidate =>
 		{
-			var node = candidate.FindParent(i => !i.Is(NodeType.CONTENT))!;
+			var node = candidate.FindParent(i => !i.Is(NodeType.CONTENT, NodeType.CONTENT))!;
 
-			if (ReconstructionAnalysis.IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate)) return false;
+			if (IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate)) return false;
 
 			// Ensure the parent is not a comparison or a logical operator
 			return node is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGIC;
@@ -450,43 +499,44 @@ public static class ReconstructionAnalysis
 	/// <summary>
 	/// Finds all the boolean values under the specified node and rewrites them using conditional statements
 	/// </summary>
-	private static void OutlineBooleanValues(Node root)
+	private static void ExtractBoolValues(Node root)
 	{
-		var instances = FindBooleanValues(root);
+		var expressions = FindBoolValues(root);
 
-		foreach (var instance in instances)
+		foreach (var expression in expressions)
 		{
-			// Declare a hidden variable which represents the result
-			var environment = instance.GetParentContext();
-			var destination = environment.DeclareHidden(Primitives.CreateBool());
+			var container = Common.CreateInlineContainer(Primitives.CreateBool(), expression);
+			var position = expression.Position;
+
+			// Create the container, since it will contain a conditional statement
+			container.Destination.Replace(container.Node);
 
 			// Initialize the result with value 'false'
-			var initialization = new OperatorNode(Operators.ASSIGN).SetOperands(
-			   new VariableNode(destination),
-			   new NumberNode(Assembler.Format, 0L)
+			var initialization = new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
+				new NumberNode(Parser.Format, 0L, position)
 			);
 
-			// Replace the operation with the result
-			var inline = new InlineNode(instance.Position);
-			instance.Replace(inline);
-
-			var context = new Context(environment);
+			container.Node.Add(initialization);
 
 			// The destination is edited inside the following statement
-			var assignment = new OperatorNode(Operators.ASSIGN).SetOperands(
-			   new VariableNode(destination),
-			   new NumberNode(Assembler.Format, 1L)
+			var assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
+				new NumberNode(Parser.Format, 1L, position)
 			);
 
-			destination.Writes.Add(assignment);
-
 			// Create a conditional statement which sets the value of the destination variable to true if the condition is true
-			var statement = new IfNode(context, instance, new Node { assignment }, instance.Position, null);
+			var environment = initialization.GetParentContext();
+			var context = new Context(environment);
 
-			// Add the statements which implement the boolean value
-			inline.Add(initialization);
-			inline.Add(statement);
-			inline.Add(new VariableNode(destination));
+			var body = new Node();
+			body.Add(assignment);
+
+			var statement = new IfNode(context, expression, body, position, null);
+			container.Node.Add(statement);
+
+			// If the container node is placed inside an expression, the node must return the result
+			container.Node.Add(new VariableNode(container.Result, position));
 		}
 	}
 
@@ -518,6 +568,14 @@ public static class ReconstructionAnalysis
 	public static bool IsStatement(Node node)
 	{
 		return node.Is(NodeType.ELSE, NodeType.ELSE_IF, NodeType.IF, NodeType.LOOP, NodeType.SCOPE);
+	}
+
+	/// <summary>
+	/// Returns whether the specified node might have a direct effect on the flow
+	/// </summary>
+	public static bool IsAffector(Node node)
+	{
+		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN) || node.Is(OperatorType.ACTION);
 	}
 
 	/// <summary>
@@ -743,14 +801,15 @@ public static class ReconstructionAnalysis
 
 	public static Node GetExpressionExtractPosition(Node expression)
 	{
-		var iterator = expression;
-		var position = iterator;
+		#warning If this is working, update in stage2 as well
+		var iterator = expression.Parent;
+		var position = expression;
 
 		while (iterator != null)
 		{
 			if (iterator.Is(NodeType.INLINE, NodeType.NORMAL, NodeType.SCOPE)) break;
 
-			// Logical operators also act as scopes. You can not for example extract function calls from them, because the function calls are not always executed.
+			// Logical operators also act as scopes. You can not for example extract function calls from them, because those function calls are not always executed.
 			// Example of what this function should do in the following situation:
 			// a(b(i)) and c(d(j))
 			// =>
@@ -819,8 +878,8 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION);
-		nodes.AddRange(FindBooleanValues(root));
+		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.WHEN);
+		nodes.AddRange(FindBoolValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
 		{
@@ -1109,7 +1168,7 @@ public static class ReconstructionAnalysis
 			var from = assignment.Right.GetType();
 
 			// Skip assignments which do not cast the value
-			if (to == from) continue;
+			if (Equals(to, from)) continue;
 
 			// If the right operand is a number and it is converted into different kind of number, it can be done without a cast node
 			if (assignment.Right.Is(NodeType.NUMBER) && from is Number && to is Number)
@@ -1134,61 +1193,62 @@ public static class ReconstructionAnalysis
 	{
 		var lambdas = root.FindAll(NodeType.LAMBDA).Cast<LambdaNode>();
 
-		foreach (var lambda in lambdas)
+		foreach (var construction in lambdas)
 		{
-			var environment = lambda.GetParentContext();
-			var inline = new ContextInlineNode(new Context(environment));
+			var position = construction.Position;
 
-			var implementation = (LambdaImplementation)lambda.Implementation!;
-
+			var environment = construction.GetParentContext();
+			var implementation = (LambdaImplementation)construction.Implementation!;
 			implementation.Seal();
 
 			var type = implementation.Type!;
+
+			var container = Common.CreateInlineContainer(type, construction);
 			var allocator = (Node?)null;
 
-			if (IsStackConstructionPreferred(root, lambda))
+			if (IsStackConstructionPreferred(root, construction))
 			{
-				allocator = new CastNode(new StackAddressNode(inline.Context, type), new TypeNode(type));
+				allocator = new CastNode(new StackAddressNode(environment, type), new TypeNode(type), position);
 			}
 			else
 			{
-				allocator = new CastNode(
-					new FunctionNode(Parser.AllocationFunction!, lambda.Position).SetArguments(new Node { new NumberNode(Parser.Format, (long)type.ContentSize) }),
-					new TypeNode(type)
-				);
+				var arguments = new Node();
+				arguments.Add(new NumberNode(Parser.Format, (long)type.ContentSize));
+
+				var call = new FunctionNode(Parser.AllocationFunction!, construction.Position).SetArguments(arguments);
+
+				allocator = new CastNode(call, new TypeNode(type), position);
 			}
 
-			var container = inline.Context.DeclareHidden(type);
-			var allocation = new OperatorNode(Operators.ASSIGN).SetOperands
+			var allocation = new OperatorNode(Operators.ASSIGN, position).SetOperands
 			(
-				new VariableNode(container),
+				new VariableNode(container.Result),
 				allocator
 			);
 
-			inline.Add(allocation);
+			container.Node.Add(allocation);
 
-			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN).SetOperands
+			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands
 			(
-				new LinkNode(new VariableNode(container), new VariableNode(implementation.Function!)),
+				new LinkNode(new CastNode(new VariableNode(container.Result), new TypeNode(type)), new VariableNode(implementation.Function!), position),
 				new DataPointer(implementation)
 			);
 
-			inline.Add(function_pointer_assignment);
+			container.Node.Add(function_pointer_assignment);
 
 			foreach (var capture in implementation.Captures)
 			{
-				var assignment = new OperatorNode(Operators.ASSIGN).SetOperands
+				var assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands
 				(
-					new LinkNode(new VariableNode(container), new VariableNode(capture)),
+					new LinkNode(new CastNode(new VariableNode(container.Result), new TypeNode(type)), new VariableNode(capture), position),
 					new VariableNode(capture.Captured)
 				);
 
-				inline.Add(assignment);
+				container.Node.Add(assignment);
 			}
 
-			inline.Add(new VariableNode(container));
-
-			lambda.Replace(inline);
+			container.Node.Add(new VariableNode(container.Result));
+			container.Destination.Replace(container.Node);
 		}
 	}
 
@@ -1249,6 +1309,203 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Creates all member accessors that represent all non-pack members
+	/// Example (start = object.pack, type = { a: large, other: { b: large, c: large } })
+	/// => { object.pack.a, object.pack.other.b, object.pack.other.c }
+	/// </summary>
+	private static List<Node> CreatePackMemberAccessors(Node start, Type type, Position position)
+	{
+		var result = new List<Node>();
+
+		foreach (var member in type.Variables.Values)
+		{
+			var accessor = new LinkNode(start.Clone(), new VariableNode(member), position);
+
+			if (member.Type!.IsPack)
+			{
+				result.AddRange(CreatePackMemberAccessors(accessor, member.Type!, position));
+				continue;
+			}
+
+			result.Add(accessor);
+		}
+
+		return result;
+	}
+	
+	/// <summary>
+	/// Finds all usages of packs and rewrites them to be more suitable for compilation
+	/// Example (Here $-prefixes indicate generated hidden variables):
+	/// a = b
+	/// c = f()
+	/// g(c)
+	/// Direct assignments are expanded:
+	/// a.x = b.x
+	/// a.y = b.y
+	/// c = f() <- The original assignment is not removed, because it is needed by the placeholders
+	/// c.x = [Placeholder 1] -> c.x
+	/// c.y = [Placeholder 2] -> c.y
+	/// g(c)
+	/// Pack values are replaced with pack nodes:
+	/// a.x = b.x
+	/// a.y = b.y
+	/// c = f() <- The original assignment is not removed, because it is needed by the placeholders
+	/// c.x = [Placeholder 1] -> c.x
+	/// c.y = [Placeholder 2] -> c.y
+	/// g({ $c.x, $c.y }) <- Here a pack node is created, which creates a pack handle in the back end from the child values
+	/// Member accessors are replaced with local variables:
+	/// $a.x = $b.x
+	/// $a.y = $b.y
+	/// c = f() <- The original assignment is not removed, because it is needed by the placeholders
+	/// c.x = [Placeholder 1] -> c.x
+	/// c.y = [Placeholder 2] -> c.y
+	/// g({ $c.x, $c.y })
+	/// Finally, the placeholders are replaced with the actual nodes:
+	/// $a.x = $b.x
+	/// $a.y = $b.y
+	/// c = f() <- The original assignment is not removed, because it is needed by the placeholders
+	/// $c.x = c.x
+	/// $c.y = c.y
+	/// g({ $c.x, $c.y })
+	/// </summary>
+	private static void RewritePackUsages(FunctionImplementation implementation, Node root)
+	{
+		var placeholders = new List<KeyValuePair<Node, Node>>();
+
+		// Direct assignments are expanded:
+		var assignments = root.FindAll(i => i.Is(Operators.ASSIGN));
+
+		for (var i = assignments.Count - 1; i >= 0; i--)
+		{
+			var assignment = assignments[i];
+
+			var destination = assignment.Left;
+			var source = assignment.Right;
+
+			var type = destination.GetType();
+
+			if (!type.IsPack)
+			{
+				assignments.RemoveAt(i);
+				continue;
+			}
+
+			var container = assignment.Parent!;
+			var position = assignment.Position!;
+
+			var destinations = CreatePackMemberAccessors(destination, type, position);
+			var sources = (List<Node>?)null;
+
+			var is_function_assignment = assignment.Right.Is(NodeType.CALL, NodeType.FUNCTION);
+
+			// The sources of function assignments must be replaced with placeholders, so that they do not get overriden by the local representives of the members
+			if (is_function_assignment)
+			{
+				var loads = CreatePackMemberAccessors(destination, type, position);
+				sources = new List<Node>();
+				
+				for (var j = 0; j < loads.Count; j++)
+				{
+					var placeholder = new Node();
+					sources.Add(placeholder);
+
+					placeholders.Add(new KeyValuePair<Node, Node>(placeholder, loads[j]));
+				}
+			}
+			else
+			{
+				sources = CreatePackMemberAccessors(source, type, position);
+			}
+
+			for (var j = destinations.Count - 1; j >= 0; j--)
+			{
+				container.Insert(assignment.Next, new OperatorNode(Operators.ASSIGN, position).SetOperands(destinations[j], sources[j]));
+			}
+
+			// The assigment must be removed, if its source is not a function call
+			/// NOTE: The function call assignment must be left intact, because it must assign the disposable pack handle, whose usage is demonstrated above
+			if (!is_function_assignment) { assignment.Remove(); }
+
+			assignments.RemoveAt(i);
+		}
+
+		// Pack values are replaced with pack nodes:
+		// Find all local variables, which are packs
+		var packs = implementation.Locals.Concat(implementation.Parameters).Concat(implementation.Variables.Values).Where(i => i.Type!.IsPack).ToList();
+		foreach (var pack in packs) { Common.GetPackRepresentives(pack); }
+
+		var usages = root.FindAll(NodeType.VARIABLE).Where(i => packs.Contains(i.To<VariableNode>().Variable)).ToList();
+
+		for (var i = usages.Count - 1; i >= 0; i--)
+		{
+			var usage = usages[i];
+			var type = usage.GetType();
+
+			// Leave the function assignments intact
+			if (Analyzer.IsEdited(usage)) continue;
+
+			// Skip usages, which are used to access members
+			if (usage.Parent!.Is(NodeType.LINK) && usage.Next!.Is(NodeType.VARIABLE)) continue;
+
+			// Remove the usage from the list, because it will be replaced with a pack node
+			usages.RemoveAt(i);
+			
+			var packer = new PackNode(type);
+			foreach (var accessor in CreatePackMemberAccessors(usage, type, usage.Position!)) { packer.Add(accessor); }
+			usage.Replace(packer);
+		}
+
+		// Member accessors are replaced with local variables:
+		usages = root.FindAll(NodeType.VARIABLE).Where(i => packs.Contains(i.To<VariableNode>().Variable)).ToList();
+
+		/// NOTE: All usages are used to access a member here
+		foreach (var usage in usages)
+		{
+			// Leave the function assignments intact
+			if (Analyzer.IsEdited(usage)) continue;
+
+			/// NOTE: Add a prefix, because name could conflict with hidden variables
+			var name = '.' + usage.To<VariableNode>().Variable.Name;
+			var iterator = usage;
+			var type = (Type?)null;
+
+			while (iterator != null)
+			{
+				// The parent node must be a link, since a member access is expected
+				var parent = iterator.Parent;
+				if (parent == null || parent.Instance != NodeType.LINK) break;
+
+				// Ensure the current iterator is used for member access
+				var next = iterator.Next!;
+				if (next.Instance != NodeType.VARIABLE) break;
+
+				// Append the member to the name
+				var member = next.To<VariableNode>().Variable;
+				name += '.' + member.Name;
+
+				iterator = parent;
+				type = member.Type!;
+
+				if (!type.IsPack) break;
+			}
+
+			if (type == null) throw new ApplicationException("Pack member did not have a type");
+
+			// Find or create the representive for the member access
+			var context = usage.To<VariableNode>().Variable.Context;
+			var representive = context.GetVariable(name) ?? throw new ApplicationException("Missing pack member");
+
+			iterator!.Replace(new VariableNode(representive, usage.Position));
+		}
+
+		// Returned packs from function calls are handled last:
+		foreach (var placeholder in placeholders)
+		{
+			placeholder.Key.Replace(placeholder.Value);
+		}
+	}
+
+	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
 	public static void Reconstruct(FunctionImplementation implementation, Node root)
@@ -1262,10 +1519,11 @@ public static class ReconstructionAnalysis
 		ExtractExpressions(root);
 		AddAssignmentCasts(root);
 		RewriteSupertypeAccessors(root);
+		RewriteWhenExpressions(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
 		RewriteConstructions(root);
-		OutlineBooleanValues(root);
+		ExtractBoolValues(root);
 		RewriteEditsAsAssignments(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
@@ -1276,6 +1534,7 @@ public static class ReconstructionAnalysis
 		}
 
 		RemoveRedundantInlineNodes(root);
+		RewritePackUsages(implementation, root);
 	}
 
 	/// <summary>
@@ -1288,6 +1547,6 @@ public static class ReconstructionAnalysis
 		RewriteRemainderOperations(root);
 
 		/// NOTE: Inline nodes can be directly under logical operators now, so outline possible booleans values which represent conditions
-		OutlineBooleanValues(root);
+		ExtractBoolValues(root);
 	}
 }

@@ -1,7 +1,27 @@
 using System;
+using System.Linq;
+using System.Collections.Generic;
 
 public static class Returns
 {
+	/// <summary>
+	/// Returns the specified pack by using the registers used when passing packs in parameters
+	/// </summary>
+	private static void ReturnPack(Unit unit, Result value)
+	{
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
+		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
+
+		var destinations = new List<Handle>();
+		var sources = new List<Result>();
+
+		// Pass the first value using the stack just above the return address
+		var position = new StackMemoryHandle(unit, Assembler.IsX64 ? Assembler.Size.Bytes : 0);
+		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, Assembler.Format);
+
+		unit.Append(new ReorderInstruction(unit, destinations, sources));
+	}
+
 	public static Result Build(Unit unit, ReturnNode node)
 	{
 		unit.TryAppendPosition(node);
@@ -16,6 +36,7 @@ public static class Returns
 
 			unit.TryAppendPosition(scope.End);
 
+			if (to.IsPack) ReturnPack(unit, value);
 			return new ReturnInstruction(unit, value, unit.Function.ReturnType).Execute();
 		}
 

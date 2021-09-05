@@ -32,22 +32,24 @@ public static class Loops
 			if (statement.IsForeverLoop)
 			{
 				unit.Append(new MergeScopeInstruction(unit, scope));
-				return new JumpInstruction(unit, statement.Start).Execute();
+				return new JumpInstruction(unit, start).Execute();
 			}
 
 			// Build the nodes around the actual condition by disabling the condition temporarily
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
 
-			// Initialization of the condition happens twice, therefore inner labels can duplicate
+			// Initialization of the condition might happen multiple times, therefore inner labels can duplicate
 			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
 
 			Builders.Build(unit, statement.Initialization.Next!);
 
 			statement.Condition.Instance = instance;
 
+			// Prepare for starting the loop again potentially
 			unit.Append(new MergeScopeInstruction(unit, scope));
 
+			// Build the actual condition
 			var exit = statement.Exit ?? throw new ApplicationException("Missing loop exit label");
 			BuildEndCondition(unit, statement.Condition, start, exit);
 			
@@ -118,7 +120,7 @@ public static class Loops
 			var instance = statement.Condition.Instance;
 			statement.Condition.Instance = NodeType.DISABLED;
 
-			// Initialization of the condition happens twice, therefore inner labels can duplicate
+			// Initialization of the condition might happen multiple times, therefore inner labels can duplicate
 			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
 
 			Builders.Build(unit, statement.Initialization.Next!);

@@ -63,10 +63,7 @@ public static class Inlines
 				foreach (var local in subcontext.GetContext().Variables.Values)
 				{
 					// Skip the variable if it is the self pointer
-					if (local.IsSelfPointer)
-					{
-						continue;
-					}
+					if (local.IsSelfPointer) continue;
 
 					// Create a new variable which represents the original variable and redirect all the usages of the original variable
 					var replacement_variable = replacement_context.DeclareHidden(local.Type!);
@@ -193,7 +190,7 @@ public static class Inlines
 
 		LocalizeLabels(environment, body);
 
-		foreach (var local in function.Variables.Values)
+		foreach (var local in function.Locals.Concat(function.Parameters))
 		{
 			if (local.IsSelfPointer) continue;
 
@@ -238,29 +235,36 @@ public static class Inlines
 			// Request a label representing the end of the function only if needed
 			Label? end = null;
 
-			if (return_statements.Any())
-			{
-				end = environment.CreateLabel();
-				body.Add(new DeclareNode(container.Result) { Registerize = false });
-				body.Add(new JumpNode(end));
-				body.Add(new LabelNode(end));
-			}
-
 			// Replace all the return statements with an assign operator which stores the value to the result variable
 			foreach (var return_statement in return_statements)
 			{
 				// Assign the return value of the function to the variable which represents the result of the function
-				var assign = new OperatorNode(Operators.ASSIGN).SetOperands(
-					new VariableNode(container.Result),
-					return_statement.Value!
-				);
+				var assign = new OperatorNode(Operators.ASSIGN).SetOperands(new VariableNode(container.Result), return_statement.Value!);
 
-				// Create a node which exists the inlined function since there can be more inlined code after the result is assigned
-				var jump = new JumpNode(end!);
+				// If the return statement is the last statement in the function, no need to create a jump
+				if (return_statement.Next == null && return_statement.Parent!.Parent == null)
+				{
+					// Just save the return value
+					return_statement.Replace(assign);
+				}
+				else
+				{
+					if (end == null)
+					{
+						// Declare the return variable at the top of the inlined function
+						end = environment.CreateLabel();
+						body.Insert(body.First, new DeclareNode(container.Result) { Registerize = false });
+						body.Add(new JumpNode(end)); // Add this jump because it will trigger label merging
+						body.Add(new LabelNode(end));
+					}
 
-				// Replace the return statement with the assign statement and add a jump to exit the inline node
-				return_statement.Replace(jump);
-				jump.Insert(assign);
+					// Create a node which exists the inlined function since there can be more inlined code after the result is assigned
+					var jump = new JumpNode(end!);
+
+					// Replace the return statement with the assign statement and add a jump to exit the inline node
+					return_statement.Replace(jump);
+					jump.Insert(assign);
+				}
 			}
 
 			// Transfer the contents to the container node and replace the destination with it
@@ -293,11 +297,28 @@ public static class Inlines
 					}
 				}
 
+				body.Add(new JumpNode(end)); // Add this jump because it will trigger label merging
 				body.Add(new LabelNode(end));
 			}
 
 			var container = new InlineNode(instance.Position);
 			body.ForEach(i => container.Add(i));
+
+			// If the result of the function call is assigned to something, even though the function returns an unit, assign an undefined value to the destination
+			var editor = Analyzer.TryGetEditor(destination);
+
+			if (editor != null && editor.Is(Operators.ASSIGN))
+			{
+				var edited = Analyzer.GetEdited(editor);
+
+				body.Add(new OperatorNode(Operators.ASSIGN, editor.Position).SetOperands(
+					edited, new UndefinedNode(function.ReturnType!, Parser.Format)
+				));
+
+				// Now, replace the editor with the inlined body
+				destination = editor;
+			}
+
 			destination.Replace(container);
 
 			ReconstructionAnalysis.Reconstruct(environment, container);

@@ -17,6 +17,10 @@ public static class Warnings
 
 			if (!Common.IsCastSafe(from, to))
 			{
+				// If the destination represents a object and the number zero is assigned to it, no need to create a warning
+				var source = Analyzer.GetSource(assignment.Right);
+				if ((!to.IsPrimitive || Primitives.IsPrimitive(to, Primitives.LINK)) && source.Instance == NodeType.NUMBER && Equals(source.To<NumberNode>().Value, 0L)) continue;
+
 				var message = $"Unsafe cast from '{from}' to '{to}'";
 				diagnostics.Add(Status.Warning(assignment.Position, message));
 			}
@@ -71,6 +75,10 @@ public static class Warnings
 
 				if (!Common.IsCastSafe(actual, expected))
 				{
+					// If the expected type represents a object and the number zero is passed, no need to create a warning
+					var source = Analyzer.GetSource(argument);
+					if ((!expected.IsPrimitive || Primitives.IsPrimitive(expected, Primitives.LINK)) && source.Instance == NodeType.NUMBER && Equals(source.To<NumberNode>().Value, 0L)) continue;
+
 					var message = $"Unsafe cast from '{actual}' to '{expected}'";
 					diagnostics.Add(Status.Warning(argument.Position, message));
 				}

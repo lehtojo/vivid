@@ -3,12 +3,10 @@ using System.Linq;
 
 public static class Trace
 {
+	private const int NEAR_DISTANCE = 20;
+
 	public static List<Directive> GetDirectives(Unit unit, Result result)
 	{
-		var directives = new List<Directive>();
-		var calls = new List<CallInstruction>();
-		var reorders = new List<ReorderInstruction>();
-
 		var start = result.Lifetime.Start;
 		var end = result.Lifetime.End;
 
@@ -20,17 +18,33 @@ public static class Trace
 		// Do not process results, which have already expired
 		if (start > end) { return new List<Directive>(); }
 
+		var reorders = new List<ReorderInstruction>();
+		var calls = new List<CallInstruction>();
+		var directives = new List<Directive>();
+		var avoid = new List<Register>();
+
 		for (var i = start; i <= end; i++)
 		{
-			if (unit.Instructions[i].Is(InstructionType.CALL))
+			var instruction = unit.Instructions[i];
+
+			if (instruction.Type == InstructionType.CALL)
 			{
 				calls.Add(unit.Instructions[i].To<CallInstruction>());
-				continue;
 			}
-
-			if (unit.Instructions[i].Is(InstructionType.REORDER))
+			else if (instruction.Type == InstructionType.REORDER)
 			{
 				reorders.Add(unit.Instructions[i].To<ReorderInstruction>());
+			}
+			else if (instruction.Type == InstructionType.MOVE && (i - start) <= NEAR_DISTANCE) // Look for register move instructions
+			{
+				var desination = instruction.To<MoveInstruction>().First;
+				if (desination == null || !desination.IsAnyRegister) continue;
+
+				var register = desination.Value!.To<RegisterHandle>().Register;
+
+				// Avoid or target the destination register based on what the source value is
+				if (ReferenceEquals(instruction.Source, result)) directives.Add(new SpecificRegisterDirective(register));
+				else avoid.Add(register);
 			}
 		}
 
@@ -39,8 +53,6 @@ public static class Trace
 		{
 			directives.Add(new NonVolatilityDirective());
 		}
-
-		var avoid = new List<Register>();
 
 		if (!Primitives.IsPrimitive(unit.Function.ReturnType, Primitives.UNIT))
 		{
@@ -66,10 +78,7 @@ public static class Trace
 		{
 			for (var i = start; i <= end; i++)
 			{
-				if (!unit.Instructions[i].Is(InstructionType.DIVISION))
-				{
-					continue;
-				}
+				if (!unit.Instructions[i].Is(InstructionType.DIVISION)) continue;
 
 				var division = unit.Instructions[i].To<DivisionInstruction>();
 

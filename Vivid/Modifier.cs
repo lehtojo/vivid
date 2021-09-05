@@ -15,6 +15,7 @@ public static class Modifier
 	public const int INLINE = 2048;
 	public const int PRIMITIVE = 4096;
 	public const int PLAIN = 8192;
+	public const int PACK = 16384 | PLAIN;
 
 	public const int DEFAULT = PUBLIC;
 

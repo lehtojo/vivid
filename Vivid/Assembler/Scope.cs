@@ -322,9 +322,14 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	private void ReceiveParameter(List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, Variable parameter)
 	{
-		var register = (Register?)null;
+		if (parameter.Type!.IsPack)
+		{
+			var representives = Common.GetPackRepresentives(parameter);
+			foreach (var representive in representives) { ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, representive); }
+			return;
+		}
 
-		register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+		var register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 
 		if (register != null)
 		{

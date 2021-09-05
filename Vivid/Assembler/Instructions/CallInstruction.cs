@@ -10,6 +10,7 @@ public class CallInstruction : Instruction
 {
 	public Result Function { get; }
 	public Type? ReturnType { get; private set; }
+	public DisposablePackHandle? ReturnPack { get; private set; }
 	
 	// Represents the destination handles where the required parameters are passed to
 	public List<Handle> Destinations { get; } = new List<Handle>();
@@ -33,6 +34,13 @@ public class CallInstruction : Instruction
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
+
+		// Initialize the return pack, if the return type is a pack
+		if (ReturnType != null && ReturnType.IsPack)
+		{
+			ReturnPack = new DisposablePackHandle(unit, ReturnType);
+			Result.Value = ReturnPack;
+		}
 	}
 
 	public CallInstruction(Unit unit, Result function, Type? return_type) : base(unit, InstructionType.CALL)
@@ -44,6 +52,13 @@ public class CallInstruction : Instruction
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
 		Result.Format = return_type?.Format ?? Assembler.Format;
+
+		// Initialize the return pack, if the return type is a pack
+		if (ReturnType != null && ReturnType.IsPack)
+		{
+			ReturnPack = new DisposablePackHandle(unit, ReturnType);
+			Result.Value = ReturnPack;
+		}
 	}
 
 	/// <summary>
@@ -111,6 +126,36 @@ public class CallInstruction : Instruction
 	{
 		Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.GetDirectives(Unit, Function));
 		return new List<RegisterLock> { RegisterLock.Create(Function) };
+	}
+
+	private void OutputPack(List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack)
+	{
+		foreach (var iterator in pack.Members)
+		{
+			var member = iterator.Key;
+			var value = iterator.Value;
+
+			if (member.Type!.IsPack)
+			{
+				OutputPack(standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
+				return;
+			}
+
+			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+			if (register != null)
+			{
+				value.Value = new RegisterHandle(register);
+				value.Format = member.GetRegisterFormat();
+				register.Handle = value;
+			}
+			else
+			{
+				value.Value = position.Finalize();
+				value.Format = member.GetRegisterFormat();
+				position.Offset += Assembler.Size.Bytes;
+			}
+		}
 	}
 
 	public override void OnBuild()
@@ -198,6 +243,18 @@ public class CallInstruction : Instruction
 
 		// After a call all volatile registers might be changed
 		Unit.VolatileRegisters.ForEach(i => i.Reset());
+
+		if (ReturnPack != null)
+		{
+			Result.Value = ReturnPack;
+
+			var decimal_parameter_registers = Unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
+			var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => Unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
+
+			var position = new StackMemoryHandle(Unit, Assembler.IsX64 ? Assembler.Size.Bytes : 0);
+			OutputPack(standard_parameter_registers, decimal_parameter_registers, position, ReturnPack);
+			return;
+		}
 
 		// Returns value is always in the following handle
 		var register = Result.Format.IsDecimal() ? Unit.GetDecimalReturnRegister() : Unit.GetStandardReturnRegister();

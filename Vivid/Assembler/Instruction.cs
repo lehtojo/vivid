@@ -492,7 +492,7 @@ public class Instruction
 
 				if (string.IsNullOrEmpty(value))
 				{
-					throw new ApplicationException("Instruction parameter could not be converted into text");
+					throw new ApplicationException("Instruction parameter could not be converted into assembly");
 				}
 
 				result.Append($" {value},");

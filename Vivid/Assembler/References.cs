@@ -42,6 +42,11 @@ public static class References
 
 			case VariableCategory.MEMBER:
 			{
+				if (variable.Type!.IsPack)
+				{
+					throw new NotSupportedException("Accessing pack members is not supported here");
+				}
+
 				return new MemoryHandle
 				(
 					unit,
@@ -52,6 +57,11 @@ public static class References
 
 			case VariableCategory.GLOBAL:
 			{
+				if (variable.Type!.IsPack)
+				{
+					throw new NotSupportedException("Accessing pack members is not supported here");
+				}
+
 				var handle = new DataSectionHandle(variable.GetStaticName());
 
 				if (Assembler.IsPositionIndependent)

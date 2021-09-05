@@ -12,7 +12,7 @@ public class FunctionImplementation : Context
 
 	public Type[] TemplateArguments { get; set; }
 
-	public List<Variable> Parameters => Variables.Values.Where(i => !i.IsSelfPointer && i.IsParameter).ToList();
+	public List<Variable> Parameters => Variables.Values.Where(i => !i.IsSelfPointer && !i.IsHidden && i.IsParameter).ToList();
 	public List<Type> ParameterTypes => Parameters.Where(i => !i.IsSelfPointer).Select(i => i.Type!).ToList();
 
 	public int SizeOfLocals { get; set; } = 0;
@@ -202,4 +202,3 @@ public class FunctionImplementation : Context
 		return HashCode.Combine(Name, Identity, Parameters, ReturnType);
 	}
 }
-

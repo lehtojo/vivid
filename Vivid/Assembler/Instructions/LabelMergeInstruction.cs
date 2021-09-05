@@ -23,8 +23,14 @@ public class LabelMergeInstruction : Instruction
 			foreach (var variable in Scope!.Variables.Keys)
 			{
 				var result = Unit.GetVariableValue(variable) ?? throw new ApplicationException("Missing active variable value");
+				
+				// Ensure the variable is still active
+				if (!result.IsValid(Unit.Position)) continue; 
+				
+				// Ensure the variable is still valid
 				if (result.IsAnyRegister && !ReferenceEquals(result.Value.To<RegisterHandle>().Register.Handle, result)) continue;
 				
+				// Load complex values into registers
 				if (!(result.IsAnyRegister || result.Value.Is(HandleInstanceType.STACK_MEMORY) || result.Value.Is(HandleInstanceType.STACK_VARIABLE) || result.Value.Is(HandleInstanceType.TEMPORARY_MEMORY)))
 				{
 					Memory.MoveToRegister(Unit, result, Assembler.Size, result.Format.IsDecimal(), Trace.GetDirectives(Unit, result));

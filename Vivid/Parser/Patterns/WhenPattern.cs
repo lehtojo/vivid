@@ -39,11 +39,6 @@ public class WhenPattern : Pattern
 		var inspected_value = Singleton.Parse(environment, all[VALUE]);
 		var inspected_value_variable = environment.DeclareHidden(inspected_value.TryGetType());
 		
-		var load = new OperatorNode(Operators.ASSIGN).SetOperands(
-			new VariableNode(inspected_value_variable, position),
-			inspected_value
-		);
-
 		var tokens = all[BODY].To<ContentToken>().Tokens;
 
 		Parser.RemoveLineEndingDuplications(tokens);
@@ -138,6 +133,6 @@ public class WhenPattern : Pattern
 			}
 		}
 
-		return new InlineNode(position) { load, new WhenNode(new VariableNode(inspected_value_variable, position), sections, position) };
+		return new WhenNode(inspected_value, new VariableNode(inspected_value_variable, position), sections, position);
 	}
 }

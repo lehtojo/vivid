@@ -18,6 +18,7 @@ public class DeclareInstruction : Instruction
 		if (!Registerize)
 		{
 			Result.Value = new Handle();
+			Result.Format = Variable.GetRegisterFormat();
 			return;
 		}
 		

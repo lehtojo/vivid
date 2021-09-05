@@ -29,7 +29,8 @@ public enum HandleInstanceType
 	INLINE,
 	REGISTER,
 	MODIFIER,
-	LOWER_12_BITS
+	LOWER_12_BITS,
+	DISPOSABLE_PACK,
 }
 
 public class Handle
@@ -1013,5 +1014,26 @@ public class Lower12Bits : Handle
 	public override int GetHashCode()
 	{
 		return HashCode.Combine(Handle);
+	}
+}
+
+public class DisposablePackHandle : Handle
+{
+	public Dictionary<Variable, Result> Members { get; } = new Dictionary<Variable, Result>();
+
+	public DisposablePackHandle(Unit unit, Type type) : base(HandleType.EXPRESSION, HandleInstanceType.DISPOSABLE_PACK)
+	{
+		// Initialize the members
+		foreach (var member in type.Variables.Values)
+		{
+			var value = new Result();
+
+			if (member.Type!.IsPack)
+			{
+				value.Value = new DisposablePackHandle(unit, member.Type!);
+			}
+
+			Members[member] = value;
+		}
 	}
 }

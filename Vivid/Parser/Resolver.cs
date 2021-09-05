@@ -215,7 +215,10 @@ public static class Resolver
 	/// </summary>
 	private static Type GetSharedNumber(Number a, Number b)
 	{
-		return a.Bits > b.Bits ? a : b;
+		var bits = Math.Max(a.Bits, b.Bits);
+		var signed = !a.IsUnsigned || !b.IsUnsigned;
+		var is_decimal = a.Format.IsDecimal() || b.Format.IsDecimal();
+		return Primitives.CreateNumber(bits, signed, is_decimal);
 	}
 
 	/// <summary>
