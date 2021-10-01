@@ -20,7 +20,7 @@ public class TableLabel
 {
 	public string Name { get; set; }
 	public Size Size { get; set; }
-	public bool IsSecrel { get; set; } = false;
+	public bool IsSectionRelative { get; set; } = false;
 	public bool Declare { get; set; }
 
 	public TableLabel(string name, Size size, bool declare = false)
@@ -178,7 +178,7 @@ public class Debug
 
 		Entry.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
-		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSecrel = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
+		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
 
 		Entry.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
@@ -912,7 +912,7 @@ public class Debug
 		Entry.Add(GetOffset(version_number_label, End));
 		Entry.Add(version_number_label);
 		Entry.Add(DWARF_VERSION);
-		Entry.Add(new TableLabel(DEBUG_ABBREVATION_TABLE, Size.DWORD, false) { IsSecrel = Assembler.IsX64 && Assembler.IsTargetWindows });
+		Entry.Add(new TableLabel(DEBUG_ABBREVATION_TABLE, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
 		Entry.Add((byte)Assembler.Size.Bytes);
 
 		Lines.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.QWORD, true));

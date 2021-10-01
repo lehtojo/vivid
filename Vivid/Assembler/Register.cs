@@ -19,6 +19,8 @@ public static class RegisterFlag
 
 public class Register
 {
+	public byte Identifier { get; set; } = 0;
+	public byte Name { get; set; } = 0;
 	public string[] Partitions { get; private set; }
 	public Size Width { get; private set; }
 	public Format Format => IsMediaRegister ? Format.DECIMAL : Assembler.Format;
@@ -41,6 +43,15 @@ public class Register
 
 	public Register(Size width, string[] partitions, params int[] flags)
 	{
+		Width = width;
+		Partitions = partitions;
+		Flags = Flag.Combine(flags);
+	}
+
+	public Register(byte identifier, Size width, string[] partitions, params int[] flags)
+	{
+		Identifier = identifier;
+		Name = (byte)(identifier & 7);
 		Width = width;
 		Partitions = partitions;
 		Flags = Flag.Combine(flags);

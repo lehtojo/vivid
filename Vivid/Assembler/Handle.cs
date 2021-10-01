@@ -371,38 +371,52 @@ public class MemoryHandle : Handle
 		Start.Use(position);
 	}
 
+	public Register? GetStart()
+	{
+		return Start.Value.Instance switch
+		{
+			HandleInstanceType.REGISTER => Start.Value.To<RegisterHandle>().Register,
+			HandleInstanceType.INLINE => Unit.GetStackPointer(),
+			_ => null
+		};
+	}
+
+	public int GetOffset()
+	{
+		return Start.Value.Instance switch
+		{
+			HandleInstanceType.CONSTANT => (int)(long)Start.Value.To<ConstantHandle>().Value + AbsoluteOffset,
+			HandleInstanceType.INLINE => Start.Value.To<InlineHandle>().AbsoluteOffset + AbsoluteOffset,
+			_ => AbsoluteOffset
+		};
+	}
+
 	public override string ToString()
 	{
-		var start = Start.Value;
-		var offset = AbsoluteOffset;
+		var start = GetStart();
+		var offset = GetOffset();
 
-		if (Start.IsInline)
+		if (start == null)
 		{
-			start = new RegisterHandle(Unit.GetStackPointer());
-			offset += Start.Value.To<InlineHandle>().AbsoluteOffset;
-		}
-
-		var constant = string.Empty;
-
-		if (Assembler.IsArm64)
-		{
-			if (offset != 0) { constant = $", #{offset}"; }
+			if (Assembler.IsArm64) return $"[xzr, #{offset.ToString(false)}]";
+			else {
+				if (IsPrecise) { return $"{Size} ptr [{offset.ToString(false)}]"; }
+				else { return $"[{offset.ToString(false)}]"; }
+			}
 		}
 		else
 		{
-			if (offset > 0) { constant = $"+{offset}"; }
-			else if (offset < 0) { constant = $"-{-offset}"; }
+			if (Assembler.IsArm64) return $"[{start}, #{offset.ToString(false)}]";
+			else {
+				var constant = string.Empty;
+
+				if (offset > 0) { constant = $"+{offset}"; }
+				else if (offset < 0) { constant = $"-{-offset}"; }
+
+				if (IsPrecise) { return $"{Size} ptr [{start}{constant}]"; }
+				else { return $"[{start}{constant}]"; }
+			}
 		}
-
-		if (start.Is(HandleType.REGISTER) || start.Is(HandleType.CONSTANT))
-		{
-			var address = $"[{start}{constant}]";
-
-			if (IsPrecise && Assembler.IsX64) { return $"{Size} ptr {address}"; }
-			else { return address; }
-		}
-
-		return string.Empty;
 	}
 
 	public override Result[] GetRegisterDependentResults()
@@ -432,9 +446,7 @@ public class MemoryHandle : Handle
 
 	public override bool Equals(object? other)
 	{
-		return other is MemoryHandle handle &&
-			  Equals(Start.Value, handle.Start.Value) &&
-			  Offset == handle.Offset;
+		return other is MemoryHandle handle && Equals(Start.Value, handle.Start.Value) && Offset == handle.Offset;
 	}
 
 	public override int GetHashCode()
@@ -538,75 +550,135 @@ public class ComplexMemoryHandle : Handle
 		Index.Use(position);
 	}
 
-	public override string ToString()
+	public Register? GetStart()
 	{
-		var offset = string.Empty;
-
-		if (Index.IsStandardRegister || Index.IsModifier)
+		return Start.Value.Instance switch
 		{
-			if (Assembler.IsArm64)
-			{
-				offset = $", {Index}" + (Stride == 1 ? string.Empty : $", {Instructions.Arm64.SHIFT_LEFT} #{(long)Math.Log2(Stride)}");
-			}
-			else
-			{
-				offset = "+" + Index.ToString() + (Stride == 1 ? string.Empty : $"*{Stride}");
-			}
+			HandleInstanceType.REGISTER => Start.Value.To<RegisterHandle>().Register,
+			_ => null
+		};
+	}
+
+	public Register? GetIndex()
+	{
+		return Index.Value.Instance switch
+		{
+			HandleInstanceType.REGISTER => Index.Value.To<RegisterHandle>().Register,
+			_ => null
+		};
+	}
+
+	public int GetOffset()
+	{
+		var offset = Offset;
+
+		offset += Start.Value.Instance switch
+		{
+			HandleInstanceType.CONSTANT => (int)(long)Start.Value.To<ConstantHandle>().Value,
+			_ => 0
+		};
+
+		offset += Index.Value.Instance switch
+		{
+			HandleInstanceType.CONSTANT => (int)(long)Index.Value.To<ConstantHandle>().Value * Stride,
+			_ => 0
+		};
+
+		return offset;
+	}
+
+	public string ToStringX64()
+	{
+		// Examples: [1], [rax], [rax-1], [rax+rbx], [rax+rbx+1], [rax+rbx*2], [rax+rbx*2-1]
+		var start = GetStart();
+		var index = GetIndex();
+		var offset = GetOffset();
+
+		var result = "[";
+
+		if (start != null) { result += start.ToString(); }
+
+		if (index != null)
+		{
+			// Add a plus-operator to separate the base from the index if needed
+			if (result.Length > 1) { result += '+'; }
+			result += index.ToString();
+
+			// Multiply the index register, if the stride is not one
+			if (Stride != 1) { result += '*' + Stride.ToString(false); }
 		}
-		else if (Index.Value.Is(HandleInstanceType.CONSTANT))
-		{
-			var value = (long)Index.Value.To<ConstantHandle>().Value * Stride;
 
-			if (Assembler.IsArm64)
-			{
-				if (value != 0)
-				{
-					if (value > 0) { offset = $", #{value}"; }
-					else if (value < 0) { offset = $", #-{-value}"; }
-				}
-			}
-			else
-			{
-				if (value > 0) { offset = $"+{value}"; }
-				else if (value < 0) { offset = $"-{-value}"; }
-			}
+		// Finally, add the offset. Add the sign always, if something has been added to the result.
+		if (result.Length > 1)
+		{
+			if (offset != 0) { result += offset.ToString(true); }
 		}
 		else
 		{
-			return string.Empty;
+			result += offset.ToString(false);
 		}
 
-		if (Offset != 0)
-		{
-			if (Assembler.IsArm64) return string.Empty;
-			offset += $"+{Offset}";
+		// Add the size specifier if needed
+		if (IsPrecise) return $"{Size} ptr {result}]";
+
+		return result;
+	}
+
+	public string ToStringArm64()
+	{
+		// Examples: [xzr, #1], [x0], [x0, #-1], [x0, x1], [x0, x1, lsl #1], [x0, :lo12:symbol]
+		var start = GetStart();
+		var index = GetIndex();
+		var offset = GetOffset();
+
+		var result = "[";
+
+		if (start != null) { result += start.ToString(); }
+
+		if (index != null) {
+			// Separate the base from the index if needed
+			if (result.Length > 1) { result += ", "; }
+			result += index.ToString();
+
+			// Multiply the index register, if the stride is not one
+			if (Stride != 1) { result += $", {Instructions.Arm64.SHIFT_LEFT} #{(long)Math.Log2(Stride)}"; }
+
+			// The offset must be zero here
+			if (offset != 0) return string.Empty;
+		}
+		else if (Index.IsModifier) {
+			// Separate the base from the index if needed
+			if (result.Length > 1) { result += ", "; }
+
+			result += Index.ToString();
+
+			// Stride must be one and offset must be zero here
+			if (Stride != 1 || offset != 0) return string.Empty;
 		}
 
-		if (Start.IsStandardRegister || Start.IsConstant)
-		{
-			var address = $"[{Start.Value}{offset}]";
-
-			if (IsPrecise && Assembler.IsX64)
-			{
-				return $"{Size} ptr {address}";
-			}
-			else
-			{
-				return $"{address}";
-			}
+		// Add the offset
+		if (result.Length == 1) {
+			result += $"xzr, #{offset.ToString(false)}";
+		}
+		else if (offset != 0) {
+			result += $", #{offset.ToString(false)}";
 		}
 
-		return string.Empty;
+		return result + ']';
+	}
+
+	public override string ToString()
+	{
+		if (Assembler.IsX64) return ToStringX64();
+		else return ToStringArm64();
 	}
 
 	public override Result[] GetRegisterDependentResults()
 	{
-		if (!Index.IsConstant && !Index.IsModifier)
-		{
-			return new Result[] { Start, Index };
-		}
-
-		return new Result[] { Start };
+		var result = new List<Result>();
+		if (!Start.IsConstant) { result.Add(Start); }
+		if (!Index.IsConstant && !Index.IsModifier) { result.Add(Index); }
+		return result.ToArray();
 	}
 
 	public override Result[] GetInnerResults()
@@ -696,6 +768,49 @@ public class ExpressionHandle : Handle
 		}
 	}
 
+	public Register? GetStart()
+	{
+		if (Addition == null) return null;
+
+		return Addition.Value.Instance switch
+		{
+			HandleInstanceType.REGISTER => Addition.Value.To<RegisterHandle>().Register,
+			_ => null
+		};
+	}
+
+	public Register? GetIndex()
+	{
+		return Multiplicand.Value.Instance switch
+		{
+			HandleInstanceType.REGISTER => Multiplicand.Value.To<RegisterHandle>().Register,
+			_ => null
+		};
+	}
+
+	public int GetOffset()
+	{
+		var offset = Constant;
+
+		if (Addition != null)
+		{
+			offset += Addition.Value.Instance switch
+			{
+				HandleInstanceType.CONSTANT => (int)(long)Addition.Value.To<ConstantHandle>().Value,
+				_ => 0
+			};
+		}
+
+		offset += Multiplicand.Value.Instance switch
+		{
+			HandleInstanceType.CONSTANT => (int)(long)Multiplicand.Value.To<ConstantHandle>().Value * Multiplier,
+			_ => 0
+		};
+
+		return offset;
+	}
+
+	#warning Upgrade
 	public string ToStringX64()
 	{
 		var result = string.Empty;

@@ -18,6 +18,7 @@
 			//"args": [ "-s" ],
 
 			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
+			"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

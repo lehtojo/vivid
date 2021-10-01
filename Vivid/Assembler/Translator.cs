@@ -4,6 +4,7 @@ using System.Linq;
 
 public static class Translator
 {
+	public static Dictionary<SourceFile, List<Instruction>> Output { get; set; } = new Dictionary<SourceFile, List<Instruction>>();
 	public static int TotalInstructions { get; set; } = 0;
 
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
@@ -166,6 +167,18 @@ public static class Translator
 
 		// Remove duplicates
 		constants.AddRange(constant_handles.Distinct());
+
+		if (unit.Function.Name.StartsWith("encode_") || unit.Function.Name.StartsWith("allocate") || unit.Function.Name.StartsWith("internal_allocate") || (unit.Function.Name == "init" && !unit.Function.IsMember))
+		{
+			if (Output.ContainsKey(unit.Function.Metadata.Start!.File!))
+			{
+				Output[unit.Function.Metadata.Start!.File!].AddRange(instructions);
+			}
+			else
+			{
+				Output[unit.Function.Metadata.Start!.File!] = instructions;
+			}
+		}
 
 		return unit.Export();
 	}

@@ -73,6 +73,8 @@ public static class Assembler
 	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
 	private const string SEPARATOR = "\n\n";
 
+	public static Dictionary<SourceFile, DataEncoderModule> DataSectionModules = new Dictionary<SourceFile, DataEncoderModule>();
+
 	/// <summary>
 	/// Creates a mangled text which describes the specified virtual function and appends it to the specified mangle object
 	/// </summary>
@@ -491,16 +493,13 @@ public static class Assembler
 		return text_sections;
 	}
 
-	private static string GetStaticVariables(Type type)
+	private static string GetStaticVariables(Type type, DataEncoderModule module)
 	{
 		var builder = new StringBuilder();
 
 		foreach (var variable in type.Variables.Values)
 		{
-			if (!variable.IsStatic)
-			{
-				continue;
-			}
+			if (!variable.IsStatic) continue;
 
 			var name = variable.GetStaticName();
 			var size = variable.Type!.AllocationSize;
@@ -513,6 +512,8 @@ public static class Assembler
 			}
 
 			builder.AppendLine($"{name}: {BYTE_ZERO_ALLOCATOR} {size}");
+
+			DataEncoder.AddStaticVariable(module, variable);
 		}
 
 		return builder.ToString();
@@ -589,7 +590,7 @@ public static class Assembler
 			return $"{label.Name}:";
 		}
 
-		if (label.IsSecrel)
+		if (label.IsSectionRelative)
 		{
 			return SECREL_DIRECTIVE + label.Size.Bits.ToString(CultureInfo.InvariantCulture) + ' ' + label.Name;
 		}
@@ -663,20 +664,23 @@ public static class Assembler
 		foreach (var iterator in types)
 		{
 			var builder = new StringBuilder();
+			var module = new DataEncoderModule();
 
 			foreach (var type in iterator)
 			{
-				builder.AppendLine(GetStaticVariables(type));
+				builder.AppendLine(GetStaticVariables(type, module));
 				builder.Append(SEPARATOR);
 			}
 
 			sections.Add(iterator.Key!, builder);
+			DataSectionModules.Add(iterator.Key!, module);
 		}
 
 		// Append runtime information about types
 		foreach (var iterator in types)
 		{
 			var builder = sections[iterator.Key!];
+			var module = DataSectionModules[iterator.Key!];
 
 			foreach (var type in iterator)
 			{
@@ -688,6 +692,7 @@ public static class Assembler
 					continue;
 				}
 
+				DataEncoder.AddTable(module, type.Configuration.Entry);
 				AppendTable(builder, type.Configuration.Entry);
 			}
 		}
@@ -706,22 +711,25 @@ public static class Assembler
 			}
 
 			var builder = sections.GetValueOrDefault(iterator.Key, new StringBuilder())!;
+			var module = DataSectionModules.GetValueOrDefault(iterator.Key, new DataEncoderModule())!;
 
 			foreach (var node in nodes)
 			{
-				if (node.Identifier == null)
-				{
-					continue;
-				}
+				if (node.Identifier == null) continue;
 
 				var name = node.Identifier;
 
 				builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
 				builder.AppendLine($"{name}:");
 				builder.AppendLine(AllocateString(node.Text));
+
+				DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
+				module.CreateLocalSymbol(name, module.Position);
+				module.String(node.Text);
 			}
 
 			sections[iterator.Key!] = builder;
+			DataSectionModules[iterator.Key!] = module;
 		}
 
 		// Append type metadata
@@ -730,6 +738,8 @@ public static class Assembler
 			var builder = sections[iterator.Key!];
 			var symbols = new List<string>();
 
+			var module = DataSectionModules.GetValueOrDefault(iterator.Key, new DataEncoderModule())!;
+
 			foreach (var type in iterator)
 			{
 				var symbol = ExportType(builder, type);
@@ -737,13 +747,11 @@ public static class Assembler
 				if (symbol != null)
 				{
 					symbols.Add(symbol);
+					module.CreateLocalSymbol(symbol, module.Position);
 				}
 			}
 
-			if (symbols.Any())
-			{
-				exports.Add(iterator.Key!, symbols);
-			}
+			if (symbols.Any()) exports.Add(iterator.Key!, symbols);
 		}
 
 		return sections.ToDictionary(i => i.Key, i => i.Value.ToString());
@@ -908,6 +916,7 @@ public static class Assembler
 		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);
 		var data_sections = GetDataSections(context, exports);
 		var debug_sections = GetDebugSections(context);
+		var object_files = new List<BinaryObjectFile>();
 
 		foreach (var file in files)
 		{
@@ -1025,7 +1034,17 @@ public static class Assembler
 			}
 
 			result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
+
+			var output = EncoderX64.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>());
+			var binary_text_section = output.Section;
+			var binary_data_section = DataSectionModules[file].Export();
+
+			var object_file = ElfFormat.CreateObjectX64(output.Symbols, output.Relocations, new List<BinarySection> { binary_text_section, binary_data_section });
+			object_files.Add(object_file);
 		}
+
+		var linked_binary = Linker.Link(object_files);
+		System.IO.File.WriteAllBytes("v.test", linked_binary);
 
 		return result;
 	}

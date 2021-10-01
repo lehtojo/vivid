@@ -3,7 +3,7 @@ import exit(code: large)
 import decimal_to_bits(value: decimal): large
 import bits_to_decimal(value: large): decimal
 
-import internal_allocate(bytes: large): link
+#import internal_allocate(bytes: large): link
 import deallocate(address: link, bytes: large)
 
 import allocate_stack(count: large): link
@@ -27,6 +27,8 @@ Page {
 Allocation {
 	static current: Page
 }
+
+internal_allocate(bytes: large) => 0
 
 outline allocate(bytes: large) {
 	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
@@ -173,4 +175,3 @@ Range {
 
 	iterator() => RangeIterator(start, end)
 }
-
