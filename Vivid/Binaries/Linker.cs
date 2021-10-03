@@ -56,8 +56,13 @@ public static class Linker
 		foreach (var sections in fragments.GroupBy(i => i.Type))
 		{
 			var type = sections.Key;
-			var section = new BinarySection(ElfFormat.GetSectionDefaultName(type), type, Array.Empty<byte>(), sections.Sum(i => i.Data.Length));
-			result.Add(section);
+			var name = ElfFormat.GetSectionDefaultName(type);
+			var bytes = sections.Sum(i => i.Data.Length);
+			
+			// Align the next loadable section
+			bytes = (bytes / (int)SegmentAlignment + 1) * (int)SegmentAlignment;
+
+			result.Add(new BinarySection(name, type, Array.Empty<byte>(), bytes));
 		}
 
 		return result;
@@ -73,7 +78,7 @@ public static class Linker
 
 		var header = new ElfProgramHeader();
 		header.Type = ElfSegmentType.LOADABLE;
-		header.Flags = 4;
+		header.Flags = ElfSegmentFlag.READ;
 		header.Offset = 0;
 		header.VirtualAddress = VirtualAddressStart;
 		header.PhysicalAddress = VirtualAddressStart;
@@ -85,10 +90,12 @@ public static class Linker
 
 		foreach (var section in sections)
 		{
-			var flags = 4;
-
-			if (section.Type == BinarySectionType.DATA) { flags = 2 | 4; }
-			else if (section.Type == BinarySectionType.TEXT) { flags = 1 | 4; }
+			var flags = section.Type switch
+			{
+				BinarySectionType.DATA => ElfSegmentFlag.WRITE | ElfSegmentFlag.READ,
+				BinarySectionType.TEXT => ElfSegmentFlag.EXECUTE | ElfSegmentFlag.READ,
+				_ => ElfSegmentFlag.READ
+			};
 
 			header = new ElfProgramHeader();
 			header.Type = ElfSegmentType.LOADABLE;
@@ -112,6 +119,9 @@ public static class Linker
 				file_position += fragment.Data.Length;
 				virtual_address += (uint)fragment.Data.Length;
 			}
+
+			file_position = section.Offset + section.Size;
+			virtual_address = (ulong)(section.VirtualAddress + section.Size);
 
 			headers.Add(header);
 		}

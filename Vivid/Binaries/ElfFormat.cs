@@ -23,6 +23,13 @@ public enum ElfSegmentType : int
 	PROGRAM_HEADER = 0x06
 }
 
+public enum ElfSegmentFlag : int
+{
+	EXECUTE = 0x01,
+	WRITE = 0x02,
+	READ = 0x04
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public class ElfFileHeader
 {
@@ -58,7 +65,7 @@ public class ElfProgramHeader
 	public const int Size = 0x38;
 
 	public ElfSegmentType Type { get; set; }
-	public int Flags { get; set; }
+	public ElfSegmentFlag Flags { get; set; }
 	public ulong Offset { get; set; }
 	public ulong VirtualAddress { get; set; }
 	public ulong PhysicalAddress { get; set; }
