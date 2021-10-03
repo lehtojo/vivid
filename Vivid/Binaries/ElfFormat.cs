@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.IO;
 using System;
 
 public enum ElfObjectFileType : short
@@ -153,6 +154,13 @@ public class ElfSymbolEntry
 	}
 }
 
+public enum ElfSymbolType
+{
+	NONE = 0x00,
+	ABSOLUTE_64 = 0x01,
+	PROGRAM_COUNTER_RELATIVE = 0x02
+}
+
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public class ElfRelocationEntry
 {
@@ -161,6 +169,9 @@ public class ElfRelocationEntry
 	public ulong Offset { get; set; }
 	public ulong Info { get; set; } = 0;
 	public long Addend { get; set; }
+
+	public int Symbol => (int)(Info >> 32);
+	public int Type => (int)(Info & 0xFFFFFFFF);
 
 	public ElfRelocationEntry(ulong offset, long addend)
 	{
@@ -254,7 +265,7 @@ public static class ElfFormat
 			header.Flags = (ulong)GetSectionFlags(section);
 			header.VirtualAddress = (uint)section.VirtualAddress;
 			header.SectionFileSize = (ulong)section.Size;
-			
+
 			if (section.Type == BinarySectionType.RELOCATION_TABLE)
 			{
 				// The section header of relocation table should be linked to the symbol table and its info should point to the text section, since it describes it
@@ -269,7 +280,7 @@ public static class ElfFormat
 				header.Info = symbols.Values.Count(i => !i.External) + 1;
 				header.EntrySize = ElfSymbolEntry.Size;
 			}
-			
+
 			section.Offset = file_position;
 			header.Offset = (ulong)file_position;
 
@@ -289,20 +300,37 @@ public static class ElfFormat
 		string_table_header.Flags = 0;
 		string_table_header.Offset = (ulong)file_position;
 		string_table_header.SectionFileSize = (ulong)string_table_section.Data.Length;
-		
+
 		sections.Add(string_table_section);
 		headers.Add(string_table_header);
 
 		return headers;
 	}
 
-	public static uint GetElfSymbolType(BinaryRelocationType type)
+	/// <summary>
+	/// Converts the specified relocation type into ELF symbol type
+	/// </summary>
+	public static uint GetSymbolType(BinaryRelocationType type)
 	{
 		return type switch
 		{
-			BinaryRelocationType.PROCEDURE_LINKAGE_TABLE => 4,
-			BinaryRelocationType.PROGRAM_COUNTER => 2,
-			_ => 0
+			BinaryRelocationType.PROCEDURE_LINKAGE_TABLE => (uint)ElfSymbolType.PROGRAM_COUNTER_RELATIVE, // Redirect to PC32 for now
+			BinaryRelocationType.PROGRAM_COUNTER_RELATIVE => (uint)ElfSymbolType.PROGRAM_COUNTER_RELATIVE,
+			BinaryRelocationType.ABSOLUTE => (uint)ElfSymbolType.ABSOLUTE_64,
+			_ => (uint)ElfSymbolType.NONE
+		};
+	}
+
+	/// <summary>
+	/// Converts the specified ELF symbol type to relocation type
+	/// </summary>
+	public static BinaryRelocationType GetRelocationTypeFromSymbolType(ElfSymbolType type)
+	{
+		return type switch
+		{
+			ElfSymbolType.PROGRAM_COUNTER_RELATIVE => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
+			ElfSymbolType.ABSOLUTE_64 => BinaryRelocationType.ABSOLUTE,
+			_ => BinaryRelocationType.ABSOLUTE
 		};
 	}
 
@@ -345,7 +373,7 @@ public static class ElfFormat
 			foreach (var relocation in section.Relocations)
 			{
 				var relocation_entry = new ElfRelocationEntry((ulong)relocation.Offset, relocation.Addend);
-				relocation_entry.SetInfo(relocation.Symbol.Index, GetElfSymbolType(relocation.Type));
+				relocation_entry.SetInfo(relocation.Symbol.Index, GetSymbolType(relocation.Type));
 
 				relocation_entries.Add(relocation_entry);
 			}
@@ -399,7 +427,7 @@ public static class ElfFormat
 		return symbols;
 	}
 
-	public static BinaryObjectFile CreateObjectX64(Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations, List<BinarySection> sections)
+	public static BinaryObjectFile CreateObjectX64(List<BinarySection> sections)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
@@ -460,5 +488,184 @@ public static class ElfFormat
 		}
 
 		return result;
+	}
+
+	/// <summary>
+	/// Creates symbol and relocation objects from the raw data inside the specified sections
+	/// </summary>
+	public static void ImportSymbolsAndRelocations(List<BinarySection> sections, List<KeyValuePair<ElfSectionHeader, byte[]>> section_intermediates)
+	{
+		// Try to find the symbol table section
+		var symbol_table_index = sections.FindIndex(i => i.Type == BinarySectionType.SYMBOL_TABLE);
+		if (symbol_table_index < 0) return;
+
+		var symbol_table_section = sections[symbol_table_index];
+
+		// Copy the symbol table into raw memory
+		var symbol_table = Marshal.AllocHGlobal(symbol_table_section.Data.Length);
+		Marshal.Copy(symbol_table_section.Data, 0, symbol_table, symbol_table_section.Data.Length);
+
+		// Load all the symbol entries from the symbol table
+		var symbol_entries = new List<ElfSymbolEntry>();
+		var position = 0;
+
+		while (position < symbol_table_section.Data.Length)
+		{
+			symbol_entries.Add(Marshal.PtrToStructure<ElfSymbolEntry>(symbol_table + position) ?? throw new ApplicationException("Could not load a symbol entry from the symbol table"));
+			position += ElfSymbolEntry.Size;
+		}
+
+		// Determine the section, which contains the symbol names
+		var section_header = section_intermediates[symbol_table_index].Key;
+		var symbol_names = sections[section_header.Link].Data;
+
+		// Create the a list of the symbols, which contains the loaded symbols in the order in which they appear in the file
+		/// NOTE: This is useful for the relocation table below
+		var symbols = new List<BinarySymbol>();
+
+		// Convert the symbol entries into symbols
+		foreach (var symbol_entry in symbol_entries)
+		{
+			// Load the section, which contains the current symbol
+			var section = sections[symbol_entry.SectionIndex];
+
+			// Determine the start and the end indices of the symbol name
+			var symbol_name_start = (int)symbol_entry.Name;
+			var symbol_name_end = symbol_name_start;
+			for (; symbol_name_end < symbol_names.Length && symbol_names[symbol_name_end] != 0; symbol_name_end++) { }
+
+			// Load the symbol name
+			var symbol_name = Encoding.ASCII.GetString(symbol_names, symbol_name_start, symbol_name_end - symbol_name_start);
+
+			// Sometimes other assemblers give empty names for sections for instance, these are not supported (yet)
+			if (string.IsNullOrEmpty(symbol_name)) continue;
+
+			var symbol = new BinarySymbol(symbol_name, (int)symbol_entry.Value, symbol_entry.SectionIndex == 0);
+			symbol.Section = section;
+
+			// Add the symbol to the section, which contains it, unless the symbol is external
+			if (!symbol.External) section.Symbols.Add(symbol.Name, symbol);
+
+			symbols.Add(symbol);
+		}
+
+		// Now, import the relocations
+		for (var i = 0; i < sections.Count; i++)
+		{
+			// Ensure the section represents a relocation table
+			var relocation_section = sections[i];
+			if (relocation_section.Type != BinarySectionType.RELOCATION_TABLE) continue;
+
+			// Determine the section, which the relocations concern
+			var relocation_section_header = section_intermediates[i];
+			var section = sections[relocation_section_header.Key.Link];
+
+			// Copy the relocation table into raw memory
+			var relocation_table = Marshal.AllocHGlobal(relocation_section.Data.Length);
+			Marshal.Copy(relocation_section.Data, 0, relocation_table, relocation_section.Data.Length);
+
+			// Load all the relocation entries
+			var relocation_entries = new List<ElfRelocationEntry>();
+
+			position = 0;
+
+			while (position < relocation_section.Data.Length)
+			{
+				relocation_entries.Add(Marshal.PtrToStructure<ElfRelocationEntry>(relocation_table + position) ?? throw new ApplicationException("Could not load a relocation entry from the relocation table"));
+				position += ElfSymbolEntry.Size;
+			}
+
+			// Convert the relocation entries into relocation objects
+			foreach (var relocation_entry in relocation_entries)
+			{
+				var symbol = symbols[relocation_entry.Symbol];
+				var type = GetRelocationTypeFromSymbolType((ElfSymbolType)relocation_entry.Type);
+
+				var relocation = new BinaryRelocation(symbol, (int)relocation_entry.Offset, (int)relocation_entry.Addend, type);
+				relocation.Section = section;
+
+				section.Relocations.Add(relocation);
+			}
+
+			Marshal.FreeHGlobal(relocation_table);
+		}
+
+		Marshal.FreeHGlobal(symbol_table);
+	}
+	
+	/// <summary>
+	/// Load the specified object file and constructs a object structure that represents it
+	/// </summary>
+	public static BinaryObjectFile ImportObjectX64(string path)
+	{
+		// Load the file into raw memory
+		var source = File.ReadAllBytes(path);
+		var bytes = Marshal.AllocHGlobal(source.Length);
+		Marshal.Copy(source, 0, bytes, source.Length);
+
+		// Load the file header
+		var header = Marshal.PtrToStructure<ElfFileHeader>(bytes) ?? throw new ApplicationException("Could not load the file header");
+
+		// Create a pointer, which points to the start of the section headers
+		var section_headers_start = bytes + (int)header.SectionHeaderOffset;
+
+		// Load section intermediates, that is section headers with corresponding section data
+		var section_intermediates = new List<KeyValuePair<ElfSectionHeader, byte[]>>();
+
+		for (var i = 0; i < header.SectionHeaderTableEntryCount; i++)
+		{
+			// Load the section header in order to load the actual section
+			var section_header = Marshal.PtrToStructure<ElfSectionHeader>(section_headers_start + ElfSectionHeader.Size * i) ?? throw new ApplicationException("Could not load a section header");
+
+			// Create a pointer, which points to the start of the section data in the file
+			var section_data_start = bytes + (int)section_header.Offset;
+
+			// Now load the section data into a buffer
+			var section_data = new byte[section_header.SectionFileSize];
+			Marshal.Copy(section_data_start, section_data, 0, section_data.Length);
+
+			section_intermediates.Add(new KeyValuePair<ElfSectionHeader, byte[]>(section_header, section_data));
+		}
+
+		// Now the section objects can be created, since all section intermediates have been loaded.
+		// In order to create the section objects, section names are required and they must be loaded from one of the loaded intermediates
+		var sections = new List<BinarySection>();
+
+		// Determine the buffer, which contains the section names
+		var section_names = section_intermediates[header.SectionNameEntryIndex].Value;
+
+		foreach (var section_intermediate in section_intermediates)
+		{
+			// Determine the start and the end indices of the section name
+			var section_name_start = section_intermediate.Key.Name;
+			var section_name_end = section_name_start;
+			for (; section_name_end < section_names.Length && section_names[section_name_end] != 0; section_name_end++) { }
+
+			// Load the section name
+			var section_name = Encoding.ASCII.GetString(section_names, section_name_start, section_name_end - section_name_start);
+
+			// Determine the section type
+			var section_type = section_name switch
+			{
+				TEXT_SECTION => BinarySectionType.TEXT,
+				DATA_SECTION => BinarySectionType.DATA,
+				TEXT_RELOCATION_TABLE_SECTION => BinarySectionType.RELOCATION_TABLE,
+				DATA_RELOCATION_TABLE_SECTION => BinarySectionType.RELOCATION_TABLE,
+				SYMBOL_TABLE_SECTION => BinarySectionType.SYMBOL_TABLE,
+				STRING_TABLE_SECTION => BinarySectionType.STRING_TABLE,
+				_ => BinarySectionType.NONE
+			};
+
+			var section = new BinarySection(section_name, section_type, section_intermediate.Value);
+			section.Offset = (int)section_intermediate.Key.Offset;
+			section.Size = section_intermediate.Value.Length;
+
+			sections.Add(section);
+		}
+
+		ImportSymbolsAndRelocations(sections, section_intermediates);
+
+		Marshal.FreeHGlobal(bytes);
+		return new BinaryObjectFile(sections);
 	}
 }

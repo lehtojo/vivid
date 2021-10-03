@@ -1039,12 +1039,14 @@ public static class Assembler
 			var binary_text_section = output.Section;
 			var binary_data_section = DataSectionModules[file].Export();
 
-			var object_file = ElfFormat.CreateObjectX64(output.Symbols, output.Relocations, new List<BinarySection> { binary_text_section, binary_data_section });
+			var object_file = ElfFormat.CreateObjectX64(new List<BinarySection> { binary_text_section, binary_data_section });
 			object_files.Add(object_file);
 		}
 
 		var linked_binary = Linker.Link(object_files);
 		System.IO.File.WriteAllBytes("v.test", linked_binary);
+
+		ElfFormat.ImportObjectX64("libv_x64.o");
 
 		return result;
 	}

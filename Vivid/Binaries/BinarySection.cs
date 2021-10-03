@@ -69,7 +69,7 @@ public enum BinaryRelocationType
 	ABSOLUTE,
 	SECTION_RELATIVE,
 	PROCEDURE_LINKAGE_TABLE,
-	PROGRAM_COUNTER
+	PROGRAM_COUNTER_RELATIVE
 }
 
 public class BinaryRelocation
@@ -90,7 +90,7 @@ public class BinaryRelocation
 		Bytes = bytes;
 		Type = modifier switch
 		{
-			DataSectionModifier.NONE => BinaryRelocationType.PROGRAM_COUNTER,
+			DataSectionModifier.NONE => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
 			DataSectionModifier.PROCEDURE_LINKAGE_TABLE => BinaryRelocationType.PROCEDURE_LINKAGE_TABLE,
 			_ => 0
 		};

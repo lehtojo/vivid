@@ -142,7 +142,7 @@ public static class Linker
 
 			if (symbol_section == null || relocation_section == null) continue;
 
-			if (relocation.Type == BinaryRelocationType.PROGRAM_COUNTER)
+			if (relocation.Type == BinaryRelocationType.PROGRAM_COUNTER_RELATIVE)
 			{
 				var from = relocation_section.VirtualAddress + relocation.Offset;
 				var to = symbol_section.VirtualAddress + symbol.Offset;
