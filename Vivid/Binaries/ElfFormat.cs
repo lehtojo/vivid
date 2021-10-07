@@ -442,7 +442,7 @@ public static class ElfFormat
 		return new BinaryObjectFile(sections);
 	}
 
-	public static byte[] BuildObjectX64(Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations, List<BinarySection> sections)
+	public static byte[] BuildObjectX64(List<BinarySection> sections)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
@@ -457,7 +457,7 @@ public static class ElfFormat
 		header.FileHeaderSize = ElfFileHeader.Size;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 
-		var section_headers = CreateSectionHeaders(sections, symbols);
+		var section_headers = CreateSectionHeaders(sections, GetAllSymbolsFromSections(sections));
 		var section_bytes = sections.Sum(i => i.Data.Length);
 
 		// Save the location of the section header table

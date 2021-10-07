@@ -23,8 +23,11 @@ public class ConfigurationPhase : Phase
 
 	public const string SERVICE_FLAG = "service";
 
+	public const string ASSEMBLY_EXTENSION = ".asm";
 	public const string VIVID_EXTENSION = ".v";
 	public const string DEFAULT_OUTPUT = "v";
+
+	public const string ASSEMBLER_FLAG = "assembler";
 
 	private List<string> Folders { get; set; } = new List<string>();
 	private List<string> Libraries { get; set; } = new List<string>();
@@ -93,19 +96,19 @@ public class ConfigurationPhase : Phase
 
 			if (File.Exists(filename)) return filename;
 
-			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library;
+			filename = folder + AssemblyPhase.LIBRARY_PREFIX + library;
 			if (File.Exists(filename)) return filename;
 
-			filename = folder + library + AssemblerPhase.StaticLibraryExtension;
+			filename = folder + library + AssemblyPhase.StaticLibraryExtension;
 			if (File.Exists(filename)) return filename;
 
-			filename = folder + library + AssemblerPhase.SharedLibraryExtension;
+			filename = folder + library + AssemblyPhase.SharedLibraryExtension;
 			if (File.Exists(filename)) return filename;
 
-			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library + AssemblerPhase.StaticLibraryExtension;
+			filename = folder + AssemblyPhase.LIBRARY_PREFIX + library + AssemblyPhase.StaticLibraryExtension;
 			if (File.Exists(filename)) return filename;
 			
-			filename = folder + AssemblerPhase.LIBRARY_PREFIX + library + AssemblerPhase.SharedLibraryExtension;
+			filename = folder + AssemblyPhase.LIBRARY_PREFIX + library + AssemblyPhase.SharedLibraryExtension;
 			if (File.Exists(filename)) return filename;
 		}
 
@@ -396,7 +399,13 @@ public class ConfigurationPhase : Phase
 						Files.Add(file.FullName);
 						continue;
 					}
-					else if (file.Extension == AssemblerPhase.ObjectFileExtension)
+					else if (file.Extension == ASSEMBLY_EXTENSION)
+					{
+						Files.Add(file.FullName);
+						bundle[ASSEMBLER_FLAG] = true;
+						continue;
+					}
+					else if (file.Extension == AssemblyPhase.ObjectFileExtension)
 					{
 						Objects.Add(file.FullName);
 						continue;

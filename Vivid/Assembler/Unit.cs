@@ -150,6 +150,35 @@ public class Unit
 		NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
 	}
 
+	public Unit()
+	{
+		Function = null!;
+		Registers = new List<Register>();
+
+		if (Assembler.IsX64)
+		{
+			LoadArhitectureX64();
+		}
+		else
+		{
+			LoadArhitectureArm64();
+		}
+
+		StandardRegisters = Registers.FindAll(r => !r.IsMediaRegister && !r.IsReserved);
+		MediaRegisters = Registers.FindAll(r => r.IsMediaRegister && !r.IsReserved);
+
+		VolatileRegisters = Registers.FindAll(r => r.IsVolatile && !r.IsReserved);
+		VolatileStandardRegisters = VolatileRegisters.FindAll(i => !i.IsMediaRegister);
+		VolatileMediaRegisters = VolatileRegisters.FindAll(i => i.IsMediaRegister);
+
+		NonVolatileRegisters = Registers.FindAll(r => !r.IsVolatile && !r.IsReserved);
+		NonVolatileStandardRegisters = NonVolatileRegisters.FindAll(i => !i.IsMediaRegister);
+		NonVolatileMediaRegisters = NonVolatileRegisters.FindAll(i => i.IsMediaRegister);
+
+		NonReservedRegisters = VolatileRegisters.FindAll(r => !r.IsReserved);
+		NonReservedRegisters.AddRange(NonVolatileRegisters.FindAll(r => !r.IsReserved));
+	}
+
 	private void LoadArhitectureX64()
 	{
 		var is_non_volatile = Assembler.IsTargetWindows && Assembler.Size.Bits == 64;

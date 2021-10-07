@@ -232,7 +232,7 @@ public static class Singleton
 	/// </summary>
 	public static Node GetNumber(NumberToken number)
 	{
-		return new NumberNode(number.NumberType, number.Value, number.Position);
+		return new NumberNode(number.Format, number.Value, number.Position);
 	}
 
 	/// <summary>

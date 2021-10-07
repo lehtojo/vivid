@@ -240,7 +240,7 @@ public static class StaticLibraryFormat
 		// Finally append the contents
 		contents.WriteTo(builder);
 
-		File.WriteAllBytes(output + AssemblerPhase.StaticLibraryExtension, builder.GetBuffer());
+		File.WriteAllBytes(output + AssemblyPhase.StaticLibraryExtension, builder.GetBuffer());
 	}
 
 	public static Status Export(Context context, string output_name, Dictionary<SourceFile, List<string>> exports)
@@ -248,7 +248,7 @@ public static class StaticLibraryFormat
 		try
 		{
 			var template_exports = Assembler.GetTemplateExportFiles(context).Select(i => new StaticLibraryFormatFile(i.Key.Filename, Array.Empty<string>(), Encoding.UTF8.GetBytes(i.Value.ToString())));
-			var exported_symbols = Assembler.GetExportedSymbols(context).Merge(exports).Select(i => new StaticLibraryFormatFile(AssemblerPhase.GetObjectFileName(i.Key, output_name), i.Value.ToArray()));
+			var exported_symbols = Assembler.GetExportedSymbols(context).Merge(exports).Select(i => new StaticLibraryFormatFile(AssemblyPhase.GetObjectFileName(i.Key, output_name), i.Value.ToArray()));
 
 			StaticLibraryFormat.Export(exported_symbols.Concat(template_exports).ToArray(), output_name);
 		}
