@@ -186,45 +186,45 @@ public class Unit
 
 		Registers.AddRange(new List<Register>()
 		{
-			new Register(0, Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.NUMERATOR),
-			new Register(3, Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
-			new Register(1, Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE | RegisterFlag.SHIFT),
-			new Register(2, Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
-			new Register(6, Size.QWORD, new [] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
-			new Register(7, Size.QWORD, new [] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
-			new Register(5, Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
-			new Register(4, Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
+			new Register(global::Instructions.X64.RAX, Size.QWORD, new [] { "rax", "eax", "ax", "al" }, RegisterFlag.VOLATILE | RegisterFlag.RETURN | RegisterFlag.NUMERATOR),
+			new Register(global::Instructions.X64.RBX, Size.QWORD, new [] { "rbx", "ebx", "bx", "bl" }),
+			new Register(global::Instructions.X64.RCX, Size.QWORD, new [] { "rcx", "ecx", "cx", "cl" }, RegisterFlag.VOLATILE | RegisterFlag.SHIFT),
+			new Register(global::Instructions.X64.RDX, Size.QWORD, new [] { "rdx", "edx", "dx", "dl" }, RegisterFlag.VOLATILE | RegisterFlag.REMAINDER),
+			new Register(global::Instructions.X64.RSI, Size.QWORD, new [] { "rsi", "esi", "si", "sil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.RDI, Size.QWORD, new [] { "rdi", "edi", "di", "dil" }, is_non_volatile ? RegisterFlag.NONE : RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.RBP, Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
+			new Register(global::Instructions.X64.RSP, Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-			new Register(0, Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
-			new Register(1, Size.YMMWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(2, Size.YMMWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(3, Size.YMMWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(4, Size.YMMWORD, new [] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(5, Size.YMMWORD, new [] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(6, Size.YMMWORD, new [] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(7, Size.YMMWORD, new [] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(0, Size.YMMWORD, new [] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(1, Size.YMMWORD, new [] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(2, Size.YMMWORD, new [] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(3, Size.YMMWORD, new [] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(4, Size.YMMWORD, new [] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(5, Size.YMMWORD, new [] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(6, Size.YMMWORD, new [] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(7, Size.YMMWORD, new [] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE)
+			new Register(global::Instructions.X64.YMM0, Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
+			new Register(global::Instructions.X64.YMM1, Size.YMMWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM2, Size.YMMWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM3, Size.YMMWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM4, Size.YMMWORD, new [] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM5, Size.YMMWORD, new [] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM6, Size.YMMWORD, new [] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM7, Size.YMMWORD, new [] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM8, Size.YMMWORD, new [] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM9, Size.YMMWORD, new [] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM10, Size.YMMWORD, new [] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM11, Size.YMMWORD, new [] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM12, Size.YMMWORD, new [] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM13, Size.YMMWORD, new [] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM14, Size.YMMWORD, new [] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM15, Size.YMMWORD, new [] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE)
 		});
 
 		if (Assembler.Size == Size.QWORD)
 		{
 			Registers.AddRange(new List<Register>()
 			{
-				new Register(0, Size.QWORD, new [] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
-				new Register(1, Size.QWORD, new [] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
-				new Register(2, Size.QWORD, new [] { "r10", "r10d", "r10w", "r10b" }, RegisterFlag.VOLATILE),
-				new Register(3, Size.QWORD, new [] { "r11", "r11d", "r11w", "r11b" }, RegisterFlag.VOLATILE),
-				new Register(4, Size.QWORD, new [] { "r12", "r12d", "r12w", "r12b" }),
-				new Register(5, Size.QWORD, new [] { "r13", "r13d", "r13w", "r13b" }),
-				new Register(6, Size.QWORD, new [] { "r14", "r14d", "r14w", "r14b" }),
-				new Register(7, Size.QWORD, new [] { "r15", "r15d", "r15w", "r15b" })
+				new Register(global::Instructions.X64.R8, Size.QWORD, new [] { "r8", "r8d", "r8w", "r8b" }, RegisterFlag.VOLATILE),
+				new Register(global::Instructions.X64.R9, Size.QWORD, new [] { "r9", "r9d", "r9w", "r9b" }, RegisterFlag.VOLATILE),
+				new Register(global::Instructions.X64.R10, Size.QWORD, new [] { "r10", "r10d", "r10w", "r10b" }, RegisterFlag.VOLATILE),
+				new Register(global::Instructions.X64.R11, Size.QWORD, new [] { "r11", "r11d", "r11w", "r11b" }, RegisterFlag.VOLATILE),
+				new Register(global::Instructions.X64.R12, Size.QWORD, new [] { "r12", "r12d", "r12w", "r12b" }),
+				new Register(global::Instructions.X64.R13, Size.QWORD, new [] { "r13", "r13d", "r13w", "r13b" }),
+				new Register(global::Instructions.X64.R14, Size.QWORD, new [] { "r14", "r14d", "r14w", "r14b" }),
+				new Register(global::Instructions.X64.R15, Size.QWORD, new [] { "r15", "r15d", "r15w", "r15b" })
 			});
 		}
 	}

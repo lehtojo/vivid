@@ -4,15 +4,31 @@ using System;
 
 public class AssemblyParser
 {
+	public const string TEXT_SECTION = "text";
+	public const string DATA_SECTION = "data";
+
+	public const string BYTE_SPECIFIER = "byte";
+	public const string WORD_SPECIFIER = "word";
+	public const string DWORD_SPECIFIER = "dword";
+	public const string QWORD_SPECIFIER = "qword";
+	public const string XWORD_SPECIFIER = "xword";
+	public const string OWORD_SPECIFIER = "oword";
+
+	public const string SECTION_DIRECTIVE = "section";
+	public const string STRING_DIRECTIVE = "string";
+	public const string ASCII_DIRECTIVE = "ascii";
+
 	public Unit Unit { get; set; }
 	public Dictionary<string, RegisterHandle> Registers { get; set; } = new Dictionary<string, RegisterHandle>();
 	public List<Instruction> Instructions { get; set; } = new List<Instruction>();
 	public DataEncoderModule Data { get; set; } = new DataEncoderModule();
+	public string Section { get; set; } = TEXT_SECTION;
 
 	public AssemblyParser()
 	{
 		Unit = new Unit();
 
+		// Add every standard register partition as a register handle
 		var n = (int)Math.Log2(Assembler.Size.Bytes) + 1;
 
 		for (var i = 0; i < n; i++)
@@ -27,11 +43,100 @@ public class AssemblyParser
 			}
 		}
 
+		// Add every media register as a register handle
 		foreach (var register in Unit.MediaRegisters)
 		{
 			var handle = new RegisterHandle(register);
 			Registers.Add(register.Partitions[0], handle);
 		}
+	}
+
+	/// <summary>
+	/// Executes the specified directive, if it represents a section directive.
+	/// Section directive switches the active section.
+	/// </summary>
+	private bool ExecuteSectionDirective(List<Token> tokens)
+	{
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.IDENTIFIER) return false;
+
+		// Pattern: .section $section
+		if (tokens[1].To<IdentifierToken>().Value != SECTION_DIRECTIVE) return false;
+
+		// Switch the active section
+		Section = tokens[2].To<IdentifierToken>().Value;
+		return true;
+	}
+
+	/// <summary>
+	/// Executes the specified directive, if it exports a symbol.
+	/// </summary>
+	private bool ExecuteExportDirective(List<Token> tokens)
+	{
+		if (tokens.Count < 3 || !tokens[1].Is(Keywords.EXPORT) || tokens[2].Type != TokenType.IDENTIFIER) return false;
+
+		// Pattern: .export $symbol
+		Instructions.Add(new LabelInstruction(Unit, new Label(tokens[2].To<IdentifierToken>().Value)));
+		return true;
+	}
+
+	/// <summary>
+	/// Executes the specified directive, if it allocates some primitive type such as byte or word.
+	/// </summary>
+	private bool ExecuteConstantAllocator(List<Token> tokens)
+	{
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.NUMBER) return false;
+
+		var directive = tokens[1].To<IdentifierToken>().Value;
+		var value = 0L;
+
+		// If the number is a decimal, load its raw bits as an integer value
+		if (tokens[2].To<NumberToken>().Format.IsDecimal())
+		{
+			value = BitConverter.DoubleToInt64Bits((double)tokens[2].To<NumberToken>().Value);
+		}
+		else
+		{
+			value = (long)tokens[2].To<NumberToken>().Value;
+		}
+
+		switch (directive)
+		{
+			case BYTE_SPECIFIER: { Data.Write(value); break; } // Pattern: .byte $value
+			case WORD_SPECIFIER: { Data.WriteInt16(value); break; } // Pattern: .word $value
+			case DWORD_SPECIFIER: { Data.WriteInt32(value); break; } // Pattern: .dword $value
+			case QWORD_SPECIFIER: { Data.WriteInt64(value); break; } // Pattern: .qword $value
+			case XWORD_SPECIFIER:
+			case OWORD_SPECIFIER: throw Errors.Get(tokens[1].Position, "Please use smaller allocators");
+			default: return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Allocates a string, if the specified tokens represent a string allocator
+	/// </summary>
+	private bool ExecuteStringAllocator(List<Token> tokens)
+	{
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.STRING) return false;
+
+		switch (tokens[1].To<IdentifierToken>().Value)
+		{
+			case STRING_DIRECTIVE:
+			// Pattern: .string '...'
+			Data.String(tokens[2].To<StringToken>().Text);
+			break;
+
+			case ASCII_DIRECTIVE:
+			// Pattern: .ascii '...'
+			/// TODO: Disable zero byte termination
+			Data.String(tokens[2].To<StringToken>().Text);
+			break;
+
+			default: return false;
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -46,8 +151,16 @@ public class AssemblyParser
 		// The second token must be the identifier of the directive
 		if (tokens.Count == 1 || !tokens[1].Is(TokenType.IDENTIFIER, TokenType.KEYWORD)) return false;
 
-		// TODO: Apply directive
-		return true;
+		if (ExecuteSectionDirective(tokens)) return true;
+		if (ExecuteExportDirective(tokens)) return true;
+
+		// The executors below are only executed if we are in the data section
+		if (Section != DATA_SECTION) return false;
+
+		if (ExecuteConstantAllocator(tokens)) return true;
+		if (ExecuteStringAllocator(tokens)) return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -66,16 +179,47 @@ public class AssemblyParser
 		return true;
 	}
 
-	private Handle ParseParameter(List<Token> all, int i)
+	/// <summary>
+	/// Tries to form a instruction parameter handle from the specified tokens starting at the specified offset.
+	/// Instrucion parameters are registers, memory addresses and numbers for instance.
+	/// </summary>
+	private Handle ParseInstructionParameter(List<Token> all, int i)
 	{
 		var parameter = all[i];
 
 		if (parameter.Type == TokenType.IDENTIFIER)
 		{
-			// Return a register handle, if the token represents one
-			if (Registers.TryGetValue(parameter.To<IdentifierToken>().Value, out var handle)) return handle;
+			var value = parameter.To<IdentifierToken>().Value;
 
-			return new DataSectionHandle(parameter.To<IdentifierToken>().Value, true);
+			// Return a register handle, if the token represents one
+			if (Registers.TryGetValue(value, out var register)) return register;
+
+			// If the identifier represents a size specifier, determine how many bytes it represents
+			var bytes = value switch
+			{
+				BYTE_SPECIFIER => 1,
+				WORD_SPECIFIER => 2,
+				DWORD_SPECIFIER => 4,
+				QWORD_SPECIFIER => 8,
+				XWORD_SPECIFIER => 16,
+				OWORD_SPECIFIER => 32,
+				_ => 0
+			};
+
+			// If the variable 'bytes' is positive, it means the current identifier is a size specified and a memory address should follow it
+			if (bytes > 0)
+			{
+				// Ensure the next token represents a memory address
+				if (++i >= all.Count || all[i].Type != TokenType.CONTENT) throw Errors.Get(parameter.Position, "Expected a memory address after this size specifier");
+
+				var memory_address = ParseInstructionParameter(all, i);
+				memory_address.Format = Size.FromBytes(bytes).ToFormat();
+
+				return memory_address;
+			}
+
+			// Since the identifier is not a register or a size specifier, it must be a symbol
+			return new DataSectionHandle(value, true);
 		}
 
 		if (parameter.Type == TokenType.NUMBER)
@@ -91,7 +235,7 @@ public class AssemblyParser
 			if (tokens.Count == 1)
 			{
 				// Patterns: $register / $symbol / $number
-				var value = new Result(ParseParameter(tokens, 0), Assembler.Format);
+				var value = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 				return new MemoryHandle(Unit, value, 0);
 			}
 			else if (tokens.Count == 2)
@@ -121,8 +265,8 @@ public class AssemblyParser
 				// Patterns: $register + $register / $register + $number / $register - $number / $symbol + $number
 				if (tokens[1].Is(Operators.ADD))
 				{
-					var first = new Result(ParseParameter(tokens, 0), Assembler.Format);
-					var second = new Result(ParseParameter(tokens, 2), Assembler.Format);
+					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
 
 					return new ComplexMemoryHandle(first, second, 1);
 				}
@@ -131,7 +275,7 @@ public class AssemblyParser
 				if (tokens[1].Is(Operators.MULTIPLY) && tokens[2].Type == TokenType.NUMBER)
 				{
 					var first = new Result(new ConstantHandle(0L), Assembler.Format);
-					var second = new Result(ParseParameter(tokens, 0), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 					var stride = (long)tokens[2].To<NumberToken>().Value;
 
 					return new ComplexMemoryHandle(first, second, (int)stride);
@@ -162,12 +306,12 @@ public class AssemblyParser
 					throw Errors.Get(tokens[3].Position, "Expected the second last token to be a plus or minus operator");
 				}
 
-				var first = new Result(ParseParameter(tokens, 0), Assembler.Format);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 
 				// Patterns: $register + $register + $number / $register + $register - $number
 				if (tokens[1].Is(Operators.ADD))
 				{
-					var second = new Result(ParseParameter(tokens, 2), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
 
 					return new ComplexMemoryHandle(first, second, 1, (int)offset);
 				}
@@ -176,7 +320,7 @@ public class AssemblyParser
 				if (tokens[1].Is(Operators.MULTIPLY))
 				{
 					var stride = (long)tokens[2].To<NumberToken>().Value;
-					var second = new Result(ParseParameter(tokens, 4), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
 
 					return new ComplexMemoryHandle(second, first, (int)stride, 0);
 				}
@@ -207,17 +351,40 @@ public class AssemblyParser
 				}
 
 				// Patterns: $register * $number + $register + $number
-				var first = new Result(ParseParameter(tokens, 0), Assembler.Format);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 				var stride = (long)tokens[2].To<NumberToken>().Value;
-				var second = new Result(ParseParameter(tokens, 4), Assembler.Format);
+				var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
 
 				return new ComplexMemoryHandle(second, first, (int)stride, (int)offset);
 			}
 		}
 
-		throw new NotSupportedException("Can not understand the token");
+		throw Errors.Get(all[i].Position, "Can not understand");
 	}
 
+	/// <summary>
+	/// Returns whether the specified operation represents a jump instruction
+	/// </summary>
+	private bool IsJump(string operation)
+	{
+		return operation == global::Instructions.X64.JUMP ||
+			operation == global::Instructions.X64.JUMP_ABOVE ||
+			operation == global::Instructions.X64.JUMP_ABOVE_OR_EQUALS ||
+			operation == global::Instructions.X64.JUMP_BELOW ||
+			operation == global::Instructions.X64.JUMP_BELOW_OR_EQUALS ||
+			operation == global::Instructions.X64.JUMP_EQUALS ||
+			operation == global::Instructions.X64.JUMP_GREATER_THAN ||
+			operation == global::Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS ||
+			operation == global::Instructions.X64.JUMP_LESS_THAN ||
+			operation == global::Instructions.X64.JUMP_LESS_THAN_OR_EQUALS ||
+			operation == global::Instructions.X64.JUMP_NOT_EQUALS ||
+			operation == global::Instructions.X64.JUMP_NOT_ZERO ||
+			operation == global::Instructions.X64.JUMP_ZERO;
+	}
+
+	/// <summary>
+	/// Tries to create an instruction from the specified tokens
+	/// </summary>
 	public bool ParseInstruction(List<Token> tokens)
 	{
 		if (tokens[0].Type != TokenType.IDENTIFIER) return false;
@@ -229,7 +396,7 @@ public class AssemblyParser
 		while (position < tokens.Count)
 		{
 			// Parse the next parameter
-			var parameter = ParseParameter(tokens, position);
+			var parameter = ParseInstructionParameter(tokens, position);
 			parameters.Add(new InstructionParameter(parameter, ParameterFlag.NONE));
 
 			// Try to find the next comma, which marks the start of the next parameter
@@ -237,7 +404,7 @@ public class AssemblyParser
 			if (position == 0) break;
 		}
 
-		var instruction = new Instruction(Unit, InstructionType.NORMAL);
+		var instruction = new Instruction(Unit, IsJump(operation) ? InstructionType.JUMP : InstructionType.NORMAL);
 		instruction.Parameters.AddRange(parameters);
 		instruction.Operation = operation;
 
@@ -257,9 +424,18 @@ public class AssemblyParser
 			// Skip empty lines
 			if (!tokens.Any()) continue;
 
-			if (ParseLabel(tokens)) continue;
-			if (ParseInstruction(tokens)) continue;
+			// Parse directives here, because all sections have some directives
 			if (ParseDirective(tokens)) continue;
+
+			// Parse labels here, because all sections have labels
+			if (ParseLabel(tokens)) continue;
+
+			if (Section == TEXT_SECTION)
+			{
+				if (ParseInstruction(tokens)) continue;
+			}
+
+			throw Errors.Get(tokens.First().Position, "Can not understand");
 		}
 	}
 }

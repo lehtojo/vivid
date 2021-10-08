@@ -79,6 +79,23 @@ public static class Instructions
 		public const byte R14 = 14;
 		public const byte R15 = 15;
 
+		public const byte YMM0 = 0;
+		public const byte YMM1 = 1;
+		public const byte YMM2 = 2;
+		public const byte YMM3 = 3;
+		public const byte YMM4 = 4;
+		public const byte YMM5 = 5;
+		public const byte YMM6 = 6;
+		public const byte YMM7 = 7;
+		public const byte YMM8 = 8;
+		public const byte YMM9 = 9;
+		public const byte YMM10 = 10;
+		public const byte YMM11 = 11;
+		public const byte YMM12 = 12;
+		public const byte YMM13 = 13;
+		public const byte YMM14 = 14;
+		public const byte YMM15 = 15;
+
 		public static List<List<InstructionEncoding>> ParameterlessEncodings { get; set; } = new List<List<InstructionEncoding>>();
 		public static List<List<InstructionEncoding>> SingleParameterEncodings { get; set; } = new List<List<InstructionEncoding>>();
 		public static List<List<InstructionEncoding>> DualParameterEncodings { get; set; } = new List<List<InstructionEncoding>>();

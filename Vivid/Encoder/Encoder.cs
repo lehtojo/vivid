@@ -933,7 +933,10 @@ public static class EncoderX64
 
 			if (end != 0)
 			{
-				var module = new EncoderModule(instructions[end - 1].To<JumpInstruction>().Label, instructions[end - 1].To<JumpInstruction>().IsConditional);
+				var label = new Label(instructions[end - 1].Parameters.First().Value!.To<DataSectionHandle>().Identifier);
+				var conditional = instructions[end - 1].Operation != Instructions.X64.JUMP;
+
+				var module = new EncoderModule(label, conditional);
 				module.Instructions.AddRange(instructions.GetRange(start, end - start));
 				module.Output = new byte[MAX_INSTRUCTION_SIZE * module.Instructions.Count(i => !string.IsNullOrEmpty(i.Operation))];
 				modules.Add(module);
