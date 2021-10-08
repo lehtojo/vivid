@@ -35,7 +35,7 @@ public class AssemblyParser
 		{
 			var size = Size.FromBytes(1 << (n - 1 - i)).ToFormat();
 
-			foreach (var register in Unit.StandardRegisters)
+			foreach (var register in Unit.Registers.Where(i => !i.IsMediaRegister))
 			{
 				var handle = new RegisterHandle(register);
 				handle.Format = size;
@@ -44,10 +44,11 @@ public class AssemblyParser
 		}
 
 		// Add every media register as a register handle
-		foreach (var register in Unit.MediaRegisters)
+		foreach (var register in Unit.MediaRegisters.Where(i => i.IsMediaRegister))
 		{
+			#warning YMM and XMM registers should be expressed as 32-byte and 16-byte registers
 			var handle = new RegisterHandle(register);
-			Registers.Add(register.Partitions[0], handle);
+			Registers.Add(register.Partitions[1], handle);
 		}
 	}
 
@@ -249,7 +250,7 @@ public class AssemblyParser
 				{
 					offset = -(long)tokens[1].To<NumberToken>().Value;
 				}
-				else if (!tokens[0].Is(Operators.ADD))
+				else if (tokens[0].Is(Operators.ADD))
 				{
 					offset = (long)tokens[1].To<NumberToken>().Value;
 				}
@@ -268,7 +269,15 @@ public class AssemblyParser
 					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
 
-					return new ComplexMemoryHandle(first, second, 1);
+					return new ComplexMemoryHandle(second, first, 1);
+				}
+
+				if (tokens[1].Is(Operators.SUBTRACT))
+				{
+					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
+
+					return new ComplexMemoryHandle(second, first, 1);
 				}
 
 				// Pattern: $register * $number
@@ -283,34 +292,30 @@ public class AssemblyParser
 			}
 			else if (tokens.Count == 5)
 			{
-				// Ensure the last token is a number
-				if (tokens[4].Type != TokenType.NUMBER)
-				{
-					throw Errors.Get(tokens[4].Position, "Expected the last token to be an integer number");
-				}
-
-				var offset = 0L;
-
-				// Ensure the last operator is a plus or minus operator
-				// Also handle the negation of the integer offset.
-				if (tokens[3].Is(Operators.SUBTRACT))
-				{
-					offset = -(long)tokens[4].To<NumberToken>().Value;
-				}
-				else if (!tokens[3].Is(Operators.ADD))
-				{
-					offset = (long)tokens[4].To<NumberToken>().Value;
-				}
-				else
-				{
-					throw Errors.Get(tokens[3].Position, "Expected the second last token to be a plus or minus operator");
-				}
-
 				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
 
 				// Patterns: $register + $register + $number / $register + $register - $number
 				if (tokens[1].Is(Operators.ADD))
 				{
+					// Ensure the last token is a number
+					if (tokens[4].Type != TokenType.NUMBER)
+					{
+						throw Errors.Get(tokens[4].Position, "Expected the last token to be an integer number");
+					}
+
+					var offset = 0L;
+
+					// Ensure the last operator is a plus or minus operator
+					// Also handle the negation of the integer offset.
+					if (tokens[3].Is(Operators.SUBTRACT))
+					{
+						offset = -(long)tokens[4].To<NumberToken>().Value;
+					}
+					else if (tokens[3].Is(Operators.ADD))
+					{
+						offset = (long)tokens[4].To<NumberToken>().Value;
+					}
+
 					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
 
 					return new ComplexMemoryHandle(first, second, 1, (int)offset);
@@ -341,7 +346,7 @@ public class AssemblyParser
 				{
 					offset = -(long)tokens[6].To<NumberToken>().Value;
 				}
-				else if (!tokens[5].Is(Operators.ADD))
+				else if (tokens[5].Is(Operators.ADD))
 				{
 					offset = (long)tokens[6].To<NumberToken>().Value;
 				}
@@ -357,6 +362,17 @@ public class AssemblyParser
 
 				return new ComplexMemoryHandle(second, first, (int)stride, (int)offset);
 			}
+		}
+
+		if (parameter.Is(Operators.SUBTRACT))
+		{
+			if (i + 1 >= all.Count) throw Errors.Get(all[i].Position, "Expected an integer number");
+
+			// Parse the number and negate it
+			var number = ParseInstructionParameter(all, i + 1);
+			number.To<ConstantHandle>().Value = -(long)number.To<ConstantHandle>().Value;
+
+			return number;
 		}
 
 		throw Errors.Get(all[i].Position, "Can not understand");

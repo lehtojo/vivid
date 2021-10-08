@@ -447,7 +447,7 @@ public static class EncoderX64
 		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, false, false, IsExtensionRegister(first), force);
 		WriteOperation(module, encoding.Operation);
-		Write(module, REGISTER_DIRECT_ADDRESSING_MODIFIER | first.Name);
+		Write(module, REGISTER_DIRECT_ADDRESSING_MODIFIER | encoding.Modifier << 3 | first.Name);
 	}
 
 	/// <summary>
@@ -757,7 +757,12 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
 		if (instruction.Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;
 		if (instruction.Operation == Instructions.X64.EVALUATE) return Instructions.X64._LEA;
+		if (instruction.Operation == Instructions.X64.TEST) return Instructions.X64._TEST;
 		if (instruction.Operation == Instructions.Shared.COMPARE) return Instructions.X64._CMP;
+
+		if (instruction.Operation == Instructions.X64.UNALIGNED_XMMWORD_MOVE) return Instructions.X64._MOVUPS;
+		if (instruction.Operation == Instructions.X64.RAW_MEDIA_REGISTER_MOVE) return Instructions.X64._MOVQ;
+		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
 
 		return -1;
 	}
@@ -929,7 +934,7 @@ public static class EncoderX64
 
 		while (true)
 		{
-			var end = instructions.FindIndex(start, instructions.Count - start, i => i.Type == InstructionType.JUMP) + 1;
+			var end = instructions.FindIndex(start, instructions.Count - start, i => i.Type == InstructionType.JUMP && i.Parameters.First().Value!.Type != HandleType.REGISTER) + 1;
 
 			if (end != 0)
 			{

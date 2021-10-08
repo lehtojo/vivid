@@ -200,31 +200,40 @@ public static class Instructions
 		public const string POP = "pop";
 		public const string EXCHANGE = "xchg";
 
+		public const string SYSTEM_CALL = "syscall";
+
 
 		// Parameterless instructions
 		public const int _RETURN = 0;
 		public const int _LABEL = 1;
 		public const int _CQO = 2;
-		public const int _MAX_PARAMETERLESS_INSTRUCTIONS = 3;
+		public const int _SYSCALL = 3;
+		public const int _MAX_PARAMETERLESS_INSTRUCTIONS = 4;
 
 		// Single parameter instructions
 		public const int _PUSH = 0;
 		public const int _POP = 1;
 		public const int _JA = 2;
-		public const int _JAE = 3;
-		public const int _JB = 4;
-		public const int _JBE = 5;
-		public const int _JE = 6;
-		public const int _JG = 7;
-		public const int _JGE = 8;
-		public const int _JL = 9;
-		public const int _JLE = 10;
-		public const int _JMP = 11;
-		public const int _JNE = 12;
-		public const int _JNZ = 13;
-		public const int _JZ = 14;
-		public const int _CALL = 15;
-		public const int _MAX_SINGLE_PARAMETER_INSTRUCTIONS = 16;
+
+		// 3: imul 
+		// 4: mul 
+		// 5: idiv
+		// 6: div
+
+		public const int _JAE = 7;
+		public const int _JB = 8;
+		public const int _JBE = 9;
+		public const int _JE = 10;
+		public const int _JG = 11;
+		public const int _JGE = 12;
+		public const int _JL = 13;
+		public const int _JLE = 14;
+		public const int _JMP = 15;
+		public const int _JNE = 16;
+		public const int _JNZ = 17;
+		public const int _JZ = 18;
+		public const int _CALL = 19;
+		public const int _MAX_SINGLE_PARAMETER_INSTRUCTIONS = 20;
 
 		// Dual parameter instructions
 		public const int _MOVE = 0;
@@ -254,7 +263,8 @@ public static class Instructions
 		public const int _OR = 24;
 		public const int _COMISD = 25;
 		public const int _TEST = 26;
-		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 27;
+		public const int _MOVUPS = 27;
+		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 28;
 
 		// Triple parameter instructions
 		public const int _MAX_TRIPLE_PARAMETER_INSTRUCTIONS = 0;
@@ -362,6 +372,11 @@ public static class Instructions
 				new InstructionEncoding(0x99, EncodingRoute.NONE, true),
 			};
 
+			ParameterlessEncodings[_SYSCALL] = new List<InstructionEncoding>()
+			{
+				new InstructionEncoding(0x050F, EncodingRoute.NONE, false),
+			};
+
 			SingleParameterEncodings[_PUSH] = new List<InstructionEncoding>()
 			{
 				// push r64, push r16
@@ -374,6 +389,30 @@ public static class Instructions
 				// pop r64, pop r16
 				new InstructionEncoding(0x58, 0, EncodingRoute.O, false, EncodingFilterType.REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x58, 0, EncodingRoute.O, false, EncodingFilterType.REGISTER, 0, 8),
+			};
+
+			SingleParameterEncodings[_SIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			{
+				// imul r64 | imul r32 | imul r16 | imul r8
+				new InstructionEncoding(0xF6, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
+				new InstructionEncoding(0xF7, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xF7, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4),
+				new InstructionEncoding(0xF7, 5, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8),
+			};
+
+			SingleParameterEncodings[_UNSIGNED_DIVIDE] = new List<InstructionEncoding>()
+			{
+				// div r64 | div r32 | div r16 | div r8
+				new InstructionEncoding(0xF6, 6, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8),
+
+				// div m64 | div m32 | div m16 | div m8
+				new InstructionEncoding(0xF6, 6, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
+				new InstructionEncoding(0xF7, 6, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
 			SingleParameterEncodings[_JA] = new List<InstructionEncoding>()  { new InstructionEncoding(0x770F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
@@ -389,8 +428,14 @@ public static class Instructions
 			SingleParameterEncodings[_JNZ] = new List<InstructionEncoding>() { new InstructionEncoding(0x750F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
 			SingleParameterEncodings[_JZ] = new List<InstructionEncoding>()  { new InstructionEncoding(0x740F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
 
-			SingleParameterEncodings[_JMP] = new List<InstructionEncoding>() { new InstructionEncoding(0xE9, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_CALL] = new List<InstructionEncoding>()  { new InstructionEncoding(0xE8, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JMP] = new List<InstructionEncoding>()
+			{
+				new InstructionEncoding(0xE9, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8),
+				new InstructionEncoding(0xFF, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 8),
+				new InstructionEncoding(0xFF, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
+			};
+	
+			SingleParameterEncodings[_CALL] = new List<InstructionEncoding>() { new InstructionEncoding(0xE8, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
 
 			DualParameterEncodings[_MOVE] = new List<InstructionEncoding>()
 			{
@@ -464,11 +509,17 @@ public static class Instructions
 				new InstructionEncoding(0x01, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x01, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.REGISTER, 0, 4),
 				new InstructionEncoding(0x01, 0, EncodingRoute.MR, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.REGISTER, 0, 8),
+
+				// add r64, m64 | add r32, m32 | add r16, m16 | add r8, m8
+				new InstructionEncoding(0x02, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.MEMORY_ADDRESS, 0, 1),
+				new InstructionEncoding(0x03, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0x03, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
+				new InstructionEncoding(0x03, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
 			DualParameterEncodings[_SUBTRACT] = new List<InstructionEncoding>()
 			{
-				// add r64, c8 | add r32, c8 | add r16, c8
+				// sub r64, c8 | sub r32, c8 | sub r16, c8
 				new InstructionEncoding(0x83, 5, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1),
 				new InstructionEncoding(0x83, 5, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 1),
 				new InstructionEncoding(0x83, 5, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
@@ -502,6 +553,12 @@ public static class Instructions
 				new InstructionEncoding(0x29, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x29, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.REGISTER, 0, 4),
 				new InstructionEncoding(0x29, 0, EncodingRoute.MR, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.REGISTER, 0, 8),
+			
+				// sub sub, m64 | sub r32, m32 | sub r16, m16 | sub r8, m8
+				new InstructionEncoding(0x2A, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.MEMORY_ADDRESS, 0, 1),
+				new InstructionEncoding(0x2B, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0x2B, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
+				new InstructionEncoding(0x2B, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
 			DualParameterEncodings[_SIGNED_MULTIPLY] = new List<InstructionEncoding>()
@@ -529,7 +586,8 @@ public static class Instructions
 				new InstructionEncoding(0xAF0F, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			DualParameterEncodings[_UNSIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			#warning Move out from the dual parameter instructions completely
+			SingleParameterEncodings[_UNSIGNED_MULTIPLY] = new List<InstructionEncoding>()
 			{
 				// mul r64 | mul r32 | mul r16 | mul r8
 				new InstructionEncoding(0xF6, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -544,7 +602,7 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 4, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			DualParameterEncodings[_SIGNED_DIVIDE] = new List<InstructionEncoding>()
+			SingleParameterEncodings[_SIGNED_DIVIDE] = new List<InstructionEncoding>()
 			{
 				// idiv r64 | idiv r32 | idiv r16 | idiv r8
 				new InstructionEncoding(0xF6, 7, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -575,15 +633,15 @@ public static class Instructions
 
 				// sal r64, c8 | sal r32, c8 | sal r16, c8 | sal r8, c8
 				new InstructionEncoding(0xC0, 4, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 8),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
 
 				// sal m64, c8 | sal m32, c8 | sal m16, c8 | sal m8, c8
 				new InstructionEncoding(0xC0, 4, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.CONSTANT, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
-				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.CONSTANT, 0, 8),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.CONSTANT, 0, 1, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0xC1, 4, EncodingRoute.MC, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
 
 				// sal r64, cl | sal r32, cl | sal r16, cl | sal r8, cl
 				new InstructionEncoding(0xD2, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
@@ -614,15 +672,15 @@ public static class Instructions
 
 				// sar r64, c8 | sar r32, c8 | sar r16, c8 | sar r8, c8
 				new InstructionEncoding(0xC0, 7, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 8),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
 
 				// sar m64, c8 | sar m32, c8 | sar m16, c8 | sar m8, c8
 				new InstructionEncoding(0xC0, 7, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.CONSTANT, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
-				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.CONSTANT, 0, 8),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.CONSTANT, 0, 1, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0xC1, 7, EncodingRoute.MC, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
 
 				// sar r64, cl | sar r32, cl | sar r16, cl | sar r8, cl
 				new InstructionEncoding(0xD2, 7, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
@@ -820,13 +878,23 @@ public static class Instructions
 				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.REGISTER, 0, 8, 0xF2),
 			};
 
+			DualParameterEncodings[_MOVUPS] = new List<InstructionEncoding>()
+			{
+				// movups x, m128
+				new InstructionEncoding(0x100F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 16),
+
+				// movups m128, x
+				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 16, EncodingFilterType.REGISTER, 0, 8),
+			};
+
 			DualParameterEncodings[_MOVQ] = new List<InstructionEncoding>()
 			{
+				#warning Requires a media register filter
 				// movq x, r64
-				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 8, 0xF3),
+				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RR, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 8, 0x66),
 
 				// movq x, m64
-				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8, 0xF3),
+				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8, 0x66),
 			};
 
 			DualParameterEncodings[_CVTSI2SD] = new List<InstructionEncoding>()
