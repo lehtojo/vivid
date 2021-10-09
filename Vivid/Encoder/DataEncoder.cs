@@ -108,10 +108,11 @@ public class DataEncoderModule
 	/// <summary>
 	/// Writes the specified string into this module
 	/// </summary>
-	public void String(string value)
+	public void String(string value, bool terminate = true)
 	{
 		#warning Support text commands
 		Write(Encoding.ASCII.GetBytes(value));
+		if (terminate) Write(0);
 	}
 
 	/// <summary>

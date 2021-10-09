@@ -14,9 +14,10 @@ public class AssemblyParser
 	public const string XWORD_SPECIFIER = "xword";
 	public const string OWORD_SPECIFIER = "oword";
 
+	public const string EXPORT_DIRECTIVE = "export";
 	public const string SECTION_DIRECTIVE = "section";
 	public const string STRING_DIRECTIVE = "string";
-	public const string ASCII_DIRECTIVE = "ascii";
+	public const string CHARACTERS_DIRECTIVE = "characters";
 
 	public Unit Unit { get; set; }
 	public Dictionary<string, RegisterHandle> Registers { get; set; } = new Dictionary<string, RegisterHandle>();
@@ -73,9 +74,11 @@ public class AssemblyParser
 	/// </summary>
 	private bool ExecuteExportDirective(List<Token> tokens)
 	{
-		if (tokens.Count < 3 || !tokens[1].Is(Keywords.EXPORT) || tokens[2].Type != TokenType.IDENTIFIER) return false;
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.IDENTIFIER) return false;
 
 		// Pattern: .export $symbol
+		if (tokens[1].To<IdentifierToken>().Value != EXPORT_DIRECTIVE) return false;
+
 		Instructions.Add(new LabelInstruction(Unit, new Label(tokens[2].To<IdentifierToken>().Value)));
 		return true;
 	}
@@ -128,8 +131,8 @@ public class AssemblyParser
 			Data.String(tokens[2].To<StringToken>().Text);
 			break;
 
-			case ASCII_DIRECTIVE:
-			// Pattern: .ascii '...'
+			case CHARACTERS_DIRECTIVE:
+			// Pattern: .characters '...'
 			/// TODO: Disable zero byte termination
 			Data.String(tokens[2].To<StringToken>().Text);
 			break;

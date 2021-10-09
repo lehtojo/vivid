@@ -111,6 +111,7 @@ public enum EncodingFilterType
 
 public enum EncodingRoute
 {
+	RMC, // Register, Memory, Constant
 	RRC, // Register, Register, Constant
 	DRC, // Register, Constant => Register, Register, Constant
 	RR, // Register, Register
@@ -125,6 +126,8 @@ public enum EncodingRoute
 	O, // Operation code + Register
 	D, // Label offset
 	L, // Label declaration
+	SC, // Skip, Constant
+	SO, // Skip, Operation code + Register
 	NONE
 }
 
@@ -141,7 +144,7 @@ public struct InstructionEncoding
 	public EncodingFilterType FilterTypeofSecond { get; set; }
 	public short FilterOfSecond { get; set; }
 	public byte InputSizeOfSecond { get; set; }
-	public EncodingFilterType FilterTypeOfThrid { get; set; }
+	public EncodingFilterType FilterTypeOfThird { get; set; }
 	public short FilterOfThird { get; set; }
 	public byte InputSizeOfThird { get; set; }
 
@@ -158,7 +161,7 @@ public struct InstructionEncoding
 		FilterTypeofSecond = 0;
 		FilterOfSecond = 0;
 		InputSizeOfSecond = 0;
-		FilterTypeOfThrid = 0;
+		FilterTypeOfThird = 0;
 		FilterOfThird = 0;
 		InputSizeOfThird = 0;
 	}
@@ -176,7 +179,7 @@ public struct InstructionEncoding
 		FilterTypeofSecond = 0;
 		FilterOfSecond = 0;
 		InputSizeOfSecond = 0;
-		FilterTypeOfThrid = 0;
+		FilterTypeOfThird = 0;
 		FilterOfThird = 0;
 		InputSizeOfThird = 0;
 	}
@@ -196,7 +199,7 @@ public struct InstructionEncoding
 		FilterTypeofSecond = filter_type_second;
 		FilterOfSecond = filter_second;
 		InputSizeOfSecond = input_size_second;
-		FilterTypeOfThrid = 0;
+		FilterTypeOfThird = 0;
 		FilterOfThird = 0;
 		InputSizeOfThird = 0;
 	}
@@ -217,7 +220,7 @@ public struct InstructionEncoding
 		FilterTypeofSecond = filter_type_second;
 		FilterOfSecond = filter_second;
 		InputSizeOfSecond = input_size_second;
-		FilterTypeOfThrid = filter_type_third;
+		FilterTypeOfThird = filter_type_third;
 		FilterOfThird = filter_third;
 		InputSizeOfThird = input_size_third;
 	}
@@ -438,7 +441,7 @@ public static class EncoderX64
 		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst) || IsOverridableRegister(second, encoding.InputSizeOfSecond);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, IsExtensionRegister(second), force);
 		WriteOperation(module, encoding.Operation);
-		Write(module, REGISTER_DIRECT_ADDRESSING_MODIFIER | second.Name << 3 | first.Name);
+		Write(module, REGISTER_DIRECT_ADDRESSING_MODIFIER | first.Name << 3 | second.Name);
 	}
 
 	/// <summary>
@@ -491,7 +494,7 @@ public static class EncoderX64
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, false, force);
 
 		WriteOperation(module, encoding.Operation);
-		Write(module, first << 3 | Instructions.X64.RBP); // Addressing: [rip+c32]
+		Write(module, (first & 7) << 3 | Instructions.X64.RBP); // Addressing: [rip+c32]
 
 		relocation.Offset = module.Position;
 		module.MemoryAddressRelocations.Add(relocation);
@@ -512,15 +515,15 @@ public static class EncoderX64
 
 		// Convert [start+offset] => [start]
 		/// NOTE: Do not use this conversion if the start register is either RBP (0.101) or R13 (1.101)
-		if (offset == 0 && start.Name != Instructions.X64.RBP)
+		if (offset == 0 && start.Name != Instructions.X64.RBP && start.Name != Instructions.X64.RSP)
 		{
-			Write(module, first << 3 | start.Name);
+			Write(module, (first & 7) << 3 | start.Name);
 			return;
 		}
 
 		if (offset < sbyte.MinValue || offset > sbyte.MaxValue)
 		{
-			Write(module, MEMORY_OFFSET32_MODIFIER | first << 3 | start.Name);
+			Write(module, MEMORY_OFFSET32_MODIFIER | (first & 7) << 3 | start.Name);
 
 			// If the name of the register matches the name of the stack pointer, a SIB-byte is required to express the register
 			if (start.Name == Instructions.X64.RSP) WriteSIB(module, 0, Instructions.X64.RSP, Instructions.X64.RSP);
@@ -529,7 +532,7 @@ public static class EncoderX64
 			return;
 		}
 
-		Write(module, MEMORY_OFFSET8_MODIFIER | first << 3 | start.Name);
+		Write(module, MEMORY_OFFSET8_MODIFIER | (first & 7) << 3 | start.Name);
 
 		// If the name of the register matches the name of the stack pointer, a SIB-byte is required to express the register
 		if (start.Name == Instructions.X64.RSP) WriteSIB(module, 0, Instructions.X64.RSP, Instructions.X64.RSP);
@@ -557,20 +560,20 @@ public static class EncoderX64
 		// If the start register is RBP or R13, it is a special case where the offset must be added even though it is zero
 		if (offset == 0 && start.Name != Instructions.X64.RBP)
 		{
-			Write(module, first << 3 | Instructions.X64.RSP);
+			Write(module, (first & 7) << 3 | Instructions.X64.RSP);
 			WriteSIB(module, scale, index, start);
 			return;
 		}
 
 		if (offset < sbyte.MinValue || offset > sbyte.MaxValue)
 		{
-			Write(module, MEMORY_OFFSET32_MODIFIER | first << 3 | Instructions.X64.RSP);
+			Write(module, MEMORY_OFFSET32_MODIFIER | (first & 7) << 3 | Instructions.X64.RSP);
 			WriteSIB(module, scale, index, start);
 			WriteInt32(module, offset);
 			return;
 		}
 
-		Write(module, MEMORY_OFFSET8_MODIFIER | first << 3 | Instructions.X64.RSP);
+		Write(module, MEMORY_OFFSET8_MODIFIER | (first & 7) << 3 | Instructions.X64.RSP);
 		WriteSIB(module, scale, index, start);
 		Write(module, offset);
 	}
@@ -597,7 +600,7 @@ public static class EncoderX64
 		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), IsExtensionRegister(index), false, force);
 
-		Write(module, first << 3 | Instructions.X64.RSP);
+		Write(module, (first & 7) << 3 | Instructions.X64.RSP);
 		WriteSIB(module, scale, index.Name, Instructions.X64.RBP);
 		Write(module, offset);
 	}
@@ -611,7 +614,7 @@ public static class EncoderX64
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, false, force);
 
 		WriteOperation(module, encoding.Operation);
-		Write(module, first << 3 | Instructions.X64.RSP);
+		Write(module, (first & 7) << 3 | Instructions.X64.RSP);
 		WriteSIB(module, 0, Instructions.X64.RSP, Instructions.X64.RBP);
 		WriteInt32(module, offset);
 	}
@@ -721,7 +724,7 @@ public static class EncoderX64
 		foreach (var encoding in encodings)
 		{
 			if (!PassesSize(first, encoding.InputSizeOfFirst) || !PassesSize(second, encoding.InputSizeOfSecond) || !PassesSize(third, encoding.InputSizeOfThird)) continue;
-			if (!PassesFilter(encoding.FilterTypeOfFirst, encoding.FilterOfFirst, first) || !PassesFilter(encoding.FilterTypeofSecond, encoding.FilterOfSecond, second) || !PassesFilter(encoding.FilterTypeOfThrid, encoding.FilterOfThird, third)) continue;
+			if (!PassesFilter(encoding.FilterTypeOfFirst, encoding.FilterOfFirst, first) || !PassesFilter(encoding.FilterTypeofSecond, encoding.FilterOfSecond, second) || !PassesFilter(encoding.FilterTypeOfThird, encoding.FilterOfThird, third)) continue;
 			return encoding;
 		}
 
@@ -735,7 +738,16 @@ public static class EncoderX64
 	public static int GetInstructionIndex(Instruction instruction)
 	{
 		if (instruction.Type == InstructionType.LABEL) return Instructions.X64._LABEL;
+
 		if (instruction.Operation == Instructions.Shared.RETURN) return Instructions.X64._RETURN;
+		if (instruction.Operation == Instructions.X64.EXTEND_QWORD) return Instructions.X64._CQO;
+		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
+		if (instruction.Operation == "fld1") return Instructions.X64._FLD1;
+		if (instruction.Operation == "fyl2x") return Instructions.X64._FYL2x;
+		if (instruction.Operation == "f2xm1") return Instructions.X64._F2XM1;
+		if (instruction.Operation == "faddp") return Instructions.X64._FADDP;
+		if (instruction.Operation == "fcos") return Instructions.X64._FCOS;
+		if (instruction.Operation == "fsin") return Instructions.X64._FSIN;
 
 		if (instruction.Operation == Instructions.X64.PUSH) return Instructions.X64._PUSH;
 		if (instruction.Operation == Instructions.X64.POP) return Instructions.X64._POP;
@@ -753,6 +765,10 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.JUMP_NOT_ZERO) return Instructions.X64._JNZ;
 		if (instruction.Operation == Instructions.X64.JUMP_ZERO) return Instructions.X64._JZ;
 		if (instruction.Operation == Instructions.X64.CALL) return Instructions.X64._CALL;
+		if (instruction.Operation == "fild") return Instructions.X64._FILD;
+		if (instruction.Operation == "fld") return Instructions.X64._FLD;
+		if (instruction.Operation == "fistp") return Instructions.X64._FISTP;
+		if (instruction.Operation == "fstp") return Instructions.X64._FSTP;
 
 		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOVE;
 		if (instruction.Operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
@@ -763,19 +779,28 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._UNSIGNED_DIVIDE;
 		if (instruction.Operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SHIFT_LEFT;
 		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SHIFT_RIGHT;
-		if (instruction.Operation == Instructions.Shared.AND) return Instructions.X64._AND;
-		if (instruction.Operation == Instructions.X64.OR) return Instructions.X64._OR;
-		if (instruction.Operation == Instructions.X64.XOR) return Instructions.X64._XOR;
 		if (instruction.Operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE) return Instructions.X64._MOVZX;
 		if (instruction.Operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
 		if (instruction.Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;
 		if (instruction.Operation == Instructions.X64.EVALUATE) return Instructions.X64._LEA;
-		if (instruction.Operation == Instructions.X64.TEST) return Instructions.X64._TEST;
 		if (instruction.Operation == Instructions.Shared.COMPARE) return Instructions.X64._CMP;
-
-		if (instruction.Operation == Instructions.X64.UNALIGNED_XMMWORD_MOVE) return Instructions.X64._MOVUPS;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_ADD) return Instructions.X64._ADDSD;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_SUBTRACT) return Instructions.X64._SUBSD;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_MULTIPLY) return Instructions.X64._MULSD;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_DIVIDE) return Instructions.X64._DIVSD;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_MOVE) return Instructions.X64._MOVSD;
 		if (instruction.Operation == Instructions.X64.RAW_MEDIA_REGISTER_MOVE) return Instructions.X64._MOVQ;
-		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
+		if (instruction.Operation == Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION) return Instructions.X64._CVTSI2SD;
+		if (instruction.Operation == Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER) return Instructions.X64._CVTTSD2SI;
+		if (instruction.Operation == Instructions.Shared.AND) return Instructions.X64._AND;
+		if (instruction.Operation == Instructions.X64.XOR) return Instructions.X64._XOR;
+		if (instruction.Operation == Instructions.X64.OR) return Instructions.X64._OR;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_COMPARE) return Instructions.X64._COMISD;
+		if (instruction.Operation == Instructions.X64.TEST) return Instructions.X64._TEST;
+		if (instruction.Operation == Instructions.X64.UNALIGNED_XMMWORD_MOVE) return Instructions.X64._MOVUPS;
+		if (instruction.Operation == "sqrtsd") return Instructions.X64._SQRTSD;
+		if (instruction.Operation == Instructions.X64.EXCHANGE) return Instructions.X64._XCHG;
+		if (instruction.Operation == Instructions.X64.MEDIA_REGISTER_BITWISE_XOR) return Instructions.X64._PXOR;
 
 		return -1;
 	}
@@ -804,6 +829,23 @@ public static class EncoderX64
 				break;
 			}
 
+			case EncodingRoute.RMC: {
+				var destination = parameters[0].Value!.To<RegisterHandle>().Register;
+				var descriptor = GetMemoryAddressDescriptor(parameters[1].Value!);
+
+				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, destination.Identifier, descriptor.Relocation);
+				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Start, descriptor.Offset);
+				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Offset);
+
+				WriteRawConstant(module, (long)parameters[2].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfThird);
+
+				// Symbol relocations are computed from the end of the instruction
+				if (descriptor.Relocation != null) { descriptor.Relocation.Addend -= module.Position - descriptor.Relocation.Offset; }
+				break;
+			}
+
 			case EncodingRoute.DRC: {
 				WriteRegisterAndRegister(module, encoding, parameters[0].Value!.To<RegisterHandle>().Register, parameters[0].Value!.To<RegisterHandle>().Register);
 				WriteRawConstant(module, (long)parameters[1].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfSecond);
@@ -824,11 +866,11 @@ public static class EncoderX64
 				var destination = parameters[0].Value!.To<RegisterHandle>().Register;
 				var descriptor = GetMemoryAddressDescriptor(parameters[1].Value!);
 
-				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, destination.Name, descriptor.Relocation);
-				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Name, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, destination.Name, descriptor.Start, descriptor.Offset);
-				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Name, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else WriteRegisterAndMemoryAddress(module, encoding, destination.Name, descriptor.Offset);
+				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, destination.Identifier, descriptor.Relocation);
+				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Start, descriptor.Offset);
+				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else WriteRegisterAndMemoryAddress(module, encoding, destination.Identifier, descriptor.Offset);
 
 				// Symbol relocations are computed from the end of the instruction
 				if (descriptor.Relocation != null) { descriptor.Relocation.Addend -= module.Position - descriptor.Relocation.Offset; }
@@ -839,11 +881,11 @@ public static class EncoderX64
 				var source = parameters[1].Value!.To<RegisterHandle>().Register;
 				var descriptor = GetMemoryAddressDescriptor(parameters[0].Value!);
 
-				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, source.Name, descriptor.Relocation);
-				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, source.Name, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, source.Name, descriptor.Start, descriptor.Offset);
-				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, source.Name, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else WriteRegisterAndMemoryAddress(module, encoding, source.Name, descriptor.Offset);
+				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, source.Identifier, descriptor.Relocation);
+				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, source.Identifier, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, source.Identifier, descriptor.Start, descriptor.Offset);
+				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, source.Identifier, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else WriteRegisterAndMemoryAddress(module, encoding, source.Identifier, descriptor.Offset);
 
 				// Symbol relocations are computed from the end of the instruction
 				if (descriptor.Relocation != null) { descriptor.Relocation.Addend -= module.Position - descriptor.Relocation.Offset; }
@@ -853,11 +895,11 @@ public static class EncoderX64
 			case EncodingRoute.MC: {
 				var descriptor = GetMemoryAddressDescriptor(parameters[0].Value!);
 
-				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, 0, descriptor.Relocation);
-				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Start, descriptor.Offset);
-				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Offset);
+				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, encoding.Modifier, descriptor.Relocation);
+				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Start, descriptor.Offset);
+				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Offset);
 
 				WriteRawConstant(module, (long)parameters[1].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfSecond);
 
@@ -884,21 +926,21 @@ public static class EncoderX64
 				var destination = parameters[0].Value!;
 				var descriptor = GetMemoryAddressDescriptor(destination);
 
-				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, 0, descriptor.Relocation);
-				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Start, descriptor.Offset);
-				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Index, descriptor.Stride, descriptor.Offset);
-				else WriteRegisterAndMemoryAddress(module, encoding, 0, descriptor.Offset);
+				if (descriptor.Relocation != null) WriteRegisterAndSymbol(module, encoding, encoding.Modifier, descriptor.Relocation);
+				else if (descriptor.Start != null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Start, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else if (descriptor.Start != null && descriptor.Index == null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Start, descriptor.Offset);
+				else if (descriptor.Start == null && descriptor.Index != null) WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Index, descriptor.Stride, descriptor.Offset);
+				else WriteRegisterAndMemoryAddress(module, encoding, encoding.Modifier, descriptor.Offset);
 
 				// Symbol relocations are computed from the end of the instruction
 				if (descriptor.Relocation != null) { descriptor.Relocation.Addend -= module.Position - descriptor.Relocation.Offset; }
 				break;
 			}
 
-			case EncodingRoute.C: {
+			case EncodingRoute.SC: {
 				TryWriteRex(module, encoding.Is64Bit, false, false, false, false);
 				WriteOperation(module, encoding.Operation);
-				WriteRawConstant(module, (long)parameters[0].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfFirst);
+				WriteRawConstant(module, (long)parameters[1].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfSecond);
 				break;
 			}
 
@@ -907,6 +949,14 @@ public static class EncoderX64
 				var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
 				TryWriteRex(module, encoding.Is64Bit, false, false, IsExtensionRegister(first), force);
 				WriteOperation(module, encoding.Operation + first.Name);
+				break;
+			}
+
+			case EncodingRoute.SO: {
+				var second = parameters[1].Value!.To<RegisterHandle>().Register;
+				var force = IsOverridableRegister(second, encoding.InputSizeOfSecond);
+				TryWriteRex(module, encoding.Is64Bit, false, false, IsExtensionRegister(second), force);
+				WriteOperation(module, encoding.Operation + second.Name);
 				break;
 			}
 

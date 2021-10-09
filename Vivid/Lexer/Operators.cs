@@ -61,8 +61,8 @@ public static class Operators
 	/// NOTE: The user should not be able to use this operator since it is meant for internal usage
 	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new(string.Empty, 11);
 
-	private static readonly Dictionary<string, Operator> Map = new();
-	private static readonly Dictionary<string, ActionOperator> Actions = new();
+	public static readonly Dictionary<string, Operator> Map = new();
+	public static readonly Dictionary<string, ActionOperator> Actions = new();
 
 	private static void Add(Operator operation)
 	{

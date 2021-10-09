@@ -17,6 +17,9 @@ public class AssemblerPhase : Phase
 
 		// Initialize the target architecture
 		Instructions.X64.Initialize();
+		Keywords.Values.Clear();
+		Operators.Map.Remove(Operators.AND.Identifier);
+		Operators.Map.Remove(Operators.OR.Identifier);
 
 		var succeeded = true;
 
