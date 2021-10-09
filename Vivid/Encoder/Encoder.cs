@@ -111,6 +111,8 @@ public enum EncodingFilterType
 
 public enum EncodingRoute
 {
+	RRC, // Register, Register, Constant
+	DRC, // Register, Constant => Register, Register, Constant
 	RR, // Register, Register
 	RC, // Register, Constant
 	RM, // Register, Memory address
@@ -434,7 +436,7 @@ public static class EncoderX64
 	public static void WriteRegisterAndRegister(EncoderModule module, InstructionEncoding encoding, Register first, Register second)
 	{
 		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst) || IsOverridableRegister(second, encoding.InputSizeOfSecond);
-		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(second), false, IsExtensionRegister(first), force);
+		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, IsExtensionRegister(second), force);
 		WriteOperation(module, encoding.Operation);
 		Write(module, REGISTER_DIRECT_ADDRESSING_MODIFIER | second.Name << 3 | first.Name);
 	}
@@ -519,11 +521,19 @@ public static class EncoderX64
 		if (offset < sbyte.MinValue || offset > sbyte.MaxValue)
 		{
 			Write(module, MEMORY_OFFSET32_MODIFIER | first << 3 | start.Name);
+
+			// If the name of the register matches the name of the stack pointer, a SIB-byte is required to express the register
+			if (start.Name == Instructions.X64.RSP) WriteSIB(module, 0, Instructions.X64.RSP, Instructions.X64.RSP);
+
 			WriteInt32(module, offset);
 			return;
 		}
 
 		Write(module, MEMORY_OFFSET8_MODIFIER | first << 3 | start.Name);
+
+		// If the name of the register matches the name of the stack pointer, a SIB-byte is required to express the register
+		if (start.Name == Instructions.X64.RSP) WriteSIB(module, 0, Instructions.X64.RSP, Instructions.X64.RSP);
+
 		Write(module, offset);
 	}
 
@@ -545,7 +555,7 @@ public static class EncoderX64
 		WriteOperation(module, encoding.Operation);
 
 		// If the start register is RBP or R13, it is a special case where the offset must be added even though it is zero
-		if (offset == 0 && start.Identifier != Instructions.X64.RBP && start.Identifier != Instructions.X64.R13)
+		if (offset == 0 && start.Name != Instructions.X64.RBP)
 		{
 			Write(module, first << 3 | Instructions.X64.RSP);
 			WriteSIB(module, scale, index, start);
@@ -753,6 +763,9 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._UNSIGNED_DIVIDE;
 		if (instruction.Operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SHIFT_LEFT;
 		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SHIFT_RIGHT;
+		if (instruction.Operation == Instructions.Shared.AND) return Instructions.X64._AND;
+		if (instruction.Operation == Instructions.X64.OR) return Instructions.X64._OR;
+		if (instruction.Operation == Instructions.X64.XOR) return Instructions.X64._XOR;
 		if (instruction.Operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE) return Instructions.X64._MOVZX;
 		if (instruction.Operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
 		if (instruction.Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;
@@ -785,6 +798,18 @@ public static class EncoderX64
 		if (encoding.Prefix != 0) Write(module, encoding.Prefix);
 
 		switch (encoding.Route) {
+			case EncodingRoute.RRC: {
+				WriteRegisterAndRegister(module, encoding, parameters[0].Value!.To<RegisterHandle>().Register, parameters[1].Value!.To<RegisterHandle>().Register);
+				WriteRawConstant(module, (long)parameters[2].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfThird);
+				break;
+			}
+
+			case EncodingRoute.DRC: {
+				WriteRegisterAndRegister(module, encoding, parameters[0].Value!.To<RegisterHandle>().Register, parameters[0].Value!.To<RegisterHandle>().Register);
+				WriteRawConstant(module, (long)parameters[1].Value!.To<ConstantHandle>().Value, encoding.InputSizeOfSecond);
+				break;
+			}
+
 			case EncodingRoute.RR: {
 				WriteRegisterAndRegister(module, encoding, parameters[0].Value!.To<RegisterHandle>().Register, parameters[1].Value!.To<RegisterHandle>().Register);
 				break;
@@ -944,6 +969,7 @@ public static class EncoderX64
 				var module = new EncoderModule(label, conditional);
 				module.Instructions.AddRange(instructions.GetRange(start, end - start));
 				module.Output = new byte[MAX_INSTRUCTION_SIZE * module.Instructions.Count(i => !string.IsNullOrEmpty(i.Operation))];
+				module.Index = modules.Count;
 				modules.Add(module);
 			}
 			else
@@ -951,6 +977,7 @@ public static class EncoderX64
 				var module = new EncoderModule();
 				module.Instructions.AddRange(instructions.GetRange(start, instructions.Count - start));
 				module.Output = new byte[MAX_INSTRUCTION_SIZE * module.Instructions.Count(i => !string.IsNullOrEmpty(i.Operation))];
+				module.Index = modules.Count;
 				modules.Add(module);
 				break;
 			}
@@ -1072,9 +1099,9 @@ public static class EncoderX64
 				{
 					// Remove the 0x0F-byte
 					// 32-bit conditional jumps: 0F $(Operation code) $(32-bit offset)
-					// 8-bit conditional jumps:  $(Operation code) $(8-bit offset)
+					// 8-bit conditional jumps:  $(Operation code - 0x10) $(8-bit offset)
 					/// NOTE: No need to worry about the offset, because it is not computed yet
-					module.Output[position - 2] = module.Output[position - 1];
+					module.Output[position - 2] = (byte)(module.Output[position - 1] - 0x10);
 				}
 				else
 				{

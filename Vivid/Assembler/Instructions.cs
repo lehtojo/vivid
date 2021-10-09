@@ -415,18 +415,18 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 6, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			SingleParameterEncodings[_JA] = new List<InstructionEncoding>()  { new InstructionEncoding(0x770F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JAE] = new List<InstructionEncoding>() { new InstructionEncoding(0x730F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JB] = new List<InstructionEncoding>()  { new InstructionEncoding(0x720F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JBE] = new List<InstructionEncoding>() { new InstructionEncoding(0x760F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JE] = new List<InstructionEncoding>()  { new InstructionEncoding(0x740F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JG] = new List<InstructionEncoding>()  { new InstructionEncoding(0x7F0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JGE] = new List<InstructionEncoding>() { new InstructionEncoding(0x7D0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JL] = new List<InstructionEncoding>()  { new InstructionEncoding(0x7C0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JLE] = new List<InstructionEncoding>() { new InstructionEncoding(0x7E0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JNE] = new List<InstructionEncoding>() { new InstructionEncoding(0x750F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JNZ] = new List<InstructionEncoding>() { new InstructionEncoding(0x750F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
-			SingleParameterEncodings[_JZ] = new List<InstructionEncoding>()  { new InstructionEncoding(0x740F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JA] = new List<InstructionEncoding>()  { new InstructionEncoding(0x870F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JAE] = new List<InstructionEncoding>() { new InstructionEncoding(0x830F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JB] = new List<InstructionEncoding>()  { new InstructionEncoding(0x820F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JBE] = new List<InstructionEncoding>() { new InstructionEncoding(0x860F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JE] = new List<InstructionEncoding>()  { new InstructionEncoding(0x840F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JG] = new List<InstructionEncoding>()  { new InstructionEncoding(0x8F0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JGE] = new List<InstructionEncoding>() { new InstructionEncoding(0x8D0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JL] = new List<InstructionEncoding>()  { new InstructionEncoding(0x8C0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JLE] = new List<InstructionEncoding>() { new InstructionEncoding(0x8E0F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JNE] = new List<InstructionEncoding>() { new InstructionEncoding(0x850F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JNZ] = new List<InstructionEncoding>() { new InstructionEncoding(0x850F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_JZ] = new List<InstructionEncoding>()  { new InstructionEncoding(0x840F, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
 
 			SingleParameterEncodings[_JMP] = new List<InstructionEncoding>()
 			{
@@ -584,6 +584,16 @@ public static class Instructions
 				new InstructionEncoding(0xAF0F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.MEMORY_ADDRESS, 0, 2),
 				new InstructionEncoding(0xAF0F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncoderX64.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0xAF0F, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
+
+				// imul r64, c8 | imul r32, c8 | imul r16, c8
+				new InstructionEncoding(0x6B, 0, EncodingRoute.DRC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0x6B, 0, EncodingRoute.DRC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 1, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0x6B, 0, EncodingRoute.DRC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 1),
+
+				// imul r64, c32 | imul r32, c32 | imul r16, c16
+				new InstructionEncoding(0x69, 0, EncodingRoute.DRC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 2),
+				new InstructionEncoding(0x69, 0, EncodingRoute.DRC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 4, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0x69, 0, EncodingRoute.DRC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 4),
 			};
 
 			#warning Move out from the dual parameter instructions completely

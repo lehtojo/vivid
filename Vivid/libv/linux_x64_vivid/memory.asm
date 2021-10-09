@@ -30,8 +30,7 @@ push rax # Set the value of the member Time.seconds
 
 # Remaining nanoseconds
 # = Total nanoseconds - Seconds * 1 000 000 000
-mov r8, 1000000000 # TODO: Encode as: imul rax, rax, 1000000000
-imul rax, r8
+imul rax, 1000000000
 sub rdi, rax
 
 push rdi # Set the value of the member Time.nanoseconds

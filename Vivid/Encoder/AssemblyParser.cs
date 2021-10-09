@@ -275,7 +275,7 @@ public class AssemblyParser
 				if (tokens[1].Is(Operators.SUBTRACT))
 				{
 					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
-					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
+					var second = new Result(new ConstantHandle(-(long)tokens[2].To<NumberToken>().Value), Assembler.Format);
 
 					return new ComplexMemoryHandle(second, first, 1);
 				}
