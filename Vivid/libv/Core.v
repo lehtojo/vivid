@@ -3,7 +3,7 @@ import exit(code: large)
 import decimal_to_bits(value: decimal): large
 import bits_to_decimal(value: large): decimal
 
-#import internal_allocate(bytes: large): link
+import internal_allocate(bytes: large): link
 import deallocate(address: link, bytes: large)
 
 import allocate_stack(count: large): link
@@ -17,7 +17,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 
 none = 0
 
-PAGE_SIZE = 1000000
+PAGE_SIZE = 10000000
 
 Page {
 	address: link
@@ -27,8 +27,6 @@ Page {
 Allocation {
 	static current: Page
 }
-
-internal_allocate(bytes: large) => 0
 
 outline allocate(bytes: large) {
 	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {

@@ -145,6 +145,13 @@ public class NumberToken : Token
 		}
 	}
 
+	public NumberToken(long number) : base(TokenType.NUMBER)
+	{
+		Value = number;
+		Format = Lexer.Size.ToFormat(false);
+		Bits = Lexer.Size.Bytes * 8;
+	}
+
 	public NumberToken(int number) : base(TokenType.NUMBER)
 	{
 		Value = (long)number;

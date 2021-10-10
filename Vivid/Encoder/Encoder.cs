@@ -769,6 +769,8 @@ public static class EncoderX64
 		if (instruction.Operation == "fld") return Instructions.X64._FLD;
 		if (instruction.Operation == "fistp") return Instructions.X64._FISTP;
 		if (instruction.Operation == "fstp") return Instructions.X64._FSTP;
+		if (instruction.Operation == Instructions.Shared.NEGATE) return Instructions.X64._NEG;
+		if (instruction.Operation == Instructions.X64.NOT) return Instructions.X64._NOT;
 
 		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOVE;
 		if (instruction.Operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
@@ -801,6 +803,7 @@ public static class EncoderX64
 		if (instruction.Operation == "sqrtsd") return Instructions.X64._SQRTSD;
 		if (instruction.Operation == Instructions.X64.EXCHANGE) return Instructions.X64._XCHG;
 		if (instruction.Operation == Instructions.X64.MEDIA_REGISTER_BITWISE_XOR) return Instructions.X64._PXOR;
+		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT_UNSIGNED) return Instructions.X64._SHR;
 
 		return -1;
 	}
@@ -1308,7 +1311,7 @@ public static class EncoderX64
 		ComputeModulePositions(modules);
 		WriteOffsets(modules, labels);
 
-		Print(modules);
+		//Print(modules);
 
 		return Export(modules, labels);
 	}
