@@ -86,6 +86,48 @@ public class DataEncoderModule
 		Output[Position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
 	}
 
+	private static byte[] ToSLEB128(int value)
+	{
+		var bytes = new List<byte>();
+
+		var more = true;
+		var negative = value < 0;
+
+		while (more) 
+		{
+			var x = value & 0x7F;
+			value >>= 7;
+
+			// The following is only necessary if the implementation of >>= uses a logical shift rather than an arithmetic shift for a signed left operand
+			if (negative)
+			{
+				value |= (~0 << (sizeof(int) - 7)); // Sign extend
+			}
+
+			// Sign bit of byte is second high order bit (0x40)
+			if ((value == 0 && ((x & 0x40) == 0)) || (value == -1 && ((x & 0x40) == 0x40)))
+			{
+				more = false;
+			}
+			else
+			{
+				x |= (1 << 7);
+			}
+
+			bytes.Add((byte)x);
+		}
+
+		return bytes.ToArray();
+	}
+
+	/// <summary>
+	/// Writes the specified integer as a SLEB128
+	/// </summary>
+	public void WriteSLEB128(int value)
+	{
+		Write(ToSLEB128(value));
+	}
+
 	/// <summary>
 	/// Writes the specified bytes into this module
 	/// </summary>
