@@ -743,7 +743,7 @@ public static class EncoderX64
 	{
 		if (instruction.Type == InstructionType.LABEL) return Instructions.X64._LABEL;
 
-		if (instruction.Operation == Instructions.Shared.RETURN) return Instructions.X64._RETURN;
+		if (instruction.Operation == Instructions.Shared.RETURN) return Instructions.X64._RET;
 		if (instruction.Operation == Instructions.X64.EXTEND_QWORD) return Instructions.X64._CQO;
 		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
 		if (instruction.Operation == "fld1") return Instructions.X64._FLD1;
@@ -776,15 +776,15 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.Shared.NEGATE) return Instructions.X64._NEG;
 		if (instruction.Operation == Instructions.X64.NOT) return Instructions.X64._NOT;
 
-		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOVE;
+		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOV;
 		if (instruction.Operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
-		if (instruction.Operation == Instructions.Shared.SUBTRACT) return Instructions.X64._SUBTRACT;
-		if (instruction.Operation == Instructions.X64.SIGNED_MULTIPLY) return Instructions.X64._SIGNED_MULTIPLY;
-		if (instruction.Operation == Instructions.X64.UNSIGNED_MULTIPLY) return Instructions.X64._UNSIGNED_MULTIPLY;
-		if (instruction.Operation == Instructions.X64.SIGNED_DIVIDE) return Instructions.X64._SIGNED_DIVIDE;
-		if (instruction.Operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._UNSIGNED_DIVIDE;
-		if (instruction.Operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SHIFT_LEFT;
-		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SHIFT_RIGHT;
+		if (instruction.Operation == Instructions.Shared.SUBTRACT) return Instructions.X64._SUB;
+		if (instruction.Operation == Instructions.X64.SIGNED_MULTIPLY) return Instructions.X64._IMUL;
+		if (instruction.Operation == Instructions.X64.UNSIGNED_MULTIPLY) return Instructions.X64._MUL;
+		if (instruction.Operation == Instructions.X64.SIGNED_DIVIDE) return Instructions.X64._IDIV;
+		if (instruction.Operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._DIV;
+		if (instruction.Operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SAL;
+		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SAR;
 		if (instruction.Operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE) return Instructions.X64._MOVZX;
 		if (instruction.Operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
 		if (instruction.Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;

@@ -21,7 +21,7 @@ public class BitwiseInstruction : DualParameterInstruction
 	{
 		if (format.IsDecimal())
 		{
-			return new BitwiseInstruction(unit, Assembler.Is64Bit ? Instructions.X64.DOUBLE_PRECISION_XOR : Instructions.X64.SINGLE_PRECISION_XOR, first, second, format, assigns);
+			return new BitwiseInstruction(unit, Instructions.X64.DOUBLE_PRECISION_XOR, first, second, format, assigns);
 		}
 
 		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.XOR : Instructions.X64.XOR, first, second, format, assigns);
@@ -148,7 +148,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public void OnBuildX64()
 	{
-		if (Instruction == Instructions.X64.SINGLE_PRECISION_XOR || Instruction == Instructions.X64.DOUBLE_PRECISION_XOR)
+		if (Instruction == Instructions.X64.DOUBLE_PRECISION_XOR)
 		{
 			if (Assigns)
 			{

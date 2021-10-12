@@ -37,7 +37,6 @@ public class AdditionInstruction : DualParameterInstruction
 				Unit.Append(new MoveInstruction(Unit, First, Result), true);
 			}
 
-			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_ADD : Instructions.X64.DOUBLE_PRECISION_ADD;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
@@ -45,7 +44,7 @@ public class AdditionInstruction : DualParameterInstruction
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 
 			Build(
-				instruction,
+				Instructions.X64.DOUBLE_PRECISION_ADD,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
@@ -187,10 +186,7 @@ public class AdditionInstruction : DualParameterInstruction
 
 	public bool RedirectX64(Handle handle)
 	{
-		if (Operation == Instructions.X64.SINGLE_PRECISION_ADD || Operation == Instructions.X64.DOUBLE_PRECISION_ADD)
-		{
-			return false;
-		}
+		if (Operation == Instructions.X64.DOUBLE_PRECISION_ADD) return false;
 
 		if (Operation == Instructions.X64.EVALUATE)
 		{

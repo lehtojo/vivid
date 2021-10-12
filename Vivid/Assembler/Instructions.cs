@@ -96,15 +96,14 @@ public static class Instructions
 		public const byte YMM14 = 14;
 		public const byte YMM15 = 15;
 
-		public static List<List<InstructionEncoding>> ParameterlessEncodings { get; set; } = new List<List<InstructionEncoding>>();
-		public static List<List<InstructionEncoding>> SingleParameterEncodings { get; set; } = new List<List<InstructionEncoding>>();
-		public static List<List<InstructionEncoding>> DualParameterEncodings { get; set; } = new List<List<InstructionEncoding>>();
-		public static List<List<InstructionEncoding>> TripleParameterEncodings { get; set; } = new List<List<InstructionEncoding>>();
+		public static List<List<InstructionEncoding>> ParameterlessEncodings { get; } = new List<List<InstructionEncoding>>();
+		public static List<List<InstructionEncoding>> SingleParameterEncodings { get; } = new List<List<InstructionEncoding>>();
+		public static List<List<InstructionEncoding>> DualParameterEncodings { get; } = new List<List<InstructionEncoding>>();
+		public static List<List<InstructionEncoding>> TripleParameterEncodings { get; } = new List<List<InstructionEncoding>>();
 
 		public const int EVALUATE_MAX_MULTIPLIER = 8;
 
 		public const string DOUBLE_PRECISION_ADD = "addsd";
-		public const string SINGLE_PRECISION_ADD = "addss";
 
 		public const string ATOMIC_EXCHANGE_ADD = "lock xadd";
 
@@ -112,7 +111,6 @@ public static class Instructions
 		public const string EXTEND_QWORD = "cqo";
 
 		public const string DOUBLE_PRECISION_COMPARE = "comisd";
-		public const string SINGLE_PRECISION_COMPARE = "comiss";
 		public const string TEST = "test";
 
 		public const string CONDITIONAL_MOVE_ABOVE = "cmova";
@@ -142,11 +140,9 @@ public static class Instructions
 		public const string CONDITIONAL_SET_ZERO = "setz";
 
 		public const string CONVERT_INTEGER_TO_DOUBLE_PRECISION = "cvtsi2sd";
-		public const string CONVERT_INTEGER_TO_SINGLE_PRECISION = "cvtsi2ss";
 		public const string CONVERT_DOUBLE_PRECISION_TO_INTEGER = "cvttsd2si";
-		public const string CONVERT_SINGLE_PRECISION_TO_INTEGER = "cvttss2si";
+
 		public const string DOUBLE_PRECISION_DIVIDE = "divsd";
-		public const string SINGLE_PRECISION_DIVIDE = "divss";
 		public const string SIGNED_DIVIDE = "idiv";
 		public const string UNSIGNED_DIVIDE = "div";
 
@@ -166,7 +162,6 @@ public static class Instructions
 
 		public const string EVALUATE = "lea";
 		public const string DOUBLE_PRECISION_MOVE = "movsd";
-		public const string SINGLE_PRECISION_MOVE = "movss";
 		public const string SIGNED_CONVERSION_MOVE = "movsx";
 		public const string SIGNED_DWORD_CONVERSION_MOVE = "movsxd";
 		public const string UNALIGNED_XMMWORD_MOVE = "movups";
@@ -177,10 +172,8 @@ public static class Instructions
 		public const string UNSIGNED_MULTIPLY = "mul";
 		public const string SIGNED_MULTIPLY = "imul";
 		public const string DOUBLE_PRECISION_MULTIPLY = "mulsd";
-		public const string SINGLE_PRECISION_MULTIPLY = "mulss";
 
 		public const string NOT = "not";
-
 		public const string OR = "or";
 
 		public const string SHIFT_LEFT = "sal";
@@ -188,11 +181,9 @@ public static class Instructions
 		public const string SHIFT_RIGHT_UNSIGNED = "shr";
 
 		public const string DOUBLE_PRECISION_SUBTRACT = "subsd";
-		public const string SINGLE_PRECISION_SUBTRACT = "subss";
 
 		public const string XOR = "xor";
 		public const string MEDIA_REGISTER_BITWISE_XOR = "pxor";
-		public const string SINGLE_PRECISION_XOR = "xorps";
 		public const string DOUBLE_PRECISION_XOR = "xorpd";
 
 		public const string PUSH = "push";
@@ -201,9 +192,8 @@ public static class Instructions
 
 		public const string SYSTEM_CALL = "syscall";
 
-
 		// Parameterless instructions
-		public const int _RETURN = 0;
+		public const int _RET = 0;
 		public const int _LABEL = 1;
 		public const int _CQO = 2;
 		public const int _SYSCALL = 3;
@@ -219,12 +209,10 @@ public static class Instructions
 		public const int _PUSH = 0;
 		public const int _POP = 1;
 		public const int _JA = 2;
-
-		// 3: imul 
-		// 4: mul 
-		// 5: idiv
-		// 6: div
-
+		// 3: imul
+		public const int _MUL = 4;
+		public const int _IDIV = 5;
+		public const int _DIV = 6;
 		public const int _JAE = 7;
 		public const int _JB = 8;
 		public const int _JBE = 9;
@@ -247,39 +235,36 @@ public static class Instructions
 		public const int _MAX_SINGLE_PARAMETER_INSTRUCTIONS = 26;
 
 		// Dual parameter instructions
-		public const int _MOVE = 0;
+		public const int _MOV = 0;
 		public const int _ADD = 1;
-		public const int _SUBTRACT = 2;
-		public const int _SIGNED_MULTIPLY = 3;
-		public const int _UNSIGNED_MULTIPLY = 4;
-		public const int _SIGNED_DIVIDE = 5;
-		public const int _UNSIGNED_DIVIDE = 6;
-		public const int _SHIFT_LEFT = 7;
-		public const int _SHIFT_RIGHT = 8;
-		public const int _MOVZX = 9;
-		public const int _MOVSX = 10;
-		public const int _MOVSXD = 11;
-		public const int _LEA = 12;
-		public const int _CMP = 13;
-		public const int _ADDSD = 14;
-		public const int _SUBSD = 15;
-		public const int _MULSD = 16;
-		public const int _DIVSD = 17;
-		public const int _MOVSD = 18;
-		public const int _MOVQ = 19;
-		public const int _CVTSI2SD = 20;
-		public const int _CVTTSD2SI = 21;
-		public const int _AND = 22;
-		public const int _XOR = 23;
-		public const int _OR = 24;
-		public const int _COMISD = 25;
-		public const int _TEST = 26;
-		public const int _MOVUPS = 27;
-		public const int _SQRTSD = 28;
-		public const int _XCHG = 29;
-		public const int _PXOR = 30;
-		public const int _SHR = 31;
-		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 32;
+		public const int _SUB = 2;
+		public const int _IMUL = 3; // Also in single and triple parameter instructions
+		public const int _SAL = 4;
+		public const int _SAR = 5;
+		public const int _MOVZX = 6;
+		public const int _MOVSX = 7;
+		public const int _MOVSXD = 8;
+		public const int _LEA = 9;
+		public const int _CMP = 10;
+		public const int _ADDSD = 11;
+		public const int _SUBSD = 12;
+		public const int _MULSD = 13;
+		public const int _DIVSD = 14;
+		public const int _MOVSD = 15;
+		public const int _MOVQ = 16;
+		public const int _CVTSI2SD = 17;
+		public const int _CVTTSD2SI = 18;
+		public const int _AND = 19;
+		public const int _XOR = 20;
+		public const int _OR = 21;
+		public const int _COMISD = 22;
+		public const int _TEST = 23;
+		public const int _MOVUPS = 24;
+		public const int _SQRTSD = 25;
+		public const int _XCHG = 26;
+		public const int _PXOR = 27;
+		public const int _SHR = 28;
+		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 29;
 
 		// Triple parameter instructions
 
@@ -303,7 +288,6 @@ public static class Instructions
 
 			Descriptors.Add(Shared.COMPARE, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
 			Descriptors.Add(DOUBLE_PRECISION_COMPARE, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
-			Descriptors.Add(SINGLE_PRECISION_COMPARE, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
 			Descriptors.Add(TEST, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF));
 
 			Descriptors.Add(SIGNED_DIVIDE, new(StatusFlag.X64.OF, StatusFlag.X64.SF, StatusFlag.X64.ZF, StatusFlag.X64.AF, StatusFlag.X64.CF, StatusFlag.X64.PF)); // All are undefined
@@ -364,17 +348,12 @@ public static class Instructions
 			JumpInstruction.Initialize();
 			MoveInstruction.Initialize();
 
-			ParameterlessEncodings = new List<List<InstructionEncoding>>();
-			SingleParameterEncodings = new List<List<InstructionEncoding>>();
-			DualParameterEncodings = new List<List<InstructionEncoding>>();
-			TripleParameterEncodings = new List<List<InstructionEncoding>>();
-
 			for (var i = 0; i < _MAX_PARAMETERLESS_INSTRUCTIONS; i++) { ParameterlessEncodings.Add(new List<InstructionEncoding>()); }
 			for (var i = 0; i < _MAX_SINGLE_PARAMETER_INSTRUCTIONS; i++) { SingleParameterEncodings.Add(new List<InstructionEncoding>()); }
 			for (var i = 0; i < _MAX_DUAL_PARAMETER_INSTRUCTIONS; i++) { DualParameterEncodings.Add(new List<InstructionEncoding>()); }
 			for (var i = 0; i < _MAX_TRIPLE_PARAMETER_INSTRUCTIONS; i++) { TripleParameterEncodings.Add(new List<InstructionEncoding>()); }
 
-			ParameterlessEncodings[_RETURN] = new List<InstructionEncoding>()
+			ParameterlessEncodings[_RET] = new List<InstructionEncoding>()
 			{
 				// ret
 				new InstructionEncoding(0xC3),
@@ -439,7 +418,7 @@ public static class Instructions
 				new InstructionEncoding(0x58, 0, EncodingRoute.O, false, EncodingFilterType.REGISTER, 0, 8),
 			};
 
-			SingleParameterEncodings[_SIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			SingleParameterEncodings[_IMUL] = new List<InstructionEncoding>()
 			{
 				// imul r64 | imul r32 | imul r16 | imul r8
 				new InstructionEncoding(0xF6, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -448,7 +427,7 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 5, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8),
 			};
 
-			SingleParameterEncodings[_UNSIGNED_DIVIDE] = new List<InstructionEncoding>()
+			SingleParameterEncodings[_DIV] = new List<InstructionEncoding>()
 			{
 				// div r64 | div r32 | div r16 | div r8
 				new InstructionEncoding(0xF6, 6, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -520,7 +499,7 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 2, EncodingRoute.M, true, EncodingFilterType.REGISTER, 0, 8),
 			};
 
-			DualParameterEncodings[_MOVE] = new List<InstructionEncoding>()
+			DualParameterEncodings[_MOV] = new List<InstructionEncoding>()
 			{
 				// mov r64, r64 | mov r32, r32 | mov r16, r16 | mov r8, r8
 				new InstructionEncoding(0x8A, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.REGISTER, 0, 1),
@@ -600,7 +579,7 @@ public static class Instructions
 				new InstructionEncoding(0x03, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			DualParameterEncodings[_SUBTRACT] = new List<InstructionEncoding>()
+			DualParameterEncodings[_SUB] = new List<InstructionEncoding>()
 			{
 				// sub r64, c8 | sub r32, c8 | sub r16, c8
 				new InstructionEncoding(0x83, 5, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1),
@@ -644,7 +623,7 @@ public static class Instructions
 				new InstructionEncoding(0x2B, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			DualParameterEncodings[_SIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			DualParameterEncodings[_IMUL] = new List<InstructionEncoding>()
 			{
 				// imul r64 | imul r32 | imul r16 | imul r8
 				new InstructionEncoding(0xF6, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -679,8 +658,7 @@ public static class Instructions
 				new InstructionEncoding(0x69, 0, EncodingRoute.DRC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 4),
 			};
 
-			#warning Move out from the dual parameter instructions completely
-			SingleParameterEncodings[_UNSIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			SingleParameterEncodings[_MUL] = new List<InstructionEncoding>()
 			{
 				// mul r64 | mul r32 | mul r16 | mul r8
 				new InstructionEncoding(0xF6, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -695,7 +673,7 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 4, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			SingleParameterEncodings[_SIGNED_DIVIDE] = new List<InstructionEncoding>()
+			SingleParameterEncodings[_IDIV] = new List<InstructionEncoding>()
 			{
 				// idiv r64 | idiv r32 | idiv r16 | idiv r8
 				new InstructionEncoding(0xF6, 7, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1),
@@ -710,7 +688,7 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 7, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 
-			DualParameterEncodings[_SHIFT_LEFT] = new List<InstructionEncoding>()
+			DualParameterEncodings[_SAL] = new List<InstructionEncoding>()
 			{
 				// sal r64, 1 | sal r32, 1 | sal r16, 1 | sal r8, 1
 				new InstructionEncoding(0xD0, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_CONSTANT, 1, 1),
@@ -749,7 +727,7 @@ public static class Instructions
 				new InstructionEncoding(0xD3, 4, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
 			};
 
-			DualParameterEncodings[_SHIFT_RIGHT] = new List<InstructionEncoding>()
+			DualParameterEncodings[_SAR] = new List<InstructionEncoding>()
 			{
 				// sar r64, 1 | sar r32, 1 | sar r16, 1 | sar r8, 1
 				new InstructionEncoding(0xD0, 7, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_CONSTANT, 1, 1),
@@ -1251,7 +1229,7 @@ public static class Instructions
 				new InstructionEncoding(0xD3, 5, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
 			};
 
-			TripleParameterEncodings[_SIGNED_MULTIPLY] = new List<InstructionEncoding>()
+			TripleParameterEncodings[_IMUL] = new List<InstructionEncoding>()
 			{
 				// imul r64, r64, c8 | imul r32, r32, c8 | imul r16, r16, c8
 				new InstructionEncoding(0x6B, 0, EncodingRoute.RRC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 1),
