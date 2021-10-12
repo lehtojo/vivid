@@ -20,8 +20,8 @@ public class AssemblyParser
 	public const string CHARACTERS_DIRECTIVE = "characters";
 
 	public Unit Unit { get; set; }
-	public Dictionary<string, RegisterHandle> Registers { get; set; } = new Dictionary<string, RegisterHandle>();
-	public List<Instruction> Instructions { get; set; } = new List<Instruction>();
+	public Dictionary<string, RegisterHandle> Registers { get; } = new Dictionary<string, RegisterHandle>();
+	public List<Instruction> Instructions { get; } = new List<Instruction>();
 	public DataEncoderModule Data { get; set; } = new DataEncoderModule();
 	public string Section { get; set; } = TEXT_SECTION;
 
@@ -47,7 +47,6 @@ public class AssemblyParser
 		// Add every media register as a register handle
 		foreach (var register in Unit.MediaRegisters.Where(i => i.IsMediaRegister))
 		{
-			#warning YMM and XMM registers should be expressed as 32-byte and 16-byte registers
 			var handle = new RegisterHandle(register);
 			Registers.Add(register.Partitions[1], handle);
 		}
@@ -456,5 +455,12 @@ public class AssemblyParser
 
 			throw Errors.Get(tokens.First().Position, "Can not understand");
 		}
+	}
+
+	public void Reset()
+	{
+		Instructions.Clear();
+		Data.Reset();
+		Section = TEXT_SECTION;
 	}
 }

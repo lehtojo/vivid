@@ -164,6 +164,14 @@ public class DataEncoderModule
 
 		return section;
 	}
+
+	public void Reset()
+	{
+		Array.Resize(ref Output, DefaultOutputSize);
+		Position = 0;
+		Symbols.Clear();
+		Relocations.Clear();
+	}
 }
 
 public static class DataEncoder

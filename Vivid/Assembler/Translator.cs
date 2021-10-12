@@ -168,16 +168,13 @@ public static class Translator
 		// Remove duplicates
 		constants.AddRange(constant_handles.Distinct());
 
-		if (unit.Function.Name.StartsWith("encode_") || unit.Function.Name.StartsWith("allocate") || unit.Function.Name.StartsWith("internal_allocate") || (unit.Function.Name == "init" && !unit.Function.IsMember))
+		if (Output.ContainsKey(unit.Function.Metadata.Start!.File!))
 		{
-			if (Output.ContainsKey(unit.Function.Metadata.Start!.File!))
-			{
-				Output[unit.Function.Metadata.Start!.File!].AddRange(instructions);
-			}
-			else
-			{
-				Output[unit.Function.Metadata.Start!.File!] = instructions;
-			}
+			Output[unit.Function.Metadata.Start!.File!].AddRange(instructions);
+		}
+		else
+		{
+			Output[unit.Function.Metadata.Start!.File!] = instructions;
 		}
 
 		return unit.Export();

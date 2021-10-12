@@ -18,9 +18,9 @@
 			//"args": [ "-s" ],
 
 			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
+			"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
 
-			"args": [ "${workspaceFolder}/libv/linux_x64_vivid/console.asm", "${workspaceFolder}/libv/linux_x64_vivid/math.asm", "${workspaceFolder}/libv/linux_x64_vivid/memory.asm", "${workspaceFolder}/libv/linux_x64_vivid/system.asm", "${workspaceFolder}/libv/linux_x64_vivid/tests.asm", "${workspaceFolder}/Examples/main.asm" ],
+			//"args": [ "${workspaceFolder}/libv/linux_x64_vivid/console.asm", "${workspaceFolder}/libv/linux_x64_vivid/math.asm", "${workspaceFolder}/libv/linux_x64_vivid/memory.asm", "${workspaceFolder}/libv/linux_x64_vivid/system.asm", "${workspaceFolder}/libv/linux_x64_vivid/tests.asm", "${workspaceFolder}/Examples/main.asm" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

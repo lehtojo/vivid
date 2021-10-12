@@ -210,7 +210,7 @@ public class InitializeInstruction : Instruction
 			builder.Append(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
 			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString(CultureInfo.InvariantCulture));
 		}
-		
+
 		Build(builder.ToString().TrimEnd());
 	}
 }

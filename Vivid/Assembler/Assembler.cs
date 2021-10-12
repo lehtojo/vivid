@@ -1046,7 +1046,7 @@ public static class Assembler
 		var linked_binary = Linker.Link(object_files);
 		System.IO.File.WriteAllBytes("v.test", linked_binary);
 
-		ElfFormat.ImportObjectX64("libv_x64.o");
+		//ElfFormat.ImportObjectX64("libv_x64.o");
 
 		return result;
 	}

@@ -1325,6 +1325,9 @@ public static class Instructions
 			{
 				// xorpd x, x
 				new InstructionEncoding(0x570F, 0, EncodingRoute.RR, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEDIA_REGISTER, 0, 8, 0x66),
+
+				// xorpd x, m128
+				new InstructionEncoding(0x570F, 0, EncodingRoute.RM, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 16, 0x66),
 			};
 
 			TripleParameterEncodings[_IMUL] = new List<InstructionEncoding>()

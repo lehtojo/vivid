@@ -635,6 +635,7 @@ public static class EncoderX64
 			HandleInstanceType.STACK_MEMORY => new MemoryAddressDescriptor(handle.To<StackMemoryHandle>().GetStart(), null, 1, handle.To<StackMemoryHandle>().GetOffset()),
 			HandleInstanceType.DATA_SECTION => new MemoryAddressDescriptor(handle.To<DataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
 			HandleInstanceType.CONSTANT_DATA_SECTION => new MemoryAddressDescriptor(handle.To<ConstantDataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
+			HandleInstanceType.STACK_VARIABLE => new MemoryAddressDescriptor(handle.To<StackVariableHandle>().GetStart(), null, 1, handle.To<StackVariableHandle>().GetOffset()),
 			_ => throw new NotSupportedException("Unsupported handle")
 		};
 	}
@@ -842,7 +843,7 @@ public static class EncoderX64
 
 	public static void WriteInstruction(EncoderModule module, Instruction instruction)
 	{
-		var parameters = instruction.Parameters;
+		var parameters = instruction.Parameters.Where(i => !i.IsHidden).ToList();
 		var encoding = new InstructionEncoding();
 
 		var identifier = GetInstructionIndex(instruction);
@@ -1085,14 +1086,42 @@ public static class EncoderX64
 			var j = i;
 
 			var module = modules[j];
-			foreach (var instruction in module.Instructions) { WriteInstruction(module, instruction); }
+			var parser = new AssemblyParser();
+
+			foreach (var instruction in module.Instructions)
+			{
+				if (!instruction.IsManual)
+				{
+					WriteInstruction(module, instruction);
+					continue;
+				}
+
+				// Parse the assembly code and then reset the parser for next use
+				parser.Parse(instruction.Operation.Replace("\r", string.Empty));
+				parser.Instructions.ForEach(i => WriteInstruction(module, i));
+				parser.Reset();
+			}
 
 			#warning Enable multithreading in the future
 			/*
 			tasks[j] = Task.Run(() =>
 			{
 				var module = modules[j];
-				foreach (var instruction in module.Instructions) { WriteInstruction(module, instruction); }
+				var parser = new AssemblyParser();
+
+				foreach (var instruction in module.Instructions)
+				{
+					if (!instruction.IsManual)
+					{
+						WriteInstruction(module, instruction);
+						continue;
+					}
+
+					// Parse the assembly code and then reset the parser for next use
+					parser.Parse(instruction.Operation);
+					parser.Instructions.ForEach(i => WriteInstruction(module, i));
+					parser.Reset();
+				}
 			});
 			*/
 		}
