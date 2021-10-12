@@ -109,7 +109,6 @@ public static class Instructions
 		public const string ATOMIC_EXCHANGE_ADD = "lock xadd";
 
 		public const string CALL = "call";
-		public const string EXTEND_DWORD = "cdq";
 		public const string EXTEND_QWORD = "cqo";
 
 		public const string DOUBLE_PRECISION_COMPARE = "comisd";
@@ -983,12 +982,17 @@ public static class Instructions
 
 			DualParameterEncodings[_MOVQ] = new List<InstructionEncoding>()
 			{
-				#warning Requires a media register filter
 				// movq x, r64
-				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RR, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 8, 0x66),
+				new InstructionEncoding(0x6E0F, 0, EncodingRoute.RR, true, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 8, 0x66),
 
 				// movq x, m64
-				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8, 0x66),
+				new InstructionEncoding(0x6E0F, 0, EncodingRoute.RM, true, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8, 0x66),
+
+				// movq r64, x
+				new InstructionEncoding(0x7E0F, 0, EncodingRoute.RR, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEDIA_REGISTER, 0, 8, 0x66),
+
+				// movq m64, x
+				new InstructionEncoding(0x7E0F, 0, EncodingRoute.MR, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.MEDIA_REGISTER, 0, 8, 0x66),
 			};
 
 			DualParameterEncodings[_CVTSI2SD] = new List<InstructionEncoding>()

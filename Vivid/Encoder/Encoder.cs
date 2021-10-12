@@ -101,6 +101,8 @@ public struct EncoderOutput
 public enum EncodingFilterType
 {
 	REGISTER,
+	STANDARD_REGISTER,
+	MEDIA_REGISTER,
 	SPECIFIC_REGISTER,
 	MEMORY_ADDRESS,
 	CONSTANT,
@@ -645,6 +647,8 @@ public static class EncoderX64
 		switch (type)
 		{
 			case EncodingFilterType.REGISTER: return value.Instance == HandleInstanceType.REGISTER;
+			case EncodingFilterType.STANDARD_REGISTER: return value.Type == HandleType.REGISTER;
+			case EncodingFilterType.MEDIA_REGISTER: return value.Type == HandleType.MEDIA_REGISTER;
 			case EncodingFilterType.SPECIFIC_REGISTER: {
 				if (value.Instance != HandleInstanceType.REGISTER) return false;
 				return filter == value.To<RegisterHandle>().Register.Identifier;

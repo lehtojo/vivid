@@ -12,7 +12,7 @@ public class ExtendNumeratorInstruction : Instruction
 		var remainder = Unit.GetRemainderRegister();
 
 		Build(
-			Assembler.Is64Bit ? Instructions.X64.EXTEND_QWORD : Instructions.X64.EXTEND_DWORD,
+			Instructions.X64.EXTEND_QWORD,
 			new InstructionParameter(
 				new Result(new RegisterHandle(remainder), Assembler.Format),
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
