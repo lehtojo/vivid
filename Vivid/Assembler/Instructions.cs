@@ -288,7 +288,8 @@ public static class Instructions
 		public const int _CMOVNE = 38;
 		public const int _CMOVNZ = 39;
 		public const int _CMOVZ = 40;
-		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 41;
+		public const int _XORPD = 41;
+		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 42;
 
 		// Triple parameter instructions
 
@@ -1319,6 +1320,12 @@ public static class Instructions
 			DualParameterEncodings[_CMOVNE] = CreateConditionalMoveEncoding(0x450F);
 			DualParameterEncodings[_CMOVNZ] = CreateConditionalMoveEncoding(0x450F);
 			DualParameterEncodings[_CMOVZ] = CreateConditionalMoveEncoding(0x440F);
+
+			DualParameterEncodings[_XORPD] = new List<InstructionEncoding>()
+			{
+				// xorpd x, x
+				new InstructionEncoding(0x570F, 0, EncodingRoute.RR, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEDIA_REGISTER, 0, 8, 0x66),
+			};
 
 			TripleParameterEncodings[_IMUL] = new List<InstructionEncoding>()
 			{

@@ -835,6 +835,7 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS) return Instructions.X64._CMOVNE;
 		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO) return Instructions.X64._CMOVNZ;
 		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ZERO) return Instructions.X64._CMOVZ;
+		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_XOR) return Instructions.X64._XORPD;
 
 		return -1;
 	}
