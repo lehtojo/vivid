@@ -743,6 +743,7 @@ public static class EncoderX64
 	{
 		if (instruction.Type == InstructionType.LABEL) return Instructions.X64._LABEL;
 
+		// Parameterless instructions
 		if (instruction.Operation == Instructions.Shared.RETURN) return Instructions.X64._RET;
 		if (instruction.Operation == Instructions.X64.EXTEND_QWORD) return Instructions.X64._CQO;
 		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
@@ -753,6 +754,7 @@ public static class EncoderX64
 		if (instruction.Operation == "fcos") return Instructions.X64._FCOS;
 		if (instruction.Operation == "fsin") return Instructions.X64._FSIN;
 
+		// Single parameter instructions
 		if (instruction.Operation == Instructions.X64.PUSH) return Instructions.X64._PUSH;
 		if (instruction.Operation == Instructions.X64.POP) return Instructions.X64._POP;
 		if (instruction.Operation == Instructions.X64.JUMP_ABOVE) return Instructions.X64._JA;
@@ -775,7 +777,20 @@ public static class EncoderX64
 		if (instruction.Operation == "fstp") return Instructions.X64._FSTP;
 		if (instruction.Operation == Instructions.Shared.NEGATE) return Instructions.X64._NEG;
 		if (instruction.Operation == Instructions.X64.NOT) return Instructions.X64._NOT;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ABOVE) return Instructions.X64._SETA;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS) return Instructions.X64._SETAE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_BELOW) return Instructions.X64._SETB;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS) return Instructions.X64._SETBE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_EQUALS) return Instructions.X64._SETE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN) return Instructions.X64._SETG;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS) return Instructions.X64._SETGE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN) return Instructions.X64._SETL;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS) return Instructions.X64._SETLE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_NOT_EQUALS) return Instructions.X64._SETNE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_NOT_ZERO) return Instructions.X64._SETNZ;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ZERO) return Instructions.X64._SETZ;
 
+		// Dual parameter instructions
 		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOV;
 		if (instruction.Operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
 		if (instruction.Operation == Instructions.Shared.SUBTRACT) return Instructions.X64._SUB;
@@ -808,6 +823,18 @@ public static class EncoderX64
 		if (instruction.Operation == Instructions.X64.EXCHANGE) return Instructions.X64._XCHG;
 		if (instruction.Operation == Instructions.X64.MEDIA_REGISTER_BITWISE_XOR) return Instructions.X64._PXOR;
 		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT_UNSIGNED) return Instructions.X64._SHR;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE) return Instructions.X64._CMOVA;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS) return Instructions.X64._CMOVAE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_BELOW) return Instructions.X64._CMOVB;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS) return Instructions.X64._CMOVBE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_EQUALS) return Instructions.X64._CMOVE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN) return Instructions.X64._CMOVG;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS) return Instructions.X64._CMOVGE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN) return Instructions.X64._CMOVL;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS) return Instructions.X64._CMOVLE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS) return Instructions.X64._CMOVNE;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO) return Instructions.X64._CMOVNZ;
+		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ZERO) return Instructions.X64._CMOVZ;
 
 		return -1;
 	}

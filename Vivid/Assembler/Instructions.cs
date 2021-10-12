@@ -232,7 +232,19 @@ public static class Instructions
 		public const int _FSTP = 23;
 		public const int _NEG = 24;
 		public const int _NOT = 25;
-		public const int _MAX_SINGLE_PARAMETER_INSTRUCTIONS = 26;
+		public const int _SETA = 26;
+		public const int _SETAE = 27;
+		public const int _SETB = 28;
+		public const int _SETBE = 29;
+		public const int _SETE = 30;
+		public const int _SETG = 31;
+		public const int _SETGE = 32;
+		public const int _SETL = 33;
+		public const int _SETLE = 34;
+		public const int _SETNE = 35;
+		public const int _SETNZ = 36;
+		public const int _SETZ = 37;
+		public const int _MAX_SINGLE_PARAMETER_INSTRUCTIONS = 38;
 
 		// Dual parameter instructions
 		public const int _MOV = 0;
@@ -264,13 +276,57 @@ public static class Instructions
 		public const int _XCHG = 26;
 		public const int _PXOR = 27;
 		public const int _SHR = 28;
-		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 29;
+		public const int _CMOVA = 29;
+		public const int _CMOVAE = 30;
+		public const int _CMOVB = 31;
+		public const int _CMOVBE = 32;
+		public const int _CMOVE = 33;
+		public const int _CMOVG = 34;
+		public const int _CMOVGE = 35;
+		public const int _CMOVL = 36;
+		public const int _CMOVLE = 37;
+		public const int _CMOVNE = 38;
+		public const int _CMOVNZ = 39;
+		public const int _CMOVZ = 40;
+		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 41;
 
 		// Triple parameter instructions
 
 		// 3: imul
 
 		public const int _MAX_TRIPLE_PARAMETER_INSTRUCTIONS = 4;
+
+		private static List<InstructionEncoding> CreateConditionalMoveEncoding(int operation)
+		{
+			return new List<InstructionEncoding>()
+			{
+				// cmov** r64, r64 | cmov** r32, r32 | cmov r16, r16
+				new InstructionEncoding(operation, 0, EncodingRoute.RR, false, EncodingFilterType.STANDARD_REGISTER, 0, 2, EncodingFilterType.STANDARD_REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(operation, 0, EncodingRoute.RR, false, EncodingFilterType.STANDARD_REGISTER, 0, 4, EncodingFilterType.STANDARD_REGISTER, 0, 4),
+				new InstructionEncoding(operation, 0, EncodingRoute.RR, true, EncodingFilterType.STANDARD_REGISTER, 0, 8, EncodingFilterType.STANDARD_REGISTER, 0, 8),
+
+				// cmov** r64, m64 | cmov** r32, m32 | cmov r16, m16
+				new InstructionEncoding(operation, 0, EncodingRoute.RM, false, EncodingFilterType.STANDARD_REGISTER, 0, 2, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(operation, 0, EncodingRoute.RM, false, EncodingFilterType.STANDARD_REGISTER, 0, 4, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
+				new InstructionEncoding(operation, 0, EncodingRoute.RM, true, EncodingFilterType.STANDARD_REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
+			};
+		}
+
+		private static List<InstructionEncoding> CreateConditionalSetEncoding(int operation)
+		{
+			return new List<InstructionEncoding>()
+			{
+				// set** r64 | set** r32 | set r16
+				new InstructionEncoding(operation, 0, EncodingRoute.R, false, EncodingFilterType.STANDARD_REGISTER, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(operation, 0, EncodingRoute.R, false, EncodingFilterType.STANDARD_REGISTER, 0, 4),
+				new InstructionEncoding(operation, 0, EncodingRoute.R, true, EncodingFilterType.STANDARD_REGISTER, 0, 8),
+
+				// set**  m64 | set** m32 | set m16
+				new InstructionEncoding(operation, 0, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncoderX64.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(operation, 0, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
+				new InstructionEncoding(operation, 0, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
+			};
+		}
 
 		public static void Initialize()
 		{
@@ -498,6 +554,19 @@ public static class Instructions
 				new InstructionEncoding(0xF7, 2, EncodingRoute.M, false, EncodingFilterType.REGISTER, 0, 4),
 				new InstructionEncoding(0xF7, 2, EncodingRoute.M, true, EncodingFilterType.REGISTER, 0, 8),
 			};
+
+			SingleParameterEncodings[_SETA] = CreateConditionalSetEncoding(0x970F);
+			SingleParameterEncodings[_SETAE] = CreateConditionalSetEncoding(0x930F);
+			SingleParameterEncodings[_SETB] = CreateConditionalSetEncoding(0x920F);
+			SingleParameterEncodings[_SETBE] = CreateConditionalSetEncoding(0x960F);
+			SingleParameterEncodings[_SETE] = CreateConditionalSetEncoding(0x940F);
+			SingleParameterEncodings[_SETG] =  CreateConditionalSetEncoding(0x9F0F);
+			SingleParameterEncodings[_SETGE] = CreateConditionalSetEncoding(0x9D0F);
+			SingleParameterEncodings[_SETL] = CreateConditionalSetEncoding(0x9C0F);
+			SingleParameterEncodings[_SETLE] = CreateConditionalSetEncoding(0x9E0F);
+			SingleParameterEncodings[_SETNE] = CreateConditionalSetEncoding(0x950F);
+			SingleParameterEncodings[_SETNZ] = CreateConditionalSetEncoding(0x950F);
+			SingleParameterEncodings[_SETZ] =  CreateConditionalSetEncoding(0x940F);
 
 			DualParameterEncodings[_MOV] = new List<InstructionEncoding>()
 			{
@@ -1138,6 +1207,15 @@ public static class Instructions
 				new InstructionEncoding(0x0B, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8)
 			};
 
+			DualParameterEncodings[_COMISD] = new List<InstructionEncoding>()
+			{
+				// comisd x, x
+				new InstructionEncoding(0x2F0F, 0, EncodingRoute.RR, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEDIA_REGISTER, 0, 8, 0x66),
+
+				// comisd x, m
+				new InstructionEncoding(0x2F0F, 0, EncodingRoute.RM, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8, 0x66),
+			};
+
 			DualParameterEncodings[_TEST] = new List<InstructionEncoding>()
 			{
 				// test r64, r64 | test r32, r32 | test r16, r16 | test r8, r8
@@ -1228,6 +1306,19 @@ public static class Instructions
 				new InstructionEncoding(0xD3, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
 				new InstructionEncoding(0xD3, 5, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
 			};
+
+			DualParameterEncodings[_CMOVA] = CreateConditionalMoveEncoding(0x470F);
+			DualParameterEncodings[_CMOVAE] = CreateConditionalMoveEncoding(0x430F);
+			DualParameterEncodings[_CMOVB] = CreateConditionalMoveEncoding(0x420F);
+			DualParameterEncodings[_CMOVBE] = CreateConditionalMoveEncoding(0x460F);
+			DualParameterEncodings[_CMOVE] = CreateConditionalMoveEncoding(0x440F);
+			DualParameterEncodings[_CMOVG] = CreateConditionalMoveEncoding(0x4F0F);
+			DualParameterEncodings[_CMOVGE] = CreateConditionalMoveEncoding(0x4D0F);
+			DualParameterEncodings[_CMOVL] = CreateConditionalMoveEncoding(0x4C0F);
+			DualParameterEncodings[_CMOVLE] = CreateConditionalMoveEncoding(0x4E0F);
+			DualParameterEncodings[_CMOVNE] = CreateConditionalMoveEncoding(0x450F);
+			DualParameterEncodings[_CMOVNZ] = CreateConditionalMoveEncoding(0x450F);
+			DualParameterEncodings[_CMOVZ] = CreateConditionalMoveEncoding(0x440F);
 
 			TripleParameterEncodings[_IMUL] = new List<InstructionEncoding>()
 			{
