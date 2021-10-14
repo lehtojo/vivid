@@ -18,6 +18,8 @@ public class AssemblyParser
 	public const string SECTION_DIRECTIVE = "section";
 	public const string STRING_DIRECTIVE = "string";
 	public const string CHARACTERS_DIRECTIVE = "characters";
+	public const string LINE_DIRECTIVE = "line";
+	public const string END_OF_FUNCTION_DIRECTIVE = "end";
 
 	public Unit Unit { get; set; }
 	public Dictionary<string, RegisterHandle> Registers { get; } = new Dictionary<string, RegisterHandle>();
@@ -80,6 +82,37 @@ public class AssemblyParser
 
 		Instructions.Add(new LabelInstruction(Unit, new Label(tokens[2].To<IdentifierToken>().Value)));
 		return true;
+	}
+
+	/// <summary>
+	/// Executes the specified directive, if it controls debug information.
+	/// </summary>
+	private bool ExecuteDebugDirective(List<Token> tokens)
+	{
+		if (tokens.Count < 2 || tokens[1].Type != TokenType.IDENTIFIER) return false;
+
+		var directive = tokens[1].To<IdentifierToken>().Value;
+
+		if (directive == LINE_DIRECTIVE)
+		{
+			// Pattern: .line $line $character
+			if (tokens.Count < 4 || tokens[2].Type != TokenType.NUMBER || tokens[3].Type != TokenType.NUMBER) return false;
+
+			var line = (long)tokens[2].To<NumberToken>().Value;
+			var character = (long)tokens[3].To<NumberToken>().Value;
+
+			#warning Convert to an instruction that the encoder can use
+			return true;
+		}
+
+		if (directive == END_OF_FUNCTION_DIRECTIVE)
+		{
+			// Pattern: .end
+			#warning Convert to an instruction that the encoder can use
+			return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>
@@ -156,6 +189,7 @@ public class AssemblyParser
 
 		if (ExecuteSectionDirective(tokens)) return true;
 		if (ExecuteExportDirective(tokens)) return true;
+		if (ExecuteDebugDirective(tokens)) return true;
 
 		// The executors below are only executed if we are in the data section
 		if (Section != DATA_SECTION) return false;

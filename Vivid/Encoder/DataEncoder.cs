@@ -86,6 +86,27 @@ public class DataEncoderModule
 		Output[Position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
 	}
 
+	private static byte[] ToULEB128(int value)
+	{
+		var bytes = new List<byte>();
+
+		do
+		{
+			var x = value & 0x7F;
+			value >>= 7;
+
+			if (value != 0)
+			{
+				x |= (1 << 7);
+			}
+	
+			bytes.Add((byte)x);
+
+		} while (value != 0);
+
+		return bytes.ToArray();
+	}
+
 	private static byte[] ToSLEB128(int value)
 	{
 		var bytes = new List<byte>();
@@ -126,6 +147,14 @@ public class DataEncoderModule
 	public void WriteSLEB128(int value)
 	{
 		Write(ToSLEB128(value));
+	}
+
+	/// <summary>
+	/// Writes the specified integer as a ULEB128
+	/// </summary>
+	public void WriteULEB128(int value)
+	{
+		Write(ToULEB128(value));
 	}
 
 	/// <summary>
