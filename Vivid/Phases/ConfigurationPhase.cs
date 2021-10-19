@@ -28,6 +28,7 @@ public class ConfigurationPhase : Phase
 	public const string DEFAULT_OUTPUT = "v";
 
 	public const string ASSEMBLER_FLAG = "assembler";
+	public const string LINK_FLAG = "link";
 
 	private List<string> Folders { get; set; } = new List<string>();
 	private List<string> Libraries { get; set; } = new List<string>();
@@ -228,6 +229,12 @@ public class ConfigurationPhase : Phase
 				}
 
 				Libraries.Add(filename);
+				return Status.OK;
+			}
+
+			case "-link":
+			{
+				bundle.Put(LINK_FLAG, true);
 				return Status.OK;
 			}
 

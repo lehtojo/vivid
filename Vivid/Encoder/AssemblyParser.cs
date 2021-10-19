@@ -4,8 +4,7 @@ using System;
 
 public class AssemblyParser
 {
-	public const string TEXT_SECTION = "text";
-	public const string DATA_SECTION = "data";
+	public const string TEXT_SECTION = ".text";
 
 	public const string BYTE_SPECIFIER = "byte";
 	public const string WORD_SPECIFIER = "word";
@@ -13,18 +12,22 @@ public class AssemblyParser
 	public const string QWORD_SPECIFIER = "qword";
 	public const string XWORD_SPECIFIER = "xword";
 	public const string OWORD_SPECIFIER = "oword";
+	public const string SECTION_OFFSET_SPECIFIER = "section_offset";
 
 	public const string EXPORT_DIRECTIVE = "export";
 	public const string SECTION_DIRECTIVE = "section";
 	public const string STRING_DIRECTIVE = "string";
 	public const string CHARACTERS_DIRECTIVE = "characters";
-	public const string LINE_DIRECTIVE = "line";
-	public const string END_OF_FUNCTION_DIRECTIVE = "end";
+	public const string LINE_DIRECTIVE = "loc";
+	public const string DEBUG_START_DIRECTIVE = "debug_start";
+	public const string DEBUG_FRAME_OFFSET_DIRECTIVE = "debug_frame_offset";
+	public const string DEBUG_END_DIRECTIVE = "debug_end";
 
 	public Unit Unit { get; set; }
 	public Dictionary<string, RegisterHandle> Registers { get; } = new Dictionary<string, RegisterHandle>();
 	public List<Instruction> Instructions { get; } = new List<Instruction>();
-	public DataEncoderModule Data { get; set; } = new DataEncoderModule();
+	public Dictionary<string, DataEncoderModule> Sections { get; } = new Dictionary<string, DataEncoderModule>();
+	public DataEncoderModule? Data { get; set; }
 	public string Section { get; set; } = TEXT_SECTION;
 
 	public AssemblyParser()
@@ -55,6 +58,70 @@ public class AssemblyParser
 	}
 
 	/// <summary>
+	/// Handles offset directives: . $allocator $to - $from
+	/// </summary>
+	private bool ExecuteOffsetAllocator(List<Token> tokens)
+	{
+		// Pattern: . $allocator $to - $from
+		if (tokens.Count < 5 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.IDENTIFIER || !tokens[3].Is(Operators.SUBTRACT) || tokens[4].Type != TokenType.IDENTIFIER) return false;
+
+		var to = tokens[2].To<IdentifierToken>().Value;
+		var from = tokens[4].To<IdentifierToken>().Value;
+
+		var bytes = tokens[1].To<IdentifierToken>().Value switch
+		{
+			BYTE_SPECIFIER => 1, // Pattern: .byte $to - $from
+			WORD_SPECIFIER => 2, // Pattern: .word $to - $from
+			DWORD_SPECIFIER => 4, // Pattern: .dword $to - $from
+			QWORD_SPECIFIER => 8, // Pattern: .qword $to - $from
+			XWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Please use smaller allocators"),
+			OWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Please use smaller allocators"),
+			_ => throw Errors.Get(tokens[1].Position, "Unknown allocator")
+		};
+
+		var offset = new Offset(new TableLabel(from), new TableLabel(to));
+
+		Data!.Offsets.Add(new BinaryOffset(Data.Position, offset, bytes));
+		Data!.Zero(bytes);
+		return true;
+	}
+
+	/// <summary>
+	/// Handles symbol reference allocators: . $allocator $symbol
+	/// </summary>
+	private bool ExecuteSymbolReferenceAllocator(List<Token> tokens)
+	{
+		// Pattern: . $allocator $symbol
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.IDENTIFIER) return false;
+
+		var symbol = tokens[2].To<IdentifierToken>().Value;
+		var allocator = tokens[1].To<IdentifierToken>().Value;
+
+		var bytes = allocator switch
+		{
+			BYTE_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
+			WORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
+			DWORD_SPECIFIER => 4, // Pattern: .dword $symbol
+			QWORD_SPECIFIER => 8, // Pattern: .qword $symbol
+			XWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
+			OWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
+			_ => throw Errors.Get(tokens[1].Position, "Unknown allocator")
+		};
+
+		var relocation_type = allocator switch
+		{
+			DWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE32,
+			QWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE64,
+			SECTION_OFFSET_SPECIFIER => BinaryRelocationType.SECTION_RELATIVE,
+			_ => BinaryRelocationType.ABSOLUTE64,
+		};
+
+		Data!.Relocations.Add(new BinaryRelocation(Data.GetLocalOrCreateExternalSymbol(symbol), Data.Position, 0, relocation_type, bytes));
+		Data.Zero(bytes);
+		return true;
+	}
+
+	/// <summary>
 	/// Executes the specified directive, if it represents a section directive.
 	/// Section directive switches the active section.
 	/// </summary>
@@ -66,7 +133,33 @@ public class AssemblyParser
 		if (tokens[1].To<IdentifierToken>().Value != SECTION_DIRECTIVE) return false;
 
 		// Switch the active section
-		Section = tokens[2].To<IdentifierToken>().Value;
+		var section = '.' + tokens[2].To<IdentifierToken>().Value;
+
+		if (section == TEXT_SECTION)
+		{
+			// Save the current data section, if it is not saved already
+			if (Data != null && !Sections.ContainsKey(Section))
+			{
+				Sections[Section] = Data;
+			}
+
+			Data = null;
+			Section = section;
+			return true;
+		}
+
+		Section = section;
+
+		// All non-text sections are data sections, create a new data section if no previous data section has the specified name
+		if (Sections.TryGetValue(section, out var saved))
+		{
+			Data = saved;
+			return true;
+		}
+
+		Data = new DataEncoderModule();
+		Data.Name = Section;
+		Sections[Section] = Data;
 		return true;
 	}
 
@@ -95,20 +188,49 @@ public class AssemblyParser
 
 		if (directive == LINE_DIRECTIVE)
 		{
-			// Pattern: .line $line $character
-			if (tokens.Count < 4 || tokens[2].Type != TokenType.NUMBER || tokens[3].Type != TokenType.NUMBER) return false;
+			// Pattern: .line $file $line $character
+			if (tokens.Count < 5 || tokens[2].Type != TokenType.NUMBER || tokens[3].Type != TokenType.NUMBER || tokens[4].Type != TokenType.NUMBER) return false;
 
-			var line = (long)tokens[2].To<NumberToken>().Value;
-			var character = (long)tokens[3].To<NumberToken>().Value;
+			var file = (long)tokens[2].To<NumberToken>().Value;
+			var line = (long)tokens[3].To<NumberToken>().Value;
+			var character = (long)tokens[4].To<NumberToken>().Value;
 
-			#warning Convert to an instruction that the encoder can use
+			Instructions.Add(new AppendPositionInstruction(Unit, new Position(null, (int)line, (int)character)));
 			return true;
 		}
 
-		if (directive == END_OF_FUNCTION_DIRECTIVE)
+		if (directive == DEBUG_START_DIRECTIVE)
 		{
-			// Pattern: .end
-			#warning Convert to an instruction that the encoder can use
+			// Pattern: .debug_start $symbol
+			if (tokens.Count < 3 || tokens[2].Type != TokenType.IDENTIFIER) return false;
+
+			var symbol = tokens[2].To<IdentifierToken>().Value;
+
+			var instruction = new Instruction(Unit, InstructionType.DEBUG_START);
+			var handle = new DataSectionHandle(symbol);
+			instruction.Parameters.Add(new InstructionParameter(handle, ParameterFlag.NONE));
+			Instructions.Add(instruction);
+			return true;
+		}
+
+		if (directive == DEBUG_FRAME_OFFSET_DIRECTIVE)
+		{
+			// Pattern: .debug_start $symbol
+			if (tokens.Count < 3 || tokens[2].Type != TokenType.NUMBER) return false;
+
+			var offset = (long)tokens[2].To<NumberToken>().Value;
+
+			var instruction = new Instruction(Unit, InstructionType.DEBUG_FRAME_OFFSET);
+			var handle = new ConstantHandle(offset);
+			instruction.Parameters.Add(new InstructionParameter(handle, ParameterFlag.NONE));
+			Instructions.Add(instruction);
+			return true;
+		}
+
+		if (directive == DEBUG_END_DIRECTIVE)
+		{
+			// Pattern: .debug_end
+			Instructions.Add(new Instruction(Unit, InstructionType.DEBUG_END));
 			return true;
 		}
 
@@ -137,10 +259,10 @@ public class AssemblyParser
 
 		switch (directive)
 		{
-			case BYTE_SPECIFIER: { Data.Write(value); break; } // Pattern: .byte $value
-			case WORD_SPECIFIER: { Data.WriteInt16(value); break; } // Pattern: .word $value
-			case DWORD_SPECIFIER: { Data.WriteInt32(value); break; } // Pattern: .dword $value
-			case QWORD_SPECIFIER: { Data.WriteInt64(value); break; } // Pattern: .qword $value
+			case BYTE_SPECIFIER: { Data!.Write(value); break; } // Pattern: .byte $value
+			case WORD_SPECIFIER: { Data!.WriteInt16(value); break; } // Pattern: .word $value
+			case DWORD_SPECIFIER: { Data!.WriteInt32(value); break; } // Pattern: .dword $value
+			case QWORD_SPECIFIER: { Data!.WriteInt64(value); break; } // Pattern: .qword $value
 			case XWORD_SPECIFIER:
 			case OWORD_SPECIFIER: throw Errors.Get(tokens[1].Position, "Please use smaller allocators");
 			default: return false;
@@ -160,13 +282,12 @@ public class AssemblyParser
 		{
 			case STRING_DIRECTIVE:
 			// Pattern: .string '...'
-			Data.String(tokens[2].To<StringToken>().Text);
+			Data!.String(tokens[2].To<StringToken>().Text);
 			break;
 
 			case CHARACTERS_DIRECTIVE:
 			// Pattern: .characters '...'
-			/// TODO: Disable zero byte termination
-			Data.String(tokens[2].To<StringToken>().Text);
+			Data!.String(tokens[2].To<StringToken>().Text, false);
 			break;
 
 			default: return false;
@@ -192,8 +313,10 @@ public class AssemblyParser
 		if (ExecuteDebugDirective(tokens)) return true;
 
 		// The executors below are only executed if we are in the data section
-		if (Section != DATA_SECTION) return false;
+		if (Data == null) return false;
 
+		if (ExecuteOffsetAllocator(tokens)) return true;
+		if (ExecuteSymbolReferenceAllocator(tokens)) return true;
 		if (ExecuteConstantAllocator(tokens)) return true;
 		if (ExecuteStringAllocator(tokens)) return true;
 
@@ -212,7 +335,17 @@ public class AssemblyParser
 		// Labels must end with a colon
 		if (tokens.Count == 1 || !tokens[1].Is(Operators.COLON)) return false;
 
-		Instructions.Add(new LabelInstruction(Unit, new Label(tokens[0].To<IdentifierToken>().Value)));
+		var name = tokens[0].To<IdentifierToken>().Value;
+
+		if (Data == null)
+		{
+			Instructions.Add(new LabelInstruction(Unit, new Label(name)));
+		}
+		else
+		{
+			Data.CreateLocalSymbol(name, Data.Position);
+		}
+
 		return true;
 	}
 
@@ -417,7 +550,7 @@ public class AssemblyParser
 	/// <summary>
 	/// Returns whether the specified operation represents a jump instruction
 	/// </summary>
-	private bool IsJump(string operation)
+	private static bool IsJump(string operation)
 	{
 		return operation == global::Instructions.X64.JUMP ||
 			operation == global::Instructions.X64.JUMP_ABOVE ||
@@ -487,14 +620,24 @@ public class AssemblyParser
 				if (ParseInstruction(tokens)) continue;
 			}
 
-			throw Errors.Get(tokens.First().Position, "Can not understand");
+			//throw Errors.Get(tokens.First().Position, "Can not understand");
+		}
+
+		// Save the current data section, if it is not saved already
+		if (Data != null && !Sections.ContainsKey(Section))
+		{
+			Sections[Section] = Data;
 		}
 	}
 
 	public void Reset()
 	{
 		Instructions.Clear();
-		Data.Reset();
+		Sections.Clear();
+
+		Data?.Reset();
+		Data = null;
+
 		Section = TEXT_SECTION;
 	}
 }

@@ -5,11 +5,13 @@ using System.Text;
 public class DataEncoderModule
 {
 	public const int DefaultOutputSize = 100;
-
+	
+	public string Name { get; set; } = ElfFormat.DATA_SECTION;
 	public byte[] Output = new byte[DefaultOutputSize];
 	public int Position { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
 	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
+	public List<BinaryOffset> Offsets { get; set; } = new List<BinaryOffset>();
 
 	/// <summary>
 	/// Ensures the internal buffer has the specified amount of bytes available
@@ -86,6 +88,25 @@ public class DataEncoderModule
 		Output[Position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
 	}
 
+	/// <summary>
+	/// Writes the specified value to the current position and advances to the next position
+	/// </summary>
+	public void WriteInt64(int position, long value)
+	{
+		Reserve(8);
+		Output[position++] = (byte)(value & 0xFF);
+		Output[position++] = (byte)((value & 0xFF00) >> 8);
+		Output[position++] = (byte)((value & 0xFF0000) >> 16);
+		Output[position++] = (byte)((value & 0xFF000000) >> 24);
+		Output[position++] = (byte)((value & 0xFF00000000) >> 32);
+		Output[position++] = (byte)((value & 0xFF0000000000) >> 40);
+		Output[position++] = (byte)((value & 0xFF000000000000) >> 48);
+		Output[position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
+	}
+
+	/// <summary>
+	/// Expresses the specified value as a signed LEB128.
+	/// </summary>
 	private static byte[] ToULEB128(int value)
 	{
 		var bytes = new List<byte>();
@@ -107,6 +128,9 @@ public class DataEncoderModule
 		return bytes.ToArray();
 	}
 
+	/// <summary>
+	/// Expresses the specified value as an unsigned LEB128.
+	/// </summary>
 	private static byte[] ToSLEB128(int value)
 	{
 		var bytes = new List<byte>();
@@ -203,19 +227,21 @@ public class DataEncoderModule
 	/// Creates a local symbol with the specified name at the specified offset.
 	/// This function converts an existing external version of the symbol to a local symbol if such symbol exists.
 	/// </summary>
-	public BinarySymbol CreateLocalSymbol(string name, int offset)
+	public BinarySymbol CreateLocalSymbol(string name, int offset, bool export = false)
 	{
 		if (Symbols.TryGetValue(name, out var symbol))
 		{
 			// Ensure the properties are correct
 			symbol.External = false;
 			symbol.Offset = offset;
+			symbol.Export = export;
 		}
 		else
 		{
 			// Create a new local symbol with the specified properties
 			symbol = new BinarySymbol(name, offset, false);
 			Symbols.Add(name, symbol);
+			symbol.Export = export;
 		}
 
 		return symbol;
@@ -226,9 +252,14 @@ public class DataEncoderModule
 		// Shrink the output buffer to only fit the current size
 		Array.Resize(ref Output, Position);
 
-		var section = new BinarySection(ElfFormat.DATA_SECTION, BinarySectionType.DATA, Output);
+		// Add a hidden symbol that has the name of this section without dot. It represents the start of this section.
+		var name = Name.Length > 0 && Name[0] == '.' ? Name.Substring(1) : Name;
+		Symbols.Add(name, new BinarySymbol(name, 0, false, true));
+
+		var section = new BinarySection(Name, BinarySectionType.DATA, Output);
 		section.Relocations = Relocations;
 		section.Symbols = Symbols;
+		section.Offsets = Offsets;
 
 		foreach (var symbol in Symbols.Values) { symbol.Section = section; }
 		foreach (var relocation in Relocations) { relocation.Section = section; }
@@ -275,7 +306,7 @@ public static class DataEncoder
 			return;
 		}
 
-		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE, label.Size.Bytes));
+		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, label.Size.Bytes));
 	}
 
 	/// <summary>
@@ -308,7 +339,7 @@ public static class DataEncoder
 
 				case Table f:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE, SystemAddressSize));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SystemAddressSize));
 					module.WriteInt64(0);
 
 					if (!f.IsBuilt) subtables.Add(f);
@@ -317,14 +348,17 @@ public static class DataEncoder
 
 				case Label g:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE, SystemAddressSize));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SystemAddressSize));
 					module.WriteInt64(0);
 					break;
 				}
 
 				case Offset h:
 				{
-					throw new NotImplementedException("Data section offsets are not implemented yet");
+					/// NOTE: All binary offsets are 4-bytes for now
+					module.Offsets.Add(new BinaryOffset(module.Position, h, 4));
+					module.WriteInt32(0);
+					break;
 				}
 
 				case TableLabel i:

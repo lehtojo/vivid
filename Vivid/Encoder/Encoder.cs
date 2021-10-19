@@ -38,50 +38,89 @@ public struct LabelDescriptor
 	}
 }
 
+public struct EncoderDebugLineInformation
+{
+	public int Offset { get; set; }
+	public int Line { get; set; }
+	public int Character { get; set; }
+
+	public EncoderDebugLineInformation(int offset, int line, int character)
+	{
+		Offset = offset;
+		Line = line;
+		Character = character;
+	}
+}
+
+public enum EncoderDebugFrameInformationType
+{
+	START,
+	SET_FRAME_OFFSET,
+	ADVANCE,
+	END
+}
+
+public class EncoderDebugFrameInformation
+{
+	public EncoderDebugFrameInformationType Type { get; }
+	public int Offset { get; }
+
+	public EncoderDebugFrameInformation(EncoderDebugFrameInformationType type, int offset)
+	{
+		Type = type;
+		Offset = offset;
+	}
+
+	public T To<T>() where T : EncoderDebugFrameInformation
+	{
+		return (T)this;
+	}
+}
+
+public class EncoderDebugFrameStartInformation : EncoderDebugFrameInformation
+{
+	public string Symbol { get; }
+
+	public EncoderDebugFrameStartInformation(int offset, string symbol) : base(EncoderDebugFrameInformationType.START, offset)
+	{
+		Symbol = symbol;
+	}
+}
+
+public class EncoderDebugFrameOffsetInformation : EncoderDebugFrameInformation
+{
+	public int FrameOffset { get; }
+
+	public EncoderDebugFrameOffsetInformation(int offset, int frame_offset) : base(EncoderDebugFrameInformationType.SET_FRAME_OFFSET, offset)
+	{
+		FrameOffset = frame_offset;
+	}
+}
+
 public class EncoderModule
 {
-	public int Index { get; set; }
-	public Label? Jump { get; set; }
-	public bool IsConditionalJump { get; set; }
-	public bool IsShortJump { get; set; }
-	public List<Instruction> Instructions { get; }
-	public List<LabelUsageItem> Labels { get; }
-	public List<LabelUsageItem> Calls { get; }
-	public List<LabelUsageItem> Items { get; }
-	public List<BinaryRelocation> MemoryAddressRelocations { get; }
-	public byte[] Output { get; set; }
-	public int Position { get; set; }
-	public int Start { get; set; }
+	public int Index { get; set; } = 0;
+	public Label? Jump { get; set; } = null;
+	public bool IsConditionalJump { get; set; } = false;
+	public bool IsShortJump { get; set; } = false;
+	public List<Instruction> Instructions { get; } = new List<Instruction>();
+	public List<LabelUsageItem> Labels { get; } = new List<LabelUsageItem>();
+	public List<LabelUsageItem> Calls { get; } = new List<LabelUsageItem>();
+	public List<LabelUsageItem> Items { get; } = new List<LabelUsageItem>();
+	public List<BinaryRelocation> MemoryAddressRelocations { get; } = new List<BinaryRelocation>();
+	public List<EncoderDebugLineInformation> DebugLineInformation { get; } = new List<EncoderDebugLineInformation>();
+	public List<EncoderDebugFrameInformation> DebugFrameInformation { get; } = new List<EncoderDebugFrameInformation>();
+	public byte[] Output { get; set; } = Array.Empty<byte>();
+	public int Position { get; set; } = 0;
+	public int Start { get; set; } = 0;
 
 	public EncoderModule(Label jump, bool conditional)
 	{
 		Jump = jump;
 		IsConditionalJump = conditional;
-		IsShortJump = false;
-		Instructions = new List<Instruction>();
-		Labels = new List<LabelUsageItem>();
-		Calls = new List<LabelUsageItem>();
-		Items = new List<LabelUsageItem>();
-		MemoryAddressRelocations = new List<BinaryRelocation>();
-		Output = Array.Empty<byte>();
-		Position = 0;
-		Start = 0;
 	}
 
-	public EncoderModule()
-	{
-		Jump = null;
-		IsConditionalJump = false;
-		IsShortJump = false;
-		Instructions = new List<Instruction>();
-		Labels = new List<LabelUsageItem>();
-		Calls = new List<LabelUsageItem>();
-		Items = new List<LabelUsageItem>();
-		MemoryAddressRelocations = new List<BinaryRelocation>();
-		Output = Array.Empty<byte>();
-		Position = 0;
-		Start = 0;
-	}
+	public EncoderModule() {}
 }
 
 public struct EncoderOutput
@@ -89,12 +128,16 @@ public struct EncoderOutput
 	public BinarySection Section { get; set; }
 	public Dictionary<string, BinarySymbol> Symbols { get; }
 	public List<BinaryRelocation> Relocations { get; }
+	public DebugFrameEncoderModule Frames { get; }
+	public DebugLineEncoderModule Lines { get; }
 
-	public EncoderOutput(BinarySection section, Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations)
+	public EncoderOutput(BinarySection section, Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations, DebugFrameEncoderModule frames, DebugLineEncoderModule lines)
 	{
 		Section = section;
 		Symbols = symbols;
 		Relocations = relocations;
+		Frames = frames;
+		Lines = lines;
 	}
 }
 
@@ -328,12 +371,29 @@ public static class EncoderX64
 	}
 
 	/// <summary>
+	/// Writes the specified value to the specified position
+	/// </summary>
+	public static void Write(byte[] data, int offset, long value)
+	{
+		data[offset] = (byte)(value & 0xFF);
+	}
+
+	/// <summary>
 	/// Writes the specified value to the current position and advances to the next position
 	/// </summary>
 	public static void WriteInt16(EncoderModule module, long value)
 	{
 		module.Output[module.Position++] = (byte)(value & 0xFF);
 		module.Output[module.Position++] = (byte)((value & 0xFF00) >> 8);
+	}
+
+	/// <summary>
+	/// Writes the specified value to the specified position
+	/// </summary>
+	public static void WriteInt16(byte[] data, int offset, long value)
+	{
+		data[offset++] = (byte)(value & 0xFF);
+		data[offset++] = (byte)((value & 0xFF00) >> 8);
 	}
 
 	/// <summary>
@@ -382,6 +442,21 @@ public static class EncoderX64
 		module.Output[module.Position++] = (byte)((value & 0xFF0000000000) >> 40);
 		module.Output[module.Position++] = (byte)((value & 0xFF000000000000) >> 48);
 		module.Output[module.Position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
+	}
+
+	/// <summary>
+	/// Writes the specified value to the specified position
+	/// </summary>
+	public static void WriteInt64(byte[] data, int offset, long value)
+	{
+		data[offset++] = (byte)(value & 0xFF);
+		data[offset++] = (byte)((value & 0xFF00) >> 8);
+		data[offset++] = (byte)((value & 0xFF0000) >> 16);
+		data[offset++] = (byte)((value & 0xFF000000) >> 24);
+		data[offset++] = (byte)((value & 0xFF00000000) >> 32);
+		data[offset++] = (byte)((value & 0xFF0000000000) >> 40);
+		data[offset++] = (byte)((value & 0xFF000000000000) >> 48);
+		data[offset++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
 	}
 
 	/// <summary>
@@ -843,13 +918,52 @@ public static class EncoderX64
 		return -1;
 	}
 
+	/// <summary>
+	/// Handles debug line information instructions and other similar instructions
+	/// </summary>
+	public static void ProcessDebugInstructions(EncoderModule module, Instruction instruction)
+	{
+		if (instruction.Type == InstructionType.APPEND_POSITION)
+		{
+			var position = instruction.To<AppendPositionInstruction>().Position;
+			module.DebugLineInformation.Add(new EncoderDebugLineInformation(module.Position, position.Line, position.Character));
+			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.ADVANCE, module.Position));
+			return;
+		}
+
+		if (instruction.Type == InstructionType.DEBUG_START)
+		{
+			var symbol = instruction.Parameters.First().Value!.To<DataSectionHandle>().Identifier;
+			module.DebugFrameInformation.Add(new EncoderDebugFrameStartInformation(module.Position, symbol));
+			return;
+		}
+
+		if (instruction.Type == InstructionType.DEBUG_FRAME_OFFSET)
+		{
+			var offset = (long)instruction.Parameters.First().Value!.To<ConstantHandle>().Value;
+			module.DebugFrameInformation.Add(new EncoderDebugFrameOffsetInformation(module.Position, (int)offset));
+			return;
+		}
+
+		if (instruction.Type == InstructionType.DEBUG_END)
+		{
+			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.END, module.Position));
+			return;
+		}
+	}
+
 	public static void WriteInstruction(EncoderModule module, Instruction instruction)
 	{
 		var parameters = instruction.Parameters.Where(i => !i.IsHidden).ToList();
 		var encoding = new InstructionEncoding();
 
 		var identifier = GetInstructionIndex(instruction);
-		if (identifier < 0) return;
+
+		if (identifier < 0)
+		{
+			ProcessDebugInstructions(module, instruction);
+			return;
+		}
 
 		// Find the correct encoding
 		if (parameters.Count == 0) { encoding = FindEncoding(identifier); }
@@ -1353,7 +1467,51 @@ public static class EncoderX64
 			}
 		}
 
-		return new EncoderOutput(section, symbols, relocations);
+		var lines = new DebugLineEncoderModule();
+		var frames = new DebugFrameEncoderModule(0);
+
+		foreach (var module in modules)
+		{
+			foreach (var line in module.DebugLineInformation)
+			{
+				// Compute the absolute offset of the current debug point and move to that position
+				var offset = module.Start + line.Offset;
+				lines.Move(section, line.Line, line.Character, offset);
+			}
+		}
+
+		position = 0;
+
+		foreach (var module in modules)
+		{
+			foreach (var information in module.DebugFrameInformation)
+			{
+				// Compute the absolute offset of the current debug point and move to that position
+				var offset = module.Start + information.Offset;
+
+				if (information.Type == EncoderDebugFrameInformationType.START)
+				{
+					frames.Start(information.To<EncoderDebugFrameStartInformation>().Symbol, offset);
+				}
+				else if (information.Type == EncoderDebugFrameInformationType.SET_FRAME_OFFSET)
+				{
+					frames.Move(offset - position);
+					frames.SetFrameOffset(information.To<EncoderDebugFrameOffsetInformation>().FrameOffset);
+					position = offset;
+				}
+				/* else if (information.Type == EncoderDebugFrameInformationType.ADVANCE)
+				{
+					frames.Move(offset - position);
+					position = offset;
+				} */
+				else if (information.Type == EncoderDebugFrameInformationType.END)
+				{
+					frames.End(offset);
+				}
+			}
+		}
+
+		return new EncoderOutput(section, symbols, relocations, frames, lines);
 	}
 
 	/// <summary>

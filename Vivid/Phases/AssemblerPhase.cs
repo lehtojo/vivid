@@ -12,6 +12,8 @@ public class AssemblerPhase : Phase
 		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
 		if (files.Count == 0) return Status.Error("Nothing to assembly");
 
+		var link = bundle.Get(ConfigurationPhase.LINK_FLAG, false);
+
 		// Determine the output name of the object file
 		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
 
@@ -32,11 +34,28 @@ public class AssemblerPhase : Phase
 			parser.Parse(assembly);
 
 			var text_section_output = EncoderX64.Encode(parser.Instructions);
-			var binary_text_section = text_section_output.Section;
-			var binary_data_section = parser.Data.Export();
+			var text_section = text_section_output.Section;
+			var data_sections = parser.Sections.Values.Select(i => i.Export()).ToList();
+			var debug_frames_section = text_section_output.Frames.Export();
+			var debug_lines_section = text_section_output.Lines.Export();
 
-			var object_file = ElfFormat.BuildObjectX64(new List<BinarySection> { binary_text_section, binary_data_section });
-			File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);
+			var sections = new List<BinarySection>() { text_section };
+			sections.Add(debug_frames_section);
+			sections.AddRange(data_sections);
+			sections.Add(debug_lines_section);
+
+			if (link)
+			{
+				var object_file = ElfFormat.CreateObjectX64(sections);
+				var result = Linker.Link(new List<BinaryObjectFile> { object_file });
+
+				File.WriteAllBytes(output_name, result);
+			}
+			else
+			{
+				var object_file = ElfFormat.BuildObjectX64(sections);
+				File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);
+			}
 		}
 		catch (Exception e)
 		{

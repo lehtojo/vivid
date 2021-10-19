@@ -18,6 +18,7 @@ public enum DebugLineOperation : long
 
 public enum DebugLineExtendedOperation : long
 {
+	None,
 	EndOfSequence,
 	SetAddress,
 	DefineFile,
@@ -29,9 +30,18 @@ public enum DebugLineExtendedOperation : long
 /// </summary>
 public class DebugLineEncoderModule : DataEncoderModule
 {
-	public int Line { get; set; } = 0;
-	public int Character { get; set; } = 0;
-	public int Offset { get; set; } = 0;
+	public const string SECTION_NAME = "debug_line";
+	public const string DEBUG_CODE_START_SYMBOL = ".debug_code_start";
+	public const int PROLOGUE_LENGTH_FIELD_OFFSET = 6;
+
+	public int Line { get; set; } = -1;
+	public int Character { get; set; } = -1;
+	public int Offset { get; set; } = -1;
+
+	private void AddFolder(string folder)
+	{
+		String(folder); // Terminated folder path
+	}
 
 	private void AddFile(string name, int folder)
 	{
@@ -43,9 +53,9 @@ public class DebugLineEncoderModule : DataEncoderModule
 
 	public DebugLineEncoderModule()
 	{
-		WriteInt64(0); // Set the length of this unit to zero initially
+		WriteInt32(0); // Set the length of this unit to zero initially
 		WriteInt16(4); // Dwarf version 4
-		WriteInt32(32); // Prologue length
+		WriteInt32(0); // Prologue length
 		Write(1); // Minimum instruction length
 		Write(1); // Maximum operations per instruction
 		Write(1); // Default 'is statement' flag
@@ -67,11 +77,17 @@ public class DebugLineEncoderModule : DataEncoderModule
 		Write(0); // DebugLineOperation.SetEpilogueBegin
 		Write(1); // DebugLineOperation.SetISA
 
+		/// TODO: Add proper folders...
+		AddFolder("/home/lehtojo/vivid/Vivid");
+
 		Write(0); // Indicate that now begins the last (only the compilation folder is added) included folder
 
-		/// TODO: Add folders...
+		AddFile("main.v", 1);
 
-		AddFile("main.v", 0);
+		Write(0); // End of included files
+
+		// Compute the length of this header after the 'Prologue length'-field
+		WriteInt32(PROLOGUE_LENGTH_FIELD_OFFSET, Position - (PROLOGUE_LENGTH_FIELD_OFFSET + 4));
 	}
 
 	private void WriteOperation(DebugLineOperation operation)
@@ -86,14 +102,10 @@ public class DebugLineEncoderModule : DataEncoderModule
 		Write((long)operation);
 	}
 
-	public void Move(int line, int character, int offset)
+	public void Move(BinarySection section, int line, int character, int offset)
 	{
 		if (Line >= 0)
 		{
-			// Move to the specified binary offset
-			WriteOperation(DebugLineOperation.AdvanceProgramCounter);
-			WriteSLEB128(offset - Offset);
-
 			// Move to the specified line
 			WriteOperation(DebugLineOperation.AdvanceLine);
 			WriteSLEB128(line - Line);
@@ -102,36 +114,55 @@ public class DebugLineEncoderModule : DataEncoderModule
 			WriteOperation(DebugLineOperation.SetColumn);
 			WriteSLEB128(character);
 
-			Character = Character;
+			// Move to the specified binary offset
+			WriteOperation(DebugLineOperation.AdvanceProgramCounter);
+			WriteSLEB128(offset - Offset);
+
+			WriteOperation(DebugLineOperation.Copy);
+
+			Character = character;
 			Offset = offset;
-			Line = Line;
+			Line = line;
 			return;
 		}
 
-		WriteExtendedOperation(DebugLineExtendedOperation.SetAddress, 8);
-		WriteInt64(offset);
-		WriteOperation(DebugLineOperation.Copy);
+		if (line > 1)
+		{
+			// Move to the specified line
+			WriteOperation(DebugLineOperation.AdvanceLine);
+			WriteSLEB128(line - 1);
+		}
 
 		// Move to the specified column
 		WriteOperation(DebugLineOperation.SetColumn);
 		WriteSLEB128(character);
 
-		WriteOperation(DebugLineOperation.SetPrologueEnd);
+		WriteExtendedOperation(DebugLineExtendedOperation.SetAddress, 8);
+		
+		// Add a symbol to the text section, which represents the start of the debuggable code.
+		// This is done, because now the machine code offset is not correct, since after linking the code will probably be loaded to another address.
+		// By inserting a symbol into the text section and adding a relocation using the symbol to this section, the offset will be corrected by the linker.
+		var symbol = new BinarySymbol(DEBUG_CODE_START_SYMBOL, offset, false, true);
+		symbol.Section = section;
 
-		Line = Line;
-		Character = Character;
+		section.Symbols.Add(DEBUG_CODE_START_SYMBOL, symbol);
+		Relocations.Add(new BinaryRelocation(symbol, Position, 0, BinaryRelocationType.ABSOLUTE64, 8));
+
+		WriteInt64(offset);
+
+		WriteOperation(DebugLineOperation.Copy);
+
+		Character = character;
+		Offset = offset;
+		Line = line;
 	}
 
-	public void End()
+	public new BinarySection Export()
 	{
 		WriteExtendedOperation(DebugLineExtendedOperation.EndOfSequence, 0);
-		Line = -1;
-		Character = -1;
-		Offset = 0;
-	}
+		WriteInt32(0, Position - 4); // Compute the length now
 
-	public void Export()
-	{
-		Write(0, Position); // Compute the length now
+		Name = '.' + SECTION_NAME;
+		return base.Export();
 	}
 }

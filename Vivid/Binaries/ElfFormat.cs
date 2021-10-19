@@ -152,13 +152,21 @@ public class ElfSymbolEntry
 	{
 		Info = (byte)(((int)binding << 4) | type);
 	}
+
+	public void SetHidden(bool hidden)
+	{
+		Other = (byte)(hidden ? 2 : 0);
+	}
+
+	public bool IsHidden => Other == 2;
 }
 
 public enum ElfSymbolType
 {
 	NONE = 0x00,
-	ABSOLUTE_64 = 0x01,
-	PROGRAM_COUNTER_RELATIVE = 0x02
+	ABSOLUTE64 = 0x01,
+	PROGRAM_COUNTER_RELATIVE = 0x02,
+	ABSOLUTE32 = 0x0A
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -243,11 +251,13 @@ public static class ElfFormat
 
 	public static ElfSectionFlag GetSectionFlags(BinarySection section)
 	{
-		return section.Type switch
+		if (section.Type == BinarySectionType.RELOCATION_TABLE) return ElfSectionFlag.INFO_LINK;
+
+		return section.Name switch
 		{
-			BinarySectionType.DATA => ElfSectionFlag.ALLOCATE | ElfSectionFlag.WRITE,
-			BinarySectionType.RELOCATION_TABLE => ElfSectionFlag.INFO_LINK,
-			BinarySectionType.TEXT => ElfSectionFlag.ALLOCATE | ElfSectionFlag.EXECUTABLE,
+			DATA_SECTION => ElfSectionFlag.ALLOCATE | ElfSectionFlag.WRITE,
+			TEXT_SECTION => ElfSectionFlag.ALLOCATE | ElfSectionFlag.EXECUTABLE,
+			".eh_frame" => ElfSectionFlag.ALLOCATE,
 			_ => ElfSectionFlag.NONE
 		};
 	}
@@ -265,6 +275,11 @@ public static class ElfFormat
 			header.Flags = (ulong)GetSectionFlags(section);
 			header.VirtualAddress = (uint)section.VirtualAddress;
 			header.SectionFileSize = (ulong)section.Size;
+
+			if (section.Name == ".eh_frame")
+			{
+				header.Alignment = 8;
+			}
 
 			if (section.Type == BinarySectionType.RELOCATION_TABLE)
 			{
@@ -316,7 +331,8 @@ public static class ElfFormat
 		{
 			BinaryRelocationType.PROCEDURE_LINKAGE_TABLE => (uint)ElfSymbolType.PROGRAM_COUNTER_RELATIVE, // Redirect to PC32 for now
 			BinaryRelocationType.PROGRAM_COUNTER_RELATIVE => (uint)ElfSymbolType.PROGRAM_COUNTER_RELATIVE,
-			BinaryRelocationType.ABSOLUTE => (uint)ElfSymbolType.ABSOLUTE_64,
+			BinaryRelocationType.ABSOLUTE64 => (uint)ElfSymbolType.ABSOLUTE64,
+			BinaryRelocationType.ABSOLUTE32 => (uint)ElfSymbolType.ABSOLUTE32,
 			_ => (uint)ElfSymbolType.NONE
 		};
 	}
@@ -329,15 +345,16 @@ public static class ElfFormat
 		return type switch
 		{
 			ElfSymbolType.PROGRAM_COUNTER_RELATIVE => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
-			ElfSymbolType.ABSOLUTE_64 => BinaryRelocationType.ABSOLUTE,
-			_ => BinaryRelocationType.ABSOLUTE
+			ElfSymbolType.ABSOLUTE64 => BinaryRelocationType.ABSOLUTE64,
+			ElfSymbolType.ABSOLUTE32 => BinaryRelocationType.ABSOLUTE32,
+			_ => BinaryRelocationType.ABSOLUTE32
 		};
 	}
 
 	/// <summary>
 	/// Creates the symbol table and the relocation table based on the specified symbols
 	/// </summary>
-	public static ElfStringTable CreateSymbolRelatedSections(List<BinarySection> sections)
+	public static ElfStringTable CreateSymbolRelatedSections(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
 	{
 		// Create a string table that contains the names of the specified symbols
 		var symbol_name_table = new ElfStringTable();
@@ -349,25 +366,28 @@ public static class ElfFormat
 		none_symbol.Name = (uint)symbol_name_table.Add(string.Empty);
 		symbol_entries.Add(none_symbol);
 
-		// Index the sections
-		for (var i = 0; i < sections.Count; i++)
+		// Index the sections since the symbols need that
+		for (var i = 0; i < sections.Count; i++) { sections[i].Index = i; }
+
+		// Order the symbols so that local symbols are first and then the external ones
+		foreach (var symbol in symbols.Values.Where(i => !i.External).Concat(symbols.Values.Where(i => i.External)))
 		{
-			var section = sections[i];
+			var virtual_address = symbol.Section == null ? 0 : symbol.Section.VirtualAddress;
 
-			foreach (var symbol in section.Symbols.Values)
-			{
-				var virtual_address = symbol.Section == null ? 0 : symbol.Section.VirtualAddress;
+			var symbol_entry = new ElfSymbolEntry();
+			symbol_entry.Name = (uint)symbol_name_table.Add(symbol.Name);
+			symbol_entry.Value = (ulong)(virtual_address + symbol.Offset);
+			symbol_entry.SectionIndex = (ushort)(symbol.External ? 0 : symbol.Section!.Index);
+			symbol_entry.SetInfo(symbol.External || symbol.Export ? ElfSymbolBinding.GLOBAL : ElfSymbolBinding.LOCAL, 0);
+			symbol_entry.SetHidden(symbol.Hidden);
 
-				var symbol_entry = new ElfSymbolEntry();
-				symbol_entry.Name = (uint)symbol_name_table.Add(symbol.Name);
-				symbol_entry.Value = (ulong)(virtual_address + symbol.Offset);
-				symbol_entry.SectionIndex = (ushort)(symbol.External ? 0 : i);
-				symbol_entry.SetInfo(symbol.External ? ElfSymbolBinding.GLOBAL : ElfSymbolBinding.LOCAL, 0);
+			symbol.Index = (uint)symbol_entries.Count;
+			symbol_entries.Add(symbol_entry);
+		}
 
-				symbol.Index = (uint)symbol_entries.Count;
-				symbol_entries.Add(symbol_entry);
-			}
-
+		// Create the relocation entries
+		foreach (var section in sections)
+		{
 			var relocation_entries = new List<ElfRelocationEntry>();
 
 			foreach (var relocation in section.Relocations)
@@ -403,6 +423,26 @@ public static class ElfFormat
 	}
 
 	/// <summary>
+	/// Goes through all the relocations from the specified sections and connects them to the local symbols if possible
+	/// </summary>
+	public static void UpdateRelocations(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	{
+		#warning Move somewhere else from ELF-format and the linker should use this as well
+		foreach (var relocation in sections.SelectMany(i => i.Relocations))
+		{
+			var symbol = relocation.Symbol;
+
+			// If the relocation is not external, the symbol is already resolved
+			if (!symbol.External) continue;
+
+			// Try to find the actual symbol
+			if (!symbols.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
+
+			relocation.Symbol = definition;
+		}
+	}
+
+	/// <summary>
 	/// Returns a list of all symbols in the specified sections
 	/// </summary>
 	public static Dictionary<string, BinarySymbol> GetAllSymbolsFromSections(List<BinarySection> sections)
@@ -427,16 +467,59 @@ public static class ElfFormat
 		return symbols;
 	}
 
+	/// <summary>
+	/// Computes all offsets in the specified sections. If any of the offsets can not computed, this function throws an exception.
+	/// </summary>
+	public static void ComputeOffsets(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	{
+		foreach (var section in sections)
+		{
+			foreach (var offset in section.Offsets)
+			{
+				// Try to find the 'from'-symbol
+				var symbol = offset.Offset.From.Name;
+				if (!symbols.TryGetValue(symbol, out var from)) throw new ApplicationException($"Can not compute an offset, because symbol {symbol} can not be found");
+
+				// Try to find the 'to'-symbol
+				symbol = offset.Offset.To.Name;
+				if (!symbols.TryGetValue(symbol, out var to)) throw new ApplicationException($"Can not compute an offset, because symbol {symbol} can not be found");
+
+				// Ensure both symbols are defined locally
+				if (from.Section == null || to.Section == null) throw new ApplicationException("Both symbols in offsets must be local");
+
+				// Compute the offset between the symbols
+				var value = (to.Section!.VirtualAddress + to.Offset) - (from.Section!.VirtualAddress + from.Offset);
+
+				switch (offset.Bytes)
+				{
+					case 8: { EncoderX64.WriteInt64(section.Data, offset.Position, value); break; }
+					case 4: { EncoderX64.WriteInt32(section.Data, offset.Position, value); break; }
+					case 2: { EncoderX64.WriteInt16(section.Data, offset.Position, value); break; }
+					case 1: { EncoderX64.Write(section.Data, offset.Position, value); break; }
+					default: throw new ApplicationException("Unsupported offset size");
+				}
+			}
+		}
+	}
+
 	public static BinaryObjectFile CreateObjectX64(List<BinarySection> sections)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
-		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(sections);
+		var symbols = GetAllSymbolsFromSections(sections);
 
-		_ = CreateSectionHeaders(sections, GetAllSymbolsFromSections(sections));
+		// Update all the relocations before adding them to binary sections
+		UpdateRelocations(sections, symbols);
+
+		// Add symbols and relocations of each section needing that
+		CreateSymbolRelatedSections(sections, symbols);
+
+		_ = CreateSectionHeaders(sections, symbols);
+
+		// Now that section positions are set, compute offsets
+		ComputeOffsets(sections, symbols);
 
 		//#error Check these relocations, they probably discard some stuff
 		return new BinaryObjectFile(sections);
@@ -448,8 +531,13 @@ public static class ElfFormat
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
+		var symbols = GetAllSymbolsFromSections(sections);
+
+		// Update all the relocations before adding them to binary sections
+		UpdateRelocations(sections, symbols);
+
 		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(sections);
+		CreateSymbolRelatedSections(sections, symbols);
 
 		var header = new ElfFileHeader();
 		header.Type = ElfObjectFileType.RELOCATABLE;
@@ -457,7 +545,11 @@ public static class ElfFormat
 		header.FileHeaderSize = ElfFileHeader.Size;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 
-		var section_headers = CreateSectionHeaders(sections, GetAllSymbolsFromSections(sections));
+		var section_headers = CreateSectionHeaders(sections, symbols);
+
+		// Now that section positions are set, compute offsets
+		ComputeOffsets(sections, symbols);
+
 		var section_bytes = sections.Sum(i => i.Data.Length);
 
 		// Save the location of the section header table
@@ -541,6 +633,7 @@ public static class ElfFormat
 			if (string.IsNullOrEmpty(symbol_name)) continue;
 
 			var symbol = new BinarySymbol(symbol_name, (int)symbol_entry.Value, symbol_entry.SectionIndex == 0);
+			symbol.Hidden = symbol_entry.IsHidden;
 			symbol.Section = section;
 
 			// Add the symbol to the section, which contains it, unless the symbol is external

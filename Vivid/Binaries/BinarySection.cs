@@ -13,6 +13,7 @@ public enum BinarySectionType
 public class BinarySection
 {
 	public string Name { get; set; }
+	public int Index { get; set; } = 0;
 	public BinarySectionType Type { get; set; }
 	public byte[] Data { get; set; }
 	public int Size { get; set; } = 0;
@@ -20,6 +21,7 @@ public class BinarySection
 	public int VirtualAddress { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
 	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
+	public List<BinaryOffset> Offsets { get; set; } = new List<BinaryOffset>();
 
 	public BinarySection(string name, BinarySectionType type, byte[] data)
 	{
@@ -43,14 +45,17 @@ public class BinarySymbol
 	public string Name { get; set; }
 	public int Offset { get; set; }
 	public bool External { get; set; }
+	public bool Export { get; set; } = false;
+	public bool Hidden { get; set; } = false;
 	public uint Index { get; set; } = 0;
 	public BinarySection? Section { get; set; } = null;
 
-	public BinarySymbol(string name, int offset, bool external)
+	public BinarySymbol(string name, int offset, bool external, bool hidden = false)
 	{
 		Name = name;
 		Offset = offset;
 		External = external;
+		Hidden = hidden;
 	}
 
 	public override bool Equals(object? other)
@@ -64,12 +69,27 @@ public class BinarySymbol
 	}
 }
 
+public struct BinaryOffset
+{
+	public int Position { get; set; }
+	public Offset Offset { get; set; }
+	public int Bytes { get; set; }
+
+	public BinaryOffset(int position, Offset offset, int bytes)
+	{
+		Position = position;
+		Offset = offset;
+		Bytes = bytes;
+	}
+}
+
 public enum BinaryRelocationType
 {
-	ABSOLUTE,
+	ABSOLUTE64,
+	ABSOLUTE32,
 	SECTION_RELATIVE,
 	PROCEDURE_LINKAGE_TABLE,
-	PROGRAM_COUNTER_RELATIVE
+	PROGRAM_COUNTER_RELATIVE,
 }
 
 public class BinaryRelocation
@@ -108,6 +128,7 @@ public class BinaryRelocation
 
 public class BinaryObjectFile
 {
+	public int Index { get; set; } = 0;
 	public List<BinarySection> Sections { get; } = new List<BinarySection>();
 
 	public BinaryObjectFile(List<BinarySection> sections)

@@ -8,6 +8,22 @@ public static class Linker
 	public const ulong SegmentAlignment = 0x1000;
 
 	/// <summary>
+	/// Goes through all the symbols in the specified object files and makes their hidden symbols unique by adding their object file indices to their names.
+	/// This way, if multiple object files have hidden symbols with same names, their names are made unique using the object file indices.
+	/// </summary>
+	private static void MakeHiddenSymbolsUnique(List<BinaryObjectFile> objects)
+	{
+		foreach (var iterator in objects)
+		{
+			foreach (var symbol in objects.SelectMany(i => i.Sections).SelectMany(i => i.Symbols.Values))
+			{
+				if (!symbol.Hidden) continue;
+				symbol.Name = iterator.Index.ToString() + '.' + symbol.Name;
+			}
+		}
+	}
+
+	/// <summary>
 	/// Returns whether the specified section should be loaded into memory when the application starts
 	/// </summary>
 	public static bool IsLoadableSection(BinarySection section)
@@ -53,14 +69,17 @@ public static class Linker
 		// Merge all sections that have the same type
 		var result = new List<BinarySection>();
 
-		foreach (var sections in fragments.GroupBy(i => i.Type))
+		foreach (var sections in fragments.GroupBy(i => i.Name))
 		{
-			var type = sections.Key;
-			var name = ElfFormat.GetSectionDefaultName(type);
+			var type = sections.First().Type;
+			var name = sections.Key;
 			var bytes = sections.Sum(i => i.Data.Length);
-			
-			// Align the next loadable section
-			bytes = (bytes / (int)SegmentAlignment + 1) * (int)SegmentAlignment;
+
+			if (name == string.Empty || name == ".text" || name == ".data")
+			{
+				// Align the next loadable section
+				bytes = (bytes / (int)SegmentAlignment + 1) * (int)SegmentAlignment;
+			}
 
 			result.Add(new BinarySection(name, type, Array.Empty<byte>(), bytes));
 		}
@@ -90,10 +109,25 @@ public static class Linker
 
 		foreach (var section in sections)
 		{
-			var flags = section.Type switch
+			if (section.Name != string.Empty && section.Name != ".text" && section.Name != ".data" && section.Name != ".eh_frame")
 			{
-				BinarySectionType.DATA => ElfSegmentFlag.WRITE | ElfSegmentFlag.READ,
-				BinarySectionType.TEXT => ElfSegmentFlag.EXECUTE | ElfSegmentFlag.READ,
+				section.Offset = file_position;
+
+				// Decide the positions of inner fragments of the current section
+				foreach (var fragment in fragments.FindAll(i => i.Name == section.Name))
+				{
+					fragment.Offset = file_position;
+					file_position += fragment.Data.Length;
+				}
+
+				file_position = section.Offset + section.Size;
+				continue;
+			}
+
+			var flags = section.Name switch
+			{
+				ElfFormat.DATA_SECTION => ElfSegmentFlag.WRITE | ElfSegmentFlag.READ,
+				ElfFormat.TEXT_SECTION => ElfSegmentFlag.EXECUTE | ElfSegmentFlag.READ,
 				_ => ElfSegmentFlag.READ
 			};
 
@@ -111,7 +145,7 @@ public static class Linker
 			section.VirtualAddress = (int)virtual_address;
 
 			// Decide the positions of inner fragments of the current section
-			foreach (var fragment in fragments.FindAll(i => i.Type == section.Type))
+			foreach (var fragment in fragments.FindAll(i => i.Name == section.Name))
 			{
 				fragment.Offset = file_position;
 				fragment.VirtualAddress = (int)virtual_address;
@@ -148,7 +182,11 @@ public static class Linker
 				var to = symbol_section.VirtualAddress + symbol.Offset;
 				EncoderX64.WriteInt32(relocation_section.Data, relocation.Offset, to - from + relocation.Addend);
 			}
-			else if (relocation.Type == BinaryRelocationType.ABSOLUTE)
+			else if (relocation.Type == BinaryRelocationType.ABSOLUTE64)
+			{
+				EncoderX64.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+			}
+			else if (relocation.Type == BinaryRelocationType.ABSOLUTE32)
 			{
 				EncoderX64.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
@@ -161,6 +199,12 @@ public static class Linker
 
 	public static byte[] Link(List<BinaryObjectFile> objects)
 	{
+		// Index all the specified object files
+		for (var i = 0; i < objects.Count; i++) { objects[i].Index = i; }
+
+		// Make all hidden symbols unique by using their object file indices
+		MakeHiddenSymbolsUnique(objects);
+
 		var header = new ElfFileHeader();
 		header.Type = ElfObjectFileType.EXECUTABLE;
 		header.Machine = ElfMachineType.X64;
@@ -198,7 +242,7 @@ public static class Linker
 		}
 
 		// Form the symbol table
-		ElfFormat.CreateSymbolRelatedSections(sections);
+		ElfFormat.CreateSymbolRelatedSections(sections, symbols);
 
 		var section_headers = ElfFormat.CreateSectionHeaders(sections, symbols, (int)SegmentAlignment);
 		var section_bytes = sections.Sum(i => i.Size);
