@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 public enum BinarySectionType
 {
@@ -10,13 +11,23 @@ public enum BinarySectionType
 	RELOCATION_TABLE
 }
 
+[Flags]
+public enum BinarySectionFlag
+{
+	WRITE = 1,
+	EXECUTE = 2,
+	ALLOCATE = 4,
+}
+
 public class BinarySection
 {
 	public string Name { get; set; }
 	public int Index { get; set; } = 0;
+	public BinarySectionFlag Flags { get; set; } = 0;
 	public BinarySectionType Type { get; set; }
 	public byte[] Data { get; set; }
 	public int Size { get; set; } = 0;
+	public int Alignment { get; set; } = 1;
 	public int Offset { get; set; } = 0;
 	public int VirtualAddress { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
@@ -31,12 +42,14 @@ public class BinarySection
 		Size = data.Length;
 	}
 
-	public BinarySection(string name, BinarySectionType type, byte[] data, int size)
+	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int size)
 	{
 		Name = name;
+		Flags = flags;
 		Type = type;
 		Data = data;
 		Size = size;
+		Alignment = alignment;
 	}
 }
 

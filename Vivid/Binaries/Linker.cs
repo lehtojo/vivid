@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System;
 
 public static class Linker
 {
-	public const ulong VirtualAddressStart = 0x400000;
-	public const ulong SegmentAlignment = 0x1000;
+	public const ulong VIRTUAL_ADDRESS_START = 0x400000;
+	public const ulong SEGMENT_ALIGNMENT = 0x1000;
 
 	/// <summary>
 	/// Goes through all the symbols in the specified object files and makes their hidden symbols unique by adding their object file indices to their names.
@@ -18,7 +19,7 @@ public static class Linker
 			foreach (var symbol in objects.SelectMany(i => i.Sections).SelectMany(i => i.Symbols.Values))
 			{
 				if (!symbol.Hidden) continue;
-				symbol.Name = iterator.Index.ToString() + '.' + symbol.Name;
+				symbol.Name = iterator.Index.ToString(CultureInfo.InvariantCulture) + '.' + symbol.Name;
 			}
 		}
 	}
@@ -64,24 +65,28 @@ public static class Linker
 	/// <summary>
 	/// Combines the loadable sections of the specified object files
 	/// </summary>
-	public static List<BinarySection> CreateLoadableSections(List<BinarySection> fragments)
+	public static List<BinarySection> CreateLoadableSections(List<BinarySection> fragments, int allocated_fragments)
 	{
 		// Merge all sections that have the same type
 		var result = new List<BinarySection>();
 
-		foreach (var sections in fragments.GroupBy(i => i.Name))
+		// Group all fragments based on their section names
+		var section_fragments = fragments.GroupBy(i => i.Name).ToList();
+
+		for (var i = 0; i < section_fragments.Count; i++)
 		{
-			var type = sections.First().Type;
-			var name = sections.Key;
-			var bytes = sections.Sum(i => i.Data.Length);
+			var section = section_fragments[i];
 
-			if (name == string.Empty || name == ".text" || name == ".data")
-			{
-				// Align the next loadable section
-				bytes = (bytes / (int)SegmentAlignment + 1) * (int)SegmentAlignment;
-			}
+			var flags = section.First().Flags;
+			var type = section.First().Type;
+			var alignment = section.First().Alignment;
+			var name = section.Key;
+			var bytes = section.Sum(i => i.Data.Length); // Compute how many bytes all the fragments inside the current section take
 
-			result.Add(new BinarySection(name, type, Array.Empty<byte>(), bytes));
+			// Expand the section, if it is not the last allocated section, so that the next allocated section is aligned
+			if (i + 1 < allocated_fragments) { bytes = (bytes / (int)SEGMENT_ALIGNMENT + 1) * (int)SEGMENT_ALIGNMENT; }
+
+			result.Add(new BinarySection(name, flags, type, alignment, Array.Empty<byte>(), bytes));
 		}
 
 		return result;
@@ -92,24 +97,24 @@ public static class Linker
 	/// </summary>
 	public static int CreateProgramHeaders(List<BinarySection> sections, List<BinarySection> fragments, List<ElfProgramHeader> headers)
 	{
-		var virtual_address = VirtualAddressStart + SegmentAlignment;
-		var file_position = (int)SegmentAlignment;
+		var virtual_address = VIRTUAL_ADDRESS_START + SEGMENT_ALIGNMENT;
+		var file_position = (int)SEGMENT_ALIGNMENT;
 
 		var header = new ElfProgramHeader();
 		header.Type = ElfSegmentType.LOADABLE;
 		header.Flags = ElfSegmentFlag.READ;
 		header.Offset = 0;
-		header.VirtualAddress = VirtualAddressStart;
-		header.PhysicalAddress = VirtualAddressStart;
+		header.VirtualAddress = VIRTUAL_ADDRESS_START;
+		header.PhysicalAddress = VIRTUAL_ADDRESS_START;
 		header.SegmentFileSize = (ulong)file_position;
 		header.SegmentMemorySize = (ulong)file_position;
-		header.Alignment = SegmentAlignment;
+		header.Alignment = SEGMENT_ALIGNMENT;
 
 		headers.Add(header);
 
 		foreach (var section in sections)
 		{
-			if (section.Name != string.Empty && section.Name != ".text" && section.Name != ".data" && section.Name != ".eh_frame")
+			if (section.Name.Length != 0 && !section.Flags.HasFlag(BinarySectionFlag.ALLOCATE))
 			{
 				section.Offset = file_position;
 
@@ -139,7 +144,7 @@ public static class Linker
 			header.PhysicalAddress = virtual_address;
 			header.SegmentFileSize = (uint)section.Size;
 			header.SegmentMemorySize = (uint)section.Size;
-			header.Alignment = SegmentAlignment;
+			header.Alignment = SEGMENT_ALIGNMENT;
 
 			section.Offset = file_position;
 			section.VirtualAddress = (int)virtual_address;
@@ -180,15 +185,15 @@ public static class Linker
 			{
 				var from = relocation_section.VirtualAddress + relocation.Offset;
 				var to = symbol_section.VirtualAddress + symbol.Offset;
-				EncoderX64.WriteInt32(relocation_section.Data, relocation.Offset, to - from + relocation.Addend);
+				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, to - from + relocation.Addend);
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE64)
 			{
-				EncoderX64.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE32)
 			{
-				EncoderX64.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
 			else
 			{
@@ -197,7 +202,7 @@ public static class Linker
 		}
 	}
 
-	public static byte[] Link(List<BinaryObjectFile> objects)
+	public static byte[] Link(List<BinaryObjectFile> objects, string entry)
 	{
 		// Index all the specified object files
 		for (var i = 0; i < objects.Count; i++) { objects[i].Index = i; }
@@ -218,10 +223,16 @@ public static class Linker
 		var program_headers = new List<ElfProgramHeader>();
 
 		// Ensure sections are ordered so that sections of same type are next to each other
-		var fragments = objects.SelectMany(i => i.Sections).Where(IsLoadableSection).OrderBy(i => i.Type).ToList();
+		var fragments = objects.SelectMany(i => i.Sections).Where(IsLoadableSection).ToList();
+
+		// Order the fragments so that allocated fragments come first
+		var allocated_fragments = fragments.Where(i => i.Type == BinarySectionType.NONE || i.Flags.HasFlag(BinarySectionFlag.ALLOCATE)).ToList();
+		var data_fragments = fragments.Where(i => i.Type != BinarySectionType.NONE && !i.Flags.HasFlag(BinarySectionFlag.ALLOCATE)).ToList();
+
+		fragments = allocated_fragments.Concat(data_fragments).ToList();
 
 		// Create sections, which cover the fragmented sections
-		var sections = CreateLoadableSections(fragments);
+		var sections = CreateLoadableSections(fragments, allocated_fragments.Count);
 		CreateProgramHeaders(sections, fragments, program_headers);
 
 		// Now that sections have their virtual addresses relocations can be computed
@@ -244,10 +255,10 @@ public static class Linker
 		// Form the symbol table
 		ElfFormat.CreateSymbolRelatedSections(sections, symbols);
 
-		var section_headers = ElfFormat.CreateSectionHeaders(sections, symbols, (int)SegmentAlignment);
+		var section_headers = ElfFormat.CreateSectionHeaders(sections, symbols, (int)SEGMENT_ALIGNMENT);
 		var section_bytes = sections.Sum(i => i.Size);
 
-		var bytes = (int)SegmentAlignment + section_bytes + section_headers.Count * ElfSectionHeader.Size;
+		var bytes = (int)SEGMENT_ALIGNMENT + section_bytes + section_headers.Count * ElfSectionHeader.Size;
 
 		// Save the location of the program header table
 		header.ProgramHeaderOffset = ElfFileHeader.Size;
@@ -255,13 +266,13 @@ public static class Linker
 		header.ProgramHeaderSize = ElfProgramHeader.Size;
 
 		// Save the location of the section header table
-		header.SectionHeaderOffset = SegmentAlignment + (ulong)section_bytes;
+		header.SectionHeaderOffset = SEGMENT_ALIGNMENT + (ulong)section_bytes;
 		header.SectionHeaderTableEntryCount = (short)section_headers.Count;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 		header.SectionNameEntryIndex = (short)(section_headers.Count - 1);
 
 		// Compute the entry point location
-		var entry_point_symbol = symbols["_V4initv_rx"];
+		var entry_point_symbol = symbols[entry];
 		header.Entry = (ulong)(entry_point_symbol.Section!.VirtualAddress + entry_point_symbol.Offset);
 
 		var result = new byte[bytes];

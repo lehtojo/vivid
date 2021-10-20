@@ -94,6 +94,11 @@ public class DebugFrameEncoderModule : DataEncoderModule
 	public new BinarySection Export()
 	{
 		Name = '.' + SECTION_NAME;
-		return base.Export();
+
+		var section = base.Export();
+		section.Flags = BinarySectionFlag.ALLOCATE;
+		section.Alignment = 8;
+
+		return section;
 	}
 }

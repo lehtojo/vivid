@@ -1035,17 +1035,17 @@ public static class Assembler
 
 			result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
 
-			var output = EncoderX64.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>());
+			var output = InstructionEncoder.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>());
 			var debug_frames = output.Frames.Export();
 			var debug_lines = output.Lines.Export();
 			var binary_text_section = output.Section;
 			var binary_data_section = DataSectionModules[file].Export();
 
-			var object_file = ElfFormat.CreateObjectX64(new List<BinarySection> { binary_text_section, debug_frames, binary_data_section, debug_lines });
+			var object_file = ElfFormat.Create(new List<BinarySection> { binary_text_section, debug_frames, binary_data_section, debug_lines });
 			object_files.Add(object_file);
 		}
 
-		var linked_binary = Linker.Link(object_files);
+		var linked_binary = Linker.Link(object_files, "_start");
 		System.IO.File.WriteAllBytes("v.test", linked_binary);
 
 		//ElfFormat.ImportObjectX64("libv_x64.o");

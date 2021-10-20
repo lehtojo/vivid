@@ -84,6 +84,7 @@ public enum ElfSectionType : int
 	RELOCATION_TABLE = 0x04,
 }
 
+[Flags]
 public enum ElfSectionFlag : int
 {
 	NONE = 0x00,
@@ -195,27 +196,12 @@ public class ElfRelocationEntry
 
 public static class ElfFormat
 {
-	public const string SECTION_HEADER_STRING_TABLE_SECTION = ".shstrtab";
-	public const string STRING_TABLE_SECTION = ".strtab";
-	public const string SYMBOL_TABLE_SECTION = ".symtab";
-	public const string TEXT_RELOCATION_TABLE_SECTION = ".rela.text";
-	public const string DATA_RELOCATION_TABLE_SECTION = ".rela.data";
 	public const string TEXT_SECTION = ".text";
 	public const string DATA_SECTION = ".data";
+	public const string SYMBOL_TABLE_SECTION = ".symtab";
+	public const string STRING_TABLE_SECTION = ".strtab";
+	public const string SECTION_HEADER_STRING_TABLE_SECTION = ".shstrtab";
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".rela";
-
-	public static string GetSectionDefaultName(BinarySectionType type)
-	{
-		return type switch
-		{
-			BinarySectionType.DATA => DATA_SECTION,
-			BinarySectionType.RELOCATION_TABLE => TEXT_RELOCATION_TABLE_SECTION,
-			BinarySectionType.STRING_TABLE => STRING_TABLE_SECTION,
-			BinarySectionType.SYMBOL_TABLE => SYMBOL_TABLE_SECTION,
-			BinarySectionType.TEXT => TEXT_SECTION,
-			_ => string.Empty
-		};
-	}
 
 	public static int Write<T>(byte[] destination, int offset, T source)
 	{
@@ -251,15 +237,15 @@ public static class ElfFormat
 
 	public static ElfSectionFlag GetSectionFlags(BinarySection section)
 	{
-		if (section.Type == BinarySectionType.RELOCATION_TABLE) return ElfSectionFlag.INFO_LINK;
+		var result = ElfSectionFlag.NONE;
 
-		return section.Name switch
-		{
-			DATA_SECTION => ElfSectionFlag.ALLOCATE | ElfSectionFlag.WRITE,
-			TEXT_SECTION => ElfSectionFlag.ALLOCATE | ElfSectionFlag.EXECUTABLE,
-			".eh_frame" => ElfSectionFlag.ALLOCATE,
-			_ => ElfSectionFlag.NONE
-		};
+		if (section.Type == BinarySectionType.RELOCATION_TABLE) { result |= ElfSectionFlag.INFO_LINK; }
+
+		if (section.Flags.HasFlag(BinarySectionFlag.WRITE)) { result |= ElfSectionFlag.WRITE; }
+		if (section.Flags.HasFlag(BinarySectionFlag.EXECUTE)) { result |= ElfSectionFlag.EXECUTABLE; }
+		if (section.Flags.HasFlag(BinarySectionFlag.ALLOCATE)) { result |= ElfSectionFlag.ALLOCATE; }
+
+		return result;
 	}
 
 	public static List<ElfSectionHeader> CreateSectionHeaders(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols, int file_position = ElfFileHeader.Size)
@@ -275,11 +261,7 @@ public static class ElfFormat
 			header.Flags = (ulong)GetSectionFlags(section);
 			header.VirtualAddress = (uint)section.VirtualAddress;
 			header.SectionFileSize = (ulong)section.Size;
-
-			if (section.Name == ".eh_frame")
-			{
-				header.Alignment = 8;
-			}
+			header.Alignment = (ulong)section.Alignment;
 
 			if (section.Type == BinarySectionType.RELOCATION_TABLE)
 			{
@@ -349,6 +331,20 @@ public static class ElfFormat
 			ElfSymbolType.ABSOLUTE32 => BinaryRelocationType.ABSOLUTE32,
 			_ => BinaryRelocationType.ABSOLUTE32
 		};
+	}
+
+	/// <summary>
+	/// Converts the specified ELF section flags to shared section flags
+	/// </summary>
+	public static BinarySectionFlag GetSharedSectionFlags(ElfSectionFlag flags)
+	{
+		var result = (BinarySectionFlag)0;
+
+		if (flags.HasFlag(ElfSectionFlag.WRITE)) { result |= BinarySectionFlag.WRITE; }
+		if (flags.HasFlag(ElfSectionFlag.EXECUTABLE)) { result |= BinarySectionFlag.EXECUTE; }
+		if (flags.HasFlag(ElfSectionFlag.ALLOCATE)) { result |= BinarySectionFlag.ALLOCATE; }
+
+		return result;
 	}
 
 	/// <summary>
@@ -492,17 +488,20 @@ public static class ElfFormat
 
 				switch (offset.Bytes)
 				{
-					case 8: { EncoderX64.WriteInt64(section.Data, offset.Position, value); break; }
-					case 4: { EncoderX64.WriteInt32(section.Data, offset.Position, value); break; }
-					case 2: { EncoderX64.WriteInt16(section.Data, offset.Position, value); break; }
-					case 1: { EncoderX64.Write(section.Data, offset.Position, value); break; }
+					case 8: { InstructionEncoder.WriteInt64(section.Data, offset.Position, value); break; }
+					case 4: { InstructionEncoder.WriteInt32(section.Data, offset.Position, value); break; }
+					case 2: { InstructionEncoder.WriteInt16(section.Data, offset.Position, value); break; }
+					case 1: { InstructionEncoder.Write(section.Data, offset.Position, value); break; }
 					default: throw new ApplicationException("Unsupported offset size");
 				}
 			}
 		}
 	}
 
-	public static BinaryObjectFile CreateObjectX64(List<BinarySection> sections)
+	/// <summary>
+	/// Creates an object file from the specified sections
+	/// </summary>
+	public static BinaryObjectFile Create(List<BinarySection> sections)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
@@ -525,7 +524,10 @@ public static class ElfFormat
 		return new BinaryObjectFile(sections);
 	}
 
-	public static byte[] BuildObjectX64(List<BinarySection> sections)
+	/// <summary>
+	/// Creates an object file from the specified sections and converts it to binary format
+	/// </summary>
+	public static byte[] Build(List<BinarySection> sections)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
@@ -689,7 +691,7 @@ public static class ElfFormat
 	/// <summary>
 	/// Load the specified object file and constructs a object structure that represents it
 	/// </summary>
-	public static BinaryObjectFile ImportObjectX64(string path)
+	public static BinaryObjectFile Import(string path)
 	{
 		// Load the file into raw memory
 		var source = File.ReadAllBytes(path);
@@ -742,14 +744,17 @@ public static class ElfFormat
 			{
 				TEXT_SECTION => BinarySectionType.TEXT,
 				DATA_SECTION => BinarySectionType.DATA,
-				TEXT_RELOCATION_TABLE_SECTION => BinarySectionType.RELOCATION_TABLE,
-				DATA_RELOCATION_TABLE_SECTION => BinarySectionType.RELOCATION_TABLE,
 				SYMBOL_TABLE_SECTION => BinarySectionType.SYMBOL_TABLE,
 				STRING_TABLE_SECTION => BinarySectionType.STRING_TABLE,
 				_ => BinarySectionType.NONE
 			};
 
+			// Detect relocation table sections
+			if (section_name.StartsWith(RELOCATION_TABLE_SECTION_PREFIX)) { section_type = BinarySectionType.RELOCATION_TABLE; }
+
 			var section = new BinarySection(section_name, section_type, section_intermediate.Value);
+			section.Flags = GetSharedSectionFlags((ElfSectionFlag)section_intermediate.Key.Flags);
+			section.Alignment = (int)section_intermediate.Key.Alignment;
 			section.Offset = (int)section_intermediate.Key.Offset;
 			section.Size = section_intermediate.Value.Length;
 

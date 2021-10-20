@@ -298,10 +298,8 @@ public struct MemoryAddressDescriptor
 	}
 }
 
-public static class EncoderX64
+public static class InstructionEncoder
 {
-	#warning Maybe add debug points here (lines and characters) to a list and build debug info after encoding?
-
 	public const int MAX_INSTRUCTION_SIZE = 15;
 
 	public const byte OPERAND_SIZE_OVERRIDE = 102; // 0x66
@@ -1419,6 +1417,7 @@ public static class EncoderX64
 		var relocations = new List<BinaryRelocation>();
 
 		var section = new BinarySection(ElfFormat.TEXT_SECTION, BinarySectionType.TEXT, binary);
+		section.Flags = BinarySectionFlag.EXECUTE | BinarySectionFlag.ALLOCATE;
 		section.Symbols = symbols;
 		section.Relocations = relocations;
 

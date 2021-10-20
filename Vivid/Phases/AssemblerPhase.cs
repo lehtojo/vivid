@@ -33,7 +33,7 @@ public class AssemblerPhase : Phase
 			var parser = new AssemblyParser();
 			parser.Parse(assembly);
 
-			var text_section_output = EncoderX64.Encode(parser.Instructions);
+			var text_section_output = InstructionEncoder.Encode(parser.Instructions);
 			var text_section = text_section_output.Section;
 			var data_sections = parser.Sections.Values.Select(i => i.Export()).ToList();
 			var debug_frames_section = text_section_output.Frames.Export();
@@ -46,14 +46,14 @@ public class AssemblerPhase : Phase
 
 			if (link)
 			{
-				var object_file = ElfFormat.CreateObjectX64(sections);
-				var result = Linker.Link(new List<BinaryObjectFile> { object_file });
+				var object_file = ElfFormat.Create(sections);
+				var result = Linker.Link(new List<BinaryObjectFile> { object_file }, "_V4initv_rx");
 
 				File.WriteAllBytes(output_name, result);
 			}
 			else
 			{
-				var object_file = ElfFormat.BuildObjectX64(sections);
+				var object_file = ElfFormat.Build(sections);
 				File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);
 			}
 		}

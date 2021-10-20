@@ -4,10 +4,11 @@ using System.Text;
 
 public class DataEncoderModule
 {
-	public const int DefaultOutputSize = 100;
+	public const string DATA_SECTION_NAME = ".data";
+	public const int DEFAULT_OUTPUT_SIZE = 100;
 	
-	public string Name { get; set; } = ElfFormat.DATA_SECTION;
-	public byte[] Output = new byte[DefaultOutputSize];
+	public string Name { get; set; } = DATA_SECTION_NAME;
+	public byte[] Output = new byte[DEFAULT_OUTPUT_SIZE];
 	public int Position { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
 	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
@@ -261,6 +262,9 @@ public class DataEncoderModule
 		section.Symbols = Symbols;
 		section.Offsets = Offsets;
 
+		// If this section represents the primary data section, add the default flags
+		if (Name == DATA_SECTION_NAME) { section.Flags = BinarySectionFlag.WRITE | BinarySectionFlag.ALLOCATE; }
+
 		foreach (var symbol in Symbols.Values) { symbol.Section = section; }
 		foreach (var relocation in Relocations) { relocation.Section = section; }
 
@@ -269,7 +273,7 @@ public class DataEncoderModule
 
 	public void Reset()
 	{
-		Array.Resize(ref Output, DefaultOutputSize);
+		Array.Resize(ref Output, DEFAULT_OUTPUT_SIZE);
 		Position = 0;
 		Symbols.Clear();
 		Relocations.Clear();
