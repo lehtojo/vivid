@@ -1,32 +1,21 @@
 .section text
-debug_file_1_start:
-.debug_file '/home/lehtojo/vivid/Vivid/Examples/main.v'
+debug_file_2_start:
+.debug_file '/home/lehtojo/vivid/Vivid/Examples/goo.v'
 
-.export _V4initv_rx
-.debug_start _V4initv_rx
+.export _V3goov_rx
+.debug_start _V3goov_rx
 .loc 1 1 1
-sub rsp, 16
-.debug_frame_offset 24
-.loc 1 2 4
-mov qword [rsp+8], 1
-.loc 1 3 4
-call _V3goov_rx
-mov qword [rsp], rax
-.loc 1 4 2
-mov rax, qword [rsp+8]
-add rax, qword [rsp]
-.loc 1 5 2
-add rsp, 16
-
-xor rax, rax
-mov rax, 60
-syscall
-
-.loc 1 5 2
-_V4initv_rx_end:
+sub rsp, 8
+.debug_frame_offset 16
+.loc 1 2 1
+mov rax, 42
+.loc 1 3 1
+add rsp, 8
+ret
+_V3goov_rx_end:
 .debug_end
 
-debug_file_1_end:
+debug_file_2_end:
 
 .section debug_abbrev
 .byte 1
@@ -202,16 +191,16 @@ debug_info_version:
 .characters 'Vivid version 1.0'
 .byte 0
 .word 30583
-.characters 'main.v'
+.characters 'goo.v'
 .byte 0
 .dword debug_line
 .characters '/home/lehtojo/vivid/Vivid'
 .byte 0
-.qword debug_file_1_start
-.dword debug_file_1_end - debug_file_1_start
+.qword debug_file_2_start
+.dword debug_file_2_end - debug_file_2_start
 .byte 12
-.qword _V4initv_rx
-.dword _V4initv_rx_end - _V4initv_rx
+.qword _V3goov_rx
+.dword _V3goov_rx_end - _V3goov_rx
 .byte 1
 .byte 87
 .characters 'init(): large'

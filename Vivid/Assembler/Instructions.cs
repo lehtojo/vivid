@@ -203,7 +203,8 @@ public static class Instructions
 		public const int _FADDP = 7;
 		public const int _FCOS = 8;
 		public const int _FSIN = 9;
-		public const int _MAX_PARAMETERLESS_INSTRUCTIONS = 10;
+		public const int _NOP = 10;
+		public const int _MAX_PARAMETERLESS_INSTRUCTIONS = 11;
 
 		// Single parameter instructions
 		public const int _PUSH = 0;
@@ -459,6 +460,11 @@ public static class Instructions
 			ParameterlessEncodings[_FSIN] = new List<InstructionEncoding>()
 			{
 				new InstructionEncoding(0xFED9, EncodingRoute.NONE, false),
+			};
+
+			ParameterlessEncodings[_NOP] = new List<InstructionEncoding>()
+			{
+				new InstructionEncoding(0x90, EncodingRoute.NONE, false),
 			};
 
 			SingleParameterEncodings[_PUSH] = new List<InstructionEncoding>()

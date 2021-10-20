@@ -4,14 +4,14 @@ public class Size
 {
 	public static readonly Size NONE = new("?", "?", 0);
 	public static readonly Size BYTE = new("byte", ".byte", 1);
-	public static readonly Size WORD = new("word", ".short", 2);
-	public static readonly Size DWORD = new("dword", ".long", 4);
-	public static readonly Size QWORD = new("qword", ".quad", 8);
-	public static readonly Size XMMWORD = new("xmmword", ".xword", 16);
-	public static readonly Size YMMWORD = new("ymmword", ".yword", 32);
+	public static readonly Size WORD = new("word", ".word", 2);
+	public static readonly Size DWORD = new("dword", ".dword", 4);
+	public static readonly Size QWORD = new("qword", ".qword", 8);
+	public static readonly Size XWORD = new("xword", ".xword", 16);
+	public static readonly Size YWORD = new("yword", ".yword", 32);
 
-	public string Identifier { get; private set; }
-	public string Allocator { get; private set; }
+	public string Identifier { get; set; }
+	public string Allocator { get; set; }
 	public int Bytes { get; private set; }
 	public int Bits => Bytes * 8;
 
@@ -38,8 +38,8 @@ public class Size
 			2 => WORD,
 			4 => DWORD,
 			8 => QWORD,
-			16 => XMMWORD,
-			32 => YMMWORD,
+			16 => XWORD,
+			32 => YWORD,
 			_ => throw new ApplicationException("Could not resolve size"),
 		};
 	}
@@ -52,8 +52,8 @@ public class Size
 			2 => WORD,
 			4 => DWORD,
 			8 => QWORD,
-			16 => XMMWORD,
-			32 => YMMWORD,
+			16 => XWORD,
+			32 => YWORD,
 			_ => null,
 		};
 	}
@@ -66,8 +66,8 @@ public class Size
 			Format.INT16 or Format.UINT16 => WORD,
 			Format.INT32 or Format.UINT32 => DWORD,
 			Format.INT64 or Format.UINT64 => QWORD,
-			Format.INT128 or Format.UINT128 => XMMWORD,
-			Format.INT256 or Format.UINT256 => YMMWORD,
+			Format.INT128 or Format.UINT128 => XWORD,
+			Format.INT256 or Format.UINT256 => YWORD,
 			Format.DECIMAL => Assembler.Size,
 			_ => throw new ArgumentException("Could not convert format to size"),
 		};

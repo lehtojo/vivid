@@ -37,7 +37,6 @@ public class Handle
 {
 	public HandleType Type { get; protected set; }
 	public HandleInstanceType Instance { get; protected set; }
-	public bool IsPrecise { get; set; } = false;
 
 	public Format Format { get; set; } = Assembler.Format;
 	public Size Size => Size.FromFormat(Format);
@@ -196,8 +195,8 @@ public class DataSectionHandle : Handle
 		// If a modifier is attached, the offset is taken into account elsewhere
 		if (Modifier != DataSectionModifier.NONE)
 		{
-			if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return IsPrecise ? $"{Size} ptr [rip+{Identifier + X64_GLOBAL_OFFSET_TABLE}]" : $"[rip+{Identifier + X64_GLOBAL_OFFSET_TABLE}]";
-			if (Modifier == DataSectionModifier.PROCEDURE_LINKAGE_TABLE) return IsPrecise ? $"{Size} ptr [rip+{Identifier + X64_PROCEDURE_LINKAGE_TABLE}]" : $"[rip+{Identifier + X64_PROCEDURE_LINKAGE_TABLE}]";
+			if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier + X64_GLOBAL_OFFSET_TABLE}]";
+			if (Modifier == DataSectionModifier.PROCEDURE_LINKAGE_TABLE) return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier + X64_PROCEDURE_LINKAGE_TABLE}]";
 			return string.Empty;
 		}
 
@@ -207,10 +206,10 @@ public class DataSectionHandle : Handle
 			var offset = Offset.ToString(CultureInfo.InvariantCulture);
 			if (Offset > 0) { offset = '+' + offset; }
 
-			return IsPrecise ? $"{Size} ptr [rip+{Identifier}{offset}]" : $"[rip+{Identifier}{offset}]";
+			return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}{offset}]";
 		}
 
-		return IsPrecise ? $"{Size} ptr [rip+{Identifier}]" : $"[rip+{Identifier}]";
+		return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}]";
 	}
 
 	public override Handle Finalize()
@@ -399,10 +398,7 @@ public class MemoryHandle : Handle
 		if (start == null)
 		{
 			if (Assembler.IsArm64) return $"[xzr, #{offset.ToString(false)}]";
-			else {
-				if (IsPrecise) { return $"{Size} ptr [{offset.ToString(false)}]"; }
-				else { return $"[{offset.ToString(false)}]"; }
-			}
+			else return $"{Size}{Assembler.MemoryAddressExtension}[{offset.ToString(false)}]";
 		}
 		else
 		{
@@ -413,8 +409,7 @@ public class MemoryHandle : Handle
 				if (offset > 0) { constant = $"+{offset}"; }
 				else if (offset < 0) { constant = $"-{-offset}"; }
 
-				if (IsPrecise) { return $"{Size} ptr [{start}{constant}]"; }
-				else { return $"[{start}{constant}]"; }
+				return $"{Size}{Assembler.MemoryAddressExtension}[{start}{constant}]";
 			}
 		}
 	}
@@ -618,10 +613,7 @@ public class ComplexMemoryHandle : Handle
 			result += offset.ToString(false);
 		}
 
-		// Add the size specifier if needed
-		if (IsPrecise) return $"{Size} ptr {result}]";
-
-		return result;
+		return $"{Size}{Assembler.MemoryAddressExtension}{result}]";
 	}
 
 	public string ToStringArm64()

@@ -405,7 +405,7 @@ public static class InstructionAnalysis
 			// Example:
 			// mov rdx, rax <- Inlining would break things because the next instruction writes to the register rcx
 			// add rcx, 1
-			// mov qword ptr [rcx], rdx
+			// mov qword [rcx], rdx
 			if (dependencies.Any(i => Writes(instruction, new RegisterHandle(i))))
 			{
 				break;
@@ -1194,7 +1194,7 @@ public static class InstructionAnalysis
 					if (load_register == null) continue;
 
 					// Arm does not have 256-bit registers
-					if (Assembler.IsArm64 && inline_source_size == Size.YMMWORD.Bytes) continue;
+					if (Assembler.IsArm64 && inline_source_size == Size.YWORD.Bytes) continue;
 
 					load.Destination.Value = new RegisterHandle(load_register) { Format = load_format };
 					load.Destination.Size = Size.FromFormat(load_format);

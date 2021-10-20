@@ -358,6 +358,39 @@ public class ConfigurationPhase : Phase
 				return Status.OK;
 			}
 
+			case "-use-legacy-assembly":
+			{
+				Size.WORD.Allocator = ".short";
+				Size.DWORD.Allocator = ".long";
+				Size.QWORD.Allocator = ".quad";
+				Size.XWORD.Identifier = "xmmword";
+				Size.YWORD.Identifier = "ymmword";
+
+				Assembler.IsLegacyAssemblyEnabled = true;
+				Assembler.SectionDirective = ".section";
+				Assembler.SectionRelativeDirective = ".secrel";
+				Assembler.ExportDirective = ".global";
+				Assembler.TextSectionIdentifier = ".text";
+				Assembler.DataSectionIdentifier = ".data";
+				Assembler.DebugFileDirective = ".file";
+				Assembler.CharactersAllocator = ".ascii";
+				Assembler.ByteAlignmentDirective = ".balign";
+				Assembler.PowerOfTwoAlignment = ".align";
+				Assembler.ZeroAllocator = ".zero";
+				Assembler.MemoryAddressExtension = " ptr ";
+				Assembler.RelativeSymbolSpecifier = "rip+";
+				Assembler.DebugFunctionStartDirective = ".cfi_startproc";
+				Assembler.DebugFrameOffsetDirective = ".cfi_def_cfa_offset";
+				Assembler.DebugFunctionEndDirective = ".cfi_endproc";
+
+				Debug.DebugAbbrevationTable = ".debug_abbrev";
+				Debug.DebugInformationTable = ".debug_info";
+				Debug.DebugStringTable = ".debug_str";
+				Debug.DebugLineTable = ".debug_line";
+				Debug.DebugLineTableStart = ".debug_line_start";
+				return Status.OK;
+			}
+
 			default:
 			{
 				return Status.Error($"Unknown option '{option}'");

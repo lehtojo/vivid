@@ -11,7 +11,7 @@ public class AssemblyParser
 	public const string DWORD_SPECIFIER = "dword";
 	public const string QWORD_SPECIFIER = "qword";
 	public const string XWORD_SPECIFIER = "xword";
-	public const string OWORD_SPECIFIER = "oword";
+	public const string OWORD_SPECIFIER = "yword";
 	public const string SECTION_OFFSET_SPECIFIER = "section_offset";
 
 	public const string EXPORT_DIRECTIVE = "export";
@@ -19,6 +19,7 @@ public class AssemblyParser
 	public const string STRING_DIRECTIVE = "string";
 	public const string CHARACTERS_DIRECTIVE = "characters";
 	public const string LINE_DIRECTIVE = "loc";
+	public const string DEBUG_FILE_DIRECTIVE = "debug_file";
 	public const string DEBUG_START_DIRECTIVE = "debug_start";
 	public const string DEBUG_FRAME_OFFSET_DIRECTIVE = "debug_frame_offset";
 	public const string DEBUG_END_DIRECTIVE = "debug_end";
@@ -27,7 +28,9 @@ public class AssemblyParser
 	public Dictionary<string, RegisterHandle> Registers { get; } = new Dictionary<string, RegisterHandle>();
 	public List<Instruction> Instructions { get; } = new List<Instruction>();
 	public Dictionary<string, DataEncoderModule> Sections { get; } = new Dictionary<string, DataEncoderModule>();
+	public HashSet<string> Exports { get; } = new HashSet<string>();
 	public DataEncoderModule? Data { get; set; }
+	public string? DebugFile { get; set; } = null;
 	public string Section { get; set; } = TEXT_SECTION;
 
 	public AssemblyParser()
@@ -173,7 +176,18 @@ public class AssemblyParser
 		// Pattern: .export $symbol
 		if (tokens[1].To<IdentifierToken>().Value != EXPORT_DIRECTIVE) return false;
 
-		Instructions.Add(new LabelInstruction(Unit, new Label(tokens[2].To<IdentifierToken>().Value)));
+		var name = tokens[2].To<IdentifierToken>().Value;
+
+		if (Data == null)
+		{
+			Instructions.Add(new LabelInstruction(Unit, new Label(name)));
+		}
+		else
+		{
+			Data.CreateLocalSymbol(name, Data.Position);
+		}
+
+		Exports.Add(name);
 		return true;
 	}
 
@@ -196,6 +210,15 @@ public class AssemblyParser
 			var character = (long)tokens[4].To<NumberToken>().Value;
 
 			Instructions.Add(new AppendPositionInstruction(Unit, new Position(null, (int)line, (int)character)));
+			return true;
+		}
+
+		if (directive == DEBUG_FILE_DIRECTIVE)
+		{
+			// Pattern: .debug_file $file
+			if (tokens.Count < 3 || tokens[2].Type != TokenType.STRING) return false;
+
+			DebugFile = tokens[2].To<StringToken>().Text;
 			return true;
 		}
 
@@ -620,6 +643,7 @@ public class AssemblyParser
 				if (ParseInstruction(tokens)) continue;
 			}
 
+			#warning Enable in the future
 			//throw Errors.Get(tokens.First().Position, "Can not understand");
 		}
 

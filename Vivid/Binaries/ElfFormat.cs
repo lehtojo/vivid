@@ -159,6 +159,7 @@ public class ElfSymbolEntry
 		Other = (byte)(hidden ? 2 : 0);
 	}
 
+	public bool IsExported => (ElfSymbolBinding)(Info >> 4) == ElfSymbolBinding.GLOBAL && SectionIndex != 0;
 	public bool IsHidden => Other == 2;
 }
 
@@ -499,15 +500,35 @@ public static class ElfFormat
 	}
 
 	/// <summary>
+	/// Exports the specified symbols
+	/// </summary>
+	public static void ApplyExports(Dictionary<string, BinarySymbol> symbols, HashSet<string> exports)
+	{
+		foreach (var export in exports)
+		{
+			if (symbols.TryGetValue(export, out var symbol))
+			{
+				symbol.Export = true;
+				continue;
+			}
+
+			throw new ApplicationException($"Exporting of symbol {export} is requested, but it does not exist");
+		}
+	}
+
+	/// <summary>
 	/// Creates an object file from the specified sections
 	/// </summary>
-	public static BinaryObjectFile Create(List<BinarySection> sections)
+	public static BinaryObjectFile Create(List<BinarySection> sections, HashSet<string> exports)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
 		var symbols = GetAllSymbolsFromSections(sections);
+
+		// Export symbols
+		ApplyExports(symbols, exports);
 
 		// Update all the relocations before adding them to binary sections
 		UpdateRelocations(sections, symbols);
@@ -527,13 +548,16 @@ public static class ElfFormat
 	/// <summary>
 	/// Creates an object file from the specified sections and converts it to binary format
 	/// </summary>
-	public static byte[] Build(List<BinarySection> sections)
+	public static byte[] Build(List<BinarySection> sections, HashSet<string> exports)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
 		var symbols = GetAllSymbolsFromSections(sections);
+
+		// Export symbols
+		ApplyExports(symbols, exports);
 
 		// Update all the relocations before adding them to binary sections
 		UpdateRelocations(sections, symbols);
@@ -635,6 +659,7 @@ public static class ElfFormat
 			if (string.IsNullOrEmpty(symbol_name)) continue;
 
 			var symbol = new BinarySymbol(symbol_name, (int)symbol_entry.Value, symbol_entry.SectionIndex == 0);
+			symbol.Export = symbol_entry.IsExported;
 			symbol.Hidden = symbol_entry.IsHidden;
 			symbol.Section = section;
 

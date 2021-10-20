@@ -90,15 +90,6 @@ public class InstructionParameter
 		return Types.Take(index).ToArray();
 	}
 
-	/// <summary>
-	/// Controls whether the size of the handle should be visible
-	/// </summary>
-	public void SetPrecise(bool visible)
-	{
-		if (Value == null) return;
-		Value.IsPrecise = visible;
-	}
-
 	public bool IsValid()
 	{
 		if (!Types.Contains(Result.Value.Type))
@@ -475,12 +466,6 @@ public class Instruction
 		}
 
 		var result = new StringBuilder(Operation);
-
-		// Each parameter must be configured to display their sizes
-		foreach (var parameter in Parameters)
-		{
-			parameter.SetPrecise(true);
-		}
 
 		foreach (var parameter in Parameters)
 		{

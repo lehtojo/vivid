@@ -81,9 +81,6 @@ public struct VariableLocation
 
 public class Unit
 {
-	public const string DEBUG_FUNCTION_START = ".cfi_startproc";
-	public const string DEBUG_FUNCTION_END = ".cfi_endproc";
-
 	public FunctionImplementation Function { get; private set; }
 
 	public List<Register> Registers { get; }
@@ -195,22 +192,22 @@ public class Unit
 			new Register(global::Instructions.X64.RBP, Size.QWORD, new [] { "rbp", "ebp", "bp", "bpl" }, base_pointer_flags),
 			new Register(global::Instructions.X64.RSP, Size.QWORD, new [] { "rsp", "esp", "sp", "spl" }, RegisterFlag.RESERVED | RegisterFlag.STACK_POINTER),
 
-			new Register(global::Instructions.X64.YMM0, Size.YMMWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
-			new Register(global::Instructions.X64.YMM1, Size.YMMWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM2, Size.YMMWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM3, Size.YMMWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM4, Size.YMMWORD, new [] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM5, Size.YMMWORD, new [] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM6, Size.YMMWORD, new [] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM7, Size.YMMWORD, new [] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM8, Size.YMMWORD, new [] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM9, Size.YMMWORD, new [] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM10, Size.YMMWORD, new [] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM11, Size.YMMWORD, new [] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM12, Size.YMMWORD, new [] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM13, Size.YMMWORD, new [] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM14, Size.YMMWORD, new [] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
-			new Register(global::Instructions.X64.YMM15, Size.YMMWORD, new [] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE)
+			new Register(global::Instructions.X64.YMM0, Size.YWORD, new [] { "ymm0", "xmm0", "xmm0", "xmm0", "xmm0" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE | RegisterFlag.DECIMAL_RETURN),
+			new Register(global::Instructions.X64.YMM1, Size.YWORD, new [] { "ymm1", "xmm1", "xmm1", "xmm1", "xmm1" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM2, Size.YWORD, new [] { "ymm2", "xmm2", "xmm2", "xmm2", "xmm2" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM3, Size.YWORD, new [] { "ymm3", "xmm3", "xmm3", "xmm3", "xmm3" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM4, Size.YWORD, new [] { "ymm4", "xmm4", "xmm4", "xmm4", "xmm4" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM5, Size.YWORD, new [] { "ymm5", "xmm5", "xmm5", "xmm5", "xmm5" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM6, Size.YWORD, new [] { "ymm6", "xmm6", "xmm6", "xmm6", "xmm6" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM7, Size.YWORD, new [] { "ymm7", "xmm7", "xmm7", "xmm7", "xmm7" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM8, Size.YWORD, new [] { "ymm8", "xmm8", "xmm8", "xmm8", "xmm8" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM9, Size.YWORD, new [] { "ymm9", "xmm9", "xmm9", "xmm9", "xmm9" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM10, Size.YWORD, new [] { "ymm10", "xmm10", "xmm10", "xmm10", "xmm10" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM11, Size.YWORD, new [] { "ymm11", "xmm11", "xmm11", "xmm11", "xmm11" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM12, Size.YWORD, new [] { "ymm12", "xmm12", "xmm12", "xmm12", "xmm12" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM13, Size.YWORD, new [] { "ymm13", "xmm13", "xmm13", "xmm13", "xmm13" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM14, Size.YWORD, new [] { "ymm14", "xmm14", "xmm14", "xmm14", "xmm14" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE),
+			new Register(global::Instructions.X64.YMM15, Size.YWORD, new [] { "ymm15", "xmm15", "xmm15", "xmm15", "xmm15" }, RegisterFlag.MEDIA | RegisterFlag.VOLATILE)
 		});
 
 		if (Assembler.Size == Size.QWORD)
@@ -250,7 +247,7 @@ public class Unit
 
 		for (var i = 0; i < 29; i++)
 		{
-			var register = new Register(Size.XMMWORD, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
+			var register = new Register(Size.XWORD, new[] { $"d{i}", $"d{i}", $"d{i}", $"d{i}", $"d{i}" }, RegisterFlag.MEDIA);
 
 			if (i < 19)
 			{
@@ -815,10 +812,7 @@ public class Unit
 
 	public string Export()
 	{
-		if (Assembler.IsDebuggingEnabled)
-		{
-			Builder.AppendLine(DEBUG_FUNCTION_END);
-		}
+		if (Assembler.IsDebuggingEnabled) Builder.AppendLine(Assembler.DebugFunctionEndDirective);
 
 		return Builder.ToString();
 	}

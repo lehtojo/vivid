@@ -12,13 +12,13 @@ public static class Linker
 	/// Goes through all the symbols in the specified object files and makes their hidden symbols unique by adding their object file indices to their names.
 	/// This way, if multiple object files have hidden symbols with same names, their names are made unique using the object file indices.
 	/// </summary>
-	private static void MakeHiddenSymbolsUnique(List<BinaryObjectFile> objects)
+	private static void MakeLocalSymbolsUnique(List<BinaryObjectFile> objects)
 	{
 		foreach (var iterator in objects)
 		{
-			foreach (var symbol in objects.SelectMany(i => i.Sections).SelectMany(i => i.Symbols.Values))
+			foreach (var symbol in iterator.Sections.SelectMany(i => i.Symbols.Values))
 			{
-				if (!symbol.Hidden) continue;
+				if (symbol.Export || symbol.External) continue;
 				symbol.Name = iterator.Index.ToString(CultureInfo.InvariantCulture) + '.' + symbol.Name;
 			}
 		}
@@ -65,13 +65,14 @@ public static class Linker
 	/// <summary>
 	/// Combines the loadable sections of the specified object files
 	/// </summary>
-	public static List<BinarySection> CreateLoadableSections(List<BinarySection> fragments, int allocated_fragments)
+	public static List<BinarySection> CreateLoadableSections(List<BinarySection> fragments)
 	{
 		// Merge all sections that have the same type
 		var result = new List<BinarySection>();
 
 		// Group all fragments based on their section names
 		var section_fragments = fragments.GroupBy(i => i.Name).ToList();
+		var allocated_fragments = section_fragments.Count(i => i.First().Type == BinarySectionType.NONE || i.First().Flags.HasFlag(BinarySectionFlag.ALLOCATE));
 
 		for (var i = 0; i < section_fragments.Count; i++)
 		{
@@ -116,16 +117,25 @@ public static class Linker
 		{
 			if (section.Name.Length != 0 && !section.Flags.HasFlag(BinarySectionFlag.ALLOCATE))
 			{
+				var previous_virtual_address = virtual_address;
+
+				virtual_address = 0;
+
 				section.Offset = file_position;
+				section.VirtualAddress = (int)virtual_address;
 
 				// Decide the positions of inner fragments of the current section
 				foreach (var fragment in fragments.FindAll(i => i.Name == section.Name))
 				{
 					fragment.Offset = file_position;
+					fragment.VirtualAddress = (int)virtual_address;
+
 					file_position += fragment.Data.Length;
+					virtual_address += (uint)fragment.Data.Length;
 				}
 
 				file_position = section.Offset + section.Size;
+				virtual_address = previous_virtual_address;
 				continue;
 			}
 
@@ -208,7 +218,7 @@ public static class Linker
 		for (var i = 0; i < objects.Count; i++) { objects[i].Index = i; }
 
 		// Make all hidden symbols unique by using their object file indices
-		MakeHiddenSymbolsUnique(objects);
+		MakeLocalSymbolsUnique(objects);
 
 		var header = new ElfFileHeader();
 		header.Type = ElfObjectFileType.EXECUTABLE;
@@ -232,7 +242,7 @@ public static class Linker
 		fragments = allocated_fragments.Concat(data_fragments).ToList();
 
 		// Create sections, which cover the fragmented sections
-		var sections = CreateLoadableSections(fragments, allocated_fragments.Count);
+		var sections = CreateLoadableSections(fragments);
 		CreateProgramHeaders(sections, fragments, program_headers);
 
 		// Now that sections have their virtual addresses relocations can be computed

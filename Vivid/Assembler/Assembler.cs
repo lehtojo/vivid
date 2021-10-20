@@ -8,6 +8,11 @@ using System.Text.RegularExpressions;
 
 public static class Assembler
 {
+	public static string LEGACY_ASSEMBLY_SYNTAX_SPECIFIER = ".intel_syntax noprefix";
+	public static string ARM64_COMMENT = "//";
+	public static string X64_COMMENT = "#";
+	private const string SEPARATOR = "\n\n";
+
 	public static Function? AllocationFunction { get; set; }
 	public static Function? DeallocationFunction { get; set; }
 	public static FunctionImplementation? InitializationFunction { get; set; }
@@ -29,49 +34,50 @@ public static class Assembler
 	public static bool IsPositionIndependent { get; set; } = false;
 
 	public static bool IsDebuggingEnabled { get; set; } = false;
+	public static bool IsLegacyAssemblyEnabled { get; set; } = false;
 	public static bool IsVerboseOutputEnabled { get; set; } = false;
 
-	private const string SECTION_DIRECTIVE = ".section";
-	private const string SECREL_DIRECTIVE = ".secrel";
-	private const string EXPORT_DIRECTIVE = ".global";
-	private const string TEXT_SECTION_DIRECTIVE = SECTION_DIRECTIVE + " .text";
-	private const string SYNTAX_REQUIREMENT_DIRECTIVE = ".intel_syntax noprefix";
-	private const string FILE_DIRECTIVE = ".file";
-	private const string STRING_ALLOCATOR_DIRECTIVE = ".ascii";
-	private const string BYTE_ALIGNMENT_DIRECTIVE = ".balign";
-	private const string POWER_OF_TWO_ALIGNMENT = ".align";
-	private const string BYTE_ZERO_ALLOCATOR = ".zero";
-	private const string ARM64_COMMENT = "//";
-	private const string X64_COMMENT = "#";
+	public static string SectionDirective { get; set; } = ".section";
+	public static string SectionRelativeDirective { get; set; } = "?";
+	public static string ExportDirective { get; set; } = ".export";
+	public static string TextSectionIdentifier { get; set; } = "text";
+	public static string DataSectionIdentifier { get; set; } = "data";
+	public static string DebugFileDirective { get; set; } = ".debug_file";
+	public static string CharactersAllocator { get; set; } = ".characters";
+	public static string ByteAlignmentDirective { get; set; } = "?";
+	public static string PowerOfTwoAlignment { get; set; } = ".align";
+	public static string ZeroAllocator { get; set; } = ".zero";
 	public static string Comment { get; set; } = X64_COMMENT;
+	public static string DebugFunctionStartDirective { get; set; } = '.' + AssemblyParser.DEBUG_START_DIRECTIVE;
+	public static string DebugFrameOffsetDirective { get; set; } = '.' + AssemblyParser.DEBUG_FRAME_OFFSET_DIRECTIVE;
+	public static string DebugFunctionEndDirective { get; set; } = '.' + AssemblyParser.DEBUG_END_DIRECTIVE;
+	public static string MemoryAddressExtension { get; set; } = " ";
+	public static string RelativeSymbolSpecifier { get; set; } = string.Empty;
 
 	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER =
-		".global _start" + "\n" +
+		"{0} _start" + "\n" +
 		"_start:" + "\n" +
-		"{0}" + "\n" +
+		"{1}" + "\n" +
 		"mov rdi, rax" + "\n" +
 		"mov rax, 60" + "\n" +
 		"syscall" + SEPARATOR;
 
 	private const string FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER =
-		".global main" + "\n" +
+		"{0} main" + "\n" +
 		"main:" + "\n" +
-		"{0}" + SEPARATOR;
+		"{1}" + SEPARATOR;
 
 	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER =
-		".global _start" + "\n" +
+		"{0} _start" + "\n" +
 		"_start:" + "\n" +
-		"{0}" + "\n" +
+		"{1}" + "\n" +
 		"mov x8, #93" + "\n" +
 		"svc #0" + SEPARATOR;
 
 	private const string FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER =
-		".global main" + "\n" +
+		"{0} main" + "\n" +
 		"main:" + "\n" +
-		"{0}" + SEPARATOR;
-
-	private const string DATA_SECTION = SECTION_DIRECTIVE + " .data";
-	private const string SEPARATOR = "\n\n";
+		"{1}" + SEPARATOR;
 
 	public static Dictionary<SourceFile, DataEncoderModule> DataSectionModules = new Dictionary<SourceFile, DataEncoderModule>();
 
@@ -140,7 +146,7 @@ public static class Assembler
 
 		if (is_private_section_empty && is_protected_section_empty)
 		{
-			builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+			builder.AppendLine($"{ExportDirective} {mangle.Value}");
 			builder.AppendLine($"{mangle.Value}:");
 			return mangle.Value;
 		}
@@ -163,7 +169,7 @@ public static class Assembler
 
 		if (is_protected_section_empty)
 		{
-			builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+			builder.AppendLine($"{ExportDirective} {mangle.Value}");
 			builder.AppendLine($"{mangle.Value}:");
 			return mangle.Value;
 		}
@@ -184,7 +190,7 @@ public static class Assembler
 			ExportVirtualFunction(mangle, (VirtualFunction)function);
 		}
 		
-		builder.AppendLine($"{EXPORT_DIRECTIVE} {mangle.Value}");
+		builder.AppendLine($"{ExportDirective} {mangle.Value}");
 		builder.AppendLine($"{mangle.Value}:");
 
 		return mangle.Value;
@@ -408,7 +414,7 @@ public static class Assembler
 			var fullname = implementation.GetFullname();
 
 			// Ensure this function is visible to other units
-			builder.AppendLine($"{EXPORT_DIRECTIVE} {fullname}");
+			builder.AppendLine($"{ExportDirective} {fullname}");
 
 			var unit = new Unit(implementation);
 
@@ -419,7 +425,7 @@ public static class Assembler
 
 				if (implementation.VirtualFunction != null)
 				{
-					builder.AppendLine($"{EXPORT_DIRECTIVE} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
+					builder.AppendLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
 					AppendVirtualFunctionHeader(unit, implementation, fullname);
 				}
 
@@ -504,14 +510,15 @@ public static class Assembler
 			var name = variable.GetStaticName();
 			var size = variable.Type!.AllocationSize;
 
-			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + name);
+			builder.AppendLine(ExportDirective + ' ' + name);
 
 			if (Assembler.IsArm64)
 			{
-				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
+				builder.AppendLine($"{PowerOfTwoAlignment} 3");
 			}
 
-			builder.AppendLine($"{name}: {BYTE_ZERO_ALLOCATOR} {size}");
+			builder.AppendLine($"{name}:");
+			builder.AppendLine($"{ZeroAllocator} {size}");
 
 			DataEncoder.AddStaticVariable(module, variable);
 		}
@@ -531,7 +538,8 @@ public static class Assembler
 
 			if (buffer.Length > 0)
 			{
-				builder.AppendLine($"{STRING_ALLOCATOR_DIRECTIVE} \"{buffer}\"");
+				if (IsLegacyAssemblyEnabled) builder.AppendLine($"{CharactersAllocator} \"{buffer}\"");
+				else builder.AppendLine($"{CharactersAllocator} \'{buffer}\'");
 			}
 
 			if (position >= text.Length) break;
@@ -592,7 +600,7 @@ public static class Assembler
 
 		if (label.IsSectionRelative)
 		{
-			return SECREL_DIRECTIVE + label.Size.Bits.ToString(CultureInfo.InvariantCulture) + ' ' + label.Name;
+			return SectionRelativeDirective + label.Size.Bits.ToString(CultureInfo.InvariantCulture) + ' ' + label.Name;
 		}
 
 		return $"{label.Size.Allocator} {label.Name}";
@@ -606,15 +614,15 @@ public static class Assembler
 
 		if (table.IsSection)
 		{
-			builder.AppendLine(SECTION_DIRECTIVE + ' ' + table.Name);
+			builder.AppendLine(SectionDirective + ' ' + table.Name);
 		}
 		else
 		{
-			builder.AppendLine(EXPORT_DIRECTIVE + ' ' + table.Name);
+			builder.AppendLine(ExportDirective + ' ' + table.Name);
 
 			if (Assembler.IsArm64)
 			{
-				builder.AppendLine($"{POWER_OF_TWO_ALIGNMENT} 3");
+				builder.AppendLine($"{PowerOfTwoAlignment} 3");
 			}
 
 			builder.AppendLine(table.Name + ':');
@@ -719,7 +727,7 @@ public static class Assembler
 
 				var name = node.Identifier;
 
-				builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
+				builder.AppendLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 				builder.AppendLine($"{name}:");
 				builder.AppendLine(AllocateString(node.Text));
 
@@ -814,7 +822,7 @@ public static class Assembler
 				allocator = constant.Size.Allocator;
 			}
 
-			builder.AppendLine(Assembler.IsArm64 ? $"{POWER_OF_TWO_ALIGNMENT} 3" : $"{BYTE_ALIGNMENT_DIRECTIVE} 16");
+			builder.AppendLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 			builder.AppendLine($"{name}:");
 			builder.AppendLine($"{allocator} {text}");
 		}
@@ -923,12 +931,8 @@ public static class Assembler
 			var builder = new StringBuilder();
 			var is_data_section = false;
 
-			builder.AppendLine(TEXT_SECTION_DIRECTIVE);
-
-			if (Assembler.IsX64)
-			{
-				builder.AppendLine(SYNTAX_REQUIREMENT_DIRECTIVE);
-			}
+			if (Assembler.IsX64 && Assembler.IsLegacyAssemblyEnabled) builder.AppendLine(LEGACY_ASSEMBLY_SYNTAX_SPECIFIER);
+			builder.AppendLine(SectionDirective + ' ' + TextSectionIdentifier);
 
 			if (Assembler.IsDebuggingEnabled)
 			{
@@ -945,7 +949,14 @@ public static class Assembler
 					fullname = fullname.Insert(0, "./");
 				}
 
-				builder.AppendLine(FILE_DIRECTIVE + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
+				if (IsLegacyAssemblyEnabled)
+				{
+					builder.AppendLine(DebugFileDirective + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
+				}
+				else
+				{
+					builder.AppendLine(DebugFileDirective + ' ' + $"\'{fullname.Replace('\\', '/')}\'");
+				}
 			}
 
 			// Append the text section header only if the output type represents executable
@@ -988,7 +999,7 @@ public static class Assembler
 					else { instructions += $"bl {function.GetFullname()}"; }
 				}
 
-				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, template, instructions));
+				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, template, ExportDirective, instructions));
 			}
 
 			if (text_sections.TryGetValue(file, out string? text_section))
@@ -1007,7 +1018,7 @@ public static class Assembler
 			{
 				if (!is_data_section)
 				{
-					builder.AppendLine(DATA_SECTION);
+					builder.AppendLine(SectionDirective + ' ' + DataSectionIdentifier);
 					is_data_section = true;
 				}
 
@@ -1019,7 +1030,7 @@ public static class Assembler
 			{
 				if (!is_data_section)
 				{
-					builder.AppendLine(DATA_SECTION);
+					builder.AppendLine(SectionDirective + ' ' + DataSectionIdentifier);
 					is_data_section = true;
 				}
 
@@ -1035,17 +1046,24 @@ public static class Assembler
 
 			result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
 
-			var output = InstructionEncoder.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>());
-			var debug_frames = output.Frames.Export();
-			var debug_lines = output.Lines.Export();
+			var output = InstructionEncoder.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>(), file.Fullname);
+			var exported_symbols = new HashSet<string>();
+			var debug_frames = output.Frames?.Export();
+			var debug_lines = output.Lines?.Export();
 			var binary_text_section = output.Section;
 			var binary_data_section = DataSectionModules[file].Export();
 
-			var object_file = ElfFormat.Create(new List<BinarySection> { binary_text_section, debug_frames, binary_data_section, debug_lines });
+			var sections = new List<BinarySection>();
+			sections.Add(binary_text_section);
+			if (debug_frames != null) sections.Add(debug_frames);
+			sections.Add(binary_data_section);
+			if (debug_lines != null) sections.Add(debug_lines);
+
+			var object_file = ElfFormat.Create(sections, exported_symbols);
 			object_files.Add(object_file);
 		}
 
-		var linked_binary = Linker.Link(object_files, "_start");
+		var linked_binary = Linker.Link(object_files, "0._V4initv_rx");
 		System.IO.File.WriteAllBytes("v.test", linked_binary);
 
 		//ElfFormat.ImportObjectX64("libv_x64.o");

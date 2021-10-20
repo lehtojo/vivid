@@ -144,8 +144,17 @@ public class InitializeInstruction : Instruction
 
 		if (Assembler.IsDebuggingEnabled)
 		{
+			builder.Append(Assembler.DebugFunctionStartDirective);
+
+			if (!Assembler.IsLegacyAssemblyEnabled)
+			{
+				// If the legacy assembly is not enabled, write the symbol, which represents the start of the current function
+				builder.Append(' ');
+				builder.Append(Unit.Function.GetFullname());
+			}
+
+			builder.AppendLine();
 			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
-			builder.AppendLine(Unit.DEBUG_FUNCTION_START);
 		}
 
 		if (Assembler.IsArm64 && calls.Any())
@@ -207,7 +216,8 @@ public class InitializeInstruction : Instruction
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.Append(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
+			builder.Append(Assembler.DebugFrameOffsetDirective);
+			builder.Append(' ');
 			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString(CultureInfo.InvariantCulture));
 		}
 

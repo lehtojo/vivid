@@ -1,3 +1,5 @@
+using System.IO;
+
 public enum DebugLineOperation : long
 {
 	None,
@@ -51,7 +53,7 @@ public class DebugLineEncoderModule : DataEncoderModule
 		WriteULEB128(0); // Size
 	}
 
-	public DebugLineEncoderModule()
+	public DebugLineEncoderModule(string file)
 	{
 		WriteInt32(0); // Set the length of this unit to zero initially
 		WriteInt16(4); // Dwarf version 4
@@ -77,12 +79,12 @@ public class DebugLineEncoderModule : DataEncoderModule
 		Write(0); // DebugLineOperation.SetEpilogueBegin
 		Write(1); // DebugLineOperation.SetISA
 
-		/// TODO: Add proper folders...
-		AddFolder("/home/lehtojo/vivid/Vivid");
+		var folder = Path.GetDirectoryName(file);
+		if (folder != null) AddFolder(folder);
 
 		Write(0); // Indicate that now begins the last (only the compilation folder is added) included folder
 
-		AddFile("main.v", 1);
+		AddFile(Path.GetFileName(file), 1);
 
 		Write(0); // End of included files
 

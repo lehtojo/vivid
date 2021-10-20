@@ -40,6 +40,12 @@ public class TableLabel
 
 public class Debug
 {
+	public static string DebugAbbrevationTable = "debug_abbrev";
+	public static string DebugInformationTable = "debug_info";
+	public static string DebugStringTable = "debug_str";
+	public static string DebugLineTable = "debug_line";
+	public static string DebugLineTableStart = "debug_line_start";
+
 	public const string STRING_TYPE_IDENTIFIER = "String";
 	public const string STRING_TYPE_DATA_VARIABLE = "text";
 
@@ -48,12 +54,6 @@ public class Debug
 
 	public const string FORMAT_COMPILATION_UNIT_START = "debug_file_{0}_start";
 	public const string FORMAT_COMPILATION_UNIT_END = "debug_file_{0}_end";
-
-	public const string DEBUG_ABBREVATION_TABLE = ".debug_abbrev";
-	public const string DEBUG_INFO_TABLE = ".debug_info";
-	public const string DEBUG_STRING_TABLE = ".debug_str";
-	public const string DEBUG_LINE_TABLE = ".debug_line";
-	public const string DEBUG_LINE_TABLE_START = ".debug_line_start";
 
 	public const string DWARF_PRODUCER_TEXT = "Vivid version 1.0";
 	public const short DWARF_LANGUAGE_IDENTIFIER = 0x7777;
@@ -137,8 +137,6 @@ public class Debug
 
 	public Table Entry { get; }
 	public Table Abbrevation { get; }
-	public Table Strings { get; }
-	public Table Lines { get; }
 
 	public TableLabel Start { get; }
 	public TableLabel End { get; }
@@ -178,7 +176,7 @@ public class Debug
 
 		Entry.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
-		Entry.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
+		Entry.Add(new TableLabel(DebugLineTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
 
 		Entry.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
@@ -898,10 +896,8 @@ public class Debug
 
 	public Debug()
 	{
-		Abbrevation = new Table(DEBUG_ABBREVATION_TABLE) { IsSection = true };
-		Entry = new Table(DEBUG_INFO_TABLE) { IsSection = true };
-		Strings = new Table(DEBUG_STRING_TABLE) { IsSection = true };
-		Lines = new Table(DEBUG_LINE_TABLE) { IsSection = true };
+		Abbrevation = new Table(DebugAbbrevationTable) { IsSection = true };
+		Entry = new Table(DebugInformationTable) { IsSection = true };
 
 		Start = new TableLabel("debug_info_start", Size.QWORD, true);
 		End = new TableLabel("debug_info_end", Size.QWORD, true);
@@ -912,10 +908,8 @@ public class Debug
 		Entry.Add(GetOffset(version_number_label, End));
 		Entry.Add(version_number_label);
 		Entry.Add(DWARF_VERSION);
-		Entry.Add(new TableLabel(DEBUG_ABBREVATION_TABLE, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
+		Entry.Add(new TableLabel(DebugAbbrevationTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
 		Entry.Add((byte)Assembler.Size.Bytes);
-
-		Lines.Add(new TableLabel(DEBUG_LINE_TABLE_START, Size.QWORD, true));
 
 		AppendFileAbbrevation();
 		AppendObjectTypeWithMembersAbbrevation();
@@ -945,8 +939,6 @@ public class Debug
 		var builder = new StringBuilder();
 		Assembler.AppendTable(builder, Abbrevation);
 		Assembler.AppendTable(builder, Entry);
-		Assembler.AppendTable(builder, Strings);
-		Assembler.AppendTable(builder, Lines);
 
 		return builder.ToString();
 	}

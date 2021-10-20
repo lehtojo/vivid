@@ -128,10 +128,10 @@ public struct EncoderOutput
 	public BinarySection Section { get; set; }
 	public Dictionary<string, BinarySymbol> Symbols { get; }
 	public List<BinaryRelocation> Relocations { get; }
-	public DebugFrameEncoderModule Frames { get; }
-	public DebugLineEncoderModule Lines { get; }
+	public DebugFrameEncoderModule? Frames { get; }
+	public DebugLineEncoderModule? Lines { get; }
 
-	public EncoderOutput(BinarySection section, Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations, DebugFrameEncoderModule frames, DebugLineEncoderModule lines)
+	public EncoderOutput(BinarySection section, Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations, DebugFrameEncoderModule? frames, DebugLineEncoderModule? lines)
 	{
 		Section = section;
 		Symbols = symbols;
@@ -1113,9 +1113,9 @@ public static class InstructionEncoder
 			case EncodingRoute.D: {
 				WriteOperation(module, encoding.Operation);
 
-				if (instruction.Type == InstructionType.CALL)
+				if (instruction.Operation == Instructions.X64.CALL)
 				{
-					var label = new Label(instruction.To<CallInstruction>().Parameters[0].Value!.To<DataSectionHandle>().Identifier);
+					var label = new Label(instruction.Parameters[0].Value!.To<DataSectionHandle>().Identifier);
 					module.Calls.Add(new LabelUsageItem(LabelUsageType.CALL, module.Position, label));
 				}
 
@@ -1401,7 +1401,7 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Creates a text section and exports the specified labels as symbols
 	/// </summary>
-	public static EncoderOutput Export(List<EncoderModule> modules, Dictionary<Label, LabelDescriptor> labels)
+	public static EncoderOutput Export(List<EncoderModule> modules, Dictionary<Label, LabelDescriptor> labels, string? debug_file)
 	{
 		var bytes = modules.Sum(i => i.Position);
 		var binary = new byte[bytes];
@@ -1466,7 +1466,9 @@ public static class InstructionEncoder
 			}
 		}
 
-		var lines = new DebugLineEncoderModule();
+		if (debug_file == null) return new EncoderOutput(section, symbols, relocations, null, null);
+
+		var lines = new DebugLineEncoderModule(debug_file);
 		var frames = new DebugFrameEncoderModule(0);
 
 		foreach (var module in modules)
@@ -1516,7 +1518,7 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Encodes the specified instructions
 	/// </summary>
-	public static EncoderOutput Encode(List<Instruction> instructions)
+	public static EncoderOutput Encode(List<Instruction> instructions, string? debug_file)
 	{
 		var modules = CreateModules(instructions);
 		var labels = new Dictionary<Label, LabelDescriptor>();
@@ -1533,7 +1535,7 @@ public static class InstructionEncoder
 
 		//Print(modules);
 
-		return Export(modules, labels);
+		return Export(modules, labels, debug_file);
 	}
 
 	/// <summary>

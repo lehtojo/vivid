@@ -282,7 +282,7 @@ public class DataEncoderModule
 
 public static class DataEncoder
 {
-	public const int SystemAddressSize = 8;
+	public const int SYSTEM_ADDRESS_SIZE = 8;
 
 	/// <summary>
 	/// Ensures the specified module is aligned as requested
@@ -343,7 +343,7 @@ public static class DataEncoder
 
 				case Table f:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SystemAddressSize));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SYSTEM_ADDRESS_SIZE));
 					module.WriteInt64(0);
 
 					if (!f.IsBuilt) subtables.Add(f);
@@ -352,7 +352,7 @@ public static class DataEncoder
 
 				case Label g:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SystemAddressSize));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SYSTEM_ADDRESS_SIZE));
 					module.WriteInt64(0);
 					break;
 				}
