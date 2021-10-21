@@ -582,7 +582,7 @@ public class ServicePhase : Phase
 	/// <summary>
 	/// Finds the function, whose blueprint contains the cursor
 	/// </summary>
-	private Function? FindCursorFunction(Context context)
+	private static Function? FindCursorFunction(Context context)
 	{
 		// Find the function that contains the cursor
 		return Common.GetAllVisibleFunctions(context).FirstOrDefault(i => i.Blueprint.Exists(i => i.Position.IsCursor));

@@ -385,9 +385,7 @@ public class ConfigurationPhase : Phase
 
 				Debug.DebugAbbrevationTable = ".debug_abbrev";
 				Debug.DebugInformationTable = ".debug_info";
-				Debug.DebugStringTable = ".debug_str";
 				Debug.DebugLineTable = ".debug_line";
-				Debug.DebugLineTableStart = ".debug_line_start";
 				return Status.OK;
 			}
 

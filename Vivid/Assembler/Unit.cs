@@ -812,8 +812,6 @@ public class Unit
 
 	public string Export()
 	{
-		if (Assembler.IsDebuggingEnabled) Builder.AppendLine(Assembler.DebugFunctionEndDirective);
-
 		return Builder.ToString();
 	}
 

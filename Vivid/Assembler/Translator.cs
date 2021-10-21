@@ -4,7 +4,6 @@ using System.Linq;
 
 public static class Translator
 {
-	public static Dictionary<SourceFile, List<Instruction>> Output { get; set; } = new Dictionary<SourceFile, List<Instruction>>();
 	public static int TotalInstructions { get; set; } = 0;
 
 	private static List<Register> GetAllUsedNonVolatileRegisters(Unit unit)
@@ -72,7 +71,7 @@ public static class Translator
 		}
 	}
 
-	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
+	public static void Translate(AssemblyBuilder builder, Unit unit)
 	{
 		TotalInstructions += unit.Instructions.Count;
 		
@@ -80,10 +79,7 @@ public static class Translator
 		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
 
 		// If optimization is enabled, try to optimize the generated code on instruction level
-		if (Analysis.IsInstructionAnalysisEnabled)
-		{
-			InstructionAnalysis.Optimize(unit, instructions);
-		}
+		if (Analysis.IsInstructionAnalysisEnabled) InstructionAnalysis.Optimize(unit, instructions);
 
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
@@ -162,21 +158,27 @@ public static class Translator
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 
-		// Translate all instructions
-		instructions.ForEach(i => i.Translate());
+		var file = unit.Function.Metadata.Start!.File!;
 
-		// Remove duplicates
-		constants.AddRange(constant_handles.Distinct());
-
-		if (Output.ContainsKey(unit.Function.Metadata.Start!.File!))
+		if (builder.IsTextEnabled)
 		{
-			Output[unit.Function.Metadata.Start!.File!].AddRange(instructions);
+			// Convert all instructions into textual assembly
+			instructions.ForEach(i => i.Translate());
+
+			builder.Write(unit.Export());
+
+			// Add a directive, which tells the assembler to finish debugging information regarding the current function
+			if (Assembler.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);
 		}
 		else
 		{
-			Output[unit.Function.Metadata.Start!.File!] = instructions;
+			builder.Add(file, instructions);
+
+			// Add a directive, which tells the assembler to finish debugging information regarding the current function
+			builder.Add(file, new Instruction(unit, InstructionType.DEBUG_END));
 		}
 
-		return unit.Export();
+		// Export the generated constants as well
+		builder.Add(file, constant_handles.Distinct().ToList());
 	}
 }

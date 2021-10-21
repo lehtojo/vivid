@@ -6,12 +6,120 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
+public class AssemblyBuilder
+{
+	public Dictionary<SourceFile, List<Instruction>> Instructions { get; } = new Dictionary<SourceFile, List<Instruction>>();
+	public Dictionary<SourceFile, List<ConstantDataSectionHandle>> Constants { get; } = new Dictionary<SourceFile, List<ConstantDataSectionHandle>>();
+	public Dictionary<SourceFile, List<DataEncoderModule>> Modules { get; } = new Dictionary<SourceFile, List<DataEncoderModule>>();
+	public HashSet<string> Exports { get; } = new HashSet<string>();
+	public StringBuilder? Text { get; }
+	public bool IsTextEnabled => Text != null;
+
+	public AssemblyBuilder()
+	{
+		if (Assembler.IsAssemblyOutputEnabled) { Text = new StringBuilder(); }
+	}
+
+	public AssemblyBuilder(string text)
+	{
+		if (Assembler.IsAssemblyOutputEnabled) { Text = new StringBuilder(text); }
+	}
+
+	public void Add(SourceFile file, List<Instruction> instructions)
+	{
+		if (Instructions.ContainsKey(file))
+		{
+			Instructions[file].AddRange(instructions);
+			return;
+		}
+
+		Instructions[file] = instructions;
+	}
+
+	public void Add(SourceFile file, Instruction instruction)
+	{
+		if (Instructions.ContainsKey(file))
+		{
+			Instructions[file].Add(instruction);
+			return;
+		}
+
+		Instructions[file] = new List<Instruction> { instruction };
+	}
+
+	public void Add(SourceFile file, List<ConstantDataSectionHandle> constants)
+	{
+		if (Constants.ContainsKey(file))
+		{
+			Constants[file].AddRange(constants);
+			return;
+		}
+
+		Constants[file] = constants;
+	}
+
+	public void Add(SourceFile file, List<DataEncoderModule> modules)
+	{
+		if (Modules.ContainsKey(file))
+		{
+			Modules[file].AddRange(modules);
+			return;
+		}
+
+		Modules[file] = modules;
+	}
+
+	public void Add(AssemblyBuilder builder)
+	{
+		foreach (var iterator in builder.Instructions) Add(iterator.Key, iterator.Value);
+		foreach (var iterator in builder.Constants) Add(iterator.Key, iterator.Value);
+		foreach (var iterator in builder.Modules) Add(iterator.Key, iterator.Value);
+		foreach (var export in builder.Exports) Export(export);
+
+		if (builder.Text != null) Write(builder.Text.ToString());
+	}
+
+	public DataEncoderModule GetDataSection(SourceFile file, string section)
+	{
+		if (section.Length > 0 && section[0] != '.') { section = '.' + section; }
+
+		if (Modules.TryGetValue(file, out var modules))
+		{
+			for (var i = 0; i < modules.Count; i++)
+			{
+				if (modules[i].Name == section) return modules[i];
+			}
+		}
+		else
+		{
+			modules = new List<DataEncoderModule>();
+			Modules[file] = modules;
+		}
+		
+		var module = new DataEncoderModule();
+		module.Name = section;
+		modules.Add(module);
+		return module;
+	}
+
+	public void Export(IEnumerable<string> symbols)
+	{
+		foreach (var symbol in symbols) Export(symbol);
+	}
+
+	public void Export(string symbol) => Exports.Add(symbol);
+	public void Write(string text) => Text?.Append(text);
+	public void WriteLine(string text) => Text?.AppendLine(text);
+
+	public override string ToString() => Text?.ToString() ?? string.Empty;
+}
+
 public static class Assembler
 {
-	public static string LEGACY_ASSEMBLY_SYNTAX_SPECIFIER = ".intel_syntax noprefix";
-	public static string ARM64_COMMENT = "//";
-	public static string X64_COMMENT = "#";
-	private const string SEPARATOR = "\n\n";
+	public const string LEGACY_ASSEMBLY_SYNTAX_SPECIFIER = ".intel_syntax noprefix";
+	public const string ARM64_COMMENT = "//";
+	public const string X64_COMMENT = "#";
+	public const string SEPARATOR = "\n\n";
 
 	public static Function? AllocationFunction { get; set; }
 	public static Function? DeallocationFunction { get; set; }
@@ -22,8 +130,7 @@ public static class Assembler
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
 	public static Architecture Architecture { get; set; } = RuntimeInformation.ProcessArchitecture;
 
-	public static bool Is32Bit => Size.Bits == 32;
-	public static bool Is64Bit => Size.Bits == 64;
+	public static string DefaultEntryPoint => IsTargetWindows ? "main" : "_start";
 
 	public static bool IsTargetWindows => Target == OSPlatform.Windows;
 	public static bool IsTargetLinux => Target == OSPlatform.Linux;
@@ -33,6 +140,7 @@ public static class Assembler
 
 	public static bool IsPositionIndependent { get; set; } = false;
 
+	public static bool IsAssemblyOutputEnabled { get; set; } = false;
 	public static bool IsDebuggingEnabled { get; set; } = false;
 	public static bool IsLegacyAssemblyEnabled { get; set; } = false;
 	public static bool IsVerboseOutputEnabled { get; set; } = false;
@@ -47,7 +155,7 @@ public static class Assembler
 	public static string ByteAlignmentDirective { get; set; } = "?";
 	public static string PowerOfTwoAlignment { get; set; } = ".align";
 	public static string ZeroAllocator { get; set; } = ".zero";
-	public static string Comment { get; set; } = X64_COMMENT;
+	public static string CommentSpecifier { get; set; } = X64_COMMENT;
 	public static string DebugFunctionStartDirective { get; set; } = '.' + AssemblyParser.DEBUG_START_DIRECTIVE;
 	public static string DebugFrameOffsetDirective { get; set; } = '.' + AssemblyParser.DEBUG_FRAME_OFFSET_DIRECTIVE;
 	public static string DebugFunctionEndDirective { get; set; } = '.' + AssemblyParser.DEBUG_END_DIRECTIVE;
@@ -79,309 +187,7 @@ public static class Assembler
 		"main:" + "\n" +
 		"{1}" + SEPARATOR;
 
-	public static Dictionary<SourceFile, DataEncoderModule> DataSectionModules = new Dictionary<SourceFile, DataEncoderModule>();
-
-	/// <summary>
-	/// Creates a mangled text which describes the specified virtual function and appends it to the specified mangle object
-	/// </summary>
-	private static void ExportVirtualFunction(Mangle mangle, VirtualFunction function)
-	{
-		mangle += Mangle.START_MEMBER_VIRTUAL_FUNCTION_COMMAND;
-		mangle += $"{function.Name}{function.Name}";
-
-		/// NOTE: All parameters must have a type since that is a requirement for virtual functions
-		mangle += function.Parameters.Select(i => i.Type!);
-		
-		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
-		{
-			mangle += Mangle.START_RETURN_TYPE_COMMAND;
-			mangle += function.ReturnType ?? throw new ApplicationException("Virtual function missing return type");
-		}
-
-		mangle += Mangle.END_COMMAND;
-	}
-
-	/// <summary>
-	/// Creates a mangled text which describes the specified type and appends it to the specified builder
-	/// </summary>
-	private static string? ExportType(StringBuilder builder, Type type)
-	{
-		// Skip template types since they will be exported in a different way
-		if (type.IsTemplateType)
-		{
-			return null;
-		}
-
-		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
-		mangle.Add(type);
-
-		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !i.IsHidden).ToArray();
-		var virtual_functions = type.Virtuals.Values.ToArray();
-
-		var public_member_variables = member_variables.Where(i => i.IsPublic).ToArray();
-		var public_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPublic).ToArray();
-
-		var private_member_variables = member_variables.Where(i => i.IsPrivate).ToArray();
-		var private_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPrivate).ToArray();
-
-		var protected_member_variables = member_variables.Where(i => i.IsProtected).ToArray();
-		var protected_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsProtected).ToArray();
-
-		// Export all public member variables
-		foreach (var variable in public_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all public virtual functions
-		foreach (var function in public_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-
-		var is_private_section_empty = !private_member_variables.Any() && !private_virtual_functions.Any();
-		var is_protected_section_empty = !protected_member_variables.Any() && !protected_virtual_functions.Any();
-
-		if (is_private_section_empty && is_protected_section_empty)
-		{
-			builder.AppendLine($"{ExportDirective} {mangle.Value}");
-			builder.AppendLine($"{mangle.Value}:");
-			return mangle.Value;
-		}
-
-		mangle += Mangle.END_COMMAND;
-
-		// Export all private member variables
-		foreach (var variable in private_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all private virtual functions
-		foreach (var function in private_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-
-		if (is_protected_section_empty)
-		{
-			builder.AppendLine($"{ExportDirective} {mangle.Value}");
-			builder.AppendLine($"{mangle.Value}:");
-			return mangle.Value;
-		}
-
-		mangle += Mangle.END_COMMAND;
-
-		// Export all protected member variables
-		foreach (var variable in protected_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all protected virtual functions
-		foreach (var function in protected_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-		
-		builder.AppendLine($"{ExportDirective} {mangle.Value}");
-		builder.AppendLine($"{mangle.Value}:");
-
-		return mangle.Value;
-	}
-
-	/// <summary>
-	/// Creates a template name by combining the specified name and the template argument names together
-	/// </summary>
-	private static string CreateTemplateName(string name, IEnumerable<string> template_argument_names)
-	{
-		return name + '<' + string.Join(", ", template_argument_names) + '>';
-	}
-
-	/// <summary>
-	/// Converts the specified modifiers into source code
-	/// </summary>
-	private static string GetModifiers(int modifiers)
-	{
-		var result = new List<string>();
-		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
-		if (Flag.Has(modifiers, Modifier.INLINE)) result.Add(Keywords.INLINE.Identifier);
-		if (Flag.Has(modifiers, Modifier.IMPORTED)) result.Add(Keywords.IMPORT.Identifier);
-		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);
-		if (Flag.Has(modifiers, Modifier.PRIVATE)) result.Add(Keywords.PRIVATE.Identifier);
-		if (Flag.Has(modifiers, Modifier.PROTECTED)) result.Add(Keywords.PROTECTED.Identifier);
-		if (Flag.Has(modifiers, Modifier.PUBLIC)) result.Add(Keywords.PUBLIC.Identifier);
-		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READONLY.Identifier);
-		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.STATIC.Identifier);
-		return string.Join(' ', result);
-	}
-
-	/// <summary>
-	/// Exports the specified template function which may have the specified parent type
-	/// </summary>
-	private static void ExportTemplateFunction(StringBuilder builder, TemplateFunction function)
-	{
-		builder.Append(GetModifiers(function.Modifiers));
-		builder.Append(' ');
-		builder.Append(CreateTemplateName(function.Name, function.TemplateParameters));
-		builder.Append(ParenthesisType.PARENTHESIS.Opening);
-		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
-		builder.Append(ParenthesisType.PARENTHESIS.Closing);
-		builder.Append(' ');
-		builder.Append(string.Join(' ', function.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
-		builder.Append(Lexer.LINE_ENDING);
-	}
-
-	/// <summary>
-	/// Exports the specified short template function which may have the specified parent type
-	/// </summary>
-	private static void ExportShortTemplateFunction(StringBuilder builder, Function function)
-	{
-		builder.Append(GetModifiers(function.Modifiers));
-		builder.Append(' ');
-		builder.Append(function.Name);
-		builder.Append(ParenthesisType.PARENTHESIS.Opening);
-		builder.Append(string.Join(", ", function.Parameters.Select(i => i.Export())));
-		builder.Append(ParenthesisType.PARENTHESIS.Closing);
-		builder.Append(' ');
-		builder.Append(ParenthesisType.CURLY_BRACKETS.Opening);
-		builder.Append(Lexer.LINE_ENDING);
-		builder.Append(string.Join(' ', function.Blueprint) + Lexer.LINE_ENDING);
-		builder.Append(ParenthesisType.CURLY_BRACKETS.Closing);
-		builder.Append(Lexer.LINE_ENDING);
-	}
-
-	/// <summary>
-	/// Exports the specified template type
-	/// </summary>
-	private static void ExportTemplateType(StringBuilder builder, TemplateType type)
-	{
-		builder.Append(CreateTemplateName(type.Name, type.TemplateParameters));
-		builder.Append(string.Join(' ', type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
-		builder.Append(Lexer.LINE_ENDING);
-	}
-
-	/// <summary>
-	/// Returns true if the specified function represents an actual template function or if any of its parameter types is not defined
-	/// </summary>
-	private static bool IsTemplateFunction(Function function)
-	{
-		return function is TemplateFunction || function.Parameters.Any(i => i.Type == null);
-	}
-	
-	/// <summary>
-	/// Looks for template functions and types and exports them to string builders
-	/// </summary>
-	public static Dictionary<SourceFile, StringBuilder> GetTemplateExportFiles(Context context)
-	{
-		var files = new Dictionary<SourceFile, StringBuilder>();
-		var functions = context.Functions.Values.SelectMany(i => i.Overloads).Where(i => IsTemplateFunction(i) && i.Start?.File != null).GroupBy(i => i.Start!.File!);
-
-		foreach (var iterator in functions)
-		{
-			var builder = new StringBuilder();
-
-			foreach (var function in iterator)
-			{
-				if (function is TemplateFunction template)
-				{
-					ExportTemplateFunction(builder, template);
-				}
-				else
-				{
-					ExportShortTemplateFunction(builder, function);
-				}
-			}
-
-			files.Add(iterator.Key!, builder);
-		}
-
-		var types = Common.GetAllTypes(context).Where(i => i.Position?.File != null).GroupBy(i => i.Position!.File!).ToArray();
-
-		foreach (var iterator in types)
-		{
-			foreach (var type in iterator)
-			{
-				var templates = type.Functions.Values.SelectMany(i => i.Overloads).Where(IsTemplateFunction).ToArray();
-
-				if (!templates.Any())
-				{
-					continue;
-				}
-
-				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
-				{
-					builder = new StringBuilder();
-					files.Add(iterator.Key!, builder);
-				}
-
-				builder.Append(type.Name);
-				builder.Append(' ');
-				builder.Append(ParenthesisType.CURLY_BRACKETS.Opening);
-
-				foreach (var function in templates)
-				{
-					if (function is TemplateFunction template)
-					{
-						ExportTemplateFunction(builder, template);
-					}
-					else
-					{
-						ExportShortTemplateFunction(builder, function);
-					}
-				}
-
-				builder.Append(ParenthesisType.CURLY_BRACKETS.Closing);
-			}
-		}
-
-		foreach (var iterator in types)
-		{
-			foreach (var type in iterator)
-			{
-				if (!type.IsTemplateType || type.IsTemplateTypeVariant) continue;
-
-				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
-				{
-					builder = new StringBuilder();
-					files.Add(iterator.Key!, builder);
-				}
-
-				ExportTemplateType(builder, type.To<TemplateType>());
-			}
-		}
-
-		return files;
-	}
-
-	/// <summary>
-	/// Returns all symbols which are exported from the specified context
-	/// </summary>
-	public static Dictionary<SourceFile, List<string>> GetExportedSymbols(Context context)
-	{
-		// Collect all the types which have a file registered
-		var types = Common.GetAllTypes(context).Where(i => i.Position?.File != null).ToArray();
-
-		// Collect all the type configuration table names and group them by their files
-		var configurations = types.Where(i => i.Configuration != null).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.Configuration!.Entry.Name).ToList());
-		
-		// Collect all the static variable names and group them by their files
-		var statics = types.SelectMany(i => i.Variables.Values).Where(i => i.IsStatic).GroupBy(i => i.Position!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetStaticName()).ToList());
-		
-		// Collect all the function names and group them by their files
-		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start?.File != null).GroupBy(i => i.Metadata.Start!.File!).ToDictionary(i => i.Key, i => i.Select(i => i.GetFullname()).ToList());
-
-		// Finally, merge all the collected symbols
-		return (Dictionary<SourceFile, List<string>>)configurations.Merge(statics).Merge(functions);
-	}
-
-	private static void AppendVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
+	private static void AddVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
 	{
 		unit.Append(new LabelInstruction(unit, new Label(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX)));
 
@@ -403,9 +209,12 @@ public static class Assembler
 		}
 	}
 
-	private static string GetTextSection(Function function, List<ConstantDataSectionHandle> constants)
+	/// <summary>
+	/// Assembles the specified function
+	/// </summary>
+	private static AssemblyBuilder AssembleFunction(Function function)
 	{
-		var builder = new StringBuilder();
+		var builder = new AssemblyBuilder();
 
 		foreach (var implementation in function.Implementations)
 		{
@@ -414,7 +223,8 @@ public static class Assembler
 			var fullname = implementation.GetFullname();
 
 			// Ensure this function is visible to other units
-			builder.AppendLine($"{ExportDirective} {fullname}");
+			builder.WriteLine($"{ExportDirective} {fullname}");
+			builder.Export(fullname);
 
 			var unit = new Unit(implementation);
 
@@ -425,8 +235,10 @@ public static class Assembler
 
 				if (implementation.VirtualFunction != null)
 				{
-					builder.AppendLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
-					AppendVirtualFunctionHeader(unit, implementation, fullname);
+					builder.WriteLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
+					builder.Export(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX);
+
+					AddVirtualFunctionHeader(unit, implementation, fullname);
 				}
 
 				// Append the function name to the output as a label
@@ -466,66 +278,82 @@ public static class Assembler
 			unit.Reindex();
 			unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });
 
-			builder.Append(Translator.Translate(unit, constants));
-			builder.AppendLine();
+			Translator.Translate(builder, unit);
 		}
 
-		return builder.Length == 0 ? string.Empty : builder.ToString();
+		return builder;
 	}
 
-	private static Dictionary<SourceFile, string> GetTextSections(Context context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections)
+	/// <summary>
+	/// Assembles all functions inside the specified context and returns the generated assembly grouped by the corresponding source files
+	/// </summary>
+	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context)
 	{
-		constant_sections = new Dictionary<SourceFile, List<ConstantDataSectionHandle>>();
+		// Group all functions by their owner files
+		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Start != null)
+			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 
-		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Start != null).GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"));
-		var text_sections = new Dictionary<SourceFile, string>();
+		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
 
 		foreach (var iterator in files)
 		{
-			var constants = new List<ConstantDataSectionHandle>();
-			var builder = new StringBuilder();
+			var builder = new AssemblyBuilder();
 			var file = iterator.Key!;
+
+			// Add the debug label, which indicates the start of debuggable code
+			if (Assembler.IsDebuggingEnabled)
+			{
+				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
+				if (builder.IsTextEnabled) builder.WriteLine(label + ':');
+				else builder.Add(file, new LabelInstruction(null!, new Label(label)));
+			}
 
 			foreach (var function in iterator)
 			{
-				builder.Append(GetTextSection(function, constants));
-				builder.Append(SEPARATOR);
+				builder.Add(AssembleFunction(function));
+				builder.Write(SEPARATOR);
 			}
 
-			text_sections.Add(file, builder.ToString());
-			constant_sections.Add(file, constants);
+			// Add the debug label, which indicates the end of debuggable code
+			if (Assembler.IsDebuggingEnabled)
+			{
+				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
+				if (builder.IsTextEnabled) builder.WriteLine(label + ':');
+				else builder.Add(file, new LabelInstruction(null!, new Label(label)));
+			}
+
+			builders.Add(file, builder);
 		}
 
-		return text_sections;
+		return builders;
 	}
 
-	private static string GetStaticVariables(Type type, DataEncoderModule module)
+	/// <summary>
+	/// Allocates the specified static variable using assembly directives
+	/// </summary>
+	private static string AllocateStaticVariable(Variable variable)
 	{
 		var builder = new StringBuilder();
 
-		foreach (var variable in type.Variables.Values)
+		var name = variable.GetStaticName();
+		var size = variable.Type!.AllocationSize;
+
+		builder.AppendLine(ExportDirective + ' ' + name);
+
+		if (Assembler.IsArm64)
 		{
-			if (!variable.IsStatic) continue;
-
-			var name = variable.GetStaticName();
-			var size = variable.Type!.AllocationSize;
-
-			builder.AppendLine(ExportDirective + ' ' + name);
-
-			if (Assembler.IsArm64)
-			{
-				builder.AppendLine($"{PowerOfTwoAlignment} 3");
-			}
-
-			builder.AppendLine($"{name}:");
-			builder.AppendLine($"{ZeroAllocator} {size}");
-
-			DataEncoder.AddStaticVariable(module, variable);
+			builder.AppendLine($"{PowerOfTwoAlignment} 3");
 		}
+
+		builder.AppendLine($"{name}:");
+		builder.AppendLine($"{ZeroAllocator} {size}");
 
 		return builder.ToString();
 	}
 
+	/// <summary>
+	/// Allocates a string using assembly directives while accounting for embedded hexadecimal numbers
+	/// </summary>
 	private static string AllocateString(string text)
 	{
 		var builder = new StringBuilder();
@@ -533,13 +361,13 @@ public static class Assembler
 
 		while (position < text.Length)
 		{
-			var buffer = new string(text.Skip(position).TakeWhile(i => i != '\\').ToArray());
-			position += buffer.Length;
+			var slice = new string(text.Skip(position).TakeWhile(i => i != '\\').ToArray());
+			position += slice.Length;
 
-			if (buffer.Length > 0)
+			if (slice.Length > 0)
 			{
-				if (IsLegacyAssemblyEnabled) builder.AppendLine($"{CharactersAllocator} \"{buffer}\"");
-				else builder.AppendLine($"{CharactersAllocator} \'{buffer}\'");
+				if (IsLegacyAssemblyEnabled) builder.AppendLine($"{CharactersAllocator} \"{slice}\"");
+				else builder.AppendLine($"{CharactersAllocator} \'{slice}\'");
 			}
 
 			if (position >= text.Length) break;
@@ -576,11 +404,7 @@ public static class Assembler
 			}
 
 			var hexadecimal = text.Substring(position, length);
-
-			if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value))
-			{
-				throw new ApplicationException(error);
-			}
+			if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value)) throw new ApplicationException(error);
 
 			var bytes = BitConverter.GetBytes(value).Take(length / 2).ToArray();
 			bytes.ForEach(i => builder.AppendLine($"{Size.BYTE.Allocator} {i}"));
@@ -591,7 +415,50 @@ public static class Assembler
 		return builder.Append($"{Size.BYTE.Allocator} 0").ToString();
 	}
 
-	private static string AppendTableLable(TableLabel label)
+	/// <summary>
+	/// Allocates the specified constants using the specified data section builder
+	/// </summary>
+	private static void AllocateConstants(AssemblyBuilder builder, SourceFile file, List<ConstantDataSectionHandle> constants)
+	{
+		var module = Assembler.IsAssemblyOutputEnabled ? null : builder.GetDataSection(file, Assembler.DataSectionIdentifier);
+
+		foreach (var constant in constants)
+		{
+			// Align the position and declare the constant
+			var name = constant.Identifier;
+
+			if (module != null)
+			{
+				DataEncoder.Align(module, 16);
+				module.CreateLocalSymbol(name, module.Position);
+			}
+			else
+			{
+				builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+				builder.WriteLine($"{name}:");
+			}
+
+			var bytes = (byte[]?)null;
+
+			if (constant.Value is byte[] c0) { bytes = c0; }
+			else if (constant.Value is double c1) { bytes = BitConverter.GetBytes(c1); }
+			else if (constant.Value is float c2) { bytes = BitConverter.GetBytes(c2); }
+			else { throw new NotImplementedException("Unsupported constant data"); }
+
+			if (module != null)
+			{
+				module.Write(bytes);
+				continue;
+			}
+
+			foreach (var element in bytes) builder.WriteLine($"{Size.BYTE.Allocator} {element}");
+		}
+	}
+
+	/// <summary>
+	/// Allocates the specified table label using assembly directives
+	/// </summary>
+	private static string AddTableLable(TableLabel label)
 	{
 		if (label.Declare)
 		{
@@ -606,28 +473,29 @@ public static class Assembler
 		return $"{label.Size.Allocator} {label.Name}";
 	}
 
-	public static void AppendTable(StringBuilder builder, Table table)
+	/// <summary>
+	/// Allocates the specified table using assembly directives
+	/// </summary>
+	public static void AddTable(AssemblyBuilder builder, Table table)
 	{
 		if (table.IsBuilt) return;
-
 		table.IsBuilt = true;
 
 		if (table.IsSection)
 		{
-			builder.AppendLine(SectionDirective + ' ' + table.Name);
+			builder.WriteLine(SectionDirective + ' ' + table.Name); // Create a section
 		}
 		else
 		{
-			builder.AppendLine(ExportDirective + ' ' + table.Name);
+			builder.WriteLine(ExportDirective + ' ' + table.Name); // Export the table
 
-			if (Assembler.IsArm64)
-			{
-				builder.AppendLine($"{PowerOfTwoAlignment} 3");
-			}
+			// Align the table
+			if (Assembler.IsArm64) builder.WriteLine($"{PowerOfTwoAlignment} 3");
 
-			builder.AppendLine(table.Name + ':');
+			builder.WriteLine(table.Name + ':');
 		}
 
+		// Take care of the table items
 		var subtables = new List<Table>();
 
 		foreach (var item in table.Items)
@@ -642,12 +510,11 @@ public static class Assembler
 				Table f => $"{Size.Allocator} {f.Name}",
 				Label g => $"{Size.Allocator} {g.GetName()}",
 				Offset h => $"{Size.DWORD.Allocator} {h.To.Name} - {h.From.Name}",
-				TableLabel i => AppendTableLable(i),
+				TableLabel i => AddTableLable(i),
 				_ => throw new ApplicationException("Invalid table item")
 			};
 
-			builder.Append(result);
-			builder.AppendLine();
+			builder.WriteLine(result);
 
 			if (item is Table subtable && !subtable.IsBuilt)
 			{
@@ -655,206 +522,143 @@ public static class Assembler
 			}
 		}
 
-		builder.Append(SEPARATOR);
+		builder.Write(SEPARATOR);
 
-		subtables.ForEach(i => AppendTable(builder, i));
+		subtables.ForEach(i => AddTable(builder, i));
 	}
 
 	/// <summary>
 	/// Constructs file specific data sections based on the specified context
 	/// </summary>
-	private static Dictionary<SourceFile, string> GetDataSections(Context context, Dictionary<SourceFile, List<string>> exports)
+	private static Dictionary<SourceFile, AssemblyBuilder> GetDataSections(Context context)
 	{
-		var sections = new Dictionary<SourceFile, StringBuilder>();
+		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
 		var types = Common.GetAllTypes(context).Where(i => i.Position != null).GroupBy(i => i.Position?.File ?? throw new ApplicationException("Missing type declaration file")).ToArray();
 
-		// Append static variables
+		var data_section_directive = $"{Assembler.SectionDirective} {Assembler.DataSectionIdentifier}\n";
+
+		// Add static variables
 		foreach (var iterator in types)
 		{
-			var builder = new StringBuilder();
-			var module = new DataEncoderModule();
+			var builder = new AssemblyBuilder(data_section_directive);
 
 			foreach (var type in iterator)
 			{
-				builder.AppendLine(GetStaticVariables(type, module));
-				builder.Append(SEPARATOR);
+				foreach (var variable in type.Variables.Values)
+				{
+					if (!variable.IsStatic) continue;
+
+					if (Assembler.IsAssemblyOutputEnabled) builder.WriteLine(AllocateStaticVariable(variable));
+					else DataEncoder.AddStaticVariable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), variable);
+				}
+
+				builder.Write(SEPARATOR);
 			}
 
-			sections.Add(iterator.Key!, builder);
-			DataSectionModules.Add(iterator.Key!, module);
+			builders[iterator.Key] = builder;
 		}
 
-		// Append runtime information about types
+		// Add runtime information about types
 		foreach (var iterator in types)
 		{
-			var builder = sections[iterator.Key!];
-			var module = DataSectionModules[iterator.Key!];
+			var builder = builders[iterator.Key];
 
 			foreach (var type in iterator)
 			{
 				// 1. Skip if the runtime configuration is not created
 				// 2. Imported types are already exported
 				// 3. The template type must be a variant
-				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant))
-				{
-					continue;
-				}
+				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant)) continue;
 
-				DataEncoder.AddTable(module, type.Configuration.Entry);
-				AppendTable(builder, type.Configuration.Entry);
+				if (Assembler.IsAssemblyOutputEnabled) AddTable(builder, type.Configuration.Entry);
+				else DataEncoder.AddTable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
 			}
 		}
 
-		// Append all strings into the data section
+		// Add all the strings into the data section
 		var functions = Common.GetAllFunctionImplementations(context).Where(i => !i.Metadata!.IsImported)
 			.GroupBy(i => i.Metadata!.Start?.File ?? throw new ApplicationException("Missing type declaration file"));
 
 		foreach (var iterator in functions)
 		{
-			var nodes = new List<StringNode>();
+			// Find all the strings inside the functions
+			var nodes = iterator.Where(i => i.Node != null).SelectMany(i => i.Node!.FindAll(NodeType.STRING)).Cast<StringNode>().ToList();
 
-			foreach (var implementation in iterator.Where(i => i.Node != null))
-			{
-				nodes.AddRange(implementation.Node!.FindAll(NodeType.STRING).Cast<StringNode>());
-			}
-
-			var builder = sections.GetValueOrDefault(iterator.Key, new StringBuilder())!;
-			var module = DataSectionModules.GetValueOrDefault(iterator.Key, new DataEncoderModule())!;
+			var builder = builders.GetValueOrDefault(iterator.Key, new AssemblyBuilder(data_section_directive))!;
 
 			foreach (var node in nodes)
 			{
-				if (node.Identifier == null) continue;
-
 				var name = node.Identifier;
+				if (name == null) continue;
 
-				builder.AppendLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
-				builder.AppendLine($"{name}:");
-				builder.AppendLine(AllocateString(node.Text));
+				if (Assembler.IsAssemblyOutputEnabled)
+				{
+					builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+					builder.WriteLine($"{name}:");
+					builder.WriteLine(AllocateString(node.Text));
+				}
+				else
+				{
+					var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
-				DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
-				module.CreateLocalSymbol(name, module.Position);
-				module.String(node.Text);
+					DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
+
+					module.CreateLocalSymbol(name, module.Position);
+					module.String(node.Text);
+				}
 			}
 
-			sections[iterator.Key!] = builder;
-			DataSectionModules[iterator.Key!] = module;
+			builders[iterator.Key!] = builder;
 		}
 
-		// Append type metadata
+		// Export all the types using mangled symbols
 		foreach (var iterator in types)
 		{
-			var builder = sections[iterator.Key!];
+			var builder = builders[iterator.Key];
 			var symbols = new List<string>();
+			var module = Assembler.IsAssemblyOutputEnabled ? null : builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
-			var module = DataSectionModules.GetValueOrDefault(iterator.Key, new DataEncoderModule())!;
+			builder.Write(SEPARATOR);
 
 			foreach (var type in iterator)
 			{
-				var symbol = ExportType(builder, type);
+				var symbol = ObjectExporter.ExportType(builder, type);
+				if (symbol == null) continue;
 
-				if (symbol != null)
-				{
-					symbols.Add(symbol);
-					module.CreateLocalSymbol(symbol, module.Position);
-				}
+				builder.Export(symbol);
+				module?.CreateLocalSymbol(symbol, module.Position);
 			}
 
-			if (symbols.Any()) exports.Add(iterator.Key!, symbols);
+			builder.Write(SEPARATOR);
 		}
 
-		return sections.ToDictionary(i => i.Key, i => i.Value.ToString());
-	}
-
-	/// <summary>
-	/// Constructs data section for the specified constants
-	/// </summary>
-	private static string GetConstantData(List<ConstantDataSectionHandle> constants)
-	{
-		var builder = new StringBuilder();
-
-		foreach (var constant in constants)
-		{
-			var name = constant.Identifier;
-
-			string? allocator = null;
-			string? text = null;
-
-			if (constant.Value is byte[] x)
-			{
-				text = string.Join(", ", x.Select(i => i.ToString(CultureInfo.InvariantCulture)).ToArray());
-				allocator = Size.BYTE.Allocator;
-			}
-			else if (constant.Value is double y)
-			{
-				var bytes = BitConverter.GetBytes(y);
-				allocator = Size.BYTE.Allocator;
-
-				text = string.Join(", ", bytes.Select(i => i.ToString(CultureInfo.InvariantCulture)).ToArray());
-
-				var value = y.ToString(CultureInfo.InvariantCulture);
-
-				if (!value.Contains('.') && !value.Contains('E'))
-				{
-					value += ".0";
-				}
-
-				text += $" {Comment} {value}";
-			}
-			else if (constant.Value is float z)
-			{
-				var bytes = BitConverter.GetBytes(z);
-				allocator = Size.BYTE.Allocator;
-
-				text = string.Join(", ", bytes.Select(i => i.ToString(CultureInfo.InvariantCulture)).ToArray());
-
-				var value = z.ToString(CultureInfo.InvariantCulture);
-
-				if (!value.Contains('.') && !value.Contains('E'))
-				{
-					value += ".0";
-				}
-
-				text += $" {Comment} {value}";
-			}
-			else
-			{
-				text = constant.Value.ToString()!.Replace(',', '.');
-				allocator = constant.Size.Allocator;
-			}
-
-			builder.AppendLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
-			builder.AppendLine($"{name}:");
-			builder.AppendLine($"{allocator} {text}");
-		}
-
-		return builder.ToString();
+		return builders;
 	}
 
 	/// <summary>
 	/// Appends debug information about the specified function
 	/// </summary>
-	public static void AppendFunctionDebugInfo(Debug debug, FunctionImplementation implementation, HashSet<Type> types)
+	public static void AddFunctionDebugInfo(Debug debug, FunctionImplementation implementation, HashSet<Type> types)
 	{
-		debug.AppendFunction(implementation, types);
+		debug.AddFunction(implementation, types);
 
 		foreach (var iterator in implementation.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations))
 		{
 			if (iterator.Node == null || iterator.Metadata.IsImported) continue;
-
-			AppendFunctionDebugInfo(debug, iterator, types);
+			AddFunctionDebugInfo(debug, iterator, types);
 		}
 	}
 
-	public static Dictionary<SourceFile, string> GetDebugSections(Context context)
+	/// <summary>
+	/// Constructs debugging information for each of the files inside the context
+	/// </summary>
+	public static Dictionary<SourceFile, AssemblyBuilder> GetDebugSections(Context context)
 	{
-		var sections = new Dictionary<SourceFile, string>();
+		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
+		if (!Assembler.IsDebuggingEnabled) return builders;
 
-		if (!Assembler.IsDebuggingEnabled)
-		{
-			return sections;
-		}
-
-		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null).GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
+		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null)
+			.GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 
 		foreach (var file in functions)
 		{
@@ -866,8 +670,7 @@ public static class Assembler
 			foreach (var implementation in file)
 			{
 				if (implementation.Metadata!.IsImported) continue;
-
-				AppendFunctionDebugInfo(debug, implementation, types);
+				AddFunctionDebugInfo(debug, implementation, types);
 			}
 
 			var denylist = new HashSet<Type>();
@@ -879,7 +682,7 @@ public static class Assembler
 				foreach (var type in previous)
 				{
 					if (denylist.Contains(type)) continue;
-					debug.AppendType(type, types);
+					debug.AddType(type, types);
 				}
 
 				// Stop if the types have not increased
@@ -890,17 +693,17 @@ public static class Assembler
 
 			debug.EndFile();
 
-			sections.Add(file.Key!, debug.Export());
+			builders.Add(file.Key, debug.Export(file.Key));
 		}
 
-		return sections;
+		return builders;
 	}
 
 	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
-			Comment = ARM64_COMMENT;
+			CommentSpecifier = ARM64_COMMENT;
 
 			Instructions.Arm64.Initialize();
 		}
@@ -908,6 +711,8 @@ public static class Assembler
 		{
 			Instructions.X64.Initialize();
 		}
+
+		Keywords.Values.Clear(); // Remove all keywords for parsing assembly
 
 		Assembler.IsPositionIndependent = output_type == BinaryType.SHARED_LIBRARY;
 
@@ -920,26 +725,27 @@ public static class Assembler
 		{
 			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
 		}
-
-		var text_sections = GetTextSections(context, out Dictionary<SourceFile, List<ConstantDataSectionHandle>> constant_sections);
-		var data_sections = GetDataSections(context, exports);
-		var debug_sections = GetDebugSections(context);
+	
 		var object_files = new List<BinaryObjectFile>();
+
+		var text_sections = GetTextSections(context);
+		var data_sections = GetDataSections(context);
+		var debug_sections = GetDebugSections(context);
 
 		foreach (var file in files)
 		{
-			var builder = new StringBuilder();
-			var is_data_section = false;
+			var builder = new AssemblyBuilder();
 
-			if (Assembler.IsX64 && Assembler.IsLegacyAssemblyEnabled) builder.AppendLine(LEGACY_ASSEMBLY_SYNTAX_SPECIFIER);
-			builder.AppendLine(SectionDirective + ' ' + TextSectionIdentifier);
+			// Legacy assembly requires the syntax to be specified
+			if (Assembler.IsX64 && Assembler.IsLegacyAssemblyEnabled) builder.WriteLine(LEGACY_ASSEMBLY_SYNTAX_SPECIFIER);
+
+			// Start the text section
+			builder.WriteLine(SectionDirective + ' ' + TextSectionIdentifier);
 
 			if (Assembler.IsDebuggingEnabled)
 			{
-				builder.AppendFormat(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
-				builder.AppendLine(":");
-
 				var fullname = file.Fullname;
+
 				var current_folder = Environment.CurrentDirectory.Replace('\\', '/');
 				if (!current_folder.EndsWith('/')) { current_folder += '/'; }
 
@@ -951,15 +757,15 @@ public static class Assembler
 
 				if (IsLegacyAssemblyEnabled)
 				{
-					builder.AppendLine(DebugFileDirective + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
+					builder.WriteLine(DebugFileDirective + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
 				}
 				else
 				{
-					builder.AppendLine(DebugFileDirective + ' ' + $"\'{fullname.Replace('\\', '/')}\'");
+					builder.WriteLine(DebugFileDirective + ' ' + $"\'{fullname.Replace('\\', '/')}\'");
 				}
 			}
 
-			// Append the text section header only if the output type represents executable
+			// Add the text section header only if the output type represents executable
 			if (output_type != BinaryType.STATIC_LIBRARY && entry_function_file == file)
 			{
 				if (entry_function == null) throw new ApplicationException("Missing entry function");
@@ -999,74 +805,75 @@ public static class Assembler
 					else { instructions += $"bl {function.GetFullname()}"; }
 				}
 
-				builder.AppendLine(string.Format(CultureInfo.InvariantCulture, template, ExportDirective, instructions));
-			}
+				builder.WriteLine(string.Format(CultureInfo.InvariantCulture, template, ExportDirective, instructions));
 
-			if (text_sections.TryGetValue(file, out string? text_section))
-			{
-				builder.Append(text_section);
-				builder.Append(SEPARATOR);
-			}
-
-			if (Assembler.IsDebuggingEnabled)
-			{
-				builder.AppendFormat(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
-				builder.AppendLine(":");
-			}
-
-			if (data_sections.TryGetValue(file, out string? data_section))
-			{
-				if (!is_data_section)
+				if (!Assembler.IsAssemblyOutputEnabled)
 				{
-					builder.AppendLine(SectionDirective + ' ' + DataSectionIdentifier);
-					is_data_section = true;
+					var parser = new AssemblyParser();
+					parser.Parse(string.Format(CultureInfo.InvariantCulture, template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
+
+					builder.Add(file, parser.Instructions);
+					builder.Export(parser.Exports);
 				}
-
-				builder.Append(data_section);
-				builder.Append(SEPARATOR);
 			}
 
-			if (constant_sections.TryGetValue(file, out List<ConstantDataSectionHandle>? constant_section))
+			if (text_sections.TryGetValue(file, out var text_section_builder))
 			{
-				if (!is_data_section)
-				{
-					builder.AppendLine(SectionDirective + ' ' + DataSectionIdentifier);
-					is_data_section = true;
-				}
-
-				builder.Append(GetConstantData(constant_section));
-				builder.Append(SEPARATOR);
+				builder.Add(text_section_builder);
+				builder.Write(SEPARATOR);
 			}
 
-			if (Assembler.IsDebuggingEnabled && debug_sections.TryGetValue(file, out string? debug_section))
+			if (data_sections.TryGetValue(file, out var data_section_builder))
 			{
-				builder.Append(debug_section);
-				builder.Append(SEPARATOR);
+				if (builder.Constants.ContainsKey(file)) AllocateConstants(data_section_builder, file, builder.Constants[file]);
+
+				builder.Add(data_section_builder);
+				builder.Write(SEPARATOR);
 			}
 
-			result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
+			if (debug_sections.TryGetValue(file, out var debug_section_builder))
+			{
+				builder.Add(debug_section_builder);
+				builder.Write(SEPARATOR);
+			}
 
-			var output = InstructionEncoder.Encode(Translator.Output.ContainsKey(file) ? Translator.Output[file] : new List<Instruction>(), file.Fullname);
-			var exported_symbols = new HashSet<string>();
-			var debug_frames = output.Frames?.Export();
-			var debug_lines = output.Lines?.Export();
-			var binary_text_section = output.Section;
-			var binary_data_section = DataSectionModules[file].Export();
+			exports[file] = builder.Exports.ToList();
+
+			if (Assembler.IsAssemblyOutputEnabled)
+			{
+				result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
+				continue;
+			}
+
+			// Load all the section modules
+			var modules = builder.Modules[file];
+
+			// Ensure there are no duplicated sections
+			if (modules.Count != modules.Select(i => i.Name).Distinct().Count()) throw new ApplicationException("Duplicated sections are not allowed");
+
+			var output = InstructionEncoder.Encode(builder.Instructions.GetValueOrDefault(file, new List<Instruction>()), file.Fullname);
+			var object_text_section = output.Section;
+			var object_data_sections = modules.Select(i => i.Export()).ToList();
+			var object_debug_lines = output.Lines?.Export();
+			var object_debug_frames = output.Frames?.Export();
 
 			var sections = new List<BinarySection>();
-			sections.Add(binary_text_section);
-			if (debug_frames != null) sections.Add(debug_frames);
-			sections.Add(binary_data_section);
-			if (debug_lines != null) sections.Add(debug_lines);
+			sections.Add(object_text_section);
+			if (object_debug_frames != null) sections.Add(object_debug_frames);
+			sections.AddRange(object_data_sections);
+			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
-			var object_file = ElfFormat.Create(sections, exported_symbols);
+			var object_file = ElfFormat.Create(sections, builder.Exports);
 			object_files.Add(object_file);
 		}
 
-		var linked_binary = Linker.Link(object_files, "0._V4initv_rx");
-		System.IO.File.WriteAllBytes("v.test", linked_binary);
+		if (!Assembler.IsAssemblyOutputEnabled)
+		{
+			var linked_binary = Linker.Link(object_files, DefaultEntryPoint);
+			System.IO.File.WriteAllBytes("v.test", linked_binary);
 
-		//ElfFormat.ImportObjectX64("libv_x64.o");
+			Environment.Exit(0);
+		}
 
 		return result;
 	}

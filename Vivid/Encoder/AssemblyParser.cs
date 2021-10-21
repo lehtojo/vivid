@@ -176,18 +176,7 @@ public class AssemblyParser
 		// Pattern: .export $symbol
 		if (tokens[1].To<IdentifierToken>().Value != EXPORT_DIRECTIVE) return false;
 
-		var name = tokens[2].To<IdentifierToken>().Value;
-
-		if (Data == null)
-		{
-			Instructions.Add(new LabelInstruction(Unit, new Label(name)));
-		}
-		else
-		{
-			Data.CreateLocalSymbol(name, Data.Position);
-		}
-
-		Exports.Add(name);
+		Exports.Add(tokens[2].To<IdentifierToken>().Value);
 		return true;
 	}
 

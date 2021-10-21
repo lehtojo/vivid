@@ -40,11 +40,9 @@ public class TableLabel
 
 public class Debug
 {
-	public static string DebugAbbrevationTable = "debug_abbrev";
-	public static string DebugInformationTable = "debug_info";
-	public static string DebugStringTable = "debug_str";
-	public static string DebugLineTable = "debug_line";
-	public static string DebugLineTableStart = "debug_line_start";
+	public static string DebugAbbrevationTable { get; set; } = "debug_abbrev";
+	public static string DebugInformationTable { get; set; } = "debug_info";
+	public static string DebugLineTable { get; set; } = "debug_line";
 
 	public const string STRING_TYPE_IDENTIFIER = "String";
 	public const string STRING_TYPE_DATA_VARIABLE = "text";
@@ -135,7 +133,7 @@ public class Debug
 
 	public const byte DWARF_END = 0;
 
-	public Table Entry { get; }
+	public Table Information { get; }
 	public Table Abbrevation { get; }
 
 	public TableLabel Start { get; }
@@ -162,9 +160,9 @@ public class Debug
 
 	public void BeginFile(SourceFile file)
 	{
-		Entry.Add(FileAbbrevation); // DW_TAG_compile_unit
-		Entry.Add(DWARF_PRODUCER_TEXT); // DW_AT_producer
-		Entry.Add(DWARF_LANGUAGE_IDENTIFIER); // DW_AT_language
+		Information.Add(FileAbbrevation); // DW_TAG_compile_unit
+		Information.Add(DWARF_PRODUCER_TEXT); // DW_AT_producer
+		Information.Add(DWARF_LANGUAGE_IDENTIFIER); // DW_AT_language
 
 		var fullname = file.Fullname;
 
@@ -174,17 +172,17 @@ public class Debug
 			fullname = fullname.Insert(0, ".");
 		}
 
-		Entry.Add(fullname.Replace("\\", "/")); // DW_AT_name
+		Information.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
-		Entry.Add(new TableLabel(DebugLineTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
+		Information.Add(new TableLabel(DebugLineTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
 
-		Entry.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
+		Information.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
 		var start = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_START, file.Index));
 		var end = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_END, file.Index));
 
-		Entry.Add(start); // DW_AT_low_pc
-		Entry.Add(GetOffset(start, end)); /// DW_AT_high_pc
+		Information.Add(start); // DW_AT_low_pc
+		Information.Add(GetOffset(start, end)); /// DW_AT_high_pc
 	}
 
 	public static TableLabel GetEnd(FunctionImplementation implementation)
@@ -247,29 +245,29 @@ public class Debug
 		return new TableLabel(GetTypeLabelName(type, pointer), Size.QWORD, false);
 	}
 
-	public void AppendOperation(byte command, params byte[] parameters)
+	public void AddOperation(byte command, params byte[] parameters)
 	{
-		Entry.Add((byte)(parameters.Length + 1)); // Length of the operation
-		Entry.Add(command);
-		parameters.ForEach(i => Entry.Add(i));
+		Information.Add((byte)(parameters.Length + 1)); // Length of the operation
+		Information.Add(command);
+		parameters.ForEach(i => Information.Add(i));
 	}
 
-	public void AppendFunction(FunctionImplementation implementation, HashSet<Type> types)
+	public void AddFunction(FunctionImplementation implementation, HashSet<Type> types)
 	{
 		var file = GetFile(implementation);
 		var abbreviation = ToULEB128(Index++); // DW_TAG_subprogram
 
-		foreach (var value in abbreviation) Entry.Add(value);
+		foreach (var value in abbreviation) Information.Add(value);
 
 		var start = new TableLabel(implementation.GetFullname(), Size.QWORD, false);
-		Entry.Add(start); // DW_AT_low_pc
+		Information.Add(start); // DW_AT_low_pc
 
-		Entry.Add(GetOffset(start, GetEnd(implementation))); // DW_AT_high_pc
+		Information.Add(GetOffset(start, GetEnd(implementation))); // DW_AT_high_pc
 
-		AppendOperation(Assembler.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
-		Entry.Add(implementation.GetHeader()); // DW_AT_name
-		Entry.Add(file); // DW_AT_decl_file
-		Entry.Add(GetLine(implementation)); // DW_AT_decl_line
+		AddOperation(Assembler.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
+		Information.Add(implementation.GetHeader()); // DW_AT_name
+		Information.Add(file); // DW_AT_decl_file
+		Information.Add(GetLine(implementation)); // DW_AT_decl_line
 
 		var has_children = implementation.Self != null || implementation.Parameters.Any() || implementation.Locals.Any();
 
@@ -310,33 +308,33 @@ public class Debug
 
 		if (implementation.ReturnType != null)
 		{
-			Entry.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!, types))); // DW_AT_type
+			Information.Add(GetOffset(Start, GetTypeLabel(implementation.ReturnType!, types))); // DW_AT_type
 		}
 
 		foreach (var local in implementation.Locals)
 		{
-			AppendLocalVariable(local, types, file, implementation.SizeOfLocalMemory);
+			AddLocalVariable(local, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		var self = implementation.GetSelfPointer();
 
 		if (self != null)
 		{
-			AppendParameterVariable(self, types, file, implementation.SizeOfLocalMemory);
+			AddParameterVariable(self, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		foreach (var parameter in implementation.Parameters)
 		{
-			AppendParameterVariable(parameter, types, file, implementation.SizeOfLocalMemory);
+			AddParameterVariable(parameter, types, file, implementation.SizeOfLocalMemory);
 		}
 
 		if (has_children)
 		{
-			Entry.Add(DWARF_END); // End Of Children Mark
+			Information.Add(DWARF_END); // End Of Children Mark
 		}
 	}
 
-	public void AppendFileAbbrevation()
+	public void AddFileAbbrevation()
 	{
 		Abbrevation.Add((byte)Index); // Define the current abbreviation code
 
@@ -370,7 +368,7 @@ public class Debug
 		FileAbbrevation = (byte)Index++;
 	}
 
-	public void AppendObjectTypeWithMembersAbbrevation()
+	public void AddObjectTypeWithMembersAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
@@ -397,7 +395,7 @@ public class Debug
 		ObjectTypeWithMembersAbbrevation = (byte)Index++;
 	}
 
-	public void AppendObjectTypeWithoutMembersAbbrevation()
+	public void AddObjectTypeWithoutMembersAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_OBJECT_TYPE_DECLARATION);
@@ -424,7 +422,7 @@ public class Debug
 		ObjectTypeWithoutMembersAbbrevation = (byte)Index++;
 	}
 
-	public void AppendBaseTypeAbbrevation()
+	public void AddBaseTypeAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_BASE_TYPE_DECLARATION);
@@ -445,7 +443,7 @@ public class Debug
 		BaseTypeAbbrevation = (byte)Index++;
 	}
 
-	public void AppendPointerTypeAbbrevation()
+	public void AddPointerTypeAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_POINTER_TYPE_DECLARATION);
@@ -460,7 +458,7 @@ public class Debug
 		PointerTypeAbbrevation = (byte)Index++;
 	}
 
-	public void AppendMemberVariableAbbrevation()
+	public void AddMemberVariableAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_MEMBER_DECLARATION);
@@ -490,7 +488,7 @@ public class Debug
 		MemberVariableAbbrevation = (byte)Index++;
 	}
 
-	public void AppendLocalVariableAbbrevation()
+	public void AddLocalVariableAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_VARIABLE);
@@ -517,7 +515,7 @@ public class Debug
 		LocalVariableAbbrevation = (byte)Index++;
 	}
 
-	public void AppendParameterVariableAbbrevation()
+	public void AddParameterVariableAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_PARAMETER);
@@ -544,7 +542,7 @@ public class Debug
 		ParameterVariableAbbrevation = (byte)Index++;
 	}
 
-	public void AppendArrayTypeAbbrevation()
+	public void AddArrayTypeAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_ARRAY_TYPE);
@@ -559,7 +557,7 @@ public class Debug
 		ArrayTypeAbbrevation = (byte)Index++;
 	}
 
-	public void AppendSubrangeTypeAbbrevation()
+	public void AddSubrangeTypeAbbrevation()
 	{
 		Abbrevation.Add((byte)Index);
 		Abbrevation.Add(DWARF_SUBRANGE_TYPE);
@@ -577,7 +575,7 @@ public class Debug
 		SubrangeTypeAbbrevation = (byte)Index++;
 	}
 
-	public void AppendInheritanceAbbreviation()
+	public void AddInheritanceAbbreviation()
 	{
 		Abbrevation.Add((byte)Index);
 
@@ -604,117 +602,117 @@ public class Debug
 		return !type.IsPrimitive;
 	}
 
-	public void AppendMemberVariable(Variable variable, HashSet<Type> types)
+	public void AddMemberVariable(Variable variable, HashSet<Type> types)
 	{
 		if (variable.Type is ArrayType) return;
 		
-		Entry.Add(MemberVariableAbbrevation);
-		Entry.Add(variable.Name);
-		Entry.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
-		Entry.Add(GetFile(variable));
-		Entry.Add(GetLine(variable));
-		Entry.Add(variable.GetAlignment(variable.Context.To<Type>()) ?? throw new ApplicationException("Missing member variable alignment"));
+		Information.Add(MemberVariableAbbrevation);
+		Information.Add(variable.Name);
+		Information.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
+		Information.Add(GetFile(variable));
+		Information.Add(GetLine(variable));
+		Information.Add(variable.GetAlignment(variable.Context.To<Type>()) ?? throw new ApplicationException("Missing member variable alignment"));
 
 		if (Flag.Has(variable.Modifiers, Modifier.PRIVATE))
 		{
-			Entry.Add(DWARF_ACCESS_PRIVATE);
+			Information.Add(DWARF_ACCESS_PRIVATE);
 		}
 		else if (Flag.Has(variable.Modifiers, Modifier.PROTECTED))
 		{
-			Entry.Add(DWARF_ACCESS_PROTECTED);
+			Information.Add(DWARF_ACCESS_PROTECTED);
 		}
 		else
 		{
-			Entry.Add(DWARF_ACCESS_PUBLIC);
+			Information.Add(DWARF_ACCESS_PUBLIC);
 		}
 	}
 
-	public void AppendObjectType(Type type, HashSet<Type> types)
+	public void AddObjectType(Type type, HashSet<Type> types)
 	{
 		var has_members = type.Supertypes.Any() || type.Variables.Values.Any(i => !i.IsGenerated);
 
-		Entry.Add(has_members ? ObjectTypeWithMembersAbbrevation : ObjectTypeWithoutMembersAbbrevation);
-		Entry.Add(DWARF_CALLING_CONVENTION_PASS_BY_REFERENCE);
-		Entry.Add(type.Name);
-		Entry.Add(type.ContentSize);
-		Entry.Add(GetFile(type));
-		Entry.Add(GetLine(type));
+		Information.Add(has_members ? ObjectTypeWithMembersAbbrevation : ObjectTypeWithoutMembersAbbrevation);
+		Information.Add(DWARF_CALLING_CONVENTION_PASS_BY_REFERENCE);
+		Information.Add(type.Name);
+		Information.Add(type.ContentSize);
+		Information.Add(GetFile(type));
+		Information.Add(GetLine(type));
 
 		// Include the supertypes
 		foreach (var supertype in type.Supertypes)
 		{
-			Entry.Add(InheritanceAbbrevation);
-			Entry.Add(GetOffset(Start, GetTypeLabel(supertype, types)));
-			Entry.Add(type.GetSupertypeBaseOffset(supertype) ?? throw new ApplicationException("Could not resolve supertype base offset"));
-			Entry.Add(DWARF_ACCESS_PUBLIC);
+			Information.Add(InheritanceAbbrevation);
+			Information.Add(GetOffset(Start, GetTypeLabel(supertype, types)));
+			Information.Add(type.GetSupertypeBaseOffset(supertype) ?? throw new ApplicationException("Could not resolve supertype base offset"));
+			Information.Add(DWARF_ACCESS_PUBLIC);
 		}
 
 		foreach (var member in type.Variables.Values)
 		{
 			if (member.IsGenerated || member.IsStatic) continue;
-			AppendMemberVariable(member, types);
+			AddMemberVariable(member, types);
 		}
 
-		if (has_members) Entry.Add(DWARF_END);
+		if (has_members) Information.Add(DWARF_END);
 
-		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
-		Entry.Add(PointerTypeAbbrevation);
-		Entry.Add(GetOffset(Start, GetTypeLabel(type, types)));
+		Information.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
+		Information.Add(PointerTypeAbbrevation);
+		Information.Add(GetOffset(Start, GetTypeLabel(type, types)));
 	}
 	
 	/// <summary>
 	/// Appends a link type which enables the user to see its elements
 	/// </summary>
-	public void AppendArrayLink(Type type, Type element, HashSet<Type> types)
+	public void AddArrayLink(Type type, Type element, HashSet<Type> types)
 	{
 		// Create the array type
 		var is_pointer = IsPointerType(element);
 		var name = GetTypeLabelName(type, is_pointer) + ARRAY_TYPE_POSTFIX;
 		var subrange = new TableLabel(name, Size.QWORD, true);
 
-		Entry.Add(subrange);
-		Entry.Add(ArrayTypeAbbrevation); // Abbrevation code
-		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
+		Information.Add(subrange);
+		Information.Add(ArrayTypeAbbrevation); // Abbrevation code
+		Information.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
 
-		Entry.Add(SubrangeTypeAbbrevation); // Abbrevation code
-		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
-		Entry.Add(ARRAY_TYPE_ELEMENTS); // DW_AT_count
+		Information.Add(SubrangeTypeAbbrevation); // Abbrevation code
+		Information.Add(GetOffset(Start, GetTypeLabel(element, types, is_pointer))); // DW_AT_type
+		Information.Add(ARRAY_TYPE_ELEMENTS); // DW_AT_count
 
-		Entry.Add(DWARF_END); // End of children
+		Information.Add(DWARF_END); // End of children
 
-		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
-		Entry.Add(PointerTypeAbbrevation);
-		Entry.Add(GetOffset(Start, subrange));
+		Information.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
+		Information.Add(PointerTypeAbbrevation);
+		Information.Add(GetOffset(Start, subrange));
 
 		types.Add(element);
 	}
 
-	public void AppendLink(Type type, HashSet<Type> types)
+	public void AddLink(Type type, HashSet<Type> types)
 	{
 		var element = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
 
 		if (!Primitives.IsPrimitive(element, Primitives.BYTE) && !Primitives.IsPrimitive(element, Primitives.CHAR) && !Primitives.IsPrimitive(element, Primitives.U8))
 		{
-			AppendArrayLink(type, element, types);
+			AddArrayLink(type, element, types);
 			return;
 		}
 
-		Entry.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
-		Entry.Add(PointerTypeAbbrevation);
-		Entry.Add(GetOffset(Start, GetTypeLabel(element, types, IsPointerType(element))));
+		Information.Add(new TableLabel(GetTypeLabelName(type, true), Size.QWORD, true));
+		Information.Add(PointerTypeAbbrevation);
+		Information.Add(GetOffset(Start, GetTypeLabel(element, types, IsPointerType(element))));
 
 		types.Add(element);
 	}
 
-	public void AppendType(Type type, HashSet<Type> types)
+	public void AddType(Type type, HashSet<Type> types)
 	{
 		if (Primitives.IsPrimitive(type, Primitives.LINK))
 		{
-			AppendLink(type, types);
+			AddLink(type, types);
 			return;
 		}
 
-		Entry.Add(new TableLabel(GetTypeLabelName(type), Size.QWORD, true));
+		Information.Add(new TableLabel(GetTypeLabelName(type), Size.QWORD, true));
 
 		var encoding = (byte)0;
 
@@ -742,15 +740,15 @@ public class Debug
 
 		if (encoding == 0)
 		{
-			AppendObjectType(type, types);
+			AddObjectType(type, types);
 			return;
 		}
 
-		Entry.Add(BaseTypeAbbrevation);
-		Entry.Add(type.Name);
+		Information.Add(BaseTypeAbbrevation);
+		Information.Add(type.Name);
 
-		Entry.Add(encoding);
-		Entry.Add(type.AllocationSize);
+		Information.Add(encoding);
+		Information.Add(type.AllocationSize);
 	}
 
 	public static byte[] ToULEB128(int value)
@@ -816,13 +814,13 @@ public class Debug
 		return variable.Type != null && variable.Type.Name == STRING_TYPE_IDENTIFIER && variable.Type.Parent!.IsGlobal;
 	}
 
-	public void AppendLocalVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
+	public void AddLocalVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
 		if (variable.IsGenerated || variable.LocalAlignment == null || variable.Type is ArrayType) return;
 
 		var is_string = IsStringType(variable);
 
-		Entry.Add(LocalVariableAbbrevation); // DW_TAG_variable
+		Information.Add(LocalVariableAbbrevation); // DW_TAG_variable
 		
 		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
 		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Local variable was not aligned");
@@ -840,28 +838,28 @@ public class Debug
 
 			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
 
-			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
+			AddOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
 		}
 		else
 		{
-			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment); // DW_AT_location
+			AddOperation(DWARF_OP_BASE_POINTER_OFFSET, local_variable_alignment); // DW_AT_location
 		}
 
-		Entry.Add(variable.Name); // DW_AT_name
+		Information.Add(variable.Name); // DW_AT_name
 
-		Entry.Add(file); // DW_AT_decl_file
-		Entry.Add(GetLine(variable)); // DW_AT_decl_line
+		Information.Add(file); // DW_AT_decl_file
+		Information.Add(GetLine(variable)); // DW_AT_decl_line
 
-		Entry.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
+		Information.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
 	}
 
-	public void AppendParameterVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
+	public void AddParameterVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
 		if (variable.IsGenerated || variable.LocalAlignment == null) return;
 
 		var is_string = IsStringType(variable);
 
-		Entry.Add(ParameterVariableAbbrevation); // DW_TAG_variable
+		Information.Add(ParameterVariableAbbrevation); // DW_TAG_variable
 		
 		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
 		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Parameter variable was not aligned");
@@ -879,67 +877,73 @@ public class Debug
 
 			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
 
-			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
+			AddOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment.Concat(new[] { DWARF_OP_DEREFERENCE, DWARF_OP_ADD_BYTE_CONSTANT, data_variable_alignment[0] }).ToArray()); // DW_AT_location
 		}
 		else
 		{
-			AppendOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment); // DW_AT_location
+			AddOperation(DWARF_OP_BASE_POINTER_OFFSET, parameter_alignment); // DW_AT_location
 		}
 
-		Entry.Add(variable.Name); // DW_AT_name
+		Information.Add(variable.Name); // DW_AT_name
 
-		Entry.Add(file); // DW_AT_decl_file
-		Entry.Add(GetLine(variable)); // DW_AT_decl_line
+		Information.Add(file); // DW_AT_decl_file
+		Information.Add(GetLine(variable)); // DW_AT_decl_line
 
-		Entry.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
+		Information.Add(GetOffset(Start, GetTypeLabel(type, types, IsPointerType(type)))); // DW_AT_type
 	}
 
 	public Debug()
 	{
 		Abbrevation = new Table(DebugAbbrevationTable) { IsSection = true };
-		Entry = new Table(DebugInformationTable) { IsSection = true };
+		Information = new Table(DebugInformationTable) { IsSection = true };
 
 		Start = new TableLabel("debug_info_start", Size.QWORD, true);
 		End = new TableLabel("debug_info_end", Size.QWORD, true);
 
 		var version_number_label = new TableLabel("debug_info_version", Size.QWORD, true);
 
-		Entry.Add(Start);
-		Entry.Add(GetOffset(version_number_label, End));
-		Entry.Add(version_number_label);
-		Entry.Add(DWARF_VERSION);
-		Entry.Add(new TableLabel(DebugAbbrevationTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
-		Entry.Add((byte)Assembler.Size.Bytes);
+		Information.Add(Start);
+		Information.Add(GetOffset(version_number_label, End));
+		Information.Add(version_number_label);
+		Information.Add(DWARF_VERSION);
+		Information.Add(new TableLabel(DebugAbbrevationTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
+		Information.Add((byte)Assembler.Size.Bytes);
 
-		AppendFileAbbrevation();
-		AppendObjectTypeWithMembersAbbrevation();
-		AppendObjectTypeWithoutMembersAbbrevation();
-		AppendBaseTypeAbbrevation();
-		AppendPointerTypeAbbrevation();
-		AppendMemberVariableAbbrevation();
-		AppendParameterVariableAbbrevation();
-		AppendLocalVariableAbbrevation();
-		AppendArrayTypeAbbrevation();
-		AppendSubrangeTypeAbbrevation();
-		AppendInheritanceAbbreviation();
+		AddFileAbbrevation();
+		AddObjectTypeWithMembersAbbrevation();
+		AddObjectTypeWithoutMembersAbbrevation();
+		AddBaseTypeAbbrevation();
+		AddPointerTypeAbbrevation();
+		AddMemberVariableAbbrevation();
+		AddParameterVariableAbbrevation();
+		AddLocalVariableAbbrevation();
+		AddArrayTypeAbbrevation();
+		AddSubrangeTypeAbbrevation();
+		AddInheritanceAbbreviation();
 	}
 
 	public void EndFile()
 	{
-		Entry.Add(DWARF_END);
+		Information.Add(DWARF_END);
 	}
 
-	public string Export()
+	public AssemblyBuilder Export(SourceFile file)
 	{
-		Entry.Add(DWARF_END);
+		Information.Add(DWARF_END);
 		Abbrevation.Add(DWARF_END);
 
-		Entry.Add(End);
+		Information.Add(End);
 
-		var builder = new StringBuilder();
-		Assembler.AppendTable(builder, Abbrevation);
-		Assembler.AppendTable(builder, Entry);
+		var builder = new AssemblyBuilder();
+		Assembler.AddTable(builder, Abbrevation);
+		Assembler.AddTable(builder, Information);
 
-		return builder.ToString();
+		if (!builder.IsTextEnabled)
+		{
+			DataEncoder.AddTable(builder.GetDataSection(file, Abbrevation.Name), Abbrevation);
+			DataEncoder.AddTable(builder.GetDataSection(file, Information.Name), Information);
+		}
+
+		return builder;
 	}
 }

@@ -1,6 +1,8 @@
-using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
+using System;
 
 public class DataEncoderModule
 {
@@ -204,10 +206,57 @@ public class DataEncoderModule
 	/// <summary>
 	/// Writes the specified string into this module
 	/// </summary>
-	public void String(string value, bool terminate = true)
+	public void String(string text, bool terminate = true)
 	{
-		#warning Support text commands
-		Write(Encoding.ASCII.GetBytes(value));
+		var position = 0;
+
+		while (position < text.Length)
+		{
+			var slice = new string(text.Skip(position).TakeWhile(i => i != '\\').ToArray());
+			position += slice.Length;
+
+			if (slice.Length > 0) Write(Encoding.ASCII.GetBytes(slice));
+
+			if (position >= text.Length) break;
+
+			position++; // Skip character '\'
+
+			var command = text[position++];
+			var length = 0;
+			var error = string.Empty;
+
+			if (command == 'x')
+			{
+				length = 2;
+				error = "Can not understand hexadecimal value in a string";
+			}
+			else if (command == 'u')
+			{
+				length = 4;
+				error = "Can not understand Unicode character in a string";
+			}
+			else if (command == 'U')
+			{
+				length = 8;
+				error = "Can not understand Unicode character in a string";
+			}
+			else if (command == '\\')
+			{
+				Write('\\');
+				continue;
+			}
+			else
+			{
+				throw new ApplicationException($"Can not understand string command '{command}'");
+			}
+
+			var hexadecimal = text.Substring(position, length);
+			if (!ulong.TryParse(hexadecimal, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong value)) throw new ApplicationException(error);
+
+			Write(BitConverter.GetBytes(value).Take(length / 2).ToArray());
+			position += length;
+		}
+
 		if (terminate) Write(0);
 	}
 
@@ -289,7 +338,10 @@ public static class DataEncoder
 	/// </summary>
 	public static void Align(DataEncoderModule module, int alignment)
 	{
-		module.Zero(alignment - module.Position % alignment);
+		var padding = alignment - module.Position % alignment;
+		if (padding == alignment) return;
+
+		module.Zero(padding);
 	}
 
 	/// <summary>
@@ -318,13 +370,11 @@ public static class DataEncoder
 	/// </summary>
 	public static void AddTable(DataEncoderModule module, Table table)
 	{
-		//if (table.IsBuilt) return;
-		//table.IsBuilt = true;
-
-		if (table.IsSection) throw new NotSupportedException("Tables must not be sections here");
-
-		// Define the table as a symbol
-		module.CreateLocalSymbol(table.Name, module.Position);
+		if (!table.IsSection)
+		{
+			// Define the table as a symbol
+			module.CreateLocalSymbol(table.Name, module.Position);
+		}
 
 		// Align tables if the platform is ARM
 		if (Assembler.IsArm64) Align(module, 8);
