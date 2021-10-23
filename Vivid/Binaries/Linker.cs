@@ -54,7 +54,7 @@ public static class Linker
 			if (!symbol.External) continue;
 
 			// Try to find the actual symbol
-			if (!definitions.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
+			if (!definitions.TryGetValue(symbol.Name, out var definition)) throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
 
 			relocation.Symbol = definition;
 		}

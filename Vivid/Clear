@@ -2,3 +2,4 @@
 rm v.*
 rm v
 rm libUnit*
+rm *.v.o

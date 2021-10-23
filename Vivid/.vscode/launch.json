@@ -19,7 +19,8 @@
 
 			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
-			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f", "-d" ],
+
+			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-f", "-d", "-a", "-use-legacy-assembly" ],
 
 			//"args": [ "${workspaceFolder}/Examples/foo.asm", "${workspaceFolder}/Examples/goo.asm", "--link" ],
 
@@ -51,7 +52,7 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
-			"program": "${workspaceRoot}/v",
+			"program": "${workspaceRoot}/v.test",
 			"cwd": "${workspaceRoot}",
 			"programArgs": "C:/Users/joona/vivid/Vivid/Examples/Test.v"
 		},
@@ -65,8 +66,8 @@
 			"name": "Vivid Debug (Fallback)",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceRoot}/v.exe",
-			"args": [ "\"C:\\Users\\joona\\vivid\\Vivid\\Examples\\Test.v\"" ],
+			"program": "${workspaceRoot}/v.test",
+			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceRoot}",
 			"environment": [],

@@ -1,5 +1,9 @@
 init() {
-	a = 1
-	b = 2
-	=> a + b
+	numbers = List<large>()
+
+	loop (i = 0, i < 100, i++) {
+		numbers.add(i)		  
+	}
+
+	=> 0
 }

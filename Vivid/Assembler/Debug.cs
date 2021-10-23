@@ -295,7 +295,7 @@ public class Debug
 		Abbrevation.Add(DWARF_DATA_32);
 
 		Abbrevation.Add(DWARF_TYPE);
-		Abbrevation.Add(DWARF_DATA_32);
+		Abbrevation.Add(DWARF_REFERENCE_32);
 
 		if (implementation.Metadata.IsExported)
 		{
@@ -940,8 +940,8 @@ public class Debug
 
 		if (!builder.IsTextEnabled)
 		{
-			DataEncoder.AddTable(builder.GetDataSection(file, Abbrevation.Name), Abbrevation);
-			DataEncoder.AddTable(builder.GetDataSection(file, Information.Name), Information);
+			DataEncoder.AddTable(builder, builder.GetDataSection(file, Abbrevation.Name), Abbrevation);
+			DataEncoder.AddTable(builder, builder.GetDataSection(file, Information.Name), Information);
 		}
 
 		return builder;

@@ -355,23 +355,35 @@ public static class DataEncoder
 			module.CreateLocalSymbol(label.Name, module.Position);
 			return;
 		}
+		
+		// Determine the relocation type
+		var bytes = label.Size.Bytes;
+		var position = module.Position;
+		var type = BinaryRelocationType.ABSOLUTE64;
 
-		if (label.IsSectionRelative)
-		{
-			module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), module.Position, 0, BinaryRelocationType.SECTION_RELATIVE, label.Size.Bytes));
-			return;
-		}
+		if (bytes == 4) { type = BinaryRelocationType.ABSOLUTE32; }
+		else if (bytes != 8) throw new ApplicationException("Table label must be either 4-bytes or 8-bytes");
+		
+		// Allocate the table label
+		module.Zero(bytes);
 
-		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, label.Size.Bytes));
+		if (label.IsSectionRelative) throw new NotSupportedException("Section relative labels are not supported yet");
+
+		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), position, 0, type, bytes));
 	}
 
 	/// <summary>
 	/// Adds the specified table into the specified module
 	/// </summary>
-	public static void AddTable(DataEncoderModule module, Table table)
+	public static void AddTable(AssemblyBuilder builder, DataEncoderModule module, Table table)
 	{
 		if (!table.IsSection)
 		{
+			builder.Export(table.Name); // Export the table
+
+			// Align the table
+			if (Assembler.IsArm64) DataEncoder.Align(module, 16);
+
 			// Define the table as a symbol
 			module.CreateLocalSymbol(table.Name, module.Position);
 		}
@@ -393,7 +405,7 @@ public static class DataEncoder
 
 				case Table f:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SYSTEM_ADDRESS_SIZE));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE64, SYSTEM_ADDRESS_SIZE));
 					module.WriteInt64(0);
 
 					if (!f.IsBuilt) subtables.Add(f);
@@ -402,7 +414,7 @@ public static class DataEncoder
 
 				case Label g:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE32, SYSTEM_ADDRESS_SIZE));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE64, SYSTEM_ADDRESS_SIZE));
 					module.WriteInt64(0);
 					break;
 				}
@@ -425,7 +437,7 @@ public static class DataEncoder
 			}
 		}
 
-		subtables.ForEach(i => AddTable(module, i));
+		subtables.ForEach(i => AddTable(builder, module, i));
 	}
 
 	/// <summary>

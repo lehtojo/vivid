@@ -242,6 +242,7 @@ public class ConfigurationPhase : Phase
 			case "-assembly":
 			{
 				bundle.PutBool("assembly", true);
+				Assembler.IsAssemblyOutputEnabled = true;
 				return Status.OK;
 			}
 

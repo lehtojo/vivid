@@ -9,8 +9,6 @@ using System.Text;
 /// </summary>
 public class InitializeInstruction : Instruction
 {
-	public const string DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET = ".cfi_def_cfa_offset ";
-
 	public int LocalMemoryTop { get; private set; }
 	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows;
 

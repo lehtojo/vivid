@@ -829,6 +829,7 @@ public static class InstructionEncoder
 		if (instruction.Operation == "faddp") return Instructions.X64._FADDP;
 		if (instruction.Operation == "fcos") return Instructions.X64._FCOS;
 		if (instruction.Operation == "fsin") return Instructions.X64._FSIN;
+		if (instruction.Operation == Instructions.Shared.NOP) return Instructions.X64._NOP;
 
 		// Single parameter instructions
 		if (instruction.Operation == Instructions.X64.PUSH) return Instructions.X64._PUSH;
@@ -924,7 +925,7 @@ public static class InstructionEncoder
 		if (instruction.Type == InstructionType.APPEND_POSITION)
 		{
 			var position = instruction.To<AppendPositionInstruction>().Position;
-			module.DebugLineInformation.Add(new EncoderDebugLineInformation(module.Position, position.Line, position.Character));
+			module.DebugLineInformation.Add(new EncoderDebugLineInformation(module.Position, position.FriendlyLine, position.FriendlyCharacter));
 			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.ADVANCE, module.Position));
 			return;
 		}

@@ -315,6 +315,14 @@ public class StackVariableHandle : StackMemoryHandle
 		Instance = HandleInstanceType.STACK_VARIABLE;
 	}
 
+	public override int GetAbsoluteOffset()
+	{
+		// Update the offset, if the variable has alignment now
+		if (Variable.LocalAlignment != null) { Offset = (int)Variable.LocalAlignment; }
+
+		return (IsAbsolute ? Unit.StackOffset : 0) + Offset;
+	}
+
 	public override string ToString()
 	{
 		if (Variable.LocalAlignment == null)

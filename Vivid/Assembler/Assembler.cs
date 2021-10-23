@@ -571,7 +571,7 @@ public static class Assembler
 				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant)) continue;
 
 				if (Assembler.IsAssemblyOutputEnabled) AddTable(builder, type.Configuration.Entry);
-				else DataEncoder.AddTable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
+				else DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
 			}
 		}
 
@@ -727,6 +727,7 @@ public static class Assembler
 		}
 	
 		var object_files = new List<BinaryObjectFile>();
+		object_files.Add(ElfFormat.Import("libv_x64.o"));
 
 		var text_sections = GetTextSections(context);
 		var data_sections = GetDataSections(context);
