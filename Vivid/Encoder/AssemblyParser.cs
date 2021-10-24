@@ -417,8 +417,15 @@ public class AssemblyParser
 			if (tokens.Count == 1)
 			{
 				// Patterns: $register / $symbol / $number
-				var value = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
-				return new MemoryHandle(Unit, value, 0);
+				var start = ParseInstructionParameter(tokens, 0);
+				
+				if (start.Instance == HandleInstanceType.DATA_SECTION)
+				{
+					start.To<DataSectionHandle>().Address = false;
+					return start;
+				}
+
+				return new MemoryHandle(Unit, new Result(start, Assembler.Format), 0);
 			}
 			else if (tokens.Count == 2)
 			{
@@ -444,21 +451,42 @@ public class AssemblyParser
 			}
 			else if (tokens.Count == 3)
 			{
-				// Patterns: $register + $register / $register + $number / $register - $number / $symbol + $number
+				// Patterns: $register + $register / $register + $number / $symbol + $number
 				if (tokens[1].Is(Operators.ADD))
 				{
-					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
-					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
+					var start = ParseInstructionParameter(tokens, 0);
+					var offset = ParseInstructionParameter(tokens, 2);
 
-					return new ComplexMemoryHandle(second, first, 1);
+					if (start.Instance == HandleInstanceType.DATA_SECTION)
+					{
+						if (offset.Instance != HandleInstanceType.CONSTANT) throw Errors.Get(tokens[2].Position, "Expected an integer offset");
+
+						// Apply the offset
+						start.To<DataSectionHandle>().Offset += (long)offset.To<ConstantHandle>().Value;
+						start.To<DataSectionHandle>().Address = false;
+
+						return start;
+					}
+
+					return new ComplexMemoryHandle(new Result(start, Assembler.Format), new Result(offset, Assembler.Format), 1);
 				}
 
+				// Patterns: $register - $number / $symbol - $number
 				if (tokens[1].Is(Operators.SUBTRACT))
 				{
-					var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
-					var second = new Result(new ConstantHandle(-(long)tokens[2].To<NumberToken>().Value), Assembler.Format);
+					var start = ParseInstructionParameter(tokens, 0);
+					var offset = -(long)tokens[2].To<NumberToken>().Value;
 
-					return new ComplexMemoryHandle(second, first, 1);
+					if (start.Instance == HandleInstanceType.DATA_SECTION)
+					{
+						// Apply the offset
+						start.To<DataSectionHandle>().Offset += offset;
+						start.To<DataSectionHandle>().Address = false;
+
+						return start;
+					}
+
+					return new MemoryHandle(null!, new Result(start, Assembler.Format), (int)offset);
 				}
 
 				// Pattern: $register * $number
@@ -506,9 +534,27 @@ public class AssemblyParser
 				if (tokens[1].Is(Operators.MULTIPLY))
 				{
 					var stride = (long)tokens[2].To<NumberToken>().Value;
-					var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
 
-					return new ComplexMemoryHandle(second, first, (int)stride, 0);
+					if (tokens.Last().Type == TokenType.NUMBER)
+					{
+						// Patterns: $register * $number + $number / $register * $number - $number
+						var offset = (long)ParseInstructionParameter(tokens, 3).To<ConstantHandle>().Value;
+
+						/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
+						if (stride == 1) return new MemoryHandle(null!, first, (int)offset);
+
+						return new ComplexMemoryHandle(new Result(), first, (int)stride, (int)offset);
+					}
+					else
+					{
+						// Pattern: $register * $number + $register
+						var offset = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
+
+						/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
+						if (stride == 1) return new ComplexMemoryHandle(first, offset, 1, 0);
+
+						return new ComplexMemoryHandle(offset, first, (int)stride, 0);
+					}
 				}
 			}
 			else if (tokens.Count == 7)
@@ -541,10 +587,14 @@ public class AssemblyParser
 				var stride = (long)tokens[2].To<NumberToken>().Value;
 				var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
 
+				/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
+				if (stride == 1) return new ComplexMemoryHandle(first, second, 1, (int)offset);
+
 				return new ComplexMemoryHandle(second, first, (int)stride, (int)offset);
 			}
 		}
 
+		// Pattern: - $number
 		if (parameter.Is(Operators.SUBTRACT))
 		{
 			if (i + 1 >= all.Count) throw Errors.Get(all[i].Position, "Expected an integer number");
@@ -552,6 +602,18 @@ public class AssemblyParser
 			// Parse the number and negate it
 			var number = ParseInstructionParameter(all, i + 1);
 			number.To<ConstantHandle>().Value = -(long)number.To<ConstantHandle>().Value;
+
+			return number;
+		}
+
+		// Pattern: + $number
+		if (parameter.Is(Operators.ADD))
+		{
+			if (i + 1 >= all.Count) throw Errors.Get(all[i].Position, "Expected an integer number");
+
+			// Parse the number and negate it
+			var number = ParseInstructionParameter(all, i + 1);
+			number.To<ConstantHandle>().Value = (long)number.To<ConstantHandle>().Value;
 
 			return number;
 		}
@@ -582,7 +644,7 @@ public class AssemblyParser
 	/// <summary>
 	/// Tries to create an instruction from the specified tokens
 	/// </summary>
-	public bool ParseInstruction(List<Token> tokens)
+	public bool ParseInstruction(string line, List<Token> tokens)
 	{
 		if (tokens[0].Type != TokenType.IDENTIFIER) return false;
 		var operation = tokens[0].To<IdentifierToken>().Value;
@@ -629,7 +691,7 @@ public class AssemblyParser
 
 			if (Section == TEXT_SECTION)
 			{
-				if (ParseInstruction(tokens)) continue;
+				if (ParseInstruction(line, tokens)) continue;
 			}
 
 			#warning Enable in the future

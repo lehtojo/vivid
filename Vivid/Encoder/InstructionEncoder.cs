@@ -567,7 +567,7 @@ public static class InstructionEncoder
 	/// </summary>
 	private static void WriteRegisterAndSymbol(EncoderModule module, InstructionEncoding encoding, int first, BinaryRelocation relocation)
 	{
-		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
+		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, false, force);
 
 		WriteOperation(module, encoding.Operation);
@@ -582,10 +582,10 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Writes register and memort address operands
 	/// </summmary>
-	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, int offset)
+	public static async void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, int offset)
 	{
 		#warning The register might also be the second operand
-		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
+		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, IsExtensionRegister(start), force);
 
 		WriteOperation(module, encoding.Operation);
@@ -629,7 +629,7 @@ public static class InstructionEncoder
 			return;
 		}
 
-		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
+		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), IsExtensionRegister(index), IsExtensionRegister(start), force);
 
 		WriteOperation(module, encoding.Operation);
@@ -674,12 +674,14 @@ public static class InstructionEncoder
 			return;
 		}
 
-		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
+		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), IsExtensionRegister(index), false, force);
+
+		WriteOperation(module, encoding.Operation);
 
 		Write(module, (first & 7) << 3 | Instructions.X64.RSP);
 		WriteSIB(module, scale, index.Name, Instructions.X64.RBP);
-		Write(module, offset);
+		WriteInt32(module, offset);
 	}
 
 	/// <summary>
@@ -687,7 +689,7 @@ public static class InstructionEncoder
 	/// </summmary>
 	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, int offset)
 	{
-		var force = IsOverridableRegister(first, encoding.InputSizeOfFirst);
+		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
 		TryWriteRex(module, encoding.Is64Bit, IsExtensionRegister(first), false, false, force);
 
 		WriteOperation(module, encoding.Operation);
