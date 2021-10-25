@@ -59,16 +59,14 @@ public class BinarySymbol
 	public int Offset { get; set; }
 	public bool External { get; set; }
 	public bool Export { get; set; } = false;
-	public bool Hidden { get; set; } = false;
 	public uint Index { get; set; } = 0;
 	public BinarySection? Section { get; set; } = null;
 
-	public BinarySymbol(string name, int offset, bool external, bool hidden = false)
+	public BinarySymbol(string name, int offset, bool external)
 	{
 		Name = name;
 		Offset = offset;
 		External = external;
-		Hidden = hidden;
 	}
 
 	public override bool Equals(object? other)

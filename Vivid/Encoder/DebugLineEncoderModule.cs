@@ -144,7 +144,7 @@ public class DebugLineEncoderModule : DataEncoderModule
 		// Add a symbol to the text section, which represents the start of the debuggable code.
 		// This is done, because now the machine code offset is not correct, since after linking the code will probably be loaded to another address.
 		// By inserting a symbol into the text section and adding a relocation using the symbol to this section, the offset will be corrected by the linker.
-		var symbol = new BinarySymbol(DEBUG_CODE_START_SYMBOL, offset, false, true);
+		var symbol = new BinarySymbol(DEBUG_CODE_START_SYMBOL, offset, false);
 		symbol.Section = section;
 
 		section.Symbols.Add(DEBUG_CODE_START_SYMBOL, symbol);

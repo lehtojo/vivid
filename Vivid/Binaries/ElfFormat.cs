@@ -154,13 +154,7 @@ public class ElfSymbolEntry
 		Info = (byte)(((int)binding << 4) | type);
 	}
 
-	public void SetHidden(bool hidden)
-	{
-		Other = (byte)(hidden ? 2 : 0);
-	}
-
 	public bool IsExported => (ElfSymbolBinding)(Info >> 4) == ElfSymbolBinding.GLOBAL && SectionIndex != 0;
-	public bool IsHidden => Other == 2;
 }
 
 public enum ElfSymbolType
@@ -376,7 +370,6 @@ public static class ElfFormat
 			symbol_entry.Value = (ulong)(virtual_address + symbol.Offset);
 			symbol_entry.SectionIndex = (ushort)(symbol.External ? 0 : symbol.Section!.Index);
 			symbol_entry.SetInfo(symbol.External || symbol.Export ? ElfSymbolBinding.GLOBAL : ElfSymbolBinding.LOCAL, 0);
-			symbol_entry.SetHidden(symbol.Hidden);
 
 			symbol.Index = (uint)symbol_entries.Count;
 			symbol_entries.Add(symbol_entry);
@@ -660,7 +653,6 @@ public static class ElfFormat
 
 			var symbol = new BinarySymbol(symbol_name, (int)symbol_entry.Value, symbol_entry.SectionIndex == 0);
 			symbol.Export = symbol_entry.IsExported;
-			symbol.Hidden = symbol_entry.IsHidden;
 			symbol.Section = section;
 
 			// Add the symbol to the section, which contains it, unless the symbol is external

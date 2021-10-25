@@ -8,3 +8,4 @@ rm Instructions-*.bin
 rm Instructions-*.disassembly
 rm Instructions-*.disassembly.reduced
 rm Instructions-Expected.o
+rm coverage.cobertura.xml

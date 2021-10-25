@@ -304,7 +304,7 @@ public class DataEncoderModule
 
 		// Add a hidden symbol that has the name of this section without dot. It represents the start of this section.
 		var name = Name.Length > 0 && Name[0] == '.' ? Name.Substring(1) : Name;
-		Symbols.Add(name, new BinarySymbol(name, 0, false, true));
+		Symbols.Add(name, new BinarySymbol(name, 0, false));
 
 		var section = new BinarySection(Name, BinarySectionType.DATA, Output);
 		section.Relocations = Relocations;

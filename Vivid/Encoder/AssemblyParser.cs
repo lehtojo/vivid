@@ -14,6 +14,7 @@ public class AssemblyParser
 	public const string OWORD_SPECIFIER = "yword";
 	public const string SECTION_OFFSET_SPECIFIER = "section_offset";
 
+	public const string ALIGN_DIRECTIVE = "align";
 	public const string EXPORT_DIRECTIVE = "export";
 	public const string SECTION_DIRECTIVE = "section";
 	public const string STRING_DIRECTIVE = "string";
@@ -309,6 +310,20 @@ public class AssemblyParser
 	}
 
 	/// <summary>
+	/// Align the current data section, if the specified tokens represent an alignment directive
+	/// </summary>
+	private bool ExecuteAlignment(List<Token> tokens)
+	{
+		// Pattern: .align $alignment
+		if (tokens.Count < 3 || tokens[1].Type != TokenType.IDENTIFIER || tokens[2].Type != TokenType.NUMBER) return false;
+		if (tokens[1].To<IdentifierToken>().Value != ALIGN_DIRECTIVE) return false;
+
+		var alignment = (long)tokens[2].To<NumberToken>().Value;
+		DataEncoder.Align(Data!, (int)Math.Pow(2, alignment));
+		return true;
+	}
+
+	/// <summary>
 	/// Applies a directive if the specified tokens represent a directive.
 	/// Pattern: . $directive $1 $2 ... $n
 	/// </summary>
@@ -331,6 +346,7 @@ public class AssemblyParser
 		if (ExecuteSymbolReferenceAllocator(tokens)) return true;
 		if (ExecuteConstantAllocator(tokens)) return true;
 		if (ExecuteStringAllocator(tokens)) return true;
+		if (ExecuteAlignment(tokens)) return true;
 
 		return false;
 	}
