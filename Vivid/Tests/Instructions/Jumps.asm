@@ -42,6 +42,9 @@ add rax, 1
 sub rax, 1
 jmp L3
 
+# Unconditional jump to an external label
+jmp L4
+
 # Register jumps
 jmp rax
 jmp r8
@@ -87,3 +90,34 @@ CL3:
 add rax, 1
 sub rax, 1
 jz CL3
+
+# Conditional jump to an external label
+jz CL4
+
+# ---------- Calls ----------
+
+# Calling distance of zero
+call DL0
+DL0:
+
+# Normal call
+call DL1
+add rax, 1
+sub rax, 1
+DL1:
+
+# Normal call that goes backwards
+call DL0
+
+# Calling backwards inside a 'single module'
+DL3:
+add rax, 1
+sub rax, 1
+call DL3
+
+# Call to an external label
+call DL4
+
+# Register calls
+call rax
+call r8

@@ -525,7 +525,17 @@ public static class Instructions
 				new InstructionEncoding(0xFF, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 			};
 	
-			SingleParameterEncodings[_CALL] = new List<InstructionEncoding>() { new InstructionEncoding(0xE8, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8) };
+			SingleParameterEncodings[_CALL] = new List<InstructionEncoding>()
+			{
+				// call label
+				new InstructionEncoding(0xE8, 0, EncodingRoute.D, false, EncodingFilterType.LABEL, 0, 8),
+
+				// call r64
+				new InstructionEncoding(0xFF, 2, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 8),
+
+				// call m64
+				new InstructionEncoding(0xFF, 2, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8)
+			};
 
 			SingleParameterEncodings[_FILD] = new List<InstructionEncoding>() { new InstructionEncoding(0xDF, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8) };
 			SingleParameterEncodings[_FLD] = new List<InstructionEncoding>() { new InstructionEncoding(0xDD, 0, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 8) };

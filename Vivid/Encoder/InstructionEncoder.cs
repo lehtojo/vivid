@@ -582,7 +582,7 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Writes register and memort address operands
 	/// </summmary>
-	public static async void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, int offset)
+	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, int offset)
 	{
 		#warning The register might also be the second operand
 		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
@@ -1308,13 +1308,26 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
+	/// Returns the distance that specified module jumps. The unit of distance is one module.
+	/// If the specified module does not have a jump, this function returns zero.
+	/// If the specified module jumps to an external label, this function returns int.MaxValue.
+	/// </summary>
+	private static int GetModuleJumpDistance(EncoderModule module, Dictionary<Label, LabelDescriptor> labels)
+	{
+		if (module.Jump == null) return 0;
+		if (!labels.TryGetValue(module.Jump, out var label)) return int.MaxValue;
+
+		return Math.Abs(label.Module.Index - module.Index);
+	}
+
+	/// <summary>
 	/// Goes through the specified modules and decides the jump sizes
 	/// </summary>
 	public static void CompleteModules(List<EncoderModule> modules, Dictionary<Label, LabelDescriptor> labels)
 	{
 		// Order the modules so that shorter jumps are completed first
 		/// NOTE: This should reduce the error of approximated jump distances, because if shorter jumps are completed first, there should be less uncompleted jumps between longer jumps
-		modules = modules.OrderBy(i => i.Jump == null ? 0 : Math.Abs(labels[i.Jump].Module.Index - i.Index)).ToList();
+		modules = modules.OrderBy(i => GetModuleJumpDistance(i, labels)).ToList();
 
 		foreach (var module in modules)
 		{
@@ -1406,6 +1419,7 @@ public static class InstructionEncoder
 	/// </summary>
 	public static EncoderOutput Export(List<EncoderModule> modules, Dictionary<Label, LabelDescriptor> labels, string? debug_file)
 	{
+		// Mesh all the module binaries into one large binary
 		var bytes = modules.Sum(i => i.Position);
 		var binary = new byte[bytes];
 		var position = 0;
@@ -1416,6 +1430,7 @@ public static class InstructionEncoder
 			position += module.Position;
 		}
 
+		// Create the text section objects
 		var symbols = new Dictionary<string, BinarySymbol>();
 		var relocations = new List<BinaryRelocation>();
 
@@ -1432,7 +1447,32 @@ public static class InstructionEncoder
 			symbols.Add(symbol.Name, symbol);
 		}
 
-		// Add calls which use external symbols
+		// Generate relocations for jumps, which use external symbols
+		foreach (var module in modules)
+		{
+			if (module.Jump == null) continue;
+
+			// Load the name of destination label
+			var name = module.Jump.GetName();
+
+			if (!symbols.TryGetValue(name, out var symbol))
+			{
+				symbol = new BinarySymbol(name, 0, true);
+				symbol.Section = section;
+				symbols.Add(symbol.Name, symbol);
+			}
+
+			// Skip local module jumps, because the offset is known and computed already, therefore relocation is not needed
+			if (!symbol.External) continue;
+
+			// Use offset -4, because the jump offset is measured from the end of the jump instruction, which is four bytes after the start of the relocatable symbol
+			var relocation = new BinaryRelocation(symbol, module.Start + module.Position - 4, -4, BinaryRelocationType.PROGRAM_COUNTER_RELATIVE);
+			relocation.Section = section;
+
+			relocations.Add(relocation);
+		}
+
+		// Generate relocations for calls, which use external symbols
 		/// NOTE: At this stage all module calls use external symbols, because those which used local symbols were removed
 		foreach (var module in modules)
 		{
@@ -1449,12 +1489,11 @@ public static class InstructionEncoder
 				var relocation = new BinaryRelocation(symbol, module.Start + call.Position, -4, call.Modifier);
 				relocation.Section = section;
 
-				symbols.TryAdd(symbol.Name, symbol);
 				relocations.Add(relocation);
 			}
 		}
 
-		/// TODO: Symbols in memory addresses are not added to relocations?
+		// Generate relocations for memory addresses in the machine code
 		foreach (var module in modules)
 		{
 			foreach (var relocation in module.MemoryAddressRelocations)
@@ -1469,11 +1508,13 @@ public static class InstructionEncoder
 			}
 		}
 
+		// Return now, if no debugging information is needed
 		if (debug_file == null) return new EncoderOutput(section, symbols, relocations, null, null);
 
 		var lines = new DebugLineEncoderModule(debug_file);
 		var frames = new DebugFrameEncoderModule(0);
 
+		// Generate debug line information
 		foreach (var module in modules)
 		{
 			foreach (var line in module.DebugLineInformation)
@@ -1486,6 +1527,7 @@ public static class InstructionEncoder
 
 		position = 0;
 
+		// Generate debug frame information
 		foreach (var module in modules)
 		{
 			foreach (var information in module.DebugFrameInformation)
@@ -1503,11 +1545,6 @@ public static class InstructionEncoder
 					frames.SetFrameOffset(information.To<EncoderDebugFrameOffsetInformation>().FrameOffset);
 					position = offset;
 				}
-				/* else if (information.Type == EncoderDebugFrameInformationType.ADVANCE)
-				{
-					frames.Move(offset - position);
-					position = offset;
-				} */
 				else if (information.Type == EncoderDebugFrameInformationType.END)
 				{
 					frames.End(offset);

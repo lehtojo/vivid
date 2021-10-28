@@ -660,7 +660,7 @@ public class AssemblyParser
 	/// <summary>
 	/// Tries to create an instruction from the specified tokens
 	/// </summary>
-	public bool ParseInstruction(string line, List<Token> tokens)
+	public bool ParseInstruction(List<Token> tokens)
 	{
 		if (tokens[0].Type != TokenType.IDENTIFIER) return false;
 		var operation = tokens[0].To<IdentifierToken>().Value;
@@ -707,7 +707,7 @@ public class AssemblyParser
 
 			if (Section == TEXT_SECTION)
 			{
-				if (ParseInstruction(line, tokens)) continue;
+				if (ParseInstruction(tokens)) continue;
 			}
 
 			#warning Enable in the future

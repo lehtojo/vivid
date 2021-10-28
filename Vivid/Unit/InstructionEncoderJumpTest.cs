@@ -37,5 +37,26 @@ public class InstructionEncoderJumpTests
 		}
 
 		if (fails) Assert.Fail($"Expected and actual binaries are identical in the shared range, but one is longer than the other");
+	
+		// Now check the relocations as well
+		Assert.AreEqual(3, output.Relocations.Count);
+
+		Assert.AreEqual(-4, output.Relocations[0].Addend);
+		Assert.AreEqual(4, output.Relocations[0].Bytes);
+		Assert.AreEqual(179, output.Relocations[0].Offset);
+		Assert.AreEqual("L4", output.Relocations[0].Symbol.Name);
+		Assert.AreEqual(BinaryRelocationType.PROGRAM_COUNTER_RELATIVE, output.Relocations[0].Type);
+
+		Assert.AreEqual(-4, output.Relocations[1].Addend);
+		Assert.AreEqual(4, output.Relocations[1].Bytes);
+		Assert.AreEqual(370, output.Relocations[1].Offset);
+		Assert.AreEqual("CL4", output.Relocations[1].Symbol.Name);
+		Assert.AreEqual(BinaryRelocationType.PROGRAM_COUNTER_RELATIVE, output.Relocations[1].Type);
+
+		Assert.AreEqual(-4, output.Relocations[2].Addend);
+		Assert.AreEqual(4, output.Relocations[2].Bytes);
+		Assert.AreEqual(411, output.Relocations[2].Offset);
+		Assert.AreEqual("DL4", output.Relocations[2].Symbol.Name);
+		Assert.AreEqual(BinaryRelocationType.PROGRAM_COUNTER_RELATIVE, output.Relocations[2].Type);
 	}
 }
