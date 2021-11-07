@@ -21,6 +21,7 @@ public enum ElfMachineType : short
 public enum ElfSegmentType : int
 {
 	LOADABLE = 0x01,
+	DYNAMIC = 0x02,
 	PROGRAM_HEADER = 0x06
 }
 
@@ -82,6 +83,9 @@ public enum ElfSectionType : int
 	SYMBOL_TABLE = 0x02,
 	STRING_TABLE = 0x03,
 	RELOCATION_TABLE = 0x04,
+	HASH = 0x05,
+	DYNAMIC = 0x06,
+	DYNAMIC_SYMBOLS = 0x0B
 }
 
 [Flags]
@@ -189,6 +193,32 @@ public class ElfRelocationEntry
 	}
 }
 
+public enum ElfDynamicSectionTag
+{
+	HashTable = 0x04,
+	StringTable = 0x05,
+	SymbolTable = 0x06,
+	StringTableSize = 0x0A,
+	SymbolEntrySize = 0x0B
+}
+
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public class ElfDynamicEntry
+{
+	public const int Size = 16;
+	public const int PointerOffset = sizeof(ulong);
+
+	public ulong Tag { get; set; }
+	public ulong Value { get; set; }
+
+	public ElfDynamicEntry(ElfDynamicSectionTag tag, ulong value)
+	{
+		Tag = (ulong)tag;
+		Value = value;
+	}
+}
+
 public static class ElfFormat
 {
 	public const string TEXT_SECTION = ".text";
@@ -196,7 +226,12 @@ public static class ElfFormat
 	public const string SYMBOL_TABLE_SECTION = ".symtab";
 	public const string STRING_TABLE_SECTION = ".strtab";
 	public const string SECTION_HEADER_STRING_TABLE_SECTION = ".shstrtab";
+	public const string DYNAMIC_SECTION = ".dynamic";
+	public const string DYNAMIC_SYMBOL_TABLE_SECTION = ".dynsym";
+	public const string DYNAMIC_STRING_TABLE_SECTION = ".dynstr";
+	public const string HASH_SECTION = ".hash";
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".rela";
+	public const string DYNAMIC_SECTION_START = "_DYNAMIC";
 
 	public static int Write<T>(byte[] destination, int offset, T source)
 	{
@@ -218,6 +253,8 @@ public static class ElfFormat
 
 	public static ElfSectionType GetSectionType(BinarySection section)
 	{
+		if (section.Name == ElfFormat.DYNAMIC_SYMBOL_TABLE_SECTION) return ElfSectionType.DYNAMIC_SYMBOLS;
+
 		return section.Type switch
 		{
 			BinarySectionType.DATA => ElfSectionType.PROGRAM_DATA,
@@ -226,6 +263,8 @@ public static class ElfFormat
 			BinarySectionType.STRING_TABLE => ElfSectionType.STRING_TABLE,
 			BinarySectionType.SYMBOL_TABLE => ElfSectionType.SYMBOL_TABLE,
 			BinarySectionType.TEXT => ElfSectionType.PROGRAM_DATA,
+			BinarySectionType.DYNAMIC => ElfSectionType.DYNAMIC,
+			BinarySectionType.HASH => ElfSectionType.HASH,
 			_ => ElfSectionType.PROGRAM_DATA
 		};
 	}
@@ -243,6 +282,77 @@ public static class ElfFormat
 		return result;
 	}
 
+	/// <summary>
+	/// Hashes the specified symbol name.
+	/// Implementation is provided by the ELF specification.
+	/// </summary>
+	public static ulong GetSymbolHash(string name)
+	{
+		var h = 0UL;
+
+		for (var i = 0; i < name.Length; i++)
+		{
+			h = (h << 4) + name[i];
+			var g = h & 0xF0000000;
+			if (g != 0) { h ^= g >> 24;}
+			h &= ~g;
+		}
+
+		return h;
+	}
+
+	/// <summary>
+	/// Generates a hash section from the specified symbols
+	/// </summary>
+	public static BinarySection CreateHashSection(List<BinarySymbol> symbols)
+	{
+		var buckets = new int[symbols.Count];
+		var chains = new int[symbols.Count];
+		var ends = new int[symbols.Count];
+
+		// Initialize the chain end indices to match the beginning of the chain
+		for (var i = 0; i < symbols.Count; i++) { ends[i] = i; }
+
+		for (var i = 0; i < symbols.Count; i++)
+		{
+			var hash = GetSymbolHash(symbols[i].Name);
+			var bucket = (int)(hash % (ulong)buckets.Length);
+			
+			if (buckets[bucket] == 0)
+			{
+				buckets[bucket] = i;
+				ends[bucket] = i;
+			}
+			else
+			{
+				// Load the last symbol index in the chain
+				var end = ends[bucket];
+
+				chains[end] = i; // Set the next symbol index in the chain to point to the current symbol
+				chains[i] = 0; // Set the chain to stop at the current symbol
+
+				ends[bucket] = i; // Set the end of the chain to be the current symbol
+			}
+		}
+
+		// Structure of hash section:
+		// [Number of buckets]
+		// [Number of chains]
+		// [Buckets]
+		// [Chains]
+
+		// Convert the buckets and chains to bytes
+		var data = new byte[(2 + buckets.Length + chains.Length) * sizeof(int)];
+		InstructionEncoder.WriteInt32(data, 0, buckets.Length);
+		InstructionEncoder.WriteInt32(data, sizeof(int), chains.Length);
+
+		// Copy the buckets and chains to the data
+		Buffer.BlockCopy(buckets, 0, data, sizeof(int) * 2, buckets.Length * sizeof(int));
+		Buffer.BlockCopy(chains,  0, data, (buckets.Length + 2) * sizeof(int), chains.Length * sizeof(int));
+
+		return new BinarySection(ElfFormat.HASH_SECTION, BinarySectionType.HASH, data);
+	}
+
 	public static List<ElfSectionHeader> CreateSectionHeaders(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols, int file_position = ElfFileHeader.Size)
 	{
 		var string_table = new ElfStringTable();
@@ -255,28 +365,47 @@ public static class ElfFormat
 			header.Type = GetSectionType(section);
 			header.Flags = (ulong)GetSectionFlags(section);
 			header.VirtualAddress = (uint)section.VirtualAddress;
-			header.SectionFileSize = (ulong)section.Size;
+			header.SectionFileSize = (ulong)section.LoadSize;
 			header.Alignment = (ulong)section.Alignment;
 
 			if (section.Type == BinarySectionType.RELOCATION_TABLE)
 			{
 				// The section header of relocation table should be linked to the symbol table and its info should point to the text section, since it describes it
-				header.Link = sections.FindIndex(i => i.Type == BinarySectionType.SYMBOL_TABLE);
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.SYMBOL_TABLE_SECTION);
 				header.Info = sections.FindIndex(i => i.Name == section.Name.Substring(RELOCATION_TABLE_SECTION_PREFIX.Length));
 				header.EntrySize = ElfRelocationEntry.Size;
 			}
-			else if (section.Type == BinarySectionType.SYMBOL_TABLE)
+			else if (section.Name == ElfFormat.SYMBOL_TABLE_SECTION)
 			{
 				// The section header of symbol table should be linked to the string table 
-				header.Link = sections.FindIndex(i => i.Type == BinarySectionType.STRING_TABLE);
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.STRING_TABLE_SECTION);
 				header.Info = symbols.Values.Count(i => !i.External) + 1;
 				header.EntrySize = ElfSymbolEntry.Size;
+			}
+			else if (section.Name == ElfFormat.DYNAMIC_SYMBOL_TABLE_SECTION)
+			{
+				// The section header of dynamic symbol table should be linked to the dynamic string table
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.DYNAMIC_STRING_TABLE_SECTION);
+				header.Info = 1;
+				header.EntrySize = ElfSymbolEntry.Size;
+			}
+			else if (section.Name == ElfFormat.DYNAMIC_SECTION)
+			{
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.DYNAMIC_STRING_TABLE_SECTION);
+				header.Info = 0;
+				header.EntrySize = ElfDynamicEntry.Size;
+			}
+			else if (section.Name == ElfFormat.HASH_SECTION)
+			{
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.DYNAMIC_SYMBOL_TABLE_SECTION);
+				header.Info = 0;
+				header.EntrySize = 4;
 			}
 
 			section.Offset = file_position;
 			header.Offset = (ulong)file_position;
 
-			file_position += section.Size;
+			file_position += section.VirtualSize;
 
 			headers.Add(header);
 		}
@@ -345,7 +474,7 @@ public static class ElfFormat
 	/// <summary>
 	/// Creates the symbol table and the relocation table based on the specified symbols
 	/// </summary>
-	public static ElfStringTable CreateSymbolRelatedSections(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	public static ElfStringTable CreateSymbolRelatedSections(List<BinarySection> sections, List<BinarySection>? fragments, Dictionary<string, BinarySymbol> symbols)
 	{
 		// Create a string table that contains the names of the specified symbols
 		var symbol_name_table = new ElfStringTable();
@@ -358,10 +487,23 @@ public static class ElfFormat
 		symbol_entries.Add(none_symbol);
 
 		// Index the sections since the symbols need that
-		for (var i = 0; i < sections.Count; i++) { sections[i].Index = i; }
+		for (var i = 0; i < sections.Count; i++)
+		{
+			var section = sections[i];
+			section.Index = i;
+
+			if (fragments == null) continue;
+			
+			// Index the section fragments as well
+			foreach (var fragment in fragments)
+			{
+				if (fragment.Name != section.Name) continue;
+				fragment.Index = i;
+			}
+		}
 
 		// Order the symbols so that local symbols are first and then the external ones
-		foreach (var symbol in symbols.Values.Where(i => !i.External).Concat(symbols.Values.Where(i => i.External)))
+		foreach (var symbol in symbols.Values.Where(i => !(i.External || i.Export)).Concat(symbols.Values.Where(i => i.External || i.Export)))
 		{
 			var virtual_address = symbol.Section == null ? 0 : symbol.Section.VirtualAddress;
 
@@ -527,14 +669,13 @@ public static class ElfFormat
 		UpdateRelocations(sections, symbols);
 
 		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(sections, symbols);
+		CreateSymbolRelatedSections(sections, null, symbols);
 
 		_ = CreateSectionHeaders(sections, symbols);
 
 		// Now that section positions are set, compute offsets
 		ComputeOffsets(sections, symbols);
 
-		//#error Check these relocations, they probably discard some stuff
 		return new BinaryObjectFile(sections);
 	}
 
@@ -556,7 +697,7 @@ public static class ElfFormat
 		UpdateRelocations(sections, symbols);
 
 		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(sections, symbols);
+		CreateSymbolRelatedSections(sections, null, symbols);
 
 		var header = new ElfFileHeader();
 		header.Type = ElfObjectFileType.RELOCATABLE;
@@ -773,7 +914,7 @@ public static class ElfFormat
 			section.Flags = GetSharedSectionFlags((ElfSectionFlag)section_intermediate.Key.Flags);
 			section.Alignment = (int)section_intermediate.Key.Alignment;
 			section.Offset = (int)section_intermediate.Key.Offset;
-			section.Size = section_intermediate.Value.Length;
+			section.VirtualSize = section_intermediate.Value.Length;
 
 			sections.Add(section);
 		}

@@ -170,11 +170,6 @@ public static class Assembler
 		"mov rax, 60" + "\n" +
 		"syscall" + SEPARATOR;
 
-	private const string FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER =
-		"{0} main" + "\n" +
-		"main:" + "\n" +
-		"{1}" + SEPARATOR;
-
 	private const string FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER =
 		"{0} _start" + "\n" +
 		"_start:" + "\n" +
@@ -182,7 +177,12 @@ public static class Assembler
 		"mov x8, #93" + "\n" +
 		"svc #0" + SEPARATOR;
 
-	private const string FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER =
+	private const string FORMAT_X64_LINUX_TEXT_SECTION_HEADER_WITHOUT_SYSTEM_CALL =
+		"{0} _start" + "\n" +
+		"_start:" + "\n" +
+		"{1}" + SEPARATOR;
+
+	private const string FORMAT_WINDOWS_TEXT_SECTION_HEADER =
 		"{0} main" + "\n" +
 		"main:" + "\n" +
 		"{1}" + SEPARATOR;
@@ -699,7 +699,7 @@ public static class Assembler
 		return builders;
 	}
 
-	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, BinaryType output_type)
+	public static Dictionary<SourceFile, string>? Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
@@ -712,7 +712,7 @@ public static class Assembler
 			Instructions.X64.Initialize();
 		}
 
-		Keywords.Values.Clear(); // Remove all keywords for parsing assembly
+		Keywords.Definitions.Clear(); // Remove all keywords for parsing assembly
 
 		Assembler.IsPositionIndependent = output_type == BinaryType.SHARED_LIBRARY;
 
@@ -771,12 +771,20 @@ public static class Assembler
 			{
 				if (entry_function == null) throw new ApplicationException("Missing entry function");
 
-				var template = IsTargetWindows ? FORMAT_X64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+				var template = FORMAT_WINDOWS_TEXT_SECTION_HEADER;
 				var instructions = string.Empty;
-
-				if (Assembler.IsArm64)
+				
+				if (IsTargetLinux)
 				{
-					template = IsTargetWindows ? FORMAT_ARM64_WINDOWS_TEXT_SECTION_HEADER : FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER;
+					if (output_type == BinaryType.SHARED_LIBRARY)
+					{
+						// When creating a shared library, its initialization function must not shutdown the entire process
+						template = FORMAT_X64_LINUX_TEXT_SECTION_HEADER_WITHOUT_SYSTEM_CALL;
+					}
+					else
+					{
+						template = Assembler.IsArm64 ? FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+					}
 				}
 
 				var function = entry_function;
@@ -795,7 +803,7 @@ public static class Assembler
 				}
 
 				// Now determine the instruction, which will call the first function
-				if (Assembler.IsTargetWindows)
+				if (Assembler.IsTargetWindows || output_type == BinaryType.SHARED_LIBRARY)
 				{
 					if (Assembler.IsX64) { instructions += $"jmp {function.GetFullname()}"; }
 					else { instructions += $"b {function.GetFullname()}"; }
@@ -870,10 +878,12 @@ public static class Assembler
 
 		if (!Assembler.IsAssemblyOutputEnabled)
 		{
-			var linked_binary = Linker.Link(object_files, DefaultEntryPoint);
-			System.IO.File.WriteAllBytes("v.test", linked_binary);
+			var postfix = output_type == BinaryType.EXECUTABLE ? string.Empty : AssemblyPhase.SharedLibraryExtension;
 
-			Environment.Exit(0);
+			var linked_binary = Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
+			System.IO.File.WriteAllBytes(output_name + postfix, linked_binary);
+
+			return null;
 		}
 
 		return result;

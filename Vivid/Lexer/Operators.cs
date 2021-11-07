@@ -61,12 +61,12 @@ public static class Operators
 	/// NOTE: The user should not be able to use this operator since it is meant for internal usage
 	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new(string.Empty, 11);
 
-	public static readonly Dictionary<string, Operator> Map = new();
+	public static readonly Dictionary<string, Operator> Definitions = new();
 	public static readonly Dictionary<string, ActionOperator> Actions = new();
 
 	private static void Add(Operator operation)
 	{
-		Map.Add(operation.Identifier, operation);
+		Definitions.Add(operation.Identifier, operation);
 
 		if (operation is ActionOperator action && !string.IsNullOrEmpty(action.Operator?.Identifier))
 		{
@@ -74,8 +74,11 @@ public static class Operators
 		}
 	}
 
-	static Operators()
+	public static void Initialize()
 	{
+		Definitions.Clear();
+		Actions.Clear();
+
 		Add(POWER);
 
 		Add(MULTIPLY);
@@ -131,7 +134,7 @@ public static class Operators
 
 	public static Operator Get(string text)
 	{
-		if (Map.TryGetValue(text, out Operator? operation))
+		if (Definitions.TryGetValue(text, out Operator? operation))
 		{
 			return operation!;
 		}
@@ -151,6 +154,6 @@ public static class Operators
 
 	public static bool Exists(string identifier)
 	{
-		return Map.ContainsKey(identifier);
+		return Definitions.ContainsKey(identifier);
 	}
 }

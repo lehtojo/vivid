@@ -8,7 +8,9 @@ public enum BinarySectionType
 	DATA,
 	STRING_TABLE,
 	SYMBOL_TABLE,
-	RELOCATION_TABLE
+	RELOCATION_TABLE,
+	DYNAMIC,
+	HASH
 }
 
 [Flags]
@@ -26,7 +28,8 @@ public class BinarySection
 	public BinarySectionFlag Flags { get; set; } = 0;
 	public BinarySectionType Type { get; set; }
 	public byte[] Data { get; set; }
-	public int Size { get; set; } = 0;
+	public int VirtualSize { get; set; } = 0;
+	public int LoadSize { get; set; } = 0;
 	public int Alignment { get; set; } = 1;
 	public int Offset { get; set; } = 0;
 	public int VirtualAddress { get; set; } = 0;
@@ -39,16 +42,18 @@ public class BinarySection
 		Name = name;
 		Type = type;
 		Data = data;
-		Size = data.Length;
+		VirtualSize = data.Length;
+		LoadSize = data.Length;
 	}
 
-	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int size)
+	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int virtual_size, int load_size)
 	{
 		Name = name;
 		Flags = flags;
 		Type = type;
 		Data = data;
-		Size = size;
+		VirtualSize = virtual_size;
+		LoadSize = load_size;
 		Alignment = alignment;
 	}
 }
@@ -101,6 +106,7 @@ public enum BinaryRelocationType
 	SECTION_RELATIVE,
 	PROCEDURE_LINKAGE_TABLE,
 	PROGRAM_COUNTER_RELATIVE,
+	FILE_OFFSET_64
 }
 
 public class BinaryRelocation
@@ -122,6 +128,7 @@ public class BinaryRelocation
 		Type = modifier switch
 		{
 			DataSectionModifier.NONE => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
+			DataSectionModifier.GLOBAL_OFFSET_TABLE=> BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
 			DataSectionModifier.PROCEDURE_LINKAGE_TABLE => BinaryRelocationType.PROCEDURE_LINKAGE_TABLE,
 			_ => 0
 		};

@@ -20,7 +20,7 @@ public class ExpanderInstance
 }
 
 [TestClass]
-public class EncoderTests
+public class InstructionEncoderCoreTest
 {
 	public const string EXPECTED_ASSEMBLY_OUTPUT = "Instructions-Expected.asm";
 	public const string EXPECTED_OBJECT_FILE = "Instructions-Expected.o";
@@ -285,11 +285,11 @@ public class EncoderTests
 		Assembler.MemoryAddressExtension = " ";
 
 		// Initialize the target architecture
-		#warning These settings might break things in the other tests
 		Instructions.X64.Initialize();
-		Keywords.Values.Clear();
-		Operators.Map.Remove(Operators.AND.Identifier);
-		Operators.Map.Remove(Operators.OR.Identifier);
+		Keywords.Definitions.Clear();
+		Operators.Initialize();
+		Operators.Definitions.Remove(Operators.AND.Identifier);
+		Operators.Definitions.Remove(Operators.OR.Identifier);
 
 		// Now parse the generated assembly and then encode it
 		var parser = new AssemblyParser();

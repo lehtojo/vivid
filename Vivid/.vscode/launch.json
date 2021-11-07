@@ -6,7 +6,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Build",
-			"program": "${workspaceFolder}/bin/Debug/net5.0/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Debug/net6.0/Vivid.dll",
 
 			// Builds the standard library
 			//"args": [ "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Types.v", "-f", "-static" ],
@@ -20,7 +20,7 @@
 			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
 			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
 
-			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-f", "-d", "-a", "-use-legacy-assembly" ],
+			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-f" ],
 
 			//"args": [ "${workspaceFolder}/Examples/foo.asm", "${workspaceFolder}/Examples/goo.asm", "--link" ],
 
@@ -38,10 +38,10 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Units",
-			"program": "${workspaceFolder}/bin/Units/net5.0/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Units/net6.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"args": [ "-O2" ],
+			"args": [],
 			"env": { "LD_LIBRARY_PATH": "LD_LIBRARY_PATH:${workspaceFolder}" },
 			"stopAtEntry": false,
 			"logging": {

@@ -24,7 +24,7 @@ public class AssemblyPhase : Phase
 
 	private const string ERROR = "Internal assembler failed";
 
-	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+	public static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 	public static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
 	public static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
 	public static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
@@ -337,7 +337,10 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			assemblies = Assembler.Assemble(context, modified, exports, output_type);
+			assemblies = Assembler.Assemble(context, modified, exports, output_name, output_type);
+
+			#warning Maybe use something else than null to indicate that the legacy assembler is not needed
+			if (assemblies == null) return Status.OK;
 		}
 		catch (Exception e)
 		{

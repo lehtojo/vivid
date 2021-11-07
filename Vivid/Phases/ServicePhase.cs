@@ -384,7 +384,7 @@ public class ServicePhase : Phase
 	/// </summary>
 	private static List<CompletionItem> GetCommonCompletionItems()
 	{
-		return Keywords.Values.Select(i => new CompletionItem(i.Key, CompletionItemType.KEYWORD)).ToList();
+		return Keywords.Definitions.Select(i => new CompletionItem(i.Key, CompletionItemType.KEYWORD)).ToList();
 	}
 
 	/// <summary>

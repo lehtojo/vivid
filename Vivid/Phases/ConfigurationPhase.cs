@@ -66,6 +66,9 @@ public class ConfigurationPhase : Phase
 				Folders[i] = folder + '/';
 			}
 		}
+
+		Keywords.Initialize();
+		Operators.Initialize();
 	}
 
 	private void Collect(DirectoryInfo folder, bool recursive = true)

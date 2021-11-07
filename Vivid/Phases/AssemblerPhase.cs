@@ -19,9 +19,9 @@ public class AssemblerPhase : Phase
 
 		// Initialize the target architecture
 		Instructions.X64.Initialize();
-		Keywords.Values.Clear();
-		Operators.Map.Remove(Operators.AND.Identifier);
-		Operators.Map.Remove(Operators.OR.Identifier);
+		Keywords.Definitions.Clear();
+		Operators.Definitions.Remove(Operators.AND.Identifier);
+		Operators.Definitions.Remove(Operators.OR.Identifier);
 
 		var succeeded = true;
 
@@ -50,7 +50,7 @@ public class AssemblerPhase : Phase
 					object_files.Add(ElfFormat.Create(sections, parser.Exports));
 				}
 
-				var result = Linker.Link(object_files, "_V4initv_rx");
+				var result = Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
 
 				File.WriteAllBytes(output_name, result);
 			}

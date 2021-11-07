@@ -10,11 +10,11 @@ public class DataEncoderTests
 	public void Test()
 	{
 		// Initialize the target architecture
-		#warning These settings might break things in the other tests
 		Instructions.X64.Initialize();
-		Keywords.Values.Clear();
-		Operators.Map.Remove(Operators.AND.Identifier);
-		Operators.Map.Remove(Operators.OR.Identifier);
+		Keywords.Definitions.Clear();
+		Operators.Initialize();
+		Operators.Definitions.Remove(Operators.AND.Identifier);
+		Operators.Definitions.Remove(Operators.OR.Identifier);
 
 		Environment.CurrentDirectory = "/home/lehtojo/vivid/Vivid/";
 		var assembly = File.ReadAllText("./Tests/Data.asm");
