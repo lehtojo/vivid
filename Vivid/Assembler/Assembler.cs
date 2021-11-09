@@ -1,10 +1,12 @@
-using System;
+using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.IO;
+using System;
 
 public class AssemblyBuilder
 {
@@ -13,16 +15,15 @@ public class AssemblyBuilder
 	public Dictionary<SourceFile, List<DataEncoderModule>> Modules { get; } = new Dictionary<SourceFile, List<DataEncoderModule>>();
 	public HashSet<string> Exports { get; } = new HashSet<string>();
 	public StringBuilder? Text { get; }
-	public bool IsTextEnabled => Text != null;
 
 	public AssemblyBuilder()
 	{
-		if (Assembler.IsAssemblyOutputEnabled) { Text = new StringBuilder(); }
+		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled) { Text = new StringBuilder(); }
 	}
 
 	public AssemblyBuilder(string text)
 	{
-		if (Assembler.IsAssemblyOutputEnabled) { Text = new StringBuilder(text); }
+		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled) { Text = new StringBuilder(text); }
 	}
 
 	public void Add(SourceFile file, List<Instruction> instructions)
@@ -138,7 +139,7 @@ public static class Assembler
 	public static bool IsArm64 => Architecture == Architecture.Arm64;
 	public static bool IsX64 => Architecture == Architecture.X64;
 
-	public static bool IsPositionIndependent { get; set; } = false;
+	public static bool UseIndirectAccessTables { get; set; } = false;
 
 	public static bool IsAssemblyOutputEnabled { get; set; } = false;
 	public static bool IsDebuggingEnabled { get; set; } = false;
@@ -304,8 +305,8 @@ public static class Assembler
 			if (Assembler.IsDebuggingEnabled)
 			{
 				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
-				if (builder.IsTextEnabled) builder.WriteLine(label + ':');
-				else builder.Add(file, new LabelInstruction(null!, new Label(label)));
+				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
+				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
 			foreach (var function in iterator)
@@ -318,8 +319,8 @@ public static class Assembler
 			if (Assembler.IsDebuggingEnabled)
 			{
 				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
-				if (builder.IsTextEnabled) builder.WriteLine(label + ':');
-				else builder.Add(file, new LabelInstruction(null!, new Label(label)));
+				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
+				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
 			builders.Add(file, builder);
@@ -420,23 +421,21 @@ public static class Assembler
 	/// </summary>
 	private static void AllocateConstants(AssemblyBuilder builder, SourceFile file, List<ConstantDataSectionHandle> constants)
 	{
-		var module = Assembler.IsAssemblyOutputEnabled ? null : builder.GetDataSection(file, Assembler.DataSectionIdentifier);
+		var module = builder.GetDataSection(file, Assembler.DataSectionIdentifier);
 
 		foreach (var constant in constants)
 		{
 			// Align the position and declare the constant
 			var name = constant.Identifier;
 
-			if (module != null)
-			{
-				DataEncoder.Align(module, 16);
-				module.CreateLocalSymbol(name, module.Position);
-			}
-			else
+			if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
 			{
 				builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 				builder.WriteLine($"{name}:");
 			}
+
+			DataEncoder.Align(module, 16);
+			module.CreateLocalSymbol(name, module.Position);
 
 			var bytes = (byte[]?)null;
 
@@ -445,11 +444,7 @@ public static class Assembler
 			else if (constant.Value is float c2) { bytes = BitConverter.GetBytes(c2); }
 			else { throw new NotImplementedException("Unsupported constant data"); }
 
-			if (module != null)
-			{
-				module.Write(bytes);
-				continue;
-			}
+			module.Write(bytes);
 
 			foreach (var element in bytes) builder.WriteLine($"{Size.BYTE.Allocator} {element}");
 		}
@@ -548,8 +543,8 @@ public static class Assembler
 				{
 					if (!variable.IsStatic) continue;
 
-					if (Assembler.IsAssemblyOutputEnabled) builder.WriteLine(AllocateStaticVariable(variable));
-					else DataEncoder.AddStaticVariable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), variable);
+					if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(AllocateStaticVariable(variable));
+					DataEncoder.AddStaticVariable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), variable);
 				}
 
 				builder.Write(SEPARATOR);
@@ -570,8 +565,8 @@ public static class Assembler
 				// 3. The template type must be a variant
 				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant)) continue;
 
-				if (Assembler.IsAssemblyOutputEnabled) AddTable(builder, type.Configuration.Entry);
-				else DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
+				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry);
+				DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
 			}
 		}
 
@@ -591,21 +586,19 @@ public static class Assembler
 				var name = node.Identifier;
 				if (name == null) continue;
 
-				if (Assembler.IsAssemblyOutputEnabled)
+				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
 				{
 					builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 					builder.WriteLine($"{name}:");
 					builder.WriteLine(AllocateString(node.Text));
 				}
-				else
-				{
-					var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
-					DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
+				var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
-					module.CreateLocalSymbol(name, module.Position);
-					module.String(node.Text);
-				}
+				DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
+
+				module.CreateLocalSymbol(name, module.Position);
+				module.String(node.Text);
 			}
 
 			builders[iterator.Key!] = builder;
@@ -616,7 +609,7 @@ public static class Assembler
 		{
 			var builder = builders[iterator.Key];
 			var symbols = new List<string>();
-			var module = Assembler.IsAssemblyOutputEnabled ? null : builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
+			var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
 			builder.Write(SEPARATOR);
 
@@ -626,7 +619,7 @@ public static class Assembler
 				if (symbol == null) continue;
 
 				builder.Export(symbol);
-				module?.CreateLocalSymbol(symbol, module.Position);
+				module.CreateLocalSymbol(symbol, module.Position);
 			}
 
 			builder.Write(SEPARATOR);
@@ -699,7 +692,7 @@ public static class Assembler
 		return builders;
 	}
 
-	public static Dictionary<SourceFile, string>? Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
+	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
@@ -714,7 +707,7 @@ public static class Assembler
 
 		Keywords.Definitions.Clear(); // Remove all keywords for parsing assembly
 
-		Assembler.IsPositionIndependent = output_type == BinaryType.SHARED_LIBRARY;
+		Assembler.UseIndirectAccessTables = output_type == BinaryType.SHARED_LIBRARY && Assembler.IsLegacyAssemblyEnabled;
 
 		var result = new Dictionary<SourceFile, string>();
 
@@ -816,14 +809,11 @@ public static class Assembler
 
 				builder.WriteLine(string.Format(CultureInfo.InvariantCulture, template, ExportDirective, instructions));
 
-				if (!Assembler.IsAssemblyOutputEnabled)
-				{
-					var parser = new AssemblyParser();
-					parser.Parse(string.Format(CultureInfo.InvariantCulture, template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
+				var parser = new AssemblyParser();
+				parser.Parse(string.Format(CultureInfo.InvariantCulture, template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
 
-					builder.Add(file, parser.Instructions);
-					builder.Export(parser.Exports);
-				}
+				builder.Add(file, parser.Instructions);
+				builder.Export(parser.Exports);
 			}
 
 			if (text_sections.TryGetValue(file, out var text_section_builder))
@@ -848,11 +838,13 @@ public static class Assembler
 
 			exports[file] = builder.Exports.ToList();
 
-			if (Assembler.IsAssemblyOutputEnabled)
+			if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
 			{
 				result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
-				continue;
 			}
+
+			// Skip using the new system if requested
+			if (IsLegacyAssemblyEnabled) continue;
 
 			// Load all the section modules
 			var modules = builder.Modules[file];
@@ -876,14 +868,26 @@ public static class Assembler
 			object_files.Add(object_file);
 		}
 
-		if (!Assembler.IsAssemblyOutputEnabled)
+		if (!Assembler.IsLegacyAssemblyEnabled)
 		{
 			var postfix = output_type == BinaryType.EXECUTABLE ? string.Empty : AssemblyPhase.SharedLibraryExtension;
 
 			var linked_binary = Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
-			System.IO.File.WriteAllBytes(output_name + postfix, linked_binary);
+			File.WriteAllBytes(output_name + postfix, linked_binary);
 
-			return null;
+			// Make the produced binary executable
+			if (IsTargetLinux)
+			{
+				var process = Process.Start(new ProcessStartInfo("bash", $"-c \"chmod +x '{output_name + postfix}'\"")
+				{
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
+					CreateNoWindow = true
+				});
+
+				process?.WaitForExit();
+			}
 		}
 
 		return result;

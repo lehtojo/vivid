@@ -938,7 +938,7 @@ public class Debug
 		Assembler.AddTable(builder, Abbrevation);
 		Assembler.AddTable(builder, Information);
 
-		if (!builder.IsTextEnabled)
+		if (Assembler.IsDebuggingEnabled)
 		{
 			DataEncoder.AddTable(builder, builder.GetDataSection(file, Abbrevation.Name), Abbrevation);
 			DataEncoder.AddTable(builder, builder.GetDataSection(file, Information.Name), Information);

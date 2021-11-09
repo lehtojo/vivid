@@ -408,7 +408,7 @@ public static class DataEncoder
 					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE64, SYSTEM_ADDRESS_SIZE));
 					module.WriteInt64(0);
 
-					if (!f.IsBuilt) subtables.Add(f);
+					subtables.Add(f);
 					break;
 				}
 

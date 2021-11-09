@@ -79,6 +79,13 @@ public static class Units
 
 		AssemblerTests.Initialize();
 
+		/* StartSection("Encoder");
+
+		Run("Instructions", InstructionEncoderCoreTest.Run);
+
+		EndSection();
+		return; */
+
 		StartSection("Assembler");
 
 		Run("Arithmetic", AssemblerTests.Arithmetic);

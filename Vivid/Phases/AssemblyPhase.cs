@@ -338,9 +338,6 @@ public class AssemblyPhase : Phase
 		try
 		{
 			assemblies = Assembler.Assemble(context, modified, exports, output_name, output_type);
-
-			#warning Maybe use something else than null to indicate that the legacy assembler is not needed
-			if (assemblies == null) return Status.OK;
 		}
 		catch (Exception e)
 		{
@@ -361,6 +358,9 @@ public class AssemblyPhase : Phase
 		{
 			return Status.Error("Could not move generated assembly into a file");
 		}
+
+		// Skip using the legacy system if it is not required
+		if (!Assembler.IsLegacyAssemblyEnabled) return Status.OK;
 
 		if (Assembler.IsVerboseOutputEnabled)
 		{

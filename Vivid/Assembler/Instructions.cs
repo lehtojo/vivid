@@ -635,13 +635,13 @@ public static class Instructions
 				new InstructionEncoding(0x05, 0, EncodingRoute.SC, true, EncodingFilterType.SPECIFIC_REGISTER, RAX, 8, EncodingFilterType.CONSTANT, 0, 4),
 
 				// add r64, c32 | add r32, c32 | add r16, c16 | add r8, c8
-				new InstructionEncoding(0x81, 0, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0x80, 0, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
 				new InstructionEncoding(0x81, 0, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.CONSTANT, 0, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x81, 0, EncodingRoute.RC, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
 				new InstructionEncoding(0x81, 0, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 4),
 
 				// add m64, c32 | add m32, c32 | add m16, c16 | add m8, c8
-				new InstructionEncoding(0x81, 0, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
+				new InstructionEncoding(0x80, 0, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.CONSTANT, 0, 1),
 				new InstructionEncoding(0x81, 0, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.CONSTANT, 0, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x81, 0, EncodingRoute.MC, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.CONSTANT, 0, 4),
 				new InstructionEncoding(0x81, 0, EncodingRoute.MC, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.CONSTANT, 0, 4),

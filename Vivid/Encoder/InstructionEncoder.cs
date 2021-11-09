@@ -1327,9 +1327,7 @@ public static class InstructionEncoder
 	{
 		// Order the modules so that shorter jumps are completed first
 		/// NOTE: This should reduce the error of approximated jump distances, because if shorter jumps are completed first, there should be less uncompleted jumps between longer jumps
-		modules = modules.OrderBy(i => GetModuleJumpDistance(i, labels)).ToList();
-
-		foreach (var module in modules)
+		foreach (var module in modules.OrderBy(i => GetModuleJumpDistance(i, labels)).ToList())
 		{
 			if (module.Jump == null) continue;
 

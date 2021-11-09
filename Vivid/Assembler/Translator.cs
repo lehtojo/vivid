@@ -160,7 +160,7 @@ public static class Translator
 
 		var file = unit.Function.Metadata.Start!.File!;
 
-		if (builder.IsTextEnabled)
+		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled)
 		{
 			// Convert all instructions into textual assembly
 			instructions.ForEach(i => i.Translate());
@@ -170,13 +170,11 @@ public static class Translator
 			// Add a directive, which tells the assembler to finish debugging information regarding the current function
 			if (Assembler.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);
 		}
-		else
-		{
-			builder.Add(file, instructions);
 
-			// Add a directive, which tells the assembler to finish debugging information regarding the current function
-			builder.Add(file, new Instruction(unit, InstructionType.DEBUG_END));
-		}
+		builder.Add(file, instructions);
+
+		// Add a directive, which tells the assembler to finish debugging information regarding the current function
+		builder.Add(file, new Instruction(unit, InstructionType.DEBUG_END));
 
 		// Export the generated constants as well
 		builder.Add(file, constant_handles.Distinct().ToList());
