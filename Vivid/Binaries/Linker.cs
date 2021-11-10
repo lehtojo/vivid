@@ -5,17 +5,17 @@ using System;
 
 public class DynamicLinkingInformation
 {
-	public BinarySection Section { get; set; }
+	public BinarySection DynamicSection { get; set; }
+	public BinarySection? RelocationSection { get; set; } = null;
 	public List<ElfSymbolEntry> Entries { get; }
 	public List<BinarySymbol> Symbols { get; }
-	public List<BinaryRelocation> Relocations { get; }
+	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
 
-	public DynamicLinkingInformation(BinarySection section, List<ElfSymbolEntry> entries, List<BinarySymbol> symbols, List<BinaryRelocation> relocations)
+	public DynamicLinkingInformation(BinarySection section, List<ElfSymbolEntry> entries, List<BinarySymbol> symbols)
 	{
-		Section = section;
+		DynamicSection = section;
 		Entries = entries;
 		Symbols = symbols;
-		Relocations = relocations;
 	}
 }
 
@@ -219,9 +219,9 @@ public static class Linker
 	/// <summary>
 	/// Computes relocations inside the specified object files using section virtual addresses
 	/// </summary>
-	public static void ComputeRelocations(List<BinaryObjectFile> objects, List<BinaryRelocation> additional_relocations)
+	public static void ComputeRelocations(List<BinaryRelocation> relocations)
 	{
-		foreach (var relocation in objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).Concat(additional_relocations))
+		foreach (var relocation in relocations)
 		{
 			var symbol = relocation.Symbol;
 			var symbol_section = symbol.Section; // ?? throw new ApplicationException("Missing symbol definition section");
@@ -255,21 +255,63 @@ public static class Linker
 	}
 
 	/// <summary>
+	/// Searches for relocations that must be solved by the dynamic linker and removes them from the specified relocations.
+	/// This function creates a dynamic relocation section if required.
+	/// </summary>
+	private static void CreateDynamicRelocations(List<BinarySection> sections, List<BinaryRelocation> relocations, DynamicLinkingInformation dynamic_linking_information)
+	{
+		// Find all relocations that are absolute
+		var absolute_relocations = relocations.Where(i => i.Type == BinaryRelocationType.ABSOLUTE64).ToList();
+
+		for (var i = relocations.Count - 1; i >= 0; i--)
+		{
+			var relocation = relocations[i];
+
+			if (relocation.Type == BinaryRelocationType.ABSOLUTE32)
+			{
+				throw new ApplicationException("32-bit absolute relocations are not supported when building a shared library on 64-bit mode");
+			}
+
+			// Take only the 64-bit absolute relocations
+			if (relocation.Type == BinaryRelocationType.ABSOLUTE64)
+			{
+				absolute_relocations.Add(relocation);
+				relocations.RemoveAt(i); // Remove the relocation from the list, since now the dynamic linker is responsible for it
+			}
+		}
+
+		if (!absolute_relocations.Any()) return;
+
+		// Create a new section for the dynamic relocations
+		var dynamic_relocations_data = new byte[absolute_relocations.Count * ElfRelocationEntry.Size];
+		var dynamic_relocations_section = new BinarySection(ElfFormat.DYNAMIC_RELOCATIONS_SECTION, BinarySectionType.RELOCATION_TABLE, dynamic_relocations_data);
+		dynamic_relocations_section.Alignment = 8;
+		dynamic_relocations_section.Flags = BinarySectionFlag.ALLOCATE;
+
+		// Finish the absolute relocations later, since they require virtual addresses for sections
+		dynamic_linking_information.RelocationSection = dynamic_relocations_section;
+		dynamic_linking_information.Relocations = absolute_relocations;
+
+		// Add the dynamic relocations section to the list of sections
+		sections.Add(dynamic_relocations_section);
+	}
+
+	/// <summary>
 	/// Creates all the required dynamic sections needed in a shared library. This includes the dynamic section, the dynamic symbol table, the dynamic string table.
 	/// The dynamic symbol table created by this function will only exported symbols.
 	/// </summary>
-	private static DynamicLinkingInformation CreateDynamicSections(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	private static DynamicLinkingInformation CreateDynamicSections(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols, List<BinaryRelocation> relocations)
 	{
 		// Build the dynamic section data
-		var dynamic_section_data = new byte[ElfDynamicEntry.Size * 6];
-		ElfFormat.Write(dynamic_section_data, ElfDynamicEntry.Size * 0, new ElfDynamicEntry(ElfDynamicSectionTag.HashTable, 0));   // File offset of the hash table   (filled in later using a relocation)
-		ElfFormat.Write(dynamic_section_data, ElfDynamicEntry.Size * 1, new ElfDynamicEntry(ElfDynamicSectionTag.StringTable, 0)); // File offset of the string table (filled in later using a relocation)
-		ElfFormat.Write(dynamic_section_data, ElfDynamicEntry.Size * 2, new ElfDynamicEntry(ElfDynamicSectionTag.SymbolTable, 0)); // File offset of the symbol table (filled in later using a relocation)
-		ElfFormat.Write(dynamic_section_data, ElfDynamicEntry.Size * 3, new ElfDynamicEntry(ElfDynamicSectionTag.StringTableSize, 1));
-		ElfFormat.Write(dynamic_section_data, ElfDynamicEntry.Size * 4, new ElfDynamicEntry(ElfDynamicSectionTag.SymbolEntrySize, ElfSymbolEntry.Size));
+		var dynamic_section_entries = new List<ElfDynamicEntry>();
+		dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.HashTable, 0)); // The address is filled in later using a relocation
+		dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.StringTable, 0));  // The address is filled in later using a relocation
+		dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.SymbolTable, 0));  // The address is filled in later using a relocation
+		dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.SymbolEntrySize, ElfSymbolEntry.Size));
+		dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.StringTableSize, 1));
 
 		// Dynamic section:
-		var dynamic_section = new BinarySection(ElfFormat.DYNAMIC_SECTION, BinarySectionType.DYNAMIC, dynamic_section_data);
+		var dynamic_section = new BinarySection(ElfFormat.DYNAMIC_SECTION, BinarySectionType.DYNAMIC, Array.Empty<byte>());
 		dynamic_section.Alignment = 8;
 		dynamic_section.Flags = BinarySectionFlag.WRITE | BinarySectionFlag.ALLOCATE;
 
@@ -328,14 +370,38 @@ public static class Linker
 		hash_section_start.Section = hash_section;
 		hash_section.Symbols.Add(hash_section_start.Name, hash_section_start);
 
+		var dynamic_linking_information = new DynamicLinkingInformation(dynamic_symbol_table, exported_symbol_entries, exported_symbols);
+		CreateDynamicRelocations(sections, relocations, dynamic_linking_information);
+
 		// Add relocations for hash, symbol and string tables in the dynamic section
-		var relocations = new List<BinaryRelocation>();
-		relocations.Add(new BinaryRelocation(hash_section_start, ElfDynamicEntry.Size * 0 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
-		relocations.Add(new BinaryRelocation(dynamic_string_table_start, ElfDynamicEntry.Size * 1 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
-		relocations.Add(new BinaryRelocation(dynamic_symbol_table_start, ElfDynamicEntry.Size * 2 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
+		var additional_relocations = new List<BinaryRelocation>();
+		additional_relocations.Add(new BinaryRelocation(hash_section_start, ElfDynamicEntry.Size * 0 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
+		additional_relocations.Add(new BinaryRelocation(dynamic_string_table_start, ElfDynamicEntry.Size * 1 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
+		additional_relocations.Add(new BinaryRelocation(dynamic_symbol_table_start, ElfDynamicEntry.Size * 2 + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
+
+		if (dynamic_linking_information.RelocationSection != null)
+		{
+			// Create a symbol, which represents the start of the dynamic relocation table
+			var dynamic_relocations_section_start = new BinarySymbol(dynamic_linking_information.RelocationSection!.Name, 0, false);
+			dynamic_relocations_section_start.Section = dynamic_linking_information.RelocationSection;
+			dynamic_linking_information.RelocationSection.Symbols.Add(dynamic_relocations_section_start.Name, dynamic_relocations_section_start);
+
+			// Save the index where the relocation table entry will be placed
+			var relocation_table_entry_index = dynamic_section_entries.Count;
+
+			// Add a relocation table entry to the dynamic section entries so that the dynamic linker knows where to find the relocation table
+			dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.RelocationTable, 0));  // The address is filled in later using a relocation
+			dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.RelocationTableSize, (ulong)dynamic_linking_information.RelocationSection.Data.Length));
+			dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.RelocationEntrySize, ElfRelocationEntry.Size));
+			dynamic_section_entries.Add(new ElfDynamicEntry(ElfDynamicSectionTag.RelocationCount, (ulong)dynamic_linking_information.Relocations.Count));
+
+			additional_relocations.Add(new BinaryRelocation(dynamic_relocations_section_start, ElfDynamicEntry.Size * relocation_table_entry_index + ElfDynamicEntry.PointerOffset, 0, BinaryRelocationType.FILE_OFFSET_64));
+		}
 
 		// Connect the relocations to the dynamic section
-		foreach (var relocation in relocations) { relocation.Section = dynamic_section; }
+		foreach (var relocation in additional_relocations) { relocation.Section = dynamic_section; }
+
+		relocations.AddRange(additional_relocations);
 
 		// Add the created sections
 		sections.Add(hash_section);
@@ -343,7 +409,11 @@ public static class Linker
 		sections.Add(dynamic_symbol_table);
 		sections.Add(dynamic_string_table);
 
-		return new DynamicLinkingInformation(dynamic_symbol_table, exported_symbol_entries, exported_symbols, relocations);
+		// Output the dynamic section entries into the dynamic section
+		dynamic_section.Data = new byte[ElfDynamicEntry.Size * (dynamic_section_entries.Count + 1)]; // Allocate one more entry so that the last entry is a none-entry
+		ElfFormat.Write(dynamic_section.Data, 0, dynamic_section_entries);
+
+		return dynamic_linking_information;
 	}
 
 	/// <summary>
@@ -366,7 +436,36 @@ public static class Linker
 		}
 
 		// Write the symbol entries into the dynamic symbol table
-		ElfFormat.Write(information.Section.Data, 0, information.Entries);
+		ElfFormat.Write(information.DynamicSection.Data, 0, information.Entries);
+
+		// Finish dynamic relocations if there are any
+		if (information.RelocationSection == null) return;
+
+		var relocations_entries = new List<ElfRelocationEntry>();
+
+		// Generate relocations for all the collected absolute relocations
+		// Absolute relocations in a shared library can be expressed as follows:
+		// <Base address of the shared library> + <offset of the symbol in the shared library>
+		// ELF-standard has a special relocation type for this, which is R_X86_64_RELATIVE.
+		foreach (var relocation in information.Relocations)
+		{
+			var symbol = relocation.Symbol;
+
+			// Determine the offset of the symbol in the shared library
+			var relocation_offset = relocation.Section!.VirtualAddress + relocation.Offset;
+
+			// Now we need to compute the offset of the symbol in the shared library
+			var symbol_offset = symbol.Section!.VirtualAddress + symbol.Offset;
+
+			// Create a ELF relocation entry for the relocation
+			var relocation_entry = new ElfRelocationEntry((ulong)relocation_offset, symbol_offset);
+			relocation_entry.SetInfo(0, (uint)ElfSymbolType.BASE_RELATIVE_64);
+
+			relocations_entries.Add(relocation_entry);
+		}
+
+		// Write the modified absolute relocations into the dynamic relocation section
+		ElfFormat.Write(information.RelocationSection.Data, 0, relocations_entries);
 	}
 
 	public static byte[] Link(List<BinaryObjectFile> objects, string entry, bool executable)
@@ -392,8 +491,11 @@ public static class Linker
 		// Ensure sections are ordered so that sections of same type are next to each other
 		var fragments = objects.SelectMany(i => i.Sections).Where(IsLoadableSection).ToList();
 
+		// Load all the relocations from all the sections
+		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
+
 		// Add dynamic sections if needed
-		var dynamic_linking_information = executable ? null : CreateDynamicSections(fragments, symbols);
+		var dynamic_linking_information = executable ? null : CreateDynamicSections(fragments, symbols, relocations);
 
 		// Order the fragments so that allocated fragments come first
 		var allocated_fragments = fragments.Where(i => i.Type == BinarySectionType.NONE || i.Flags.HasFlag(BinarySectionFlag.ALLOCATE)).ToList();
@@ -407,7 +509,7 @@ public static class Linker
 		CreateProgramHeaders(sections, fragments, program_headers, executable ? VIRTUAL_ADDRESS_START : 0UL);
 
 		// Now that sections have their virtual addresses relocations can be computed
-		ComputeRelocations(objects, dynamic_linking_information != null ? dynamic_linking_information.Relocations : new List<BinaryRelocation>());
+		ComputeRelocations(relocations);
 
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example.
 		// This section is used to align the first loadable section

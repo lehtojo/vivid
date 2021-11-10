@@ -42,7 +42,7 @@ public class DebugLineEncoderModule : DataEncoderModule
 
 	private void AddFolder(string folder)
 	{
-		String(folder); // Terminated folder path
+		String(folder.Replace("\\", "\\\\")); // Terminated folder path
 	}
 
 	private void AddFile(string name, int folder)

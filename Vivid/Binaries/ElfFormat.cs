@@ -166,7 +166,8 @@ public enum ElfSymbolType
 	NONE = 0x00,
 	ABSOLUTE64 = 0x01,
 	PROGRAM_COUNTER_RELATIVE = 0x02,
-	ABSOLUTE32 = 0x0A
+	ABSOLUTE32 = 0x0A,
+	BASE_RELATIVE_64 = 0x08
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -198,8 +199,12 @@ public enum ElfDynamicSectionTag
 	HashTable = 0x04,
 	StringTable = 0x05,
 	SymbolTable = 0x06,
+	RelocationTable = 0x07,
+	RelocationTableSize = 0x08,
+	RelocationEntrySize = 0x09,
 	StringTableSize = 0x0A,
-	SymbolEntrySize = 0x0B
+	SymbolEntrySize = 0x0B,
+	RelocationCount = 0x6ffffff9
 }
 
 
@@ -231,6 +236,7 @@ public static class ElfFormat
 	public const string DYNAMIC_STRING_TABLE_SECTION = ".dynstr";
 	public const string HASH_SECTION = ".hash";
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".rela";
+	public const string DYNAMIC_RELOCATIONS_SECTION = RELOCATION_TABLE_SECTION_PREFIX + ".dyn";
 	public const string DYNAMIC_SECTION_START = "_DYNAMIC";
 
 	public static int Write<T>(byte[] destination, int offset, T source)
@@ -273,7 +279,7 @@ public static class ElfFormat
 	{
 		var result = ElfSectionFlag.NONE;
 
-		if (section.Type == BinarySectionType.RELOCATION_TABLE) { result |= ElfSectionFlag.INFO_LINK; }
+		if (section.Type == BinarySectionType.RELOCATION_TABLE && section.Name != ElfFormat.DYNAMIC_RELOCATIONS_SECTION) { result |= ElfSectionFlag.INFO_LINK; }
 
 		if (section.Flags.HasFlag(BinarySectionFlag.WRITE)) { result |= ElfSectionFlag.WRITE; }
 		if (section.Flags.HasFlag(BinarySectionFlag.EXECUTE)) { result |= ElfSectionFlag.EXECUTABLE; }
@@ -368,7 +374,14 @@ public static class ElfFormat
 			header.SectionFileSize = (ulong)section.LoadSize;
 			header.Alignment = (ulong)section.Alignment;
 
-			if (section.Type == BinarySectionType.RELOCATION_TABLE)
+			if (section.Name == ElfFormat.DYNAMIC_RELOCATIONS_SECTION)
+			{
+				// The section header of relocation table should be linked to the dynamic symbol table
+				header.Link = sections.FindIndex(i => i.Name == ElfFormat.DYNAMIC_SYMBOL_TABLE_SECTION);
+				header.Info = 0;
+				header.EntrySize = ElfRelocationEntry.Size;
+			}
+			else if (section.Type == BinarySectionType.RELOCATION_TABLE)
 			{
 				// The section header of relocation table should be linked to the symbol table and its info should point to the text section, since it describes it
 				header.Link = sections.FindIndex(i => i.Name == ElfFormat.SYMBOL_TABLE_SECTION);

@@ -346,12 +346,15 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			foreach (var file in modified)
+			if (Assembler.IsAssemblyOutputEnabled)
 			{
-				var assembly = assemblies[file];
-				var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
+				foreach (var file in modified)
+				{
+					var assembly = assemblies[file];
+					var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
 
-				File.WriteAllText(assembly_file, assembly);
+					File.WriteAllText(assembly_file, assembly);
+				}
 			}
 		}
 		catch
