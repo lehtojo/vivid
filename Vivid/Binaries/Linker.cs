@@ -90,21 +90,54 @@ public static class Linker
 		var section_fragments = fragments.GroupBy(i => i.Name).ToList();
 		var allocated_fragments = section_fragments.Count(i => i.First().Type == BinarySectionType.NONE || i.First().Flags.HasFlag(BinarySectionFlag.ALLOCATE));
 
+		var file_position = SEGMENT_ALIGNMENT;
+
 		for (var i = 0; i < section_fragments.Count; i++)
 		{
-			var section = section_fragments[i];
+			var inner_fragments = section_fragments[i].ToList();
+			var is_allocated_section = i + 1 < allocated_fragments;
 
-			var flags = section.First().Flags;
-			var type = section.First().Type;
-			var alignment = section.First().Alignment;
-			var name = section.Key;
-			var load_size = section.Sum(i => i.Data.Length); // Compute how many bytes all the fragments inside the current section take
-			var virtual_size = load_size;
+			var flags = inner_fragments.First().Flags;
+			var type = inner_fragments.First().Type;
+			var name = inner_fragments.First().Name;
 
-			// Expand the section, if it is not the last allocated section, so that the next allocated section is aligned
-			if (i + 1 < allocated_fragments) { virtual_size = (load_size / (int)SEGMENT_ALIGNMENT + 1) * (int)SEGMENT_ALIGNMENT; }
+			// Compute the margin needed to align the overlay section
+			var alignment = is_allocated_section ? (int)SEGMENT_ALIGNMENT : inner_fragments.First().Alignment;
+			var overlay_margin = alignment - (int)file_position % alignment;
 
-			result.Add(new BinarySection(name, flags, type, alignment, Array.Empty<byte>(), virtual_size, load_size));
+			// Apply the margin if it is needed for alignment
+			if (overlay_margin != alignment) { file_position += (ulong)overlay_margin; }
+			else { overlay_margin = 0; }
+
+			// Save the current file position so that the size of the overlay section can be computed below
+			var start_file_position = file_position;
+
+			file_position += (ulong)inner_fragments.First().Data.Length;
+
+			// Skip the first fragment, since it is already part of the section
+			for (var j = 1; j < inner_fragments.Count; j++)
+			{
+				var fragment = inner_fragments[j];
+
+				// Compute the margin needed to align the fragment
+				alignment = fragment.Alignment;
+
+				var margin = alignment - (int)file_position % alignment;
+
+				// Apply the margin if it is needed for alignment
+				if (margin != alignment)
+				{
+					fragment.Margin = margin;
+					file_position += (ulong)margin;
+				}
+
+				file_position += (ulong)fragment.Data.Length;
+			}
+
+			var overlay_size = (int)(file_position - start_file_position);
+			var overlay_section = new BinarySection(name, flags, type, alignment, Array.Empty<byte>(), overlay_margin, overlay_size);
+
+			result.Add(overlay_section);
 		}
 
 		return result;
@@ -132,6 +165,10 @@ public static class Linker
 
 		foreach (var section in sections)
 		{
+			// Apply the section margin before doing anything
+			file_position += section.Margin;
+			virtual_address += (ulong)section.Margin;
+
 			if (section.Name.Length != 0 && !section.Flags.HasFlag(BinarySectionFlag.ALLOCATE))
 			{
 				// Restore the current virtual address after aligning the fragments
@@ -149,12 +186,11 @@ public static class Linker
 					fragment.Offset = file_position;
 					fragment.VirtualAddress = (int)virtual_address;
 
-					file_position += fragment.Data.Length;
-					virtual_address += (uint)fragment.Data.Length;
+					file_position += fragment.Margin + fragment.Data.Length;
+					virtual_address += (uint)(fragment.Margin + fragment.Data.Length);
 				}
 
-				// Determine the file position and restore the virtual address
-				file_position = section.Offset + section.VirtualSize;
+				// Restore the virtual address
 				virtual_address = previous_virtual_address;
 				continue;
 			}
@@ -202,15 +238,16 @@ public static class Linker
 			// Align all the section fragments
 			foreach (var fragment in fragments.FindAll(i => i.Name == section.Name))
 			{
+				// Apply the fragment margin before doing anything, so that the fragment is aligned
+				file_position += fragment.Margin;
+				virtual_address += (uint)fragment.Margin;
+
 				fragment.Offset = file_position;
 				fragment.VirtualAddress = (int)virtual_address;
 				
 				file_position += fragment.Data.Length;
 				virtual_address += (uint)fragment.Data.Length;
 			}
-
-			file_position = section.Offset + section.VirtualSize;
-			virtual_address = (ulong)(section.VirtualAddress + section.VirtualSize);
 		}
 
 		return file_position;
@@ -532,7 +569,7 @@ public static class Linker
 		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information, sections);
 
 		var section_headers = ElfFormat.CreateSectionHeaders(sections, symbols, (int)SEGMENT_ALIGNMENT);
-		var section_bytes = sections.Sum(i => i.VirtualSize);
+		var section_bytes = sections.Sum(i => i.Margin + i.VirtualSize);
 
 		var bytes = (int)SEGMENT_ALIGNMENT + section_bytes + section_headers.Count * ElfSectionHeader.Size;
 

@@ -31,6 +31,7 @@ public class BinarySection
 	public int VirtualSize { get; set; } = 0;
 	public int LoadSize { get; set; } = 0;
 	public int Alignment { get; set; } = 1;
+	public int Margin { get; set; } = 0;
 	public int Offset { get; set; } = 0;
 	public int VirtualAddress { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
@@ -46,15 +47,16 @@ public class BinarySection
 		LoadSize = data.Length;
 	}
 
-	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int virtual_size, int load_size)
+	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int margin, int size)
 	{
 		Name = name;
 		Flags = flags;
 		Type = type;
 		Data = data;
-		VirtualSize = virtual_size;
-		LoadSize = load_size;
+		VirtualSize = size;
+		LoadSize = size;
 		Alignment = alignment;
+		Margin = margin;
 	}
 }
 

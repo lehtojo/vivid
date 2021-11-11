@@ -15,6 +15,7 @@ public class DataEncoderModule
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
 	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
 	public List<BinaryOffset> Offsets { get; set; } = new List<BinaryOffset>();
+	public int Alignment { get; set; } = 8;
 
 	/// <summary>
 	/// Ensures the internal buffer has the specified amount of bytes available
@@ -307,6 +308,7 @@ public class DataEncoderModule
 		Symbols.Add(name, new BinarySymbol(name, 0, false));
 
 		var section = new BinarySection(Name, BinarySectionType.DATA, Output);
+		section.Alignment = Alignment;
 		section.Relocations = Relocations;
 		section.Symbols = Symbols;
 		section.Offsets = Offsets;
@@ -341,6 +343,8 @@ public static class DataEncoder
 		var padding = alignment - module.Position % alignment;
 		if (padding == alignment) return;
 
+		// By choosing the largest alignment, it is guaranteed that all the alignments are correct even after the linker relocates all sections
+		module.Alignment = Math.Max(module.Alignment, alignment);
 		module.Zero(padding);
 	}
 

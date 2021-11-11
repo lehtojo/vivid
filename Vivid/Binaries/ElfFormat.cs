@@ -366,6 +366,9 @@ public static class ElfFormat
 
 		foreach (var section in sections)
 		{
+			// Apply the section margin before doing anything
+			file_position += section.Margin;
+
 			var header = new ElfSectionHeader();
 			header.Name = string_table.Add(section.Name);
 			header.Type = GetSectionType(section);
