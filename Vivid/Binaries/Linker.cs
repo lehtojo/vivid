@@ -95,7 +95,7 @@ public static class Linker
 		for (var i = 0; i < section_fragments.Count; i++)
 		{
 			var inner_fragments = section_fragments[i].ToList();
-			var is_allocated_section = i + 1 < allocated_fragments;
+			var is_allocated_section = i + 1 <= allocated_fragments;
 
 			var flags = inner_fragments.First().Flags;
 			var type = inner_fragments.First().Type;
