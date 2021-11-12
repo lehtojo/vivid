@@ -640,7 +640,7 @@ public class AssemblyParser
 	/// <summary>
 	/// Returns whether the specified operation represents a jump instruction
 	/// </summary>
-	private static bool IsJump(string operation)
+	public static bool IsJump(string operation)
 	{
 		return operation == global::Instructions.X64.JUMP ||
 			operation == global::Instructions.X64.JUMP_ABOVE ||

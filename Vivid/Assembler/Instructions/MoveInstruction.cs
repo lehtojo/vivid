@@ -29,6 +29,8 @@ public class MoveInstruction : DualParameterInstruction
 
 	public static void Initialize()
 	{
+		Conditionals.Clear();
+
 		if (Assembler.IsArm64)
 		{
 			Conditionals.Add(Operators.GREATER_THAN, new[] { "gt" });

@@ -342,13 +342,8 @@ public class InstructionEncoderCoreTest
 		return string.Empty;
 	}
 
-	public static void Run()
-	{
-		ExpandAll(System.IO.File.ReadAllText("/home/lehtojo/vivid/Vivid/Tests/Instructions.asm"));
-	}
-
 	[TestMethod]
-	public void Test()
+	public void Run()
 	{
 		Environment.CurrentDirectory = "/home/lehtojo/vivid/Vivid/";
 		ExpandAll(System.IO.File.ReadAllText("./Tests/Instructions.asm"));

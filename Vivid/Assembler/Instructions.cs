@@ -332,6 +332,9 @@ public static class Instructions
 
 		public static void Initialize()
 		{
+			JumpInstruction.Initialize();
+			MoveInstruction.Initialize();
+
 			if (Descriptors.Count > 0)
 			{
 				return;
@@ -402,9 +405,6 @@ public static class Instructions
 			Descriptors.Add(JUMP_NOT_EQUALS, new() { IsConditional = true });
 			Descriptors.Add(JUMP_NOT_ZERO, new() { IsConditional = true });
 			Descriptors.Add(JUMP_ZERO, new() { IsConditional = true });
-
-			JumpInstruction.Initialize();
-			MoveInstruction.Initialize();
 
 			for (var i = 0; i < _MAX_PARAMETERLESS_INSTRUCTIONS; i++) { ParameterlessEncodings.Add(new List<InstructionEncoding>()); }
 			for (var i = 0; i < _MAX_SINGLE_PARAMETER_INSTRUCTIONS; i++) { SingleParameterEncodings.Add(new List<InstructionEncoding>()); }
@@ -1443,6 +1443,9 @@ public static class Instructions
 
 		public static void Initialize()
 		{
+			JumpInstruction.Initialize();
+			MoveInstruction.Initialize();
+
 			if (Descriptors.Count > 0) return;
 
 			Descriptors.Add(SHIFT_LEFT, new(StatusFlag.Arm64.C));
@@ -1461,9 +1464,6 @@ public static class Instructions
 			Descriptors.Add(JUMP_LESS_THAN_OR_EQUALS, new() { IsConditional = true });
 			Descriptors.Add(JUMP_EQUALS, new() { IsConditional = true });
 			Descriptors.Add(JUMP_NOT_EQUALS, new() { IsConditional = true });
-
-			JumpInstruction.Initialize();
-			MoveInstruction.Initialize();
 		}
 	}
 }

@@ -6,7 +6,7 @@ using System;
 public class InstructionEncoderJumpTests
 {
 	[TestMethod]
-	public void Test()
+	public void Run()
 	{
 		// Initialize the target architecture
 		Instructions.X64.Initialize();

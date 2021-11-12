@@ -1162,7 +1162,16 @@ public static class InstructionEncoder
 
 		while (true)
 		{
-			var end = instructions.FindIndex(start, instructions.Count - start, i => i.Type == InstructionType.JUMP && i.Parameters.First().Value!.Type != HandleType.REGISTER) + 1;
+			#warning You might want to optimize the detection of a jump
+			var end = instructions.FindIndex(start, instructions.Count - start, i =>
+			{
+				// Verify that the instruction represents a jump
+				if (i.Type != InstructionType.JUMP && !AssemblyParser.IsJump(i.Operation)) return false;
+
+				// Now ensure that it jumps to a label instead of using registers or memory addresses
+				var destination = i.Parameters.First().Value!;
+				return destination.Instance == HandleInstanceType.DATA_SECTION;
+			}) + 1;
 
 			if (end != 0)
 			{
