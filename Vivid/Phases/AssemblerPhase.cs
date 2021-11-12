@@ -72,7 +72,10 @@ public class AssemblerPhase : Phase
 					sections.AddRange(data_sections);
 					if (debug_lines_section != null) sections.Add(debug_lines_section);
 
-					var object_file = ElfFormat.Build(sections, parser.Exports);
+					var object_file = Assembler.IsTargetWindows
+						? PortableExecutableFormat.Build(sections, parser.Exports)
+						: ElfFormat.Build(sections, parser.Exports);
+
 					File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);
 				}
 			}

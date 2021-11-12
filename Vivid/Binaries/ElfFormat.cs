@@ -115,26 +115,6 @@ public class ElfSectionHeader
 	public ulong EntrySize { get; set; } = 0;
 }
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public class ElfStringTable
-{
-	public List<string> Items { get; } = new List<string>();
-	public int Position { get; set; } = 0;
-
-	public int Add(string item)
-	{
-		var position = Position;
-		Items.Add(item);
-		Position += item.Length + 1;
-		return position;
-	}
-
-	public byte[] Export()
-	{
-		return Encoding.UTF8.GetBytes(string.Join('\0', Items) + '\0');
-	}
-}
-
 public enum ElfSymbolBinding : int
 {
 	LOCAL = 0x00,
@@ -361,7 +341,7 @@ public static class ElfFormat
 
 	public static List<ElfSectionHeader> CreateSectionHeaders(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols, int file_position = ElfFileHeader.Size)
 	{
-		var string_table = new ElfStringTable();
+		var string_table = new BinaryStringTable();
 		var headers = new List<ElfSectionHeader>();
 
 		foreach (var section in sections)
@@ -490,10 +470,10 @@ public static class ElfFormat
 	/// <summary>
 	/// Creates the symbol table and the relocation table based on the specified symbols
 	/// </summary>
-	public static ElfStringTable CreateSymbolRelatedSections(List<BinarySection> sections, List<BinarySection>? fragments, Dictionary<string, BinarySymbol> symbols)
+	public static BinaryStringTable CreateSymbolRelatedSections(List<BinarySection> sections, List<BinarySection>? fragments, Dictionary<string, BinarySymbol> symbols)
 	{
 		// Create a string table that contains the names of the specified symbols
-		var symbol_name_table = new ElfStringTable();
+		var symbol_name_table = new BinaryStringTable();
 		var symbol_entries = new List<ElfSymbolEntry>();
 		var relocation_sections = new Dictionary<BinarySection, List<ElfRelocationEntry>>();
 

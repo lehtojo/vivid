@@ -1,4 +1,7 @@
+using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Text;
+using System.Linq;
 using System;
 
 public enum BinarySectionType
@@ -154,5 +157,36 @@ public class BinaryObjectFile
 	public BinaryObjectFile(List<BinarySection> sections)
 	{
 		Sections = sections;
+	}
+}
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public class BinaryStringTable
+{
+	public List<string> Items { get; } = new List<string>();
+	public int Position { get; set; } = 0;
+	public bool Size { get; set; } = false;
+
+	public BinaryStringTable(bool size = false)
+	{
+		Size = size;
+		Position = size ? sizeof(int) : 0;
+	}
+
+	public int Add(string item)
+	{
+		var position = Position;
+		Items.Add(item);
+		Position += item.Length + 1;
+		return position;
+	}
+
+	public byte[] Export()
+	{
+		var content = Encoding.UTF8.GetBytes(string.Join('\0', Items) + '\0');
+
+		return Size
+			? BitConverter.GetBytes(sizeof(int) + content.Length).Concat(content).ToArray()
+			: content;
 	}
 }

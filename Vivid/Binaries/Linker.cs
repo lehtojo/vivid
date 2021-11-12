@@ -360,7 +360,7 @@ public static class Linker
 		symbols.Add(dynamic_section_start.Name, dynamic_section_start);
 
 		// Symbol name table:
-		var exported_symbol_name_table = new ElfStringTable();
+		var exported_symbol_name_table = new BinaryStringTable();
 		var exported_symbol_entries = new List<ElfSymbolEntry>();
 		var exported_symbols = symbols.Values.Where(i => i.Export).ToList();
 		exported_symbols.Insert(0, new BinarySymbol(string.Empty, 0, false));
