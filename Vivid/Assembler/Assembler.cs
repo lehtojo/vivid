@@ -720,7 +720,8 @@ public static class Assembler
 		}
 	
 		var object_files = new List<BinaryObjectFile>();
-		object_files.Add(ElfFormat.Import("libv_x64.o"));
+
+		object_files.Add(IsTargetWindows ? PortableExecutableFormat.Import("libv_x64.obj") : ElfFormat.Import("libv_x64.o"));
 
 		var text_sections = GetTextSections(context);
 		var data_sections = GetDataSections(context);
@@ -852,7 +853,7 @@ public static class Assembler
 			// Ensure there are no duplicated sections
 			if (modules.Count != modules.Select(i => i.Name).Distinct().Count()) throw new ApplicationException("Duplicated sections are not allowed");
 
-			var output = InstructionEncoder.Encode(builder.Instructions.GetValueOrDefault(file, new List<Instruction>()), file.Fullname);
+			var output = InstructionEncoder.Encode(builder.Instructions.GetValueOrDefault(file, new List<Instruction>()), IsDebuggingEnabled ? file.Fullname : null);
 			var object_text_section = output.Section;
 			var object_data_sections = modules.Select(i => i.Export()).ToList();
 			var object_debug_lines = output.Lines?.Export();
@@ -864,7 +865,10 @@ public static class Assembler
 			sections.AddRange(object_data_sections);
 			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
-			var object_file = ElfFormat.Create(sections, builder.Exports);
+			var object_file = IsTargetWindows
+				? PortableExecutableFormat.Create(sections, builder.Exports)
+				: ElfFormat.Create(sections, builder.Exports);
+
 			object_files.Add(object_file);
 		}
 
@@ -872,7 +876,10 @@ public static class Assembler
 		{
 			var postfix = output_type == BinaryType.EXECUTABLE ? string.Empty : AssemblyPhase.SharedLibraryExtension;
 
-			var linked_binary = Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
+			var linked_binary = IsTargetWindows
+				? PortableExecutableFormat.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
+				: Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
+
 			File.WriteAllBytes(output_name + postfix, linked_binary);
 
 			// Make the produced binary executable

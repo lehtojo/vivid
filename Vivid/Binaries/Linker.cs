@@ -28,7 +28,7 @@ public static class Linker
 	/// Goes through all the symbols in the specified object files and makes their hidden symbols unique by adding their object file indices to their names.
 	/// This way, if multiple object files have hidden symbols with same names, their names are made unique using the object file indices.
 	/// </summary>
-	private static void MakeLocalSymbolsUnique(List<BinaryObjectFile> objects)
+	public static void MakeLocalSymbolsUnique(List<BinaryObjectFile> objects)
 	{
 		foreach (var iterator in objects)
 		{
@@ -70,7 +70,8 @@ public static class Linker
 			if (!symbol.External) continue;
 
 			// Try to find the actual symbol
-			if (!definitions.TryGetValue(symbol.Name, out var definition)) throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
+			#warning Enable the exception or support DLL-imports
+			if (!definitions.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
 
 			relocation.Symbol = definition;
 		}
@@ -541,9 +542,9 @@ public static class Linker
 		fragments = allocated_fragments.Concat(data_fragments).ToList();
 
 		// Create sections, which cover the fragmented sections
-		var sections = CreateLoadableSections(fragments);
+		var overlays = CreateLoadableSections(fragments);
 
-		CreateProgramHeaders(sections, fragments, program_headers, executable ? VIRTUAL_ADDRESS_START : 0UL);
+		CreateProgramHeaders(overlays, fragments, program_headers, executable ? VIRTUAL_ADDRESS_START : 0UL);
 
 		// Now that sections have their virtual addresses relocations can be computed
 		ComputeRelocations(relocations);
@@ -551,25 +552,25 @@ public static class Linker
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example.
 		// This section is used to align the first loadable section
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
-		sections.Insert(0, none_section);
+		overlays.Insert(0, none_section);
 
 		// Group the symbols by their section types
 		foreach (var section_symbols in symbols.Values.GroupBy(i => i.Section!.Type))
 		{
-			var section = sections.Find(i => i.Type == section_symbols.Key);
+			var section = overlays.Find(i => i.Type == section_symbols.Key);
 			if (section == null) throw new ApplicationException("Symbol did not have a corresponding linker export section");
 
 			foreach (var symbol in section_symbols) { section.Symbols.Add(symbol.Name, symbol); }
 		}
 
 		// Form the symbol table
-		ElfFormat.CreateSymbolRelatedSections(sections, fragments, symbols);
+		ElfFormat.CreateSymbolRelatedSections(overlays, fragments, symbols);
 
 		// Finish the specified dynamic linking information by filling symbol section indices into the symbol entires and writing them to the dynamic symbol table
-		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information, sections);
+		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information, overlays);
 
-		var section_headers = ElfFormat.CreateSectionHeaders(sections, symbols, (int)SEGMENT_ALIGNMENT);
-		var section_bytes = sections.Sum(i => i.Margin + i.VirtualSize);
+		var section_headers = ElfFormat.CreateSectionHeaders(overlays, symbols, (int)SEGMENT_ALIGNMENT);
+		var section_bytes = overlays.Sum(i => i.Margin + i.VirtualSize);
 
 		var bytes = (int)SEGMENT_ALIGNMENT + section_bytes + section_headers.Count * ElfSectionHeader.Size;
 
@@ -602,7 +603,7 @@ public static class Linker
 			position += ElfProgramHeader.Size;
 		}
 
-		foreach (var section in sections)
+		foreach (var section in overlays)
 		{
 			// Loadable sections are handled with the fragments
 			if (IsLoadableSection(section)) continue;

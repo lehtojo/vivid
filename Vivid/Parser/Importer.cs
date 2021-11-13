@@ -711,7 +711,7 @@ public static class Importer
 	/// </summary>
 	private static bool ImportDynamicLibrary(Context context, string file)
 	{
-		var library = PortableExecutableFormat.Import(file);
+		var library = PortableExecutableFormat.ImportMetadata(file);
 
 		if (library == null)
 		{
