@@ -50,7 +50,9 @@ public class AssemblerPhase : Phase
 					object_files.Add(ElfFormat.Create(sections, parser.Exports));
 				}
 
-				var result = Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
+				var result = Assembler.IsTargetWindows
+					? PortableExecutableFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, true)
+					: Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
 
 				File.WriteAllBytes(output_name, result);
 			}

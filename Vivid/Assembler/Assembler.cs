@@ -692,7 +692,7 @@ public static class Assembler
 		return builders;
 	}
 
-	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
+	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
@@ -877,7 +877,7 @@ public static class Assembler
 			var postfix = output_type == BinaryType.EXECUTABLE ? string.Empty : AssemblyPhase.SharedLibraryExtension;
 
 			var linked_binary = IsTargetWindows
-				? PortableExecutableFormat.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
+				? PortableExecutableFormat.Link(object_files, imports, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
 				: Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
 
 			File.WriteAllBytes(output_name + postfix, linked_binary);

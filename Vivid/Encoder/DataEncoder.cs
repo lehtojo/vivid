@@ -371,7 +371,8 @@ public static class DataEncoder
 		// Allocate the table label
 		module.Zero(bytes);
 
-		if (label.IsSectionRelative) throw new NotSupportedException("Section relative labels are not supported yet");
+		#warning Look into this
+		//if (label.IsSectionRelative) throw new NotSupportedException("Section relative labels are not supported yet");
 
 		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), position, 0, type, bytes));
 	}

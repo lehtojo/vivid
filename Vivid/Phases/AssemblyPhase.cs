@@ -324,6 +324,7 @@ public class AssemblyPhase : Phase
 		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
 		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
 		var objects = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());
+		var imports = bundle.Get(ConfigurationPhase.LIBRARIES, new List<string>());
 
 		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
 		var output_type = bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
@@ -337,7 +338,7 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			assemblies = Assembler.Assemble(context, modified, exports, output_name, output_type);
+			assemblies = Assembler.Assemble(context, modified, imports, exports, output_name, output_type);
 		}
 		catch (Exception e)
 		{
