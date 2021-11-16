@@ -802,15 +802,15 @@ public static class Instructions
 
 				// sal r64, cl | sal r32, cl | sal r16, cl | sal r8, cl
 				new InstructionEncoding(0xD2, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
 
 				// sal m64, cl | sal m32, cl | sal m16, cl | sal m8, cl
 				new InstructionEncoding(0xD2, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
-				new InstructionEncoding(0xD3, 4, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
+				new InstructionEncoding(0xD3, 4, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
 			};
 
 			DualParameterEncodings[_SAR] = new List<InstructionEncoding>()

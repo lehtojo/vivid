@@ -564,12 +564,12 @@ public static class PortableExecutableFormat
 	}
 
 	public static HashSet<string> GetExportedSymbolsFromSharedLibary(string library)
-    {
+	{
 		throw new NotImplementedException();
-    }
+	}
 
 	public static void CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments, List<PortableExecutableFormatDataDirectory> data_directories)
-    {
+	{
 		var externals = relocations.Where(i => i.Symbol.External).ToList();
 		var exports = imports.Select(GetExportedSymbolsFromSharedLibary).ToArray();
 
@@ -580,26 +580,26 @@ public static class PortableExecutableFormat
 		var import_lists = new Dictionary<string, List<string>>();
 
 		foreach (var relocation in externals)
-        {
+		{
 			// If the relocation symbol can be found from the import section symbols, the library which defines the symbol is already found
 			if (import_section_symbols.TryGetValue(relocation.Symbol.Name, out BinarySymbol? import_section_symbol))
-            {
+			{
 				relocation.Symbol = import_section_symbol;
 				continue;
-            }
+			}
 
 			// Go through all the libraries and find the one which has the external symbol
 			var library = (string?)null;
 
 			for (var i = 0; i < imports.Count; i++)
-            {
+			{
 				if (!exports[i].Contains(relocation.Symbol.Name)) continue;
 
 				// Ensure the external symbol is not defined in multiple libraries, because this could cause weird behaviour depending on the order of the imported libraries
 				if (library != null) throw new ApplicationException($"Symbol {relocation.Symbol.Name} is defined in both {library} and {imports[i]}");
 
 				library = imports[i];
-            }
+			}
 
 			// Ensure the library was found
 			if (library == null) throw new ApplicationException($"Symbol {relocation.Symbol.Name} is not defined locally or externally");
@@ -617,12 +617,12 @@ public static class PortableExecutableFormat
 		}
 
 		foreach (var iterator in import_lists)
-        {
+		{
 			var library = iterator.Key;
 			var import_list = iterator.Value;
 
 
-        }
+		}
 
 		fragments.Add(import_section);
 	}
@@ -961,7 +961,7 @@ public static class PortableExecutableFormat
 
 		// Now, fix section names that use the pattern '/<Section name offset in the string table>'
 		foreach (var section in sections)
-        {
+		{
 			if (!section.Name.StartsWith('/')) continue;
 
 			// Extract the section offset in the string table

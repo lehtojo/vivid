@@ -744,11 +744,26 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
+	/// Returns how many bits are required for encoding the specified integer
+	/// </summary>
+	public static int GetNumberOfBitsForEncoding(long value)
+	{
+		if (value == long.MinValue) return 64;
+
+		var x = (ulong)(value >= 0 ? value : -value);
+
+		if (x > uint.MaxValue) return 64;
+		else if (x > ushort.MaxValue) return 32;
+		else if (x > byte.MaxValue) return 16;
+		else return 8;
+	}
+
+	/// <summary>
 	/// Returns whether the specified handle passes the configured filter
 	/// </summary>
 	private static bool PassesSize(Handle value, short size)
 	{
-		if (value.Instance == HandleInstanceType.CONSTANT) return value.To<ConstantHandle>().Bits / 8 <= size;
+		if (value.Instance == HandleInstanceType.CONSTANT) return GetNumberOfBitsForEncoding((long)value.To<ConstantHandle>().Value) / 8 <= size;
 		return value.Size.Bytes == size;
 	}
 
