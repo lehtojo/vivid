@@ -259,4 +259,5 @@ export assign_division_2(a: large, b: large, c: large, d: large, i: A, j: A, k: 
 
 init() {
 	casts_4(1.0)
+	=> 1
 }

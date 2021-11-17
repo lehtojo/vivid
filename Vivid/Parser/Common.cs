@@ -993,6 +993,8 @@ public static class Common
 			result.Add(separator);
 		}
 
+		if (result.Count == 0) return result.ToArray();
+
 		return result.GetRange(0, result.Count - 1).ToArray();
 	}
 

@@ -471,7 +471,7 @@ public class Type : Context
 
 	public bool Is(Type other)
 	{
-		return this == other || Supertypes.Any(i => i.Is(other));
+		return Equals(this, other) || Supertypes.Any(i => i.Is(other));
 	}
 
 	public override void OnMangle(Mangle mangle)

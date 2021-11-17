@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"command": "/home/lehtojo/dotnet/dotnet",
+			"command": "dotnet",
 			"type": "process",
 			"args": [
 				"build",
@@ -20,7 +20,7 @@
 		},
 		{
 			"label": "Units",
-			"command": "/home/lehtojo/dotnet/dotnet",
+			"command": "dotnet",
 			"type": "process",
 			"args": [
 				"build",

@@ -707,7 +707,7 @@ public static class Assembler
 
 		Keywords.Definitions.Clear(); // Remove all keywords for parsing assembly
 
-		Assembler.UseIndirectAccessTables = output_type == BinaryType.SHARED_LIBRARY && Assembler.IsLegacyAssemblyEnabled;
+		Assembler.UseIndirectAccessTables = !Assembler.IsTargetWindows && output_type == BinaryType.SHARED_LIBRARY && Assembler.IsLegacyAssemblyEnabled;
 
 		var result = new Dictionary<SourceFile, string>();
 
