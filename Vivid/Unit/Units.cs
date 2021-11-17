@@ -1,8 +1,10 @@
-using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using Vivid.Unit;
+using System;
 
-public static class Units
+[TestClass]
+public class Units
 {
 	private const string RED = "\x1B[1;31m";
 	private const string GREEN = "\x1B[1;32m";
@@ -66,7 +68,7 @@ public static class Units
 		Console.WriteLine();
 	}
 
-	public static void Main(string[] arguments)
+	private static void Setup(string[] arguments)
 	{
 		if (arguments.Any(i => i == "-O1"))
 		{
@@ -78,6 +80,82 @@ public static class Units
 		}
 
 		AssemblerTests.Initialize();
+	}
+
+	public static void Main(string[] arguments)
+	{
+		Setup(arguments);
+
+		StartSection("Encoding");
+
+		Run("Data", new DataEncoderTests().Run);
+		Run("Instructions", new InstructionEncoderCoreTest().Run);
+		Run("Jumps", new InstructionEncoderJumpTests().Run);
+
+		EndSection();
+
+		StartSection("Assembler");
+
+		Instructions.X64.Initialize();
+		Keywords.Definitions.Clear();
+		Operators.Initialize();
+
+		Run("Arithmetic", AssemblerTests.Arithmetic);
+		Run("Assignment", AssemblerTests.Assignment);
+		Run("BitwiseOperations", AssemblerTests.BitwiseOperations);
+		Run("ConditionallyChangingConstant", AssemblerTests.ConditionallyChangingConstant);
+		Run("Conditionals", AssemblerTests.Conditionals);
+		Run("ConstantPermanenceAndArrayCopy", AssemblerTests.ConstantPermanenceAndArrayCopy);
+		Run("Decimals", AssemblerTests.Decimals);
+		Run("Evacuation", AssemblerTests.Evacuation);
+		Run("LargeFunctions", AssemblerTests.LargeFunctions);
+		Run("Linkage", AssemblerTests.Linkage);
+		Run("LogicalOperators", AssemblerTests.LogicalOperators);
+		Run("Loops", AssemblerTests.Loops);
+		Run("Objects", AssemblerTests.Objects);
+		Run("RegisterUtilization", AssemblerTests.RegisterUtilization);
+		Run("Scopes", AssemblerTests.Scopes);
+		Run("SpecialMultiplications", AssemblerTests.SpecialMultiplications);
+		Run("Stack", AssemblerTests.Stack);
+		Run("Memory", AssemblerTests.Memory);
+		Run("Templates", AssemblerTests.Templates);
+		Run("Fibonacci", AssemblerTests.Fibonacci);
+		Run("PI", AssemblerTests.PI);
+		Run("Inheritance", AssemblerTests.Inheritance);
+		Run("Namespaces", AssemblerTests.Namespaces);
+		Run("Extensions", AssemblerTests.Extensions);
+		Run("Virtuals", AssemblerTests.Virtuals);
+		Run("Conversions", AssemblerTests.Conversions);
+		Run("ExpressionVariables", AssemblerTests.ExpressionVariables);
+		Run("Iteration", AssemblerTests.Iteration);
+		Run("Lambdas", AssemblerTests.Lambdas);
+		Run("Is", AssemblerTests.Is);
+		Run("Whens", AssemblerTests.Whens);
+
+		EndSection();
+
+		StartSection("Lexer");
+
+		Run("StandardMath", LexerTests.StandardMath);
+		Run("StandardMathAssignment", LexerTests.StandardMathAssignment);
+		Run("Math", LexerTests.Math);
+		Run("Assignment", LexerTests.Assignment);
+		Run("NestedParenthesis", LexerTests.NestedParenthesis);
+		Run("UndefinedOperator", LexerTests.UndefinedOperator);
+
+		EndSection();
+	}
+
+	[TestMethod]
+	public void Run()
+	{
+		// Support custom working folder for testing
+		if (Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER") != null)
+		{
+			Environment.CurrentDirectory = Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER")!;
+		}
+
+		Setup(new string[] { "-O2" });
 
 		StartSection("Assembler");
 

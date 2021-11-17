@@ -266,7 +266,7 @@ namespace Vivid.Unit
 				typeof(LexerPhase),
 				typeof(ParserPhase),
 				typeof(ResolverPhase),
-				typeof(AssemblerPhase)
+				typeof(AssemblyPhase)
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
@@ -295,7 +295,7 @@ namespace Vivid.Unit
 				typeof(LexerPhase),
 				typeof(ParserPhase),
 				typeof(ResolverPhase),
-				typeof(AssemblerPhase)
+				typeof(AssemblyPhase)
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();

@@ -17,7 +17,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 
 none = 0
 
-PAGE_SIZE = 1000000
+PAGE_SIZE = 10000000
 
 Page {
 	address: link
@@ -173,4 +173,3 @@ Range {
 
 	iterator() => RangeIterator(start, end)
 }
-

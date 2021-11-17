@@ -71,7 +71,7 @@ public static class Translator
 		}
 	}
 
-	public static string Translate(Unit unit, List<ConstantDataSectionHandle> constants)
+	public static void Translate(AssemblyBuilder builder, Unit unit)
 	{
 		TotalInstructions += unit.Instructions.Count;
 		
@@ -79,10 +79,7 @@ public static class Translator
 		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
 
 		// If optimization is enabled, try to optimize the generated code on instruction level
-		if (Analysis.IsInstructionAnalysisEnabled)
-		{
-			InstructionAnalysis.Optimize(unit, instructions);
-		}
+		if (Analysis.IsInstructionAnalysisEnabled) InstructionAnalysis.Optimize(unit, instructions);
 
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
@@ -161,12 +158,25 @@ public static class Translator
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 
-		// Translate all instructions
-		instructions.ForEach(i => i.Translate());
+		var file = unit.Function.Metadata.Start!.File!;
 
-		// Remove duplicates
-		constants.AddRange(constant_handles.Distinct());
+		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled)
+		{
+			// Convert all instructions into textual assembly
+			instructions.ForEach(i => i.Translate());
 
-		return unit.Export();
+			builder.Write(unit.Export());
+
+			// Add a directive, which tells the assembler to finish debugging information regarding the current function
+			if (Assembler.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);
+		}
+
+		builder.Add(file, instructions);
+
+		// Add a directive, which tells the assembler to finish debugging information regarding the current function
+		builder.Add(file, new Instruction(unit, InstructionType.DEBUG_END));
+
+		// Export the generated constants as well
+		builder.Add(file, constant_handles.Distinct().ToList());
 	}
 }

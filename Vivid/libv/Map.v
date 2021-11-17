@@ -9,7 +9,7 @@ KeyValuePair<K, V> {
 }
 
 MAX_SLOT_OFFSET = 10
-MAX_LEVEL_SIZE = 1024
+MAX_LEVEL_SIZE = 20
 
 Map<K, V> {
 	private:
@@ -17,7 +17,7 @@ Map<K, V> {
 	keys: link<K>
 	states: link<bool>
 	items: List<KeyValuePair<K, V>> = List<KeyValuePair<K, V>>()
-	ground: tiny
+	ground: normal
 	levels: normal = 1
 
 	public:
@@ -59,11 +59,16 @@ Map<K, V> {
 		this.states = states
 	}
 
+	get_level_size(i) {
+		if i > MAX_LEVEL_SIZE => 1 <| MAX_LEVEL_SIZE
+		=> 1 <| i
+	}
+
 	grow() {
 		count = 0
 
 		loop (i = ground, i < ground + levels, i++) {
-			count += min(1 <| i, MAX_LEVEL_SIZE)
+			count += get_level_size(i)
 		}
 
 		values_size = count * sizeof(V)
@@ -77,7 +82,7 @@ Map<K, V> {
 		zero(extended_keys, keys_size)
 		zero(extended_states, count)
 
-		previous_count = count - min(1 <| [ground + levels - 1], MAX_LEVEL_SIZE)
+		previous_count = count - get_level_size(ground + levels - 1)
 
 		copy(values, previous_count * sizeof(V), extended_values)
 		copy(keys, previous_count * sizeof(K), extended_keys)
@@ -103,7 +108,7 @@ Map<K, V> {
 		size = 1
 
 		loop (i = ground, i < ground + levels, i++) {
-			size = min(1 <| i, MAX_LEVEL_SIZE)
+			size = get_level_size(i)
 
 			location = hash % size
 			if location < 0 { location += size }
@@ -126,7 +131,7 @@ Map<K, V> {
 		levels++
 		grow()
 
-		size = min(1 <| (ground + levels - 1), MAX_LEVEL_SIZE)
+		size = get_level_size(ground + levels - 1)
 		location = hash % size
 		if location < 0 { location += size }
 
@@ -167,7 +172,7 @@ Map<K, V> {
 		size = 1
 
 		loop (i = ground, i < ground + levels, i++) {
-			size = min(1 <| i, MAX_LEVEL_SIZE)
+			size = get_level_size(i)
 
 			location = hash % size
 			if location < 0 { location += size }

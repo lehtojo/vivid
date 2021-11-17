@@ -10,10 +10,11 @@ public static class Program
 			typeof(ConfigurationPhase),
 			typeof(ServicePhase),
 			typeof(FilePhase),
+			typeof(AssemblerPhase),
 			typeof(LexerPhase),
 			typeof(ParserPhase),
 			typeof(ResolverPhase),
-			typeof(AssemblerPhase)
+			typeof(AssemblyPhase)
 		);
 		
 		// Pack the program arguments in the chain

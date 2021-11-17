@@ -9,12 +9,8 @@ using System.Text;
 /// </summary>
 public class InitializeInstruction : Instruction
 {
-	public const string DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET = ".cfi_def_cfa_offset ";
-
 	public int LocalMemoryTop { get; private set; }
-
-	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows && Assembler.Is64Bit;
-	private static bool IsStackAligned => Assembler.Is64Bit;
+	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows;
 
 	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) { }
 
@@ -144,8 +140,17 @@ public class InitializeInstruction : Instruction
 
 		if (Assembler.IsDebuggingEnabled)
 		{
+			builder.Append(Assembler.DebugFunctionStartDirective);
+
+			if (!Assembler.IsLegacyAssemblyEnabled)
+			{
+				// If the legacy assembly is not enabled, write the symbol, which represents the start of the current function
+				builder.Append(' ');
+				builder.Append(Unit.Function.GetFullname());
+			}
+
+			builder.AppendLine();
 			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
-			builder.AppendLine(Unit.DEBUG_FUNCTION_START);
 		}
 
 		if (Assembler.IsArm64 && calls.Any())
@@ -175,19 +180,16 @@ public class InitializeInstruction : Instruction
 		// Apply the additional memory to the stack and calculate the change from the start
 		Unit.StackOffset += additional_memory;
 
-		if (IsStackAligned)
+		// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
+		var total = Unit.StackOffset + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
+
+		if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
 		{
-			// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
-			var total = Unit.StackOffset + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
+			// Apply padding to the memory to make it aligned
+			var padding = Calls.STACK_ALIGNMENT - (total % Calls.STACK_ALIGNMENT);
 
-			if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
-			{
-				// Apply padding to the memory to make it aligned
-				var padding = Calls.STACK_ALIGNMENT - (total % Calls.STACK_ALIGNMENT);
-
-				Unit.StackOffset += padding;
-				additional_memory += padding;
-			}
+			Unit.StackOffset += padding;
+			additional_memory += padding;
 		}
 
 		if (additional_memory > 0)
@@ -207,10 +209,11 @@ public class InitializeInstruction : Instruction
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
 		if (Assembler.IsDebuggingEnabled)
 		{
-			builder.Append(DEBUG_CANOCICAL_FRAME_ADDRESS_OFFSET);
+			builder.Append(Assembler.DebugFrameOffsetDirective);
+			builder.Append(' ');
 			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString(CultureInfo.InvariantCulture));
 		}
-		
+
 		Build(builder.ToString().TrimEnd());
 	}
 }

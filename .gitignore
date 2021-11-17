@@ -1,6 +1,7 @@
 .vs/
 
 # Binaries and such
+Properties/
 bin/
 obj/
 *.ilk

@@ -1,14 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 
-public class LinuxParameterAligner
+public class ParameterAligner
 {
 	public int StandardRegisters { get; set; }
 	public int DecimalRegisters { get; set; }
 	public int Position { get; set; } = 0;
 
-	public LinuxParameterAligner(int position)
+	public ParameterAligner(int position)
 	{
 		StandardRegisters = Calls.GetStandardParameterRegisters().Count();
 		DecimalRegisters = Calls.GetMaxMediaRegisterParameters();
@@ -32,8 +31,8 @@ public class LinuxParameterAligner
 		// First, try to consume a register for the parameter
 		if (type.Format.IsDecimal() && DecimalRegisters-- > 0 || !type.Format.IsDecimal() && StandardRegisters-- > 0)
 		{
-			#warning Support Windows
-			return;
+			// On Windows even though the first parameters are passed in registers, they still need have their own stack alignment (shadow space)
+			if (!Assembler.IsTargetWindows) return;
 		}
 
 		// Normal parameters consume one stack unit
@@ -165,28 +164,14 @@ public static class Aligner
 		// Align the self pointer as well, if it exists
 		if (function.Variables.ContainsKey(Function.SELF_POINTER_IDENTIFIER))
 		{
-			parameters.Add(function.Variables[Function.SELF_POINTER_IDENTIFIER]);
+			parameters.Insert(0, function.Variables[Function.SELF_POINTER_IDENTIFIER]);
 		}
 		else if (function.Variables.ContainsKey(Lambda.SELF_POINTER_IDENTIFIER))
 		{
-			parameters.Add(function.Variables[Lambda.SELF_POINTER_IDENTIFIER]);
+			parameters.Insert(0, function.Variables[Lambda.SELF_POINTER_IDENTIFIER]);
 		}
 
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-		{
-			var aligner = new LinuxParameterAligner(Assembler.IsArm64 ? 0 : Parser.Bytes);
-			aligner.Align(parameters);
-		}
-		else
-		{
-			#warning Support Windows
-			var position = offset * Parser.Bytes;
-
-			foreach (var parameter in parameters)
-			{
-				parameter.LocalAlignment = position;
-				position += parameter.Type!.AllocationSize;
-			}
-		}
+		var aligner = new ParameterAligner(Assembler.IsArm64 ? 0 : Parser.Bytes);
+		aligner.Align(parameters);
 	}
 }

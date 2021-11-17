@@ -7,3 +7,9 @@ del v.*.asm
 del v.*.obj
 del v.*.dll
 del v.exe
+del Instructions-*.asm
+del Instructions-*.bin
+del Instructions-*.disassembly
+del Instructions-*.disassembly.reduced
+del Instructions-Expected.o
+del coverage.cobertura.xml

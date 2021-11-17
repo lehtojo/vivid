@@ -90,15 +90,6 @@ public class InstructionParameter
 		return Types.Take(index).ToArray();
 	}
 
-	/// <summary>
-	/// Controls whether the size of the handle should be visible
-	/// </summary>
-	public void SetPrecise(bool visible)
-	{
-		if (Value == null) return;
-		Value.IsPrecise = visible;
-	}
-
 	public bool IsValid()
 	{
 		if (!Types.Contains(Result.Value.Type))
@@ -156,14 +147,11 @@ public class Instruction
 
 	public Result[]? Dependencies { get; set; }
 
-	// Controls whether the unit is allowed to load operands into registers while respecting the constraints
-	public bool IsUsageAnalyzed { get; set; } = true;
-
-	// Tells whether this instructions is built 
-	public bool IsBuilt { get; protected set; } = false;
-
-	// Tells whether the instruction is abstract. Abstract instructions will not translate into real assembly instructions
-	public bool IsAbstract { get; set; } = false;
+	
+	public bool IsUsageAnalyzed { get; set; } = true; // Controls whether the unit is allowed to load operands into registers while respecting the constraints
+	public bool IsBuilt { get; protected set; } = false; // Tells whether this instructions is built
+	public bool IsAbstract { get; set; } = false; // Tells whether the instruction is abstract. Abstract instructions will not translate into real assembly instructions
+	public bool IsManual { get; set; } = false; // Tells whether the instruction is built manually using textual assembly. This helps the assembler by telling it to use the assembly code parser.
 
 	public Instruction(Unit unit, InstructionType type)
 	{
@@ -357,6 +345,7 @@ public class Instruction
 	public void Build(string operation)
 	{
 		Operation = operation;
+		IsManual = true;
 	}
 
 	/// <summary>
@@ -477,12 +466,6 @@ public class Instruction
 		}
 
 		var result = new StringBuilder(Operation);
-
-		// Each parameter must be configured to display their sizes
-		foreach (var parameter in Parameters)
-		{
-			parameter.SetPrecise(true);
-		}
 
 		foreach (var parameter in Parameters)
 		{

@@ -66,7 +66,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		// Handle decimal multiplication separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_MULTIPLY : Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
+			var instruction = Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			result = Memory.LoadOperand(Unit, First, true, Assigns);

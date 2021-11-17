@@ -5,7 +5,7 @@ using System.Linq;
 public class NumberToken : Token
 {
 	public object Value { get; private set; }
-	public Format NumberType { get; private set; }
+	public Format Format { get; private set; }
 	public int Bits { get; private set; }
 	public Position? End { get; private set; }
 	public int Bytes => Bits / 8;
@@ -116,7 +116,7 @@ public class NumberToken : Token
 			}
 
 			Value = value;
-			NumberType = Format.DECIMAL;
+			Format = Format.DECIMAL;
 			Bits = Lexer.Size.Bytes * 8;
 		}
 		else
@@ -140,22 +140,29 @@ public class NumberToken : Token
 			GetType(text, out int bits, out bool unsigned);
 
 			Value = value;
-			NumberType = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format");
+			Format = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format");
 			Bits = bits;
 		}
+	}
+
+	public NumberToken(long number) : base(TokenType.NUMBER)
+	{
+		Value = number;
+		Format = Lexer.Size.ToFormat(false);
+		Bits = Lexer.Size.Bytes * 8;
 	}
 
 	public NumberToken(int number) : base(TokenType.NUMBER)
 	{
 		Value = (long)number;
-		NumberType = Lexer.Size.ToFormat(false);
+		Format = Lexer.Size.ToFormat(false);
 		Bits = Lexer.Size.Bytes * 8;
 	}
 
 	public NumberToken(double number) : base(TokenType.NUMBER)
 	{
 		Value = number;
-		NumberType = Format.DECIMAL;
+		Format = Format.DECIMAL;
 		Bits = Lexer.Size.Bytes * 8;
 	}
 
@@ -164,14 +171,14 @@ public class NumberToken : Token
 		return other is NumberToken token &&
 			   base.Equals(other) &&
 			   (long)Value == (long)token.Value &&
-			   NumberType == token.NumberType &&
+			   Format == token.Format &&
 			   Bits == token.Bits &&
 			   Bytes == token.Bytes;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Value, NumberType, Bits, Bytes);
+		return HashCode.Combine(base.GetHashCode(), Value, Format, Bits, Bytes);
 	}
 
 	public override object Clone()

@@ -172,7 +172,7 @@ public class DivisionInstruction : DualParameterInstruction
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Assembler.Is32Bit ? Instructions.X64.SINGLE_PRECISION_DIVIDE : Instructions.X64.DOUBLE_PRECISION_DIVIDE;
+			var instruction = Instructions.X64.DOUBLE_PRECISION_DIVIDE;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };

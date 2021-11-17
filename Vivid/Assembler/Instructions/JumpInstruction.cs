@@ -11,6 +11,8 @@ public class JumpInstruction : Instruction
 
 	public static void Initialize()
 	{
+		Jumps.Clear();
+
 		if (Assembler.IsArm64)
 		{
 			Jumps.Add(Operators.GREATER_THAN,     new[] { Instructions.Arm64.JUMP_GREATER_THAN,           Instructions.Arm64.JUMP_GREATER_THAN });
@@ -37,22 +39,12 @@ public class JumpInstruction : Instruction
 
 	public JumpInstruction(Unit unit, Label label) : base(unit, InstructionType.JUMP)
 	{
-		if (Jumps.Count == 0)
-		{
-			Initialize();
-		}
-
 		Label = label;
 		Comparator = null;
 	}
 
 	public JumpInstruction(Unit unit, ComparisonOperator comparator, bool invert, bool signed, Label label) : base(unit, InstructionType.JUMP)
 	{
-		if (Jumps.Count == 0)
-		{
-			Initialize();
-		}
-
 		Label = label;
 		Comparator = invert ? comparator.Counterpart : comparator;
 		IsSigned = signed;
@@ -65,8 +57,11 @@ public class JumpInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var instruction = Comparator == null ? (Assembler.IsArm64 ? Instructions.Arm64.JUMP_LABEL : Instructions.X64.JUMP) : Jumps[Comparator][IsSigned ? 0 : 1];
+		var operation = Comparator == null ? (Assembler.IsArm64 ? Instructions.Arm64.JUMP_LABEL : Instructions.X64.JUMP) : Jumps[Comparator][IsSigned ? 0 : 1];
+		
+		Result.Value = new DataSectionHandle(Label.GetName(), true);
+		Result.Format = Assembler.Format;
 
-		Build($"{instruction} {Label.GetName()}");
+		Build(operation, new InstructionParameter(Result, ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS, HandleType.MEMORY));
 	}
 }

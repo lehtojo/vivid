@@ -64,7 +64,7 @@ public static class References
 
 				var handle = new DataSectionHandle(variable.GetStaticName());
 
-				if (Assembler.IsPositionIndependent)
+				if (Assembler.UseIndirectAccessTables)
 				{
 					handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 				}
@@ -103,7 +103,7 @@ public static class References
 	{
 		var handle = new DataSectionHandle(node.GetIdentifier(unit), true);
 
-		if (Assembler.IsPositionIndependent)
+		if (Assembler.UseIndirectAccessTables)
 		{
 			handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 		}
@@ -117,7 +117,7 @@ public static class References
 		{
 			var handle = new DataSectionHandle(implementation.GetFullname(), node.Offset, true);
 			
-			if (Assembler.IsPositionIndependent)
+			if (Assembler.UseIndirectAccessTables)
 			{
 				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 			}
@@ -129,7 +129,7 @@ public static class References
 		{
 			var handle = new DataSectionHandle(table.Name, node.Offset, true);
 
-			if (Assembler.IsPositionIndependent)
+			if (Assembler.UseIndirectAccessTables)
 			{
 				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 			}

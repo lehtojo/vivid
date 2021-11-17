@@ -22,7 +22,7 @@ public class CallInstruction : Instruction
 	{
 		var handle = new DataSectionHandle(function, true);
 
-		if (Assembler.IsPositionIndependent)
+		if (Assembler.UseIndirectAccessTables)
 		{
 			handle.Modifier = DataSectionModifier.PROCEDURE_LINKAGE_TABLE;
 		}

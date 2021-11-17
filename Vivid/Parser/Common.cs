@@ -995,6 +995,8 @@ public static class Common
 		
 		if (result.Count == 0) return result.ToArray();
 
+		if (result.Count == 0) return result.ToArray();
+
 		return result.GetRange(0, result.Count - 1).ToArray();
 	}
 
