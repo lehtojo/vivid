@@ -149,7 +149,11 @@ public class Units
 	[TestMethod]
 	public void Run()
 	{
-		Environment.CurrentDirectory = "/home/lehtojo/vivid/Vivid/";
+		// Support custom working folder for testing
+		if (Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER") != null)
+		{
+			Environment.CurrentDirectory = Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER")!;
+		}
 
 		Setup(new string[] { "-O2" });
 

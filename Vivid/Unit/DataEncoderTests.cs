@@ -16,7 +16,12 @@ public class DataEncoderTests
 		Operators.Definitions.Remove(Operators.AND.Identifier);
 		Operators.Definitions.Remove(Operators.OR.Identifier);
 
-		Environment.CurrentDirectory = "/home/lehtojo/vivid/Vivid/";
+		// Support custom working folder for testing
+		if (Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER") != null)
+		{
+			Environment.CurrentDirectory = Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER")!;
+		}
+
 		var assembly = File.ReadAllText("./Tests/Data.asm");
 
 		var parser = new AssemblyParser();

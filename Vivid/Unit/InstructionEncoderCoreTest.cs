@@ -221,7 +221,13 @@ public class InstructionEncoderCoreTest
 			index = line.IndexOf('\t', index + 1);
 			if (index < 0) continue;
 
-			complete.Add(line[(index + 1)..]);
+			var simplified = line[(index + 1)..];
+
+			// Remove comments
+			var comment = simplified.IndexOf('#');
+			if (comment >= 0) { simplified = simplified[0..(comment)]; }
+
+			complete.Add(simplified);
 		}
 
 		return string.Join('\n', complete);
@@ -345,7 +351,12 @@ public class InstructionEncoderCoreTest
 	[TestMethod]
 	public void Run()
 	{
-		Environment.CurrentDirectory = "/home/lehtojo/vivid/Vivid/";
+		// Support custom working folder for testing
+		if (Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER") != null)
+		{
+			Environment.CurrentDirectory = Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER")!;
+		}
+
 		ExpandAll(System.IO.File.ReadAllText("./Tests/Instructions.asm"));
 	}
 }
