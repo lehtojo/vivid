@@ -51,7 +51,7 @@ public class AssemblerPhase : Phase
 				}
 
 				var result = Assembler.IsTargetWindows
-					? PortableExecutableFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, true)
+					? PeFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, true)
 					: Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
 
 				File.WriteAllBytes(output_name, result);
@@ -75,7 +75,7 @@ public class AssemblerPhase : Phase
 					if (debug_lines_section != null) sections.Add(debug_lines_section);
 
 					var object_file = Assembler.IsTargetWindows
-						? PortableExecutableFormat.Build(sections, parser.Exports)
+						? PeFormat.Build(sections, parser.Exports)
 						: ElfFormat.Build(sections, parser.Exports);
 
 					File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);

@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Linq;
 using System.IO;
+using System;
 
 public enum PeMachineType
 {
@@ -65,6 +65,7 @@ public enum PeFormatImageCharacteristics : uint
 	EXECUTABLE = 0x0002,
 	LINENUMBERS_STRIPPED = 0x0004,
 	LARGE_ADDRESS_AWARE = 0x0020,
+	DEBUG_STRIPPED = 0x0200,
 	DLL = 0x2000,
 }
 
@@ -74,13 +75,32 @@ public class PeLegacyHeader
 	public const int Size = 64;
 	public const int PeHeaderPointerOffset = Size - sizeof(int);
 
-	public int Signature { get; set; } = 0x514D;
+	public int Signature { get; set; } = 0x5A4D;
 }
 
-public static class PortableExecutableFormat
+public class PeImportDirectoryTable
+{
+	public const int Size = 20;
+	public const int NameOffset = 12;
+	public const int ImportAddressTableOffset = 16;
+
+	public uint ImportLookupTable { get; set; } // List of all the importers
+	public uint TimeStamp { get; set; } = 0;
+	public uint ForwarderChain { get; set; } = 0;
+	public uint Name { get; set; }
+	public uint ImportAddressTable { get; set; } // List of all the function pointer to the imported functions
+}
+
+public static class PeFormat
 {
 	public const int FileSectionAlignment = 0x200;
 	public const int VirtualSectionAlignment = 0x1000;
+
+	public const int NumberOfDataDirectories = 16;
+
+	public const int ExporterSectionIndex = 0;
+	public const int ImporterSectionIndex = 1;
+	public const int ImportAddressSectionIndex = 12;
 
 	public const int SIGNATURE = 0x00004550; // 'PE\0\0'
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".r";
@@ -88,40 +108,39 @@ public static class PortableExecutableFormat
 	public const int HEADER_ADDRESS_OFFSET = 0x3C;
 	public const int HEADER_START_SIZE = 24;
 	public const string EXPORT_TABLE_NAME = ".edata\0\0";
-
+	
+	/// <summary>
+	/// Loads the offset of the PE header in the image file
+	/// </summary>
 	public static int GetHeaderOffset(byte[] bytes)
 	{
 		return BitConverter.ToInt32(bytes, HEADER_ADDRESS_OFFSET);
 	}
 
-	public static T ToStructure<T>(byte[] bytes, int offset)
+	/// <summary>
+	/// Reads the specified type from the specified bytes at the specified offset
+	/// </summary>
+	public static T Read<T>(byte[] bytes, int offset)
 	{
-		var length = Marshal.SizeOf<T>();
+		var size = Marshal.SizeOf<T>();
+		var buffer = Marshal.AllocHGlobal(size);
+		Marshal.Copy(bytes, offset, buffer, size);
 
-		var buffer = Marshal.AllocHGlobal(Marshal.SizeOf<T>());
-		Marshal.Copy(bytes, offset, buffer, length);
-
-		var result = Marshal.PtrToStructure<T>(buffer) ?? throw new ApplicationException("Could not convert byte array to a structure");
+		var result = Marshal.PtrToStructure<T>(buffer) ?? throw new ApplicationException("Could not convert byte array to type");
 
 		Marshal.FreeHGlobal(buffer);
-
 		return result;
 	}
 
-	public static bool IsEndOfDataDirectories(byte[] bytes, int position)
+	/// <summary>
+	/// Loads all the data directories from the specified image file bytes starting from the specified offset
+	/// </summary>
+	public static PeDataDirectory[]? LoadDataDirectories(byte[] bytes, int start, int count)
 	{
-		return BitConverter.ToInt64(bytes, position) == 0;
-	}
+		if (count == 0) return Array.Empty<PeDataDirectory>();
 
-	public static PortableExecutableFormatDataDirectory[]? LoadDataDirectories(byte[] bytes, int start, int count)
-	{
-		if (count == 0)
-		{
-			return Array.Empty<PortableExecutableFormatDataDirectory>();
-		}
-
-		var directories = new List<PortableExecutableFormatDataDirectory>();
-		var length = Marshal.SizeOf<PortableExecutableFormatDataDirectory>();
+		var directories = new List<PeDataDirectory>();
+		var length = Marshal.SizeOf<PeDataDirectory>();
 		var end = false;
 
 		while (start + length <= bytes.Length)
@@ -132,22 +151,22 @@ public static class PortableExecutableFormat
 				break;
 			}
 
-			directories.Add(ToStructure<PortableExecutableFormatDataDirectory>(bytes, start));
+			directories.Add(Read<PeDataDirectory>(bytes, start));
 			start += length;
 		}
 
 		return end ? directories.ToArray() : null;
 	}
 
-	public static PortableExecutableFormatSection[]? LoadSections(byte[] bytes, int start, int count)
+	/// <summary>
+	/// Loads the specified number of section tables from the specified image file bytes starting from the specified offset
+	/// </summary>
+	public static PeSectionTable[]? LoadSectionTables(byte[] bytes, int start, int count)
 	{
-		if (count == 0)
-		{
-			return Array.Empty<PortableExecutableFormatSection>();
-		}
+		if (count == 0) return Array.Empty<PeSectionTable>();
 
-		var directories = new List<PortableExecutableFormatSection>();
-		var length = Marshal.SizeOf<PortableExecutableFormatSection>();
+		var directories = new List<PeSectionTable>();
+		var length = Marshal.SizeOf<PeSectionTable>();
 		var end = false;
 
 		while (start + length <= bytes.Length)
@@ -158,49 +177,42 @@ public static class PortableExecutableFormat
 				break;
 			}
 
-			directories.Add(ToStructure<PortableExecutableFormatSection>(bytes, start));
+			directories.Add(Read<PeSectionTable>(bytes, start));
 			start += length;
 		}
 
 		return end ? directories.ToArray() : null;
 	}
 
-	private static PortableExecutableFormatModule? ImportFile(string file)
-	{
-		var bytes = File.ReadAllBytes(file);
-		var header_offset = PortableExecutableFormat.GetHeaderOffset(bytes);
-
-		if (header_offset < 0 || header_offset + Marshal.SizeOf<PortableExecutableFormatHeader>() > bytes.Length)
-		{
-			return null;
-		}
-
-		var header = ToStructure<PortableExecutableFormatHeader>(bytes, header_offset);
-
-		var data_directories_offset = header_offset + 112;
-		var data_directories = LoadDataDirectories(bytes, data_directories_offset, header.NumberOfDataDirectories);
-
-		if (data_directories == null || header.NumberOfSections < 0)
-		{
-			return null;
-		}
-
-		var section_table_offset = header_offset + HEADER_START_SIZE + header.SizeOfOptionalHeader;
-		var sections = LoadSections(bytes, section_table_offset, header.NumberOfSections);
-
-		if (sections == null)
-		{
-			return null;
-		}
-
-		return new PortableExecutableFormatModule(bytes, header, data_directories, sections);
-	}
-
-	public static PortableExecutableFormatModule? ImportMetadata(string file)
+	/// <summary>
+	/// Loads library metadata including the PE-header, data directories and section tables
+	/// </summary>
+	public static PeMetadata? LoadLibraryMetadata(string file)
 	{
 		try
 		{
-			return ImportFile(file);
+			// Load the image file and determine the PE header offset
+			var bytes = File.ReadAllBytes(file);
+			var header_offset = PeFormat.GetHeaderOffset(bytes);
+
+			if (header_offset < 0 || header_offset + Marshal.SizeOf<PeHeader>() > bytes.Length) return null;
+
+			// Read the PE-header
+			var header = Read<PeHeader>(bytes, header_offset);
+
+			// Load the data directories, which come after the header
+			var data_directories_offset = header_offset + PeHeader.Size;
+			var data_directories = LoadDataDirectories(bytes, data_directories_offset, header.NumberOfDataDirectories);
+
+			if (data_directories == null || header.NumberOfSections < 0) return null;
+
+			// Load the section tables, which come after the data directories
+			var section_table_offset = header_offset + PeHeader.OptionalHeaderOffset + header.SizeOfOptionalHeader;
+			var sections = LoadSectionTables(bytes, section_table_offset, header.NumberOfSections);
+
+			if (sections == null) return null;
+
+			return new PeMetadata(bytes, header, data_directories, sections);
 		}
 		catch
 		{
@@ -208,7 +220,11 @@ public static class PortableExecutableFormat
 		}
 	}
 
-	public static PortableExecutableFormatSection? FindSection(PortableExecutableFormatModule module, string name)
+	/// <summary>
+	/// Finds a section with the specified name from the specified metadata.
+	/// Ensure the specified name is exactly eight characters long, padded with null characters if necessary.
+	/// </summary>
+	public static PeSectionTable? FindSection(PeMetadata module, string name)
 	{
 		var bytes = Encoding.UTF8.GetBytes(name);
 
@@ -217,30 +233,29 @@ public static class PortableExecutableFormat
 			throw new ArgumentException("Section name must be eight characters long. If the actual section name is shorter, it must be padded with null characters");
 		}
 
-		return module.Sections.First(i => i.Name == BitConverter.ToUInt64(bytes));
+		return module.Sections.FirstOrDefault(i => i.Name == BitConverter.ToUInt64(bytes));
 	}
 
-	public static PortableExecutableFormatSection? FindExportSection(PortableExecutableFormatModule module)
+	/// <summary>
+	/// Tries to find an export section from the specified metadata.
+	/// </summary>
+	public static PeSectionTable? FindExportSection(PeMetadata module)
 	{
 		return FindSection(module, EXPORT_TABLE_NAME);
 	}
 
 	/// <summary>
-	/// Loads strings the specified amount starting from the specified index.
+	/// Loads strings the specified amount starting from the specified position.
 	/// </summary>
-	public static string[]? LoadStrings(byte[] bytes, int position, int count)
+	public static string[]? LoadNumberOfStrings(byte[] bytes, int position, int count)
 	{
-		if (position < 0)
-		{
-			return null;
-		}
+		if (position < 0) return null;
 
 		var strings = new string[count];
 
 		for (var i = 0; i < count; i++)
 		{
 			var end = position;
-
 			for (; end < bytes.Length && bytes[end] != 0; end++) { }
 
 			strings[i] = Encoding.UTF8.GetString(bytes[position..end]);
@@ -251,23 +266,63 @@ public static class PortableExecutableFormat
 		return strings;
 	}
 
-	public static string[]? LoadExportedSymbols(PortableExecutableFormatModule module, PortableExecutableFormatSection export_section)
+	/// <summary>
+	/// Loads strings starting from the specified position until the limit is reached.
+	/// </summary>
+	public static string[]? LoadStringsUntil(byte[] bytes, int position, int limit)
 	{
-		var export_directory_table = ToStructure<PortableExecutableFormatExportDirectoryTable>(module.Bytes, (int)export_section.PointerToRawData);
+		if (position < 0) return null;
+
+		var strings = new List<string>();
+
+		while (position < limit)
+		{
+			var end = position;
+			for (; end < limit && bytes[end] != 0; end++) { }
+
+			strings.Add(Encoding.UTF8.GetString(bytes[position..end]));
+
+			position = end + 1;
+		}
+
+		return strings.ToArray();
+	}
+
+	/// <summary>
+	/// Extracts the exported symbols from the specified export section.
+	/// </summary>
+	public static string[]? LoadExportedSymbols(PeMetadata module)
+	{
+		// Check if the library has an export table
+		var export_data_directory = module.DataDirectories[ExporterSectionIndex];
+		if (export_data_directory.RelativeVirtualAddress == 0) return null;
+
+		var export_directory_table = Read<PeExportDirectoryTable>(module.Bytes, (int)export_data_directory.RelativeVirtualAddress);
 
 		// Skip the export directory table, the export address table, the name pointer table and the ordinal table
-		var export_directory_table_size = Marshal.SizeOf<PortableExecutableFormatExportDirectoryTable>();
+		var export_directory_table_size = Marshal.SizeOf<PeExportDirectoryTable>();
 		var export_address_table_size = export_directory_table.AddressTableEntries * sizeof(int);
 		var name_pointer_table_size = export_directory_table.NumberOfNamePointers * sizeof(int);
 		var ordinal_table_size = export_directory_table.NumberOfNamePointers * sizeof(short);
 
-		var start = export_section.PointerToRawData + export_directory_table_size + export_address_table_size + name_pointer_table_size + ordinal_table_size;
+		var start = export_data_directory.RelativeVirtualAddress + export_directory_table_size + export_address_table_size + name_pointer_table_size + ordinal_table_size;
 
 		// Load one string more since the first name is the name of the module and it is not counted
-		var strings = LoadStrings(module.Bytes, (int)start, export_directory_table.NumberOfNamePointers + 1);
+		var strings = LoadStringsUntil(module.Bytes, (int)start, export_data_directory.RelativeVirtualAddress + export_data_directory.PhysicalSize);
 
 		// Skip the name of the module if the load was successful
 		return strings?[1..];
+	}
+
+	/// <summary>
+	/// Loads the exported symbols from the specified library.
+	/// </summary>
+	public static string[]? LoadExportedSymbols(string library)
+	{
+		var metadata = LoadLibraryMetadata(library);
+		if (metadata == null) return null;
+
+		return LoadExportedSymbols(metadata);
 	}
 
 	/// <summary>
@@ -319,7 +374,7 @@ public static class PortableExecutableFormat
 	/// <summary>
 	/// Creates the symbol table and the relocation table based on the specified symbols
 	/// </summary>
-	public static BinaryStringTable CreateSymbolRelatedSections(BinaryStringTable symbol_name_table, List<BinarySection> sections, List<BinarySection>? fragments, Dictionary<string, BinarySymbol> symbols)
+	public static BinarySection CreateSymbolRelatedSections(BinaryStringTable symbol_name_table, List<BinarySection> sections, List<BinarySection>? fragments, Dictionary<string, BinarySymbol> symbols, int file_position)
 	{
 		var symbol_entries = new List<PeSymbolEntry>();
 
@@ -331,20 +386,23 @@ public static class PortableExecutableFormat
 
 			if (fragments == null) continue;
 			
-			// Index the section fragments as well
+			// Index the section fragments as well according to the overlay section index
+			// Store the virtual address of the first fragment into all the fragments (base virtual address)
 			foreach (var fragment in fragments)
 			{
 				if (fragment.Name != section.Name) continue;
+				fragment.BaseVirtualAddress = section.VirtualAddress;
 				fragment.Index = i;
 			}
 		}
 
 		foreach (var symbol in symbols.Values)
 		{
+			var base_virtual_address = symbol.Section == null ? 0 : symbol.Section.BaseVirtualAddress;
 			var virtual_address = symbol.Section == null ? 0 : symbol.Section.VirtualAddress;
 
 			var symbol_entry = new PeSymbolEntry();
-			symbol_entry.Value = (uint)(virtual_address + symbol.Offset);
+			symbol_entry.Value = (uint)(virtual_address + symbol.Offset - base_virtual_address); // Symbol locations are relative to the start of the section
 			symbol_entry.SectionNumber = (short)(symbol.External ? 0 : symbol.Section!.Index + 1);
 			symbol_entry.StorageClass = symbol.External ? (byte)PeFormatStorageClass.EXTERNAL : (byte)PeFormatStorageClass.LABEL;
 
@@ -389,21 +447,36 @@ public static class PortableExecutableFormat
 				relocation_entries.Add(relocation_entry);
 			}
 
+			// Determine the name of the relocation section
 			var relocation_table_name = RELOCATION_TABLE_SECTION_PREFIX + section.Name[1..];
+
+			// Create a new section for the relocation table
 			var relocation_table_section = new BinarySection(relocation_table_name, BinarySectionType.RELOCATION_TABLE, new byte[PeRelocationEntry.Size * relocation_entries.Count]);
+			relocation_table_section.Offset = file_position;
 			ElfFormat.Write(relocation_table_section.Data, 0, relocation_entries);
-			sections.Add(relocation_table_section);
+
+			sections.Add(relocation_table_section); // Add the relocation table section to the list of sections
+
+			// Update the file position
+			file_position += relocation_table_section.Data.Length;
 		}
 
 		// Export the data from the generated string table, since it has to come directly after the symbol table
 		var symbol_name_table_data = symbol_name_table.Export();
 
+		// Create the symbol table section
 		var symbol_table_section = new BinarySection(ElfFormat.SYMBOL_TABLE_SECTION, BinarySectionType.SYMBOL_TABLE, new byte[PeSymbolEntry.Size * symbol_entries.Count + symbol_name_table_data.Length]);
-		ElfFormat.Write(symbol_table_section.Data, 0, symbol_entries);
-		Array.Copy(symbol_name_table_data, 0, symbol_table_section.Data, symbol_entries.Count * PeSymbolEntry.Size, symbol_name_table_data.Length);
-		sections.Add(symbol_table_section);
+		symbol_table_section.Offset = file_position;
 
-		return symbol_name_table;
+		// Write the symbol table entries
+		ElfFormat.Write(symbol_table_section.Data, 0, symbol_entries);
+
+		// Store the string table data into the symbol table section as well
+		Array.Copy(symbol_name_table_data, 0, symbol_table_section.Data, symbol_entries.Count * PeSymbolEntry.Size, symbol_name_table_data.Length);
+
+		sections.Add(symbol_table_section); // Add the symbol table section to the list of sections
+
+		return symbol_table_section;
 	}
 
 	/// <summary>
@@ -423,7 +496,7 @@ public static class PortableExecutableFormat
 		ElfFormat.UpdateRelocations(sections, symbols);
 
 		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(new BinaryStringTable(true), sections, null, symbols);
+		CreateSymbolRelatedSections(new BinaryStringTable(true), sections, null, symbols, 0);
 
 		// Now that section positions are set, compute offsets
 		ElfFormat.ComputeOffsets(sections, symbols);
@@ -450,7 +523,7 @@ public static class PortableExecutableFormat
 		var symbol_name_table = new BinaryStringTable(true);
 
 		// Create initial versions of section tables and finish them later when section offsets are known
-		var section_tables = new List<PortableExecutableFormatSection>();
+		var section_tables = new List<PeSectionTable>();
 
 		foreach (var section in sections)
 		{
@@ -464,11 +537,12 @@ public static class PortableExecutableFormat
 
 			var bytes = Encoding.UTF8.GetBytes(section_name).Concat(new byte[8 - section.Name.Length]).ToArray();
 
-			var section_table = new PortableExecutableFormatSection
+			var section_table = new PeSectionTable
 			{
 				Name = BitConverter.ToUInt64(bytes),
 				VirtualAddress = 0,
-				SizeOfRawData = section.Data.Length,
+				VirtualSize = section.VirtualSize,
+				SizeOfRawData = section.VirtualSize,
 				PointerToRawData = 0, // Fill in later when the section offsets are decided
 				PointerToRelocations = 0, // Fill in later when the section offsets are decided
 				PointerToLinenumbers = 0, // Not used
@@ -486,11 +560,11 @@ public static class PortableExecutableFormat
 			NumberOfSections = (short)sections.Count,
 			Machine = (ushort)PeMachineType.X64,
 			TimeDateStamp = (uint)DateTime.Now.ToFileTimeUtc(),
-			Characteristics = (short)(PeFormatImageCharacteristics.LARGE_ADDRESS_AWARE | PeFormatImageCharacteristics.LINENUMBERS_STRIPPED),
+			Characteristics = (short)(PeFormatImageCharacteristics.LARGE_ADDRESS_AWARE | PeFormatImageCharacteristics.LINENUMBERS_STRIPPED | PeFormatImageCharacteristics.DEBUG_STRIPPED),
 		};
 
 		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(symbol_name_table, sections, null, symbols);
+		CreateSymbolRelatedSections(symbol_name_table, sections, null, symbols, 0);
 
 		if (!sections.Exists(i => i.Type == BinarySectionType.RELOCATION_TABLE))
 		{
@@ -500,7 +574,7 @@ public static class PortableExecutableFormat
 		header.SizeOfOptionalHeader = 0;
 
 		// Decide section offsets
-		var file_position = PeObjectFileHeader.Size + section_tables.Count * PortableExecutableFormatSection.Size;
+		var file_position = PeObjectFileHeader.Size + section_tables.Count * PeSectionTable.Size;
 
 		foreach (var section in sections)
 		{
@@ -538,7 +612,7 @@ public static class PortableExecutableFormat
 
 		if (symbol_table != null)
 		{
-			header.NumberOfSymbols = symbol_table.Data.Length / PeSymbolEntry.Size;
+			header.NumberOfSymbols = symbols.Count;
 			header.PointerToSymbolTable = (uint)symbol_table.Offset;
 		}
 
@@ -563,28 +637,146 @@ public static class PortableExecutableFormat
 		return binary;
 	}
 
-	public static HashSet<string> GetExportedSymbolsFromSharedLibary(string library)
+	public static int AlignSections(List<BinarySection> overlays, List<BinarySection> fragments, int file_position)
 	{
-		throw new NotImplementedException();
+		// Align the file positions and virtual addresses of the overlays.
+		foreach (var section in overlays)
+		{
+			// Determine the virtual address alignment to use, since the section can request for larger alignment than the default.
+			var alignment = Math.Max(section.Alignment, VirtualSectionAlignment);
+
+			// Align the file position
+			file_position = (file_position + alignment - 1) & ~(alignment - 1);
+
+			section.VirtualAddress = file_position;
+			section.Offset = file_position;
+
+			// Now, decide the file position and virtual address for the fragments
+			foreach (var fragment in fragments)
+			{
+				if (fragment.Name != section.Name) continue;
+
+				// Align the file position with the fragment alignment
+				file_position = (file_position + fragment.Alignment - 1) & ~(fragment.Alignment - 1);
+
+				fragment.VirtualAddress = file_position;
+				fragment.Offset = file_position;
+
+				// Move to the next fragment
+				file_position += fragment.Data.Length;
+			}
+
+			// Update the overlay size
+			section.VirtualSize = file_position - section.Offset;
+			section.LoadSize = section.VirtualSize;
+		}
+
+		return file_position;
 	}
 
-	public static void CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments, List<PortableExecutableFormatDataDirectory> data_directories)
+	/// <summary>
+	/// Generates dynamic linkage information for the specified imported symbols. This function generates the following structures:
+	//
+	// .section .idata
+	// <Directory table 1>:
+	// <import-lookup-table-1> (4 bytes)
+	// Timestamp: 0x00000000
+	// Forwarded chain: 0x00000000
+	// <library-name-1> (4 bytes)
+	// <import-address-table-1> (4 bytes)
+	//
+	// <Directory table 2>:
+	// <import-lookup-table-2> (4 bytes)
+	// Timestamp: 0x00000000
+	// Forwarded chain: 0x00000000
+	// <library-name-2> (4 bytes)
+	// <import-address-table-2> (4 bytes)
+	// 
+	// ...
+	//
+	// <Directory table n>:
+	// Import lookup table: 0x00000000
+	// Timestamp: 0x00000000
+	// Forwarded chain: 0x00000000
+	// Name: 0x00000000
+	// Import address table: 0x00000000
+	//
+	// <import-lookup-table-1>:
+	// 0x00000000 <.string.<function-1>>
+	// 0x00000000 <.string.<function-2>>
+	// 0x0000000000000000
+	// <import-lookup-table-2>:
+	// 0x00000000 <.string.<function-3>>
+	// 0x00000000 <.string.<function-4>>
+	// 0x0000000000000000
+	//
+	// ...
+	//
+	// <import-lookup-table-n>:
+	// 0x00000000 <.string.<function-(n-1)>>
+	// 0x00000000 <.string.<function-n>>
+	// 0x0000000000000000
+	//
+	// <library-name-1>: ... 0
+	// <library-name-2>: ... 0
+	//
+	// ...
+	//
+	// <library-name-n>: ... 0
+	//
+	// <.string.<function-1>>: ... 0
+	// <.string.<function-2>>: ... 0
+	//
+	// ...
+	//
+	// <.string.<function-n>>: ... 0
+	//
+	// .section .text
+	// <imports-1>:
+	// <function-1>: jmp qword [.import.<function-1>]
+	// <function-2>: jmp qword [.import.<function-2>]
+	//
+	// ...
+	//
+	// <function-n>: jmp qword [.import.<function-n>]
+	//
+	// <imports-2>:
+	// ...
+	// <imports-n>:
+	// 
+	// .section .data
+	// <import-address-table-1>:
+	// <.import.<function-1>>: .qword 0
+	// <.import.<function-2>>: .qword 0
+	// ...
+	// <.import.<function-n>>: .qword 0
+	//
+	// <import-address-table-2>:
+	// ...
+	// <import-address-table-n>:
+	/// </summary>
+	public static BinarySection CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments)
 	{
 		var externals = relocations.Where(i => i.Symbol.External).ToList();
-		var exports = imports.Select(GetExportedSymbolsFromSharedLibary).ToArray();
+		var exports = imports.Select(LoadExportedSymbols).ToArray();
 
 		// There can be multiple relocations, which refer to the same symbol but the symbol object instances are different (relocations can be in different objects).
 		// Therefore, we need to create a dictionary, which we will use to connect all the relocations into shared symbols.
-		var import_section_symbols = new Dictionary<string, BinarySymbol>();
-		var import_section = new BinarySection(ElfFormat.TEXT_SECTION, BinarySectionType.TEXT, Array.Empty<byte>());
+		var relocation_symbols = new Dictionary<string, BinarySymbol>();
+		var importer_section = new BinarySection(ElfFormat.IMPORTER_SECTION, BinarySectionType.DATA, Array.Empty<byte>());
+		var import_section_instructions = new List<Instruction>();
+		var import_address_section_builder = new DataEncoderModule();
 		var import_lists = new Dictionary<string, List<string>>();
+		var string_table = new DataEncoderModule();
+
+		import_address_section_builder.Name = ElfFormat.IMPORTER_SECTION;
 
 		foreach (var relocation in externals)
 		{
 			// If the relocation symbol can be found from the import section symbols, the library which defines the symbol is already found
-			if (import_section_symbols.TryGetValue(relocation.Symbol.Name, out BinarySymbol? import_section_symbol))
+			if (relocation_symbols.TryGetValue(relocation.Symbol.Name, out BinarySymbol? relocation_symbol))
 			{
-				relocation.Symbol = import_section_symbol;
+				relocation.Symbol = relocation_symbol; // Connect the relocation to the shared symbol
 				continue;
 			}
 
@@ -593,7 +785,16 @@ public static class PortableExecutableFormat
 
 			for (var i = 0; i < imports.Count; i++)
 			{
-				if (!exports[i].Contains(relocation.Symbol.Name)) continue;
+				var symbols = exports[i];
+
+				// Not being able to load the exported symbols is not fatal, so we can continue, however we should notify the user
+				if (symbols == null)
+				{
+					Console.Error.WriteLine($"{Errors.WARNING_BEGIN}Warning{Errors.WARNING_END}: Could not load exported symbols from library '{imports[i]}'");
+					continue;
+				}
+
+				if (!symbols.Contains(relocation.Symbol.Name)) continue;
 
 				// Ensure the external symbol is not defined in multiple libraries, because this could cause weird behaviour depending on the order of the imported libraries
 				if (library != null) throw new ApplicationException($"Symbol {relocation.Symbol.Name} is defined in both {library} and {imports[i]}");
@@ -608,23 +809,148 @@ public static class PortableExecutableFormat
 			if (import_lists.TryGetValue(library, out List<string>? import_list)) { import_list.Add(relocation.Symbol.Name); }
 			else { import_lists[library] = new List<string>() { relocation.Symbol.Name }; }
 
-			// Move the relocation symbol inside the import section
-			relocation.Section = import_section;
+			// Make the symbol local, since it will be defined below as an indirect jump to the actual implementation
 			relocation.Symbol.External = false;
 
-			import_section_symbols[relocation.Symbol.Name] = relocation.Symbol;
-			import_section.Symbols.Add(relocation.Symbol.Name, relocation.Symbol);
+			relocation_symbols[relocation.Symbol.Name] = relocation.Symbol;
+			importer_section.Symbols.Add(relocation.Symbol.Name, relocation.Symbol);
 		}
 
-		foreach (var iterator in import_lists)
+		// Compute where the string table starts. This is also the amount of bytes needed for the other importer data.
+		var string_table_start = (import_lists.Count + 1) * PeImportDirectoryTable.Size + import_lists.Sum(i => i.Value.Count + 1) * sizeof(long);
+		importer_section.Data = new byte[string_table_start];
+
+		var import_lookup_table_starts = new BinarySymbol[import_lists.Count];
+		var import_address_table_starts = new BinarySymbol[import_lists.Count];
+		var position = 0;
+
+		// Write the directory tables
+		for (var i = 0; i < import_lists.Count; i++)
 		{
-			var library = iterator.Key;
-			var import_list = iterator.Value;
+			var import_library = imports[i];
+			var import_list = import_lists[import_library];
 
+			// Create symbols for the import lookup table, library name and import address table that describe their virtual addresses
+			var import_lookup_table_start = new BinarySymbol($".lookup.{i}", 0, false, importer_section);
+			var import_library_name_start = new BinarySymbol($".library.{i}", 0, false, importer_section);
+			var import_address_table_start = new BinarySymbol($".imports.{i}", 0, false);
 
+			// Add the library name to the string table and compute its offset
+			string_table.WriteInt16(0);
+			import_library_name_start.Offset = string_table_start + string_table.Position;
+
+			var library_filename = Path.GetFileName(import_library);
+			string_table.String(library_filename);
+
+			// Align the next entry on an even boundary
+			if (string_table.Position % 2 != 0) string_table.Write(0);
+
+			import_lookup_table_starts[i] = import_lookup_table_start;
+			import_address_table_starts[i] = import_address_table_start;
+
+			// Fill the locations of the symbols into the import directory when their virtual addresses have been decided
+			relocations.Add(new BinaryRelocation(import_lookup_table_start, position, 0, BinaryRelocationType.ABSOLUTE32, importer_section));
+			relocations.Add(new BinaryRelocation(import_library_name_start, position + PeImportDirectoryTable.NameOffset, 0, BinaryRelocationType.ABSOLUTE32, importer_section));
+			relocations.Add(new BinaryRelocation(import_address_table_start, position + PeImportDirectoryTable.ImportAddressTableOffset, 0, BinaryRelocationType.ABSOLUTE32, importer_section));
+
+			// Move to the next directory table
+			position += PeImportDirectoryTable.Size;
 		}
 
+		position += PeImportDirectoryTable.Size; // Skip the empty directory table at the end
+
+		// Populate the string table with the imported symbols and create the import lookup tables
+		for (var i = 0; i < import_lists.Count; i++)
+		{
+			var import_list = import_lists[imports[i]];
+
+			// Store the relative offset of the import address table in the import address table section (Imports)
+			import_address_table_starts[i].Offset = import_address_section_builder.Position;
+
+			// Store the location of this import lookup table in the symbol, which represents it (Importer)
+			import_lookup_table_starts[i].Offset = position;
+
+			foreach (var import_symbol_name in import_list)
+			{
+				#warning Add support for the order number?
+
+				// Create a symbol for the import so that a relocation can be made
+				var import_symbol_offset = string_table_start + string_table.Position;
+				string_table.WriteInt16(0); // This 16-bit index is used for quick lookup of the symbol in the imported library, do not care about it for now
+				string_table.String(import_symbol_name);
+
+				// Align the next entry on an even boundary
+				if (string_table.Position % 2 != 0) string_table.Write(0);
+
+				var import_symbol = new BinarySymbol(".string." + import_symbol_name, import_symbol_offset, false, importer_section);
+
+				// Fill in the location of the imported symbol when its virtual address is decided
+				relocations.Add(new BinaryRelocation(import_symbol, position, 0, BinaryRelocationType.ABSOLUTE32, importer_section));
+				position += sizeof(long);
+
+				// Reserve space for the address of the imported function when it is loaded, also create a symbol which represents the location of the address
+				var import_address_symbol = import_address_section_builder.CreateLocalSymbol(".import." + import_symbol_name, import_address_section_builder.Position, false);
+				import_address_section_builder.Relocations.Add(new BinaryRelocation(import_symbol, import_address_section_builder.Position, 0, BinaryRelocationType.ABSOLUTE32));
+				import_address_section_builder.WriteInt64(0);
+
+				#warning Support Arm64
+				if (Assembler.IsArm64) throw new NotImplementedException("Import code generation is not implemented for Arm64");
+
+				// Create a label, which defines the imported function so that the other code can jump indirectly to the actual implementation
+				// Instruction: <function>:
+				import_section_instructions.Add(new LabelInstruction(null!, new Label(import_symbol_name)));
+
+				// Create an instruction, which jumps to the location of the imported function address
+				// Instruction: jmp qword [.import.<function>]
+				var instruction = new Instruction(null!, InstructionType.JUMP);
+				instruction.Operation = Instructions.X64.JUMP;
+
+				// Create a handle, which the instruction uses refer to the imported function
+				var import_address_handle = new DataSectionHandle(import_address_symbol.Name);
+				instruction.Parameters.Add(new InstructionParameter(import_address_handle, ParameterFlag.NONE));
+
+				import_section_instructions.Add(instruction);
+			}
+
+			position += sizeof(long); // Skip the none-symbol at the end of each import lookup table
+		}
+
+		// Build the import address section
+		var import_address_section = import_address_section_builder.Export();
+
+		// Build the import section
+		var import_section_build = InstructionEncoder.Encode(import_section_instructions, null);
+		var import_section = import_section_build.Section;
+
+		// Connect the indirect jump instruction relocations to the import address section
+		ElfFormat.UpdateRelocations(import_section_build.Relocations, import_address_section.Symbols);
+
+		// Export the new relocation needed by the import section. The relocations point to import address tables.
+		relocations.AddRange(import_section_build.Relocations);
+		relocations.AddRange(import_address_section.Relocations);
+
+		// Now, currently the relocations which use the imported functions, have symbols which basically point to nothing. We need to connect them to the indirect jumps.
+		foreach (var relocation_symbol in relocation_symbols)
+		{
+			var indirect_jump_symbol = import_section.Symbols[relocation_symbol.Key];
+
+			// Copy the properties of the indirect jump symbol to the relocation symbol
+			relocation_symbol.Value.Offset = indirect_jump_symbol.Offset;
+			relocation_symbol.Value.Section = indirect_jump_symbol.Section;
+		}
+
+		// Connect the import address table symbols to the import address section
+		foreach (var import_address_table_start in import_address_table_starts) { import_address_table_start.Section = import_address_section; }
+
+		// Mesh the importer data with the string table
+		importer_section.Data = importer_section.Data.Concat(string_table.Export().Data).ToArray();
+
+		// Export the generated sections
+		fragments.Add(importer_section);
 		fragments.Add(import_section);
+		fragments.Add(import_address_section);
+
+		return import_address_section;
 	}
 
 	/// <summary>
@@ -640,12 +966,15 @@ public static class PortableExecutableFormat
 		// Make all hidden symbols unique by using their object file indices
 		Linker.MakeLocalSymbolsUnique(objects);
 
-		var header = new PortableExecutableFormatHeader
+		var header = new PeHeader
 		{
 			Machine = (ushort)PeMachineType.X64,
 			TimeDateStamp = (uint)DateTime.Now.ToFileTimeUtc(),
+			FileAlignment = FileSectionAlignment,
 			SectionAlignment = VirtualSectionAlignment,
-			Characteristics = (short)(PeFormatImageCharacteristics.LARGE_ADDRESS_AWARE | PeFormatImageCharacteristics.LINENUMBERS_STRIPPED),
+			Characteristics = (short)(PeFormatImageCharacteristics.LARGE_ADDRESS_AWARE | PeFormatImageCharacteristics.LINENUMBERS_STRIPPED | PeFormatImageCharacteristics.EXECUTABLE | PeFormatImageCharacteristics.DEBUG_STRIPPED),
+			NumberOfDataDirectories = NumberOfDataDirectories,
+			SizeOfOptionalHeader = (short)(PeHeader.Size - PeHeader.OptionalHeaderOffset + PeDataDirectory.Size * NumberOfDataDirectories)
 		};
 
 		// Resolves are unresolved symbols and returns all symbols as a list
@@ -657,115 +986,69 @@ public static class PortableExecutableFormat
 		// Load all the relocations from all the sections
 		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
 
+		// Create the import section
+		var import_address_section = CreateDynamicLinkage(relocations, imports, fragments);
+
 		// Create sections, which cover the fragmented sections
 		var overlays = Linker.CreateLoadableSections(fragments);
-
-		// Store the size of the code
-		var text_section = overlays.Find(i => i.Type == BinarySectionType.TEXT);
-		if (text_section != null) { header.SizeOfCode = (int)text_section.VirtualSize; }
-
-		// Store the size of the data
-		var data_section = overlays.Find(i => i.Name == ElfFormat.DATA_SECTION);
-		if (data_section != null) { header.SizeOfInitializedData = (int)data_section.VirtualSize; }
 
 		if (!overlays.Exists(i => i.Type == BinarySectionType.RELOCATION_TABLE))
 		{
 			header.Characteristics |= (short)PeFormatImageCharacteristics.RELOCATIONS_STRIPPED;
 		}
 
-		var data_directories = new List<PortableExecutableFormatDataDirectory>();
-		// Add data directories here...
+		// Store the number of sections to the header
+		// Exclude the sections created below and go with the existing ones, since the ones created below are not needed in the section tables
+		header.NumberOfSections = (short)overlays.Count;
 
-		// Search all external relocations and check whether they are defined in any of the imported shared libraries
-		// CreateDynamicLinkage(relocations, imports, fragments, data_directories);
+		// Decide section offsets and virtual addresses
+		var file_position = PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * NumberOfDataDirectories + PeSectionTable.Size * overlays.Count;
+		file_position = AlignSections(overlays, fragments, file_position);
 
-		// TODO: Filter out relocations that must be imported from DLLs
+		// Store the size of the data
+		header.SizeOfInitializedData = overlays.Where(i => i.Type != BinarySectionType.TEXT).Sum(i => i.VirtualSize);
 
-		// Add a none-entry to the data directory
-		data_directories.Add(new PortableExecutableFormatDataDirectory());
+		header.ImageBase = executable ? (long)Linker.VIRTUAL_ADDRESS_START : 0;
 
-		// Store the amount of proper data directories
-		header.NumberOfDataDirectories = data_directories.Count - 1;
-
-		var symbol_name_table = new BinaryStringTable(true);
-
+		// Section tables:
 		// Create initial versions of section tables and finish them later when section offsets are known
-		var section_tables = new List<PortableExecutableFormatSection>();
+		var symbol_name_table = new BinaryStringTable(true);
+		var section_tables = new List<PeSectionTable>();
 
-		foreach (var section in overlays)
+		foreach (var overlay in overlays)
 		{
-			var section_name = section.Name;
+			var overlay_name = overlay.Name;
 
 			// If the section name is too long, move it into the string table and point to that name by using the pattern '/<Section name offset in the string table>'
-			if (section.Name.Length > 8)
+			if (overlay.Name.Length > 8)
 			{
-				section_name = '/' + symbol_name_table.Add(section.Name).ToString(CultureInfo.InvariantCulture);
+				overlay_name = '/' + symbol_name_table.Add(overlay.Name).ToString(CultureInfo.InvariantCulture);
 			}
 
-			var bytes = Encoding.UTF8.GetBytes(section_name).Concat(new byte[8 - section.Name.Length]).ToArray();
+			var bytes = Encoding.UTF8.GetBytes(overlay_name).Concat(new byte[8 - overlay.Name.Length]).ToArray();
 
-			var section_table = new PortableExecutableFormatSection
+			var section_table = new PeSectionTable
 			{
 				Name = BitConverter.ToUInt64(bytes),
-				VirtualAddress = (uint)section.VirtualAddress,
-				SizeOfRawData = section.Data.Length,
+				VirtualAddress = (uint)overlay.VirtualAddress,
+				VirtualSize = overlay.VirtualSize,
+				SizeOfRawData = overlay.VirtualSize,
 				PointerToRawData = 0, // Fill in later when the section offsets are decided
 				PointerToRelocations = 0, // Fill in later when the section offsets are decided
 				PointerToLinenumbers = 0, // Not used
 				NumberOfRelocations = 0, // Fill in later
 				NumberOfLinenumbers = 0, // Not used
-				Characteristics = GetSectionCharacteristics(section),
+				Characteristics = GetSectionCharacteristics(overlay),
 			};
 
 			section_tables.Add(section_table);
 		}
 
-		// Store the number of sections to the header
-		// Exclude the sections created below and go with the existing ones, since the ones created below are not needed in the section tables
-		header.NumberOfSections = (short)overlays.Count;
+		// Add symbols and relocations of each section needing that
+		var symbol_table_section = CreateSymbolRelatedSections(symbol_name_table, overlays, fragments, symbols, file_position);
+		file_position = symbol_table_section.Offset + symbol_table_section.VirtualSize;
 
-		header.SizeOfOptionalHeader = (short)(PortableExecutableFormatHeader.Size - PortableExecutableFormatHeader.OptionalHeaderOffset +
-			PortableExecutableFormatDataDirectory.Size * data_directories.Count);
-
-		// Decide section offsets and virtual addresses
-		var file_position = PeLegacyHeader.Size + PortableExecutableFormatHeader.Size +
-			PortableExecutableFormatDataDirectory.Size * data_directories.Count +
-			PortableExecutableFormatSection.Size * section_tables.Count;
-
-		var virtual_address = executable ? (int)Linker.VIRTUAL_ADDRESS_START : 0;
-
-		foreach (var section in overlays)
-		{
-			// Determine the correct section alignment
-			// The minimum alignment is 512 bytes, but it can be larger, if the section requires that
-			var alignment = Math.Max(section.Alignment, VirtualSectionAlignment);
-			var margin = alignment - (file_position % alignment);
-
-			if (margin != alignment)
-			{
-				section.Margin = margin;
-				virtual_address += margin;
-				file_position += margin;
-			}
-
-			section.Offset = file_position;
-			section.VirtualAddress = virtual_address;
-
-			// Align all the section fragments
-			foreach (var fragment in fragments.FindAll(i => i.Name == section.Name))
-			{
-				// Apply the fragment margin before doing anything, so that the fragment is aligned
-				file_position += fragment.Margin;
-				virtual_address += fragment.Margin;
-
-				fragment.Offset = file_position;
-				fragment.VirtualAddress = (int)virtual_address;
-
-				file_position += fragment.Data.Length;
-				virtual_address += fragment.Data.Length;
-			}
-		}
-
+		// Section table pointers:
 		// Now, finish the section tables
 		for (var i = 0; i < section_tables.Count; i++)
 		{
@@ -793,16 +1076,33 @@ public static class PortableExecutableFormat
 		/// NOTE: Maybe you could pipe all relocations which can not be resolved and then they can be searched from DLLs?
 		Linker.ComputeRelocations(relocations);
 
-		// Add symbols and relocations of each section needing that
-		CreateSymbolRelatedSections(symbol_name_table, overlays, null, symbols);
-
 		// Compute the entry point location
 		var entry_point_symbol = symbols[entry];
 		header.AddressOfEntryPoint = entry_point_symbol.Section!.VirtualAddress + entry_point_symbol.Offset;
 
-		// Store the location of the symbol table
-		var symbol_table = overlays.Find(i => i.Name == ElfFormat.SYMBOL_TABLE_SECTION);
-		if (symbol_table != null) { header.PointerToSymbolTable = (uint)symbol_table.Offset; }
+		// Store the size of the code
+		var text_section = overlays.Find(i => i.Type == BinarySectionType.TEXT);
+		if (text_section != null) { header.SizeOfCode = (int)text_section.VirtualSize; }
+
+		// Register the symbol table to the PE-header
+		if (symbol_table_section != null)
+		{
+			header.NumberOfSymbols = symbols.Count;
+			header.PointerToSymbolTable = (uint)symbol_table_section.Offset;
+		}
+
+		// Compute the image size, which is the memory needed to load all the sections in place
+		var last_loaded_section = overlays.MaxBy(i => i.VirtualAddress) ?? throw new ApplicationException("At least one section should be loaded");
+		var image_size = last_loaded_section.VirtualAddress + last_loaded_section.VirtualSize;
+
+		// The actual stored image size must be multiple of section alignment
+		header.SizeOfImage = (image_size + header.SectionAlignment - 1) & ~(header.SectionAlignment - 1);
+
+		// Compute the total size of all headers
+		var headers_size = PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * NumberOfDataDirectories + PeSectionTable.Size * overlays.Count;
+
+		// The actual stored size of headers must be multiple of file alignments
+		header.SizeOfHeaders = (headers_size + header.FileAlignment - 1) & ~(header.FileAlignment - 1);
 
 		// Create the binary file
 		var binary = new byte[file_position];
@@ -814,13 +1114,16 @@ public static class PortableExecutableFormat
 		InstructionEncoder.WriteInt32(binary, PeLegacyHeader.PeHeaderPointerOffset, PeLegacyHeader.Size);
 
 		// Write the file header
-		ElfFormat.Write(binary, PeLegacyHeader.PeHeaderPointerOffset, header);
+		ElfFormat.Write(binary, PeLegacyHeader.Size, header);
 
 		// Write the data directories
-		ElfFormat.Write(binary, PeLegacyHeader.PeHeaderPointerOffset + PortableExecutableFormatHeader.Size, data_directories);
+		var importer_section = overlays.Find(i => i.Name == ElfFormat.IMPORTER_SECTION);
+
+		if (importer_section != null) ElfFormat.Write(binary, PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * ImporterSectionIndex, new PeDataDirectory(importer_section.VirtualAddress, importer_section.VirtualSize));
+		if (import_address_section != null) ElfFormat.Write(binary, PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * ImportAddressSectionIndex, new PeDataDirectory(import_address_section.VirtualAddress, import_address_section.VirtualSize));
 
 		// Write the section tables
-		ElfFormat.Write(binary, PeLegacyHeader.PeHeaderPointerOffset + PortableExecutableFormatHeader.Size + PortableExecutableFormatDataDirectory.Size * data_directories.Count, section_tables);
+		ElfFormat.Write(binary, PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * NumberOfDataDirectories, section_tables);
 
 		// Write the section overlays
 		foreach (var section in overlays)
@@ -889,7 +1192,7 @@ public static class PortableExecutableFormat
 	/// <summary>
 	/// Imports all symbols and relocations from the represented object file
 	/// </summary>
-	public static void ImportSymbolsAndRelocations(PeObjectFileHeader header, List<BinarySection> sections, List<PortableExecutableFormatSection> section_tables, IntPtr bytes)
+	public static void ImportSymbolsAndRelocations(PeObjectFileHeader header, List<BinarySection> sections, List<PeSectionTable> section_tables, IntPtr bytes)
 	{
 		var file_position = bytes + (int)header.PointerToSymbolTable;
 		var symbol_name_table_start = file_position + (int)header.NumberOfSymbols * PeSymbolEntry.Size;
@@ -951,8 +1254,11 @@ public static class PortableExecutableFormat
 
 				var symbol = symbols[(int)relocation_entry.SymbolTableIndex];
 				var relocation_type = GetSharedRelocationType((PeFormatRelocationType)relocation_entry.Type);
-				var relocation = new BinaryRelocation(symbol, (int)relocation_entry.VirtualAddress, 0, relocation_type);
+				var relocation = new BinaryRelocation(symbol, (int)relocation_entry.VirtualAddress, -sizeof(int), relocation_type);
 				relocation.Section = section;
+
+				// Set the default addend if the relocation type is program counter relative
+				if (relocation_type == BinaryRelocationType.PROGRAM_COUNTER_RELATIVE) { relocation.Addend = -sizeof(int); }
 
 				section.Relocations.Add(relocation);
 				file_position += PeRelocationEntry.Size;
@@ -990,12 +1296,12 @@ public static class PortableExecutableFormat
 		var sections = new List<BinarySection>();
 
 		// Store the section tables for usage after the loop
-		var section_tables = new List<PortableExecutableFormatSection>();
+		var section_tables = new List<PeSectionTable>();
 
 		for (var i = 0; i < header.NumberOfSections; i++)
 		{
 			// Load the section table in order to load the actual section
-			var section_table = Marshal.PtrToStructure<PortableExecutableFormatSection>(file_position) ?? throw new ApplicationException("Could not load a section header");
+			var section_table = Marshal.PtrToStructure<PeSectionTable>(file_position) ?? throw new ApplicationException("Could not load a section header");
 
 			// Create a pointer, which points to the start of the section data in the file
 			var section_data_start = bytes + (int)section_table.PointerToRawData;
@@ -1030,7 +1336,7 @@ public static class PortableExecutableFormat
 			sections.Add(section);
 
 			// Move to the next section table
-			file_position += PortableExecutableFormatSection.Size;
+			file_position += PeSectionTable.Size;
 		}
 
 		ImportSymbolsAndRelocations(header, sections, section_tables, bytes);
@@ -1041,12 +1347,12 @@ public static class PortableExecutableFormat
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public class PortableExecutableFormatHeader
+public class PeHeader
 {
-	public const int Size = 0x78;
+	public const int Size = 136;
 	public const int OptionalHeaderOffset = 0x18;
 
-	public int Signature { get; set; } = PortableExecutableFormat.SIGNATURE;
+	public int Signature { get; set; } = PeFormat.SIGNATURE;
 	public ushort Machine { get; set; }
 	public short NumberOfSections { get; set; }
 	public uint TimeDateStamp { get; set; }
@@ -1102,16 +1408,24 @@ public class PeObjectFileHeader
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public class PortableExecutableFormatDataDirectory
+public class PeDataDirectory
 {
 	public const int Size = 8;
 
 	public int RelativeVirtualAddress { get; set; } = 0;
 	public int PhysicalSize { get; set; } = 0;
+
+	public PeDataDirectory() { }
+
+	public PeDataDirectory(int relative_virtual_address, int physical_size)
+	{
+		RelativeVirtualAddress = relative_virtual_address;
+		PhysicalSize = physical_size;
+	}
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public class PortableExecutableFormatSection
+public class PeSectionTable
 {
 	public const int Size = 40;
 
@@ -1128,14 +1442,14 @@ public class PortableExecutableFormatSection
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public class PortableExecutableFormatModule
+public class PeMetadata
 {
 	public byte[] Bytes { get; set; }
-	public PortableExecutableFormatHeader Header { get; set; }
-	public PortableExecutableFormatDataDirectory[] DataDirectories { get; set; }
-	public PortableExecutableFormatSection[] Sections { get; set; }
+	public PeHeader Header { get; set; }
+	public PeDataDirectory[] DataDirectories { get; set; }
+	public PeSectionTable[] Sections { get; set; }
 
-	public PortableExecutableFormatModule(byte[] bytes, PortableExecutableFormatHeader header, PortableExecutableFormatDataDirectory[] data_directories, PortableExecutableFormatSection[] sections)
+	public PeMetadata(byte[] bytes, PeHeader header, PeDataDirectory[] data_directories, PeSectionTable[] sections)
 	{
 		Bytes = bytes;
 		Header = header;
@@ -1145,7 +1459,7 @@ public class PortableExecutableFormatModule
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public class PortableExecutableFormatExportDirectoryTable
+public class PeExportDirectoryTable
 {
 	private int ExportFlags { get; set; } = 0;
 	public int TimeDateStamp { get; set; }

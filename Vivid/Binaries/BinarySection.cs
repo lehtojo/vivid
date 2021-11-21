@@ -37,6 +37,7 @@ public class BinarySection
 	public int Margin { get; set; } = 0;
 	public int Offset { get; set; } = 0;
 	public int VirtualAddress { get; set; } = 0;
+	public int BaseVirtualAddress { get; set; } = 0;
 	public Dictionary<string, BinarySymbol> Symbols { get; set; } = new Dictionary<string, BinarySymbol>();
 	public List<BinaryRelocation> Relocations { get; set; } = new List<BinaryRelocation>();
 	public List<BinaryOffset> Offsets { get; set; } = new List<BinaryOffset>();
@@ -77,6 +78,14 @@ public class BinarySymbol
 		Name = name;
 		Offset = offset;
 		External = external;
+	}
+
+	public BinarySymbol(string name, int offset, bool external, BinarySection section)
+	{
+		Name = name;
+		Offset = offset;
+		External = external;
+		Section = section;
 	}
 
 	public override bool Equals(object? other)
@@ -146,6 +155,16 @@ public class BinaryRelocation
 		Addend = addend;
 		Bytes = bytes;
 		Type = type;
+	}
+
+	public BinaryRelocation(BinarySymbol symbol, int offset, int addend, BinaryRelocationType type, BinarySection section, int bytes = 4)
+	{
+		Symbol = symbol;
+		Offset = offset;
+		Addend = addend;
+		Bytes = bytes;
+		Type = type;
+		Section = section;
 	}
 }
 

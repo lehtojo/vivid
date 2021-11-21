@@ -721,7 +721,7 @@ public static class Assembler
 	
 		var object_files = new List<BinaryObjectFile>();
 
-		object_files.Add(IsTargetWindows ? PortableExecutableFormat.Import("libv_x64.obj") : ElfFormat.Import("libv_x64.o"));
+		object_files.Add(IsTargetWindows ? PeFormat.Import("libv_x64.obj") : ElfFormat.Import("libv_x64.o"));
 
 		var text_sections = GetTextSections(context);
 		var data_sections = GetDataSections(context);
@@ -866,7 +866,7 @@ public static class Assembler
 			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
 			var object_file = IsTargetWindows
-				? PortableExecutableFormat.Create(sections, builder.Exports)
+				? PeFormat.Create(sections, builder.Exports)
 				: ElfFormat.Create(sections, builder.Exports);
 
 			object_files.Add(object_file);
@@ -874,10 +874,10 @@ public static class Assembler
 
 		if (!Assembler.IsLegacyAssemblyEnabled)
 		{
-			var postfix = output_type == BinaryType.EXECUTABLE ? string.Empty : AssemblyPhase.SharedLibraryExtension;
+			var postfix = output_type == BinaryType.EXECUTABLE ? AssemblyPhase.ExecutableExtension : AssemblyPhase.SharedLibraryExtension;
 
 			var linked_binary = IsTargetWindows
-				? PortableExecutableFormat.Link(object_files, imports, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
+				? PeFormat.Link(object_files, imports, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
 				: Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
 
 			File.WriteAllBytes(output_name + postfix, linked_binary);

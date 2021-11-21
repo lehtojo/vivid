@@ -218,6 +218,7 @@ public static class ElfFormat
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".rela";
 	public const string DYNAMIC_RELOCATIONS_SECTION = RELOCATION_TABLE_SECTION_PREFIX + ".dyn";
 	public const string DYNAMIC_SECTION_START = "_DYNAMIC";
+	public const string IMPORTER_SECTION = ".idata";
 
 	public static int Write<T>(byte[] destination, int offset, T source)
 	{
@@ -553,10 +554,10 @@ public static class ElfFormat
 	/// <summary>
 	/// Goes through all the relocations from the specified sections and connects them to the local symbols if possible
 	/// </summary>
-	public static void UpdateRelocations(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	public static void UpdateRelocations(List<BinaryRelocation> relocations, Dictionary<string, BinarySymbol> symbols)
 	{
 		#warning Move somewhere else from ELF-format and the linker should use this as well
-		foreach (var relocation in sections.SelectMany(i => i.Relocations))
+		foreach (var relocation in relocations)
 		{
 			var symbol = relocation.Symbol;
 
@@ -567,6 +568,18 @@ public static class ElfFormat
 			if (!symbols.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
 
 			relocation.Symbol = definition;
+		}
+	}
+
+	/// <summary>
+	/// Goes through all the relocations from the specified sections and connects them to the local symbols if possible
+	/// </summary>
+	public static void UpdateRelocations(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
+	{
+		#warning Move somewhere else from ELF-format and the linker should use this as well
+		foreach (var section in sections)
+		{
+			UpdateRelocations(section.Relocations, symbols);
 		}
 	}
 

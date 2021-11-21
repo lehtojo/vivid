@@ -709,31 +709,12 @@ public static class Importer
 	/// <summary>
 	/// Imports the specified dynamic library by finding the exported symbols and importing them
 	/// </summary>
-	private static bool ImportDynamicLibrary(Context context, string file)
+	private static bool ImportDynamicLibrary(Context context, string library)
 	{
-		var library = PortableExecutableFormat.ImportMetadata(file);
+		var symbols = PeFormat.LoadExportedSymbols(library);
+		if (symbols == null) return false;
 
-		if (library == null)
-		{
-			return false;
-		}
-
-		var export_section = PortableExecutableFormat.FindExportSection(library);
-
-		if (export_section == null)
-		{
-			return false;
-		}
-
-		var exported_symbols = PortableExecutableFormat.LoadExportedSymbols(library, export_section);
-
-		if (exported_symbols == null)
-		{
-			return false;
-		}
-
-		ImportSymbols(context, exported_symbols);
-
+		ImportSymbols(context, symbols);
 		return true;
 	}
 
@@ -807,7 +788,7 @@ public static class Importer
 		var position = STATIC_LIBRARY_SYMBOL_TABLE_FIRST_LOCATION_ENTRY_OFFSET + entries * sizeof(int);
 
 		// Load all the exported symbols
-		var exported_symbols = PortableExecutableFormat.LoadStrings(bytes, position, entries);
+		var exported_symbols = PeFormat.LoadNumberOfStrings(bytes, position, entries);
 
 		if (exported_symbols == null) return false;
 

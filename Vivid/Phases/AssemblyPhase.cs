@@ -28,6 +28,7 @@ public class AssemblyPhase : Phase
 	public static string ObjectFileExtension => IsLinux ? ".o" : ".obj";
 	public static string SharedLibraryExtension => IsLinux ? ".so" : ".dll";
 	public static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
+	public static string ExecutableExtension => IsLinux ? string.Empty : ".exe";
 
 	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 
