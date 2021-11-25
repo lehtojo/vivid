@@ -877,7 +877,7 @@ public static class Assembler
 			var postfix = output_type == BinaryType.EXECUTABLE ? AssemblyPhase.ExecutableExtension : AssemblyPhase.SharedLibraryExtension;
 
 			var linked_binary = IsTargetWindows
-				? PeFormat.Link(object_files, imports, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE)
+				? PeFormat.Link(object_files, imports, DefaultEntryPoint, output_name + postfix, output_type == BinaryType.EXECUTABLE)
 				: Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
 
 			File.WriteAllBytes(output_name + postfix, linked_binary);

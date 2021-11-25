@@ -51,7 +51,7 @@ public class AssemblerPhase : Phase
 				}
 
 				var result = Assembler.IsTargetWindows
-					? PeFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, true)
+					? PeFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, output_name, true)
 					: Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
 
 				File.WriteAllBytes(output_name, result);

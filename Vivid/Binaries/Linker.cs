@@ -21,8 +21,8 @@ public class DynamicLinkingInformation
 
 public static class Linker
 {
-	public const ulong VIRTUAL_ADDRESS_START = 0x400000;
-	public const ulong SEGMENT_ALIGNMENT = 0x1000;
+	public const ulong DefaultBaseAddress = 0x400000;
+	public const ulong SegmentAlignment = 0x1000;
 
 	/// <summary>
 	/// Goes through all the symbols in the specified object files and makes their hidden symbols unique by adding their object file indices to their names.
@@ -91,7 +91,7 @@ public static class Linker
 		var section_fragments = fragments.GroupBy(i => i.Name).ToList();
 		var allocated_fragments = section_fragments.Count(i => i.First().Type == BinarySectionType.NONE || i.First().Flags.HasFlag(BinarySectionFlag.ALLOCATE));
 
-		var file_position = SEGMENT_ALIGNMENT;
+		var file_position = SegmentAlignment;
 
 		for (var i = 0; i < section_fragments.Count; i++)
 		{
@@ -103,7 +103,7 @@ public static class Linker
 			var name = inner_fragments.First().Name;
 
 			// Compute the margin needed to align the overlay section
-			var alignment = is_allocated_section ? (int)SEGMENT_ALIGNMENT : inner_fragments.First().Alignment;
+			var alignment = is_allocated_section ? (int)SegmentAlignment : inner_fragments.First().Alignment;
 			var overlay_margin = alignment - (int)file_position % alignment;
 
 			// Apply the margin if it is needed for alignment
@@ -155,14 +155,14 @@ public static class Linker
 		header.Offset = 0;
 		header.VirtualAddress = virtual_address;
 		header.PhysicalAddress = virtual_address;
-		header.SegmentFileSize = SEGMENT_ALIGNMENT;
-		header.SegmentMemorySize = SEGMENT_ALIGNMENT;
-		header.Alignment = SEGMENT_ALIGNMENT;
+		header.SegmentFileSize = SegmentAlignment;
+		header.SegmentMemorySize = SegmentAlignment;
+		header.Alignment = SegmentAlignment;
 
 		headers.Add(header);
 
-		var file_position = (int)SEGMENT_ALIGNMENT;
-		virtual_address += SEGMENT_ALIGNMENT;
+		var file_position = (int)SegmentAlignment;
+		virtual_address += SegmentAlignment;
 
 		foreach (var section in sections)
 		{
@@ -213,7 +213,7 @@ public static class Linker
 			header.PhysicalAddress = virtual_address;
 			header.SegmentFileSize = (uint)section.VirtualSize;
 			header.SegmentMemorySize = (uint)section.VirtualSize;
-			header.Alignment = SEGMENT_ALIGNMENT;
+			header.Alignment = SegmentAlignment;
 			headers.Add(header);
 
 			// Dynamic sections also need a duplicate section, which is marked as dynamic...
@@ -257,7 +257,7 @@ public static class Linker
 	/// <summary>
 	/// Computes relocations inside the specified object files using section virtual addresses
 	/// </summary>
-	public static void ComputeRelocations(List<BinaryRelocation> relocations)
+	public static void ComputeRelocations(List<BinaryRelocation> relocations, int base_address = 0)
 	{
 		foreach (var relocation in relocations)
 		{
@@ -275,15 +275,23 @@ public static class Linker
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE64)
 			{
-				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE32)
 			{
-				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
 			}
 			else if (relocation.Type == BinaryRelocationType.FILE_OFFSET_64)
 			{
 				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.Offset + symbol.Offset);
+			}
+			else if (relocation.Type == BinaryRelocationType.BASE_RELATIVE_64)
+			{
+				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+			}
+			else if (relocation.Type == BinaryRelocationType.BASE_RELATIVE_32)
+			{
+				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
 			else
 			{
@@ -544,7 +552,7 @@ public static class Linker
 		// Create sections, which cover the fragmented sections
 		var overlays = CreateLoadableSections(fragments);
 
-		CreateProgramHeaders(overlays, fragments, program_headers, executable ? VIRTUAL_ADDRESS_START : 0UL);
+		CreateProgramHeaders(overlays, fragments, program_headers, executable ? DefaultBaseAddress : 0UL);
 
 		// Now that sections have their virtual addresses relocations can be computed
 		ComputeRelocations(relocations);
@@ -569,10 +577,10 @@ public static class Linker
 		// Finish the specified dynamic linking information by filling symbol section indices into the symbol entires and writing them to the dynamic symbol table
 		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information, overlays);
 
-		var section_headers = ElfFormat.CreateSectionHeaders(overlays, symbols, (int)SEGMENT_ALIGNMENT);
+		var section_headers = ElfFormat.CreateSectionHeaders(overlays, symbols, (int)SegmentAlignment);
 		var section_bytes = overlays.Sum(i => i.Margin + i.VirtualSize);
 
-		var bytes = (int)SEGMENT_ALIGNMENT + section_bytes + section_headers.Count * ElfSectionHeader.Size;
+		var bytes = (int)SegmentAlignment + section_bytes + section_headers.Count * ElfSectionHeader.Size;
 
 		// Save the location of the program header table
 		header.ProgramHeaderOffset = ElfFileHeader.Size;
@@ -580,7 +588,7 @@ public static class Linker
 		header.ProgramHeaderSize = ElfProgramHeader.Size;
 
 		// Save the location of the section header table
-		header.SectionHeaderOffset = SEGMENT_ALIGNMENT + (ulong)section_bytes;
+		header.SectionHeaderOffset = SegmentAlignment + (ulong)section_bytes;
 		header.SectionHeaderTableEntryCount = (short)section_headers.Count;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 		header.SectionNameEntryIndex = (short)(section_headers.Count - 1);

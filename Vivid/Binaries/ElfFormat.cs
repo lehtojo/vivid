@@ -219,6 +219,8 @@ public static class ElfFormat
 	public const string DYNAMIC_RELOCATIONS_SECTION = RELOCATION_TABLE_SECTION_PREFIX + ".dyn";
 	public const string DYNAMIC_SECTION_START = "_DYNAMIC";
 	public const string IMPORTER_SECTION = ".idata";
+	public const string EXPORTER_SECTION = ".edata";
+	public const string BASE_RELOCATION_SECTION = ".reloc";
 
 	public static int Write<T>(byte[] destination, int offset, T source)
 	{
