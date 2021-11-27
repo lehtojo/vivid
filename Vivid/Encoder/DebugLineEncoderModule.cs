@@ -165,6 +165,8 @@ public class DebugLineEncoderModule : DataEncoderModule
 		WriteInt32(0, Position - 4); // Compute the length now
 
 		Name = '.' + SECTION_NAME;
+		Alignment = 1;
+
 		return base.Export();
 	}
 }

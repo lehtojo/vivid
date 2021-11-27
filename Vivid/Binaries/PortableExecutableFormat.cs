@@ -380,7 +380,7 @@ public static class PeFormat
 			characteristics |= (uint)PeFormatSectionCharacteristics.EXECUTE;
 			characteristics |= (uint)PeFormatSectionCharacteristics.CODE;
 		}
-		else if (type == BinarySectionType.DATA)
+		else if (type == BinarySectionType.DATA || type == BinarySectionType.RELOCATION_TABLE)
 		{
 			characteristics |= (uint)PeFormatSectionCharacteristics.WRITE;
 			characteristics |= (uint)PeFormatSectionCharacteristics.INITIALIZED_DATA;
@@ -562,7 +562,7 @@ public static class PeFormat
 				section_name = '/' + symbol_name_table.Add(section.Name).ToString(CultureInfo.InvariantCulture);
 			}
 
-			var bytes = Encoding.UTF8.GetBytes(section_name).Concat(new byte[8 - section.Name.Length]).ToArray();
+			var bytes = Encoding.UTF8.GetBytes(section_name).Concat(new byte[8 - section_name.Length]).ToArray();
 
 			var section_table = new PeSectionTable
 			{
@@ -723,7 +723,25 @@ public static class PeFormat
 	public static BinarySection CreateExporterSection(List<BinarySection> sections, List<BinaryRelocation> relocations, List<BinarySymbol> symbols, string output_name)
 	{
 		// The exported symbols must be sorted by name (ascending)
-		symbols = symbols.Where(i => i.Export && !i.External).OrderBy(i => i.Name).ToList();
+		symbols = symbols.Where(i => i.Export && !i.External).ToList();
+
+		// The sort function must be done manually, because for some reason the default one prefers lower case characters over upper case characters even though it is the opposite if you use the UTF-8 table
+		symbols.Sort((a, b) =>
+		{
+			var n = a.Name;
+			var m = b.Name;
+
+			for (var i = 0; i < Math.Min(n.Length, m.Length); i++)
+			{
+				var x = n[i];
+				var y = m[i];
+
+				if (x < y) return -1;
+				if (x > y) return 1;
+			}
+
+			return n.Length - m.Length;
+		});
 
 		// Compute the number of bytes needed for the export section excluding the string table
 		var string_table_start = PeExportDirectoryTable.Size + symbols.Count * (sizeof(int) + sizeof(int) + sizeof(short));
@@ -755,7 +773,7 @@ public static class PeFormat
 			exporter_section.Relocations.Add(new BinaryRelocation(name_symbol, name_pointer_table_position, 0, BinaryRelocationType.BASE_RELATIVE_32, exporter_section));
 
 			// Write the ordinal to the export section data
-			InstructionEncoder.WriteInt16(exporter_section_data, ordinal_table_position, i + 1);
+			InstructionEncoder.WriteInt16(exporter_section_data, ordinal_table_position, i);
 
 			// Move all of the positions to the next entry
 			export_address_table_position += sizeof(int);
@@ -1172,6 +1190,9 @@ public static class PeFormat
 			SizeOfOptionalHeader = (short)(PeHeader.Size - PeHeader.OptionalHeaderOffset + PeDataDirectory.Size * NumberOfDataDirectories)
 		};
 
+		if (executable) { header.Characteristics |= (short)PeFormatImageCharacteristics.RELOCATIONS_STRIPPED; }
+		else { header.Characteristics |= (short)PeFormatImageCharacteristics.DLL; }
+
 		// Resolves are unresolved symbols and returns all symbols as a list
 		var symbols = Linker.ResolveSymbols(objects);
 
@@ -1190,11 +1211,6 @@ public static class PeFormat
 
 		// Create sections, which cover the fragmented sections
 		var overlays = Linker.CreateLoadableSections(fragments);
-
-		if (!overlays.Exists(i => i.Type == BinarySectionType.RELOCATION_TABLE))
-		{
-			header.Characteristics |= (short)PeFormatImageCharacteristics.RELOCATIONS_STRIPPED;
-		}
 
 		// Decide section offsets and virtual addresses
 		var file_position = PeLegacyHeader.Size + PeHeader.Size + PeDataDirectory.Size * NumberOfDataDirectories + PeSectionTable.Size * overlays.Count;
@@ -1222,7 +1238,7 @@ public static class PeFormat
 				overlay_name = '/' + symbol_name_table.Add(overlay.Name).ToString(CultureInfo.InvariantCulture);
 			}
 
-			var bytes = Encoding.UTF8.GetBytes(overlay_name).Concat(new byte[8 - overlay.Name.Length]).ToArray();
+			var bytes = Encoding.UTF8.GetBytes(overlay_name).Concat(new byte[8 - overlay_name.Length]).ToArray();
 
 			var section_table = new PeSectionTable
 			{

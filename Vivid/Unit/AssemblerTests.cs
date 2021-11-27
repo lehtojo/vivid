@@ -270,7 +270,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output, "-l", "kernel32" };
 
 			if (OptimizationLevel > 0)
 			{
@@ -299,7 +299,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output, "-l", "kernel32" };
 
 			if (OptimizationLevel > 0)
 			{
@@ -1998,7 +1998,7 @@ namespace Vivid.Unit
 		private static extern byte _V13memory_case_2Phi_rh(IntPtr memory, int i);
 		
 		[DllImport("Unit_Memory", ExactSpelling = true)]
-		private static extern double _V13memory_case_3P6Objectd_rd(ref MemoryObject instance, double value);
+		private static extern double _V13memory_case_3P6Objectdd_rd(ref MemoryObject instance, double value);
 		
 		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern int _V13memory_case_4P6ObjectS0__ri(ref MemoryObject a, ref MemoryObject b);
@@ -2048,7 +2048,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(7, Marshal.ReadByte(memory, 6));
 
 			a.Y = 1.718281;
-			var result = _V13memory_case_3P6Objectd_rd(ref a, 8.8);
+			var result = _V13memory_case_3P6Objectdd_rd(ref a, 8.8);
 			if (result != 1.718281 + 1.0 + 8.0 && result != 10.718281) Assert.Fail("Values are not equal");
 
 			Assert.AreEqual(8, a.X);
@@ -2119,7 +2119,7 @@ namespace Vivid.Unit
 			
 			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_1P6Objecti_ri")));
 			Assert.AreEqual(1, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_2Phi_rh")));
-			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectd_rd")));
+			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_3P6Objectdd_rd")));
 			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_4P6ObjectS0__ri")));
 			Assert.AreEqual(3, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_5P6ObjectPh_rd")));
 			Assert.AreEqual(2, GetMemoryAddressCount(GetFunctionFromAssembly(assembly, "_V13memory_case_6P6Object_rd")));

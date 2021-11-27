@@ -97,7 +97,7 @@ public class DebugFrameEncoderModule : DataEncoderModule
 
 		var section = base.Export();
 		section.Flags = BinarySectionFlag.ALLOCATE;
-		section.Alignment = 8;
+		section.Alignment = 1;
 
 		return section;
 	}

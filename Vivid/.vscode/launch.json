@@ -18,11 +18,11 @@
 			//"args": [ "-s" ],
 
 			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ],
+			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ], 
 
-			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-f", "-O1", "-a", "-dll", "-l", "kernel32" ],
+			"args": [ "${workspaceFolder}/Examples/main.v", "${workspaceFolder}/libv/", "-o", "v", "-f", "-a", "-d", "-l", "kernel32" ],
 
-			//"args": [ "${workspaceFolder}/Examples/foo.asm", "${workspaceFolder}/Examples/goo.asm", "--link" ],
+			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
 
 			//"args": [ "${workspaceFolder}/libv/linux_x64_vivid/console.asm", "${workspaceFolder}/libv/linux_x64_vivid/math.asm", "${workspaceFolder}/libv/linux_x64_vivid/memory.asm", "${workspaceFolder}/libv/linux_x64_vivid/system.asm", "${workspaceFolder}/libv/linux_x64_vivid/tests.asm", "${workspaceFolder}/Examples/main.asm" ],
 
@@ -52,7 +52,7 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
-			"program": "${workspaceRoot}/v.test",
+			"program": "${workspaceRoot}/v.exe",
 			"cwd": "${workspaceRoot}",
 			"programArgs": "C:/Users/joona/vivid/Vivid/Examples/Test.v"
 		},
@@ -66,7 +66,7 @@
 			"name": "Vivid Debug (Fallback)",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceRoot}/v.test",
+			"program": "${workspaceRoot}/v.exe",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceRoot}",

@@ -281,6 +281,14 @@ public static class Linker
 			{
 				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
 			}
+			else if (relocation.Type == BinaryRelocationType.SECTION_RELATIVE_64)
+			{
+				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
+			}
+			else if (relocation.Type == BinaryRelocationType.SECTION_RELATIVE_32)
+			{
+				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
+			}
 			else if (relocation.Type == BinaryRelocationType.FILE_OFFSET_64)
 			{
 				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.Offset + symbol.Offset);

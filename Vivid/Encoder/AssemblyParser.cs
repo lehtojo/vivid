@@ -116,7 +116,7 @@ public class AssemblyParser
 		{
 			DWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE32,
 			QWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE64,
-			SECTION_OFFSET_SPECIFIER => BinaryRelocationType.SECTION_RELATIVE,
+			SECTION_OFFSET_SPECIFIER => BinaryRelocationType.SECTION_RELATIVE_32,
 			_ => BinaryRelocationType.ABSOLUTE64,
 		};
 

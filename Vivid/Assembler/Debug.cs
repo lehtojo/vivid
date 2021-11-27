@@ -940,8 +940,15 @@ public class Debug
 
 		if (Assembler.IsDebuggingEnabled)
 		{
-			DataEncoder.AddTable(builder, builder.GetDataSection(file, Abbrevation.Name), Abbrevation);
-			DataEncoder.AddTable(builder, builder.GetDataSection(file, Information.Name), Information);
+			var abbreviation_section = builder.GetDataSection(file, Abbrevation.Name);
+			var information_section = builder.GetDataSection(file, Information.Name);
+
+			// The abbrevation and information sections must be tightly packed and the start of these sections will be at least multiple of 8 bytes (this is guaranteed by the linker).s
+			abbreviation_section.Alignment = 1;
+			information_section.Alignment = 1;
+
+			DataEncoder.AddTable(builder, abbreviation_section, Abbrevation);
+			DataEncoder.AddTable(builder, information_section, Information);
 		}
 
 		return builder;

@@ -365,14 +365,12 @@ public static class DataEncoder
 		var position = module.Position;
 		var type = BinaryRelocationType.ABSOLUTE64;
 
-		if (bytes == 4) { type = BinaryRelocationType.ABSOLUTE32; }
-		else if (bytes != 8) throw new ApplicationException("Table label must be either 4-bytes or 8-bytes");
-		
+		if (bytes == 4) { type = label.IsSectionRelative ? BinaryRelocationType.SECTION_RELATIVE_32 : BinaryRelocationType.ABSOLUTE32; }
+		else if (bytes == 8) { type = label.IsSectionRelative ? BinaryRelocationType.SECTION_RELATIVE_64 : BinaryRelocationType.ABSOLUTE64; }
+		else throw new ApplicationException("Table label must be either 4-bytes or 8-bytes");
+
 		// Allocate the table label
 		module.Zero(bytes);
-
-		#warning Look into this
-		//if (label.IsSectionRelative) throw new NotSupportedException("Section relative labels are not supported yet");
 
 		module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(label.Name), position, 0, type, bytes));
 	}

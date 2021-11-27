@@ -150,6 +150,7 @@ public enum EncodingFilterType
 	MEMORY_ADDRESS,
 	CONSTANT,
 	SPECIFIC_CONSTANT,
+	SIGNLESS_CONSTANT,
 	EXPRESSION,
 	LABEL
 }
@@ -737,6 +738,7 @@ public static class InstructionEncoder
 				if (value.Instance != HandleInstanceType.CONSTANT) return false;
 				return filter == (int)(long)value.To<ConstantHandle>().Value;
 			}
+			case EncodingFilterType.SIGNLESS_CONSTANT: return value.Type == HandleType.CONSTANT;
 			case EncodingFilterType.EXPRESSION: return value.Type == HandleType.EXPRESSION;
 			case EncodingFilterType.LABEL: return value.Instance == HandleInstanceType.DATA_SECTION && value.To<DataSectionHandle>().Address;
 			default: return false;
@@ -761,9 +763,16 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Returns whether the specified handle passes the configured filter
 	/// </summary>
-	private static bool PassesSize(Handle value, short size)
+	private static bool PassesSize(Handle value, EncodingFilterType filter, short size)
 	{
-		if (value.Instance == HandleInstanceType.CONSTANT) return GetNumberOfBitsForEncoding((long)value.To<ConstantHandle>().Value) / 8 <= size;
+		if (value.Instance == HandleInstanceType.CONSTANT)
+		{
+			if (filter == EncodingFilterType.CONSTANT) return value.To<ConstantHandle>().Bits / 8 <= size;
+
+			// Do not care about the sign, just verify all the bits can be stored in the specified size
+			return GetNumberOfBitsForEncoding((long)value.To<ConstantHandle>().Value) / 8 <= size;
+		}
+
 		return value.Size.Bytes == size;
 	}
 
@@ -787,7 +796,7 @@ public static class InstructionEncoder
 
 		foreach (var encoding in encodings)
 		{
-			if (!PassesSize(first, encoding.InputSizeOfFirst)) continue;
+			if (!PassesSize(first, encoding.FilterTypeOfFirst, encoding.InputSizeOfFirst)) continue;
 			if (PassesFilter(encoding.FilterTypeOfFirst, encoding.FilterOfFirst, first)) return encoding;
 		}
 
@@ -803,7 +812,7 @@ public static class InstructionEncoder
 
 		foreach (var encoding in encodings)
 		{
-			if (!PassesSize(first, encoding.InputSizeOfFirst) || !PassesSize(second, encoding.InputSizeOfSecond)) continue;
+			if (!PassesSize(first, encoding.FilterTypeOfFirst, encoding.InputSizeOfFirst) || !PassesSize(second, encoding.FilterTypeofSecond, encoding.InputSizeOfSecond)) continue;
 			if (!PassesFilter(encoding.FilterTypeOfFirst, encoding.FilterOfFirst, first) || !PassesFilter(encoding.FilterTypeofSecond, encoding.FilterOfSecond, second)) continue;
 			return encoding;
 		}
@@ -820,7 +829,7 @@ public static class InstructionEncoder
 
 		foreach (var encoding in encodings)
 		{
-			if (!PassesSize(first, encoding.InputSizeOfFirst) || !PassesSize(second, encoding.InputSizeOfSecond) || !PassesSize(third, encoding.InputSizeOfThird)) continue;
+			if (!PassesSize(first, encoding.FilterTypeOfFirst, encoding.InputSizeOfFirst) || !PassesSize(second, encoding.FilterTypeofSecond, encoding.InputSizeOfSecond) || !PassesSize(third, encoding.FilterTypeOfThird, encoding.InputSizeOfThird)) continue;
 			if (!PassesFilter(encoding.FilterTypeOfFirst, encoding.FilterOfFirst, first) || !PassesFilter(encoding.FilterTypeofSecond, encoding.FilterOfSecond, second) || !PassesFilter(encoding.FilterTypeOfThird, encoding.FilterOfThird, third)) continue;
 			return encoding;
 		}
