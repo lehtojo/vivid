@@ -218,27 +218,6 @@ public static class ElfFormat
 	public const string RELOCATION_TABLE_SECTION_PREFIX = ".rela";
 	public const string DYNAMIC_RELOCATIONS_SECTION = RELOCATION_TABLE_SECTION_PREFIX + ".dyn";
 	public const string DYNAMIC_SECTION_START = "_DYNAMIC";
-	public const string IMPORTER_SECTION = ".idata";
-	public const string EXPORTER_SECTION = ".edata";
-	public const string BASE_RELOCATION_SECTION = ".reloc";
-
-	public static int Write<T>(byte[] destination, int offset, T source)
-	{
-		var size = Marshal.SizeOf(source);
-		var buffer = Marshal.AllocHGlobal(size);
-		Marshal.StructureToPtr(source!, buffer, false);
-		Marshal.Copy(buffer, destination, offset, size);
-		Marshal.FreeHGlobal(buffer);
-		return offset + size;
-	}
-
-	public static void Write<T>(byte[] destination, int offset, List<T> source)
-	{
-		foreach (var element in source)
-		{
-			offset = Write(destination, offset, element);
-		}
-	}
 
 	public static ElfSectionType GetSectionType(BinarySection section)
 	{
@@ -332,8 +311,8 @@ public static class ElfFormat
 
 		// Convert the buckets and chains to bytes
 		var data = new byte[(2 + buckets.Length + chains.Length) * sizeof(int)];
-		InstructionEncoder.WriteInt32(data, 0, buckets.Length);
-		InstructionEncoder.WriteInt32(data, sizeof(int), chains.Length);
+		BinaryUtility.WriteInt32(data, 0, buckets.Length);
+		BinaryUtility.WriteInt32(data, sizeof(int), chains.Length);
 
 		// Copy the buckets and chains to the data
 		Buffer.BlockCopy(buckets, 0, data, sizeof(int) * 2, buckets.Length * sizeof(int));
@@ -533,7 +512,7 @@ public static class ElfFormat
 		}
 
 		var symbol_table_section = new BinarySection(SYMBOL_TABLE_SECTION, BinarySectionType.SYMBOL_TABLE, new byte[ElfSymbolEntry.Size * symbol_entries.Count]);
-		Write(symbol_table_section.Data, 0, symbol_entries);
+		BinaryUtility.Write(symbol_table_section.Data, 0, symbol_entries);
 		sections.Add(symbol_table_section);
 
 		foreach (var iterator in relocation_sections)
@@ -543,7 +522,7 @@ public static class ElfFormat
 			if (!relocation_entries.Any()) continue;
 
 			var relocation_table_section = new BinarySection(RELOCATION_TABLE_SECTION_PREFIX + iterator.Key.Name, BinarySectionType.RELOCATION_TABLE, new byte[ElfRelocationEntry.Size * relocation_entries.Count]);
-			Write(relocation_table_section.Data, 0, relocation_entries);
+			BinaryUtility.Write(relocation_table_section.Data, 0, relocation_entries);
 			sections.Add(relocation_table_section);
 		}
 
@@ -551,115 +530,6 @@ public static class ElfFormat
 		sections.Add(string_table_section);
 
 		return symbol_name_table;
-	}
-
-	/// <summary>
-	/// Goes through all the relocations from the specified sections and connects them to the local symbols if possible
-	/// </summary>
-	public static void UpdateRelocations(List<BinaryRelocation> relocations, Dictionary<string, BinarySymbol> symbols)
-	{
-		#warning Move somewhere else from ELF-format and the linker should use this as well
-		foreach (var relocation in relocations)
-		{
-			var symbol = relocation.Symbol;
-
-			// If the relocation is not external, the symbol is already resolved
-			if (!symbol.External) continue;
-
-			// Try to find the actual symbol
-			if (!symbols.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
-
-			relocation.Symbol = definition;
-		}
-	}
-
-	/// <summary>
-	/// Goes through all the relocations from the specified sections and connects them to the local symbols if possible
-	/// </summary>
-	public static void UpdateRelocations(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
-	{
-		#warning Move somewhere else from ELF-format and the linker should use this as well
-		foreach (var section in sections)
-		{
-			UpdateRelocations(section.Relocations, symbols);
-		}
-	}
-
-	/// <summary>
-	/// Returns a list of all symbols in the specified sections
-	/// </summary>
-	public static Dictionary<string, BinarySymbol> GetAllSymbolsFromSections(List<BinarySection> sections)
-	{
-		var symbols = new Dictionary<string, BinarySymbol>();
-
-		foreach (var symbol in sections.SelectMany(i => i.Symbols.Values))
-		{
-			// 1. Just continue, if the symbol can be added
-			// 2. If this is executed, it means that some version of the current symbol is already added.
-			// However, if the current symbol is external, it does not matter.
-			if (symbols.TryAdd(symbol.Name, symbol) || symbol.External) continue;
-
-			// If the version of the current symbol in the dictionary is not external, the current symbol is defined at least twice
-			var conflict = symbols[symbol.Name];
-			if (!conflict.External) throw new ApplicationException($"Symbol {symbol.Name} is created at least twice");
-
-			// Since the version of the current symbol in the dictionary is external, it can be replaced with the actual definition (current symbol)
-			symbols[symbol.Name] = symbol;
-		}
-
-		return symbols;
-	}
-
-	/// <summary>
-	/// Computes all offsets in the specified sections. If any of the offsets can not computed, this function throws an exception.
-	/// </summary>
-	public static void ComputeOffsets(List<BinarySection> sections, Dictionary<string, BinarySymbol> symbols)
-	{
-		foreach (var section in sections)
-		{
-			foreach (var offset in section.Offsets)
-			{
-				// Try to find the 'from'-symbol
-				var symbol = offset.Offset.From.Name;
-				if (!symbols.TryGetValue(symbol, out var from)) throw new ApplicationException($"Can not compute an offset, because symbol {symbol} can not be found");
-
-				// Try to find the 'to'-symbol
-				symbol = offset.Offset.To.Name;
-				if (!symbols.TryGetValue(symbol, out var to)) throw new ApplicationException($"Can not compute an offset, because symbol {symbol} can not be found");
-
-				// Ensure both symbols are defined locally
-				if (from.Section == null || to.Section == null) throw new ApplicationException("Both symbols in offsets must be local");
-
-				// Compute the offset between the symbols
-				var value = (to.Section!.VirtualAddress + to.Offset) - (from.Section!.VirtualAddress + from.Offset);
-
-				switch (offset.Bytes)
-				{
-					case 8: { InstructionEncoder.WriteInt64(section.Data, offset.Position, value); break; }
-					case 4: { InstructionEncoder.WriteInt32(section.Data, offset.Position, value); break; }
-					case 2: { InstructionEncoder.WriteInt16(section.Data, offset.Position, value); break; }
-					case 1: { InstructionEncoder.Write(section.Data, offset.Position, value); break; }
-					default: throw new ApplicationException("Unsupported offset size");
-				}
-			}
-		}
-	}
-
-	/// <summary>
-	/// Exports the specified symbols
-	/// </summary>
-	public static void ApplyExports(Dictionary<string, BinarySymbol> symbols, HashSet<string> exports)
-	{
-		foreach (var export in exports)
-		{
-			if (symbols.TryGetValue(export, out var symbol))
-			{
-				symbol.Export = true;
-				continue;
-			}
-
-			throw new ApplicationException($"Exporting of symbol {export} is requested, but it does not exist");
-		}
 	}
 
 	/// <summary>
@@ -671,13 +541,13 @@ public static class ElfFormat
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
-		var symbols = GetAllSymbolsFromSections(sections);
+		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
 
 		// Export symbols
-		ApplyExports(symbols, exports);
+		BinaryUtility.ApplyExports(symbols, exports);
 
 		// Update all the relocations before adding them to binary sections
-		UpdateRelocations(sections, symbols);
+		BinaryUtility.UpdateRelocations(sections, symbols);
 
 		// Add symbols and relocations of each section needing that
 		CreateSymbolRelatedSections(sections, null, symbols);
@@ -685,7 +555,7 @@ public static class ElfFormat
 		_ = CreateSectionHeaders(sections, symbols);
 
 		// Now that section positions are set, compute offsets
-		ComputeOffsets(sections, symbols);
+		BinaryUtility.ComputeOffsets(sections, symbols);
 
 		return new BinaryObjectFile(sections);
 	}
@@ -699,13 +569,13 @@ public static class ElfFormat
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
 		sections.Insert(0, none_section);
 
-		var symbols = GetAllSymbolsFromSections(sections);
+		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
 
 		// Export symbols
-		ApplyExports(symbols, exports);
+		BinaryUtility.ApplyExports(symbols, exports);
 
 		// Update all the relocations before adding them to binary sections
-		UpdateRelocations(sections, symbols);
+		BinaryUtility.UpdateRelocations(sections, symbols);
 
 		// Add symbols and relocations of each section needing that
 		CreateSymbolRelatedSections(sections, null, symbols);
@@ -719,7 +589,7 @@ public static class ElfFormat
 		var section_headers = CreateSectionHeaders(sections, symbols);
 
 		// Now that section positions are set, compute offsets
-		ComputeOffsets(sections, symbols);
+		BinaryUtility.ComputeOffsets(sections, symbols);
 
 		var section_bytes = sections.Sum(i => i.Data.Length);
 
@@ -733,7 +603,7 @@ public static class ElfFormat
 		var result = new byte[bytes];
 
 		// Write the file header
-		Write(result, 0, header);
+		BinaryUtility.Write(result, 0, header);
 
 		// Write the actual program data
 		foreach (var section in sections)
@@ -746,7 +616,7 @@ public static class ElfFormat
 
 		foreach (var section_header in section_headers)
 		{
-			Write(result, position, section_header);
+			BinaryUtility.Write(result, position, section_header);
 			position += ElfSectionHeader.Size;
 		}
 

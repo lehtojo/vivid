@@ -271,35 +271,35 @@ public static class Linker
 			{
 				var from = relocation_section.VirtualAddress + relocation.Offset;
 				var to = symbol_section.VirtualAddress + symbol.Offset;
-				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, to - from + relocation.Addend);
+				BinaryUtility.WriteInt32(relocation_section.Data, relocation.Offset, to - from + relocation.Addend);
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE64)
 			{
-				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
+				BinaryUtility.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
 			}
 			else if (relocation.Type == BinaryRelocationType.ABSOLUTE32)
 			{
-				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
+				BinaryUtility.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) + base_address);
 			}
 			else if (relocation.Type == BinaryRelocationType.SECTION_RELATIVE_64)
 			{
-				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
+				BinaryUtility.WriteInt64(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
 			}
 			else if (relocation.Type == BinaryRelocationType.SECTION_RELATIVE_32)
 			{
-				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
+				BinaryUtility.WriteInt32(relocation_section.Data, relocation.Offset, (symbol_section.VirtualAddress + symbol.Offset) - symbol_section.BaseVirtualAddress);
 			}
 			else if (relocation.Type == BinaryRelocationType.FILE_OFFSET_64)
 			{
-				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.Offset + symbol.Offset);
+				BinaryUtility.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.Offset + symbol.Offset);
 			}
 			else if (relocation.Type == BinaryRelocationType.BASE_RELATIVE_64)
 			{
-				InstructionEncoder.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				BinaryUtility.WriteInt64(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
 			else if (relocation.Type == BinaryRelocationType.BASE_RELATIVE_32)
 			{
-				InstructionEncoder.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
+				BinaryUtility.WriteInt32(relocation_section.Data, relocation.Offset, symbol_section.VirtualAddress + symbol.Offset);
 			}
 			else
 			{
@@ -465,7 +465,7 @@ public static class Linker
 
 		// Output the dynamic section entries into the dynamic section
 		dynamic_section.Data = new byte[ElfDynamicEntry.Size * (dynamic_section_entries.Count + 1)]; // Allocate one more entry so that the last entry is a none-entry
-		ElfFormat.Write(dynamic_section.Data, 0, dynamic_section_entries);
+		BinaryUtility.Write(dynamic_section.Data, 0, dynamic_section_entries);
 
 		return dynamic_linking_information;
 	}
@@ -490,7 +490,7 @@ public static class Linker
 		}
 
 		// Write the symbol entries into the dynamic symbol table
-		ElfFormat.Write(information.DynamicSection.Data, 0, information.Entries);
+		BinaryUtility.Write(information.DynamicSection.Data, 0, information.Entries);
 
 		// Finish dynamic relocations if there are any
 		if (information.RelocationSection == null) return;
@@ -519,7 +519,7 @@ public static class Linker
 		}
 
 		// Write the modified absolute relocations into the dynamic relocation section
-		ElfFormat.Write(information.RelocationSection.Data, 0, relocations_entries);
+		BinaryUtility.Write(information.RelocationSection.Data, 0, relocations_entries);
 	}
 
 	public static byte[] Link(List<BinaryObjectFile> objects, string entry, bool executable)
@@ -608,14 +608,14 @@ public static class Linker
 		var result = new byte[bytes];
 
 		// Write the file header
-		ElfFormat.Write(result, 0, header);
+		BinaryUtility.Write(result, 0, header);
 
 		// Write the program header table now
 		var position = (int)header.ProgramHeaderOffset;
 
 		foreach (var program_header in program_headers)
 		{
-			ElfFormat.Write(result, position, program_header);
+			BinaryUtility.Write(result, position, program_header);
 			position += ElfProgramHeader.Size;
 		}
 
@@ -638,7 +638,7 @@ public static class Linker
 
 		foreach (var section_header in section_headers)
 		{
-			ElfFormat.Write(result, position, section_header);
+			BinaryUtility.Write(result, position, section_header);
 			position += ElfSectionHeader.Size;
 		}
 

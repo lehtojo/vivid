@@ -370,29 +370,12 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes the specified value to the specified position
-	/// </summary>
-	public static void Write(byte[] data, int offset, long value)
-	{
-		data[offset] = (byte)(value & 0xFF);
-	}
-
-	/// <summary>
 	/// Writes the specified value to the current position and advances to the next position
 	/// </summary>
 	public static void WriteInt16(EncoderModule module, long value)
 	{
 		module.Output[module.Position++] = (byte)(value & 0xFF);
 		module.Output[module.Position++] = (byte)((value & 0xFF00) >> 8);
-	}
-
-	/// <summary>
-	/// Writes the specified value to the specified position
-	/// </summary>
-	public static void WriteInt16(byte[] data, int offset, long value)
-	{
-		data[offset++] = (byte)(value & 0xFF);
-		data[offset++] = (byte)((value & 0xFF00) >> 8);
 	}
 
 	/// <summary>
@@ -418,17 +401,6 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes the specified value to the specified position
-	/// </summary>
-	public static void WriteInt32(byte[] data, int position, long value)
-	{
-		data[position++] = (byte)(value & 0xFF);
-		data[position++] = (byte)((value & 0xFF00) >> 8);
-		data[position++] = (byte)((value & 0xFF0000) >> 16);
-		data[position++] = (byte)((value & 0xFF000000) >> 24);
-	}
-
-	/// <summary>
 	/// Writes the specified value to the current position and advances to the next position
 	/// </summary>
 	public static void WriteInt64(EncoderModule module, long value)
@@ -441,21 +413,6 @@ public static class InstructionEncoder
 		module.Output[module.Position++] = (byte)((value & 0xFF0000000000) >> 40);
 		module.Output[module.Position++] = (byte)((value & 0xFF000000000000) >> 48);
 		module.Output[module.Position++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
-	}
-
-	/// <summary>
-	/// Writes the specified value to the specified position
-	/// </summary>
-	public static void WriteInt64(byte[] data, int offset, long value)
-	{
-		data[offset++] = (byte)(value & 0xFF);
-		data[offset++] = (byte)((value & 0xFF00) >> 8);
-		data[offset++] = (byte)((value & 0xFF0000) >> 16);
-		data[offset++] = (byte)((value & 0xFF000000) >> 24);
-		data[offset++] = (byte)((value & 0xFF00000000) >> 32);
-		data[offset++] = (byte)((value & 0xFF0000000000) >> 40);
-		data[offset++] = (byte)((value & 0xFF000000000000) >> 48);
-		data[offset++] = (byte)(((ulong)value & 0xFF00000000000000) >> 56);
 	}
 
 	/// <summary>
