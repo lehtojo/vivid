@@ -1195,22 +1195,6 @@ public static class InstructionEncoder
 			var module = modules[j];
 			var parser = new AssemblyParser();
 
-			foreach (var instruction in module.Instructions)
-			{
-				if (!instruction.IsManual)
-				{
-					WriteInstruction(module, instruction);
-					continue;
-				}
-
-				// Parse the assembly code and then reset the parser for next use
-				parser.Parse(instruction.Operation.Replace("\r", string.Empty));
-				parser.Instructions.ForEach(i => WriteInstruction(module, i));
-				parser.Reset();
-			}
-
-			#warning Enable multithreading in the future
-			/*
 			tasks[j] = Task.Run(() =>
 			{
 				var module = modules[j];
@@ -1225,12 +1209,26 @@ public static class InstructionEncoder
 					}
 
 					// Parse the assembly code and then reset the parser for next use
-					parser.Parse(instruction.Operation);
+					parser.Parse(instruction.Operation.Replace("\r", string.Empty));
 					parser.Instructions.ForEach(i => WriteInstruction(module, i));
 					parser.Reset();
 				}
 			});
-			*/
+			
+			// Single threaded version:
+			// foreach (var instruction in module.Instructions)
+			// {
+			// 	if (!instruction.IsManual)
+			// 	{
+			// 		WriteInstruction(module, instruction);
+			// 		continue;
+			// 	}
+
+			// 	// Parse the assembly code and then reset the parser for next use
+			// 	parser.Parse(instruction.Operation.Replace("\r", string.Empty));
+			// 	parser.Instructions.ForEach(i => WriteInstruction(module, i));
+			// 	parser.Reset();
+			// }
 		}
 
 		return tasks;
@@ -1423,7 +1421,7 @@ public static class InstructionEncoder
 		var relocations = new List<BinaryRelocation>();
 
 		var section = new BinarySection(ElfFormat.TEXT_SECTION, BinarySectionType.TEXT, binary);
-		section.Flags = BinarySectionFlag.EXECUTE | BinarySectionFlag.ALLOCATE;
+		section.Flags = BinarySectionFlags.EXECUTE | BinarySectionFlags.ALLOCATE;
 		section.Symbols = symbols;
 		section.Relocations = relocations;
 
@@ -1551,17 +1549,12 @@ public static class InstructionEncoder
 		var modules = CreateModules(instructions);
 		var labels = new Dictionary<Label, LabelDescriptor>();
 
-		var tasks = Encode(modules); // Encode each module
-
-		#warning Enable multithreading in the future
-		//Task.WaitAll(tasks);
+		Task.WaitAll(Encode(modules)); // Encode each module
 
 		LoadLabels(modules, labels); // Load all labels into a dictionary where information about their positions can be pulled
 		CompleteModules(modules, labels); // Decide jump sizes based on the loaded label information
 		ComputeModulePositions(modules);
 		WriteOffsets(modules, labels);
-
-		//Print(modules);
 
 		return Export(modules, labels, debug_file);
 	}

@@ -314,7 +314,7 @@ public class DataEncoderModule
 		section.Offsets = Offsets;
 
 		// If this section represents the primary data section, add the default flags
-		if (Name == DATA_SECTION_NAME) { section.Flags = BinarySectionFlag.WRITE | BinarySectionFlag.ALLOCATE; }
+		if (Name == DATA_SECTION_NAME) { section.Flags = BinarySectionFlags.WRITE | BinarySectionFlags.ALLOCATE; }
 
 		foreach (var symbol in Symbols.Values) { symbol.Section = section; }
 		foreach (var relocation in Relocations) { relocation.Section = section; }

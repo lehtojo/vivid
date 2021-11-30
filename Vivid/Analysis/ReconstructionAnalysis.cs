@@ -801,7 +801,7 @@ public static class ReconstructionAnalysis
 
 	public static Node GetExpressionExtractPosition(Node expression)
 	{
-		#warning If this is working, update in stage2 as well
+		#warning Upgrade second stage
 		var iterator = expression.Parent;
 		var position = expression;
 

@@ -178,8 +178,8 @@ public class Debug
 
 		Information.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
-		var start = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_START, file.Index));
-		var end = new TableLabel(string.Format(CultureInfo.InvariantCulture, FORMAT_COMPILATION_UNIT_END, file.Index));
+		var start = new TableLabel(string.Format(FORMAT_COMPILATION_UNIT_START, file.Index));
+		var end = new TableLabel(string.Format(FORMAT_COMPILATION_UNIT_END, file.Index));
 
 		Information.Add(start); // DW_AT_low_pc
 		Information.Add(GetOffset(start, end)); /// DW_AT_high_pc

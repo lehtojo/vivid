@@ -710,8 +710,7 @@ public class AssemblyParser
 				if (ParseInstruction(tokens)) continue;
 			}
 
-			#warning Enable in the future
-			//throw Errors.Get(tokens.First().Position, "Can not understand");
+			throw Errors.Get(tokens.First().Position, "Can not understand");
 		}
 
 		// Save the current data section, if it is not saved already

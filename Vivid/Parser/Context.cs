@@ -230,7 +230,7 @@ public class Mangle
 				Path(parents);
 			}
 
-			Value += type.Identifier.Length.ToString(CultureInfo.InvariantCulture) + type.Identifier;
+			Value += type.Identifier.Length.ToString() + type.Identifier;
 
 			if (type.IsTemplateType)
 			{

@@ -96,7 +96,7 @@ public class DebugFrameEncoderModule : DataEncoderModule
 		Name = '.' + SECTION_NAME;
 
 		var section = base.Export();
-		section.Flags = BinarySectionFlag.ALLOCATE;
+		section.Flags = BinarySectionFlags.ALLOCATE;
 		section.Alignment = 1;
 
 		return section;

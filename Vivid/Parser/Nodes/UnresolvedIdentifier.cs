@@ -48,7 +48,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 			position
 		));
 
-		var name = context.CreateLambda().ToString(CultureInfo.InvariantCulture);
+		var name = context.CreateLambda().ToString();
 		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, Position, null);
 
 		lambda.Parameters.AddRange(parameters);

@@ -12,8 +12,8 @@ public class AppendPositionInstruction : Instruction
 
 	public static string GetPositionInstruction(Position position)
 	{
-		var line = position.FriendlyLine.ToString(CultureInfo.InvariantCulture);
-		var character = position.FriendlyCharacter.ToString(CultureInfo.InvariantCulture);
+		var line = position.FriendlyLine.ToString();
+		var character = position.FriendlyCharacter.ToString();
 
 		return INSTRUCTION + " 1 " + line + ' ' + character;
 	}

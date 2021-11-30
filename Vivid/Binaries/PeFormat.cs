@@ -449,7 +449,7 @@ public static class PeFormat
 			// If the section name is too long, move it into the string table and point to that name by using the pattern '/<Section name offset in the string table>'
 			if (section.Name.Length > 8)
 			{
-				section_name = '/' + symbol_name_table.Add(section.Name).ToString(CultureInfo.InvariantCulture);
+				section_name = '/' + symbol_name_table.Add(section.Name).ToString();
 			}
 
 			var bytes = Encoding.UTF8.GetBytes(section_name).Concat(new byte[8 - section_name.Length]).ToArray();
@@ -906,8 +906,6 @@ public static class PeFormat
 
 			foreach (var import_symbol_name in import_list)
 			{
-				#warning Add support for the order number?
-
 				// Create a symbol for the import so that a relocation can be made
 				var import_symbol_offset = string_table_start + string_table.Position;
 				string_table.WriteInt16(0); // This 16-bit index is used for quick lookup of the symbol in the imported library, do not care about it for now
@@ -1123,7 +1121,7 @@ public static class PeFormat
 			// If the section name is too long, move it into the string table and point to that name by using the pattern '/<Section name offset in the string table>'
 			if (overlay.Name.Length > 8)
 			{
-				overlay_name = '/' + symbol_name_table.Add(overlay.Name).ToString(CultureInfo.InvariantCulture);
+				overlay_name = '/' + symbol_name_table.Add(overlay.Name).ToString();
 			}
 
 			var bytes = Encoding.UTF8.GetBytes(overlay_name).Concat(new byte[8 - overlay_name.Length]).ToArray();
@@ -1253,15 +1251,15 @@ public static class PeFormat
 	/// <summary>
 	/// Determines shared section flags from the specified section characteristics
 	/// </summary>
-	public static BinarySectionFlag GetSharedSectionFlags(PeFormatSectionCharacteristics characteristics)
+	public static BinarySectionFlags GetSharedSectionFlags(PeFormatSectionCharacteristics characteristics)
 	{
-		var flags = (BinarySectionFlag)0;
+		var flags = (BinarySectionFlags)0;
 
-		if (characteristics.HasFlag(PeFormatSectionCharacteristics.WRITE)) { flags |= BinarySectionFlag.WRITE; }
-		if (characteristics.HasFlag(PeFormatSectionCharacteristics.EXECUTE)) { flags |= BinarySectionFlag.EXECUTE; }
+		if (characteristics.HasFlag(PeFormatSectionCharacteristics.WRITE)) { flags |= BinarySectionFlags.WRITE; }
+		if (characteristics.HasFlag(PeFormatSectionCharacteristics.EXECUTE)) { flags |= BinarySectionFlags.EXECUTE; }
 
-		if (characteristics.HasFlag((PeFormatSectionCharacteristics.CODE))) { flags |= BinarySectionFlag.ALLOCATE; }
-		else if (characteristics.HasFlag((PeFormatSectionCharacteristics.INITIALIZED_DATA))) { flags |= BinarySectionFlag.ALLOCATE; }
+		if (characteristics.HasFlag((PeFormatSectionCharacteristics.CODE))) { flags |= BinarySectionFlags.ALLOCATE; }
+		else if (characteristics.HasFlag((PeFormatSectionCharacteristics.INITIALIZED_DATA))) { flags |= BinarySectionFlags.ALLOCATE; }
 
 		return flags;
 	}
@@ -1378,7 +1376,7 @@ public static class PeFormat
 			if (!section.Name.StartsWith('/')) continue;
 
 			// Extract the section offset in the string table
-			var section_name_offset = int.Parse(section.Name[1..], CultureInfo.InvariantCulture);
+			var section_name_offset = int.Parse(section.Name[1..]);
 
 			// Load the section name from the string table
 			section.Name = Marshal.PtrToStringUTF8(symbol_name_table_start + (int)section_name_offset) ?? throw new ApplicationException("Could not extract section name from the string table");

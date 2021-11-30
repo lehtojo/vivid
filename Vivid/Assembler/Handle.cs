@@ -113,7 +113,7 @@ public class ConstantDataSectionHandle : DataSectionHandle
 		Instance = HandleInstanceType.CONSTANT_DATA_SECTION;
 	}
 
-	public ConstantDataSectionHandle(byte[] bytes) : base("{ " + string.Join(", ", bytes.Select(i => i.ToString(CultureInfo.InvariantCulture))) + " }")
+	public ConstantDataSectionHandle(byte[] bytes) : base("{ " + string.Join(", ", bytes.Select(i => i.ToString())) + " }")
 	{
 		Value = bytes;
 		Instance = HandleInstanceType.CONSTANT_DATA_SECTION;
@@ -203,7 +203,7 @@ public class DataSectionHandle : Handle
 		// Apply the offset if it is not zero
 		if (Offset != 0)
 		{
-			var offset = Offset.ToString(CultureInfo.InvariantCulture);
+			var offset = Offset.ToString();
 			if (Offset > 0) { offset = '+' + offset; }
 
 			return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}{offset}]";
@@ -250,7 +250,7 @@ public class ConstantHandle : Handle
 	{
 		if (format == Format.DECIMAL)
 		{
-			Value = System.Convert.ToDouble(Value, CultureInfo.InvariantCulture);
+			Value = System.Convert.ToDouble(Value);
 		}
 		else
 		{
@@ -260,7 +260,7 @@ public class ConstantHandle : Handle
 			}
 			else
 			{
-				Value = System.Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+				Value = System.Convert.ToInt64(Value);
 			}
 		}
 
@@ -826,7 +826,7 @@ public class ExpressionHandle : Handle
 
 			if (Multiplier > 1)
 			{
-				result += "*" + Multiplier.ToString(CultureInfo.InvariantCulture);
+				result += "*" + Multiplier.ToString();
 			}
 		}
 

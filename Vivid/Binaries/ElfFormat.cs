@@ -89,7 +89,7 @@ public enum ElfSectionType : int
 }
 
 [Flags]
-public enum ElfSectionFlag : int
+public enum ElfSectionFlags : int
 {
 	NONE = 0x00,
 	WRITE = 0x01,
@@ -237,15 +237,15 @@ public static class ElfFormat
 		};
 	}
 
-	public static ElfSectionFlag GetSectionFlags(BinarySection section)
+	public static ElfSectionFlags GetSectionFlags(BinarySection section)
 	{
-		var result = ElfSectionFlag.NONE;
+		var result = ElfSectionFlags.NONE;
 
-		if (section.Type == BinarySectionType.RELOCATION_TABLE && section.Name != ElfFormat.DYNAMIC_RELOCATIONS_SECTION) { result |= ElfSectionFlag.INFO_LINK; }
+		if (section.Type == BinarySectionType.RELOCATION_TABLE && section.Name != ElfFormat.DYNAMIC_RELOCATIONS_SECTION) { result |= ElfSectionFlags.INFO_LINK; }
 
-		if (section.Flags.HasFlag(BinarySectionFlag.WRITE)) { result |= ElfSectionFlag.WRITE; }
-		if (section.Flags.HasFlag(BinarySectionFlag.EXECUTE)) { result |= ElfSectionFlag.EXECUTABLE; }
-		if (section.Flags.HasFlag(BinarySectionFlag.ALLOCATE)) { result |= ElfSectionFlag.ALLOCATE; }
+		if (section.Flags.HasFlag(BinarySectionFlags.WRITE)) { result |= ElfSectionFlags.WRITE; }
+		if (section.Flags.HasFlag(BinarySectionFlags.EXECUTE)) { result |= ElfSectionFlags.EXECUTABLE; }
+		if (section.Flags.HasFlag(BinarySectionFlags.ALLOCATE)) { result |= ElfSectionFlags.ALLOCATE; }
 
 		return result;
 	}
@@ -438,13 +438,13 @@ public static class ElfFormat
 	/// <summary>
 	/// Converts the specified ELF section flags to shared section flags
 	/// </summary>
-	public static BinarySectionFlag GetSharedSectionFlags(ElfSectionFlag flags)
+	public static BinarySectionFlags GetSharedSectionFlags(ElfSectionFlags flags)
 	{
-		var result = (BinarySectionFlag)0;
+		var result = (BinarySectionFlags)0;
 
-		if (flags.HasFlag(ElfSectionFlag.WRITE)) { result |= BinarySectionFlag.WRITE; }
-		if (flags.HasFlag(ElfSectionFlag.EXECUTABLE)) { result |= BinarySectionFlag.EXECUTE; }
-		if (flags.HasFlag(ElfSectionFlag.ALLOCATE)) { result |= BinarySectionFlag.ALLOCATE; }
+		if (flags.HasFlag(ElfSectionFlags.WRITE)) { result |= BinarySectionFlags.WRITE; }
+		if (flags.HasFlag(ElfSectionFlags.EXECUTABLE)) { result |= BinarySectionFlags.EXECUTE; }
+		if (flags.HasFlag(ElfSectionFlags.ALLOCATE)) { result |= BinarySectionFlags.ALLOCATE; }
 
 		return result;
 	}
@@ -792,7 +792,7 @@ public static class ElfFormat
 			if (section_name.StartsWith(RELOCATION_TABLE_SECTION_PREFIX)) { section_type = BinarySectionType.RELOCATION_TABLE; }
 
 			var section = new BinarySection(section_name, section_type, section_intermediate.Value);
-			section.Flags = GetSharedSectionFlags((ElfSectionFlag)section_intermediate.Key.Flags);
+			section.Flags = GetSharedSectionFlags((ElfSectionFlags)section_intermediate.Key.Flags);
 			section.Alignment = (int)section_intermediate.Key.Alignment;
 			section.Offset = (int)section_intermediate.Key.Offset;
 			section.VirtualSize = section_intermediate.Value.Length;

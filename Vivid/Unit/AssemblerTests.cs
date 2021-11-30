@@ -274,7 +274,7 @@ namespace Vivid.Unit
 
 			if (OptimizationLevel > 0)
 			{
-				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
+				arguments.Add("-O" + OptimizationLevel.ToString());
 			}
 
 			// Pack the program arguments in the chain
@@ -305,7 +305,7 @@ namespace Vivid.Unit
 			{
 				// The condition depends on the constant boolean which is used manually to control the optimization of the tests
 				// NOTE: This is practically redundant since this could be automated
-				arguments.Add("-O" + OptimizationLevel.ToString(CultureInfo.InvariantCulture));
+				arguments.Add("-O" + OptimizationLevel.ToString());
 			}
 
 			// Pack the program arguments in the chain

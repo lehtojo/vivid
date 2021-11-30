@@ -66,13 +66,11 @@ public static class Evaluator
 
 		if (comparison.Operator == Operators.AND)
 		{
-			return Convert.ToInt64(left, CultureInfo.InvariantCulture) != 0 &&
-					 Convert.ToInt64(right, CultureInfo.InvariantCulture) != 0;
+			return Convert.ToInt64(left) != 0 && Convert.ToInt64(right) != 0;
 		}
 		if (comparison.Operator == Operators.OR)
 		{
-			return Convert.ToInt64(left, CultureInfo.InvariantCulture) != 0 ||
-					 Convert.ToInt64(right, CultureInfo.InvariantCulture) != 0;
+			return Convert.ToInt64(left) != 0 || Convert.ToInt64(right) != 0;
 		}
 
 		// The following comparisons need the left and right side values to be comparable
@@ -82,8 +80,8 @@ public static class Evaluator
 		{
 			if (left is double || right is double)
 			{
-				var a = Convert.ToDouble(left, CultureInfo.InvariantCulture);
-				var b = Convert.ToDouble(right, CultureInfo.InvariantCulture);
+				var a = Convert.ToDouble(left);
+				var b = Convert.ToDouble(right);
 
 				if (comparison.Operator == Operators.GREATER_THAN) return a > b;
 				if (comparison.Operator == Operators.LESS_THAN) return a < b;
@@ -92,8 +90,8 @@ public static class Evaluator
 			}
 			else
 			{
-				var a = Convert.ToInt64(left, CultureInfo.InvariantCulture);
-				var b = Convert.ToInt64(right, CultureInfo.InvariantCulture);
+				var a = Convert.ToInt64(left);
+				var b = Convert.ToInt64(right);
 
 				if (comparison.Operator == Operators.GREATER_THAN) return a > b;
 				if (comparison.Operator == Operators.LESS_THAN) return a < b;
@@ -124,13 +122,11 @@ public static class Evaluator
 
 		if (comparison.Operator == Operators.AND)
 		{
-			return Convert.ToInt64(left, CultureInfo.InvariantCulture) != 0 &&
-					 Convert.ToInt64(right, CultureInfo.InvariantCulture) != 0;
+			return Convert.ToInt64(left) != 0 && Convert.ToInt64(right) != 0;
 		}
 		if (comparison.Operator == Operators.OR)
 		{
-			return Convert.ToInt64(left, CultureInfo.InvariantCulture) != 0 ||
-					 Convert.ToInt64(right, CultureInfo.InvariantCulture) != 0;
+			return Convert.ToInt64(left) != 0 || Convert.ToInt64(right) != 0;
 		}
 
 		// The following comparisons need the left and right side values to be comparable
@@ -149,7 +145,7 @@ public static class Evaluator
 	/// </summary>
 	private static Context? Evaluate(IfNode statement)
 	{
-		var value = Convert.ToInt64(GetValue(statement.Condition), CultureInfo.InvariantCulture);
+		var value = Convert.ToInt64(GetValue(statement.Condition));
 
 		if (value != 0)
 		{

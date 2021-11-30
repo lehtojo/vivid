@@ -35,7 +35,7 @@ public static class Linker
 			foreach (var symbol in iterator.Sections.SelectMany(i => i.Symbols.Values))
 			{
 				if (symbol.Export || symbol.External) continue;
-				symbol.Name = iterator.Index.ToString(CultureInfo.InvariantCulture) + '.' + symbol.Name;
+				symbol.Name = iterator.Index.ToString() + '.' + symbol.Name;
 			}
 		}
 	}
@@ -70,8 +70,8 @@ public static class Linker
 			if (!symbol.External) continue;
 
 			// Try to find the actual symbol
-			#warning Enable the exception or support DLL-imports
-			if (!definitions.TryGetValue(symbol.Name, out var definition)) continue; // throw new ApplicationException($"Symbol '{symbol.Name}' is not defined");
+			#warning Add dynamic symbols for Linux
+			if (!definitions.TryGetValue(symbol.Name, out var definition)) continue;
 
 			relocation.Symbol = definition;
 		}
@@ -89,7 +89,7 @@ public static class Linker
 
 		// Group all fragments based on their section names
 		var section_fragments = fragments.GroupBy(i => i.Name).ToList();
-		var allocated_fragments = section_fragments.Count(i => i.First().Type == BinarySectionType.NONE || i.First().Flags.HasFlag(BinarySectionFlag.ALLOCATE));
+		var allocated_fragments = section_fragments.Count(i => i.First().Type == BinarySectionType.NONE || i.First().Flags.HasFlag(BinarySectionFlags.ALLOCATE));
 
 		var file_position = SegmentAlignment;
 
@@ -170,7 +170,7 @@ public static class Linker
 			file_position += section.Margin;
 			virtual_address += (ulong)section.Margin;
 
-			if (section.Name.Length != 0 && !section.Flags.HasFlag(BinarySectionFlag.ALLOCATE))
+			if (section.Name.Length != 0 && !section.Flags.HasFlag(BinarySectionFlags.ALLOCATE))
 			{
 				// Restore the current virtual address after aligning the fragments
 				var previous_virtual_address = virtual_address;
@@ -340,7 +340,7 @@ public static class Linker
 		var dynamic_relocations_data = new byte[absolute_relocations.Count * ElfRelocationEntry.Size];
 		var dynamic_relocations_section = new BinarySection(ElfFormat.DYNAMIC_RELOCATIONS_SECTION, BinarySectionType.RELOCATION_TABLE, dynamic_relocations_data);
 		dynamic_relocations_section.Alignment = 8;
-		dynamic_relocations_section.Flags = BinarySectionFlag.ALLOCATE;
+		dynamic_relocations_section.Flags = BinarySectionFlags.ALLOCATE;
 
 		// Finish the absolute relocations later, since they require virtual addresses for sections
 		dynamic_linking_information.RelocationSection = dynamic_relocations_section;
@@ -367,7 +367,7 @@ public static class Linker
 		// Dynamic section:
 		var dynamic_section = new BinarySection(ElfFormat.DYNAMIC_SECTION, BinarySectionType.DYNAMIC, Array.Empty<byte>());
 		dynamic_section.Alignment = 8;
-		dynamic_section.Flags = BinarySectionFlag.WRITE | BinarySectionFlag.ALLOCATE;
+		dynamic_section.Flags = BinarySectionFlags.WRITE | BinarySectionFlags.ALLOCATE;
 
 		// Create a symbol, which represents the start of the dynamic section
 		var dynamic_section_start = new BinarySymbol(ElfFormat.DYNAMIC_SECTION_START, 0, false);
@@ -396,7 +396,7 @@ public static class Linker
 		// Dynamic symbol table:
 		var dynamic_symbol_table = new BinarySection(ElfFormat.DYNAMIC_SYMBOL_TABLE_SECTION, BinarySectionType.SYMBOL_TABLE, new byte[ElfSymbolEntry.Size * exported_symbol_entries.Count]);
 		dynamic_symbol_table.Alignment = 8;
-		dynamic_symbol_table.Flags = BinarySectionFlag.ALLOCATE;
+		dynamic_symbol_table.Flags = BinarySectionFlags.ALLOCATE;
 
 		// Create a symbol, which represents the start of the dynamic symbol table
 		// This symbol is used to fill the file offset of the dynamic symbol table in the dynamic section
@@ -406,7 +406,7 @@ public static class Linker
 
 		// Dynamic string table:
 		var dynamic_string_table = new BinarySection(ElfFormat.DYNAMIC_STRING_TABLE_SECTION, BinarySectionType.STRING_TABLE, exported_symbol_name_table.Export());
-		dynamic_string_table.Flags = BinarySectionFlag.ALLOCATE;
+		dynamic_string_table.Flags = BinarySectionFlags.ALLOCATE;
 
 		// Create a symbol, which represents the start of the dynamic string table
 		// This symbol is used to fill the file offset of the dynamic string table in the dynamic section
@@ -418,7 +418,7 @@ public static class Linker
 		// This section can be used to check efficiently whether a specific symbol exists in the dynamic symbol table
 		var hash_section = ElfFormat.CreateHashSection(exported_symbols);
 		hash_section.Alignment = 8;
-		hash_section.Flags = BinarySectionFlag.ALLOCATE;
+		hash_section.Flags = BinarySectionFlags.ALLOCATE;
 
 		var hash_section_start = new BinarySymbol(hash_section.Name, 0, false);
 		hash_section_start.Section = hash_section;
@@ -473,7 +473,7 @@ public static class Linker
 	/// <summary>
 	/// Finish the specified dynamic linking information by filling symbol section indices into the symbol entires and writing them to the dynamic symbol table.
 	/// </summary>
-	private static void FinishDynamicLinkingInformation(DynamicLinkingInformation information, List<BinarySection> sections)
+	private static void FinishDynamicLinkingInformation(DynamicLinkingInformation information)
 	{
 		// Fill in the symbol section indices
 		for (var i = 0; i < information.Symbols.Count; i++)
@@ -552,8 +552,8 @@ public static class Linker
 		var dynamic_linking_information = executable ? null : CreateDynamicSections(fragments, symbols, relocations);
 
 		// Order the fragments so that allocated fragments come first
-		var allocated_fragments = fragments.Where(i => i.Type == BinarySectionType.NONE || i.Flags.HasFlag(BinarySectionFlag.ALLOCATE)).ToList();
-		var data_fragments = fragments.Where(i => i.Type != BinarySectionType.NONE && !i.Flags.HasFlag(BinarySectionFlag.ALLOCATE)).ToList();
+		var allocated_fragments = fragments.Where(i => i.Type == BinarySectionType.NONE || i.Flags.HasFlag(BinarySectionFlags.ALLOCATE)).ToList();
+		var data_fragments = fragments.Where(i => i.Type != BinarySectionType.NONE && !i.Flags.HasFlag(BinarySectionFlags.ALLOCATE)).ToList();
 
 		fragments = allocated_fragments.Concat(data_fragments).ToList();
 
@@ -583,7 +583,7 @@ public static class Linker
 		ElfFormat.CreateSymbolRelatedSections(overlays, fragments, symbols);
 
 		// Finish the specified dynamic linking information by filling symbol section indices into the symbol entires and writing them to the dynamic symbol table
-		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information, overlays);
+		if (dynamic_linking_information != null) FinishDynamicLinkingInformation(dynamic_linking_information);
 
 		var section_headers = ElfFormat.CreateSectionHeaders(overlays, symbols, (int)SegmentAlignment);
 		var section_bytes = overlays.Sum(i => i.Margin + i.VirtualSize);

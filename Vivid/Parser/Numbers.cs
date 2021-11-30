@@ -37,7 +37,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x, CultureInfo.InvariantCulture) + Convert.ToDouble(y, CultureInfo.InvariantCulture);
+			return Convert.ToDouble(x) + Convert.ToDouble(y);
 		}
 
 		return (long)x + (long)y;
@@ -51,7 +51,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x, CultureInfo.InvariantCulture) - Convert.ToDouble(y, CultureInfo.InvariantCulture);
+			return Convert.ToDouble(x) - Convert.ToDouble(y);
 		}
 
 		return (long)x - (long)y;
@@ -65,7 +65,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x, CultureInfo.InvariantCulture) * Convert.ToDouble(y, CultureInfo.InvariantCulture);
+			return Convert.ToDouble(x) * Convert.ToDouble(y);
 		}
 
 		return (long)x * (long)y;
@@ -79,7 +79,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x, CultureInfo.InvariantCulture) / Convert.ToDouble(y, CultureInfo.InvariantCulture);
+			return Convert.ToDouble(x) / Convert.ToDouble(y);
 		}
 
 		return (long)x / (long)y;
@@ -93,7 +93,7 @@ public static class Numbers
 	{
 		if (x is double || y is double)
 		{
-			return Convert.ToDouble(x, CultureInfo.InvariantCulture) % Convert.ToDouble(y, CultureInfo.InvariantCulture);
+			return Convert.ToDouble(x) % Convert.ToDouble(y);
 		}
 
 		return (long)x % (long)y;

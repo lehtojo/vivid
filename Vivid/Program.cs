@@ -1,9 +1,13 @@
 using System;
+using System.Globalization;
 
 public static class Program
 {
 	public static void Main(string[] arguments)
 	{
+		CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+		CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
 		// Configure the flow of the compiler
 		var chain = new Chain
 		(

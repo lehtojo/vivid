@@ -17,7 +17,7 @@ public enum BinarySectionType
 }
 
 [Flags]
-public enum BinarySectionFlag
+public enum BinarySectionFlags
 {
 	WRITE = 1,
 	EXECUTE = 2,
@@ -28,7 +28,7 @@ public class BinarySection
 {
 	public string Name { get; set; }
 	public int Index { get; set; } = 0;
-	public BinarySectionFlag Flags { get; set; } = 0;
+	public BinarySectionFlags Flags { get; set; } = 0;
 	public BinarySectionType Type { get; set; }
 	public byte[] Data { get; set; }
 	public int VirtualSize { get; set; } = 0;
@@ -51,7 +51,7 @@ public class BinarySection
 		LoadSize = data.Length;
 	}
 
-	public BinarySection(string name, BinarySectionFlag flags, BinarySectionType type, int alignment, byte[] data, int margin, int size)
+	public BinarySection(string name, BinarySectionFlags flags, BinarySectionType type, int alignment, byte[] data, int margin, int size)
 	{
 		Name = name;
 		Flags = flags;

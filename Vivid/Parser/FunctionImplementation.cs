@@ -49,7 +49,7 @@ public class FunctionImplementation : Context
 			mangle.Path(GetParentTypes());
 		}
 
-		mangle += Identifier.Length.ToString(CultureInfo.InvariantCulture) + Identifier;
+		mangle += Identifier.Length.ToString() + Identifier;
 
 		if (TemplateArguments.Any())
 		{

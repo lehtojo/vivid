@@ -510,7 +510,7 @@ public static class Lexer
 				var value = (long)GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]);
 				var bits = GetBits(value);
 				
-				area.Text = value.ToString(CultureInfo.InvariantCulture) + SIGNED_TYPE_SEPARATOR + bits.ToString(CultureInfo.InvariantCulture);
+				area.Text = value.ToString() + SIGNED_TYPE_SEPARATOR + bits.ToString();
 				return area;
 			}
 		}

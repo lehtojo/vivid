@@ -1,9 +1,9 @@
 using System;
 
-public struct Uint128
+public struct Uint128 : IEquatable<Uint128>
 {
-	public ulong High;
-	public ulong Low;
+	public ulong High { get; set; }
+	public ulong Low { get; set; }
 
 	public Uint128(ulong value)
 	{
@@ -55,36 +55,63 @@ public struct Uint128
 		else { Low |= 1UL << bit; }
 	}
 
-	public static Uint128 operator+(Uint128 left, ulong right)
+	public Uint128 Add(ulong right)
 	{
-		var result = new Uint128(left.High, left.Low + right);
-		if (result.Low < left.Low) return new Uint128(result.High + 1, result.Low);
+		var result = new Uint128(High, Low + right);
+		if (result.Low < Low) return new Uint128(result.High + 1, result.Low);
 
 		return result;
 	}
 
-	public static Uint128 operator+(Uint128 left, Uint128 right)
+	public Uint128 Add(Uint128 right)
 	{
-		var result = new Uint128(left.High + right.High, left.Low + right.Low);
+		var result = new Uint128(High + right.High, Low + right.Low);
 		if (result.Low < right.Low) return new Uint128(result.High + 1, result.Low);
 
 		return result;
 	}
 
-	public static Uint128 operator-(Uint128 left, Uint128 right)
+	public static Uint128 operator+(Uint128 left, ulong right)
 	{
-		var result = new Uint128(left.High - right.High, left.Low - right.Low);
-		if (left.Low < right.Low) return new Uint128(result.High - 1, result.Low);
+		return left.Add(right);
+	}
+
+	public static Uint128 operator+(Uint128 left, Uint128 right)
+	{
+		return left.Add(right);
+	}
+
+	public Uint128 Subtract(ulong right)
+	{
+		var result = new Uint128(High, Low - right);
+		if (Low < right) return new Uint128(result.High - 1, result.Low);
+
+		return result;
+	}
+
+	public Uint128 Subtract(Uint128 right)
+	{
+		var result = new Uint128(High - right.High, Low - right.Low);
+		if (Low < right.Low) return new Uint128(result.High - 1, result.Low);
 
 		return result;
 	}
 
 	public static Uint128 operator-(Uint128 left, ulong right)
 	{
-		var result = new Uint128(left.High, left.Low - right);
-		if (left.Low < right) return new Uint128(result.High - 1, result.Low);
+		return left.Subtract(right);
+	}
 
-		return result;
+	public static Uint128 operator-(Uint128 left, Uint128 right)
+	{
+		return left.Subtract(right);
+	}
+
+	public int CompareTo(Uint128 right)
+	{
+		if (this > right) return 1;
+		if (this < right) return -1;
+		return 0;
 	}
 
 	public static bool operator>=(Uint128 left, Uint128 right)
@@ -117,19 +144,34 @@ public struct Uint128
 		return left.High != right.High || left.Low != right.Low;
 	}
 
+	public Uint128 LeftShift(int amount)
+	{
+		return new Uint128(this).ShiftLeft(amount);
+	}
+
+	public Uint128 RightShift(int amount)
+	{
+		return new Uint128(this).ShiftRight(amount);
+	}
+
 	public static Uint128 operator<<(Uint128 value, int amount)
 	{
-		return new Uint128(value).ShiftLeft(amount);
+		return value.LeftShift(amount);
 	}
 
 	public static Uint128 operator>>(Uint128 value, int amount)
 	{
-		return new Uint128(value).ShiftRight(amount);
+		return value.RightShift(amount);
 	}
 
 	public override bool Equals(object? other)
 	{
 		return other is Uint128 value && this == value;
+	}
+
+	public bool Equals(Uint128 other)
+	{
+		return this == other;
 	}
 
 	public override int GetHashCode()
@@ -157,6 +199,37 @@ public struct Uint128
 		}
 
 		throw new ApplicationException("Value must not be zero");
+	}
+
+	public Uint128 Divide(Uint128 divisor)
+	{ 
+		var dividend = new Uint128(High, Low);
+
+		if (divisor > dividend) return new Uint128(0);
+		if (divisor == dividend) return new Uint128(1);
+
+		var denominator = new Uint128(divisor);
+		var quotient = new Uint128(0);
+
+		// Left aligns the most significant bit of the denominator with the dividend
+		var shift = dividend.GetLastSetBitIndex() - denominator.GetLastSetBitIndex();
+		denominator <<= shift;
+		
+		for (var i = 0; i <= shift; i++)
+		{
+			quotient <<= 1;
+
+			if (dividend >= denominator)
+			{
+				dividend -= denominator;
+				quotient.Enable(0);
+			}
+
+			denominator >>= 1;
+		}
+
+		// NOTE: Remainder is now in the dividend
+		return quotient;
 	}
 
 	public static Uint128 operator/(Uint128 dividend, Uint128 divisor)

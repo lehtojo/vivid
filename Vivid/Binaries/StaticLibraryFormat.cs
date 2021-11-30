@@ -103,7 +103,7 @@ public static class StaticLibraryFormat
 		WritePadding(builder, FILENAME_LENGTH - bytes.Length);
 		
 		// Write the timestamp
-		bytes = Encoding.UTF8.GetBytes(timestamp.ToString(CultureInfo.InvariantCulture));
+		bytes = Encoding.UTF8.GetBytes(timestamp.ToString());
 		builder.Write(bytes, 0, Math.Min(TIMESTAMP_LENGTH, bytes.Length));
 		WritePadding(builder, TIMESTAMP_LENGTH - bytes.Length);
 		
@@ -119,7 +119,7 @@ public static class StaticLibraryFormat
 		WritePadding(builder, FILEMODE_LENGTH - bytes.Length);
 
 		// Write the size of the file
-		bytes = Encoding.UTF8.GetBytes(size.ToString(CultureInfo.InvariantCulture));
+		bytes = Encoding.UTF8.GetBytes(size.ToString());
 		builder.Write(bytes, 0, Math.Min(SIZE_LENGTH, bytes.Length));
 		WritePadding(builder, SIZE_LENGTH - bytes.Length);
 
@@ -157,7 +157,7 @@ public static class StaticLibraryFormat
 		using var filenames = new MemoryStream();
 		var indices = AppendSymbols(filenames, files.Select(i => i.Name).ToArray());
 
-		files.Zip(indices).ForEach(i => i.First.Name = i.Second.ToString(CultureInfo.InvariantCulture) + "/");
+		files.Zip(indices).ForEach(i => i.First.Name = i.Second.ToString() + "/");
 
 		var builder = new MemoryStream();
 		WriteFileHeader(builder, FILENAME_TABLE_NAME, timestamp, (uint)filenames.Length);

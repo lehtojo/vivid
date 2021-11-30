@@ -304,7 +304,7 @@ public static class Assembler
 			// Add the debug label, which indicates the start of debuggable code
 			if (Assembler.IsDebuggingEnabled)
 			{
-				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
+				var label = string.Format(Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
 				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
@@ -318,7 +318,7 @@ public static class Assembler
 			// Add the debug label, which indicates the end of debuggable code
 			if (Assembler.IsDebuggingEnabled)
 			{
-				var label = string.Format(CultureInfo.InvariantCulture, Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
+				var label = string.Format(Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
 				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
@@ -462,7 +462,7 @@ public static class Assembler
 
 		if (label.IsSectionRelative)
 		{
-			return SectionRelativeDirective + label.Size.Bits.ToString(CultureInfo.InvariantCulture) + ' ' + label.Name;
+			return SectionRelativeDirective + label.Size.Bits.ToString() + ' ' + label.Name;
 		}
 
 		return $"{label.Size.Allocator} {label.Name}";
@@ -808,10 +808,10 @@ public static class Assembler
 					else { instructions += $"bl {function.GetFullname()}"; }
 				}
 
-				builder.WriteLine(string.Format(CultureInfo.InvariantCulture, template, ExportDirective, instructions));
+				builder.WriteLine(string.Format(template, ExportDirective, instructions));
 
 				var parser = new AssemblyParser();
-				parser.Parse(string.Format(CultureInfo.InvariantCulture, template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
+				parser.Parse(string.Format(template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
 
 				builder.Add(file, parser.Instructions);
 				builder.Export(parser.Exports);

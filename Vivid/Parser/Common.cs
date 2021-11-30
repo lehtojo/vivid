@@ -225,15 +225,11 @@ public static class Common
 	/// </summary>
 	public static bool ConsumeType(PatternState state)
 	{
-		#warning Stage 2 version: state.consume(TOKEN_TYPE_IDENTIFIER | TOKEN_TYPE_PARENTHESIS)
+		#warning Upgrade the seconds stage
 		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
 		{
 			var next = Pattern.Peek(state);
-
-			if (next == null || !next.Is(ParenthesisType.PARENTHESIS))
-			{
-				return false;
-			}
+			if (next == null || !next.Is(ParenthesisType.PARENTHESIS)) return false;
 		}
 
 		while (true)
@@ -1094,7 +1090,7 @@ public static class Common
 
 	public static string ToString(this long value, bool sign)
 	{
-		var result = value.ToString(CultureInfo.InvariantCulture);
+		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
 		else if (sign) { result = '+' + result; }
@@ -1104,7 +1100,7 @@ public static class Common
 
 	public static string ToString(this int value, bool sign)
 	{
-		var result = value.ToString(CultureInfo.InvariantCulture);
+		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
 		else if (sign) { result = '+' + result; }
@@ -1114,7 +1110,7 @@ public static class Common
 
 	public static string ToString(this double value, bool sign)
 	{
-		var result = value.ToString(CultureInfo.InvariantCulture);
+		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
 		else if (sign) { result = '+' + result; }

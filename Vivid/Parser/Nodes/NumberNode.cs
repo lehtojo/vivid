@@ -37,12 +37,12 @@ public class NumberNode : Node, ICloneable
 	{
 		if (format == Format.DECIMAL)
 		{
-			Value = System.Convert.ToDouble(Value, CultureInfo.InvariantCulture);
+			Value = System.Convert.ToDouble(Value);
 			Type = format;
 		}
 		else
 		{
-			Value = System.Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+			Value = System.Convert.ToInt64(Value);
 			Type = format;
 		}
 	}

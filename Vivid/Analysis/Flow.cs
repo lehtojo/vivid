@@ -67,7 +67,7 @@ public class Flow
 
 	public string GetNextLabel()
 	{
-		return (LabelIdentity++).ToString(CultureInfo.InvariantCulture);
+		return (LabelIdentity++).ToString();
 	}
 
 	public Flow(Node root)
@@ -482,7 +482,7 @@ public class StatementFlow
 
 	public string GetNextLabel()
 	{
-		return (LabelIdentity++).ToString(CultureInfo.InvariantCulture);
+		return (LabelIdentity++).ToString();
 	}
 
 	public StatementFlow(Node root)

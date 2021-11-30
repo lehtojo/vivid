@@ -211,7 +211,7 @@ public class InitializeInstruction : Instruction
 		{
 			builder.Append(Assembler.DebugFrameOffsetDirective);
 			builder.Append(' ');
-			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString(CultureInfo.InvariantCulture));
+			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString());
 		}
 
 		Build(builder.ToString().TrimEnd());

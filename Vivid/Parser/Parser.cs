@@ -557,7 +557,7 @@ public static class Parser
 	/// </summary>
 	public static Context CreateRootContext(int identity)
 	{
-		var context = new Context(identity.ToString(CultureInfo.InvariantCulture));
+		var context = new Context(identity.ToString());
 		Primitives.Inject(context);
 
 		return context;

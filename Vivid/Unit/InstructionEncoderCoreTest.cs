@@ -80,7 +80,7 @@ public class InstructionEncoderCoreTest
 		EVALUATION_MULTIPLIER_EXPANDER,
 	};
 
-	public static string[] AddressExpansionsWithoutSizes = new[]
+	public static string[] AddressExpansionsWithoutSizes { get; set; } = new[]
 	{
 		"[$register64]",
 		"[$register64 $sign $constant-max-32]",

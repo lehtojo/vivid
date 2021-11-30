@@ -79,7 +79,7 @@ public class LambdaPattern : Pattern
 		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().End : null;
 
 		var environment = context.GetImplementationParent() ?? throw Errors.Get(start, "Lambda must be inside a function");
-		var name = environment.CreateLambda().ToString(CultureInfo.InvariantCulture);
+		var name = environment.CreateLambda().ToString();
 
 		// Create a function token manually since it contains some useful helper functions
 		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));

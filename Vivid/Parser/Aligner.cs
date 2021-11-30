@@ -51,8 +51,6 @@ public class ParameterAligner
 
 public static class Aligner
 {
-	private static int GlobalFunctionParameterOffset => Assembler.IsArm64 ? 0 : 1;
-
 	/// <summary>
 	/// Aligns all variable and parameters recursively in the context
 	/// </summary>
@@ -70,7 +68,7 @@ public static class Aligner
 			if (implementation.Node == null) continue;
 
 			// Align function parameters using global function offset
-			Align(implementation, GlobalFunctionParameterOffset);
+			AlignFunction(implementation);
 		}
 	}
 
@@ -141,7 +139,7 @@ public static class Aligner
 		foreach (var implementation in implementations)
 		{
 			if (implementation.Node == null) continue;
-			Align(implementation, GlobalFunctionParameterOffset);
+			AlignFunction(implementation);
 		}
 
 		// Align subtypes
@@ -154,7 +152,7 @@ public static class Aligner
 	/// <summary>
 	/// Aligns function variables
 	/// </summary>
-	private static void Align(FunctionImplementation function, int offset)
+	private static void AlignFunction(FunctionImplementation function)
 	{
 		// Align all lambdas
 		Align(function);

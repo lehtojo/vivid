@@ -16,7 +16,7 @@ public class Status
 
 	public static Status Error(string format, params object[] arguments)
 	{
-		return new Status(string.Format(CultureInfo.InvariantCulture, format, arguments), true);
+		return new Status(string.Format(format, arguments), true);
 	}
 
 	public static Status Error(string description)

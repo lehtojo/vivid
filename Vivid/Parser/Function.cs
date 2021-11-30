@@ -254,7 +254,7 @@ public class Function : Context
 			mangle.Path(GetParentTypes());
 		}
 
-		mangle += Name.Length.ToString(CultureInfo.InvariantCulture) + Name;
+		mangle += Name.Length.ToString() + Name;
 
 		if (IsMember)
 		{

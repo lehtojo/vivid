@@ -31,6 +31,6 @@ public class Lifetime
 	{
 		if (Start == -1 && End == -1) return "static";
 
-		return (Start == -1 ? string.Empty : Start.ToString(CultureInfo.InvariantCulture)) + ".." + (End == -1 ? string.Empty : End.ToString(CultureInfo.InvariantCulture));
+		return (Start == -1 ? string.Empty : Start.ToString()) + ".." + (End == -1 ? string.Empty : End.ToString());
 	}
 }
