@@ -280,7 +280,7 @@ public static class Resolver
 	/// Returns the shared type between the types
 	/// </summary>
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
-	public static Type? GetSharedType(IReadOnlyList<Type> types)
+	public static Type? GetSharedType(IReadOnlyList<Type?> types)
 	{
 		if (types.Count == 0) return null;
 		if (types.Count == 1) return types[0];
@@ -289,11 +289,7 @@ public static class Resolver
 
 		for (var i = 1; i < types.Count; i++)
 		{
-			if (current == null)
-			{
-				break;
-			}
-
+			if (current == null) break;
 			current = GetSharedType(current, types[i]);
 		}
 

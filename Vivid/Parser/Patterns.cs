@@ -98,6 +98,7 @@ public class Patterns
 		Add(new IterationLoopPattern());
 		Add(new LambdaPattern());
 		Add(new LinkPattern());
+		Add(new ListConstructionPattern());
 		Add(new ListPattern());
 		Add(new LoopPattern());
 		Add(new ModifierSectionPattern());
@@ -106,6 +107,7 @@ public class Patterns
 		Add(new OffsetPattern());
 		Add(new OperatorPattern());
 		Add(new OverrideFunctionPattern());
+		Add(new PackConstructionPattern());
 		Add(new PostIncrementAndDecrementPattern());
 		Add(new PreIncrementAndDecrementPattern());
 		Add(new RangePattern());

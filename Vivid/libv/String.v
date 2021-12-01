@@ -13,7 +13,7 @@ export to_string(n: large) {
 			remainder = n - a * 10
 			n = a
 
-			number.append([`0` - remainder] as char)
+			number.append((`0` - remainder) as char)
 
 			if n == 0 stop
 		}
@@ -26,7 +26,7 @@ export to_string(n: large) {
 			remainder = n - a * 10
 			n = a
 
-			number.append([`0` + remainder] as char)
+			number.append((`0` + remainder) as char)
 
 			if n == 0 stop
 		}

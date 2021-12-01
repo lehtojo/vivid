@@ -475,6 +475,75 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	private static void RewriteListConstructions(Node root)
+	{
+		#warning Generalize
+		var constructions = root.FindAll(NodeType.LIST_CONSTRUCTION).Cast<ListConstructionNode>();
+
+		foreach (var construction in constructions)
+		{
+			var list_type = construction.GetType();
+			var list_constructor = list_type.Constructors.GetImplementation(Array.Empty<Type>())!;
+			var container = Common.CreateInlineContainer(list_type, construction);
+
+			// Create a new list and assign it to the result variable
+			container.Node.Add(new OperatorNode(Operators.ASSIGN, construction.Position).SetOperands(
+				new VariableNode(container.Result),
+				new ConstructionNode(new FunctionNode(list_constructor, construction.Position), construction.Position)
+			));
+
+			// Add all the elements to the list
+			foreach (var element in construction.Elements)
+			{
+				var add_function = list_type.GetFunction("add")!.GetImplementation(new[] { element.GetType() })!;
+
+				container.Node.Add(new LinkNode(
+					new VariableNode(container.Result),
+					new FunctionNode(add_function, construction.Position).SetArguments(new Node { element }),
+					construction.Position
+				));
+			}
+
+			container.Destination.Replace(container.Node);
+		}
+	}
+
+	private static void RewritePackConstructions(Node root)
+	{
+		var constructions = root.FindAll(NodeType.PACK_CONSTRUCTION).Cast<PackConstructionNode>();
+
+		foreach (var construction in constructions)
+		{
+			var type = construction.GetType();
+			var members = construction.Members;
+			var container = Common.CreateInlineContainer(type, construction);
+
+			// Initialize the pack result variable
+			container.Node.Add(new VariableNode(container.Result));
+
+			// Assign the pack member values
+			var i = 0;
+
+			foreach (var value in construction)
+			{
+				var member = type.GetVariable(members[i]) ?? throw new ApplicationException("Missing pack member variable");
+
+				container.Node.Add(new OperatorNode(Operators.ASSIGN, construction.Position).SetOperands(
+					new LinkNode(
+						new VariableNode(container.Result),
+						new VariableNode(member),
+						construction.Position
+					),
+					value
+				));
+
+				i++; // Switch to the next member
+			}
+
+			container.Destination.Replace(container.Node);
+		}
+	}
+
 	/// <summary>
 	/// Finds expressions which do not represent statement conditions and can be evaluated to booleans values
 	/// Example:
@@ -878,7 +947,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.WHEN);
+		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.WHEN);
 		nodes.AddRange(FindBoolValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
@@ -1522,6 +1591,8 @@ public static class ReconstructionAnalysis
 		RewriteWhenExpressions(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
+		RewriteListConstructions(root);
+		RewritePackConstructions(root);
 		RewriteConstructions(root);
 		ExtractBoolValues(root);
 		RewriteEditsAsAssignments(root);

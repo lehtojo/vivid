@@ -565,7 +565,16 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public Variable DeclareHidden(Type? type, VariableCategory category = VariableCategory.LOCAL)
 	{
-		return Variable.Create(this, type, category, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.DEFAULT);
+		return Variable.Create(this, type, category, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.PACK);
+	}
+
+	/// <summary>
+	/// Declares a hidden pack type
+	/// </summary>
+	public Type DeclareHiddenPack(Position? position)
+	{
+		#warning The problem with dots must be solved entirely
+		return new Type(this, $"{Identity}.{Indexer[Indexer.HIDDEN]}".Replace('.', '_'), Modifier.PACK, position);
 	}
 
 	/// <summary>

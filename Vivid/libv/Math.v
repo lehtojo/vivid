@@ -55,12 +55,12 @@ export random() {
 
 # Summary: Returns a random integer number between the specified range where a is the minimum and b the maximum.
 export random(a, b) {
-	=> a + [random() as u64] % (b - a)
+	=> a + (random() as u64) % (b - a)
 }
 
 # Summary: Returns a random integer number between the specified range where zero is the minimum and a the maximum.
 export random(a) {
-	=> [random() as u64] % a
+	=> (random() as u64) % a
 }
 
 export set_random_seed(seed: large) {
