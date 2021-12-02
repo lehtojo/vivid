@@ -68,6 +68,8 @@ public class Mangle
 	public const char START_MEMBER_VARIABLE_COMMAND = 'V';
 	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
 
+	public const char START_PACK_TYPE_COMMAND = 'U';
+
 	public const string VIRTUAL_FUNCTION_POSTFIX = "_v";
 
 	private List<MangleDefinition> Definitions { get; set; } = new List<MangleDefinition>();
@@ -188,6 +190,15 @@ public class Mangle
 				Definitions.Add(new MangleDefinition(type, Definitions.Count, 0));
 			}
 
+			if (type.IsUnnamedPack)
+			{
+				// Pattern: U $type-1 $type-2 ... E
+				Value += START_PACK_TYPE_COMMAND;
+				Add(type.Variables.Values.Select(i => i.Type!));
+				Value += END_COMMAND;
+				return;
+			}
+
 			if (type is FunctionType function)
 			{
 				Value += START_FUNCTION_POINTER_COMMAND;
@@ -270,7 +281,7 @@ public class Mangle
 	{
 		foreach (var type in types)
 		{
-			Add(type, type.IsPrimitive ? 0 : 1);
+			Add(type, type.IsPrimitive || type.IsPack ? 0 : 1);
 		}
 	}
 
@@ -569,12 +580,11 @@ public class Context : IComparable<Context>
 	}
 
 	/// <summary>
-	/// Declares a hidden pack type
+	/// Declares an unnamed pack type
 	/// </summary>
 	public Type DeclareHiddenPack(Position? position)
 	{
-		#warning The problem with dots must be solved entirely
-		return new Type(this, $"{Identity}.{Indexer[Indexer.HIDDEN]}".Replace('.', '_'), Modifier.PACK, position);
+		return new Type(this, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.PACK, position);
 	}
 
 	/// <summary>

@@ -12,16 +12,26 @@ Foo {
 	###
 }
 
-###
-anonymous_pack_1(options: { x: large, y: large }) {
+export anonymous_pack_1(options: { x: large, y: large }) {
 	=> options.x + options.y
 }
-###
 
 export anonymous_pack_2(x: large, y: large) {
 	=> { x: y, y: x }
 }
 
+export anonymous_pack_3(x: large, y: large) {
+	a = anonymous_pack_2(x, y)
+	=> a.x + a.y
+}
+
+export anonymous_pack_4(x: large, y: large) {
+	=> anonymous_pack_1({ a: y, b: x })
+}
+
+export anonymous_pack_5(options: ManualOptions) {
+	=> anonymous_pack_1(options)
+}
 
 pack ManualOptions {
 	x: large

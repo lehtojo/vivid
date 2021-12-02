@@ -106,6 +106,7 @@ public class Type : Context
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsPack => Flag.Has(Modifiers, Modifier.PACK);
+	public bool IsUnnamedPack => IsPack && Name.IndexOf('.') != -1;
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
 	public Format Format => GetFormat();
@@ -489,9 +490,23 @@ public class Type : Context
 		return (Type)MemberwiseClone();
 	}
 
+	private bool Equals(Type other)
+	{
+		if (IsPack)
+		{
+			// The other type should also be a pack as well
+			if (!other.IsPack) return false;
+
+			// Verify the members are compatible with each other
+			return Common.Compatible(Variables.Select(i => i.Value.Type), other.Variables.Select(i => i.Value.Type));
+		}
+
+		return Name == other.Name && Identity == other.Identity;
+	}
+
 	public override bool Equals(object? other)
 	{
-		return other is Type type && Name == type.Name && Identity == type.Identity;
+		return other is Type type && Equals(type);
 	}
 
 	public override int GetHashCode()
@@ -501,6 +516,13 @@ public class Type : Context
 
 	public override string ToString()
 	{
+		// Handle unnamed packs seperately
+		if (IsUnnamedPack)
+		{
+			// Pattern: { $member-1: $type-1, $member-2: $type-2, ... }
+			return "{ " + string.Join(", ", Variables.Select(i => $"{i.Key}: {(i.Value.Type != null ? i.Value.Type.ToString() : "?")}")) + " }";
+		}
+
 		return string.Join('.', GetParentTypes().Select(i => i.Name).Concat(new[] { Name }));
 	}
 }

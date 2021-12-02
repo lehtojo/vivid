@@ -24,10 +24,7 @@ public static class Common
 	/// </summary>
 	public static bool Compatible(IEnumerable<Type?> expected, IEnumerable<Type?> actual)
 	{
-		if (expected.Count() != actual.Count())
-		{
-			return false;
-		}
+		if (expected.Count() != actual.Count()) return false;
 
 		return expected.Zip(actual).All(i => i.Second != null && (i.First == null || i.First.Is(i.Second)));
 	}
@@ -221,6 +218,34 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Consumes a pack type.
+	/// Pattern: { $member-1: $type, $member-2: $type, ... }
+	/// </summary>
+	public static bool ConsumePackType(PatternState state)
+	{
+		// Consume curly brackets
+		if (!Pattern.Consume(state, out Token? brackets, TokenType.CONTENT) || !brackets!.Is(ParenthesisType.CURLY_BRACKETS)) return false;
+
+		// Verify the curly brackets contain pack members using sections
+		// Pattern: { $member-1: $type, $member-2: $type, ... }
+		var sections = brackets!.To<ContentToken>().GetSections();
+		if (sections.Count == 0) return false;
+
+		foreach (var section in sections)
+		{
+			if (section.Count < 3) return false;
+
+			// Verify the first token is a member name
+			if (!section[0].Is(TokenType.IDENTIFIER)) return false;
+
+			// Verify the second token is a colon
+			if (!section[1].Is(Operators.COLON)) return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
 	/// Consumes a type
 	/// </summary>
 	public static bool ConsumeType(PatternState state)
@@ -229,7 +254,7 @@ public static class Common
 		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
 		{
 			var next = Pattern.Peek(state);
-			if (next == null || !next.Is(ParenthesisType.PARENTHESIS)) return false;
+			if (next == null || (!next.Is(ParenthesisType.PARENTHESIS) && !next.Is(ParenthesisType.CURLY_BRACKETS))) return false;
 		}
 
 		while (true)
@@ -253,6 +278,10 @@ public static class Common
 			else if (next.Is(ParenthesisType.PARENTHESIS))
 			{
 				if (!ConsumeFunctionType(state)) return false;
+			}
+			else if (next.Is(ParenthesisType.CURLY_BRACKETS))
+			{
+				if (!ConsumePackType(state)) return false;
 			}
 			else if (next.Is(ParenthesisType.BRACKETS))
 			{
@@ -283,7 +312,8 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Reads a type which represents a function from the specified tokens
+	/// Reads a type which represents a function from the specified tokens.
+	/// Pattern: ($type-1, $type-2, ... $type-n) -> $type
 	/// </summary>
 	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens, Position? position)
 	{
@@ -291,7 +321,7 @@ public static class Common
 		var parameters = tokens.Dequeue().To<ContentToken>();
 
 		// Dequeue the arrow operator
-		tokens.Dequeue();
+		if (!tokens.TryDequeue(out _)) return null;
 
 		// Dequeues the return type
 		var return_type = ReadType(context, tokens);
@@ -309,6 +339,31 @@ public static class Common
 		}
 
 		return new FunctionType(parameter_types, return_type, position);
+	}
+
+	/// <summary>
+	/// Creates an unnamed pack type from the specified tokens.
+	/// Pattern: { $member-1: $type-1, $member-2: $type-2, ... }
+	/// </summary>
+	private static Type? ReadPackType(Context context, Queue<Token> tokens, Position? position)
+	{
+		var pack = context.DeclareHiddenPack(position);
+		var sections = tokens.Dequeue().To<ContentToken>().GetSections();
+
+		// We are not going to feed the sections straight to the parser while using the pack type as context, because it would allow defining whole member functions
+		foreach (var section in sections)
+		{
+			// Determine the member name and its type
+			var member = section.First().To<IdentifierToken>().Value;
+
+			var type = ReadType(context, new Queue<Token>(section.Skip(2)));
+			if (type == null) return null;
+
+			// Create the member using the determined properties
+			pack.Declare(type, VariableCategory.MEMBER, member);
+		}
+
+		return pack;
 	}
 	
 	/// <summary>
@@ -339,7 +394,9 @@ public static class Common
 
 		if (next.Is(TokenType.CONTENT))
 		{
-			return ReadFunctionType(context, tokens, position);
+			if (next.Is(ParenthesisType.PARENTHESIS)) return ReadFunctionType(context, tokens, position);
+			if (next.Is(ParenthesisType.CURLY_BRACKETS)) return ReadPackType(context, tokens, position);
+			return null;
 		}
 
 		if (!next.Is(TokenType.IDENTIFIER)) return null;
