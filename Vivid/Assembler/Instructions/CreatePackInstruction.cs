@@ -21,15 +21,15 @@ public class CreatePackInstruction : Instruction
 		OnBuild();
 	}
 
-	private int RegisterMemberValues(DisposablePackHandle pack, int position)
+	private int RegisterMemberValues(DisposablePackHandle pack, Type type, int position)
 	{
-		foreach (var iterator in Type.Variables)
+		foreach (var iterator in type.Variables)
 		{
 			var member = iterator.Value;
 
 			if (member.Type!.IsPack)
 			{
-				position = RegisterMemberValues(pack.Members[member].Value.To<DisposablePackHandle>(), position);
+				position = RegisterMemberValues(pack.Members[member].Value.To<DisposablePackHandle>(), member.Type!, position);
 				continue;
 			}
 
@@ -42,7 +42,7 @@ public class CreatePackInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		RegisterMemberValues(Value, 0);
+		RegisterMemberValues(Value, Type, 0);
 
 		Result.Value = Value;
 		Result.Format = Assembler.Format;

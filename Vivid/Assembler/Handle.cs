@@ -1151,4 +1151,17 @@ public class DisposablePackHandle : Handle
 			Members[member] = value;
 		}
 	}
+
+	public override void Use(int position)
+	{
+		foreach (var member in Members.Values)
+		{
+			member.Use(position);
+		}
+	}
+
+	public override Result[] GetInnerResults()
+	{
+		return Members.Values.ToArray();
+	}
 }

@@ -138,7 +138,7 @@ public class CallInstruction : Instruction
 			if (member.Type!.IsPack)
 			{
 				OutputPack(standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
-				return;
+				continue;
 			}
 
 			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
