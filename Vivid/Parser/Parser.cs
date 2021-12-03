@@ -98,6 +98,10 @@ public static class Parser
 	public static Function? LinkFunction { get; set; }
 	public static Function? UnlinkFunction { get; set; }
 
+	public const string StandardRangeType = "Range";
+	public const string StandardListType = "List";
+	public const string StandardListAdder = "add";
+
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
 	public static int Bytes => Size.Bytes;

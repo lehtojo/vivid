@@ -563,7 +563,8 @@ public static class Assembler
 				// 1. Skip if the runtime configuration is not created
 				// 2. Imported types are already exported
 				// 3. The template type must be a variant
-				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant)) continue;
+				// 4. Unnamed packs are not processed
+				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) continue;
 
 				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry);
 				DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);

@@ -3,7 +3,7 @@ using System.Linq;
 
 public class PackConstructionPattern : Pattern
 {
-	public int PRIORITY = 19;
+	public const int PRIORITY = 19;
 
 	public PackConstructionPattern() : base
 	(

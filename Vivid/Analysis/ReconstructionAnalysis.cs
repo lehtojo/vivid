@@ -475,9 +475,15 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Rewrites all list constructions under the specified node tree.
+	/// Pattern:
+	/// list = [ $value-1, $value-2, ... ]
+	/// =>
+	/// { list = List<$shared-type>(), list.add($value-1), list.add($value-2), ... }
+	/// </summary>
 	private static void RewriteListConstructions(Node root)
 	{
-		#warning Generalize
 		var constructions = root.FindAll(NodeType.LIST_CONSTRUCTION).Cast<ListConstructionNode>();
 
 		foreach (var construction in constructions)
@@ -495,11 +501,11 @@ public static class ReconstructionAnalysis
 			// Add all the elements to the list
 			foreach (var element in construction.Elements)
 			{
-				var add_function = list_type.GetFunction("add")!.GetImplementation(new[] { element.GetType() })!;
+				var adder = list_type.GetFunction(Parser.StandardListAdder)!.GetImplementation(new[] { element.GetType() })!;
 
 				container.Node.Add(new LinkNode(
 					new VariableNode(container.Result),
-					new FunctionNode(add_function, construction.Position).SetArguments(new Node { element }),
+					new FunctionNode(adder, construction.Position).SetArguments(new Node { element }),
 					construction.Position
 				));
 			}
@@ -508,6 +514,13 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	/// <summary>
+	/// Rewrites all unnamed pack constructions under the specified node tree.
+	/// Pattern:
+	/// result = { $member-1: $value-1, $member-2: $value-2, ... }
+	/// =>
+	/// { result = $unnamed-pack(), result.$member-1 = $value-1, result.$member-2 = $value-2, ... }
+	/// </summary>
 	private static void RewritePackConstructions(Node root)
 	{
 		var constructions = root.FindAll(NodeType.PACK_CONSTRUCTION).Cast<PackConstructionNode>();
@@ -740,10 +753,7 @@ public static class ReconstructionAnalysis
 			{
 				value = operation.Right;
 			}
-			else if (operation.Right.Equals(assignment.Left) &&
-				operation.Operator != Operators.DIVIDE &&
-				operation.Operator != Operators.MODULUS &&
-				operation.Operator != Operators.SUBTRACT)
+			else if (operation.Right.Equals(assignment.Left) && operation.Operator != Operators.DIVIDE && operation.Operator != Operators.MODULUS && operation.Operator != Operators.SUBTRACT)
 			{
 				value = operation.Left;
 			}
@@ -1246,6 +1256,14 @@ public static class ReconstructionAnalysis
 				continue;
 			}
 
+			// If the left operand represents a pack and the right operands is zero, we should not do anything, since this is a special case
+			/// NOTE: It is forbidden to cast packs, so if the number is not zero, it will lead to an compilation error
+			if (to.IsPack)
+			{
+				if (Common.IsZero(assignment.Right)) continue;
+				throw Errors.Get(assignment.Position, "Can not the cast the source operand, since the destination is a pack");
+			}
+
 			// Remove the right operand from the assignment
 			var value = assignment.Right;
 			value.Remove();
@@ -1379,16 +1397,17 @@ public static class ReconstructionAnalysis
 
 	/// <summary>
 	/// Creates all member accessors that represent all non-pack members
-	/// Example (start = object.pack, type = { a: large, other: { b: large, c: large } })
+	/// Example (root = object.pack, type = { a: large, other: { b: large, c: large } })
 	/// => { object.pack.a, object.pack.other.b, object.pack.other.c }
 	/// </summary>
-	private static List<Node> CreatePackMemberAccessors(Node start, Type type, Position position)
+	private static List<Node> CreatePackMemberAccessors(Node root, Type type, Position position)
 	{
 		var result = new List<Node>();
+		var is_none = Common.IsZero(root);
 
 		foreach (var member in type.Variables.Values)
 		{
-			var accessor = new LinkNode(start.Clone(), new VariableNode(member), position);
+			var accessor = is_none ? root.Clone() : new LinkNode(root.Clone(), new VariableNode(member), position);
 
 			if (member.Type!.IsPack)
 			{
@@ -1465,7 +1484,7 @@ public static class ReconstructionAnalysis
 			var destinations = CreatePackMemberAccessors(destination, type, position);
 			var sources = (List<Node>?)null;
 
-			var is_function_assignment = assignment.Right.Is(NodeType.CALL, NodeType.FUNCTION);
+			var is_function_assignment = assignment.Right.Is(NodeType.CALL, NodeType.FUNCTION) || (assignment.Right.Is(NodeType.LINK) && assignment.Right.Right.Is(NodeType.CALL, NodeType.FUNCTION));
 
 			// The sources of function assignments must be replaced with placeholders, so that they do not get overriden by the local representives of the members
 			if (is_function_assignment)

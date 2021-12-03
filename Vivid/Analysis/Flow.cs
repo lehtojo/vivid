@@ -772,7 +772,7 @@ public class StatementFlow
 
 			case NodeType.RETURN:
 			{
-				node.ForEach(i => Linearize(i));
+				Add(node);
 				Add(new JumpNode(End));
 				break;
 			}

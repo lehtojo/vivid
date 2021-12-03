@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System;
 
@@ -32,13 +31,13 @@ public class ListConstructionNode : Node, IResolvable
 		if (environment_node == null) return null;
 
 		var environment = environment_node.GetContext();
-		var list_type = environment.GetType("List");
+		var list_type = environment.GetType(Parser.StandardListType);
 		if (list_type == null || !list_type.IsTemplateType) return null;
 
 		// Get a list type with the resolved element type
 		Type = list_type.To<TemplateType>().GetVariant(new[] { element_type });
 		Type.Constructors.GetImplementation(Array.Empty<Type>());
-		(Type.GetFunction("add") ?? throw new ApplicationException("Missing list add function")).GetImplementation(new[] { element_type});
+		(Type.GetFunction(Parser.StandardListAdder) ?? throw new ApplicationException("Standard list is missing adder function")).GetImplementation(new[] { element_type });
 		return Type;
 	}
 

@@ -75,6 +75,13 @@ public class ContentToken : Token
 		Tokens = new List<Token>(tokens);
 	}
 
+	public ContentToken(ParenthesisType type, Token[] tokens, Position position) : base(TokenType.CONTENT)
+	{
+		Type = type;
+		Tokens = new List<Token>(tokens);
+		Position = position;
+	}
+
 	public ContentToken(params ContentToken[] sections) : base(TokenType.CONTENT)
 	{
 		Type = ParenthesisType.PARENTHESIS;

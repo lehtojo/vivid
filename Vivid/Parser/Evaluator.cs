@@ -33,14 +33,6 @@ public static class Evaluator
 	}
 
 	/// <summary>
-	/// Returns true if the specified node represents integer zero
-	/// </summary>
-	private static bool IsZero(Node? node)
-	{
-		return node != null && node.Is(NodeType.NUMBER) && Numbers.IsZero(node.To<NumberNode>().Value);
-	}
-
-	/// <summary>
 	/// Tries to compute the specified expression.
 	/// Returns true or false if the expression could be computed, otherwise null.
 	/// </summary>
@@ -53,8 +45,8 @@ public static class Evaluator
 		var is_not_equals_operator = comparison.Operator == Operators.NOT_EQUALS;
 
 		if ((is_equals_operator || is_not_equals_operator) && 
-			 (IsZero(comparison.Left) && Analyzer.GetSource(comparison.Right).Is(NodeType.STACK_ADDRESS) || 
-			  IsZero(comparison.Right) && Analyzer.GetSource(comparison.Left).Is(NodeType.STACK_ADDRESS)))
+			 (Common.IsZero(comparison.Left) && Analyzer.GetSource(comparison.Right).Is(NodeType.STACK_ADDRESS) || 
+			  Common.IsZero(comparison.Right) && Analyzer.GetSource(comparison.Left).Is(NodeType.STACK_ADDRESS)))
 		{
 			return is_not_equals_operator;
 		}

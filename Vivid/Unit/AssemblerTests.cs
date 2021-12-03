@@ -2141,5 +2141,23 @@ namespace Vivid.Unit
 
 			Memory_Test();
 		}
+
+		private static void Lists_Test()
+		{
+			var actual = Execute("Lists");
+			var expected = "1, 2, 3, 5, 7, 11, 13, \n42, 69, \nFoo, Bar, Baz, Qux, Xyzzy, \nFoo, Bar, Baz x 3, Qux, Xyzzy x 7, \n";
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void Lists()
+		{
+			if (!CompileExecutable("Lists", new[] { "Lists.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Lists_Test();
+		}
 	}
 }

@@ -9,8 +9,6 @@ public class RangePattern : Pattern
 	public const int OPERATOR = 2;
 	public const int RIGHT = 4;
 
-	public const string RANGE_TYPE_NAME = "Range";
-
 	// Pattern: $start [\n] .. [\n] $end
 	public RangePattern() : base
 	(
@@ -36,6 +34,6 @@ public class RangePattern : Pattern
 		var left = Singleton.Parse(context, tokens[LEFT]);
 		var right = Singleton.Parse(context, tokens[RIGHT]);
 
-		return new UnresolvedFunction(RANGE_TYPE_NAME, tokens[OPERATOR].Position).SetArguments(new Node { left, right });
+		return new UnresolvedFunction(Parser.StandardRangeType, tokens[OPERATOR].Position).SetArguments(new Node { left, right });
 	}
 }

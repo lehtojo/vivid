@@ -125,6 +125,7 @@ public class Units
 		Run("Namespaces", AssemblerTests.Namespaces);
 		Run("Extensions", AssemblerTests.Extensions);
 		Run("Virtuals", AssemblerTests.Virtuals);
+		Run("Lists", AssemblerTests.Lists);
 		Run("Conversions", AssemblerTests.Conversions);
 		Run("ExpressionVariables", AssemblerTests.ExpressionVariables);
 		Run("Iteration", AssemblerTests.Iteration);
@@ -184,6 +185,7 @@ public class Units
 		Run("Namespaces", AssemblerTests.Namespaces);
 		Run("Extensions", AssemblerTests.Extensions);
 		Run("Virtuals", AssemblerTests.Virtuals);
+		Run("Lists", AssemblerTests.Lists);
 		Run("Conversions", AssemblerTests.Conversions);
 		Run("ExpressionVariables", AssemblerTests.ExpressionVariables);
 		Run("Iteration", AssemblerTests.Iteration);

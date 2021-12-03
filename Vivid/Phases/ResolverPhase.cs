@@ -393,6 +393,19 @@ public class ResolverPhase : Phase
 				if (IsAccessable(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
 				errors.Add(Status.Error(iterator.Right.Position, "Can not access the member here"));
 			}
+
+			// Forbid casting of packs
+			nodes = implementation.Node.FindAll(NodeType.CAST);
+
+			foreach (var iterator in nodes)
+			{
+				var from = iterator.Left.TryGetType();
+				var to = iterator.TryGetType();
+				if (from == null || to == null) continue;
+
+				if (from.IsPack) errors.Add(Status.Error(iterator.Position, "Can not cast a pack"));
+				else if (to.IsPack) errors.Add(Status.Error(iterator.Position, "Can not cast to a pack"));
+			}
 		}
 
 		// Look for variables which are not resolved

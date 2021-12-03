@@ -251,7 +251,9 @@ public static class Common
 	public static bool ConsumeType(PatternState state)
 	{
 		#warning Upgrade the seconds stage
-		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
+		var is_normal_type = Pattern.Consume(state, TokenType.IDENTIFIER);
+
+		if (!is_normal_type)
 		{
 			var next = Pattern.Peek(state);
 			if (next == null || (!next.Is(ParenthesisType.PARENTHESIS) && !next.Is(ParenthesisType.CURLY_BRACKETS))) return false;
@@ -275,6 +277,15 @@ public static class Common
 			{
 				if (!ConsumeTemplateArguments(state)) return false;
 			}
+			else if (next.Is(ParenthesisType.BRACKETS))
+			{
+				Pattern.Consume(state);
+				return true;
+			}
+			else if (is_normal_type)
+			{
+				return true;
+			}
 			else if (next.Is(ParenthesisType.PARENTHESIS))
 			{
 				if (!ConsumeFunctionType(state)) return false;
@@ -282,11 +293,6 @@ public static class Common
 			else if (next.Is(ParenthesisType.CURLY_BRACKETS))
 			{
 				if (!ConsumePackType(state)) return false;
-			}
-			else if (next.Is(ParenthesisType.BRACKETS))
-			{
-				Pattern.Consume(state);
-				return true;
 			}
 			else
 			{
@@ -1060,6 +1066,25 @@ public static class Common
 	{
 		var result = new List<Token>();
 
+		if (type.IsUnnamedPack)
+		{
+			// Construct the following pattern from the members of the pack: [ $member-1: $type-1 ], [ $member-2: $type-2 ], ...
+			var members = type.Variables.Values.Select(i =>
+			{
+				var member_name = new IdentifierToken(i.Name, position);
+				var member_colon = new OperatorToken(Operators.COLON, position);
+				var member_type = GetTokens(i.Type!, position);
+
+				return new Token[] { member_name, member_colon }.Concat(member_type).ToArray();
+
+			}).ToArray();
+
+			// Now, join the token arrays with commas and put them inside curly brackets: { $member-1: $type-1, $member-2: $type-2, ... }
+			result.Add(new ContentToken(ParenthesisType.CURLY_BRACKETS, Join(new OperatorToken(Operators.COMMA, position), members), position));
+
+			return result.ToArray();
+		}
+
 		if (type is FunctionType function)
 		{
 			var parameters = function.Parameters.Select(i => GetTokens(i!, position)).ToArray();
@@ -1211,5 +1236,13 @@ public static class Common
 	public static List<Variable> GetPackRepresentives(Variable pack)
 	{
 		return GetPackRepresentives(pack.Context, '.' + pack.Name, pack.Type!, pack.Category);
+	}
+
+	/// <summary>
+	/// Returns true if the specified node represents integer zero
+	/// </summary>
+	public static bool IsZero(Node? node)
+	{
+		return node != null && node.Is(NodeType.NUMBER) && Numbers.IsZero(node.To<NumberNode>().Value);
 	}
 }
