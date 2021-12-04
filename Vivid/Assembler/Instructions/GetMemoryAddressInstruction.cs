@@ -51,7 +51,7 @@ public class GetMemoryAddressInstruction : Instruction
 			else
 			{
 				value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
-				value.Format = member.GetRegisterFormat();
+				value.Format = member.Type!.Format;
 				position += member.Type!.AllocationSize;
 			}
 		}

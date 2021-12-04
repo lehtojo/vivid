@@ -242,6 +242,38 @@ public static class Analysis
 		{
 			result.AddRange(Negate(CollectComponents(expression.First!)));
 		}
+		else if (expression.Is(NodeType.CAST))
+		{
+			// Look for number casts, which do not change the format from integer to decimal or vice versa
+			var casted = expression.To<CastNode>().Object;
+
+			if (casted.Instance != NodeType.NUMBER)
+			{
+				result.Add(new ComplexComponent(expression));
+				return result;
+			}
+
+			var from = casted.GetType();
+			var to = expression.To<CastNode>().GetType();
+
+			// If this is not a number cast, conversion just return a complex component
+			if (from is not Number || to is not Number)
+			{
+				result.Add(new ComplexComponent(expression));
+				return result;
+			}
+
+			// If an integer is converted to a decimal or vice versa, just return a complex component
+			var is_decimal_conversion = from.Format.IsDecimal() ^ to.Format.IsDecimal();
+			
+			if (is_decimal_conversion)
+			{
+				result.Add(new ComplexComponent(expression));
+				return result;
+			}
+
+			result.AddRange(CollectComponents(expression.First!));
+		}
 		else
 		{
 			result.Add(new ComplexComponent(expression));
@@ -992,7 +1024,6 @@ public static class Analysis
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
-			var start = DateTime.UtcNow;
 			
 			// Reconstruct necessary nodes in the function implementation
 			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
@@ -1007,22 +1038,22 @@ public static class Analysis
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);
 
+			// Rewrite pack usages here, because it can not happen in the previous loop, since functions were inlined there
+			ReconstructionAnalysis.RewritePackUsages(implementation, implementation.Node!);
+
 			// Now optimize the function implementation
 			implementation.Node = GeneralAnalysis.Optimize(implementation, implementation.Node!);
 
 			// Finish optimizing the function implementation
 			ReconstructionAnalysis.Finish(implementation.Node!);
 
-			if (implementation is LambdaImplementation lambda)
-			{
-				lambda.Seal();
-			}
+			if (implementation.IsLambdaImplementation) implementation.To<LambdaImplementation>().Seal();
 
-			var interval = (DateTime.UtcNow - start).TotalMilliseconds;
+			var duration = (DateTime.UtcNow - start).TotalMilliseconds;
 
 			if (time)
 			{
-				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{interval} ms]");
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{duration} ms]");
 			}
 			else if (verbose)
 			{

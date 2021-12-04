@@ -47,7 +47,7 @@ public class GetObjectPointerInstruction : Instruction
 			else
 			{
 				value.Value = new MemoryHandle(Unit, Start, Offset + position);
-				value.Format = member.GetRegisterFormat();
+				value.Format = member.Type!.Format;
 				position += member.Type!.AllocationSize;
 			}
 		}

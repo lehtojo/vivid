@@ -1456,7 +1456,7 @@ public static class ReconstructionAnalysis
 	/// $c.y = c.y
 	/// g({ $c.x, $c.y })
 	/// </summary>
-	private static void RewritePackUsages(FunctionImplementation implementation, Node root)
+	public static void RewritePackUsages(FunctionImplementation implementation, Node root)
 	{
 		var placeholders = new List<KeyValuePair<Node, Node>>();
 
@@ -1624,7 +1624,6 @@ public static class ReconstructionAnalysis
 		}
 
 		RemoveRedundantInlineNodes(root);
-		RewritePackUsages(implementation, root);
 	}
 
 	/// <summary>

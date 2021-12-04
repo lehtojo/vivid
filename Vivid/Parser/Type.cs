@@ -218,7 +218,7 @@ public class Type : Context
 
 	public virtual int GetAllocationSize()
 	{
-		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Count * Parser.Bytes;
+		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Values.Sum(i => i.Type!.AllocationSize);
 		return GetReferenceSize();
 	}
 

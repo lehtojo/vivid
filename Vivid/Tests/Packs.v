@@ -74,7 +74,21 @@ pack_8(memory: link<Foo>, i: large, x: large, y: large) {
 	memory[i] = foo
 }
 
-# TODO: Inliner does not support pack parameters (see pack representives)
+# Test: Loading nested pack from memory
+pack_9(memory: link<Bar>, i: large) {
+	bar = memory[i]
+	=> bar.a.x * bar.b.x + bar.a.y * bar.b.y
+}
+
+# Test: Store nested pack in memory
+pack_10(memory: link<Bar>, i: large, x: large, y: large) {
+	bar: Bar
+	bar.a.x = y
+	bar.a.y = x
+	bar.b.x = y * y
+	bar.b.y = x * x
+	memory[i] = bar
+}
 
 init() {
 	a = pack_1(1, 2)
@@ -97,5 +111,10 @@ init() {
 
 	pack_8(memory, 1, 43, 47)
 	println(pack_7(memory, 1))
+
+	println(pack_9(memory, 0))
+
+	pack_10(memory, 0, 53, 59)
+	println(pack_9(memory, 0))
 	=> 0
 }

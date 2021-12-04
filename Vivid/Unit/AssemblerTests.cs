@@ -2159,5 +2159,23 @@ namespace Vivid.Unit
 
 			Lists_Test();
 		}
+
+		private static void Packs_Test()
+		{
+			var actual = Execute("Packs");
+			var expected = "170\n2143\n20716\n3050\n4058\n3502\n354256\n";
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void Packs()
+		{
+			if (!CompileExecutable("Packs", new[] { "Packs.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Packs_Test();
+		}
 	}
 }
