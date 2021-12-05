@@ -713,46 +713,6 @@ public static class Analysis
 	}
 
 	/// <summary>
-	/// Returns all operator nodes which are first encounter when descending from the specified node
-	/// </summary>
-	private static List<OperatorNode> FindTopLevelOperators(Node node)
-	{
-		if (node.Is(NodeType.OPERATOR) && node.To<OperatorNode>().Operator.Type == OperatorType.CLASSIC)
-		{
-			return new List<OperatorNode> { (OperatorNode)node };
-		}
-
-		var operators = new List<OperatorNode>();
-		var child = node.First;
-
-		while (child != null)
-		{
-			if (child.Is(NodeType.OPERATOR))
-			{
-				var operation = child.To<OperatorNode>();
-
-				if (operation.Operator.Type != OperatorType.CLASSIC)
-				{
-					operators.AddRange(FindTopLevelOperators(operation.Left));
-					operators.AddRange(FindTopLevelOperators(operation.Right));
-				}
-				else
-				{
-					operators.Add(operation);
-				}
-			}
-			else
-			{
-				operators.AddRange(FindTopLevelOperators(child));
-			}
-
-			child = child.Next;
-		}
-
-		return operators;
-	}
-
-	/// <summary>
 	/// Approximates the complexity of the specified node tree to execute
 	/// </summary>
 	public static long GetCost(Node node)

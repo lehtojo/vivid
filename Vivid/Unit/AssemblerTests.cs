@@ -945,7 +945,7 @@ namespace Vivid.Unit
 			Assert.True(Regex.IsMatch(assembly, "\\[\\w+\\+3\\]"));
 		}
 
-		public static void ConstantPermanenceAndArrayCopy()
+		public static void ConstantPermanence()
 		{
 			if (!Compile("ConstantPermanence", new[] { "ConstantPermanence.v" }))
 			{
@@ -979,7 +979,7 @@ namespace Vivid.Unit
 			Linkage_Test();
 		}
 
-		private static void PI_Test()
+		private static void Pi_Test()
 		{
 			string actual = Execute("PI");
 			string expected = File.ReadAllText(GetProjectFile("Digits.txt", TESTS));
@@ -987,14 +987,14 @@ namespace Vivid.Unit
 			Assert.AreEqual(expected, actual);
 		}
 
-		public static void PI()
+		public static void Pi()
 		{
 			if (!CompileExecutable("PI", new[] { "PI.v" }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}
 
-			PI_Test();
+			Pi_Test();
 		}
 
 		private static void Fibonacci_Test()
@@ -2176,6 +2176,24 @@ namespace Vivid.Unit
 			}
 
 			Packs_Test();
+		}
+
+		private static void UnnamedPacks_Test()
+		{
+			var actual = Execute("UnnamedPacks");
+			var expected = "420\n420\n2310\n";
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void UnnamedPacks()
+		{
+			if (!CompileExecutable("UnnamedPacks", new[] { "UnnamedPacks.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			UnnamedPacks_Test();
 		}
 	}
 }

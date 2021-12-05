@@ -1,6 +1,6 @@
 public class PackNode : Node
 {
-	public Type Type { get; }
+	public Type Type { get; set; }
 
 	public PackNode(Type type)
 	{

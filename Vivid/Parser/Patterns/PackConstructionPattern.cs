@@ -26,10 +26,13 @@ public class PackConstructionPattern : Pattern
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }
 		var sections = tokens.First().To<ContentToken>().GetSections();
 
-		foreach (var section in sections)
+		foreach (var section in sections.Select(i => i.Where(j => j.Type != TokenType.END).ToArray()))
 		{
+			// Empty sections do not matter, they can be ignored
+			if (section.Length == 0) continue;
+
 			// Verify the section begins with a member name, a colon and some token.
-			if (section.Count < 3) return false;
+			if (section.Length < 3) return false;
 
 			// The first token must be an identifier.
 			if (section[0].Type != TokenType.IDENTIFIER) return false;
@@ -51,8 +54,11 @@ public class PackConstructionPattern : Pattern
 		var arguments = new List<Node>();
 
 		// Parse all the member values
-		foreach (var section in sections)
+		foreach (var section in sections.Select(i => i.Where(j => j.Type != TokenType.END).ToArray()))
 		{
+			// Empty sections do not matter, they can be ignored
+			if (section.Length == 0) continue;
+
 			var member = section[0].To<IdentifierToken>().Value;
 			var value = Parser.Parse(context, section.Skip(2).ToList(), Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).First;
 

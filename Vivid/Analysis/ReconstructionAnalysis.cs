@@ -1215,6 +1215,14 @@ public static class ReconstructionAnalysis
 			call.Right.Insert(new CastNode(left, new TypeNode(expected)));
 		}
 	}
+
+	/// <summary>
+	/// Returns whether the cast converts a pack to another pack and whether it needs to be processed later
+	/// </summary>
+	public static bool IsRequiredPackCast(Type from, Type to)
+	{
+		return from != to && from.IsPack && to.IsPack;
+	}
 	
 	/// <summary>
 	/// Finds casts which have no effect and removes them
@@ -1226,8 +1234,14 @@ public static class ReconstructionAnalysis
 
 		foreach (var cast in casts)
 		{
+			var from = cast.Object.GetType();
+			var to = cast.GetType();
+
 			// Do not remove the cast if it changes the type
-			if (!Equals(cast.GetType(), cast.Object.GetType())) continue;
+			if (!Equals(to, from)) continue;
+
+			// Leave pack casts for later
+			if (IsRequiredPackCast(from, to)) continue;
 
 			// Remove the cast since it does nothing
 			cast.Replace(cast.Object);
@@ -1257,12 +1271,7 @@ public static class ReconstructionAnalysis
 			}
 
 			// If the left operand represents a pack and the right operands is zero, we should not do anything, since this is a special case
-			/// NOTE: It is forbidden to cast packs, so if the number is not zero, it will lead to an compilation error
-			if (to.IsPack)
-			{
-				if (Common.IsZero(assignment.Right)) continue;
-				throw Errors.Get(assignment.Position, "Can not the cast the source operand, since the destination is a pack");
-			}
+			if (to.IsPack && Common.IsZero(assignment.Right)) continue;
 
 			// Remove the right operand from the assignment
 			var value = assignment.Right;
@@ -1472,6 +1481,7 @@ public static class ReconstructionAnalysis
 
 			var type = destination.GetType();
 
+			// Skip assignments, whose destination is not a pack
 			if (!type.IsPack)
 			{
 				assignments.RemoveAt(i);
@@ -1519,35 +1529,67 @@ public static class ReconstructionAnalysis
 
 		// Pack values are replaced with pack nodes:
 		// Find all local variables, which are packs
-		var packs = implementation.Locals.Concat(implementation.Parameters).Concat(implementation.Variables.Values).Where(i => i.Type!.IsPack).ToList();
-		foreach (var pack in packs) { Common.GetPackRepresentives(pack); }
+		var local_packs = implementation.Locals.Concat(implementation.Parameters).Concat(implementation.Variables.Values).Where(i => i.Type!.IsPack).ToList();
 
-		var usages = root.FindAll(NodeType.VARIABLE).Where(i => packs.Contains(i.To<VariableNode>().Variable)).ToList();
+		// Create the pack representives for all the collected local packs
+		foreach (var pack in local_packs) { Common.GetPackRepresentives(pack); }
 
-		for (var i = usages.Count - 1; i >= 0; i--)
+		// Find all the usages of the collected local packs
+		var local_pack_usages = root.FindAll(NodeType.VARIABLE).Where(i => local_packs.Contains(i.To<VariableNode>().Variable)).ToList();
+
+		for (var i = local_pack_usages.Count - 1; i >= 0; i--)
 		{
-			var usage = usages[i];
+			var usage = local_pack_usages[i];
 			var type = usage.GetType();
 
-			// Leave the function assignments intact
+			// Leave function assignments intact
+			// NOTE: If the usage is edited, it must be part of a function assignment, because all the other pack assignments were reduced to member assignments above
 			if (Analyzer.IsEdited(usage)) continue;
 
-			// Skip usages, which are used to access members
-			if (usage.Parent!.Is(NodeType.LINK) && usage.Next!.Is(NodeType.VARIABLE)) continue;
+			// Consider the following situation:
+			// Variable a is a local pack variable and identifiers b and c are nested packs of variable a.
+			// We start moving from the brackets, because variable a is a local pack usage.
+			// [a].b.c
+			// We must move all the way to nested pack c, because only the members of c are expanded.
+			// a.b.[c] => Packer { a.b.c.x, a.b.c.y }
+			// The next loop will transform the packer elements:
+			// a.b.[c] => Packer { a.b.c.x, a.b.c.y } => Packer { $local-1, $local-2 }
+			while (true)
+			{
+				// The parent node must be a link, since a member access is expected
+				var parent = usage.Parent;
+				if (parent == null || parent.Instance != NodeType.LINK) break;
+
+				// Ensure the current iterator is used for member access
+				var next = usage.Next!;
+				if (next.Instance != NodeType.VARIABLE) break;
+
+				// Continue if a nested pack is accessed
+				var member = next.To<VariableNode>().Variable;
+				if (!member.Type!.IsPack) break;
+
+				type = member.Type!;
+				usage = parent;
+			}
 
 			// Remove the usage from the list, because it will be replaced with a pack node
-			usages.RemoveAt(i);
+			local_pack_usages.RemoveAt(i);
 			
 			var packer = new PackNode(type);
-			foreach (var accessor in CreatePackMemberAccessors(usage, type, usage.Position!)) { packer.Add(accessor); }
+
+			foreach (var accessor in CreatePackMemberAccessors(usage, type, usage.Position!))
+			{
+				packer.Add(accessor);
+			}
+
 			usage.Replace(packer);
 		}
 
 		// Member accessors are replaced with local variables:
-		usages = root.FindAll(NodeType.VARIABLE).Where(i => packs.Contains(i.To<VariableNode>().Variable)).ToList();
+		local_pack_usages = root.FindAll(NodeType.VARIABLE).Where(i => local_packs.Contains(i.To<VariableNode>().Variable)).ToList();
 
 		/// NOTE: All usages are used to access a member here
-		foreach (var usage in usages)
+		foreach (var usage in local_pack_usages)
 		{
 			// Leave the function assignments intact
 			if (Analyzer.IsEdited(usage)) continue;
@@ -1590,6 +1632,23 @@ public static class ReconstructionAnalysis
 		foreach (var placeholder in placeholders)
 		{
 			placeholder.Key.Replace(placeholder.Value);
+		}
+
+		// Find all pack casts and apply them
+		var casts = root.FindAll(NodeType.CAST).Cast<CastNode>().Where(i => i.GetType().IsPack).ToList();
+
+		foreach (var cast in casts)
+		{
+			var from = cast.Object.GetType();
+			var to = cast.GetType();
+
+			// Verify the casted value is a packer and that the value type and target type are compatible
+			if (cast.Object.Instance != NodeType.PACK || !Equals(from, to)) throw Errors.Get(cast.Position, "Can not cast the value to a pack");
+
+			var value = cast.Object.To<PackNode>();
+
+			// Replace the internal type of the packer with the target type
+			value.Type = to;
 		}
 	}
 
