@@ -72,6 +72,24 @@ public class FunctionToken : Token
 				continue;
 			}
 
+			// Member parameters directly initialize the specified member.
+			// Pattern: this.$member
+			if (next.Is(Operators.DOT))
+			{
+				var member = tokens.Pop();
+				if (member == null || !member.Is(TokenType.IDENTIFIER)) throw Errors.Get(member?.Position, "Can not understand the parameters");
+
+				// Create a member parameter by naming it the following way: this-$member
+				/// NOTE: The naming is done this way, because using a dot would make it a hidden parameter and therefore exclude it from the parameter list
+				parameters.Add(new Parameter(Function.SELF_POINTER_IDENTIFIER + '-' + member.To<IdentifierToken>().Value, name.Position, null));
+
+				// Next token is either a comma or the end of the parameters
+				next = tokens.Pop();
+				if (next == null || next.Is(Operators.COMMA)) continue;
+
+				throw Errors.Get(member?.Position, "Can not understand the parameters");
+			}
+
 			// If there are tokens left and the next token is not a comma, it must represent a parameter type
 			if (!next.Is(Operators.COLON)) throw Errors.Get(name?.Position, "Can not understand the parameters");
 

@@ -56,7 +56,7 @@ public class LoopControlNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		if (Finished && Loop != null) return Status.OK;
-		return Status.Error($"Keyword '{Instruction.Identifier}' must be used inside a loop");
+		return Status.Error(Position, $"Keyword '{Instruction.Identifier}' must be used inside a loop");
 	}
 
 	public override bool Equals(object? other)

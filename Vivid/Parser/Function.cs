@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
+using System;
 
 public enum FunctionLanguage
 {
@@ -15,6 +14,7 @@ public class Parameter
 	public string Name { get; set; }
 	public Position? Position { get; set; }
 	public Type? Type { get; set; }
+	public bool IsMemberParameter => Name.StartsWith(Function.SELF_POINTER_IDENTIFIER + '-');
 
 	public Parameter(string name, Type? type = null)
 	{

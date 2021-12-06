@@ -152,7 +152,7 @@ public class OperatorNode : Node, IResolvable
 			return Status.OK;
 		}
 
-		return right is Number ? Status.OK : Status.Error("Can not resolve the type of the operation");
+		return right is Number ? Status.OK : Status.Error(Position, "Can not resolve the type of the operation");
 	}
 
 	private Status GetLogicStatus(Type left, Type right)
