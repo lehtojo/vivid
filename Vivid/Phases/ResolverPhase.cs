@@ -565,6 +565,45 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
+	/// Finds all static member assignmens which should be executed before the entry function
+	/// </summary>
+	private static List<Node> CollectStaticInitializers(Context context)
+	{
+		var types = Common.GetAllTypes(context);
+		var initializers = types.SelectMany(i => i.Initialization).Select(i => i.Clone()).ToList();
+
+		for (var i = initializers.Count - 1; i >= 0; i--)
+		{
+			// Look for static member assignments
+			var initializer = initializers[i];
+			var edited = Analyzer.GetEdited(initializer);
+
+			// Ensure the edited node is a variable node
+			if (edited.Instance == NodeType.VARIABLE)
+			{
+				var member = edited.To<VariableNode>().Variable;
+
+				// Ensure the member variable is static
+				if (member.IsStatic)
+				{
+					edited.Replace(new LinkNode(
+						new TypeNode(member.Context.To<Type>(), member.Position),
+						edited.Clone(),
+						member.Position
+					));
+
+					continue;
+				}
+			}
+
+			// Remove the initializer, since it is not a static member assignment
+			initializers.RemoveAt(i);
+		}
+
+		return initializers;
+	}
+
+	/// <summary>
 	/// Finds the implementations of the allocation and the inheritance functions and registers them to be used
 	/// </summary>
 	public static void RegisterDefaultFunctions(Context context)
@@ -574,19 +613,54 @@ public class ResolverPhase : Phase
 		var inheritance_function = context.GetFunction("internal_is") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
 		var initialization_function = context.GetFunction("internal_init");
 
-		var type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
+		var integer_parameter_type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 
-		Parser.AllocationFunction = allocation_function.GetImplementation(type);
-		Assembler.AllocationFunction = allocation_function.GetOverload(type);
+		Parser.AllocationFunction = allocation_function.GetImplementation(integer_parameter_type);
+		Assembler.AllocationFunction = allocation_function.GetOverload(integer_parameter_type);
 
 		Parser.DeallocationFunction = deallocation_function.GetImplementation(new Link());
 		Assembler.DeallocationFunction = deallocation_function.GetOverload(new Link());
 
 		Parser.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link());
 
+		// Find all the static member assignments and add them to the application initialization function
+		var static_initializers = CollectStaticInitializers(context);
+
 		if (initialization_function != null)
 		{
-			Assembler.InitializationFunction = initialization_function.GetImplementation(new Link());
+			Assembler.InitializationFunction = initialization_function.GetImplementation(new Link()) ?? initialization_function.GetImplementation();
+		}
+		else if (static_initializers.Any())
+		{
+			// Application initialization function calls the entry function: init()
+			var initialization_function_blueprint = new List<Token>()
+			{
+				new FunctionToken(new IdentifierToken(Keywords.INIT.Identifier), new ContentToken())
+			};
+
+			// Create an application initialization function, which calls the entry function, so that the static member assignments can be executed
+			var initialization_function_metadata = new Function(context, Modifier.EXPORTED, "internal_init", initialization_function_blueprint, Parser.AllocationFunction!.Metadata.Start, null);
+			context.Declare(initialization_function_metadata);
+	
+			Assembler.InitializationFunction = initialization_function_metadata.Get(Array.Empty<Type>());
+		}
+
+		if (Assembler.InitializationFunction != null)
+		{
+			Assembler.InitializationFunction.ReturnType = Primitives.CreateUnit();
+		}
+
+		if (static_initializers.Any())
+		{
+			if (Assembler.InitializationFunction == null) throw new ApplicationException("Missing the application initialization function");
+
+			// Add the static initializers to the application initialization function
+			for (var i = static_initializers.Count - 1; i >= 0; i--)
+			{
+				var initializer = static_initializers[i];
+				var initializer_destination = Assembler.InitializationFunction!.Node!.First;
+				Assembler.InitializationFunction.Node!.Insert(initializer_destination, initializer);
+			}
 		}
 
 		GarbageCollector.CreateReferenceCountingFunctions(context);

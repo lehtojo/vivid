@@ -452,7 +452,7 @@ public static class DataEncoder
 		var size = variable.Type!.AllocationSize;
 
 		// Define the static variable as a symbol
-		module.CreateLocalSymbol(name, module.Position);
+		module.CreateLocalSymbol(name, module.Position, true);
 
 		// Align tables if the platform is ARM
 		if (Assembler.IsArm64) Align(module, 8);
