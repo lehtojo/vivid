@@ -157,7 +157,7 @@ public static class StaticLibraryFormat
 		using var filenames = new MemoryStream();
 		var indices = AppendSymbols(filenames, files.Select(i => i.Name).ToArray());
 
-		files.Zip(indices).ForEach(i => i.First.Name = i.Second.ToString() + "/");
+		files.Zip(indices).ForEach(i => i.First.Name = '/' + i.Second.ToString());
 
 		var builder = new MemoryStream();
 		WriteFileHeader(builder, FILENAME_TABLE_NAME, timestamp, (uint)filenames.Length);
@@ -199,9 +199,13 @@ public static class StaticLibraryFormat
 			contents.Write(bytes);
 
 			position += FILEHEADER_LENGTH + (uint)bytes.Length;
-		}
 
-		contents.WriteByte((byte)'\n');
+			// Align the position to 2 bytes
+			if (position % 2 == 0) continue;
+
+			contents.WriteByte(0);
+			position++;
+		}
 
 		using var builder = new MemoryStream();
 		builder.Write(Encoding.UTF8.GetBytes(SIGNATURE));
