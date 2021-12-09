@@ -198,7 +198,7 @@ public class Instruction
 			if (options.Contains(HandleType.REGISTER))
 			{
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
+				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
 				{
 					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, directives);
 				}
@@ -206,7 +206,7 @@ public class Instruction
 			else if (options.Contains(HandleType.MEDIA_REGISTER))
 			{
 				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsUsageAnalyzed && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
+				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
 				{
 					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, directives);
 				}

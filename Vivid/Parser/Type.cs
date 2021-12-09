@@ -2,11 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+[Flags]
+public enum TableMarker
+{
+	None = 0,
+	TextualAssembly = 1,
+	DataEncoder = 2
+}
+
 public class Table
 {
 	public string Name { get; private set; }
 	public Label Start { get; private set; }
-	public bool IsBuilt { get; set; } = false;
+
+	// Summary:
+	// This is used to determine whether the table has been processed.
+	// Bool is not enough, because there can be multiple runs and we do not want to reset all the tables before each run.
+	public TableMarker Marker { get; set; } = TableMarker.None;
+
 	public bool IsSection { get; set; } = false;
 
 	public List<object> Items { get; private set; } = new List<object>();

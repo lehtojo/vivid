@@ -5,7 +5,7 @@ pack Foo {
 
 # Test: Create an unnamed pack and return it
 pack_1(x: large, y: small) {
-	=> {
+	=> pack {
 		x: y as large,
 		y: x as small
 	}
@@ -26,12 +26,12 @@ pack_3(x: large, y: small) {
 
 # Test: Create nested packs
 pack_4(x: large, y: small, z: normal, w: tiny) {
-	=> {
-		i: {
+	=> pack {
+		i: pack {
 			x: x * 3,
 			y: (y * 5) as small
 		},
-		j: {
+		j: pack {
 			z: (z * 7) as normal,
 			w: (w * 11) as tiny
 		}, # The comma is intentional, because the compiler should not care about it

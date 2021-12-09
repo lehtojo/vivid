@@ -5,8 +5,11 @@ public class PackConstructionPattern : Pattern
 {
 	public const int PRIORITY = 19;
 
+	public const int CONTENT = 1;
+
 	public PackConstructionPattern() : base
 	(
+		TokenType.KEYWORD,
 		TokenType.CONTENT
 	) {}
 
@@ -17,14 +20,17 @@ public class PackConstructionPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (tokens.First().To<ContentToken>().Type != ParenthesisType.CURLY_BRACKETS) return false;
+		// Ensure the keyword is 'pack'
+		if (!tokens.First().Is(Keywords.PACK)) return false;
+
+		if (tokens[CONTENT].To<ContentToken>().Type != ParenthesisType.CURLY_BRACKETS) return false;
 
 		// The pack must have members
-		if (tokens.First().To<ContentToken>().Tokens.Count == 0) return false;
+		if (tokens[CONTENT].To<ContentToken>().Tokens.Count == 0) return false;
 
 		// Now, we must ensure this really is a pack construction.
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }
-		var sections = tokens.First().To<ContentToken>().GetSections();
+		var sections = tokens[CONTENT].To<ContentToken>().GetSections();
 
 		foreach (var section in sections.Select(i => i.Where(j => j.Type != TokenType.END).ToArray()))
 		{
@@ -48,7 +54,7 @@ public class PackConstructionPattern : Pattern
 	{
 		// We know that this is a pack construction.
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }
-		var sections = tokens.First().To<ContentToken>().GetSections();
+		var sections = tokens[CONTENT].To<ContentToken>().GetSections();
 
 		var members = new List<string>();
 		var arguments = new List<Node>();
@@ -63,7 +69,7 @@ public class PackConstructionPattern : Pattern
 			var value = Parser.Parse(context, section.Skip(2).ToList(), Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).First;
 
 			// Ensure the member has a value
-			if (value == null) throw Errors.Get(tokens.First().Position, "There must be a value after colon in pack construction");
+			if (value == null) throw Errors.Get(section[0].Position, "There must be a value after colon in pack construction");
 
 			members.Add(member);
 			arguments.Add(value);

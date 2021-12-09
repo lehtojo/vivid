@@ -471,10 +471,10 @@ public static class Assembler
 	/// <summary>
 	/// Allocates the specified table using assembly directives
 	/// </summary>
-	public static void AddTable(AssemblyBuilder builder, Table table)
+	public static void AddTable(AssemblyBuilder builder, Table table, TableMarker marker)
 	{
-		if (table.IsBuilt) return;
-		table.IsBuilt = true;
+		if ((table.Marker & marker) != 0) return;
+		table.Marker |= marker;
 
 		if (table.IsSection)
 		{
@@ -511,15 +511,12 @@ public static class Assembler
 
 			builder.WriteLine(result);
 
-			if (item is Table subtable && !subtable.IsBuilt)
-			{
-				subtables.Add(subtable);
-			}
+			if (item is Table subtable) subtables.Add(subtable);
 		}
 
 		builder.Write(SEPARATOR);
 
-		subtables.ForEach(i => AddTable(builder, i));
+		subtables.ForEach(i => AddTable(builder, i, marker));
 	}
 
 	/// <summary>
@@ -566,8 +563,8 @@ public static class Assembler
 				// 4. Unnamed packs are not processed
 				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) continue;
 
-				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry);
-				DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry);
+				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry, TableMarker.TextualAssembly);
+				DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry, TableMarker.DataEncoder);
 			}
 		}
 

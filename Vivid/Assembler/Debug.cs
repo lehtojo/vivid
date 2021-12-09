@@ -935,8 +935,8 @@ public class Debug
 		Information.Add(End);
 
 		var builder = new AssemblyBuilder();
-		Assembler.AddTable(builder, Abbrevation);
-		Assembler.AddTable(builder, Information);
+		Assembler.AddTable(builder, Abbrevation, TableMarker.TextualAssembly);
+		Assembler.AddTable(builder, Information, TableMarker.TextualAssembly);
 
 		if (Assembler.IsDebuggingEnabled)
 		{
@@ -947,8 +947,8 @@ public class Debug
 			abbreviation_section.Alignment = 1;
 			information_section.Alignment = 1;
 
-			DataEncoder.AddTable(builder, abbreviation_section, Abbrevation);
-			DataEncoder.AddTable(builder, information_section, Information);
+			DataEncoder.AddTable(builder, abbreviation_section, Abbrevation, TableMarker.DataEncoder);
+			DataEncoder.AddTable(builder, information_section, Information, TableMarker.DataEncoder);
 		}
 
 		return builder;

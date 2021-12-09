@@ -606,7 +606,7 @@ public static class Instructions
 				new InstructionEncoding(0x8B, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 8),
 
 				// mov r64, c32
-				new InstructionEncoding(0xC7, 0, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.SIGNLESS_CONSTANT, 0, 4),
+				new InstructionEncoding(0xC7, 0, EncodingRoute.RC, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.CONSTANT, 0, 4),
 
 				// mov r64, c64 | mov r32, c32 | mov r16, c16 | mov r8, c8
 				new InstructionEncoding(0xB0, 0, EncodingRoute.OC, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SIGNLESS_CONSTANT, 0, 1),
@@ -921,7 +921,7 @@ public static class Instructions
 			DualParameterEncodings[_MOVSXD] = new List<InstructionEncoding>()
 			{
 				// movsxd r64, r32
-				new InstructionEncoding(0x63, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 4),
+				new InstructionEncoding(0x63, 0, EncodingRoute.RR, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 4),
 
 				// movsxd r64, m32
 				new InstructionEncoding(0x63, 0, EncodingRoute.RM, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 4),
@@ -1237,7 +1237,7 @@ public static class Instructions
 			{
 				// test r64, r64 | test r32, r32 | test r16, r16 | test r8, r8
 				new InstructionEncoding(0x84, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.REGISTER, 0, 1),
-				new InstructionEncoding(0x85, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.REGISTER, 0, 2),
+				new InstructionEncoding(0x85, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.REGISTER, 0, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
 				new InstructionEncoding(0x85, 0, EncodingRoute.RR, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.REGISTER, 0, 4),
 				new InstructionEncoding(0x85, 0, EncodingRoute.RR, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.REGISTER, 0, 8),
 			};

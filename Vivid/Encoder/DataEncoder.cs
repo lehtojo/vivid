@@ -378,8 +378,11 @@ public static class DataEncoder
 	/// <summary>
 	/// Adds the specified table into the specified module
 	/// </summary>
-	public static void AddTable(AssemblyBuilder builder, DataEncoderModule module, Table table)
+	public static void AddTable(AssemblyBuilder builder, DataEncoderModule module, Table table, TableMarker marker)
 	{
+		if ((table.Marker & marker) != 0) return;
+		table.Marker |= marker;
+
 		if (!table.IsSection)
 		{
 			builder.Export(table.Name); // Export the table
@@ -440,7 +443,7 @@ public static class DataEncoder
 			}
 		}
 
-		subtables.ForEach(i => AddTable(builder, module, i));
+		subtables.ForEach(i => AddTable(builder, module, i, marker));
 	}
 
 	/// <summary>
