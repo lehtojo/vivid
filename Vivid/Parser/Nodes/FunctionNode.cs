@@ -8,7 +8,7 @@ public class FunctionNode : Node
 	public FunctionNode(FunctionImplementation function, Position? position = null)
 	{
 		Function = function;
-		Function.References.Add(this);
+		Function.Usages.Add(this);
 		Position = position;
 		Instance = NodeType.FUNCTION;
 	}

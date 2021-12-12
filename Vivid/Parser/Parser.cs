@@ -558,12 +558,20 @@ public static class Parser
 	/// <summary>
 	/// Creates a root context
 	/// </summary>
-	public static Context CreateRootContext(int identity)
+	public static Context CreateRootContext(string identity)
 	{
-		var context = new Context(identity.ToString());
+		var context = new Context(identity);
 		Primitives.Inject(context);
 
 		return context;
+	}
+
+	/// <summary>
+	/// Creates a root context
+	/// </summary>
+	public static Context CreateRootContext(int identity)
+	{
+		return CreateRootContext(identity.ToString());
 	}
 
 	/// <summary>

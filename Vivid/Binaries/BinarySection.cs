@@ -175,10 +175,17 @@ public class BinaryObjectFile
 {
 	public int Index { get; set; } = 0;
 	public List<BinarySection> Sections { get; } = new List<BinarySection>();
+	public HashSet<string> Exports { get; } = new HashSet<string>();
 
 	public BinaryObjectFile(List<BinarySection> sections)
 	{
 		Sections = sections;
+	}
+
+	public BinaryObjectFile(List<BinarySection> sections, HashSet<string> exports)
+	{
+		Sections = sections;
+		Exports = exports;
 	}
 }
 

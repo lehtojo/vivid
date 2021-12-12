@@ -97,7 +97,7 @@ public class TemplateFunctionPattern : Pattern
 		var descriptor = new FunctionToken(name, parameters) { Position = start };
 
 		var template_function = new TemplateFunction(context, Modifier.DEFAULT, name.Value, template_parameter_names, parameters.Tokens, start, end);
-		template_function.Initialize();
+		template_function.Parameters.AddRange(((FunctionToken)descriptor.Clone()).GetParameters(template_function));
 
 		// Declare a self pointer if the function is a member of a type, since consuming the body may require it
 		if (template_function.IsMember && !template_function.IsStatic)
@@ -120,8 +120,6 @@ public class TemplateFunctionPattern : Pattern
 
 		template_function.Blueprint.Add(descriptor);
 		template_function.Blueprint.Add(blueprint);
-
-		template_function.Parameters.AddRange(((FunctionToken)descriptor.Clone()).GetParameters(template_function));
 
 		context.Declare(template_function);
 

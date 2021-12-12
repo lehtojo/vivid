@@ -30,7 +30,8 @@ public class AssemblyPhase : Phase
 	public static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
 	public static string ExecutableExtension => IsLinux ? string.Empty : ".exe";
 
-	private static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
+	public static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
+	public static string ImportedStandardLibraryObjectFile => "v." + StandardLibrary;
 
 	private const string RED = "\x1B[1;31m";
 	private const string GREEN = "\x1B[1;32m";
@@ -339,7 +340,7 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			assemblies = Assembler.Assemble(context, modified, imports, exports, output_name, output_type);
+			assemblies = Assembler.Assemble(bundle, context, modified, imports, exports, output_name, output_type);
 		}
 		catch (Exception e)
 		{

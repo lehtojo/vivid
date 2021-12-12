@@ -66,7 +66,7 @@ public class Function : Context
 
 	public Variable? Self { get; protected set; }
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
-	public List<Token> Blueprint { get; private set; }
+	public List<Token> Blueprint { get; protected set; }
 	public Position? Start { get; set; }
 	public Position? End { get; set; }
 

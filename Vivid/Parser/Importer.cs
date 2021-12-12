@@ -269,7 +269,7 @@ public static class Importer
 			for (var i = 1; i <= pointers; i++)
 			{
 				type = CreatePointerType(primitive, pointers);
-				stack.Add(new MangleDefinition(primitive, stack.Count, i));
+				stack.Add(new MangleDefinition(type, stack.Count, i));
 			}
 
 			return (type, position + 1);
@@ -305,6 +305,47 @@ public static class Importer
 	}
 
 	/// <summary>
+	/// Tries to find an existing function with the specified properties from the specified context.
+	/// Other compiler utility functions return a function that is compatible with the properties, but this utility function is stricter.
+	/// </summary>
+	private static FunctionImplementation? TryFindExistingImplementation(Context context, string name, List<Type> parameter_types, Type[] template_arguments)
+	{
+		// Check if the function is already defined
+		if (!context.IsFunctionDeclared(name)) return null;
+
+		var function = context.GetFunction(name)!;
+		var is_template_function_required = template_arguments.Length > 0;
+
+		foreach (var overload in function.Overloads)
+		{
+			if (overload.IsTemplateFunction != is_template_function_required || overload.Parameters.Count != parameter_types.Count) continue;
+
+			// Compare the parameter types strictly
+			var match = true;
+
+			for (var i = 0; i < overload.Parameters.Count; i++)
+			{
+				var expected = overload.Parameters[i].Type;
+				var actual = parameter_types[i];
+
+				if (expected == null || (expected.Name == actual.Name && expected.Identity == actual.Identity)) continue;
+
+				match = false;
+				break;
+			}
+
+			if (!match) continue;
+
+			// Ensure there are the same number of template arguments
+			if (overload.IsTemplateFunction && overload.To<TemplateFunction>().TemplateParameters.Count != template_arguments.Length) continue;
+
+			return overload.Get(parameter_types);
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Consumes a mangled function with its parameters and return type, starting from the specified position.
 	/// This function also declares the consumed function.
 	/// Examples: 8multiplyxd_rd => multiply(large, decimal): decimal, 3add5ArrayIxES_ii_ri => add(Array<large>, Array<large>, normal, normal): normal
@@ -312,18 +353,13 @@ public static class Importer
 	private static (Function Function, int Position)? ConsumeFunction(Context context, List<MangleDefinition> stack, string symbol, int position)
 	{
 		var name = ConsumeName(symbol, position);
-
 		if (name == null) return null;
 
 		position = name.Value.Position;
-
 		if (position >= symbol.Length) return null;
 
 		// When the function is inside a function example, there can be an end command to be consumed
-		if (symbol[position] == Mangle.END_COMMAND)
-		{
-			position++;
-		}
+		if (symbol[position] == Mangle.END_COMMAND) { position++; }
 
 		if (position >= symbol.Length) return null;
 
@@ -332,7 +368,6 @@ public static class Importer
 		if (symbol[position] == Mangle.START_TEMPLATE_ARGUMENTS_COMMAND)
 		{
 			var result = ConsumeTemplateArguments(context, stack, symbol, position);
-
 			if (result == null) return null;
 
 			template_arguments = result.Value.Arguments;
@@ -349,16 +384,12 @@ public static class Importer
 			while (true)
 			{
 				var type = ConsumeType(context, stack, symbol, position);
-
 				if (type == null) return null;
 
 				position = type.Value.Position;
 				parameter_types.Add(type.Value.Type);
 
-				if (position >= symbol.Length || symbol[position] == Mangle.PARAMETERS_END)
-				{
-					break;
-				}
+				if (position >= symbol.Length || symbol[position] == Mangle.PARAMETERS_END) break;
 			}
 		}
 		else
@@ -374,7 +405,6 @@ public static class Importer
 			position += 2; // Skip the return type definition
 
 			var result = ConsumeType(context, stack, symbol, position);
-
 			if (result == null) return null;
 
 			return_type = result.Value.Type;
@@ -382,35 +412,30 @@ public static class Importer
 
 		if (template_arguments.Any())
 		{
-			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types, template_arguments, false);
+			// NOTE: We do not create a new template function, because the source code for the template function must be available for this situation
 
-			if (implementation != null)
-			{
-				implementation.ReturnType = return_type;
-				return (implementation.Metadata, position);
-			}
+			// Try to implement the template function with the collected template arguments
+			var implementation = TryFindExistingImplementation(context, name.Value.Name, parameter_types, template_arguments);
+			if (implementation == null) return null; // Try later again
 
-			var template_function = new TemplateFunction(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, parameter_types.Count);
-			template_function.Initialize();
-
-			implementation = template_function.Get(parameter_types, template_arguments);
-
-			if (implementation == null) return null;
-
+			// Fill in the return type straight away
+			implementation.IsImported = true;
 			implementation.ReturnType = return_type;
 
 			return (implementation.Metadata, position);
 		}
 		else
 		{
-			var implementation = Singleton.GetFunctionByName(context, name.Value.Name, parameter_types, false);
+			var implementation = TryFindExistingImplementation(context, name.Value.Name, parameter_types, template_arguments);
 
 			if (implementation != null)
 			{
+				implementation.IsImported = true;
 				implementation.ReturnType = return_type;
 				return (implementation.Metadata, position);
 			}
 
+			// Generate parameters so that the function can be created
 			var parameters = new Parameter[parameter_types.Count];
 
 			for (var i = 0; i < parameter_types.Count; i++)
@@ -420,6 +445,7 @@ public static class Importer
 
 			if (context.IsType && name.Value.Name == Keywords.INIT.Identifier)
 			{
+				// This function is a constructor:
 				var constructor = new Constructor(context, Modifier.DEFAULT | Modifier.IMPORTED, null, null);
 				constructor.Parameters.AddRange(parameters);
 
@@ -429,6 +455,7 @@ public static class Importer
 			}
 			else if (context.IsType && name.Value.Name == Keywords.DEINIT.Identifier)
 			{
+				// This function is a destructor:
 				var destructor = new Destructor(context, Modifier.DEFAULT | Modifier.IMPORTED, null, null);
 				destructor.Parameters.AddRange(parameters);
 				
@@ -438,12 +465,15 @@ public static class Importer
 			}
 			else
 			{
+				// This function is a normal function:
 				var function = new Function(context, Modifier.DEFAULT | Modifier.IMPORTED, name.Value.Name, return_type, parameters);
 				implementation = function.Implementations.First();
 
 				context.Declare(function);
 			}
 
+			// Fill in the return type straight away
+			implementation.IsImported = true;
 			implementation.ReturnType = return_type;
 
 			return (implementation.Metadata, position);
@@ -469,7 +499,7 @@ public static class Importer
 
 		// Declare the member variable
 		var variable = destination.Declare(type.Value.Type, VariableCategory.MEMBER, name.Value.Name);
-		variable.Modifiers = Modifier.Combine(variable.Modifiers, modifiers);
+		variable.Modifiers = Modifier.Combine(variable.Modifiers, modifiers | Modifier.IMPORTED);
 
 		// Return the position if the end has been reached
 		if (position >= symbol.Length) return position;
@@ -535,7 +565,8 @@ public static class Importer
 					parameters[i] = new Parameter($"p{i}", parameter_types[i]);
 				}
 
-				var function = new VirtualFunction(destination, name.Value.Name, return_type, null, null) { Modifiers = modifiers };
+				var function = new VirtualFunction(destination, name.Value.Name, return_type, null, null);
+				function.Modifiers = Modifier.Combine(modifiers, Modifier.IMPORTED);
 				function.Parameters.AddRange(parameters);
 
 				destination.Declare(function);
@@ -567,6 +598,13 @@ public static class Importer
 
 		var type = ConsumeType(environment, stack, symbol, position, false);
 		if (type == null) return false;
+
+		// Ensure the type is registered as an imported type
+		var is_local_version = !type.Value.Type.IsImported;
+		type.Value.Type.Modifiers |= Modifier.IMPORTED;
+
+		// If a local version of the type exists, it already has the properties of the imported type
+		if (is_local_version) return true;
 
 		position = type.Value.Position;
 
@@ -641,7 +679,6 @@ public static class Importer
 			
 			/// TODO: If there is two types, assume the first is a namespace
 			var consumption = ConsumeType(context, stack, symbol, position, false);
-
 			if (consumption == null) return false;
 
 			position = consumption.Value.Position;
@@ -672,7 +709,7 @@ public static class Importer
 
 				// Declare the static variable
 				var variable = context.Declare(type.Value.Type, VariableCategory.GLOBAL, name.Value.Name);
-				variable.Modifiers = Modifier.Combine(variable.Modifiers, Modifier.STATIC);
+				variable.Modifiers = Modifier.Combine(variable.Modifiers, Modifier.IMPORTED | Modifier.STATIC);
 
 				return true;
 			}
@@ -691,19 +728,45 @@ public static class Importer
 	}
 
 	/// <summary>
-	/// Imports the specified symbols into the specified environment context
+	/// Keeps importing symbols as long as the number of symbols decreases
 	/// </summary>
-	private static void ImportSymbols(Context context, string[] symbols)
+	private static void ImportSymbols(Context context, List<string> symbols)
 	{
-		foreach (var symbol in symbols)
+		// The idea here is to keep importing symbols as long as the number of symbols decreases
+		// NOTE: This is done, because some symbols might be dependent on other symbols that are imported later
+		var previous_symbol_count = symbols.Count;
+
+		while (true)
 		{
-			if (symbol.StartsWith(ENTRY_POINT_START))
+			for (var i = symbols.Count - 1; i >= 0; i--)
 			{
-				continue;
+				if (!ImportSymbol(context, symbols[i])) continue;
+
+				symbols.RemoveAt(i);
 			}
 
-			ImportSymbol(context, symbol);
+			// If the number of unimported symbols stays the same, nothing more can be done
+			if (symbols.Count == previous_symbol_count) break;
+
+			previous_symbol_count = symbols.Count;
 		}
+	}
+
+	/// <summary>
+	/// Imports the specified symbols into the specified environment context
+	/// </summary>
+	private static void ImportAllSymbols(Context context, string[] symbols)
+	{
+		// Filter out entry point symbols
+		symbols = symbols.Where(i => !i.StartsWith(ENTRY_POINT_START)).ToArray();
+
+		// First, we need to import the types
+		var types = symbols.Where(i => i.StartsWith(Mangle.EXPORT_TYPE_TAG)).ToList();
+		ImportSymbols(context, types);
+
+		// Then, we need to import the functions
+		var functions = symbols.Where(i => !i.StartsWith(Mangle.EXPORT_TYPE_TAG)).ToList();
+		ImportSymbols(context, functions);
 	}
 
 	/// <summary>
@@ -714,7 +777,7 @@ public static class Importer
 		var symbols = PeFormat.LoadExportedSymbols(library);
 		if (symbols == null) return false;
 
-		ImportSymbols(context, symbols);
+		ImportAllSymbols(context, symbols);
 		return true;
 	}
 
@@ -731,7 +794,7 @@ public static class Importer
 			// Ensure the file ends with the extension of this language
 			if (!header.Filename.EndsWith(ConfigurationPhase.VIVID_EXTENSION)) continue;
 
-			var start = header.Data;
+			var start = header.PointerOfData;
 			var end = start + header.Size;
 
 			if (start < 0 || start >= bytes.Length || end < 0 || end >= bytes.Length) return false;
@@ -777,9 +840,30 @@ public static class Importer
 	}
 
 	/// <summary>
+	/// Iterates through the specified file headers and imports all object files by adding them to the specified object file list.
+	/// Object files are determined using filenames stored in the file headers.
+	/// </summary>
+	private static void ImportObjectFilesFromStaticLibrary(string file, List<StaticLibraryFormatFileHeader> headers, byte[] bytes, Dictionary<SourceFile, BinaryObjectFile> object_files)
+	{
+		foreach (var header in headers)
+		{
+			// Ensure the file ends with the extension of this language
+			if (!header.Filename.EndsWith(AssemblyPhase.ObjectFileExtension)) continue;
+
+			var object_file_bytes = bytes[header.PointerOfData..(header.PointerOfData + header.Size)];
+			var object_file = Assembler.IsTargetWindows
+				? PeFormat.Import(object_file_bytes)
+				: ElfFormat.Import(object_file_bytes);
+
+			var object_file_source = new SourceFile(file + '/' + header.Filename, string.Empty, -1);
+			object_files.Add(object_file_source, object_file);
+		}
+	}
+
+	/// <summary>
 	/// Imports the specified static library by finding the exported symbols and importing them
 	/// </summary>
-	private static bool ImportStaticLibrary(Context context, string file, List<SourceFile> files)
+	private static bool ImportStaticLibrary(Context context, string file, List<SourceFile> files, Dictionary<SourceFile, BinaryObjectFile> object_files)
 	{
 		var bytes = File.ReadAllBytes(file);
 		var entries = BitConverter.ToInt32(bytes[STATIC_LIBRARY_SYMBOL_TABLE_OFFSET..(STATIC_LIBRARY_SYMBOL_TABLE_OFFSET + sizeof(int))].Reverse().ToArray());
@@ -789,15 +873,14 @@ public static class Importer
 
 		// Load all the exported symbols
 		var exported_symbols = PeFormat.LoadNumberOfStrings(bytes, position, entries);
-
 		if (exported_symbols == null) return false;
 
 		var headers = LoadFileHeaders(bytes);
-
 		if (!headers.Any()) return false;
 
 		ImportTemplates(context, bytes, headers, file, files);
-		ImportSymbols(context, exported_symbols);
+		ImportAllSymbols(context, exported_symbols);
+		ImportObjectFilesFromStaticLibrary(file, headers, bytes, object_files);
 
 		return true;
 	}
@@ -809,10 +892,10 @@ public static class Importer
 	{
 		foreach (var header in headers)
 		{
-			// Look for files which have names such as: 25/
-			if (!header.Filename.EndsWith("/")) continue;
+			// Look for files which have names such as: /10
+			if (!header.Filename.StartsWith("/")) continue;
 
-			var digits = header.Filename.TakeWhile(i => i != '/');
+			var digits = header.Filename[1..];
 
 			if (!digits.Any() || digits.Any(i => !char.IsDigit(i))) continue;
 
@@ -820,7 +903,7 @@ public static class Importer
 			if (!int.TryParse(digits.ToArray(), out int offset)) continue;
 
 			// Compute the position of the filename
-			var position = filenames.Data + offset;
+			var position = filenames.PointerOfData + offset;
 
 			// Check whether the position is out of bounds
 			if (position < 0 || position >= bytes.Length) continue;
@@ -845,29 +928,30 @@ public static class Importer
 		while (position < bytes.Length)
 		{
 			// If a line ending is encountered, it means that the file headers have been consumed
-			if (bytes[position] == '\n')
-			{
-				break;
-			}
+			if (bytes[position] == '\n') break;
 
-			var buffer = bytes.Skip(position).Take(StaticLibraryFormat.FILENAME_LENGTH);
-			var name =  Encoding.UTF8.GetString(buffer.TakeWhile(i => i != StaticLibraryFormat.PADDING_VALUE).ToArray());
+			// Extract the file name
+			var name_buffer = bytes[position..(position + StaticLibraryFormat.FILENAME_LENGTH)];
+			var name = Encoding.UTF8.GetString(name_buffer.TakeWhile(i => i != StaticLibraryFormat.PADDING_VALUE).ToArray());
 			
-			// Go to the file size
+			// Extract the file size
 			position += StaticLibraryFormat.FILENAME_LENGTH + StaticLibraryFormat.TIMESTAMP_LENGTH + StaticLibraryFormat.IDENTITY_LENGTH * 2 + StaticLibraryFormat.FILEMODE_LENGTH;
 			
-			// Load the file size into a buffer
-			buffer = bytes.Skip(position).Take(StaticLibraryFormat.SIZE_LENGTH);
+			// Load the file size text into a string
+			var size_text_buffer = bytes[position..(position + StaticLibraryFormat.SIZE_LENGTH)];
+			var size_text = Encoding.UTF8.GetString(size_text_buffer.TakeWhile(i => i != StaticLibraryFormat.PADDING_VALUE).ToArray());
 
-			var text = Encoding.UTF8.GetString(buffer.TakeWhile(i => i != StaticLibraryFormat.PADDING_VALUE).ToArray());
+			// Parse the file size
+			if (!int.TryParse(size_text, out int size)) return new List<StaticLibraryFormatFileHeader>();
 
-			if (!int.TryParse(text, out int size)) return new List<StaticLibraryFormatFileHeader>();
-
+			// Go to the end of the header, that is the start of the file data
 			position += StaticLibraryFormat.SIZE_LENGTH + StaticLibraryFormat.END_COMMAND.Length;
 
 			headers.Add(new StaticLibraryFormatFileHeader(name, size, position));
 
-			position += size; // Skip the contents
+			// Skip to the next header
+			position += size;
+			position += position % 2;
 		}
 
 		// Try to find the section which has the actual filenames
@@ -887,13 +971,38 @@ public static class Importer
 	/// Imports the specified file.
 	/// This function assumes the file represents a library
 	/// </summary>
-	public static bool Import(Context context, string file, List<SourceFile> files)
+	public static bool Import(Context context, string file, List<SourceFile> files, Dictionary<SourceFile, BinaryObjectFile> object_files)
 	{
+		var import_context = Parser.CreateRootContext(file);
+
 		if (file.EndsWith(WINDOWS_SHARED_LIBRARY_EXTENSION) || file.EndsWith(UNIX_SHARED_LIBRARY_EXTENSION))
 		{
-			return ImportDynamicLibrary(context, file);
+			if (!ImportDynamicLibrary(import_context, file)) return false;
+		}
+		else
+		{
+			if (!ImportStaticLibrary(import_context, file, files, object_files)) return false;
 		}
 
-		return ImportStaticLibrary(context, file, files);
+		// Ensure all functions are marked as imported
+		var implementations = Common.GetAllFunctionImplementations(import_context);
+
+		foreach (var implementation in implementations)
+		{
+			implementation.IsImported = true;
+		}
+
+		// Ensure all types are marked as imported
+		var types = Common.GetAllTypes(import_context);
+
+		foreach (var type in types)
+		{
+			type.Modifiers = Modifier.Combine(type.Modifiers, Modifier.IMPORTED);
+		}
+
+		// TODO: Verify all parameter types are resolved
+
+		context.Merge(import_context);
+		return true;
 	}
 }

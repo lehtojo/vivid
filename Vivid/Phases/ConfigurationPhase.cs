@@ -12,6 +12,7 @@ public class ConfigurationPhase : Phase
 	public const string ARGUMENTS = "arguments";
 	public const string FILES = "filenames";
 	public const string OBJECTS = "objects";
+	public const string IMPORTED_OBJECTS = "imported-objects";
 	public const string LIBRARIES = "libraries";
 
 	public const string OUTPUT_NAME = "output_name";
@@ -474,6 +475,7 @@ public class ConfigurationPhase : Phase
 
 		bundle.Put(FILES, Files.Distinct().ToArray());
 		bundle.Put(OBJECTS, Objects.Distinct().ToArray());
+		bundle.Put(IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
 		bundle.Put(LIBRARIES, Libraries.ToArray());
 
 		if (!bundle.Contains(OUTPUT_NAME))

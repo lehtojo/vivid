@@ -101,6 +101,7 @@ public class ImportPattern : Pattern
 		function.Parameters.AddRange(parameters);
 
 		var implementation = new FunctionImplementation(function, parameters, return_type, environment);
+		implementation.IsImported = true;
 		function.Implementations.Add(implementation);
 
 		implementation.Implement(function.Blueprint);

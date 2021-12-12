@@ -219,8 +219,6 @@ public static class Assembler
 
 		foreach (var implementation in function.Implementations)
 		{
-			if (implementation.IsInlined) continue;
-
 			var fullname = implementation.GetFullname();
 
 			// Ensure this function is visible to other units
@@ -291,7 +289,8 @@ public static class Assembler
 	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context)
 	{
 		// Group all functions by their owner files
-		var files = Common.GetAllImplementedFunctions(context).Where(i => !i.IsImported && i.Start != null)
+		var files = Common.GetAllImplementedFunctions(context, false)
+			.Where(i => i.Start != null)
 			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"));
 
 		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
@@ -536,6 +535,9 @@ public static class Assembler
 
 			foreach (var type in iterator)
 			{
+				// 1. Skip imported types, because they are already exported
+				if (type.IsImported) continue;
+
 				foreach (var variable in type.Variables.Values)
 				{
 					if (!variable.IsStatic) continue;
@@ -558,7 +560,7 @@ public static class Assembler
 			foreach (var type in iterator)
 			{
 				// 1. Skip if the runtime configuration is not created
-				// 2. Imported types are already exported
+				// 2. Skip imported types, because they are already exported
 				// 3. The template type must be a variant
 				// 4. Unnamed packs are not processed
 				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) continue;
@@ -613,6 +615,9 @@ public static class Assembler
 
 			foreach (var type in iterator)
 			{
+				// 1. Skip imported types, because they are already exported
+				if (type.IsImported) continue;
+
 				var symbol = ObjectExporter.ExportType(builder, type);
 				if (symbol == null) continue;
 
@@ -690,7 +695,7 @@ public static class Assembler
 		return builders;
 	}
 
-	public static Dictionary<SourceFile, string> Assemble(Context context, SourceFile[] files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
+	public static Dictionary<SourceFile, string> Assemble(Bundle bundle, Context context, SourceFile[] files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
 		if (Assembler.IsArm64)
 		{
@@ -717,9 +722,17 @@ public static class Assembler
 			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
 		}
 	
-		var object_files = new List<BinaryObjectFile>();
+		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
+		var standard_library_object_file = new SourceFile(AssemblyPhase.StandardLibrary, string.Empty, files.Max(i => i.Index) + 1);
 
-		object_files.Add(IsTargetWindows ? PeFormat.Import("libv_x64.obj") : ElfFormat.Import("libv_x64.o"));
+		if (object_files.Keys.All(i => i.Filename != AssemblyPhase.ImportedStandardLibraryObjectFile))
+		{
+			object_files.Add
+			(
+				standard_library_object_file,
+				IsTargetWindows ? PeFormat.Import(standard_library_object_file.Fullname) : ElfFormat.Import(standard_library_object_file.Fullname)
+			);
+		}
 
 		var text_sections = GetTextSections(context);
 		var data_sections = GetDataSections(context);
@@ -846,6 +859,8 @@ public static class Assembler
 			if (IsLegacyAssemblyEnabled) continue;
 
 			// Load all the section modules
+			if (!builder.Modules.ContainsKey(file)) continue;
+
 			var modules = builder.Modules[file];
 
 			// Ensure there are no duplicated sections
@@ -867,7 +882,14 @@ public static class Assembler
 				? PeFormat.Create(sections, builder.Exports)
 				: ElfFormat.Create(sections, builder.Exports);
 
-			object_files.Add(object_file);
+			object_files.Add(file, object_file);
+		}
+
+		if (output_type == BinaryType.STATIC_LIBRARY)
+		{
+			if (!StaticLibraryFormat.Export(context, exports, object_files, output_name).IsProblematic) return result;
+
+			throw new ApplicationException("Failed to create the static library");
 		}
 
 		if (!Assembler.IsLegacyAssemblyEnabled)
@@ -875,8 +897,8 @@ public static class Assembler
 			var postfix = output_type == BinaryType.EXECUTABLE ? AssemblyPhase.ExecutableExtension : AssemblyPhase.SharedLibraryExtension;
 
 			var linked_binary = IsTargetWindows
-				? PeFormat.Link(object_files, imports, DefaultEntryPoint, output_name + postfix, output_type == BinaryType.EXECUTABLE)
-				: Linker.Link(object_files, DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
+				? PeFormat.Link(object_files.Values.ToList(), imports, DefaultEntryPoint, output_name + postfix, output_type == BinaryType.EXECUTABLE)
+				: Linker.Link(object_files.Values.ToList(), DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
 
 			File.WriteAllBytes(output_name + postfix, linked_binary);
 

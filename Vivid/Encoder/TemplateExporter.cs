@@ -33,9 +33,9 @@ public static class ObjectExporter
 	/// </summary>
 	public static string? ExportType(AssemblyBuilder builder, Type type)
 	{
-		// 1. Skip template types since they will be exported in a different way
+		// 1. Skip template types since they will be exported in a different way (not variants)
 		// 2. Unnamed packs are not exported
-		if (type.IsTemplateType || type.IsUnnamedPack) return null;
+		if ((type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) return null;
 
 		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
 		mangle.Add(type);

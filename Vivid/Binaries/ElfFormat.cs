@@ -557,7 +557,7 @@ public static class ElfFormat
 		// Now that section positions are set, compute offsets
 		BinaryUtility.ComputeOffsets(sections, symbols);
 
-		return new BinaryObjectFile(sections);
+		return new BinaryObjectFile(sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
 	}
 
 	/// <summary>
@@ -730,10 +730,9 @@ public static class ElfFormat
 	/// <summary>
 	/// Load the specified object file and constructs a object structure that represents it
 	/// </summary>
-	public static BinaryObjectFile Import(string path)
+	public static BinaryObjectFile Import(byte[] source)
 	{
 		// Load the file into raw memory
-		var source = File.ReadAllBytes(path);
 		var bytes = Marshal.AllocHGlobal(source.Length);
 		Marshal.Copy(source, 0, bytes, source.Length);
 
@@ -804,5 +803,13 @@ public static class ElfFormat
 
 		Marshal.FreeHGlobal(bytes);
 		return new BinaryObjectFile(sections);
+	}
+
+	/// <summary>
+	/// Load the specified object file and constructs a object structure that represents it
+	/// </summary>
+	public static BinaryObjectFile Import(string path)
+	{
+		return Import(File.ReadAllBytes(path));
 	}
 }

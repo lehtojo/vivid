@@ -201,10 +201,11 @@ public class ParserPhase : Phase
 
 		// Import all the specified libraries
 		var libraries = bundle.Get(ConfigurationPhase.LIBRARIES, Array.Empty<string>());
+		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
 
 		foreach (var library in libraries)
 		{
-			Importer.Import(context, library, files);
+			Importer.Import(context, library, files, object_files);
 		}
 
 		// Now merge all the parsed source files

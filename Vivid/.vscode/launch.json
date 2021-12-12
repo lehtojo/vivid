@@ -9,7 +9,7 @@
 			"program": "${workspaceFolder}/bin/Debug/net6.0/Vivid.dll",
 
 			// Builds the standard library
-			//"args": [ "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Math.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Types.v", "-f", "-static" ],
+			//"args": [ "${workspaceFolder}/libv/", "${workspaceFolder}/libv/windows_x64", "-f", "-static" ],
 
 			// Builds the battleship game
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
@@ -17,14 +17,16 @@
 			// Launch the compiler service
 			//"args": [ "-s" ],
 
-			//"args": [ "/home/jolehto/vivid-2/", "/home/jolehto/vivid-2/tests/assert.v", "/home/jolehto/vivid-2/entries/tests.v", "/home/jolehto/vivid-2/libv/", "/home/jolehto/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-d" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "${workspaceFolder}/libv/", "-o", "v", "-a", "-f" ], 
+			// Builds the stage 2 tests
+			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
 
-			"args": [ "${workspaceFolder}/Examples/Statics.v", "${workspaceFolder}/libv/", "-o", "v", "-f", "-a", "-l", "kernel32", "-O2" ],
+			// Builds the stage 2 compiler
+			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/vivid.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
 
+			// Build an assembly file
 			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
 
-			//"args": [ "${workspaceFolder}/libv/linux_x64_vivid/console.asm", "${workspaceFolder}/libv/linux_x64_vivid/math.asm", "${workspaceFolder}/libv/linux_x64_vivid/memory.asm", "${workspaceFolder}/libv/linux_x64_vivid/system.asm", "${workspaceFolder}/libv/linux_x64_vivid/tests.asm", "${workspaceFolder}/Examples/main.asm" ],
+			"args": [ "${workspaceFolder}/Examples/StaticLibraryUsage.v", "-o", "v", "-f", "-l", "v", "-l", "kernel32" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

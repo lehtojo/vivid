@@ -50,19 +50,13 @@ public class FunctionList
 				var x = function.Parameters[i].Type;
 				var y = conflict.Parameters[i].Type;
 
-				if (x == null || y == null || x == y)
-				{
-					continue;
-				}
+				if (x == null || y == null || Equals(x, y)) continue;
 
 				pass = true;
 				break;
 			}
 
-			if (!pass)
-			{
-				return conflict;
-			}
+			if (!pass) return conflict;
 		}
 
 		Overloads.Add(function);

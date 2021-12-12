@@ -21,6 +21,7 @@ public static class PeFormat
 	public const int SharedLibraryBaseAddress = 0x10000000;
 
 	public const string RelocationSectionPrefix = ".r";
+	public const string NoneSection = ".";
 	public const string TextSection = ".text";
 	public const string DataSection = ".data";
 	public const string SymbolTableSection = ".symtab";
@@ -325,7 +326,7 @@ public static class PeFormat
 			var symbol_entry = new PeSymbolEntry();
 			symbol_entry.Value = (uint)(virtual_address + symbol.Offset - base_virtual_address); // Symbol locations are relative to the start of the section
 			symbol_entry.SectionNumber = (short)(symbol.External ? 0 : symbol.Section!.Index + 1);
-			symbol_entry.StorageClass = symbol.External ? (byte)PeFormatStorageClass.EXTERNAL : (byte)PeFormatStorageClass.LABEL;
+			symbol_entry.StorageClass = (symbol.External || symbol.Export) ? (byte)PeFormatStorageClass.EXTERNAL : (byte)PeFormatStorageClass.LABEL;
 
 			// Now we need to attach the symbol name to the symbol entry
 			// If the length of the name is greater than 8, we need to create a new string table entry
@@ -361,7 +362,7 @@ public static class PeFormat
 			foreach (var relocation in section.Relocations)
 			{
 				var relocation_entry = new PeRelocationEntry();
-				relocation_entry.VirtualAddress = (uint)(relocation.Section!.Offset + relocation.Offset);
+				relocation_entry.VirtualAddress = (uint)relocation.Offset;
 				relocation_entry.SymbolTableIndex = (ushort)relocation.Symbol!.Index;
 				relocation_entry.Type = GetRelocationType(relocation.Type);
 
@@ -420,7 +421,7 @@ public static class PeFormat
 		// Now that section positions are set, compute offsets
 		BinaryUtility.ComputeOffsets(sections, symbols);
 
-		return new BinaryObjectFile(sections);
+		return new BinaryObjectFile(sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
 	}
 
 	/// <summary>
@@ -430,6 +431,9 @@ public static class PeFormat
 	{
 		// Load all the symbols from the specified sections
 		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
+
+		// Filter out the none-section if it is present
+		if (sections.Count > 0 && sections[0].Type == BinarySectionType.NONE) sections.RemoveAt(0);
 
 		// Export the specified symbols
 		BinaryUtility.ApplyExports(symbols, exports);
@@ -791,6 +795,9 @@ public static class PeFormat
 	/// </summary>
 	public static BinarySection CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments)
 	{
+		// Only dynamic libraries are inspected here
+		imports = imports.Where(i => i.EndsWith(AssemblyPhase.SharedLibraryExtension)).ToList();
+
 		var externals = relocations.Where(i => i.Symbol.External).ToList();
 		var exports = imports.Select(LoadExportedSymbols).ToArray();
 
@@ -1083,7 +1090,7 @@ public static class PeFormat
 		var symbols = Linker.ResolveSymbols(objects);
 
 		// Ensure sections are ordered so that sections of same type are next to each other
-		var fragments = objects.SelectMany(i => i.Sections).Where(Linker.IsLoadableSection).ToList();
+		var fragments = objects.SelectMany(i => i.Sections).Where(i => i.Type != BinarySectionType.NONE).Where(Linker.IsLoadableSection).ToList();
 
 		// Load all the relocations from all the sections
 		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
@@ -1277,6 +1284,8 @@ public static class PeFormat
 		//                          .
 		// 8192-byte alignment: 0x00E00000
 		var exponent = (characteristics >> 20) & 15; // Take out the first four bits: 15 = 0b1111
+		if (exponent == 0) { return 1; }
+
 		return 2 << (int)(exponent - 1); // 2^(exponent - 1)
 	}
 
@@ -1297,7 +1306,7 @@ public static class PeFormat
 	/// <summary>
 	/// Imports all symbols and relocations from the represented object file
 	/// </summary>
-	public static void ImportSymbolsAndRelocations(PeObjectFileHeader header, List<BinarySection> sections, List<PeSectionTable> section_tables, IntPtr bytes)
+	public static List<BinarySymbol> ImportSymbolsAndRelocations(PeObjectFileHeader header, List<BinarySection> sections, List<PeSectionTable> section_tables, IntPtr bytes)
 	{
 		var file_position = bytes + (int)header.PointerToSymbolTable;
 		var symbol_name_table_start = file_position + (int)header.NumberOfSymbols * PeSymbolEntry.Size;
@@ -1312,7 +1321,7 @@ public static class PeFormat
 			var symbol_name = (string?)null;
 			
 			// If the section number is a positive integer, the symbol is defined locally inside some section
-			var section = symbol_entry.SectionNumber > 0 ? sections[symbol_entry.SectionNumber - 1] : null;
+			var section = symbol_entry.SectionNumber >= 0 ? sections[symbol_entry.SectionNumber] : null;
 
 			// Extract the symbol name:
 			// If the first four bytes are zero, the symbol name is located in the string table
@@ -1333,7 +1342,7 @@ public static class PeFormat
 			symbol.Section = section;
 
 			// Define the symbol inside its section, if it has a section
-			if (section != null) section.Symbols.Add(symbol.Name, symbol);
+			if (section != null) section.Symbols.TryAdd(symbol.Name, symbol);
 
 			symbols.Add(symbol);
 
@@ -1381,15 +1390,16 @@ public static class PeFormat
 			// Load the section name from the string table
 			section.Name = Marshal.PtrToStringUTF8(symbol_name_table_start + (int)section_name_offset) ?? throw new ApplicationException("Could not extract section name from the string table");
 		}
+
+		return symbols;
 	}
 
 	/// <summary>
 	/// Load the specified object file and constructs a object structure that represents it
 	/// </summary>
-	public static BinaryObjectFile Import(string path)
+	public static BinaryObjectFile Import(byte[] source)
 	{
 		// Load the file into raw memory
-		var source = File.ReadAllBytes(path);
 		var bytes = Marshal.AllocHGlobal(source.Length);
 		Marshal.Copy(source, 0, bytes, source.Length);
 
@@ -1400,8 +1410,15 @@ public static class PeFormat
 		var file_position = bytes + PeObjectFileHeader.Size;
 		var sections = new List<BinarySection>();
 
+		// Add none-section to the list
+		var none_section = new BinarySection(NoneSection, BinarySectionType.NONE, Array.Empty<byte>());
+		sections.Add(none_section);
+
 		// Store the section tables for usage after the loop
 		var section_tables = new List<PeSectionTable>();
+		
+		var none_section_table = new PeSectionTable();
+		section_tables.Add(none_section_table);
 
 		for (var i = 0; i < header.NumberOfSections; i++)
 		{
@@ -1444,10 +1461,19 @@ public static class PeFormat
 			file_position += PeSectionTable.Size;
 		}
 
-		ImportSymbolsAndRelocations(header, sections, section_tables, bytes);
+		var symbols = ImportSymbolsAndRelocations(header, sections, section_tables, bytes);
+		var exports = new HashSet<string>(symbols.Where(i => i.Export).Select(i => i.Name));
 
 		Marshal.FreeHGlobal(bytes);
-		return new BinaryObjectFile(sections);
+		return new BinaryObjectFile(sections, exports);
+	}
+
+	/// <summary>
+	/// Load the specified object file and constructs a object structure that represents it
+	/// </summary>
+	public static BinaryObjectFile Import(string path)
+	{
+		return Import(File.ReadAllBytes(path));
 	}
 }
 

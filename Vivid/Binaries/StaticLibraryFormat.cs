@@ -51,13 +51,13 @@ public class StaticLibraryFormatFileHeader
 {
 	public string Filename { get; set; }
 	public int Size { get; set; }
-	public int Data { get; set; }
+	public int PointerOfData { get; set; }
 
-	public StaticLibraryFormatFileHeader(string filename, int size, int data)
+	public StaticLibraryFormatFileHeader(string filename, int size, int pointer_of_data)
 	{
 		Filename = filename;
 		Size = size;
-		Data = data;
+		PointerOfData = pointer_of_data;
 	}
 }
 
@@ -131,11 +131,11 @@ public static class StaticLibraryFormat
 	private static MemoryStream AppendSymbols(StaticLibraryFormatFile[] files)
 	{
 		var builder = new MemoryStream();
-		AppendSymbols(builder, files.SelectMany(i => i.Symbols).ToArray());
+		WriteSymbols(builder, files.SelectMany(i => i.Symbols).ToArray());
 		return builder;
 	}
 
-	private static int[] AppendSymbols(MemoryStream builder, string[] symbols)
+	private static int[] WriteSymbols(MemoryStream builder, string[] symbols)
 	{
 		var indices = new int[symbols.Length];
 
@@ -147,7 +147,8 @@ public static class StaticLibraryFormat
 			builder.WriteByte(0);
 		}
 
-		builder.WriteByte(0);
+		// Align to 2 bytes if necessary
+		if (builder.Length % 2 != 0) builder.WriteByte(0);
 
 		return indices;
 	}
@@ -155,7 +156,7 @@ public static class StaticLibraryFormat
 	private static MemoryStream CreateFilenameTable(StaticLibraryFormatFile[] files, uint timestamp)
 	{
 		using var filenames = new MemoryStream();
-		var indices = AppendSymbols(filenames, files.Select(i => i.Name).ToArray());
+		var indices = WriteSymbols(filenames, files.Select(i => i.Name).ToArray());
 
 		files.Zip(indices).ForEach(i => i.First.Name = '/' + i.Second.ToString());
 
@@ -251,8 +252,60 @@ public static class StaticLibraryFormat
 	{
 		try
 		{
-			var template_exports = ObjectExporter.GetTemplateExportFiles(context).Select(i => new StaticLibraryFormatFile(i.Key.Filename, Array.Empty<string>(), Encoding.UTF8.GetBytes(i.Value.ToString())));
-			var exported_symbols = ObjectExporter.GetExportedSymbols(context).Merge(exports).Select(i => new StaticLibraryFormatFile(AssemblyPhase.GetObjectFileName(i.Key, output_name), i.Value.ToArray()));
+			var template_exports = ObjectExporter
+				.GetTemplateExportFiles(context)
+				.Select(i => new StaticLibraryFormatFile(
+					i.Key.Filename,
+					Array.Empty<string>(),
+					Encoding.UTF8.GetBytes(i.Value.ToString())
+				));
+
+			var exported_symbols = ObjectExporter
+				.GetExportedSymbols(context)
+				.Merge(exports)
+				.Select(i => new StaticLibraryFormatFile(
+					AssemblyPhase.GetObjectFileName(i.Key, output_name),
+					i.Value.ToArray()
+				));
+
+			StaticLibraryFormat.Export(exported_symbols.Concat(template_exports).ToArray(), output_name);
+		}
+		catch (Exception e)
+		{
+			return Status.Error(e.Message);
+		}
+
+		return Status.OK;
+	}
+
+	public static Status Export(Context context, Dictionary<SourceFile, List<string>> exports, Dictionary<SourceFile, BinaryObjectFile> object_files, string output_name)
+	{
+		try
+		{
+			var template_exports = ObjectExporter
+				.GetTemplateExportFiles(context)
+				.Select(i => new StaticLibraryFormatFile(
+					i.Key.Filename,
+					Array.Empty<string>(),
+					Encoding.UTF8.GetBytes(i.Value.ToString())
+				));
+
+			var exported_symbols = new List<StaticLibraryFormatFile>();
+
+			foreach (var iterator in object_files)
+			{
+				var source_file = iterator.Key;
+				var object_file = iterator.Value;
+
+				var object_file_name = AssemblyPhase.GetObjectFileName(source_file, output_name);
+				var object_file_symbols = object_file.Exports.ToArray();
+
+				var bytes = Assembler.IsTargetWindows
+					? PeFormat.Build(object_file.Sections, object_file.Exports)
+					: ElfFormat.Build(object_file.Sections, object_file.Exports);
+
+				exported_symbols.Add(new StaticLibraryFormatFile(object_file_name, object_file_symbols, bytes));
+			}
 
 			StaticLibraryFormat.Export(exported_symbols.Concat(template_exports).ToArray(), output_name);
 		}

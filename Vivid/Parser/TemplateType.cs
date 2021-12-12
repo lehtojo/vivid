@@ -109,7 +109,7 @@ public class TemplateType : Type
 		// Register the new variant
 		var variant = result.To<TypeNode>().Type;
 		variant.Identifier = Name;
-		variant.Modifiers = Modifiers;
+		variant.Modifiers = Modifiers & (~Modifier.IMPORTED); // Remove the imported modifier, because new variants are not imported
 		variant.TemplateArguments = arguments;
 
 		Variants.Add(identifier, new TemplateTypeVariant(variant, arguments));

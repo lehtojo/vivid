@@ -20,11 +20,11 @@ public class FunctionImplementation : Context
 
 	public Node? Node { get; set; }
 
-	public List<Node> References { get; } = new List<Node>();
+	public List<Node> Usages { get; } = new List<Node>();
 
 	public Type? ReturnType { get; set; }
 
-	public bool IsInlined { get; set; } = false;
+	public bool IsImported { get; set; } = false;
 	public bool IsEmpty => (Node == null || Node.First == null) && !Metadata.IsImported;
 
 	public bool IsConstructor => Metadata is Constructor;

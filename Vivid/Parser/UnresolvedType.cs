@@ -129,6 +129,11 @@ public class UnresolvedType : Type, IResolvable
 		return Resolve(context)?.TryGetType();
 	}
 
+	public override bool Equals(object? other)
+	{
+		return false;
+	}
+
 	public Status GetStatus()
 	{
 		return Status.Error(Position, $"Can not resolve type '{this}'");

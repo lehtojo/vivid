@@ -14,25 +14,6 @@ public class TemplateFunction : Function
 		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
 	}
 
-	public TemplateFunction(Context context, int modifiers, string name, int parameters) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, (Position?)null, (Position?)null)
-	{
-		TemplateParameters = new List<string>();
-
-		// Generate parameter names based on the specified parameter count
-		var parameter_tokens = new List<Token>();
-
-		for (var i = 0; i < parameters; i++)
-		{
-			parameter_tokens.Add(new IdentifierToken($"P{i}"));
-			parameter_tokens.Add(new OperatorToken(Operators.COMMA));
-		}
-
-		// Remove the unnecessary comma from the end
-		if (parameters > 0) parameter_tokens.RemoveAt(parameter_tokens.Count - 1);
-
-		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
-	}
-
 	/// <summary>
 	/// Creates the parameters of this function in a way that they do not have types
 	/// </summary>

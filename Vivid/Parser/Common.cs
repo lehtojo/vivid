@@ -922,11 +922,7 @@ public static class Common
 	public static Node GetSelfPointer(Context context, Position? position)
 	{
 		var self = context.GetSelfPointer();
-
-		if (self != null)
-		{
-			return new VariableNode(self, position);
-		}
+		if (self != null) return new VariableNode(self, position);
 
 		return new UnresolvedIdentifier(context.IsInsideLambda ? Lambda.SELF_POINTER_IDENTIFIER : Function.SELF_POINTER_IDENTIFIER, position);
 	}
@@ -942,12 +938,15 @@ public static class Common
 	/// <summary>
 	/// Collects all types and subtypes from the specified context
 	/// </summary>
-	public static List<Type> GetAllTypes(Context context)
+	public static List<Type> GetAllTypes(Context context, bool include_imported = true)
 	{
 		var result = context.Types.Values.ToList();
 		result.AddRange(result.SelectMany(i => GetAllTypes(i)).ToList());
 
-		return result.Where(i => !string.IsNullOrEmpty(i.Name)).ToList();
+		return result
+			.Where(i => !string.IsNullOrEmpty(i.Name))
+			.Where(i => include_imported || !i.IsImported)
+			.ToList();
 	}
 
 	/// <summary>
@@ -973,7 +972,7 @@ public static class Common
 	/// <summary>
 	/// Collects all function implementations from the specified context
 	/// </summary>
-	public static FunctionImplementation[] GetAllFunctionImplementations(Context context)
+	public static FunctionImplementation[] GetAllFunctionImplementations(Context context, bool include_imported = true)
 	{
 		var types = Common.GetAllTypes(context);
 
@@ -994,7 +993,11 @@ public static class Common
 			.SelectMany(i => i.Implementations).ToArray();
 
 		// Combine all functions with lambdas, which can be found inside the collected functions
-		return implementations.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i))).Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+		return implementations
+			.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
+			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>())
+			.Where(i => include_imported || !i.IsImported)
+			.ToArray();
 	}
 
 	/// <summary>
@@ -1025,9 +1028,9 @@ public static class Common
 	/// <summary>
 	/// Collects all functions which have implementations from the specified context and its subcontexts
 	/// </summary>
-	public static Function[] GetAllImplementedFunctions(Context context)
+	public static Function[] GetAllImplementedFunctions(Context context, bool include_imported = true)
 	{
-		return GetAllFunctionImplementations(context).Select(i => i.Metadata!).Distinct().ToArray();
+		return GetAllFunctionImplementations(context, include_imported).Select(i => i.Metadata!).Distinct().ToArray();
 	}
 
 	/// <summary>
