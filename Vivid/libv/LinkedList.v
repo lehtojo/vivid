@@ -1,4 +1,4 @@
-LinkedListElement<T> {
+export LinkedListElement<T> {
 	next: LinkedListElement<T>
 	value: T
 
@@ -7,7 +7,7 @@ LinkedListElement<T> {
 	}
 }
 
-LinkedList<T> {
+export LinkedList<T> {
 	private:
 	head: LinkedListElement<T> = none as LinkedListElement<T>
 	tail: LinkedListElement<T> = none as LinkedListElement<T>

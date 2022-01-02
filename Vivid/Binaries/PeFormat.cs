@@ -404,7 +404,7 @@ public static class PeFormat
 	/// <summary>
 	/// Creates an object file from the specified sections
 	/// </summary>
-	public static BinaryObjectFile Create(List<BinarySection> sections, HashSet<string> exports)
+	public static BinaryObjectFile Create(string name, List<BinarySection> sections, HashSet<string> exports)
 	{
 		// Load all the symbols from the specified sections
 		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
@@ -421,7 +421,7 @@ public static class PeFormat
 		// Now that section positions are set, compute offsets
 		BinaryUtility.ComputeOffsets(sections, symbols);
 
-		return new BinaryObjectFile(sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
+		return new BinaryObjectFile(name, sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
 	}
 
 	/// <summary>
@@ -1397,7 +1397,7 @@ public static class PeFormat
 	/// <summary>
 	/// Load the specified object file and constructs a object structure that represents it
 	/// </summary>
-	public static BinaryObjectFile Import(byte[] source)
+	public static BinaryObjectFile Import(string name, byte[] source)
 	{
 		// Load the file into raw memory
 		var bytes = Marshal.AllocHGlobal(source.Length);
@@ -1465,7 +1465,7 @@ public static class PeFormat
 		var exports = new HashSet<string>(symbols.Where(i => i.Export).Select(i => i.Name));
 
 		Marshal.FreeHGlobal(bytes);
-		return new BinaryObjectFile(sections, exports);
+		return new BinaryObjectFile(name, sections, exports);
 	}
 
 	/// <summary>
@@ -1473,7 +1473,7 @@ public static class PeFormat
 	/// </summary>
 	public static BinaryObjectFile Import(string path)
 	{
-		return Import(File.ReadAllBytes(path));
+		return Import(path, File.ReadAllBytes(path));
 	}
 }
 

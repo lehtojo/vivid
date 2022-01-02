@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Globalization;
+using System;
 
 public class MangleDefinition
 {
@@ -130,22 +129,14 @@ public class Mangle
 
 	public void Path(IEnumerable<Type> path)
 	{
-		var components = path.Reverse().TakeWhile(i => !Definitions.Any(j => j.Type == i)).Reverse().ToArray();
-
-		foreach (var type in components)
+		foreach (var type in path)
 		{
-			// The path must consist of user defined types
-			if (!type.IsUserDefined)
-			{
-				throw new ArgumentException("Invalid type path");
-			}
-
 			// Try to find the current type from the definitions
 			var definition = Definitions.Find(i => i.Type == type);
 
 			if (definition != null)
 			{
-				Value = definition.ToString() + Value;
+				Value += definition.ToString();
 				break;
 			}
 
@@ -933,5 +924,10 @@ public class Context : IComparable<Context>
 	public int CompareTo(Context? other)
 	{
 		return other == null ? 0 : Identity.CompareTo(other.Identity);
+	}
+
+	public override string ToString()
+	{
+		return string.Empty;
 	}
 }

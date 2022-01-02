@@ -34,7 +34,7 @@ public class AssemblerPhase : Phase
 				foreach (var file in files)
 				{
 					var parser = new AssemblyParser();
-					parser.Parse(file.Content);
+					parser.Parse(file, file.Content);
 
 					var text_section_output = InstructionEncoder.Encode(parser.Instructions, parser.DebugFile);
 					var text_section = text_section_output.Section;
@@ -47,7 +47,7 @@ public class AssemblerPhase : Phase
 					sections.AddRange(data_sections);
 					if (debug_lines_section != null) sections.Add(debug_lines_section);
 
-					object_files.Add(ElfFormat.Create(sections, parser.Exports));
+					object_files.Add(ElfFormat.Create(file.Filename, sections, parser.Exports));
 				}
 
 				var result = Assembler.IsTargetWindows
@@ -61,7 +61,7 @@ public class AssemblerPhase : Phase
 				foreach (var file in files)
 				{
 					var parser = new AssemblyParser();
-					parser.Parse(file.Content);
+					parser.Parse(file, file.Content);
 
 					var text_section_output = InstructionEncoder.Encode(parser.Instructions, parser.DebugFile);
 					var text_section = text_section_output.Section;
@@ -78,7 +78,7 @@ public class AssemblerPhase : Phase
 						? PeFormat.Build(sections, parser.Exports)
 						: ElfFormat.Build(sections, parser.Exports);
 
-					File.WriteAllBytes(output_name + AssemblyPhase.ObjectFileExtension, object_file);
+					File.WriteAllBytes($"{output_name}.{file.GetFilenameWithoutExtension()}{AssemblyPhase.ObjectFileExtension}", object_file);
 				}
 			}
 		}

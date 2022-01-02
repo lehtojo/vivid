@@ -535,7 +535,7 @@ public static class ElfFormat
 	/// <summary>
 	/// Creates an object file from the specified sections
 	/// </summary>
-	public static BinaryObjectFile Create(List<BinarySection> sections, HashSet<string> exports)
+	public static BinaryObjectFile Create(string name, List<BinarySection> sections, HashSet<string> exports)
 	{
 		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
 		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
@@ -557,7 +557,7 @@ public static class ElfFormat
 		// Now that section positions are set, compute offsets
 		BinaryUtility.ComputeOffsets(sections, symbols);
 
-		return new BinaryObjectFile(sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
+		return new BinaryObjectFile(name, sections, symbols.Values.Where(i => i.Export).Select(i => i.Name).ToHashSet());
 	}
 
 	/// <summary>
@@ -730,7 +730,7 @@ public static class ElfFormat
 	/// <summary>
 	/// Load the specified object file and constructs a object structure that represents it
 	/// </summary>
-	public static BinaryObjectFile Import(byte[] source)
+	public static BinaryObjectFile Import(string name, byte[] source)
 	{
 		// Load the file into raw memory
 		var bytes = Marshal.AllocHGlobal(source.Length);
@@ -802,7 +802,7 @@ public static class ElfFormat
 		ImportSymbolsAndRelocations(sections, section_intermediates);
 
 		Marshal.FreeHGlobal(bytes);
-		return new BinaryObjectFile(sections);
+		return new BinaryObjectFile(name, sections);
 	}
 
 	/// <summary>
@@ -810,6 +810,6 @@ public static class ElfFormat
 	/// </summary>
 	public static BinaryObjectFile Import(string path)
 	{
-		return Import(File.ReadAllBytes(path));
+		return Import(path, File.ReadAllBytes(path));
 	}
 }

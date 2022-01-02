@@ -84,7 +84,9 @@ public class LambdaPattern : Pattern
 		// Create a function token manually since it contains some useful helper functions
 		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
 
-		var lambda = new Lambda(environment, Modifier.DEFAULT, name, blueprint, start, end);
+		/// NOTE: Use the current context instead of the parent function context, because we could be inside a nested scope for example and we must be able capture variables from that scope
+		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, start, end);
+		environment.Declare(lambda);
 
 		lambda.Parameters.AddRange(function.GetParameters(lambda));
 

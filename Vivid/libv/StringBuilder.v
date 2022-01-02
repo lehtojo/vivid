@@ -1,4 +1,4 @@
-StringBuilder {
+export StringBuilder {
 	private capacity: large
 	private position: large
 

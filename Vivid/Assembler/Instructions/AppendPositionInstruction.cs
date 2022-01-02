@@ -1,5 +1,3 @@
-using System.Globalization;
-
 /// <summary>
 /// This instruction appends the specified source file position to the generated assembly for debug information
 /// This instruction is works on all architectures

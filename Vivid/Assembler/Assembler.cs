@@ -219,6 +219,9 @@ public static class Assembler
 
 		foreach (var implementation in function.Implementations)
 		{
+			// Skip imported functions
+			if (implementation.IsImported) continue;
+
 			var fullname = implementation.GetFullname();
 
 			// Ensure this function is visible to other units
@@ -725,13 +728,22 @@ public static class Assembler
 		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
 		var standard_library_object_file = new SourceFile(AssemblyPhase.StandardLibrary, string.Empty, files.Max(i => i.Index) + 1);
 
-		if (object_files.Keys.All(i => i.Filename != AssemblyPhase.ImportedStandardLibraryObjectFile))
+		// if (object_files.Keys.All(i => i.Filename != AssemblyPhase.ImportedStandardLibraryObjectFile))
+		// {
+		// 	object_files.Add
+		// 	(
+		// 		standard_library_object_file,
+		// 		IsTargetWindows ? PeFormat.Import(standard_library_object_file.Fullname) : ElfFormat.Import(standard_library_object_file.Fullname)
+		// 	);
+		// }
+
+		// Import user defined object files
+		var user_imported_object_files = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());
+
+		foreach (var object_file in user_imported_object_files)
 		{
-			object_files.Add
-			(
-				standard_library_object_file,
-				IsTargetWindows ? PeFormat.Import(standard_library_object_file.Fullname) : ElfFormat.Import(standard_library_object_file.Fullname)
-			);
+			var file = new SourceFile(object_file, string.Empty, -1);
+			object_files.Add(file, IsTargetWindows ? PeFormat.Import(object_file) : ElfFormat.Import(object_file));
 		}
 
 		var text_sections = GetTextSections(context);
@@ -822,7 +834,7 @@ public static class Assembler
 				builder.WriteLine(string.Format(template, ExportDirective, instructions));
 
 				var parser = new AssemblyParser();
-				parser.Parse(string.Format(template, $".{AssemblyParser.EXPORT_DIRECTIVE}", instructions));
+				parser.Parse(file, string.Format(template, ExportDirective, instructions));
 
 				builder.Add(file, parser.Instructions);
 				builder.Export(parser.Exports);
@@ -859,9 +871,7 @@ public static class Assembler
 			if (IsLegacyAssemblyEnabled) continue;
 
 			// Load all the section modules
-			if (!builder.Modules.ContainsKey(file)) continue;
-
-			var modules = builder.Modules[file];
+			var modules = builder.Modules.GetValueOrDefault(file, new List<DataEncoderModule>());
 
 			// Ensure there are no duplicated sections
 			if (modules.Count != modules.Select(i => i.Name).Distinct().Count()) throw new ApplicationException("Duplicated sections are not allowed");
@@ -879,8 +889,8 @@ public static class Assembler
 			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
 			var object_file = IsTargetWindows
-				? PeFormat.Create(sections, builder.Exports)
-				: ElfFormat.Create(sections, builder.Exports);
+				? PeFormat.Create(file.Fullname, sections, builder.Exports)
+				: ElfFormat.Create(file.Fullname, sections, builder.Exports);
 
 			object_files.Add(file, object_file);
 		}

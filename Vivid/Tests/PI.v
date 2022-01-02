@@ -1,4 +1,4 @@
-Array<T> {
+CustomArray<T> {
 	data: link<T>
 	count: large
 	
@@ -25,10 +25,10 @@ pidigits(digits) {
 
 	l = digits * 10 / 3 + 2
 	
-	x = Array<large>(l)
-	r = Array<large>(l)
+	x = CustomArray<large>(l)
+	r = CustomArray<large>(l)
 
-	pi = Array<large>(digits)
+	pi = CustomArray<large>(digits)
 
 	j = 0
 
@@ -64,7 +64,7 @@ pidigits(digits) {
 		}
 	}
 
-	result = Array<u8>(digits * 8)
+	result = CustomArray<u8>(digits * 8)
 
 	c = 0
 	i = digits - 1

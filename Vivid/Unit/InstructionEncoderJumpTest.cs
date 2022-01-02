@@ -24,7 +24,8 @@ public class InstructionEncoderJumpTests
 		var assembly = File.ReadAllText("./Tests/Instructions/Jumps.asm");
 
 		var parser = new AssemblyParser();
-		parser.Parse(assembly);
+		var file = new SourceFile("./Tests/Instructions/Jumps.asm", assembly, 0);
+		parser.Parse(file, assembly);
 
 		// Load the expected binary
 		var expected = File.ReadAllBytes("./Tests/Instructions/Jumps-Expected.bin");

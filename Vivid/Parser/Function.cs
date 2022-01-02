@@ -81,6 +81,7 @@ public class Function : Context
 	public bool IsOutlined => Flag.Has(Modifiers, Modifier.OUTLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsTemplateFunction => Flag.Has(Modifiers, Modifier.TEMPLATE_FUNCTION);
+	public bool IsTemplateFunctionVariant => Name.Contains('<');
 
 	/// <summary>
 	/// Creates a unimplemented function
@@ -221,11 +222,7 @@ public class Function : Context
 
 		var types = Parameters.Zip(parameters).Select(i => i.First.Type ?? i.Second).ToList();
 		var implementation = Implementations.Find(i => i.ParameterTypes.SequenceEqual(types));
-
-		if (implementation != null || IsImported)
-		{
-			return implementation;
-		}
+		if (implementation != null) return implementation;
 
 		return Parameters.Count != parameters.Count() ? null : Implement(types);
 	}

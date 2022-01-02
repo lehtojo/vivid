@@ -150,24 +150,39 @@ public static class Primitives
 
 	public static void Inject(Context context)
 	{
+		var signed_integer_8 = CreateNumber(TINY, Format.INT8);
+		var signed_integer_16 = CreateNumber(SMALL, Format.INT16);
+		var signed_integer_32 = CreateNumber(NORMAL, Format.INT32);
+		var signed_integer_64 = CreateNumber(LARGE, Format.INT64);
+
+		var unsigned_integer_8 = CreateNumber(U8, Format.UINT8);
+		var unsigned_integer_16 = CreateNumber(U16, Format.UINT16);
+		var unsigned_integer_32 = CreateNumber(U32, Format.UINT32);
+		var unsigned_integer_64 = CreateNumber(U64, Format.UINT64);
+
 		context.Declare(CreateUnit());
 		context.Declare(CreateBool());
 		context.Declare(new Link());
-		context.Declare(CreateNumber(CHAR, Format.INT8));
-		context.Declare(CreateNumber(TINY, Format.INT8));
-		context.Declare(CreateNumber(SMALL, Format.INT16));
-		context.Declare(CreateNumber(NORMAL, Format.INT32));
-		context.Declare(CreateNumber(LARGE, Format.INT64));
-		context.Declare(CreateNumber(I8, Format.INT8));
-		context.Declare(CreateNumber(I16, Format.INT16));
-		context.Declare(CreateNumber(I32, Format.INT32));
-		context.Declare(CreateNumber(I64, Format.INT64));
-		context.Declare(CreateNumber(U8, Format.UINT8));
-		context.Declare(CreateNumber(U16, Format.UINT16));
-		context.Declare(CreateNumber(U32, Format.UINT32));
-		context.Declare(CreateNumber(U64, Format.UINT64));
+
+		context.Declare(signed_integer_8);
+		context.Declare(signed_integer_16);
+		context.Declare(signed_integer_32);
+		context.Declare(signed_integer_64);
+		context.DeclareTypeAlias(I8, signed_integer_8);
+		context.DeclareTypeAlias(I16, signed_integer_16);
+		context.DeclareTypeAlias(I32, signed_integer_32);
+		context.DeclareTypeAlias(I64, signed_integer_64);
+
+		context.Declare(unsigned_integer_8);
+		context.Declare(unsigned_integer_16);
+		context.Declare(unsigned_integer_32);
+		context.Declare(unsigned_integer_64);
+
+		context.DeclareTypeAlias(CHAR, signed_integer_8);
+		context.DeclareTypeAlias(BYTE, unsigned_integer_8);
+
 		context.Declare(CreateNumber(DECIMAL, Format.DECIMAL));
-		context.Declare(CreateNumber(BYTE, Format.UINT8));
+
 		context.Declare(Link.GetVariant(CreateNumber(U8, Format.UINT8), L8));
 		context.Declare(Link.GetVariant(CreateNumber(U16, Format.UINT16), L16));
 		context.Declare(Link.GetVariant(CreateNumber(U32, Format.UINT32), L32));

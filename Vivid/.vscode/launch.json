@@ -21,12 +21,44 @@
 			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
 
 			// Builds the stage 2 compiler
-			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/vivid.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
+			"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/entries/vivid.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v" ],
 
 			// Build an assembly file
 			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
 
-			"args": [ "${workspaceFolder}/Examples/StaticLibraryUsage.v", "-o", "v", "-f", "-l", "v", "-l", "kernel32" ],
+			// Build the minimum low level object files
+			// "args": [
+			// 	"${workspaceFolder}/libv/windows-x64/console.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/math.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/memory.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/system.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/tests.asm"
+			// ],
+
+			// Build the minimum low level object files (Windows)
+			// "args": [
+			// 	"${workspaceFolder}/libv/windows-x64/math.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/memory.asm",
+			// 	"${workspaceFolder}/libv/windows-x64/tests.asm",
+			// 	"-o",
+			// 	"minimum"
+			// ],
+
+			// Build the standard library (Windows)
+			// "args": [
+			// 	"${workspaceFolder}/libv/",
+			// 	"${workspaceFolder}/libv/windows-x64",
+			// 	"minimum.math.obj",
+			// 	"minimum.memory.obj",
+			// 	"minimum.tests.obj",
+			// 	"-static",
+			// 	"-f",
+			// 	"-o",
+			// 	"v"
+			// ],
+
+			//"args": [ "${workspaceFolder}/Examples/StaticLibraryUsage.v", "-o", "v", "-f", "-l", "v", "-l", "kernel32" ],
+			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-O1" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

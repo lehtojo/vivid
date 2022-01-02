@@ -321,6 +321,8 @@ public static class InstructionEncoder
 	public const int CONDITIONAL_JUMP_OFFSET32_SIZE = 6;
 	public const int JUMP_OFFSET8_OPERATION_CODE = 0xEB;
 
+	public const string TEMPORARY_ASSEMBLY_FILE = "temporary.asm";
+
 	/// <summary>
 	/// Returns whether the specified register needs the REX-prefix
 	/// </summary>
@@ -903,49 +905,47 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Handles debug line information instructions and other similar instructions
 	/// </summary>
-	public static void ProcessDebugInstructions(EncoderModule module, Instruction instruction)
+	public static bool ProcessDebugInstructions(EncoderModule module, Instruction instruction)
 	{
 		if (instruction.Type == InstructionType.APPEND_POSITION)
 		{
 			var position = instruction.To<AppendPositionInstruction>().Position;
 			module.DebugLineInformation.Add(new EncoderDebugLineInformation(module.Position, position.FriendlyLine, position.FriendlyCharacter));
 			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.ADVANCE, module.Position));
-			return;
+			return true;
 		}
 
 		if (instruction.Type == InstructionType.DEBUG_START)
 		{
 			var symbol = instruction.Parameters.First().Value!.To<DataSectionHandle>().Identifier;
 			module.DebugFrameInformation.Add(new EncoderDebugFrameStartInformation(module.Position, symbol));
-			return;
+			return true;
 		}
 
 		if (instruction.Type == InstructionType.DEBUG_FRAME_OFFSET)
 		{
 			var offset = (long)instruction.Parameters.First().Value!.To<ConstantHandle>().Value;
 			module.DebugFrameInformation.Add(new EncoderDebugFrameOffsetInformation(module.Position, (int)offset));
-			return;
+			return true;
 		}
 
 		if (instruction.Type == InstructionType.DEBUG_END)
 		{
 			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.END, module.Position));
-			return;
+			return true;
 		}
+
+		return false;
 	}
 
-	public static void WriteInstruction(EncoderModule module, Instruction instruction)
+	public static bool WriteInstruction(EncoderModule module, Instruction instruction)
 	{
 		var parameters = instruction.Parameters.Where(i => !i.IsHidden).ToList();
 		var encoding = new InstructionEncoding();
 
 		var identifier = GetInstructionIndex(instruction);
 
-		if (identifier < 0)
-		{
-			ProcessDebugInstructions(module, instruction);
-			return;
-		}
+		if (identifier < 0) return ProcessDebugInstructions(module, instruction);
 
 		// Find the correct encoding
 		if (parameters.Count == 0) { encoding = FindEncoding(identifier); }
@@ -1120,6 +1120,8 @@ public static class InstructionEncoder
 
 			default: throw new NotSupportedException("Unsupported encoding route");
 		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -1184,9 +1186,9 @@ public static class InstructionEncoder
 	/// <summary>
 	/// Encodes each module using tasks
 	/// </summary>
-	public static Task[] Encode(List<EncoderModule> modules)
+	public static Task<string?>[] Encode(List<EncoderModule> modules)
 	{
-		var tasks = new Task[modules.Count];
+		var tasks = new Task<string?>[modules.Count];
 
 		for (var i = 0; i < tasks.Length; i++)
 		{
@@ -1194,8 +1196,9 @@ public static class InstructionEncoder
 
 			var module = modules[j];
 			var parser = new AssemblyParser();
+			var file = new SourceFile(TEMPORARY_ASSEMBLY_FILE, string.Empty, 0);
 
-			tasks[j] = Task.Run(() =>
+			tasks[j] = Task.Run<string?>(() =>
 			{
 				var module = modules[j];
 				var parser = new AssemblyParser();
@@ -1204,15 +1207,29 @@ public static class InstructionEncoder
 				{
 					if (!instruction.IsManual)
 					{
-						WriteInstruction(module, instruction);
+						if (!WriteInstruction(module, instruction) && !string.IsNullOrEmpty(instruction.Operation))
+						{
+							return "Could not understand the instruction";
+						}
+
 						continue;
 					}
 
 					// Parse the assembly code and then reset the parser for next use
-					parser.Parse(instruction.Operation.Replace("\r", string.Empty));
-					parser.Instructions.ForEach(i => WriteInstruction(module, i));
+					parser.Parse(file, instruction.Operation.Replace("\r", string.Empty));
+
+					foreach (var subinstruction in parser.Instructions)
+					{
+						if (!WriteInstruction(module, subinstruction) && !string.IsNullOrEmpty(instruction.Operation))
+						{
+							return "Could not understand the instruction";
+						}
+					}
+
 					parser.Reset();
 				}
+
+				return null;
 			});
 			
 			// Single threaded version:
@@ -1220,13 +1237,18 @@ public static class InstructionEncoder
 			// {
 			// 	if (!instruction.IsManual)
 			// 	{
-			// 		WriteInstruction(module, instruction);
+			// 		if (!WriteInstruction(module, instruction)) throw new ApplicationException("Could not understand the instruction");
 			// 		continue;
 			// 	}
 
 			// 	// Parse the assembly code and then reset the parser for next use
-			// 	parser.Parse(instruction.Operation.Replace("\r", string.Empty));
-			// 	parser.Instructions.ForEach(i => WriteInstruction(module, i));
+			// 	parser.Parse(file, instruction.Operation.Replace("\r", string.Empty));
+
+			// 	foreach (var subinstruction in parser.Instructions)
+			// 	{
+			// 		if (!WriteInstruction(module, subinstruction)) throw new ApplicationException("Could not understand the instruction");
+			// 	}
+
 			// 	parser.Reset();
 			// }
 		}
@@ -1243,7 +1265,8 @@ public static class InstructionEncoder
 		{
 			foreach (var item in module.Labels)
 			{
-				labels.Add(item.Label, new LabelDescriptor(module, item.Position));
+				if (labels.TryAdd(item.Label, new LabelDescriptor(module, item.Position))) continue;
+				throw new ApplicationException($"Label {item.Label.Name} is created multiple times");
 			}
 		}
 	}
@@ -1549,7 +1572,14 @@ public static class InstructionEncoder
 		var modules = CreateModules(instructions);
 		var labels = new Dictionary<Label, LabelDescriptor>();
 
-		Task.WaitAll(Encode(modules)); // Encode each module
+		var tasks = Encode(modules);
+		Task.WaitAll(tasks); // Encode each module
+
+		// Ensure all the tasks completed successfully
+		foreach (var task in tasks)
+		{
+			if (task.Result != null) throw new ApplicationException(task.Result);
+		}
 
 		LoadLabels(modules, labels); // Load all labels into a dictionary where information about their positions can be pulled
 		CompleteModules(modules, labels); // Decide jump sizes based on the loaded label information

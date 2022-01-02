@@ -1,4 +1,4 @@
-KeyValuePair<K, V> {
+export KeyValuePair<K, V> {
 	key: K
 	value: V
 
@@ -11,7 +11,7 @@ KeyValuePair<K, V> {
 MAX_SLOT_OFFSET = 10
 MAX_LEVEL_SIZE = 20
 
-Map<K, V> {
+export Map<K, V> {
 	private:
 	values: link<V>
 	keys: link<K>
@@ -228,5 +228,20 @@ Map<K, V> {
 
 	iterator() {
 		=> items.iterator()
+	}
+
+	clear() {
+		# Compute the maximum number of items allocated
+		count = 0
+
+		loop (i = ground, i < ground + levels, i++) {
+			count += get_level_size(i)
+		}
+
+		items.clear() # Clear the items
+
+		zero(keys, count * sizeof(K))
+		zero(values, count * sizeof(V))
+		zero(states, count)
 	}
 }

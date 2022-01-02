@@ -64,8 +64,10 @@ public class ParserPhase : Phase
 			// If the file filter is specified, skip all functions which are not defined inside that file
 			if (file != null && function.Start?.File != file) continue;
 
+			var is_function_exported = function.IsExported || (function.Parent != null && function.Parent.IsType && function.Parent.To<Type>().IsExported);
+
 			// Skip all functions which are not exported
-			if (!all && !function.IsExported) continue;
+			if (!all && !is_function_exported) continue;
 
 			// Template functions can not be implemented
 			if (function.IsTemplateFunction) continue;

@@ -1,6 +1,3 @@
-import internal_print(text: link, length: large)
-import internal_read(buffer: link, length: large): large
-
 CONSOLE_READ_LINE_BUFFER_SIZE = 256
 
 ###
@@ -9,7 +6,7 @@ NOTE: The maximum length of the returned text is determined by the global consta
 ###
 export readln() {
 	buffer = allocate(CONSOLE_READ_LINE_BUFFER_SIZE)
-	length = internal_read(buffer, CONSOLE_READ_LINE_BUFFER_SIZE) - 2
+	length = internal.console.read(buffer, CONSOLE_READ_LINE_BUFFER_SIZE) - 2
 
 	if length <= 0 {
 		deallocate(buffer)
@@ -32,7 +29,7 @@ The maximum length of the returned text is determined by the specified length.'
 ###
 export readln(length: large) {
 	buffer = allocate(length)
-	length = internal_read(buffer, length) - 2
+	length = internal.console.read(buffer, length) - 2
 
 	if length <= 0 {
 		deallocate(buffer)
@@ -53,14 +50,14 @@ export readln(length: large) {
 Summary: Writes the specified string to the console
 ###
 export print(text: String) {
-	internal_print(text.data(), text.length)
+	internal.console.write(text.data(), text.length)
 }
 
 ###
 Summary: Writes the specified text to the console
 ###
 export print(text: link) {
-	internal_print(text, length_of(text))
+	internal.console.write(text, length_of(text))
 }
 
 ###
@@ -82,7 +79,7 @@ export print(value: bool) {
 Summary: Writes the specified string and a line ending to the console
 ###
 export println(text: String) {
-	internal_print(text.append(10).data(), text.length + 1)
+	internal.console.write(text.append(10).data(), text.length + 1)
 }
 
 ###
@@ -146,8 +143,7 @@ export println() {
 Summary: Writes the specified character to the console
 ###
 export put(character: tiny) {
-	buffer = allocate_stack(48) + 32
+	buffer: tiny[1]
 	buffer[0] = character
-	internal_print(buffer, 1)
-	deallocate_stack(48)
+	internal.console.write(buffer as link, 1)
 }

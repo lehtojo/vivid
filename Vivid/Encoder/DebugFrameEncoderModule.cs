@@ -66,14 +66,14 @@ public class DebugFrameEncoderModule : DataEncoderModule
 	{
 		if (delta == 0) return;
 
-		if (delta >= byte.MinValue && delta <= byte.MaxValue)
+		if (delta >= sbyte.MinValue && delta <= sbyte.MaxValue)
 		{
 			WriteOperation(DebugFrameOperation.Advance1);
 			Write(delta);
 			return;
 		}
 
-		if (delta >= short.MaxValue && delta <= short.MaxValue)
+		if (delta >= short.MinValue && delta <= short.MaxValue)
 		{
 			WriteOperation(DebugFrameOperation.Advance2);
 			WriteInt16(delta);

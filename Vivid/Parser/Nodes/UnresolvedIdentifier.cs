@@ -51,6 +51,10 @@ public class UnresolvedIdentifier : Node, IResolvable
 		var name = context.CreateLambda().ToString();
 		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, Position, null);
 
+		// Declare the lambda in the parent function
+		var parent_function = context.GetImplementationParent() ?? throw Errors.Get(Position, "Lambda created outside of a function");
+		parent_function.Declare(lambda);
+
 		lambda.Parameters.AddRange(parameters);
 
 		return new LambdaNode(lambda.Implement(types), position);

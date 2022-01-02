@@ -48,6 +48,13 @@ public static class Linker
 		return section.Type == BinarySectionType.TEXT || section.Type == BinarySectionType.DATA;
 	}
 
+	private static void PrintSymbolConflictsAndCrash(List<BinaryObjectFile> objects, BinarySymbol symbol)
+	{
+		// Find the objects that have the same symbol
+		var conflicting_objects = objects.Where(i => i.Exports.Contains(symbol.Name)).ToList();
+		throw new ApplicationException($"Symbol '{symbol.Name}' is defined at least twice. Conflicting objects: {string.Join(", ", conflicting_objects.Select(i => i.Name))}");
+	}
+
 	/// <summary>
 	/// Resolves all external symbols from the specified binary objects by connecting them to the real symbols.
 	/// This function throws an exception if no definition for an external symbol is found.
@@ -59,7 +66,7 @@ public static class Linker
 		foreach (var symbol in objects.SelectMany(i => i.Sections).SelectMany(i => i.Symbols.Values))
 		{
 			if (symbol.External || definitions.TryAdd(symbol.Name, symbol)) continue;
-			throw new ApplicationException($"Symbol '{symbol.Name}' is defined at least twice");
+			PrintSymbolConflictsAndCrash(objects, symbol);
 		}
 
 		foreach (var relocation in objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations))

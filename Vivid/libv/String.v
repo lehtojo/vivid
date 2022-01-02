@@ -179,7 +179,7 @@ export is_alphabet(value: char) {
 	=> (value >= `a` and value <= `z`) or (value >= `A` and value <= `Z`)
 }
 
-String {
+export String {
 	static empty: String
 
 	# Summary: Combines all the specified strings while separating them the specified separator
@@ -354,6 +354,11 @@ String {
 		require(start >= 0 and start <= a and end >= start and end <= a)
 
 		=> String(text + start, end - start)
+	}
+
+	# Summary: Returns all the characters after the specified index as a string
+	slice(start: large) {
+		=> slice(start, length)
 	}
 
 	# Summary: Replaces all the occurances of the specified character with the specified replacement

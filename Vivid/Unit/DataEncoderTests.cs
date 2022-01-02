@@ -23,9 +23,10 @@ public class DataEncoderTests
 		}
 
 		var assembly = File.ReadAllText("./Tests/Data.asm");
+		var file = new SourceFile("./Tests/Data.asm", assembly, 0);
 
 		var parser = new AssemblyParser();
-		parser.Parse(assembly);
+		parser.Parse(file, assembly);
 
 		var expected_data_section = File.ReadAllBytes("./Tests/Expected-Data-Section.bin");
 

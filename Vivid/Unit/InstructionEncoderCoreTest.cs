@@ -299,7 +299,8 @@ public class InstructionEncoderCoreTest
 
 		// Now parse the generated assembly and then encode it
 		var parser = new AssemblyParser();
-		parser.Parse(assembly);
+		var file = new SourceFile(ACTUAL_ASSEMBLY_OUTPUT, assembly, 0);
+		parser.Parse(file, assembly);
 
 		// Encode the parsed instructions
 		var output = InstructionEncoder.Encode(parser.Instructions, parser.DebugFile);

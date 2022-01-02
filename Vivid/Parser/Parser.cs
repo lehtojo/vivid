@@ -579,11 +579,11 @@ public static class Parser
 	/// </summary>
 	public static Node CreateRootNode(Context context)
 	{
-		var positive_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
-		var negative_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.DEFAULT | Modifier.CONSTANT);
+		var positive_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
+		var negative_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
 
-		var true_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.DEFAULT | Modifier.CONSTANT);
-		var false_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.DEFAULT | Modifier.CONSTANT);
+		var true_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.PRIVATE | Modifier.CONSTANT);
+		var false_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.PRIVATE | Modifier.CONSTANT);
 
 		return new ScopeNode(context, null, null)
 		{

@@ -974,7 +974,7 @@ public static class Analysis
 	/// </summary>
 	public static void Analyze(Bundle bundle, Context context)
 	{
-		var implementations = Common.GetAllFunctionImplementations(context).Where(i => !i.Metadata.IsImported).OrderByDescending(i => i.Usages.Count).ToList();
+		var implementations = Common.GetAllFunctionImplementations(context).OrderByDescending(i => i.Usages.Count).ToList();
 		var verbose = Assembler.IsVerboseOutputEnabled;
 		var time = bundle.Get(ConfigurationPhase.OUTPUT_TIME, false);
 

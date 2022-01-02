@@ -336,15 +336,25 @@ public static class Common
 		if (return_type == null) return null;
 
 		// Read all the parameter types
-		var parameter_types = parameters.GetSections().Select(i => ReadType(context, new Queue<Token>(i))).ToList();
+		var parameter_types = new List<Type>();
+		tokens = new Queue<Token>(parameters.Tokens);
 
-		// If any of the parameter types is null, it means there is a syntax error
-		if (parameter_types.Any(i => i == null))
+		while (tokens.Count > 0)
 		{
-			return null;
+			var parameter_type = Common.ReadType(context, tokens);
+			if (parameter_type == null) throw Errors.Get(tokens.First().Position, "Could not understand the parameter type");
+
+			parameter_types.Add(parameter_type);
+
+			if (tokens.Count == 0) break;
+
+			var next = tokens.Dequeue();
+			if (next.Is(Operators.COMMA)) continue;
+
+			throw Errors.Get(next.Position, "Expected a comma");
 		}
 
-		return new FunctionType(parameter_types, return_type, position);
+		return new FunctionType(parameter_types!, return_type, position);
 	}
 
 	/// <summary>

@@ -8,6 +8,8 @@ using System;
 /// </summary>
 public static class ObjectExporter
 {
+	#warning Investigate exporting of member parameters (constructors)
+
 	/// <summary>
 	/// Creates a mangled text which describes the specified virtual function and appends it to the specified mangle object
 	/// </summary>
@@ -135,15 +137,16 @@ public static class ObjectExporter
 	private static string GetModifiers(int modifiers)
 	{
 		var result = new List<string>();
-		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
-		if (Flag.Has(modifiers, Modifier.INLINE)) result.Add(Keywords.INLINE.Identifier);
-		if (Flag.Has(modifiers, Modifier.IMPORTED)) result.Add(Keywords.IMPORT.Identifier);
-		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);
 		if (Flag.Has(modifiers, Modifier.PRIVATE)) result.Add(Keywords.PRIVATE.Identifier);
 		if (Flag.Has(modifiers, Modifier.PROTECTED)) result.Add(Keywords.PROTECTED.Identifier);
-		if (Flag.Has(modifiers, Modifier.PUBLIC)) result.Add(Keywords.PUBLIC.Identifier);
-		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READONLY.Identifier);
 		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.STATIC.Identifier);
+		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READONLY.Identifier);
+		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
+		if (Flag.Has(modifiers, Modifier.CONSTANT)) result.Add(Keywords.CONSTANT.Identifier);
+		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);
+		if (Flag.Has(modifiers, Modifier.INLINE)) result.Add(Keywords.INLINE.Identifier);
+		if (Flag.Has(modifiers, Modifier.PLAIN)) result.Add(Keywords.PLAIN.Identifier);
+		if (Flag.Has(modifiers, Modifier.PACK)) result.Add(Keywords.PACK.Identifier);
 		return string.Join(' ', result);
 	}
 
@@ -187,6 +190,12 @@ public static class ObjectExporter
 	/// </summary>
 	private static void ExportTemplateType(StringBuilder builder, TemplateType type)
 	{
+		if (type.Inherited.Any())
+		{
+			builder.Append(string.Join(' ', type.Inherited));
+			builder.Append(' ');
+		}
+
 		builder.Append(CreateTemplateName(type.Name, type.TemplateParameters));
 		builder.Append(string.Join(' ', type.Blueprint.Skip(1)) + Lexer.LINE_ENDING);
 		builder.Append(Lexer.LINE_ENDING);
@@ -197,7 +206,15 @@ public static class ObjectExporter
 	/// </summary>
 	private static bool IsTemplateFunction(Function function)
 	{
-		return function is TemplateFunction || function.Parameters.Any(i => i.Type == null);
+		return (function.IsTemplateFunction || function.Parameters.Any(i => i.Type == null)) && !function.IsTemplateFunctionVariant;
+	}
+
+	/// <summary>
+	/// Returns true if the specified function represents an actual template function variant or if any of its parameter types is not defined
+	/// </summary>
+	private static bool IsTemplateFunctionVariant(Function function)
+	{
+		return function.IsTemplateFunctionVariant || function.Parameters.Any(i => i.Type == null);
 	}
 	
 	/// <summary>
@@ -214,9 +231,9 @@ public static class ObjectExporter
 
 			foreach (var function in iterator)
 			{
-				if (function is TemplateFunction template)
+				if (function.IsTemplateFunction)
 				{
-					ExportTemplateFunction(builder, template);
+					ExportTemplateFunction(builder, function.To<TemplateFunction>());
 				}
 				else
 				{
@@ -233,12 +250,10 @@ public static class ObjectExporter
 		{
 			foreach (var type in iterator)
 			{
-				var templates = type.Functions.Values.SelectMany(i => i.Overloads).Where(IsTemplateFunction).ToArray();
+				if (type.IsTemplateTypeVariant) continue;
 
-				if (!templates.Any())
-				{
-					continue;
-				}
+				var template_functions = type.Functions.Values.SelectMany(i => i.Overloads).Where(IsTemplateFunction).ToArray();
+				if (!template_functions.Any()) continue;
 
 				if (!files.TryGetValue(iterator.Key!, out StringBuilder? builder))
 				{
@@ -250,11 +265,11 @@ public static class ObjectExporter
 				builder.Append(' ');
 				builder.Append(ParenthesisType.CURLY_BRACKETS.Opening);
 
-				foreach (var function in templates)
+				foreach (var function in template_functions)
 				{
-					if (function is TemplateFunction template)
+					if (function.IsTemplateFunction)
 					{
-						ExportTemplateFunction(builder, template);
+						ExportTemplateFunction(builder, function.To<TemplateFunction>());
 					}
 					else
 					{
@@ -283,6 +298,176 @@ public static class ObjectExporter
 		}
 
 		return files;
+	}
+
+	private static string ToString(Node node)
+	{
+		return node.Instance switch
+		{
+			NodeType.CAST => $"{ToString(node.First!)} as {node.To<CastNode>().GetType().ToString()}",
+			NodeType.NUMBER => node.To<NumberNode>().Value.ToString()!,
+			NodeType.STRING => $"'{node.To<StringNode>().Text}'",
+			_ => throw Errors.Get(node.Position, "Exporter does not support this constant value")
+		};
+	}
+
+	/// <summary>
+	/// Exports the specified function to the specified builder using the following pattern:
+	/// $modifiers import $name($parameters): $return_type
+	/// </summary>
+	public static void ExportFunction(StringBuilder builder, Function function, FunctionImplementation implementation)
+	{
+		builder.Append(GetModifiers(function.Modifiers));
+		builder.Append(' ');
+		builder.Append(Keywords.IMPORT.Identifier);
+		builder.Append(' ');
+		builder.Append(function.Name);
+		builder.Append('(');
+		builder.Append(string.Join(", ", implementation.Parameters));
+		builder.Append(")");
+
+		// Add the return type if it is needed
+		if (!Primitives.IsPrimitive(implementation.ReturnType, Primitives.UNIT))
+		{
+			builder.Append(": ");
+			builder.Append(implementation.ReturnType);
+		}
+
+		builder.AppendLine();
+	}
+
+	/// <summary>
+	/// Export constants from the specified context:
+	/// Example output:
+	/// constant a = 1
+	/// constant b = 'Hello'
+	///
+	/// static Foo {
+	/// constant c = 2
+	/// constant d = 'There'
+	///
+	/// Bar {
+	/// constant e = 3
+	/// constant f = '!'
+	/// }
+	///
+	/// }
+	/// </summary>
+	public static string ExportContext(Context context)
+	{
+		var builder = new StringBuilder();
+
+		foreach (var variable in context.Variables.Values)
+		{
+			// Deny non-private constants
+			if (variable.IsConstant && variable.IsPrivate) continue;
+
+			// Deny hidden variables
+			if (variable.IsHidden) continue;
+
+			builder.Append(GetModifiers(variable.Modifiers));
+			builder.Append(' ');
+			builder.Append(variable.Name);
+
+			if (variable.IsConstant)
+			{
+				// Extract the constant value
+				var editor = Analyzer.GetEditor(variable.Writes.First());
+				var constant_node_value = editor.Right;
+
+				// Convert the constant value into a string
+				var constant_value = ToString(constant_node_value);
+
+				builder.Append(" = ");
+				builder.AppendLine(constant_value);
+				continue;
+			}
+			else
+			{
+				builder.Append(": ");
+				builder.AppendLine(variable.Type!.ToString());
+			}
+		}
+
+		foreach (var function in context.Functions.Values.SelectMany(i => i.Overloads))
+		{
+			// Export the function as follows: $modifiers import $name($parameters): $return_type
+			foreach (var implementation in function.Implementations)
+			{
+				if (IsTemplateFunctionVariant(function)) continue;
+				ExportFunction(builder, function, implementation);
+			}
+		}
+
+		foreach (var type in context.Types.Values)
+		{
+			if (type.IsTemplateType || type.IsPrimitive) continue;
+
+			if (type.Supertypes.Any())
+			{
+				builder.Append(string.Join(", ", type.Supertypes));
+				builder.Append(' ');
+			}
+
+			var exported_variables = ExportContext(type);
+
+			builder.AppendLine();
+			builder.Append(type.IsNamespace ? Keywords.NAMESPACE.Identifier : GetModifiers(type.Modifiers));
+			builder.Append(' ');
+			builder.Append(type.Name);
+			builder.AppendLine(" {");
+			builder.Append(exported_variables);
+			builder.AppendLine("}");
+			builder.AppendLine();
+		}
+
+		return builder.ToString().ReplaceLineEndings("\n");
+	}
+
+	/// <summary>
+	/// Exports all the template type variants from the specified context 
+	public static string ExportTemplateTypeVariants(Context context)
+	{
+		var template_variants = Common.GetAllTypes(context).Where(i => i.IsTemplateTypeVariant).ToArray();
+		if (template_variants.Length == 0) return string.Empty;
+
+		// Export all variants in the following format: $T1.$T2...$Tn.$T<$P1,$P2,...,$Pn>
+		var builder = new StringBuilder();
+
+		foreach (var template_variant in template_variants)
+		{
+			builder.AppendLine(template_variant.ToString());
+		}
+
+		return builder.ToString().ReplaceLineEndings("\n");
+	}
+
+	/// <summary>
+	/// Exports all the template function variants from the specified context using the following pattern:
+	/// $T1.$T2...$Tn.$name<$U1, $U2, ..., $Un>($V1, $V2, ..., $Vn)
+	/// </summary>
+	public static string ExportTemplateFunctionVariants(Context context)
+	{
+		var template_variants = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.IsTemplateFunction || i.Metadata.Parameters.Any(i => i.Type == null)).ToArray();
+		if (template_variants.Length == 0) return string.Empty;
+
+		// Export all variants in the following format: $T1.$T2...$Tn.$name<$U1, $U2, ..., $Un>($V1, $V2, ..., $Vn)
+		var builder = new StringBuilder();
+
+		foreach (var template_variant in template_variants)
+		{
+			var path = template_variant.Parent!.ToString();
+			builder.Append(path);
+
+			if (!string.IsNullOrEmpty(path)) builder.Append('.');
+
+			builder.Append(template_variant.Name);
+			builder.Append('(');
+			builder.Append(string.Join<Type>(", ", template_variant.ParameterTypes));
+			builder.AppendLine(")");
+		}
+
+		return builder.ToString().ReplaceLineEndings("\n");
 	}
 
 	/// <summary>

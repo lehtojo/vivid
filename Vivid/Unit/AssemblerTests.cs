@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -162,8 +161,10 @@ namespace Vivid.Unit
 		public static int OptimizationLevel { get; set; } = 0;
 
 		private static string Prefix => !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libUnit_" : "Unit_";
+		private static string ObjectFileExtension => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".obj" : ".o";
 
-		private const string LIBV = "libv";
+		private const string STANDARD_LIBRARY_FOLDER = "libv";
+		private static string PLATFORM_INTERNAL_FOLDER => STANDARD_LIBRARY_FOLDER + '/' + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "windows-x64/" : "linux-x64/");
 		private const string TESTS = "Tests";
 
 		private static string[] StandardLibraryUtility { get; set; } = Array.Empty<string>();
@@ -221,12 +222,15 @@ namespace Vivid.Unit
 		{
 			StandardLibraryUtility = new[]
 			{
-				GetProjectFile("String.v", LIBV),
-				GetProjectFile("StringBuilder.v", LIBV),
-				GetProjectFile("Console.v", LIBV),
-				GetProjectFile("Exceptions.v", LIBV),
-				GetProjectFile("List.v", LIBV),
-				GetProjectFile("Array.v", LIBV)
+				GetProjectFile("String.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("StringBuilder.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Console.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Exceptions.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("List.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Array.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("MemoryUtility.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Sort.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Math.v", STANDARD_LIBRARY_FOLDER)
 			};
 		}
 
@@ -256,6 +260,19 @@ namespace Vivid.Unit
 			return GetProjectRoot() + separator + string.Join(separator, path) + separator + file;
 		}
 
+		/// <summary>
+		/// Returns the mandatory object files, which must be linked together to create the executable
+		/// </summary>
+		private static string[] GetMinimumObjects()
+		{
+			return new[]
+			{
+				"minimum.math" + ObjectFileExtension,
+				"minimum.memory" + ObjectFileExtension,
+				"minimum.tests" + ObjectFileExtension
+			};
+		}
+
 		private static bool Compile(string output, params string[] source_files)
 		{
 			// Configure the flow of the compiler
@@ -279,7 +296,14 @@ namespace Vivid.Unit
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
-			bundle.Put("arguments", arguments.Concat(files).Concat(new[] { GetProjectFile("Core.v", LIBV) }).ToArray());
+
+			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
+			{
+				GetProjectFile("Core.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)
+			}).Concat(GetMinimumObjects()).ToArray());
 
 			// Execute the chain
 			return chain.Execute(bundle);
@@ -298,7 +322,7 @@ namespace Vivid.Unit
 				typeof(AssemblyPhase)
 			);
 
-			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
+			var files = source_files.Select(i => Path.IsPathRooted(i) ? i : GetProjectFile(i, TESTS)).ToArray();
 			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output, "-l", "kernel32" };
 
 			if (OptimizationLevel > 0)
@@ -310,7 +334,14 @@ namespace Vivid.Unit
 
 			// Pack the program arguments in the chain
 			var bundle = new Bundle();
-			bundle.Put("arguments", arguments.Concat(files).Concat(new[] { GetProjectFile("Core.v", LIBV) }).ToArray());
+
+			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
+			{
+				GetProjectFile("Core.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)
+			}).Concat(GetMinimumObjects()).ToArray());
 
 			// Execute the chain
 			return chain.Execute(bundle);
@@ -1780,7 +1811,7 @@ namespace Vivid.Unit
 
 		public static void Is()
 		{
-			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Math.v", LIBV) }.Concat(StandardLibraryUtility).ToArray()))
+			if (!Compile("Is", new[] { "Is.v", GetProjectFile("Math.v", STANDARD_LIBRARY_FOLDER) }.Concat(StandardLibraryUtility).ToArray()))
 			{
 				Assert.Fail("Failed to compile");
 			}

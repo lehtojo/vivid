@@ -72,6 +72,10 @@ public class ArrayType : Number, IResolvable
 
 	public override string ToString()
 	{
-		return Element.ToString() + "[]";
+		var size = Expression != null && Expression.Instance == NodeType.NUMBER
+			? Expression.To<NumberNode>().Value.ToString()
+			: "?";
+
+		return Element.ToString() + $"[{size}]";
 	}
 }

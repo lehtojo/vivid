@@ -1,6 +1,6 @@
 REQUIREMENT_EXIT_CODE = 1
 
-MemoryIterator<T> {
+export MemoryIterator<T> {
 	elements: link<T>
 	position: normal
 	count: normal
@@ -22,7 +22,7 @@ MemoryIterator<T> {
 	}
 }
 
-Array<T> {
+export Array<T> {
 	public readonly data: link<T>
 	count: large
 
@@ -107,7 +107,7 @@ String.split(character: char) {
 	=> slices
 }
 
-Sheet<T> {
+export Sheet<T> {
 	public readonly data: link<T>
 	width: large
 	height: large
@@ -139,7 +139,7 @@ Sheet<T> {
 	}
 }
 
-Box<T> {
+export Box<T> {
 	public readonly data: link<T>
 	width: large
 	height: large
@@ -178,7 +178,7 @@ Box<T> {
 export require(result: bool) {
 	if result == false {
 		println('Requirement failed')
-		exit(REQUIREMENT_EXIT_CODE)
+		application.exit(REQUIREMENT_EXIT_CODE)
 	}
 }
 
@@ -186,6 +186,6 @@ export require(result: bool) {
 export require(result: bool, message: link) {
 	if result == false {
 		println(message)
-		exit(REQUIREMENT_EXIT_CODE)
+		application.exit(REQUIREMENT_EXIT_CODE)
 	}
 }

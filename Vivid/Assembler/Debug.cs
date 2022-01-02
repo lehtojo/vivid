@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text;
+using System;
 
 public class Offset
 {
@@ -787,7 +785,7 @@ public class Debug
 			// The following is only necessary if the implementation of >>= uses a logical shift rather than an arithmetic shift for a signed left operand
 			if (negative)
 			{
-				value |= (~0 << (sizeof(int) - 7)); // Sign extend
+				value |= (~0 << (sizeof(int) * 8 - 7)); // Sign extend
 			}
 
 			// Sign bit of byte is second high order bit (0x40)

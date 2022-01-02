@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -10,7 +9,7 @@ public class StaticLibraryFormatFile
 	public string Name { get; set; }
 	public uint Position { get; set; } = 0;
 	public string[] Symbols { get; }
-	private byte[] Bytes { get; set; } = Array.Empty<byte>();
+	private byte[]? Bytes { get; set; } = null;
 
 	public StaticLibraryFormatFile(string name, string[] symbols)
 	{
@@ -27,21 +26,13 @@ public class StaticLibraryFormatFile
 
 	public void Load()
 	{
-		if (Bytes.Length > 0)
-		{
-			return;
-		}
-
+		if (Bytes != null) return;
 		Bytes = File.ReadAllBytes(Name);
 	}
 
 	public byte[] GetBytes()
 	{
-		if (Bytes.Length > 0)
-		{
-			return Bytes;
-		}
-
+		if (Bytes != null) return Bytes;
 		Bytes = File.ReadAllBytes(Name);
 		return Bytes;
 	}
@@ -84,10 +75,7 @@ public static class StaticLibraryFormat
 
 	private static void WritePadding(MemoryStream builder, int length)
 	{
-		if (length <= 0)
-		{
-			return;
-		}
+		if (length <= 0) return;
 
 		for (var i = 0; i < length; i++)
 		{
@@ -128,7 +116,7 @@ public static class StaticLibraryFormat
 		builder.Write(bytes, 0, bytes.Length);
 	}
 
-	private static MemoryStream AppendSymbols(StaticLibraryFormatFile[] files)
+	private static MemoryStream WriteSymbols(StaticLibraryFormatFile[] files)
 	{
 		var builder = new MemoryStream();
 		WriteSymbols(builder, files.SelectMany(i => i.Symbols).ToArray());
@@ -211,7 +199,7 @@ public static class StaticLibraryFormat
 		using var builder = new MemoryStream();
 		builder.Write(Encoding.UTF8.GetBytes(SIGNATURE));
 
-		using var symbol_buffer = AppendSymbols(files);
+		using var symbol_buffer = WriteSymbols(files);
 
 		var symbol_count = (uint)files.Sum(i => i.Symbols.Length);
 		var export_table_size = sizeof(int) + symbol_count * sizeof(int) + symbol_buffer.Length;
@@ -252,13 +240,31 @@ public static class StaticLibraryFormat
 	{
 		try
 		{
-			var template_exports = ObjectExporter
+			var exported_source_files = ObjectExporter
 				.GetTemplateExportFiles(context)
 				.Select(i => new StaticLibraryFormatFile(
 					i.Key.Filename,
 					Array.Empty<string>(),
 					Encoding.UTF8.GetBytes(i.Value.ToString())
-				));
+				)).ToList();
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".constants.v",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportContext(context))
+			));
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".types.templates",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportTemplateTypeVariants(context))
+			));
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".functions.templates",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportTemplateFunctionVariants(context))
+			));
 
 			var exported_symbols = ObjectExporter
 				.GetExportedSymbols(context)
@@ -268,7 +274,7 @@ public static class StaticLibraryFormat
 					i.Value.ToArray()
 				));
 
-			StaticLibraryFormat.Export(exported_symbols.Concat(template_exports).ToArray(), output_name);
+			StaticLibraryFormat.Export(exported_symbols.Concat(exported_source_files).ToArray(), output_name);
 		}
 		catch (Exception e)
 		{
@@ -282,13 +288,31 @@ public static class StaticLibraryFormat
 	{
 		try
 		{
-			var template_exports = ObjectExporter
+			var exported_source_files = ObjectExporter
 				.GetTemplateExportFiles(context)
 				.Select(i => new StaticLibraryFormatFile(
 					i.Key.Filename,
 					Array.Empty<string>(),
 					Encoding.UTF8.GetBytes(i.Value.ToString())
-				));
+				)).ToList();
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".constants.v",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportContext(context))
+			));
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".types.templates",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportTemplateTypeVariants(context))
+			));
+
+			exported_source_files.Add(new StaticLibraryFormatFile(
+				output_name + ".functions.templates",
+				Array.Empty<string>(),
+				Encoding.UTF8.GetBytes(ObjectExporter.ExportTemplateFunctionVariants(context))
+			));
 
 			var exported_symbols = new List<StaticLibraryFormatFile>();
 
@@ -307,7 +331,7 @@ public static class StaticLibraryFormat
 				exported_symbols.Add(new StaticLibraryFormatFile(object_file_name, object_file_symbols, bytes));
 			}
 
-			StaticLibraryFormat.Export(exported_symbols.Concat(template_exports).ToArray(), output_name);
+			StaticLibraryFormat.Export(exported_symbols.Concat(exported_source_files).ToArray(), output_name);
 		}
 		catch (Exception e)
 		{

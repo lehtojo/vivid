@@ -6,6 +6,7 @@ public class NamespaceNode : Node
 {
 	public List<Token> Name { get; }
 	public List<Token> Blueprint { get; }
+	public bool IsParsed { get; private set; } = false;
 
 	public NamespaceNode(List<Token> name, List<Token> blueprint)
 	{
@@ -35,6 +36,9 @@ public class NamespaceNode : Node
 
 	public void Parse(Context context)
 	{
+		if (IsParsed) return;
+		IsParsed = true;
+
 		// Define the actual namespace
 		var result = CreateNamespace(context);
 

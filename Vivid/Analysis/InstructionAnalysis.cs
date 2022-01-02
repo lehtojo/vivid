@@ -1350,6 +1350,17 @@ public static class InstructionAnalysis
 	/// </summary>
 	private static void CreateTailCalls(Unit unit, List<Instruction> instructions, List<Register> registers, int required_local_memory)
 	{
+		/// Currently tail calls are not created, if local stack memory is required
+		/// Consider the following situation:
+		/// - Local stack memory is allocated and is filled with sensitive data
+		/// - Tail call receives a pointer to the allocated memory
+		/// - Tail call is created and local stack memory is freed before the call is executed
+		/// - Tail call allocates its own local stack memory and overwrites the previous stack memory
+		/// => Behavior changes based on whether the tail call is created
+		/// Solution 1: Tail calls are not produced, if local stack memory is required
+		/// Solution 2: Do not create tail calls, if pointers to local stack memory are passed as parameters
+		if (required_local_memory != 0) return;
+
 		var initialization = instructions.Find(i => i.Is(InstructionType.INITIALIZE))!.To<InitializeInstruction>();
 		var indices = FindTailCalls(instructions);
 

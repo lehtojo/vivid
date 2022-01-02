@@ -687,14 +687,18 @@ public class AssemblyParser
 		return true;
 	}
 
-	public void Parse(string assembly)
+	public void Parse(SourceFile file, string assembly)
 	{
 		var lines = assembly.Split('\n');
+		var position = new Position(file, -1, 0); // Start from line -1, because the loop moves to the next line at the beginning
 
 		foreach (var line in lines)
 		{
+			position.NextLine();
+
 			// Tokenize the current line
-			var tokens = Lexer.GetTokens(line);
+			var tokens = Lexer.GetTokens(line, position);
+			Lexer.RegisterFile(tokens, file);
 
 			// Skip empty lines
 			if (!tokens.Any()) continue;

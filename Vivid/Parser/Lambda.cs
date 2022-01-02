@@ -10,8 +10,6 @@ public class Lambda : Function
 	{
 		// Lambdas usually capture variables from the parent context
 		Connect(context ?? throw new ApplicationException("Tried to define a short function outside a context"));
-
-		context.Declare(this);
 	}
 
 	/// <summary>

@@ -14,10 +14,7 @@ public class FunctionList
 	{
 		var conflict = TryAdd(function);
 
-		if (conflict == null)
-		{
-			return;
-		}
+		if (conflict == null) return;
 
 		if (conflict.Start != null)
 		{

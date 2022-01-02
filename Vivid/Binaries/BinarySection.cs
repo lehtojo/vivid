@@ -173,17 +173,20 @@ public class BinaryRelocation
 
 public class BinaryObjectFile
 {
+	public string Name { get; set; }
 	public int Index { get; set; } = 0;
 	public List<BinarySection> Sections { get; } = new List<BinarySection>();
 	public HashSet<string> Exports { get; } = new HashSet<string>();
 
-	public BinaryObjectFile(List<BinarySection> sections)
+	public BinaryObjectFile(string name, List<BinarySection> sections)
 	{
+		Name = name;
 		Sections = sections;
 	}
 
-	public BinaryObjectFile(List<BinarySection> sections, HashSet<string> exports)
+	public BinaryObjectFile(string name, List<BinarySection> sections, HashSet<string> exports)
 	{
+		Name = name;
 		Sections = sections;
 		Exports = exports;
 	}

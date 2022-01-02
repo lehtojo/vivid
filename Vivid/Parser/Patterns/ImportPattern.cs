@@ -30,9 +30,13 @@ public class ImportPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var token = tokens[IMPORT].To<KeywordToken>();
+		// Ensure the first token contains import modifier
+		/// NOTE: Multiple modifiers are packed into one token
+		var modifier_keyword = tokens[IMPORT].To<KeywordToken>();
+		if (modifier_keyword.Keyword.Type != KeywordType.MODIFIER) return false;
 
-		if (token.Keyword != Keywords.IMPORT) return false;
+		var modifiers = modifier_keyword.To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
+		if (!Flag.Has(modifiers, Modifier.IMPORTED)) return false;
 
 		var next = Peek(state);
 
@@ -46,7 +50,11 @@ public class ImportPattern : Pattern
 		// Optionally consume a language identifier
 		Consume(state, TokenType.STRING | TokenType.OPTIONAL);
 
-		if (!Consume(state, TokenType.FUNCTION)) return false;
+		if (!Consume(state, out Token? descriptor, TokenType.FUNCTION)) return false;
+
+		// Ensure the context is a type when importing a constructor or a destructor
+		var name = descriptor!.To<FunctionToken>().Name;
+		if ((name == Keywords.INIT.Identifier || name == Keywords.DEINIT.Identifier) && !context.IsType) return false;
 
 		// Try to consume the return type
 		if (Try(state, () => Consume(state, out Token? token, TokenType.OPERATOR) && token!.Is(Operators.COLON)))
@@ -70,7 +78,7 @@ public class ImportPattern : Pattern
 	/// <summary>
 	/// Imports the function contained in the specified tokens
 	/// </summary>
-	private static void ImportFunction(Context environment, List<Token> tokens)
+	private static Node? ImportFunction(Context environment, List<Token> tokens)
 	{
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
 		var language = FunctionLanguage.VIVID;
@@ -94,7 +102,23 @@ public class ImportPattern : Pattern
 			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Can not resolve the return type");
 		}
 
-		var function = new Function(environment, Modifier.DEFAULT | Modifier.IMPORTED, descriptor.Name, descriptor.Position, null);
+		var function = (Function?)null;
+		var modifiers = Modifier.Combine(Modifier.DEFAULT, tokens.First().To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier);
+
+		// If the function is a constructor or a destructor, handle it differently
+		if (descriptor.Name == Keywords.INIT.Identifier)
+		{
+			function = new Constructor(environment, modifiers, descriptor.Position, null);
+		}
+		else if (descriptor.Name == Keywords.DEINIT.Identifier)
+		{
+			function = new Destructor(environment, modifiers, descriptor.Position, null);
+		}
+		else
+		{
+			function = new Function(environment, modifiers, descriptor.Name, descriptor.Position, null);
+		}
+
 		function.Language = language;
 
 		var parameters = descriptor.GetParameters(function);
@@ -106,30 +130,36 @@ public class ImportPattern : Pattern
 
 		implementation.Implement(function.Blueprint);
 
-		environment.Declare(function);
+		// Declare the function in the environment
+		if (descriptor.Name == Keywords.INIT.Identifier)
+		{
+			environment.To<Type>().AddConstructor((Constructor)function);
+		}
+		else if (descriptor.Name == Keywords.DEINIT.Identifier)
+		{
+			environment.To<Type>().AddDestructor((Destructor)function);
+		}
+		else
+		{
+			environment.Declare(function);
+		}
+
+		return new FunctionDefinitionNode(function, descriptor.Position);
 	}
 
 	/// <summary>
 	/// Imports the namespace contained in the specified tokens
 	/// </summary>
-	private static void ImportNamespace(Context environment, List<Token> tokens)
+	private static Node? ImportNamespace(Context environment, List<Token> tokens)
 	{
 		var import = Common.ReadType(environment, new Queue<Token>(tokens.Skip(1)));
 		if (import == null) throw Errors.Get(tokens.First().Position, "Can not resolve the import");
 		environment.Imports.Add(import);
+		return null;
 	}
 
 	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
 	{
-		if (IsFunctionImport(tokens))
-		{
-			ImportFunction(environment, tokens);
-		}
-		else
-		{
-			ImportNamespace(environment, tokens);
-		}
-
-		return null;
+		return IsFunctionImport(tokens) ? ImportFunction(environment, tokens) : ImportNamespace(environment, tokens);
 	}
 }

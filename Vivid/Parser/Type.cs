@@ -112,6 +112,7 @@ public class Type : Context
 	public bool IsInlining => Flag.Has(Modifiers, Modifier.INLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
+	public bool IsExported => Flag.Has(Modifiers, Modifier.EXPORTED);
 	public bool IsUnresolved => !IsResolved();
 	public bool IsPlain => Flag.Has(Modifiers, Modifier.PLAIN);
 	public bool IsPrimitive => Flag.Has(Modifiers, Modifier.PRIMITIVE);

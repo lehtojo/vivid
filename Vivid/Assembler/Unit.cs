@@ -827,7 +827,7 @@ public class Unit
 			instruction.Position = Position++;
 		}
 
-		var dependencies = Instructions.Select(i => i.GetAllUsedResults()).ToArray();
+		var dependencies = Instructions.Select(i => i.GetAllUsedResults().ToArray()).ToArray();
 
 		// Reset all lifetimes
 		foreach (var iterator in dependencies)

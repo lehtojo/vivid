@@ -84,7 +84,7 @@ public static class Resolver
 
 		if (implementation.Node != null)
 		{
-			if (!implementation.Metadata!.IsImported && implementation.Node.Find(NodeType.RETURN) == null)
+			if (implementation.ReturnType == null && implementation.Node.Find(NodeType.RETURN) == null)
 			{
 				implementation.ReturnType = Primitives.CreateUnit();
 			}

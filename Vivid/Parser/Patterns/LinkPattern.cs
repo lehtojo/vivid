@@ -77,8 +77,10 @@ public class LinkPattern : Pattern
 			// Since the primary context could not be retrieved, an unresolved link node must be returned
 			if (template_arguments.Any())
 			{
-				var token = tokens[RIGHT].To<IdentifierToken>();
-				right = new UnresolvedFunction(token.Value, template_arguments, token.Position);
+				var name = tokens[RIGHT].To<IdentifierToken>();
+				var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
+
+				right = new UnresolvedFunction(name.Value, template_arguments, name.Position).SetArguments(descriptor.GetParsedParameters(environment));
 			}
 			else
 			{

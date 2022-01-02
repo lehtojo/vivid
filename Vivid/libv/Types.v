@@ -3,7 +3,7 @@ TYPE_DESCRIPTOR_SIZE_OFFSET = 1
 TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET = 2
 TYPE_DESCRIPTOR_SUPERTYPES_FIRST = 3
 
-TypeDescriptor {
+export TypeDescriptor {
 	private:
 	address: link
 
