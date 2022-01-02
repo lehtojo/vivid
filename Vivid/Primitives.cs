@@ -99,11 +99,11 @@ public static class Primitives
 		{
 			number = bits switch
 			{
-				8 => new Number(Format.UINT8, 8, false, U8),
-				16 => new Number(Format.UINT16, 16, false, U16),
-				32 => new Number(Format.UINT32, 32, false, U32),
-				64 => new Number(Format.UINT64, 64, false, U64),
-				_ => new Number(Format.UINT64, 64, false, U64)
+				8 => new Number(Format.UINT8, 8, true, U8),
+				16 => new Number(Format.UINT16, 16, true, U16),
+				32 => new Number(Format.UINT32, 32, true, U32),
+				64 => new Number(Format.UINT64, 64, true, U64),
+				_ => new Number(Format.UINT64, 64, true, U64)
 			};
 		}
 
