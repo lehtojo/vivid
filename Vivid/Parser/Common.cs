@@ -1188,7 +1188,7 @@ public static class Common
 		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
-		else if (sign) { result = '+' + result; }
+		else if (sign) { result = '+' + result; }
 
 		return result;
 	}
@@ -1198,7 +1198,7 @@ public static class Common
 		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
-		else if (sign) { result = '+' + result; }
+		else if (sign) { result = '+' + result; }
 
 		return result;
 	}
@@ -1208,7 +1208,7 @@ public static class Common
 		var result = value.ToString();
 
 		if (value < 0) { result = '-' + result[1..]; }
-		else if (sign) { result = '+' + result; }
+		else if (sign) { result = '+' + result; }
 
 		// Use dots as decimal separators
 		result = result.Replace(',', '.');

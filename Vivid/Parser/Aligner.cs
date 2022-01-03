@@ -43,9 +43,9 @@ public class ParameterAligner
 	/// <summary>
 	/// Aligns the specified parameters
 	/// </summary>
-	public void Align(List<Variable> parametes)
+	public void Align(List<Variable> parameters)
 	{
-		foreach (var parameter in parametes) { Align(parameter); }
+		foreach (var parameter in parameters) { Align(parameter); }
 	}
 }
 
