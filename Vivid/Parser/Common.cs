@@ -250,7 +250,6 @@ public static class Common
 	/// </summary>
 	public static bool ConsumeType(PatternState state)
 	{
-		#warning Upgrade the seconds stage
 		var is_normal_type = Pattern.Consume(state, TokenType.IDENTIFIER);
 
 		if (!is_normal_type)

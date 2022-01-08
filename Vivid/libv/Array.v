@@ -44,9 +44,10 @@ export Array<T> {
 	}
 
 	# Summary: Creates an array from the specified data and size
-	init(data: link<T>, size: large) {
-		this.data = data
-		this.count = size
+	init(data: link<T>, count: large) {
+		this.data = allocate(count * sizeof(T))
+		this.count = count
+		copy(data, count * sizeof(T), this.data)
 	}
 	
 	set(i: large, value: T) {
@@ -59,6 +60,23 @@ export Array<T> {
 		require(i >= 0 and i < count, 'Index out of bounds')
 
 		=> data[i]
+	}
+
+	# Summary: Returns the index of the specified element in the array. Returns -1 if the element is not found.
+	index_of(value: T) {
+		loop (i = 0, i < count, i++) {
+			if data[i] == value => i
+		}
+		=> -1
+	}
+
+	# Summary: Returns the elements between the specified range as an array.
+	slice(start: large, end: large) {
+		require(start >= 0 and start < count, 'Invalid start index')
+		require(end >= 0 and end <= count, 'Invalid end index')
+		require(start <= end, 'Invalid slice')
+
+		=> Array<T>(data + start * sizeof(T), end - start)
 	}
 
 	# Summary: Returns an iterator which can be used to inspect this array

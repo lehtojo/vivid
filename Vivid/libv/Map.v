@@ -244,4 +244,37 @@ export Map<K, V> {
 		zero(values, count * sizeof(V))
 		zero(states, count)
 	}
+
+	# Summary: Converts the key-value pairs of this map into a list
+	map<U>(mapper: (KeyValuePair<K, V>) -> U) {
+		result = List<U>(items.size, false)
+
+		loop item in items {
+			result.add(mapper(item))
+		}
+
+		=> result
+	}
+
+	# Summary: Returns the keys associated with the values in this map
+	get_keys() {
+		result = List<K>(items.size, false)
+
+		loop item in items {
+			result.add(item.key)
+		}
+
+		=> result
+	}
+
+	# Summary: Returns the values associated with the keys in this map as a list
+	get_values() {
+		result = List<V>(items.size, false)
+
+		loop item in items {
+			result.add(item.value)
+		}
+
+		=> result
+	}
 }

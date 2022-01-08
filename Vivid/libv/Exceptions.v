@@ -44,6 +44,12 @@ export Optional<T> {
 
 	has_value() => !empty
 	get_value() => value
+
+	value_or(fallback: T) {
+		result = value
+		if empty { result = fallback }
+		=> result
+	}
 }
 
 export panic(message: link) {

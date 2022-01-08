@@ -3,7 +3,8 @@ using System;
 public enum InspectionType
 {
 	NAME,
-	SIZE
+	SIZE,
+	CAPACITY
 }
 
 public class InspectionNode : Node, IResolvable

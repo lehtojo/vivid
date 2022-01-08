@@ -42,7 +42,7 @@ public static class ObjectExporter
 		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
 		mangle.Add(type);
 
-		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !i.IsHidden).ToArray();
+		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !i.IsConstant && !i.IsHidden).ToArray();
 		var virtual_functions = type.Virtuals.Values.ToArray();
 
 		var public_member_variables = member_variables.Where(i => i.IsPublic).ToArray();

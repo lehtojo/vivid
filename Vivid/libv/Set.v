@@ -32,4 +32,16 @@ export Set<T> {
 		container.add(element)
 		=> true
 	}
+
+	iterator() {
+		=> container.iterator()
+	}
+
+	to_list() {
+		=> List<T>(container)
+	}
+
+	to_array() {
+		=> container.to_array()
+	}
 }

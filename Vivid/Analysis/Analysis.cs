@@ -919,6 +919,10 @@ public static class Analysis
 			{
 				inspection.Replace(new StringNode(type.ToString(), inspection.Position));
 			}
+			else if (inspection.Type == InspectionType.CAPACITY)
+			{
+				inspection.Replace(new NumberNode(Parser.Format, (long)type.ContentSize));
+			}
 			else if (inspection.Type == InspectionType.SIZE)
 			{
 				inspection.Replace(new NumberNode(Parser.Format, (long)type.AllocationSize));

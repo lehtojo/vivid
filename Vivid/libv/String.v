@@ -259,14 +259,18 @@ export String {
 	###
 	combine(other: String) {
 		a = length
-		b = other.length + 1
+		b = other.length
+		c = a + b
 
-		memory = allocate(a + b)
+		memory = allocate(c + 1) # Include the zero byte
 
 		copy(text, a, memory)
-		offset_copy(other.text, b, memory, a)
+		copy(other.text, b + 1, memory + a) # Include the zero byte
 
-		=> String(memory)
+		result = String()
+		result.text = memory
+		result.length = c
+		=> result
 	}
 
 	###
@@ -285,7 +289,10 @@ export String {
 		memory[a] = character
 		memory[a + 1] = 0
 
-		=> String(memory)
+		result = String()
+		result.text = memory
+		result.length = a + 1
+		=> result
 	}
 
 	insert(index: large, character: u8) {
@@ -304,7 +311,10 @@ export String {
 		memory[a + 1] = 0
 
 		# Create a new string from the buffer
-		=> String(memory)
+		result = String()
+		result.text = memory
+		result.length = a + 1
+		=> result
 	}
 
 	# Summary: Returns whether the first characters match the specified string

@@ -232,13 +232,28 @@ public class Type : Context
 
 	public virtual int GetAllocationSize()
 	{
-		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Values.Sum(i => i.Type!.AllocationSize);
+		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Values.Where(i => !i.IsStatic && !i.IsConstant).Sum(i => i.Type!.AllocationSize);
 		return GetReferenceSize();
 	}
 
 	public virtual int GetContentSize()
 	{
-		var bytes = Variables.Where(i => !i.Value.IsStatic).Sum(i => i.Value.Type?.AllocationSize ?? throw Errors.Get(i.Value.Position, "Missing member variable type"));
+		var bytes = 0;
+
+		foreach (var member in Variables.Values)
+		{
+			if (member.IsStatic || member.IsConstant) continue;
+			if (member.Type == null) throw Errors.Get(member.Position, "Missing member variable type");
+
+			if (member.IsInlined())
+			{
+				bytes += member.Type.ContentSize;
+			}
+			else
+			{
+				bytes += member.Type.AllocationSize;
+			}
+		}
 
 		return Supertypes.Sum(i => i.ContentSize) + bytes;
 	}

@@ -647,7 +647,7 @@ public class Debug
 
 		foreach (var member in type.Variables.Values)
 		{
-			if (member.IsGenerated || member.IsStatic) continue;
+			if (member.IsGenerated || member.IsStatic || member.IsConstant) continue;
 			AddMemberVariable(member, types);
 		}
 

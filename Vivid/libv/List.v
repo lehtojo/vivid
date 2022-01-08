@@ -353,7 +353,7 @@ export List<T> {
 
 	# Summary: Creates a new list of all the element collections returned by the mapper by adding them sequentially
 	flatten<U>(mapper: (T) -> List<U>) {
-		result = List<U>(position, true)
+		result = List<U>(position, false)
 
 		loop (i = 0, i < position, i++) {
 			collection = mapper(elements[i])
@@ -369,6 +369,7 @@ export List<T> {
 		=> this
 	}
 
+	# Summary: Returns the number of elements which pass the specified filter
 	count(filter: (T) -> bool) {
 		count = 0
 
@@ -377,6 +378,24 @@ export List<T> {
 		}
 
 		=> count
+	}
+	
+	# Summary: Returns whether all the elements pass the specified filter
+	all(filter: (T) -> bool) {
+		loop (i = 0, i < position, i++) {
+			if not filter(elements[i]) => false
+		}
+
+		=> true
+	}
+
+	# Summary: Returns true if any of the elements pass the specified filter
+	any(filter: (T) -> bool) {
+		loop (i = 0, i < position, i++) {
+			if filter(elements[i]) => true
+		}
+
+		=> false
 	}
 
 	# TODO: Decrement operator overload for taking out elements

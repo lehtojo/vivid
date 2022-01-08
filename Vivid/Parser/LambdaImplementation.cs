@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 public class LambdaImplementation : FunctionImplementation
 {
@@ -11,7 +12,8 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override void OnMangle(Mangle mangle)
 	{
-		Parent!.OnMangle(mangle);
+		var function_parent = Parent!.GetImplementationParent() ?? throw Errors.Get(Metadata.Start, "Lambda does not have a parent function");
+		function_parent.OnMangle(mangle);
 
 		mangle += $"_{Name}_";
 		mangle += Parameters.Select(i => i.Type!);

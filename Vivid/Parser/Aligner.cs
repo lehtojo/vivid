@@ -124,7 +124,7 @@ public static class Aligner
 		// Member variables:
 		foreach (var variable in type.Variables.Values)
 		{
-			if (variable.IsStatic) continue;
+			if (variable.IsStatic || variable.IsConstant) continue;
 			variable.LocalAlignment = position;
 			position += variable.Type!.AllocationSize;
 		}

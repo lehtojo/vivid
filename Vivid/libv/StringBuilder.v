@@ -10,6 +10,12 @@ export StringBuilder {
 		buffer = allocate(1)
 	}
 
+	init(value: String) {
+		capacity = value.length
+		buffer = allocate(value.length)
+		append(value)
+	}
+
 	private grow(requirement: large) {
 		capacity: large = (position + requirement) * 2
 		buffer: link = allocate(capacity)

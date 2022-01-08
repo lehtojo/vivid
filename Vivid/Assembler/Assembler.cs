@@ -289,19 +289,19 @@ public static class Assembler
 	/// <summary>
 	/// Assembles all functions inside the specified context and returns the generated assembly grouped by the corresponding source files
 	/// </summary>
-	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context)
+	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context, SourceFile[] files)
 	{
 		// Group all functions by their owner files
-		var files = Common.GetAllImplementedFunctions(context, false)
+		var mapped_functions = Common.GetAllImplementedFunctions(context, false)
 			.Where(i => i.Start != null)
-			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"));
+			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"))
+			.ToDictionary(i => i.Key, i => i.ToList());
 
 		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
 
-		foreach (var iterator in files)
+		foreach (var file in files)
 		{
 			var builder = new AssemblyBuilder();
-			var file = iterator.Key!;
 
 			// Add the debug label, which indicates the start of debuggable code
 			if (Assembler.IsDebuggingEnabled)
@@ -311,10 +311,13 @@ public static class Assembler
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
-			foreach (var function in iterator)
+			if (mapped_functions.ContainsKey(file))
 			{
-				builder.Add(AssembleFunction(function));
-				builder.Write(SEPARATOR);
+				foreach (var function in mapped_functions[file])
+				{
+					builder.Add(AssembleFunction(function));
+					builder.Write(SEPARATOR);
+				}
 			}
 
 			// Add the debug label, which indicates the end of debuggable code
@@ -746,7 +749,7 @@ public static class Assembler
 			object_files.Add(file, IsTargetWindows ? PeFormat.Import(object_file) : ElfFormat.Import(object_file));
 		}
 
-		var text_sections = GetTextSections(context);
+		var text_sections = GetTextSections(context, files);
 		var data_sections = GetDataSections(context);
 		var debug_sections = GetDebugSections(context);
 
@@ -833,11 +836,14 @@ public static class Assembler
 
 				builder.WriteLine(string.Format(template, ExportDirective, instructions));
 
-				var parser = new AssemblyParser();
-				parser.Parse(file, string.Format(template, ExportDirective, instructions));
+				if (!Assembler.IsLegacyAssemblyEnabled)
+				{
+					var parser = new AssemblyParser();
+					parser.Parse(file, string.Format(template, ExportDirective, instructions));
 
-				builder.Add(file, parser.Instructions);
-				builder.Export(parser.Exports);
+					builder.Add(file, parser.Instructions);
+					builder.Export(parser.Exports);
+				}
 			}
 
 			if (text_sections.TryGetValue(file, out var text_section_builder))
