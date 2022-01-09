@@ -21,7 +21,7 @@
 			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
 
 			// Builds the stage 2 compiler
-			"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/entries/vivid.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-d" ],
+			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/entries/vivid.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-d" ],
 
 			// Build an assembly file
 			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
@@ -57,8 +57,7 @@
 			// 	"v"
 			// ],
 
-			//"args": [ "${workspaceFolder}/Examples/StaticLibraryUsage.v", "-o", "v", "-f", "-l", "v", "-l", "kernel32" ],
-			//"args": [ "${workspaceFolder}/Examples/Sandbox.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-O1" ],
+			"args": [ "${workspaceFolder}/Examples/prebuilt.windows.v", "-o", "prebuilt", "-f", "-l", "kernel32", "-static" ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

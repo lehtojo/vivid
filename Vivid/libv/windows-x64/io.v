@@ -408,7 +408,7 @@ export get_process_working_folder() {
 # Summary: Returns the folder which contains the current process executable
 export get_process_folder() {
 	filename = get_process_filename()
-	if filename == none => none as String
+	if filename as link == none => none as String
 
 	# Find the index of the last separator
 	i = filename.last_index_of(`/`)

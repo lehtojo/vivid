@@ -20,7 +20,7 @@ public static class Program
 			typeof(ResolverPhase),
 			typeof(AssemblyPhase)
 		);
-		
+
 		// Pack the program arguments in the chain
 		var bundle = new Bundle();
 		bundle.Put(ConfigurationPhase.ARGUMENTS, arguments);

@@ -6,7 +6,7 @@ export are_equal(a: large, b: large) {
 	println(b)
 
 	if a == b return
-	exit(1)
+	application.exit(1)
 }
 
 export are_equal(a: char, b: char) {
@@ -15,7 +15,7 @@ export are_equal(a: char, b: char) {
 	println(String(b))
 
 	if a == b return
-	exit(1)
+	application.exit(1)
 }
 
 export are_equal(a: decimal, b: decimal) {
@@ -26,7 +26,7 @@ export are_equal(a: decimal, b: decimal) {
 	d = a - b
 
 	if d >= -DECIMAL_PRECISION and d <= DECIMAL_PRECISION return
-	exit(1)
+	application.exit(1)
 }
 
 export are_equal(a: String, b: String) {
@@ -35,7 +35,7 @@ export are_equal(a: String, b: String) {
 	println(b)
 
 	if a == b return
-	exit(1)
+	application.exit(1)
 }
 
 export are_equal(a: link, b: link) {
@@ -44,7 +44,7 @@ export are_equal(a: link, b: link) {
 	println(b as large)
 
 	if a == b return
-	exit(1)
+	application.exit(1)
 }
 
 export are_equal(a: link, b: link, offset: large, length: large) {
@@ -64,7 +64,7 @@ export are_equal(a: link, b: link, offset: large, length: large) {
 		print(' == ')
 		println(to_string(y))
 
-		if x != y exit(1)
+		if x != y application.exit(1)
 	}
 }
 
@@ -74,5 +74,5 @@ export are_not_equal(a: large, b: large) {
 	println(b)
 
 	if a != b return
-	exit(1)
+	application.exit(1)
 }
