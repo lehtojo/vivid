@@ -24,6 +24,9 @@ export Allocation {
 }
 
 outline allocate(bytes: large) {
+	# Allocate the memory directly if it is large enough
+	if bytes >= 100000 => internal.allocate(bytes)
+
 	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
 		position = Allocation.current.position
 		Allocation.current.position += bytes

@@ -552,11 +552,11 @@ export String {
 	}
 
 	hash() {
-		hash = 1
+		hash = 5381
 		a = length
 
 		loop (i = 0, i < a, i++) {
-			hash *= text[i] as large
+			hash = ((hash <| 5) + hash) + text[i] # hash = hash * 33 + text[i]
 		}
 
 		=> hash

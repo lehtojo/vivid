@@ -8,7 +8,7 @@ export KeyValuePair<K, V> {
 	}
 }
 
-MAX_SLOT_OFFSET = 10
+MAX_SLOT_OFFSET = 20
 MAX_LEVEL_SIZE = 20
 
 export Map<K, V> {
