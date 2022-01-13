@@ -86,13 +86,13 @@ public class TemplateType : Type
 
 	private Type CreateVariant(Type[] arguments)
 	{
-		var identifier = string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.ToString()));
+		var identifier = string.Join(", ", arguments.Select(i => i.ToString()));
 
 		// Copy the blueprint and insert the specified arguments to their places
 		var tokens = Inherited.Select(i => (Token)i.Clone()).ToList();
 
 		var blueprint = Blueprint.Select(i => (Token)i.Clone()).ToList();
-		blueprint[NAME].To<IdentifierToken>().Value = Name + '<' + string.Join(", ", arguments.Take(TemplateParameters.Count).Select(i => i.Name)) + '>';
+		blueprint[NAME].To<IdentifierToken>().Value = Name + $"<{identifier}>";
 
 		tokens.AddRange(blueprint);
 

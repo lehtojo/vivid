@@ -431,23 +431,22 @@ public sealed class Scope : IDisposable
 	/// </summary>
 	public Result? GetVariableValue(Variable variable, bool recursive = true)
 	{
-		// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
-		if (Assembler.IsDebuggingEnabled) return null;
-
 		// Only predictable variables are allowed to be cached
 		if (!variable.IsPredictable) return null;
 
 		// First check if the variable handle list already exists
 		if (Variables.TryGetValue(variable, out Result? handle))
 		{
-			return handle;
+			// When debugging is enabled, all variables should be stored in stack, which is the default location if this function returns null
+			/// NOTE: Disposable handles assigned to local variables are an exception to this rule, the values inside them must be extracted to invidual local variables
+			return (Assembler.IsDebuggingEnabled && handle.Value.Instance != HandleInstanceType.DISPOSABLE_PACK) ? null : handle;
 		}
 		else if (recursive)
 		{
-			var source = Outer?.GetVariableValue(variable);
-			if (source != null) { Variables.Add(variable, source); }
+			handle = Outer?.GetVariableValue(variable);
+			if (handle != null) { Variables.Add(variable, handle); }
 
-			return source;
+			return handle;
 		}
 
 		return null;

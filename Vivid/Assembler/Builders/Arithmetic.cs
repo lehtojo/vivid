@@ -283,7 +283,8 @@ public static class Arithmetic
 		var local = TryGetLocalVariable(unit, node.Left, left);
 
 		// Check if the destination represents a local variable and ensure the assignment is not conditional
-		if (node.Condition == null && local != null && !Assembler.IsDebuggingEnabled)
+		/// NOTE: Disposable packs must be assigned to intermediate variables so that their values can be extracted even in debug mode
+		if (node.Condition == null && local != null && (!Assembler.IsDebuggingEnabled || right.Value.Instance == HandleInstanceType.DISPOSABLE_PACK))
 		{
 			return new SetVariableInstruction(unit, local, right).Execute();
 		}

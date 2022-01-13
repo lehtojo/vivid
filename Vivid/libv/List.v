@@ -48,7 +48,7 @@ export List<T> {
 	}
 
 	# Summary: Grows the list to the specified size
-	private grow(to: large) {
+	grow(to: large) {
 		if to == 0 { to = 1 }
 		memory = allocate(to * sizeof(T))
 		zero(memory + position * sizeof(T), (to - position) * sizeof(T))

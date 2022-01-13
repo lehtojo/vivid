@@ -114,7 +114,7 @@ export Map<K, V> {
 			if location < 0 { location += size }
 
 			start = position + location
-			n = min(MAX_SLOT_OFFSET, position + size - location)
+			n = min(MAX_SLOT_OFFSET, position + size - start)
 
 			loop (j = 0, j < n, j++) {
 				offset = start + j

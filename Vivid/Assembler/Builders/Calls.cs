@@ -226,43 +226,52 @@ public static class Calls
 		return call.Execute();
 	}
 
+	/// <summary>
+	/// Moves the specified parameter or its representives to their own stack locations, if they are not already in the stack.
+	/// The location of the parameter is determined by using the specified registers.
+	/// This is used for debugging purposes.
+	/// </summary>
+	public static void MoveParameterToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers)
+	{
+		if (parameter.Type!.IsPack)
+		{
+			foreach (var representive in Common.GetPackRepresentives(parameter))
+			{
+				MoveParameterToStack(unit, representive, standard_parameter_registers, decimal_parameter_registers);
+			}
+
+			return;
+		}
+
+		var register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+
+		if (register != null)
+		{
+			var destination = new Result(References.CreateVariableHandle(unit, parameter), parameter.Type!.Format);
+			var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
+
+			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
+		}
+	}
+
+	/// <summary>
+	/// Moves the specified parameters or their representives to their own stack locations, if they are not already in the stack.
+	/// This is used for debugging purposes.
+	/// </summary>
 	public static void MoveParametersToStack(Unit unit)
 	{
 		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
-		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
-
-		var register = (Register?)null;
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
 
 		if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
 		{
 			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
-
-			register = standard_parameter_registers.Pop();
-
-			if (register != null)
-			{
-				var destination = new Result(References.CreateVariableHandle(unit, self), self.Type!.Format);
-				var source = new Result(new RegisterHandle(register), self.GetRegisterFormat());
-
-				unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
-			}
-			else
-			{
-				throw new ApplicationException("Self pointer should not be in stack");
-			}
+			MoveParameterToStack(unit, self, standard_parameter_registers, decimal_parameter_registers);
 		}
 
 		foreach (var parameter in unit.Function.Parameters)
 		{
-			register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-
-			if (register != null)
-			{
-				var destination = new Result(References.CreateVariableHandle(unit, parameter), parameter.Type!.Format);
-				var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
-
-				unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
-			}
+			MoveParameterToStack(unit, parameter, standard_parameter_registers, decimal_parameter_registers);
 		}
 	}
 }
