@@ -21,6 +21,13 @@ zero(memory: link, amount: large) {
 	}
 }
 
+# Summary: Copies the specified amount of bytes from the source to the destination
+export copy(source: link, amount: large, destination: link) {
+	loop (i = 0, i < amount, i++) {
+		destination[i] = source[i]
+	}
+}
+
 # Exits the application with the specified status code
 exit(code: large) {
 	ExitProcess(code)

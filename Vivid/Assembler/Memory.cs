@@ -157,10 +157,9 @@ public static class Memory
 	/// </summary>
 	public static void ClearRegister(Unit unit, Register target)
 	{
-		if (target.IsAvailable(unit.Position))
-		{
-			return;
-		}
+		// 1. If the register is already available, no need to clear it
+		// 2. If the value inside the register does not own the register, no need to clear it
+		if (target.IsAvailable(unit.Position) || target.IsHandleCopy()) return;
 
 		var register = (Register?)null;
 

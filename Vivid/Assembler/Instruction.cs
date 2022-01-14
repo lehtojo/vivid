@@ -252,22 +252,25 @@ public class Instruction
 			if (parameter.IsDestination && parameter.IsAttachable)
 			{
 				// There should not be multiple destinations
-				if (destination != null)
-				{
-					throw new ApplicationException("Instruction had multiple destinations");
-				}
+				if (destination != null) throw new ApplicationException("Instruction had multiple destinations");
 
 				destination = parameter.Value;
 			}
 
 			if (parameter.IsSource && parameter.IsAttachable)
 			{
-				if (source != null)
-				{
-					throw new InvalidOperationException("Instruction had multiple sources");
-				}
+				if (source != null) throw new InvalidOperationException("Instruction had multiple sources");
 
 				source = parameter.Value;
+			}
+
+			var is_relocated = Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE);
+			var is_register = parameter.Result.IsAnyRegister;
+
+			if (is_relocated && is_register)
+			{
+				// Since the parameter is relocated, its current register can be reset
+				parameter.Result.Value.To<RegisterHandle>().Register.Reset();
 			}
 		}
 
