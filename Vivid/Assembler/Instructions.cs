@@ -1038,10 +1038,10 @@ public static class Instructions
 			DualParameterEncodings[_MOVUPS] = new List<InstructionEncoding>()
 			{
 				// movups x, m128
-				new InstructionEncoding(0x100F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 16),
+				new InstructionEncoding(0x100F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 16, EncodingFilterType.MEMORY_ADDRESS, 0, 16),
 
 				// movups m128, x
-				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 16, EncodingFilterType.REGISTER, 0, 8),
+				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 16, EncodingFilterType.REGISTER, 0, 16),
 			};
 
 			DualParameterEncodings[_MOVQ] = new List<InstructionEncoding>()

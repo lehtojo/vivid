@@ -19,7 +19,7 @@ public static class Returns
 		var position = new StackMemoryHandle(unit, Assembler.IsX64 ? Assembler.Size.Bytes : 0);
 		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, Assembler.Format);
 
-		unit.Append(new ReorderInstruction(unit, destinations, sources));
+		unit.Append(new ReorderInstruction(unit, destinations, sources, unit.Function.ReturnType!));
 	}
 
 	public static Result Build(Unit unit, ReturnNode node)

@@ -175,7 +175,7 @@ public static class Calls
 		}
 
 		call.Destinations.AddRange(destinations);
-		unit.Append(new ReorderInstruction(unit, destinations, sources));
+		unit.Append(new ReorderInstruction(unit, destinations, sources, call.ReturnType));
 	}
 
 	/// <summary>

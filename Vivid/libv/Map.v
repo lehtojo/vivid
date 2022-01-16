@@ -158,6 +158,14 @@ export Map<K, V> {
 		if location >= 0 {
 			keys[location] = key
 			values[location] = value
+
+			loop item in items {
+				if item.key == key {
+					item.key = key
+					item.value = value
+					return
+				}
+			}
 			return
 		}
 

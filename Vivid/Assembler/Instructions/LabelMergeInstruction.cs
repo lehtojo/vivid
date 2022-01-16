@@ -57,7 +57,7 @@ public class LabelMergeInstruction : Instruction
 			sources.Add(source);
 		}
 
-		Unit.Append(new ReorderInstruction(Unit, destinations, sources));
+		Unit.Append(new ReorderInstruction(Unit, destinations, sources, null));
 
 		// Apply the reordering manually
 		for (var i = 0; i < destinations.Count; i++)

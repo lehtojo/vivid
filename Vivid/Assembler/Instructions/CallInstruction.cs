@@ -251,7 +251,7 @@ public class CallInstruction : Instruction
 			var decimal_parameter_registers = Unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
 			var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => Unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
 
-			var position = new StackMemoryHandle(Unit, Assembler.IsX64 ? Assembler.Size.Bytes : 0);
+			var position = new StackMemoryHandle(Unit, 0, false);
 			OutputPack(standard_parameter_registers, decimal_parameter_registers, position, ReturnPack);
 			return;
 		}

@@ -5,6 +5,7 @@ pack Foo {
 
 pack Bar {
 	a: Foo
+	x: Foo
 	b: Foo
 }
 
@@ -47,6 +48,7 @@ pack_5(x: large, y: large) {
 	c.y = x
 	result: Bar
 	result.a = c
+	result.x = c
 	result.b = c
 	=> result
 }
@@ -85,6 +87,8 @@ pack_10(memory: link<Bar>, i: large, x: large, y: large) {
 	bar: Bar
 	bar.a.x = y
 	bar.a.y = x
+	bar.x.x = 0
+	bar.x.y = 0
 	bar.b.x = y * y
 	bar.b.y = x * x
 	memory[i] = bar
@@ -109,8 +113,8 @@ init() {
 
 	println(pack_7(memory, 0))
 
-	pack_8(memory, 1, 43, 47)
-	println(pack_7(memory, 1))
+	pack_8(memory, 2, 43, 47)
+	println(pack_7(memory, 2))
 
 	println(pack_9(memory, 0))
 
