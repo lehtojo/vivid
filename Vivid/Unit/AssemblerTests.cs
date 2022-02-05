@@ -164,6 +164,7 @@ namespace Vivid.Unit
 		private static string ObjectFileExtension => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".obj" : ".o";
 
 		private const string STANDARD_LIBRARY_FOLDER = "libv";
+		private const string STANDARD_LIBRARY_ALLOCATOR_FOLDER = "libv/allocator";
 		private static string PLATFORM_INTERNAL_FOLDER => STANDARD_LIBRARY_FOLDER + '/' + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "windows-x64/" : "linux-x64/");
 		private const string TESTS = "Tests";
 
@@ -299,7 +300,7 @@ namespace Vivid.Unit
 
 			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
 			{
-				GetProjectFile("Core.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Light.v", STANDARD_LIBRARY_ALLOCATOR_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)
@@ -337,7 +338,7 @@ namespace Vivid.Unit
 
 			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
 			{
-				GetProjectFile("Core.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("Light.v", STANDARD_LIBRARY_ALLOCATOR_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)

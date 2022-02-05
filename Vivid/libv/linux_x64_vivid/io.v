@@ -1,6 +1,8 @@
 import get_stack_pointer(): link
 
 export internal_init(root: link) {
+	internal.allocator.initialize()
+
 	count = root.(link<large>)[0]
 
 	arguments = List<String>(count, false)

@@ -1,3 +1,12 @@
+import init(): large
+
+export internal_init(root: link) {
+	#internal.allocator.initialize()
+
+	# Call the actual init function here
+	init()
+}
+
 namespace io
 
 namespace internal {

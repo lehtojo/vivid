@@ -7,7 +7,7 @@ export Outcome<T, E> {
 
 	# Summary: Returns the specified fallback value if the outcome represents an error, otherwise the contained value is returned
 	value_or(fallback: T) {
-		result = value
+		result = value as T
 		if is_error { result = fallback }
 		=> result
 	}

@@ -1,9 +1,6 @@
 import decimal_to_bits(value: decimal): large
 import bits_to_decimal(value: large): decimal
 
-import allocate_stack(count: large): link
-import deallocate_stack(count: large)
-
 import fill(destination: link, count: large, value: large)
 import zero(destination: link, count: large)
 

@@ -159,8 +159,8 @@ export List<T> {
 	}
 
 	# Summary: Takes the value of the first element and removes it from the begining of the list
-	take_first() {
-		if position == 0 => none as T
+	pop_or(fallback: T) {
+		if position == 0 => fallback
 		first = elements[0]
 
 		# Move all elements left by one
@@ -168,7 +168,7 @@ export List<T> {
 			elements[i - 1] = elements[i] 
 		}
 
-		elements[--position] = none as T
+		elements[--position] = fallback
 		=> first
 	}
 
