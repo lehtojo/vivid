@@ -1652,6 +1652,67 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Finds comparisons between packs and replaces them with member-wise comparisons.
+	/// Example:
+	/// Foo {
+	///   a: large
+	///   b: large
+	/// }
+	/// 
+	/// a == b
+	/// =>
+	/// a.a == b.a && a.b == b.b
+	/// </summary>
+	public static void RewritePackComparisons(Node root)
+	{
+		var comparisons = root.FindAll(NodeType.OPERATOR).Where(i => i.Is(Operators.EQUALS) || i.Is(Operators.NOT_EQUALS)).ToList();
+
+		foreach (var comparison in comparisons)
+		{
+			var left_type = comparison.Left.GetType();
+			var right_type = comparison.Right.GetType();
+
+			// Verify the comparison is between two packs
+			if (!left_type.IsPack || left_type != right_type) continue;
+
+			var left_members = CreatePackMemberAccessors(comparison.Left, left_type, comparison.Left.Position!);
+			var right_members = CreatePackMemberAccessors(comparison.Right, right_type, comparison.Right.Position!);
+
+			// Rewrite the comparison as follows:
+			if (comparison.Is(Operators.EQUALS))
+			{
+				// Equals: a == b => a.a == b.a && a.b == b.b && ...
+				var result = new OperatorNode(Operators.EQUALS).SetOperands(left_members[0], right_members[0]);
+
+				for (var i = 1; i < left_members.Count; i++)
+				{
+					var left = left_members[i];
+					var right = right_members[i];
+
+					result = new OperatorNode(Operators.AND).SetOperands(result, new OperatorNode(Operators.EQUALS).SetOperands(left, right));
+				}
+
+				comparison.Replace(result);
+			}
+			else
+			{
+				// Not equals: a != b => a.a != b.a || a.b != b.b || ...
+				var result = new OperatorNode(Operators.NOT_EQUALS).SetOperands(left_members[0], right_members[0]);
+
+				for (var i = 1; i < left_members.Count; i++)
+				{
+					var left = left_members[i];
+					var right = right_members[i];
+
+					result = new OperatorNode(Operators.OR).SetOperands(result, new OperatorNode(Operators.NOT_EQUALS).SetOperands(left, right));
+				}
+
+				comparison.Replace(result);
+			}
+		}
+	}
+
+	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
 	public static void Reconstruct(FunctionImplementation implementation, Node root)
@@ -1675,6 +1736,7 @@ public static class ReconstructionAnalysis
 		RewriteEditsAsAssignments(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
+		RewritePackComparisons(root);
 
 		if (Analysis.IsFunctionInliningEnabled)
 		{
