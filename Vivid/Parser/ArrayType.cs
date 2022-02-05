@@ -5,6 +5,7 @@ public class ArrayType : Number, IResolvable
 	public Type Element { get; private set; }
 	private List<Token> Tokens { get; set; }
 	public Node? Expression { get; private set; }
+	public long Count => (long)Expression!.To<NumberNode>().Value;
 
 	public ArrayType(Context context, Type element, ContentToken count, Position? position) : base(Parser.Format, Size.QWORD.Bits, true, element.ToString() + "[]")
 	{
@@ -23,6 +24,11 @@ public class ArrayType : Number, IResolvable
 
 		var count = (long)Expression!.To<NumberNode>().Value;
 		return Element.ReferenceSize * (int)count;
+	}
+
+	public override int GetContentSize()
+	{
+		return GetAllocationSize();
 	}
 
 	/// <summary>
@@ -53,10 +59,10 @@ public class ArrayType : Number, IResolvable
 		Analyzer.ApplyConstants(Expression);
 
 		// Try to convert the expression into a constant number
-		var value = Evaluator.TryGetValue(Expression.First);
-		if (value == null || value is not long) return null;
+		var value = Analysis.GetSimplifiedValue(Expression.First);
+		if (value.Instance != NodeType.NUMBER || value.To<NumberNode>().Type.IsDecimal()) return null;
 
-		Expression = new NumberNode(Parser.Format, value);
+		Expression = new NumberNode(Parser.Format, (long)value.To<NumberNode>().Value);
 		return null;
 	}
 

@@ -2,6 +2,13 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+public enum AccessType
+{
+	WRITE,
+	READ,
+	UNKNOWN
+}
+
 public static class Analyzer
 {
 	/// <summary>
@@ -17,6 +24,24 @@ public static class Analyzer
 		}
 
 		return parent.Is(NodeType.INCREMENT, NodeType.DECREMENT);
+	}
+
+	/// <summary>
+	/// Try to determine the type of access related to the specified node
+	/// </summary>
+	public static AccessType TryGetAccessType(Node node)
+	{
+		var parent = node.FindParent(i => !i.Is(NodeType.CAST));
+		if (parent == null) return AccessType.UNKNOWN;
+
+		if (parent.Is(OperatorType.ACTION))
+		{
+			if (parent.Left == node || node.IsUnder(parent.Left)) return AccessType.WRITE;
+			return AccessType.READ;
+		}
+
+		if (parent.Is(NodeType.INCREMENT, NodeType.DECREMENT)) return AccessType.WRITE;
+		return AccessType.READ;
 	}
 
 	/// <summary>
@@ -157,16 +182,27 @@ public static class Analyzer
 	}
 	
 	/// <summary>
-	/// Iterates through the usages of the specified variable and adds them to 'write' and 'read' lists accordingly
+	/// Iterates through the usages of the specified variable and adds them to 'write' and 'read' lists accordingly.
+	/// Returns whether the usages were added or not. This function does not add the usages, if the access type of an usage can not be determined accurately.
 	/// </summary>
-	private static void CategorizeUsages(Variable variable)
+	private static bool TryCategorizeUsages(Variable variable)
 	{
 		variable.Writes.Clear();
 		variable.Reads.Clear();
 
 		foreach (var usage in variable.References)
 		{
-			if (IsEdited(usage))
+			var access = TryGetAccessType(usage);
+
+			// If the access type is unknown, accurate information about usages is not available, therefore we must abort
+			if (access == AccessType.UNKNOWN)
+			{
+				variable.Writes.Clear();
+				variable.Reads.Clear();
+				return false;
+			}
+
+			if (access == AccessType.WRITE)
 			{
 				variable.Writes.Add(usage);
 			}
@@ -175,6 +211,8 @@ public static class Analyzer
 				variable.Reads.Add(usage);
 			}
 		}
+
+		return true;
 	}
 
 	private static void AnalyzeVariableUsages(Node root)
@@ -303,7 +341,9 @@ public static class Analyzer
 		{
 			var constant = usage.Variable;
 
-			CategorizeUsages(constant);
+			// Try to categorize the usages of the constant
+			// If no accurate information is available, the value of the constant can not be inlined
+			if (!TryCategorizeUsages(constant)) continue;
 
 			if (constant.Writes.Count == 0) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
 			if (constant.Writes.Count > 1) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned more than once");
@@ -326,7 +366,7 @@ public static class Analyzer
 				destination = usage.Parent;
 			}
 
-			destination.Replace(write.Right.Clone());
+			destination.Replace(value.Clone());
 		}
 	}
 

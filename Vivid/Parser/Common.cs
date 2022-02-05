@@ -438,6 +438,7 @@ public static class Common
 			if (next.Is(ParenthesisType.BRACKETS))
 			{
 				type.Count = next.To<ContentToken>();
+				tokens.Dequeue();
 			}
 		}
 
@@ -587,7 +588,9 @@ public static class Common
 				typeof(PreIncrementAndDecrementPattern),
 				typeof(RangePattern),
 				typeof(ReturnPattern),
-				typeof(UnarySignPattern)
+				typeof(TemplateFunctionCallPattern),
+				typeof(TypeInspectionPattern),
+				typeof(UnarySignPattern),
 			}
 		);
 
@@ -1106,6 +1109,13 @@ public static class Common
 			result.Add(new OperatorToken(Operators.ARROW) { Position = position });
 			result.AddRange(GetTokens(function.ReturnType!, position));
 
+			return result.ToArray();
+		}
+
+		if (type is ArrayType array)
+		{
+			result.AddRange(GetTokens(array.Element, position));
+			result.Add(new ContentToken(ParenthesisType.BRACKETS, new NumberToken(array.Count)));
 			return result.ToArray();
 		}
 

@@ -91,7 +91,16 @@ public class TypeNode : Node, IScope, IResolvable
 		return Type;
 	}
 
-	public Node? Resolve(Context context) => null;
+	public Node? Resolve(Context context)
+	{
+		if (Type.IsResolved()) return null;
+
+		var replacement = Resolver.Resolve(context, Type);
+		if (replacement == null) return null;
+
+		Type = replacement;
+		return null;
+	}
 
 	public Status GetStatus()
 	{

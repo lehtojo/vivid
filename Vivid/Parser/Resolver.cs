@@ -8,11 +8,26 @@ public static class Resolver
 	private const string RESET = "\x1B[0m";
 
 	/// <summary>
+	/// Tries to resolve the specified array type
+	/// </summary>
+	public static Type? ResolveArrayType(Context environment, ArrayType type)
+	{
+		type.Resolve(environment);
+		if (type.IsResolved()) return type;
+		return null;
+	}
+
+	/// <summary>
 	/// Tries to resolve the specified type if it is unresolved
 	/// </summary>
 	public static Type? Resolve(Context context, Type type)
 	{
-		return type is UnresolvedType unresolved ? unresolved.TryResolveType(context) : null;
+		if (type.IsResolved()) return null;
+
+		// Resolve array types, because their sizes need to be determined at compile time and they can be dependent on expressions
+		if (type is ArrayType) return ResolveArrayType(context, (ArrayType)type);
+
+		return type.To<UnresolvedType>().TryResolveType(context);
 	}
 
 	/// <summary>

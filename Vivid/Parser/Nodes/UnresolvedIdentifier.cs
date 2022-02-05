@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
+using System;
 
 public class UnresolvedIdentifier : Node, IResolvable
 {
@@ -131,7 +130,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 	public Node? Resolve(Context context)
 	{
-		var linked = Parent != null && Parent.Is(NodeType.LINK);
+		var linked = Parent != null && Parent.Is(NodeType.LINK) && Previous != null;
 		var result = Singleton.GetIdentifier(context, new IdentifierToken(Value, Position!), linked);
 
 		return result.Is(NodeType.UNRESOLVED_IDENTIFIER) ? TryResolveAsFunctionPointer(context, linked) : result;

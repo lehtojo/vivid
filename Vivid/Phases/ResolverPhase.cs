@@ -409,7 +409,7 @@ public class ResolverPhase : Phase
 		}
 
 		// Look for variables which are not resolved
-		errors.AddRange(implementation.Variables.Values.Where(i => i.IsUnresolved).Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'")));
+		errors.AddRange(implementation.Locals.Where(i => i.IsUnresolved).Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'")));
 
 		// Build the report if there are errors
 		if (!errors.Any()) return string.Empty;

@@ -673,6 +673,7 @@ public static class InstructionEncoder
 			HandleInstanceType.DATA_SECTION => new MemoryAddressDescriptor(handle.To<DataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
 			HandleInstanceType.CONSTANT_DATA_SECTION => new MemoryAddressDescriptor(handle.To<ConstantDataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
 			HandleInstanceType.STACK_VARIABLE => new MemoryAddressDescriptor(handle.To<StackVariableHandle>().GetStart(), null, 1, handle.To<StackVariableHandle>().GetOffset()),
+			HandleInstanceType.TEMPORARY_MEMORY => new MemoryAddressDescriptor(handle.To<StackMemoryHandle>().GetStart(), null, 1, handle.To<StackMemoryHandle>().GetOffset()),
 			_ => throw new NotSupportedException("Unsupported handle")
 		};
 	}
