@@ -391,17 +391,42 @@ public static class ObjectExporter
 
 		foreach (var function in context.Functions.Values.SelectMany(i => i.Overloads))
 		{
+			if (IsTemplateFunction(function))
+			{
+				if (function.IsTemplateFunction)
+				{
+					ExportTemplateFunction(builder, function.To<TemplateFunction>());
+				}
+				else
+				{
+					ExportShortTemplateFunction(builder, function);
+				}
+
+				continue;
+			}
+
+			if (IsTemplateFunctionVariant(function)) continue;
+			if (function.Name == Keywords.INIT.Identifier && function.IsGlobal) continue;
+
 			// Export the function as follows: $modifiers import $name($parameters): $return_type
 			foreach (var implementation in function.Implementations)
 			{
-				if (IsTemplateFunctionVariant(function)) continue;
 				ExportFunction(builder, function, implementation);
 			}
 		}
 
 		foreach (var type in context.Types.Values)
 		{
-			if (type.IsTemplateType || type.IsPrimitive) continue;
+			// 1. Do not export primitives, because they are created by the compiler
+			// 2. Template type variants are exported separately
+			if (type.IsPrimitive || type.IsTemplateTypeVariant) continue;
+
+			// Handle template types separately
+			if (type.IsTemplateType)
+			{
+				ExportTemplateType(builder, type.To<TemplateType>());
+				continue;
+			}
 
 			if (type.Supertypes.Any())
 			{
@@ -409,14 +434,14 @@ public static class ObjectExporter
 				builder.Append(' ');
 			}
 
-			var exported_variables = ExportContext(type);
+			var exports = ExportContext(type);
 
 			builder.AppendLine();
 			builder.Append(type.IsNamespace ? Keywords.NAMESPACE.Identifier : GetModifiers(type.Modifiers));
 			builder.Append(' ');
 			builder.Append(type.Name);
 			builder.AppendLine(" {");
-			builder.Append(exported_variables);
+			builder.Append(exports);
 			builder.AppendLine("}");
 			builder.AppendLine();
 		}

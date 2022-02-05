@@ -240,16 +240,10 @@ public static class StaticLibraryFormat
 	{
 		try
 		{
-			var exported_source_files = ObjectExporter
-				.GetTemplateExportFiles(context)
-				.Select(i => new StaticLibraryFormatFile(
-					i.Key.Filename,
-					Array.Empty<string>(),
-					Encoding.UTF8.GetBytes(i.Value.ToString())
-				)).ToList();
+			var exported_source_files = new List<StaticLibraryFormatFile>();
 
 			exported_source_files.Add(new StaticLibraryFormatFile(
-				output_name + ".constants.v",
+				output_name + ".exports.v",
 				Array.Empty<string>(),
 				Encoding.UTF8.GetBytes(ObjectExporter.ExportContext(context))
 			));
@@ -288,16 +282,10 @@ public static class StaticLibraryFormat
 	{
 		try
 		{
-			var exported_source_files = ObjectExporter
-				.GetTemplateExportFiles(context)
-				.Select(i => new StaticLibraryFormatFile(
-					i.Key.Filename,
-					Array.Empty<string>(),
-					Encoding.UTF8.GetBytes(i.Value.ToString())
-				)).ToList();
+			var exported_source_files = new List<StaticLibraryFormatFile>();
 
 			exported_source_files.Add(new StaticLibraryFormatFile(
-				output_name + ".constants.v",
+				output_name + ".exports.v",
 				Array.Empty<string>(),
 				Encoding.UTF8.GetBytes(ObjectExporter.ExportContext(context))
 			));
