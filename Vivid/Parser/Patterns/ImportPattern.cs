@@ -54,7 +54,6 @@ public class ImportPattern : Pattern
 
 		// Ensure the context is a type when importing a constructor or a destructor
 		var name = descriptor!.To<FunctionToken>().Name;
-		if ((name == Keywords.INIT.Identifier || name == Keywords.DEINIT.Identifier) && !context.IsType) return false;
 
 		// Try to consume the return type
 		if (Try(state, () => Consume(state, out Token? token, TokenType.OPERATOR) && token!.Is(Operators.COLON)))
@@ -106,11 +105,11 @@ public class ImportPattern : Pattern
 		var modifiers = Modifier.Combine(Modifier.DEFAULT, tokens.First().To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier);
 
 		// If the function is a constructor or a destructor, handle it differently
-		if (descriptor.Name == Keywords.INIT.Identifier)
+		if (descriptor.Name == Keywords.INIT.Identifier && environment.IsType)
 		{
 			function = new Constructor(environment, modifiers, descriptor.Position, null);
 		}
-		else if (descriptor.Name == Keywords.DEINIT.Identifier)
+		else if (descriptor.Name == Keywords.DEINIT.Identifier && environment.IsType)
 		{
 			function = new Destructor(environment, modifiers, descriptor.Position, null);
 		}
@@ -131,11 +130,11 @@ public class ImportPattern : Pattern
 		implementation.Implement(function.Blueprint);
 
 		// Declare the function in the environment
-		if (descriptor.Name == Keywords.INIT.Identifier)
+		if (descriptor.Name == Keywords.INIT.Identifier && environment.IsType)
 		{
 			environment.To<Type>().AddConstructor((Constructor)function);
 		}
-		else if (descriptor.Name == Keywords.DEINIT.Identifier)
+		else if (descriptor.Name == Keywords.DEINIT.Identifier && environment.IsType)
 		{
 			environment.To<Type>().AddDestructor((Destructor)function);
 		}
