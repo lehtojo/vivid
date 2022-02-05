@@ -68,6 +68,7 @@ public class Mangle
 	public const char START_MEMBER_VIRTUAL_FUNCTION_COMMAND = 'F';
 
 	public const char START_PACK_TYPE_COMMAND = 'U';
+	public const string START_ARRAY_LENGTH_COMMAND = "_x";
 
 	public const string VIRTUAL_FUNCTION_POSTFIX = "_v";
 
@@ -216,10 +217,18 @@ public class Mangle
 			{
 				Value += POINTER_COMMAND;
 				
-				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
+				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing offset type");
 				pointers = argument.IsPrimitive ? 0 : 1;
 				
 				Add(argument, pointers);
+
+				// Add the array length
+				if (type is ArrayType)
+				{
+					Value += START_ARRAY_LENGTH_COMMAND;
+					Value += type.To<ArrayType>().Count;
+				}
+
 				return;
 			}
 
