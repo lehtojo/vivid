@@ -365,12 +365,20 @@ public sealed class Scope : IDisposable
 
 		if (Unit.Mode == UnitMode.BUILD)
 		{
-			// Load all memory handles into registers which do not use the stack
 			foreach (var load in Loads)
 			{
-				var reference = load.Result;
-				if (!reference.IsMemoryAddress || reference.Value.Is(HandleInstanceType.STACK_MEMORY, HandleInstanceType.STACK_VARIABLE, HandleInstanceType.TEMPORARY_MEMORY)) continue;
-				Memory.MoveToRegister(Unit, reference, Assembler.Size, reference.Format.IsDecimal(), Trace.GetDirectives(Unit, reference));
+				var result = load.Result;
+
+				// 1. Load all memory handles into registers which do not use the stack
+				var is_complex_memory_address = result.IsMemoryAddress && !result.Value.Is(HandleInstanceType.STACK_MEMORY, HandleInstanceType.STACK_VARIABLE, HandleInstanceType.TEMPORARY_MEMORY);
+
+				// 2. Load all expressions into registers
+				var is_expression = result.Value.Instance == HandleInstanceType.EXPRESSION || result.Value.Instance == HandleInstanceType.INLINE;
+
+				if (is_complex_memory_address || is_expression)
+				{
+					Memory.MoveToRegister(Unit, result, Assembler.Size, result.Format.IsDecimal(), Trace.GetDirectives(Unit, result));
+				}
 			}
 		}
 

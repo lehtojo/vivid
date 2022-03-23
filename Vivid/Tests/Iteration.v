@@ -40,7 +40,7 @@ Array<T> {
 	iterator() => ArrayIterator<T>(data, count)
 	
 	deinit() {
-		deallocate(data, count)
+		deallocate(data)
 	}
 }
 

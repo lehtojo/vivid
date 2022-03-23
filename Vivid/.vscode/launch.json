@@ -15,25 +15,32 @@
 			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
 
 			// Launch the compiler service
-			//"args": [ "-s" ],
+			// "args": [ "-s" ],
 
 			// Builds the stage 2 tests
-			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "C:/Users/joona/vivid-2/libv/", "C:/Users/joona/vivid-2/libv/windows_x64/io.v", "-o", "v", "-a", "-f", "-l", "kernel32" ],
+			// "args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-verbose" ],
 
 			// Builds the stage 2 compiler
-			//"args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/entries/vivid.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-d" ],
+			// "args": [
+			// 	"C:/Users/joona/vivid-2/",
+			// 	"C:/Users/joona/vivid-2/entries/vivid.v",
+			// 	"-o", "v", "-a", "-f", "-l", "v", "-d", "-verbose"
+			// ],
+
+			// "args": [
+			// 	"C:/Users/joona/vivid-2/",
+			// 	"C:/Users/joona/vivid-2/entries/vivid.v",
+			// 	"C:/Users/joona/vivid-2/libv/",
+			// 	"C:/Users/joona/vivid-2/libv/windows-x64",
+			// 	"C:/Users/joona/vivid-2/libv/allocator/Primary2.v",
+			// 	"minimum.math.obj",
+			// 	"minimum.memory.obj",
+			// 	"minimum.tests.obj",
+			// 	"-o", "v", "-a", "-f", "-l", "kernel32", "-d", "-verbose"
+			// ],
 
 			// Build an assembly file
 			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
-
-			// Build the minimum low level object files
-			// "args": [
-			// 	"${workspaceFolder}/libv/windows-x64/console.asm",
-			// 	"${workspaceFolder}/libv/windows-x64/math.asm",
-			// 	"${workspaceFolder}/libv/windows-x64/memory.asm",
-			// 	"${workspaceFolder}/libv/windows-x64/system.asm",
-			// 	"${workspaceFolder}/libv/windows-x64/tests.asm"
-			// ],
 
 			// Build the minimum low level object files (Windows)
 			// "args": [
@@ -44,20 +51,44 @@
 			// 	"minimum"
 			// ],
 
+			// Build the minimum low level object files (Linux)
+			/* "args": [
+				"${workspaceFolder}/libv/linux-x64/math.asm",
+				"${workspaceFolder}/libv/linux-x64/memory.asm",
+				"${workspaceFolder}/libv/linux-x64/tests.asm",
+				"-o",
+				"minimum"
+			], */
+
 			// Build the standard library (Windows)
 			// "args": [
 			// 	"${workspaceFolder}/libv/",
 			// 	"${workspaceFolder}/libv/windows-x64",
+			// 	"${workspaceFolder}/libv/allocator/Primary2.v",
 			// 	"minimum.math.obj",
 			// 	"minimum.memory.obj",
 			// 	"minimum.tests.obj",
 			// 	"-static",
 			// 	"-f",
 			// 	"-o",
-			// 	"v"
+			// 	"v",
+			// 	"-a"
 			// ],
 
-			"args": [ "${workspaceFolder}/Examples/prebuilt.windows.v", "-o", "prebuilt", "-f", "-l", "kernel32", "-static" ],
+			// Build the standard library (Linux)
+			// "args": [
+			// 	"${workspaceFolder}/libv/",
+			// 	"${workspaceFolder}/libv/linux-x64/",
+			// 	"${workspaceFolder}/libv/allocator/Safe.v",
+			// 	"minimum.math.o",
+			// 	"minimum.memory.o",
+			// 	"minimum.tests.o",
+			// 	"-static",
+			// 	"-f",
+			// 	"-o",
+			// 	"v",
+			// 	"-a"
+			// ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
@@ -74,7 +105,7 @@
 			"program": "${workspaceFolder}/bin/Units/net6.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"args": [],
+			"args": [ "-O2" ],
 			"env": { "LD_LIBRARY_PATH": "LD_LIBRARY_PATH:${workspaceFolder}" },
 			"stopAtEntry": false,
 			"logging": {
@@ -85,9 +116,9 @@
 			"type": "by-gdb",
 			"request": "launch",
 			"name": "Vivid Debug",
-			"program": "${workspaceRoot}/v.exe",
+			"program": "${workspaceRoot}/hello.exe",
 			"cwd": "${workspaceRoot}",
-			"programArgs": "C:/Users/joona/vivid/Vivid/Examples/Test.v"
+			"programArgs": ""
 		},
 		{
 			"request": "launch",

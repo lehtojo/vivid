@@ -75,7 +75,7 @@ public class Result
 
 	public Size Size => Size.FromFormat(Format);
 
-	public Lifetime Lifetime { get; private set; } = new Lifetime();
+	public Lifetime Lifetime { get; set; } = new Lifetime();
 
 	private List<Result> Connections { get; } = new List<Result>();
 	private IEnumerable<Result> System => Connections.Concat(new List<Result> { this });

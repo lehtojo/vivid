@@ -441,7 +441,7 @@ public class AssemblyParser
 					return start;
 				}
 
-				return new MemoryHandle(Unit, new Result(start, Assembler.Format), 0);
+				return new MemoryHandle(Unit, new Result(start, Assembler.Signed), 0);
 			}
 			else if (tokens.Count == 2)
 			{
@@ -463,7 +463,7 @@ public class AssemblyParser
 					throw Errors.Get(tokens[0].Position, "Expected the first token to be a plus or minus operator");
 				}
 
-				return new MemoryHandle(Unit, new Result(new ConstantHandle(offset), Assembler.Format), 0);
+				return new MemoryHandle(Unit, new Result(new ConstantHandle(offset), Assembler.Signed), 0);
 			}
 			else if (tokens.Count == 3)
 			{
@@ -484,7 +484,7 @@ public class AssemblyParser
 						return start;
 					}
 
-					return new ComplexMemoryHandle(new Result(start, Assembler.Format), new Result(offset, Assembler.Format), 1);
+					return new ComplexMemoryHandle(new Result(start, Assembler.Signed), new Result(offset, Assembler.Signed), 1);
 				}
 
 				// Patterns: $register - $number / $symbol - $number
@@ -502,14 +502,14 @@ public class AssemblyParser
 						return start;
 					}
 
-					return new MemoryHandle(null!, new Result(start, Assembler.Format), (int)offset);
+					return new MemoryHandle(null!, new Result(start, Assembler.Signed), (int)offset);
 				}
 
 				// Pattern: $register * $number
 				if (tokens[1].Is(Operators.MULTIPLY) && tokens[2].Type == TokenType.NUMBER)
 				{
-					var first = new Result(new ConstantHandle(0L), Assembler.Format);
-					var second = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
+					var first = new Result(new ConstantHandle(0L), Assembler.Signed);
+					var second = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
 					var stride = (long)tokens[2].To<NumberToken>().Value;
 
 					return new ComplexMemoryHandle(first, second, (int)stride);
@@ -517,7 +517,7 @@ public class AssemblyParser
 			}
 			else if (tokens.Count == 5)
 			{
-				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
 
 				// Patterns: $register + $register + $number / $register + $register - $number
 				if (tokens[1].Is(Operators.ADD))
@@ -541,7 +541,7 @@ public class AssemblyParser
 						offset = (long)tokens[4].To<NumberToken>().Value;
 					}
 
-					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Format);
+					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Signed);
 
 					return new ComplexMemoryHandle(first, second, 1, (int)offset);
 				}
@@ -564,7 +564,7 @@ public class AssemblyParser
 					else
 					{
 						// Pattern: $register * $number + $register
-						var offset = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
+						var offset = new Result(ParseInstructionParameter(tokens, 4), Assembler.Signed);
 
 						/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
 						if (stride == 1) return new ComplexMemoryHandle(first, offset, 1, 0);
@@ -599,9 +599,9 @@ public class AssemblyParser
 				}
 
 				// Patterns: $register * $number + $register + $number
-				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Format);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
 				var stride = (long)tokens[2].To<NumberToken>().Value;
-				var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Format);
+				var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Signed);
 
 				/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
 				if (stride == 1) return new ComplexMemoryHandle(first, second, 1, (int)offset);
@@ -687,6 +687,28 @@ public class AssemblyParser
 		return true;
 	}
 
+	/// <summary>
+	/// Finds instruction prefixes and merges them into the instruction
+	/// </summary>
+	private void JoinInstructionPrefixes(List<Token> tokens)
+	{
+		for (var i = tokens.Count - 2; i >= 0; i--)
+		{
+			// Find ajacent identifier tokens
+			var current = tokens[i];
+			var next = tokens[i + 1];
+			if (current.Type != TokenType.IDENTIFIER || next.Type != TokenType.IDENTIFIER) continue;
+
+			// Ensure the current token is an instruction prefix
+			var identifier = current.To<IdentifierToken>().Value;
+			if (identifier != global::Instructions.X64.LOCK_PREFIX) continue;
+
+			// Merge the prefix into the instruction
+			next.To<IdentifierToken>().Value = identifier + ' ' + next.To<IdentifierToken>().Value;
+			tokens.RemoveAt(i);
+		}
+	}
+
 	public void Parse(SourceFile file, string assembly)
 	{
 		var lines = assembly.Split('\n');
@@ -702,6 +724,9 @@ public class AssemblyParser
 
 			// Skip empty lines
 			if (!tokens.Any()) continue;
+
+			// Preprocess
+			JoinInstructionPrefixes(tokens);
 
 			// Parse directives here, because all sections have some directives
 			if (ParseDirective(tokens)) continue;

@@ -7,10 +7,10 @@ public class GetConstantInstruction : Instruction
 	public object Value { get; private set; }
 	public Format Format { get; private set; }
 
-	public GetConstantInstruction(Unit unit, object value, bool is_decimal) : base(unit, InstructionType.GET_CONSTANT)
+	public GetConstantInstruction(Unit unit, object value, bool is_unsigned, bool is_decimal) : base(unit, InstructionType.GET_CONSTANT)
 	{
 		Value = value;
-		Format = is_decimal ? Format.DECIMAL : Assembler.Format;
+		Format = is_decimal ? Format.DECIMAL : GetSystemFormat(is_unsigned);
 		Description = $"Get a handle for constant '{value}'";
 		IsAbstract = true;
 

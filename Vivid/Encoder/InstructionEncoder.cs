@@ -303,6 +303,7 @@ public static class InstructionEncoder
 {
 	public const int MAX_INSTRUCTION_SIZE = 15;
 
+	public const byte LOCK_PREFIX = 240; // 0xf0
 	public const byte OPERAND_SIZE_OVERRIDE = 102; // 0x66
 
 	public const byte REX_PREFIX = 64; // 01000000
@@ -801,104 +802,105 @@ public static class InstructionEncoder
 	/// Returns the unique operation index of the specified instruction.
 	/// This function will be removed, because instruction will use operation indices instead of text identifiers in the future.
 	/// </summary>
-	public static int GetInstructionIndex(Instruction instruction)
+	public static int GetInstructionIndex(Instruction instruction, string operation)
 	{
 		if (instruction.Type == InstructionType.LABEL) return Instructions.X64._LABEL;
 
 		// Parameterless instructions
-		if (instruction.Operation == Instructions.Shared.RETURN) return Instructions.X64._RET;
-		if (instruction.Operation == Instructions.X64.EXTEND_QWORD) return Instructions.X64._CQO;
-		if (instruction.Operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
-		if (instruction.Operation == "fld1") return Instructions.X64._FLD1;
-		if (instruction.Operation == "fyl2x") return Instructions.X64._FYL2x;
-		if (instruction.Operation == "f2xm1") return Instructions.X64._F2XM1;
-		if (instruction.Operation == "faddp") return Instructions.X64._FADDP;
-		if (instruction.Operation == "fcos") return Instructions.X64._FCOS;
-		if (instruction.Operation == "fsin") return Instructions.X64._FSIN;
-		if (instruction.Operation == Instructions.Shared.NOP) return Instructions.X64._NOP;
+		if (operation == Instructions.Shared.RETURN) return Instructions.X64._RET;
+		if (operation == Instructions.X64.EXTEND_QWORD) return Instructions.X64._CQO;
+		if (operation == Instructions.X64.SYSTEM_CALL) return Instructions.X64._SYSCALL;
+		if (operation == "fld1") return Instructions.X64._FLD1;
+		if (operation == "fyl2x") return Instructions.X64._FYL2x;
+		if (operation == "f2xm1") return Instructions.X64._F2XM1;
+		if (operation == "faddp") return Instructions.X64._FADDP;
+		if (operation == "fcos") return Instructions.X64._FCOS;
+		if (operation == "fsin") return Instructions.X64._FSIN;
+		if (operation == Instructions.Shared.NOP) return Instructions.X64._NOP;
 
 		// Single parameter instructions
-		if (instruction.Operation == Instructions.X64.PUSH) return Instructions.X64._PUSH;
-		if (instruction.Operation == Instructions.X64.POP) return Instructions.X64._POP;
-		if (instruction.Operation == Instructions.X64.JUMP_ABOVE) return Instructions.X64._JA;
-		if (instruction.Operation == Instructions.X64.JUMP_ABOVE_OR_EQUALS) return Instructions.X64._JAE;
-		if (instruction.Operation == Instructions.X64.JUMP_BELOW) return Instructions.X64._JB;
-		if (instruction.Operation == Instructions.X64.JUMP_BELOW_OR_EQUALS) return Instructions.X64._JBE;
-		if (instruction.Operation == Instructions.X64.JUMP_EQUALS) return Instructions.X64._JE;
-		if (instruction.Operation == Instructions.X64.JUMP_GREATER_THAN) return Instructions.X64._JG;
-		if (instruction.Operation == Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS) return Instructions.X64._JGE;
-		if (instruction.Operation == Instructions.X64.JUMP_LESS_THAN) return Instructions.X64._JL;
-		if (instruction.Operation == Instructions.X64.JUMP_LESS_THAN_OR_EQUALS) return Instructions.X64._JLE;
-		if (instruction.Operation == Instructions.X64.JUMP) return Instructions.X64._JMP;
-		if (instruction.Operation == Instructions.X64.JUMP_NOT_EQUALS) return Instructions.X64._JNE;
-		if (instruction.Operation == Instructions.X64.JUMP_NOT_ZERO) return Instructions.X64._JNZ;
-		if (instruction.Operation == Instructions.X64.JUMP_ZERO) return Instructions.X64._JZ;
-		if (instruction.Operation == Instructions.X64.CALL) return Instructions.X64._CALL;
-		if (instruction.Operation == "fild") return Instructions.X64._FILD;
-		if (instruction.Operation == "fld") return Instructions.X64._FLD;
-		if (instruction.Operation == "fistp") return Instructions.X64._FISTP;
-		if (instruction.Operation == "fstp") return Instructions.X64._FSTP;
-		if (instruction.Operation == Instructions.Shared.NEGATE) return Instructions.X64._NEG;
-		if (instruction.Operation == Instructions.X64.NOT) return Instructions.X64._NOT;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ABOVE) return Instructions.X64._SETA;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS) return Instructions.X64._SETAE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_BELOW) return Instructions.X64._SETB;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS) return Instructions.X64._SETBE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_EQUALS) return Instructions.X64._SETE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN) return Instructions.X64._SETG;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS) return Instructions.X64._SETGE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN) return Instructions.X64._SETL;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS) return Instructions.X64._SETLE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_NOT_EQUALS) return Instructions.X64._SETNE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_NOT_ZERO) return Instructions.X64._SETNZ;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_SET_ZERO) return Instructions.X64._SETZ;
+		if (operation == Instructions.X64.PUSH) return Instructions.X64._PUSH;
+		if (operation == Instructions.X64.POP) return Instructions.X64._POP;
+		if (operation == Instructions.X64.JUMP_ABOVE) return Instructions.X64._JA;
+		if (operation == Instructions.X64.JUMP_ABOVE_OR_EQUALS) return Instructions.X64._JAE;
+		if (operation == Instructions.X64.JUMP_BELOW) return Instructions.X64._JB;
+		if (operation == Instructions.X64.JUMP_BELOW_OR_EQUALS) return Instructions.X64._JBE;
+		if (operation == Instructions.X64.JUMP_EQUALS) return Instructions.X64._JE;
+		if (operation == Instructions.X64.JUMP_GREATER_THAN) return Instructions.X64._JG;
+		if (operation == Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS) return Instructions.X64._JGE;
+		if (operation == Instructions.X64.JUMP_LESS_THAN) return Instructions.X64._JL;
+		if (operation == Instructions.X64.JUMP_LESS_THAN_OR_EQUALS) return Instructions.X64._JLE;
+		if (operation == Instructions.X64.JUMP) return Instructions.X64._JMP;
+		if (operation == Instructions.X64.JUMP_NOT_EQUALS) return Instructions.X64._JNE;
+		if (operation == Instructions.X64.JUMP_NOT_ZERO) return Instructions.X64._JNZ;
+		if (operation == Instructions.X64.JUMP_ZERO) return Instructions.X64._JZ;
+		if (operation == Instructions.X64.CALL) return Instructions.X64._CALL;
+		if (operation == "fild") return Instructions.X64._FILD;
+		if (operation == "fld") return Instructions.X64._FLD;
+		if (operation == "fistp") return Instructions.X64._FISTP;
+		if (operation == "fstp") return Instructions.X64._FSTP;
+		if (operation == Instructions.Shared.NEGATE) return Instructions.X64._NEG;
+		if (operation == Instructions.X64.NOT) return Instructions.X64._NOT;
+		if (operation == Instructions.X64.CONDITIONAL_SET_ABOVE) return Instructions.X64._SETA;
+		if (operation == Instructions.X64.CONDITIONAL_SET_ABOVE_OR_EQUALS) return Instructions.X64._SETAE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_BELOW) return Instructions.X64._SETB;
+		if (operation == Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS) return Instructions.X64._SETBE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_EQUALS) return Instructions.X64._SETE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN) return Instructions.X64._SETG;
+		if (operation == Instructions.X64.CONDITIONAL_SET_GREATER_THAN_OR_EQUALS) return Instructions.X64._SETGE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN) return Instructions.X64._SETL;
+		if (operation == Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS) return Instructions.X64._SETLE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_NOT_EQUALS) return Instructions.X64._SETNE;
+		if (operation == Instructions.X64.CONDITIONAL_SET_NOT_ZERO) return Instructions.X64._SETNZ;
+		if (operation == Instructions.X64.CONDITIONAL_SET_ZERO) return Instructions.X64._SETZ;
 
 		// Dual parameter instructions
-		if (instruction.Operation == Instructions.Shared.MOVE) return Instructions.X64._MOV;
-		if (instruction.Operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
-		if (instruction.Operation == Instructions.Shared.SUBTRACT) return Instructions.X64._SUB;
-		if (instruction.Operation == Instructions.X64.SIGNED_MULTIPLY) return Instructions.X64._IMUL;
-		if (instruction.Operation == Instructions.X64.UNSIGNED_MULTIPLY) return Instructions.X64._MUL;
-		if (instruction.Operation == Instructions.X64.SIGNED_DIVIDE) return Instructions.X64._IDIV;
-		if (instruction.Operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._DIV;
-		if (instruction.Operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SAL;
-		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SAR;
-		if (instruction.Operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE) return Instructions.X64._MOVZX;
-		if (instruction.Operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
-		if (instruction.Operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;
-		if (instruction.Operation == Instructions.X64.EVALUATE) return Instructions.X64._LEA;
-		if (instruction.Operation == Instructions.Shared.COMPARE) return Instructions.X64._CMP;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_ADD) return Instructions.X64._ADDSD;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_SUBTRACT) return Instructions.X64._SUBSD;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_MULTIPLY) return Instructions.X64._MULSD;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_DIVIDE) return Instructions.X64._DIVSD;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_MOVE) return Instructions.X64._MOVSD;
-		if (instruction.Operation == Instructions.X64.RAW_MEDIA_REGISTER_MOVE) return Instructions.X64._MOVQ;
-		if (instruction.Operation == Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION) return Instructions.X64._CVTSI2SD;
-		if (instruction.Operation == Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER) return Instructions.X64._CVTTSD2SI;
-		if (instruction.Operation == Instructions.Shared.AND) return Instructions.X64._AND;
-		if (instruction.Operation == Instructions.X64.XOR) return Instructions.X64._XOR;
-		if (instruction.Operation == Instructions.X64.OR) return Instructions.X64._OR;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_COMPARE) return Instructions.X64._COMISD;
-		if (instruction.Operation == Instructions.X64.TEST) return Instructions.X64._TEST;
-		if (instruction.Operation == Instructions.X64.UNALIGNED_XMMWORD_MOVE) return Instructions.X64._MOVUPS;
-		if (instruction.Operation == "sqrtsd") return Instructions.X64._SQRTSD;
-		if (instruction.Operation == Instructions.X64.EXCHANGE) return Instructions.X64._XCHG;
-		if (instruction.Operation == Instructions.X64.MEDIA_REGISTER_BITWISE_XOR) return Instructions.X64._PXOR;
-		if (instruction.Operation == Instructions.X64.SHIFT_RIGHT_UNSIGNED) return Instructions.X64._SHR;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE) return Instructions.X64._CMOVA;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS) return Instructions.X64._CMOVAE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_BELOW) return Instructions.X64._CMOVB;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS) return Instructions.X64._CMOVBE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_EQUALS) return Instructions.X64._CMOVE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN) return Instructions.X64._CMOVG;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS) return Instructions.X64._CMOVGE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN) return Instructions.X64._CMOVL;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS) return Instructions.X64._CMOVLE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS) return Instructions.X64._CMOVNE;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO) return Instructions.X64._CMOVNZ;
-		if (instruction.Operation == Instructions.X64.CONDITIONAL_MOVE_ZERO) return Instructions.X64._CMOVZ;
-		if (instruction.Operation == Instructions.X64.DOUBLE_PRECISION_XOR) return Instructions.X64._XORPD;
+		if (operation == Instructions.Shared.MOVE) return Instructions.X64._MOV;
+		if (operation == Instructions.Shared.ADD) return Instructions.X64._ADD;
+		if (operation == Instructions.Shared.SUBTRACT) return Instructions.X64._SUB;
+		if (operation == Instructions.X64.SIGNED_MULTIPLY) return Instructions.X64._IMUL;
+		if (operation == Instructions.X64.UNSIGNED_MULTIPLY) return Instructions.X64._MUL;
+		if (operation == Instructions.X64.SIGNED_DIVIDE) return Instructions.X64._IDIV;
+		if (operation == Instructions.X64.UNSIGNED_DIVIDE) return Instructions.X64._DIV;
+		if (operation == Instructions.X64.SHIFT_LEFT) return Instructions.X64._SAL;
+		if (operation == Instructions.X64.SHIFT_RIGHT) return Instructions.X64._SAR;
+		if (operation == Instructions.X64.UNSIGNED_CONVERSION_MOVE) return Instructions.X64._MOVZX;
+		if (operation == Instructions.X64.SIGNED_CONVERSION_MOVE) return Instructions.X64._MOVSX;
+		if (operation == Instructions.X64.SIGNED_DWORD_CONVERSION_MOVE) return Instructions.X64._MOVSXD;
+		if (operation == Instructions.X64.EVALUATE) return Instructions.X64._LEA;
+		if (operation == Instructions.Shared.COMPARE) return Instructions.X64._CMP;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_ADD) return Instructions.X64._ADDSD;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_SUBTRACT) return Instructions.X64._SUBSD;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_MULTIPLY) return Instructions.X64._MULSD;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_DIVIDE) return Instructions.X64._DIVSD;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_MOVE) return Instructions.X64._MOVSD;
+		if (operation == Instructions.X64.RAW_MEDIA_REGISTER_MOVE) return Instructions.X64._MOVQ;
+		if (operation == Instructions.X64.CONVERT_INTEGER_TO_DOUBLE_PRECISION) return Instructions.X64._CVTSI2SD;
+		if (operation == Instructions.X64.CONVERT_DOUBLE_PRECISION_TO_INTEGER) return Instructions.X64._CVTTSD2SI;
+		if (operation == Instructions.Shared.AND) return Instructions.X64._AND;
+		if (operation == Instructions.X64.XOR) return Instructions.X64._XOR;
+		if (operation == Instructions.X64.OR) return Instructions.X64._OR;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_COMPARE) return Instructions.X64._COMISD;
+		if (operation == Instructions.X64.TEST) return Instructions.X64._TEST;
+		if (operation == Instructions.X64.UNALIGNED_XMMWORD_MOVE) return Instructions.X64._MOVUPS;
+		if (operation == "sqrtsd") return Instructions.X64._SQRTSD;
+		if (operation == Instructions.X64.EXCHANGE) return Instructions.X64._XCHG;
+		if (operation == Instructions.X64.MEDIA_REGISTER_BITWISE_XOR) return Instructions.X64._PXOR;
+		if (operation == Instructions.X64.SHIFT_RIGHT_UNSIGNED) return Instructions.X64._SHR;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE) return Instructions.X64._CMOVA;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_ABOVE_OR_EQUALS) return Instructions.X64._CMOVAE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_BELOW) return Instructions.X64._CMOVB;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS) return Instructions.X64._CMOVBE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_EQUALS) return Instructions.X64._CMOVE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN) return Instructions.X64._CMOVG;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_GREATER_THAN_OR_EQUALS) return Instructions.X64._CMOVGE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN) return Instructions.X64._CMOVL;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS) return Instructions.X64._CMOVLE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS) return Instructions.X64._CMOVNE;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO) return Instructions.X64._CMOVNZ;
+		if (operation == Instructions.X64.CONDITIONAL_MOVE_ZERO) return Instructions.X64._CMOVZ;
+		if (operation == Instructions.X64.DOUBLE_PRECISION_XOR) return Instructions.X64._XORPD;
+		if (operation == Instructions.X64.EXCHANGE_ADD) return Instructions.X64._XADD;
 
 		return -1;
 	}
@@ -939,12 +941,23 @@ public static class InstructionEncoder
 		return false;
 	}
 
+	/// <summary>
+	/// Returns the primary operation of the specified instruction by discarding any instruction prefixes
+	/// </summary>
+	public static string GetPrimaryOperation(Instruction instruction)
+	{
+		var i = instruction.Operation.LastIndexOf(' ');
+		return i == -1 ? instruction.Operation : instruction.Operation.Substring(i + 1);
+	}
+
 	public static bool WriteInstruction(EncoderModule module, Instruction instruction)
 	{
 		var parameters = instruction.Parameters.Where(i => !i.IsHidden).ToList();
 		var encoding = new InstructionEncoding();
 
-		var identifier = GetInstructionIndex(instruction);
+		var locked = instruction.Operation.StartsWith(Instructions.X64.LOCK_PREFIX + ' ');
+		var operation = GetPrimaryOperation(instruction);
+		var identifier = GetInstructionIndex(instruction, operation);
 
 		if (identifier < 0) return ProcessDebugInstructions(module, instruction);
 
@@ -953,6 +966,9 @@ public static class InstructionEncoder
 		if (parameters.Count == 1) { encoding = FindEncoding(identifier, parameters[0].Value!); }
 		if (parameters.Count == 2) { encoding = FindEncoding(identifier, parameters[0].Value!, parameters[1].Value!); }
 		if (parameters.Count == 3) { encoding = FindEncoding(identifier, parameters[0].Value!, parameters[1].Value!, parameters[2].Value!); }
+
+		// Write the lock prefix if necessary
+		if (locked) Write(module, LOCK_PREFIX);
 
 		// Write the instruction prefix if needed
 		if (encoding.Prefix != 0) Write(module, encoding.Prefix);
@@ -1098,7 +1114,7 @@ public static class InstructionEncoder
 			case EncodingRoute.D: {
 				WriteOperation(module, encoding.Operation);
 
-				if (instruction.Operation == Instructions.X64.CALL)
+				if (operation == Instructions.X64.CALL)
 				{
 					var label = new Label(instruction.Parameters[0].Value!.To<DataSectionHandle>().Identifier);
 					module.Calls.Add(new LabelUsageItem(LabelUsageType.CALL, module.Position, label));
@@ -1238,7 +1254,7 @@ public static class InstructionEncoder
 			// {
 			// 	if (!instruction.IsManual)
 			// 	{
-			// 		if (!WriteInstruction(module, instruction)) throw new ApplicationException("Could not understand the instruction");
+			// 		if (!WriteInstruction(module, instruction) && !string.IsNullOrEmpty(instruction.Operation)) throw new ApplicationException("Could not understand the instruction");
 			// 		continue;
 			// 	}
 
@@ -1247,7 +1263,7 @@ public static class InstructionEncoder
 
 			// 	foreach (var subinstruction in parser.Instructions)
 			// 	{
-			// 		if (!WriteInstruction(module, subinstruction)) throw new ApplicationException("Could not understand the instruction");
+			// 		if (!WriteInstruction(module, subinstruction) && !string.IsNullOrEmpty(instruction.Operation)) throw new ApplicationException("Could not understand the instruction");
 			// 	}
 
 			// 	parser.Reset();

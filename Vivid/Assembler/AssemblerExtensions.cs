@@ -27,12 +27,17 @@ public static class AssemblerExtensions
 
 	public static Format GetRegisterFormat(this Variable variable)
 	{
-		return variable.Type!.Format.IsDecimal() ? Format.DECIMAL : Assembler.Format;
+		var type = variable.Type!;
+		if (type.Format.IsDecimal()) return Format.DECIMAL;
+		if (type.Format.IsUnsigned()) return Format.UINT64;
+		return Format.INT64;
 	}
 
 	public static Format GetRegisterFormat(this Type type)
 	{
-		return type.Format.IsDecimal() ? Format.DECIMAL : Assembler.Format;
+		if (type.Format.IsDecimal()) return Format.DECIMAL;
+		if (type.Format.IsUnsigned()) return Format.UINT64;
+		return Format.INT64;
 	}
 
 	public static T? Pop<T>(this List<T> source) where T : class

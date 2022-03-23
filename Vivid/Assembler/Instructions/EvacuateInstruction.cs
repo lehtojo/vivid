@@ -42,7 +42,7 @@ public class EvacuateInstruction : Instruction
 				return;
 			}
 
-			Unit.Append(new MoveInstruction(Unit, new Result(destination, i.Format), i.Handle!)
+			Unit.Append(new MoveInstruction(Unit, new Result(destination, i.Handle.Format), i.Handle!)
 			{
 				Description = $"Evacuate an important value into '{destination}'",
 				Type = MoveType.RELOCATE

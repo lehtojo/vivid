@@ -11,15 +11,18 @@ public class IfNode : Node, IResolvable
 
 	public IfNode(Context context, Node condition, Node body, Position? start, Position? end)
 	{
+		// Ensure we have access to the environment context
+		var environment = context.Parent;
+		if (environment == null) throw new ApplicationException("Missing environment context");
+
 		Position = start;
 		Instance = NodeType.IF;
 
-		Add(new Node());
-		Add(new ScopeNode(context, start, end));
-
-		body.ForEach(i => Body.Add(i));
+		Add(new ScopeNode(new Context(environment), start, end, true));
+		Add(new ScopeNode(context, start, end, false));
 
 		First!.Add(condition);
+		body.ForEach(i => Body.Add(i));
 	}
 
 	public IfNode()

@@ -28,7 +28,14 @@ public class NamespaceNode : Node
 			var name = Name[i].To<IdentifierToken>().Value;
 			var type = context.GetType(name);
 
-			context = type ?? new Type(context, name, Modifier.DEFAULT | Modifier.STATIC, Name.First().Position);
+			// Use the type if it was found and its parent is the current context
+			if (type != null && ReferenceEquals(type.Parent, context))
+			{
+				context = type;
+				continue;
+			}
+
+			context = new Type(context, name, Modifier.DEFAULT | Modifier.STATIC, Name.First().Position);
 		}
 
 		return (Type)context;

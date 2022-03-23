@@ -8,89 +8,94 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
+public static class TestSettings
+{
+	public const int TypeBaseOffset = 8;
+}
+
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Foo
 {
-	[FieldOffset(8)] public byte A;
-	[FieldOffset(9)] public short B;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public byte A;
+	[FieldOffset(TestSettings.TypeBaseOffset + 1)] public short B;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Bar
 {
-	[FieldOffset(8)] public int C;
-	[FieldOffset(12)] public long D;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public int C;
+	[FieldOffset(TestSettings.TypeBaseOffset + 4)] public long D;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Baz
 {
-	[FieldOffset(8)] public byte A;
-	[FieldOffset(9)] public short B;
-	[FieldOffset(19)] public int C;
-	[FieldOffset(23)] public long D;
-	[FieldOffset(39)] public double E;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public byte A;
+	[FieldOffset(TestSettings.TypeBaseOffset + 1)] public short B;
+	[FieldOffset(TestSettings.TypeBaseOffset * 2 + 3)] public int C;
+	[FieldOffset(TestSettings.TypeBaseOffset * 2 + 7)] public long D;
+	[FieldOffset(TestSettings.TypeBaseOffset * 3 + 15)] public double E;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class B
 {
-	[FieldOffset(8)] public long X;
-	[FieldOffset(16)] public short Y;
-	[FieldOffset(18)] public double Z;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public long X;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public short Y;
+	[FieldOffset(TestSettings.TypeBaseOffset + 10)] public double Z;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class A
 {
-	[FieldOffset(8)] public IntPtr B;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public IntPtr B;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Holder
 {
-	[FieldOffset(8)] public int Normal;
-	[FieldOffset(12)] public byte Tiny;
-	[FieldOffset(13)] public double Double;
-	[FieldOffset(21)] public long Large;
-	[FieldOffset(29)] public short Small;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public int Normal;
+	[FieldOffset(TestSettings.TypeBaseOffset + 4)] public byte Tiny;
+	[FieldOffset(TestSettings.TypeBaseOffset + 5)] public double Double;
+	[FieldOffset(TestSettings.TypeBaseOffset + 13)] public long Large;
+	[FieldOffset(TestSettings.TypeBaseOffset + 21)] public short Small;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Sequence
 {
-	[FieldOffset(8)] public IntPtr Address;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public IntPtr Address;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Apple
 {
-	[FieldOffset(8)] public long Weight;
-	[FieldOffset(16)] public double Price;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public long Weight;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public double Price;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class Car
 {
-	[FieldOffset(8)] public long Weight;
-	[FieldOffset(16)] public IntPtr Brand;
-	[FieldOffset(24)] public double Price;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public long Weight;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public IntPtr Brand;
+	[FieldOffset(TestSettings.TypeBaseOffset + 16)] public double Price;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
 [StructLayout(LayoutKind.Explicit)]
 public class String
 {
-	[FieldOffset(8)] public IntPtr Data;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public IntPtr Data;
 
 	public static String From(IntPtr data)
 	{
@@ -122,8 +127,8 @@ public class String
 [StructLayout(LayoutKind.Explicit)]
 public class IterationArray
 {
-	[FieldOffset(8)] public IntPtr Data;
-	[FieldOffset(16)] public long Count;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public IntPtr Data;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public long Count;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
@@ -131,8 +136,8 @@ public class IterationArray
 [StructLayout(LayoutKind.Explicit)]
 public class IterationRange
 {
-	[FieldOffset(8)] public long Start;
-	[FieldOffset(16)] public long End;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public long Start;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public long End;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
@@ -140,8 +145,8 @@ public class IterationRange
 [StructLayout(LayoutKind.Explicit)]
 public class IterationObject
 {
-	[FieldOffset(8)] public double Value;
-	[FieldOffset(16)] public bool Flag;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public double Value;
+	[FieldOffset(TestSettings.TypeBaseOffset + 8)] public bool Flag;
 }
 
 [SuppressMessage("Microsoft.Maintainability", "CA1051")]
@@ -149,9 +154,9 @@ public class IterationObject
 [StructLayout(LayoutKind.Explicit)]
 public struct MemoryObject
 {
-	[FieldOffset(8)] public int X;
-	[FieldOffset(12)] public double Y;
-	[FieldOffset(20)] public IntPtr Other;
+	[FieldOffset(TestSettings.TypeBaseOffset)] public int X;
+	[FieldOffset(TestSettings.TypeBaseOffset + 4)] public double Y;
+	[FieldOffset(TestSettings.TypeBaseOffset + 12)] public IntPtr Other;
 }
 
 namespace Vivid.Unit
@@ -288,7 +293,13 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output, "-l", "kernel32" };
+			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				arguments.Add("-l");
+				arguments.Add("kernel32");
+			}
 
 			if (OptimizationLevel > 0)
 			{
@@ -324,7 +335,13 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(i => Path.IsPathRooted(i) ? i : GetProjectFile(i, TESTS)).ToArray();
-			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output, "-l", "kernel32" };
+			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
+
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				arguments.Add("-l");
+				arguments.Add("kernel32");
+			}
 
 			if (OptimizationLevel > 0)
 			{
@@ -463,6 +480,27 @@ namespace Vivid.Unit
 					Assert.Fail("Assembly contained memory address(es)");
 				}
 			}
+		}
+
+		/// <summary>
+		/// Fills the specified memory range with zeroes
+		/// </summary>
+		private static void Zero(IntPtr address, int bytes)
+		{
+			for (var i = 0; i < bytes; i++)
+			{
+				Marshal.WriteByte(address, i, 0);
+			}
+		}
+
+		/// <summary>
+		/// Allocates the specified amount of memory (filled with zeroes)
+		/// </summary>
+		private static IntPtr Allocate(int bytes)
+		{
+			var address = Marshal.AllocHGlobal(bytes);
+			Zero(address, bytes);
+			return address;
 		}
 
 		[DllImport("Unit_Arithmetic", ExactSpelling = true)]
@@ -654,23 +692,23 @@ namespace Vivid.Unit
 
 			var baz = _V10create_bazv_rP3Baz();
 			Assert.AreEqual(baz, _V7casts_5P3Baz_rP3Foo(baz));
-			Assert.AreEqual(baz + 11, _V7casts_6P3Baz_rP3Bar(baz));
+			Assert.AreEqual(baz + TestSettings.TypeBaseOffset + 3, _V7casts_6P3Baz_rP3Bar(baz));
 
-			Marshal.WriteInt64(baz, 39, BitConverter.DoubleToInt64Bits(-3.0)); // baz.e = -3.0
-			Assert.AreNotEqual(baz + 11, _V16automatic_cast_1P3Baz_rP3Bar(baz));
+			Marshal.WriteInt64(baz, TestSettings.TypeBaseOffset * 3 + 15, BitConverter.DoubleToInt64Bits(-3.0)); // baz.e = -3.0
+			Assert.AreNotEqual(baz + TestSettings.TypeBaseOffset + 3, _V16automatic_cast_1P3Baz_rP3Bar(baz));
 
-			Marshal.WriteInt64(baz, 39, BitConverter.DoubleToInt64Bits(2.5)); // baz.e = 2.5
-			Assert.AreEqual(baz + 11, _V16automatic_cast_1P3Baz_rP3Bar(baz));
+			Marshal.WriteInt64(baz, TestSettings.TypeBaseOffset * 3 + 15, BitConverter.DoubleToInt64Bits(2.5)); // baz.e = 2.5
+			Assert.AreEqual(baz + TestSettings.TypeBaseOffset + 3, _V16automatic_cast_1P3Baz_rP3Bar(baz));
 
-			Marshal.WriteByte(baz, 8, 10); // baz.a = 10
-			Marshal.WriteInt16(baz, 9, 1000); // baz.b = 1000
+			Marshal.WriteByte(baz, TestSettings.TypeBaseOffset, 10); // baz.a = 10
+			Marshal.WriteInt16(baz, TestSettings.TypeBaseOffset + 1, 1000); // baz.b = 1000
 
-			Marshal.WriteInt32(baz, 19, 505); // baz.c = 505
-			Marshal.WriteInt64(baz, 23, 505); // baz.d = 505
+			Marshal.WriteInt32(baz, TestSettings.TypeBaseOffset * 2 + 3, 505); // baz.c = 505
+			Marshal.WriteInt64(baz, TestSettings.TypeBaseOffset * 2 + 7, 505); // baz.d = 505
 
 			Assert.AreEqual(1010.0, _V16automatic_cast_2P3Baz_rd(baz));
 
-			Marshal.WriteInt32(baz, 19, 0); // baz.c = 0
+			Marshal.WriteInt32(baz, TestSettings.TypeBaseOffset * 2 + 3, 0); // baz.c = 0
 			Assert.AreEqual(505.0, _V16automatic_cast_2P3Baz_rd(baz));
 
 			var bytes = BitConverter.GetBytes(3.14159);
@@ -688,117 +726,117 @@ namespace Vivid.Unit
 			Assert.AreEqual(0L, _V22automatic_conversion_4Px_rx(IntPtr.Zero));
 			Assert.AreEqual(0L, _V22automatic_conversion_5Pd_rx(IntPtr.Zero));
 
-			var b = Marshal.AllocHGlobal(26);
-			Marshal.WriteInt64(b, 8, 66);
-			Marshal.WriteInt16(b, 16, 33);
-			Marshal.WriteInt64(b, 18, BitConverter.DoubleToInt64Bits(99.99));
+			var b = Allocate(TestSettings.TypeBaseOffset + 18);
+			Marshal.WriteInt64(b, TestSettings.TypeBaseOffset, 66);
+			Marshal.WriteInt16(b, TestSettings.TypeBaseOffset + 8, 33);
+			Marshal.WriteInt64(b, TestSettings.TypeBaseOffset + 10, BitConverter.DoubleToInt64Bits(99.99));
 
-			var a = Marshal.AllocHGlobal(16);
-			Marshal.WriteIntPtr(a, 8, b);
+			var a = Allocate(TestSettings.TypeBaseOffset + 8);
+			Marshal.WriteIntPtr(a, TestSettings.TypeBaseOffset, b);
 
 			Assert.AreEqual(8L, _V17assign_addition_1xxP1Ax_rx(3, 5, a, 2));
-			Assert.AreEqual(66L + 2, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(33L + 2, Marshal.ReadInt16(b, 16));
-			Assert.AreEqual(99.99 + 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+			Assert.AreEqual(66L + 2, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(33L + 2, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(99.99 + 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, TestSettings.TypeBaseOffset + 10)));
 
 			Assert.AreEqual(-13L, _V20assign_subtraction_1xxP1Ax_rx(-3, 10, a, 2));
-			Assert.AreEqual(66L, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(33L, Marshal.ReadInt16(b, 16));
-			Assert.AreEqual(99.99, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+			Assert.AreEqual(66L, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(33L, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(99.99, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, TestSettings.TypeBaseOffset + 10)));
 
 			Assert.AreEqual(143, _V23assign_multiplication_1xxP1Ax_rx(11, 13, a, -144));
-			Assert.AreEqual(66L * -144, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(33L * -144, Marshal.ReadInt16(b, 16));
-			Assert.AreEqual(99.99 * -144, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+			Assert.AreEqual(66L * -144, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(33L * -144, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(99.99 * -144, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, TestSettings.TypeBaseOffset + 10)));
 
 			Assert.AreEqual(-17, _V17assign_division_1xxP1Ax_rx(493, -29, a, -48));
-			Assert.AreEqual(66L * 3, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(33L * 3, Marshal.ReadInt16(b, 16));
-			Assert.AreEqual(99.99 * -144 / -48, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, 18)));
+			Assert.AreEqual(66L * 3, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(33L * 3, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(99.99 * -144 / -48, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(b, TestSettings.TypeBaseOffset + 10)));
 
 			Assert.AreEqual(2, _V18assign_remainder_1xxP1Ax_rx(11, 3, a, 10));
-			Assert.AreEqual(198 % 10, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(99 % 10, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(198 % 10, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(99 % 10, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
 
 			Assert.AreEqual((1010L << 16) | 101L, _V19assign_bitwise_or_1xxP1Ax_rx(1010L << 16, 101L, a, 0x4992));
-			Assert.AreEqual(8L | 0x4992, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(9L | 0x4992, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(8L | 0x4992, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(9L | 0x4992, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
 
 			Assert.AreEqual((123L << 32) & (321 << 16), _V20assign_bitwise_and_1xxP1Ax_rx(123L << 32, 321 << 16, a, 0x2112));
-			Assert.AreEqual((8L | 0x4992) & 0x2112, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual((9L | 0x4992) & 0x2112, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual((8L | 0x4992) & 0x2112, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual((9L | 0x4992) & 0x2112, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
 
 			Assert.AreEqual(1, _V20assign_bitwise_xor_1xxP1Ax_rx(0x3E7C, 0x3E7D, a, 0x0112));
-			Assert.AreEqual(0L, Marshal.ReadInt64(b, 8));
-			Assert.AreEqual(0L, Marshal.ReadInt16(b, 16));
+			Assert.AreEqual(0L, Marshal.ReadInt64(b, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(0L, Marshal.ReadInt16(b, TestSettings.TypeBaseOffset + 8));
 
-			var ib = Marshal.AllocHGlobal(26);
-			Marshal.WriteInt64(ib, 8, 9);
-			Marshal.WriteInt16(ib, 16, 16);
-			Marshal.WriteInt64(ib, 18, BitConverter.DoubleToInt64Bits(9.16));
+			var ib = Allocate(TestSettings.TypeBaseOffset + 20);
+			Marshal.WriteInt64(ib, TestSettings.TypeBaseOffset, 9);
+			Marshal.WriteInt16(ib, TestSettings.TypeBaseOffset + 8, 16);
+			Marshal.WriteInt64(ib, TestSettings.TypeBaseOffset + 10, BitConverter.DoubleToInt64Bits(9.16));
 
-			var i = Marshal.AllocHGlobal(16);
-			Marshal.WriteIntPtr(i, 8, ib);
+			var i = Allocate(TestSettings.TypeBaseOffset + 8);
+			Marshal.WriteIntPtr(i, TestSettings.TypeBaseOffset, ib);
 
-			var jb = Marshal.AllocHGlobal(26);
-			Marshal.WriteInt64(jb, 8, 36);
-			Marshal.WriteInt16(jb, 16, 49);
-			Marshal.WriteInt64(jb, 18, BitConverter.DoubleToInt64Bits(36.49));
+			var jb = Allocate(TestSettings.TypeBaseOffset + 20);
+			Marshal.WriteInt64(jb, TestSettings.TypeBaseOffset, 36);
+			Marshal.WriteInt16(jb, TestSettings.TypeBaseOffset + 8, 49);
+			Marshal.WriteInt64(jb, TestSettings.TypeBaseOffset + 10, BitConverter.DoubleToInt64Bits(36.49));
 
-			var j = Marshal.AllocHGlobal(16);
-			Marshal.WriteIntPtr(j, 8, jb);
+			var j = Allocate(TestSettings.TypeBaseOffset + 8);
+			Marshal.WriteIntPtr(j, TestSettings.TypeBaseOffset, jb);
 
-			var kb = Marshal.AllocHGlobal(26);
-			Marshal.WriteInt64(kb, 8, 2809);
-			Marshal.WriteInt16(kb, 16, 2916);
-			Marshal.WriteInt64(kb, 18, BitConverter.DoubleToInt64Bits(2809.2916));
+			var kb = Allocate(TestSettings.TypeBaseOffset + 20);
+			Marshal.WriteInt64(kb, TestSettings.TypeBaseOffset, 2809);
+			Marshal.WriteInt16(kb, TestSettings.TypeBaseOffset + 8, 2916);
+			Marshal.WriteInt64(kb, TestSettings.TypeBaseOffset + 10, BitConverter.DoubleToInt64Bits(2809.2916));
 
-			var k = Marshal.AllocHGlobal(16);
-			Marshal.WriteIntPtr(k, 8, kb);
+			var k = Allocate(TestSettings.TypeBaseOffset + 8);
+			Marshal.WriteIntPtr(k, TestSettings.TypeBaseOffset, kb);
 
-			var lb = Marshal.AllocHGlobal(26);
-			Marshal.WriteInt64(lb, 8, 49);
-			Marshal.WriteInt16(lb, 16, 36);
-			Marshal.WriteInt64(lb, 18, BitConverter.DoubleToInt64Bits(49.36));
+			var lb = Allocate(TestSettings.TypeBaseOffset + 20);
+			Marshal.WriteInt64(lb, TestSettings.TypeBaseOffset, 49);
+			Marshal.WriteInt16(lb, TestSettings.TypeBaseOffset + 8, 36);
+			Marshal.WriteInt64(lb, TestSettings.TypeBaseOffset + 10, BitConverter.DoubleToInt64Bits(49.36));
 
-			var l = Marshal.AllocHGlobal(16);
-			Marshal.WriteIntPtr(l, 8, lb);
+			var l = Allocate(TestSettings.TypeBaseOffset + 8);
+			Marshal.WriteIntPtr(l, TestSettings.TypeBaseOffset, lb);
 
 			Assert.AreEqual(9L * 2 * 36L * 5 * 2809L * 51 * 49L * -8, _V23assign_multiplication_2xxxxP1AS0_S0_S0__rx(9, 36, 2809, 49, i, j, k, l));
 
-			Assert.AreEqual(9L * 2, Marshal.ReadInt64(ib, 8));
-			Assert.AreEqual(16L * 2, Marshal.ReadInt16(ib, 16));
-			Assert.AreEqual(9.16 * 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, 18)));
+			Assert.AreEqual(9L * 2, Marshal.ReadInt64(ib, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(16L * 2, Marshal.ReadInt16(ib, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(9.16 * 2, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(36L * 5, Marshal.ReadInt64(jb, 8));
-			Assert.AreEqual(49L * 5, Marshal.ReadInt16(jb, 16));
-			Assert.AreEqual(36.49 * 5, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, 18)));
+			Assert.AreEqual(36L * 5, Marshal.ReadInt64(jb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(49L * 5, Marshal.ReadInt16(jb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(36.49 * 5, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(2809L * 51, Marshal.ReadInt64(kb, 8));
-			Assert.AreEqual(unchecked((short)(2916L * 51)), Marshal.ReadInt16(kb, 16));
-			Assert.AreEqual(2809.2916 * 51, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, 18)));
+			Assert.AreEqual(2809L * 51, Marshal.ReadInt64(kb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(unchecked((short)(2916L * 51)), Marshal.ReadInt16(kb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(2809.2916 * 51, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(49L * -8, Marshal.ReadInt64(lb, 8));
-			Assert.AreEqual(36L * -8, Marshal.ReadInt16(lb, 16));
-			Assert.AreEqual(49.36 * -8, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, 18)));
+			Assert.AreEqual(49L * -8, Marshal.ReadInt64(lb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(36L * -8, Marshal.ReadInt16(lb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(49.36 * -8, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, TestSettings.TypeBaseOffset + 10)));
 
 			Assert.AreEqual(50L * 8L * 7L * -8L, _V17assign_division_2xxxxP1AS0_S0_S0__rx(100, 40, 357, 64, i, j, k, l));
 
-			Assert.AreEqual(9L, Marshal.ReadInt64(ib, 8));
-			Assert.AreEqual(16L, Marshal.ReadInt16(ib, 16));
-			Assert.AreEqual(9.16, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, 18)));
+			Assert.AreEqual(9L, Marshal.ReadInt64(ib, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(16L, Marshal.ReadInt16(ib, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(9.16, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(ib, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(36L, Marshal.ReadInt64(jb, 8));
-			Assert.AreEqual(49L, Marshal.ReadInt16(jb, 16));
-			Assert.AreEqual(36.49, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, 18)));
+			Assert.AreEqual(36L, Marshal.ReadInt64(jb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(49L, Marshal.ReadInt16(jb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(36.49, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(jb, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(2809L, Marshal.ReadInt64(kb, 8));
-			Assert.AreEqual((short)(unchecked((short)(2916L * 51)) / 51), Marshal.ReadInt16(kb, 16));
-			Assert.AreEqual(2809.2916 * 51.0 / 51.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, 18)));
+			Assert.AreEqual(2809L, Marshal.ReadInt64(kb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual((short)(unchecked((short)(2916L * 51)) / 51), Marshal.ReadInt16(kb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(2809.2916 * 51.0 / 51.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(kb, TestSettings.TypeBaseOffset + 10)));
 
-			Assert.AreEqual(49L, Marshal.ReadInt64(lb, 8));
-			Assert.AreEqual(36L, Marshal.ReadInt16(lb, 16));
-			Assert.AreEqual(49.36, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, 18)));
+			Assert.AreEqual(49L, Marshal.ReadInt64(lb, TestSettings.TypeBaseOffset));
+			Assert.AreEqual(36L, Marshal.ReadInt16(lb, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual(49.36, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(lb, TestSettings.TypeBaseOffset + 10)));
 		}
 
 		public static void Conversions()
@@ -915,7 +953,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(-2718281828459045, holder.Large);
 			Assert.AreEqual(1.414, holder.Double);
 
-			var buffer = Marshal.AllocHGlobal(sizeof(double) * 3);
+			var buffer = Allocate(sizeof(double) * 3);
 			Marshal.WriteInt64(buffer, sizeof(double) * 0, BitConverter.DoubleToInt64Bits(0.0));
 			Marshal.WriteInt64(buffer, sizeof(double) * 1, BitConverter.DoubleToInt64Bits(0.0));
 			Marshal.WriteInt64(buffer, sizeof(double) * 2, BitConverter.DoubleToInt64Bits(0.0));
@@ -1431,27 +1469,27 @@ namespace Vivid.Unit
 		[StructLayout(LayoutKind.Explicit)]
 		struct Animal
 		{
-			[FieldOffset(8)] public short energy;
-			[FieldOffset(10)] public byte hunger;
+			[FieldOffset(TestSettings.TypeBaseOffset)] public short energy;
+			[FieldOffset(TestSettings.TypeBaseOffset + 2)] public byte hunger;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
 		struct Fish
 		{
-			[FieldOffset(8)] public short speed;
-			[FieldOffset(10)] public short velocity;
-			[FieldOffset(12)] public short weight;
+			[FieldOffset(TestSettings.TypeBaseOffset)] public short speed;
+			[FieldOffset(TestSettings.TypeBaseOffset + 2)] public short velocity;
+			[FieldOffset(TestSettings.TypeBaseOffset + 4)] public short weight;
 		}
 
 		[StructLayout(LayoutKind.Explicit)]
 		struct Salmon
 		{
-			[FieldOffset(8)] public short energy;
-			[FieldOffset(10)] public byte hunger;
-			[FieldOffset(19)] public short speed;
-			[FieldOffset(21)] public short velocity;
-			[FieldOffset(23)] public short weight;
-			[FieldOffset(33)] public bool is_hiding;
+			[FieldOffset(TestSettings.TypeBaseOffset)] public short energy;
+			[FieldOffset(TestSettings.TypeBaseOffset + 2)] public byte hunger;
+			[FieldOffset(TestSettings.TypeBaseOffset * 2 + 3)] public short speed;
+			[FieldOffset(TestSettings.TypeBaseOffset * 2 + 5)] public short velocity;
+			[FieldOffset(TestSettings.TypeBaseOffset * 2 + 7)] public short weight;
+			[FieldOffset(TestSettings.TypeBaseOffset * 3 + 9)] public bool is_hiding;
 		}
 
 		private static Salmon GetSalmon(IntPtr pointer)
@@ -1461,7 +1499,7 @@ namespace Vivid.Unit
 
 		private static IntPtr GetFishPointer(IntPtr salmon)
 		{
-			return salmon + 11;
+			return salmon + TestSettings.TypeBaseOffset + 3;
 		}
 
 		[DllImport("Unit_Inheritance", ExactSpelling = true)]
@@ -1772,38 +1810,38 @@ namespace Vivid.Unit
 			var steve = _V12create_stevev_rP6Person();
 
 			var array = _V12create_arrayx_rP5ArrayIP6UsableE(4);
-			_V3setP5ArrayIP6UsableES1_x(array, pig + 8, 0);
-			_V3setP5ArrayIP6UsableES1_x(array, bus + 8, 1);
-			_V3setP5ArrayIP6UsableES1_x(array, car + 8, 2);
+			_V3setP5ArrayIP6UsableES1_x(array, pig + TestSettings.TypeBaseOffset, 0);
+			_V3setP5ArrayIP6UsableES1_x(array, bus + TestSettings.TypeBaseOffset, 1);
+			_V3setP5ArrayIP6UsableES1_x(array, car + TestSettings.TypeBaseOffset, 2);
 			_V3setP5ArrayIP6UsableES1_x(array, banana, 3);
 
-			Assert.False(_V7can_useP6EntityP6Usable_rb(john, pig + 8));
-			Assert.False(_V7can_useP6EntityP6Usable_rb(john, bus + 8));
-			Assert.True(_V7can_useP6EntityP6Usable_rb(john, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(john, pig + TestSettings.TypeBaseOffset));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(john, bus + TestSettings.TypeBaseOffset));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(john, car + TestSettings.TypeBaseOffset));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(john, banana));
 
-			Assert.True(_V7can_useP6EntityP6Usable_rb(max, pig + 8));
-			Assert.False(_V7can_useP6EntityP6Usable_rb(max, bus + 8));
-			Assert.False(_V7can_useP6EntityP6Usable_rb(max, car + 8));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(max, pig + TestSettings.TypeBaseOffset));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(max, bus + TestSettings.TypeBaseOffset));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(max, car + TestSettings.TypeBaseOffset));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(max, banana));
 
-			Assert.False(_V7can_useP6EntityP6Usable_rb(gabe, pig + 8));
-			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, bus + 8));
-			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, car + 8));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(gabe, pig + TestSettings.TypeBaseOffset));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, bus + TestSettings.TypeBaseOffset));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(gabe, car + TestSettings.TypeBaseOffset));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(gabe, banana));
 
-			Assert.True(_V7can_useP6EntityP6Usable_rb(steve, pig + 8));
-			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, bus + 8));
-			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, car + 8));
+			Assert.True(_V7can_useP6EntityP6Usable_rb(steve, pig + TestSettings.TypeBaseOffset));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, bus + TestSettings.TypeBaseOffset));
+			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, car + TestSettings.TypeBaseOffset));
 			Assert.False(_V7can_useP6EntityP6Usable_rb(steve, banana));
 
 			_V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, long.MinValue);
 
 			var vehicles = _V21get_reliable_vehiclesP5ArrayIP6UsableEx_rP4ListIP7VehicleE(array, 10);
 
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(john, vehicles, 7000));
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(max, vehicles, 1000));
-			Assert.AreEqual(car + 8, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(gabe, vehicles, 3000));
+			Assert.AreEqual(car + TestSettings.TypeBaseOffset, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(john, vehicles, 7000));
+			Assert.AreEqual(car + TestSettings.TypeBaseOffset, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(max, vehicles, 1000));
+			Assert.AreEqual(car + TestSettings.TypeBaseOffset, _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(gabe, vehicles, 3000));
 
 			var vehicle = _V14choose_vehicleP6EntityP4ListIP7VehicleEx_rS3_(steve, vehicles, 3000);
 
@@ -1868,7 +1906,7 @@ namespace Vivid.Unit
 
 		private static IntPtr GetUnmanagedObject<T>(T instance, int size)
 		{
-			var memory = Marshal.AllocHGlobal(size);
+			var memory = Allocate(size);
 			Marshal.StructureToPtr(instance!, memory, false);
 
 			return memory;
@@ -1876,14 +1914,14 @@ namespace Vivid.Unit
 
 		public static void Iteration_Test()
 		{
-			var buffer = Marshal.AllocHGlobal(sizeof(long) * 5);
+			var buffer = Allocate(sizeof(long) * 5);
 			Marshal.WriteInt64(buffer, sizeof(long) * 0, -2);
 			Marshal.WriteInt64(buffer, sizeof(long) * 1, 3);
 			Marshal.WriteInt64(buffer, sizeof(long) * 2, -5);
 			Marshal.WriteInt64(buffer, sizeof(long) * 3, 7);
 			Marshal.WriteInt64(buffer, sizeof(long) * 4, -11);
 
-			var destination = Marshal.AllocHGlobal(sizeof(long) * 5);
+			var destination = Allocate(sizeof(long) * 5);
 
 			var array = new IterationArray
 			{
@@ -1899,7 +1937,7 @@ namespace Vivid.Unit
 			}
 
 			Marshal.FreeHGlobal(destination);
-			destination = Marshal.AllocHGlobal(sizeof(long) * (10 + 1 + 10));
+			destination = Allocate(sizeof(long) * (10 + 1 + 10));
 
 			_V11iteration_2Px(destination);
 
@@ -1911,7 +1949,7 @@ namespace Vivid.Unit
 			var range = new IterationRange() { Start = -7, End = -3 };
 
 			Marshal.FreeHGlobal(destination);
-			destination = Marshal.AllocHGlobal(sizeof(long) * (7 - (-3) + 1));
+			destination = Allocate(sizeof(long) * (7 - (-3) + 1));
 
 			_V11iteration_3P5RangePx(range, destination);
 
@@ -1922,11 +1960,11 @@ namespace Vivid.Unit
 
 			Marshal.FreeHGlobal(buffer);
 
-			buffer = Marshal.AllocHGlobal(8 * 3); // 3 x Object
+			buffer = Allocate(8 * 3); // 3 x Object
 
-			var first = GetUnmanagedObject(new IterationObject() { Value = -123.456, Flag = false }, 17);
-			var second = GetUnmanagedObject(new IterationObject() { Value = -1.333333, Flag = false }, 17);
-			var third = GetUnmanagedObject(new IterationObject() { Value = 1010, Flag = false }, 17);
+			var first = GetUnmanagedObject(new IterationObject() { Value = -123.456, Flag = false }, TestSettings.TypeBaseOffset + 9);
+			var second = GetUnmanagedObject(new IterationObject() { Value = -1.333333, Flag = false }, TestSettings.TypeBaseOffset + 9);
+			var third = GetUnmanagedObject(new IterationObject() { Value = 1010, Flag = false }, TestSettings.TypeBaseOffset + 9);
 
 			Marshal.WriteIntPtr(buffer, 0, first);
 			Marshal.WriteIntPtr(buffer, 8, second);
@@ -1937,24 +1975,24 @@ namespace Vivid.Unit
 
 			_V11iteration_4P5ArrayIP6ObjectE(array);
 
-			Assert.AreEqual((byte)1, Marshal.ReadByte(first, 16));
-			Assert.AreEqual((byte)1, Marshal.ReadByte(second, 16));
-			Assert.AreEqual((byte)0, Marshal.ReadByte(third, 16));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(first, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(second, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual((byte)0, Marshal.ReadByte(third, TestSettings.TypeBaseOffset + 8));
 
-			Marshal.WriteInt64(first, 8, BitConverter.DoubleToInt64Bits(12.345)); // first.value = 12.345
-			Marshal.WriteByte(first, 16, 0); // first.flag = false
+			Marshal.WriteInt64(first, TestSettings.TypeBaseOffset, BitConverter.DoubleToInt64Bits(12.345)); // first.value = 12.345
+			Marshal.WriteByte(first, TestSettings.TypeBaseOffset + 8, 0); // first.flag = false
 
-			Marshal.WriteInt64(second, 8, BitConverter.DoubleToInt64Bits(-12.34)); // second.value = -12.34
-			Marshal.WriteByte(second, 16, 0); // second.flag = false
+			Marshal.WriteInt64(second, TestSettings.TypeBaseOffset, BitConverter.DoubleToInt64Bits(-12.34)); // second.value = -12.34
+			Marshal.WriteByte(second, TestSettings.TypeBaseOffset + 8, 0); // second.flag = false
 
-			Marshal.WriteInt64(third, 8, BitConverter.DoubleToInt64Bits(101)); // third.value = 101
-			Marshal.WriteByte(third, 16, 0); // third.flag = false
+			Marshal.WriteInt64(third, TestSettings.TypeBaseOffset, BitConverter.DoubleToInt64Bits(101)); // third.value = 101
+			Marshal.WriteByte(third, TestSettings.TypeBaseOffset + 8, 0); // third.flag = false
 
 			_V11iteration_5P5ArrayIP6ObjectE(array);
 
-			Assert.AreEqual((byte)1, Marshal.ReadByte(first, 16));
-			Assert.AreEqual((byte)1, Marshal.ReadByte(second, 16));
-			Assert.AreEqual((byte)0, Marshal.ReadByte(third, 16));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(first, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual((byte)1, Marshal.ReadByte(second, TestSettings.TypeBaseOffset + 8));
+			Assert.AreEqual((byte)0, Marshal.ReadByte(third, TestSettings.TypeBaseOffset + 8));
 
 			range = Marshal.PtrToStructure<IterationRange>(_V7range_1v_rP5Range());
 
@@ -2062,20 +2100,22 @@ namespace Vivid.Unit
 		[DllImport("Unit_Memory", ExactSpelling = true)]
 		private static extern void _V14memory_case_13P6Objectx(ref MemoryObject a, int i);
 
+
+
 		public static void Memory_Test()
 		{
 			var a = new MemoryObject();
-			var x = Marshal.AllocHGlobal(28);
+			var x = Allocate(TestSettings.TypeBaseOffset + 20);
 			a.Other = x;
 
 			var b = new MemoryObject();
-			var y = Marshal.AllocHGlobal(28);
+			var y = Allocate(TestSettings.TypeBaseOffset + 20);
 			b.Other = y;
 
 			Assert.AreEqual(10, _V13memory_case_1P6Objecti_ri(ref a, 10));
 			Assert.AreEqual(10, a.X);
 
-			var memory = Marshal.AllocHGlobal(10);
+			var memory = Allocate(TestSettings.TypeBaseOffset + 20);
 			Assert.AreEqual(7, _V13memory_case_2Phi_rh(memory, 6));
 			Assert.AreEqual(7, Marshal.ReadByte(memory, 6));
 
@@ -2089,38 +2129,38 @@ namespace Vivid.Unit
 			Assert.AreEqual(2, _V13memory_case_4P6ObjectS0__ri(ref a, ref a));
 			Assert.AreEqual(2, a.X);
 
-			Assert.AreEqual(120.11225, _V13memory_case_5P6ObjectPh_rd(memory, memory + 12));
+			Assert.AreEqual(120.11225, _V13memory_case_5P6ObjectPh_rd(memory, memory + TestSettings.TypeBaseOffset + 4));
 
 			Assert.AreEqual(-3.14159, _V13memory_case_6P6Object_rd(ref a));
-			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, TestSettings.TypeBaseOffset + 4)));
 			
 			a.Y = 1.0;
 			b.Y = -1.0;
 			var previous = a.Other;
 			Assert.AreEqual(-1.0, _V13memory_case_7P6ObjectS0__rd(ref a, ref b));
 			Assert.AreNotEqual(previous, a.Other);
-			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(previous, 12)));
+			Assert.AreEqual(-3.14159, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(previous, TestSettings.TypeBaseOffset + 4)));
 			a.Other = previous;
 
-			Marshal.WriteInt64(b.Other, 12, BitConverter.DoubleToInt64Bits(101.1000));
+			Marshal.WriteInt64(b.Other, TestSettings.TypeBaseOffset + 4, BitConverter.DoubleToInt64Bits(101.1000));
 			Assert.AreEqual(101.1000, _V13memory_case_8P6ObjectS0__rd(ref a, ref b));
 
 			Assert.AreEqual(10.0, _V13memory_case_9P6ObjectS0__rd(ref a, a.Other));
-			Assert.AreEqual(10.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, 12)));
+			Assert.AreEqual(10.0, BitConverter.Int64BitsToDouble(Marshal.ReadInt64(a.Other, TestSettings.TypeBaseOffset + 4)));
 
 			a.Y = 13579.2468;
 			Assert.AreEqual(13579.2468, _V14memory_case_10P6ObjectS0__rd(ref a, ref a));
 			
 			a.X = 10;
 			a.Other = x;
-			Marshal.WriteInt32(a.Other, 8, 20);
+			Marshal.WriteInt32(a.Other, TestSettings.TypeBaseOffset, 20);
 			_V14memory_case_11P6Objectx(ref a, 7);
 			Assert.AreEqual(11, a.X);
-			Assert.AreEqual(21, Marshal.ReadInt32(a.Other, 8));
+			Assert.AreEqual(21, Marshal.ReadInt32(a.Other, TestSettings.TypeBaseOffset));
 			
 			_V14memory_case_11P6Objectx(ref a, -3);
 			Assert.AreEqual(12, a.X);
-			Assert.AreEqual(22, Marshal.ReadInt32(a.Other, 8));
+			Assert.AreEqual(22, Marshal.ReadInt32(a.Other, TestSettings.TypeBaseOffset));
 
 			a.Y = -2.25;
 			Assert.AreEqual(-2, _V14memory_case_12P6Objectx_ri(ref a, 555));
@@ -2144,7 +2184,7 @@ namespace Vivid.Unit
 			Assert.AreEqual(0, a.X);
 			Assert.AreEqual(0.0, a.Y);
 
-			if (OptimizationLevel < 1) return;
+			if (OptimizationLevel < 1 || Analysis.IsGarbageCollectorEnabled) return;
 
 			// Load the generated assembly
 			var assembly = LoadAssemblyOutput("Memory");

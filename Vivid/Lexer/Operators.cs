@@ -59,7 +59,7 @@ public static class Operators
 	public static readonly IndependentOperator END = new("\n");
 
 	/// NOTE: The user should not be able to use this operator since it is meant for internal usage
-	public static readonly ClassicOperator ATOMIC_EXCHANGE_ADD = new(string.Empty, 11);
+	public static readonly ClassicOperator ASSIGN_EXCHANGE_ADD = new("<+>", 11);
 
 	public static readonly Dictionary<string, Operator> Definitions = new();
 	public static readonly Dictionary<string, ActionOperator> Actions = new();
@@ -130,6 +130,7 @@ public static class Operators
 
 		Add(COLON);
 		Add(END);
+		Add(ASSIGN_EXCHANGE_ADD);
 	}
 
 	public static Operator Get(string text)

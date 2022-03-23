@@ -77,7 +77,7 @@ public static class Arithmetic
 		{
 			return BuildShiftRight(unit, node);
 		}
-		if (Equals(operation, Operators.ATOMIC_EXCHANGE_ADD))
+		if (Equals(operation, Operators.ASSIGN_EXCHANGE_ADD))
 		{
 			return BuildAtomicExchangeAdd(unit, node);
 		}
@@ -105,7 +105,7 @@ public static class Arithmetic
 		var left = References.Get(unit, shift.Left);
 		var right = References.Get(unit, shift.Right);
 
-		return BitwiseInstruction.ShiftLeft(unit, left, right, Assembler.Format).Execute();
+		return BitwiseInstruction.ShiftLeft(unit, left, right, shift.GetType().Format).Execute();
 	}
 
 	/// <summary>
@@ -116,7 +116,7 @@ public static class Arithmetic
 		var left = References.Get(unit, shift.Left);
 		var right = References.Get(unit, shift.Right);
 
-		return BitwiseInstruction.ShiftRight(unit, left, right, Assembler.Format, shift.Left.GetType().Format.IsUnsigned()).Execute();
+		return BitwiseInstruction.ShiftRight(unit, left, right, shift.GetType().Format, shift.Left.GetType().Format.IsUnsigned()).Execute();
 	}
 
 	/// <summary>
@@ -124,7 +124,7 @@ public static class Arithmetic
 	/// </summary>
 	public static Result BuildAtomicExchangeAdd(Unit unit, OperatorNode operation)
 	{
-		var left = References.Get(unit, operation.Left);
+		var left = References.Get(unit, operation.Left, AccessMode.WRITE);
 		var right = References.Get(unit, operation.Right);
 		var format = operation.GetType().To<Number>().Type;
 
@@ -362,7 +362,7 @@ public static class Arithmetic
 
 		if (Assembler.IsArm64)
 		{
-			multiplication = new MultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), Assembler.Format, false).Execute();
+			multiplication = new MultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), left.GetType().Format, false).Execute();
 		}
 		else
 		{
@@ -375,7 +375,7 @@ public static class Arithmetic
 		if (padding > 0)
 		{
 			// Shift the result to the right by the padding
-			BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle((long)padding), Assembler.Format), Assembler.Format, false, true).Execute();
+			BitwiseInstruction.ShiftRight(unit, multiplication, new Result(new ConstantHandle((long)padding), Assembler.Format), Assembler.Signed, false, true).Execute();
 		}
 
 		// Fix the division by adding the offset to the multiplication

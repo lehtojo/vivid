@@ -62,7 +62,16 @@ public class MoveInstruction : DualParameterInstruction
 		}
 	}
 
-	public bool IsSafe { get; set; } = false;
+	/// <summary>
+	/// Stores whether the destination operand is protected from modification.
+	/// If set to true and the destination contains an active value, the destination will be cleared before modification.
+	/// </summary>
+	public bool IsDestinationProtected { get; set; } = false;
+
+	/// <summary>
+	/// Determines whether the move is considered to be redundant.
+	/// If the destination and source operands are the same, the move is considered redundant.
+	/// </summary>
 	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size);
 
 	public Condition? Condition { get; private set; }
@@ -365,7 +374,7 @@ public class MoveInstruction : DualParameterInstruction
 				{
 					// Convert the decimal value to integer format
 					Second.Value.To<ConstantHandle>().Convert(First.Format);
-					Second.Format = Assembler.Format;
+					Second.Format = Assembler.Signed;
 
 					if (Assembler.IsArm64)
 					{
@@ -922,7 +931,7 @@ public class MoveInstruction : DualParameterInstruction
 		if (IsRedundant) return;
 
 		// Ensure the destination is available if it is a register
-		if (IsSafe && First.IsAnyRegister)
+		if (IsDestinationProtected && First.IsAnyRegister)
 		{
 			Memory.ClearRegister(Unit, First.Value.To<RegisterHandle>().Register);
 		}
@@ -944,7 +953,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		var flags_first = ParameterFlag.DESTINATION | (IsSafe ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);
+		var flags_first = ParameterFlag.DESTINATION | (IsDestinationProtected ? ParameterFlag.NONE : ParameterFlag.WRITE_ACCESS);
 		var flags_second = ParameterFlag.NONE;
 
 		switch (Type)
@@ -1092,7 +1101,7 @@ public class MoveInstruction : DualParameterInstruction
 				var offset = (int)First.Value.To<DataSectionHandle>().Offset;
 
 				var address = new Result();
-				Memory.GetRegisterFor(Unit, address, false);
+				Memory.GetRegisterFor(Unit, address, true, false);
 
 				// Example:
 				// mov rax, [rip+x@GOTPCREL]
@@ -1258,7 +1267,7 @@ public class MoveInstruction : DualParameterInstruction
 				if (handle.Offset != 0)
 				{
 					// Add the handle offset
-					Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+					Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Signed), Assembler.Format, true), true);
 				}
 			}
 		}
@@ -1508,7 +1517,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		// NOTE: Now the size of source operand must be less than the size of destination operand
 
-		if (Source.Value.IsUnsigned)
+		if (Destination.Value.IsUnsigned)
 		{
 			if (Destination.Value.Size == 64 && Source.Value.Size == 32)
 			{
@@ -1577,7 +1586,7 @@ public class MoveInstruction : DualParameterInstruction
 			var inspected = is_load ? source : destination;
 			var value = is_load ? destination : source;
 
-			if (inspected.IsUnsigned)
+			if (value.IsUnsigned)
 			{
 				// Examples:
 				// 
@@ -1667,7 +1676,7 @@ public class MoveInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (!source.IsUnsigned)
+		if (!destination.IsUnsigned)
 		{
 			// Examples (source is signed and destination unknown):
 			// sxtb x0, w1 (64 <- 8)

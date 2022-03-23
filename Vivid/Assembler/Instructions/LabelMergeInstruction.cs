@@ -22,6 +22,9 @@ public class LabelMergeInstruction : Instruction
 
 			foreach (var variable in Scope!.Variables.Keys)
 			{
+				// Packs variables are not merged, their members are instead
+				if (variable.Type!.IsPack) continue;
+
 				var result = Unit.GetVariableValue(variable) ?? throw new ApplicationException("Missing active variable value");
 				
 				// Ensure the variable is still active

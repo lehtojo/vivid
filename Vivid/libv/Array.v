@@ -27,17 +27,12 @@ export Array<T> {
 	count: large
 
 	init() {
-		data = none
+		data = none as link<T>
 		count = 0
 	}
 	
 	init(count: large) {
 		require(count >= 0, 'Invalid array size')
-		
-		size = count * sizeof(T)
-
-		this.data = allocate(size)
-		zero(this.data, size)
 		
 		this.data = allocate(count * sizeof(T))
 		this.count = count
@@ -45,9 +40,12 @@ export Array<T> {
 
 	# Summary: Creates an array from the specified data and size
 	init(data: link<T>, count: large) {
+		require(data != none, 'Invalid array data')
+		require(count >= 0, 'Invalid array size')
+
 		this.data = allocate(count * sizeof(T))
 		this.count = count
-		copy(data, count * sizeof(T), this.data)
+		copy<T>(this.data, data, count)
 	}
 	
 	set(i: large, value: T) {
@@ -85,7 +83,7 @@ export Array<T> {
 	}
 	
 	deinit() {
-		deallocate(data)
+		if data != none deallocate(data)
 	}
 
 	# Summary: Creates a list which contains the same elements as this array

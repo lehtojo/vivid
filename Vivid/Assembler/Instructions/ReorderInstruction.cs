@@ -106,7 +106,7 @@ public class ReorderInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		if (ReturnType != null) EvacuateOverflowZone(ReturnType);
+		if (ReturnType != null && ReturnType.IsPack) EvacuateOverflowZone(ReturnType);
 
 		var instructions = new List<Instruction>();
 
@@ -115,7 +115,7 @@ public class ReorderInstruction : Instruction
 			var source = Sources[i];
 			var destination = new Result(Destinations[i], Formats[i]);
 
-			instructions.Add(new MoveInstruction(Unit, destination, source) { IsSafe = true });
+			instructions.Add(new MoveInstruction(Unit, destination, source) { IsDestinationProtected = true });
 		}
 
 		instructions = Memory.Align(Unit, instructions.Cast<MoveInstruction>().ToList());

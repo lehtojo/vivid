@@ -46,14 +46,36 @@ public class GetMemoryAddressInstruction : Instruction
 
 			if (member.Type!.IsPack)
 			{
+				// Output the members of the nested pack using this function recursively
 				position = OutputPack(value.Value.To<DisposablePackHandle>(), position);
+				continue;
+			}
+
+			// Update the format of the pack member
+			value.Format = member.Type!.Format;
+
+			if (Mode == AccessMode.WRITE)
+			{
+				// Since we are in write mode, we need to output a memory address for the pack member
+				value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
 			}
 			else
 			{
-				value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
-				value.Format = member.Type!.Format;
-				position += member.Type!.AllocationSize;
+				// 1. Ensure we are in build mode, so we can use registers
+				// 2. Ensure the pack member is used, so we do not move it to a register unnecessarily
+				if (Unit.Mode == UnitMode.BUILD && !value.IsExpiring(Unit.Position))
+				{
+					// Since we are in build mode and the member is required, we need to output a register value
+					value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
+					Memory.MoveToRegister(Unit, value, Size.FromFormat(value.Format), value.Format.IsDecimal(), Trace.GetDirectives(Unit, value));
+				}
+				else
+				{
+					value.Value = new Handle();
+				}
 			}
+
+			position += member.Type!.AllocationSize;
 		}
 
 		return position;
@@ -81,7 +103,7 @@ public class GetMemoryAddressInstruction : Instruction
 		// Fixes situations where a memory address is requested by not immediately loaded into a register, so another instruction might affect the value before loading
 		/// Example: address[0] + call(address)
 		/// NOTE: In the example above the first operand requests the memory address but does not necessarily load it so the function call might modify the contents of the address
-		if (!Trace.IsLoadingRequired(Unit, Result))
+		if (Mode != AccessMode.READ && !Trace.IsLoadingRequired(Unit, Result))
 		{
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;

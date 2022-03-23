@@ -891,7 +891,7 @@ public class ServicePhase : Phase
 
 		// Parse the document
 		var context = Parser.CreateRootContext(file.Index);
-		var root = new ScopeNode(context, null, null);
+		var root = new ScopeNode(context, null, null, false);
 
 		Parser.Parse(root, context, tokens);
 

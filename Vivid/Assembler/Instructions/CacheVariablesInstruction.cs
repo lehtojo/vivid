@@ -46,13 +46,6 @@ public class CacheVariablesInstruction : Instruction
 				Usages.RemoveAt(i);
 				continue;
 			}
-
-			// If the variable is not used after the roots, there is no need to load it now, if it is not a memory address
-			if (!Analysis.IsUsedLater(usage.Variable, Roots.First(), true) && !usage.Reference.IsMemoryAddress)
-			{
-				Usages.RemoveAt(i);
-				continue;
-			}
 		}
 
 		// Removed linked variables since they will be handled by the branching system

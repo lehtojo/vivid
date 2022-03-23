@@ -8,41 +8,46 @@ export List<T> {
 
 	# Summary: Creates a list with the specified initial size
 	init(size: large, fill: bool) {
+		require(size >= 0, 'Invalid list size')
+
+		# Fill the list if requested
 		if fill { position = size }
 		else { position = 0 }
 
+		# Set minimum size to 1
 		if size <= 0 { size = 1 }
 
 		elements = allocate(size * sizeof(T))
-		zero(elements, size * sizeof(T))
-
 		capacity = size
 	}
 
 	# Summary: Creates a list with the specified initial size
 	init(elements: link<T>, size: large) {
+		require(elements != none, 'Invalid list data')
+		require(size >= 0, 'Invalid list size')
+
 		this.elements = allocate(size * sizeof(T))
 		this.position = size
 		this.capacity = size
-		
-		copy(elements, size * sizeof(T), this.elements)
+
+		copy<T>(this.elements, elements, size)
 	}
 
 	# Summary: Creates a list with the same contents as the specified list
 	init(other: List<T>) {
+		require(other != none, 'Invalid list')
+
 		size = other.size
 		this.elements = allocate(size * sizeof(T))
 		this.position = size
 		this.capacity = size
-		
-		copy(other.elements, size * sizeof(T), this.elements)
+
+		copy<T>(this.elements, other.elements, size)
 	}
 
 	# Summary: Creates an empty list
 	init() {
 		elements = allocate(sizeof(T))
-		elements[0] = 0
-
 		capacity = 1
 		position = 0
 	}
@@ -50,8 +55,8 @@ export List<T> {
 	# Summary: Grows the list to the specified size
 	grow(to: large) {
 		if to == 0 { to = 1 }
+
 		memory = allocate(to * sizeof(T))
-		zero(memory + position * sizeof(T), (to - position) * sizeof(T))
 		copy(elements, position * sizeof(T), memory)
 		deallocate(elements)
 
@@ -80,12 +85,14 @@ export List<T> {
 		}
 
 		# Copy the new elements to the memory after the already existing elements
-		copy(other.elements, count * sizeof(T), elements as link + position * sizeof(T))
+		copy<T>(elements + position * sizeof(T), other.elements, count)
 		position += count
 	}
 
 	# Summary: Puts the specified element at the specified index without removing other elements
 	insert(at: large, element: T) {
+		require(at >= 0 and at <= position, 'Invalid insertion index')
+
 		if position >= capacity {
 			grow(capacity * 2)
 		}
@@ -103,6 +110,9 @@ export List<T> {
 
 	# Summary: Puts the specified range at the specified index without removing other elements
 	insert_range(at: large, other: List<T>) {
+		require(other != none, 'Invalid list to insert')
+		require(at >= 0 and at <= position, 'Invalid insertion index')
+
 		count = other.size()
 		if count == 0 return
 
@@ -119,18 +129,22 @@ export List<T> {
 		slide = position - at
 		if slide > 0 move(start, start + count * sizeof(T), slide * sizeof(T))
 
-		copy(other.elements, count * sizeof(T), start)
+		copy<T>(start, other.elements, count)
 		position += count
 	}
 
 	# Summary: Removes the element which is located at the specified index
 	remove_at(at: large) {
+		require(at >= 0 and at < position, 'Invalid removal index')
+
+		# Reset the element at the specified index
+		elements[at] = 0
+
 		offset = (at + 1) * sizeof(T)
 		bytes = (position - at - 1) * sizeof(T)
 
 		if bytes > 0 {
 			destination = elements + at * sizeof(T)
-
 			move(elements, offset, destination, bytes)
 		}
 
@@ -151,10 +165,18 @@ export List<T> {
 
 	# Summary: Removes the specified range from this list
 	remove_range(start: large, end: large) {
+		require(start >= 0 and start <= end, 'Invalid removal start index')
+		require(end >= 0 and end < position, 'Invalid removal end index')
+
 		count = end - start
 		if count == 0 return
+
+		# Reset the elements at the specified range
+		zero<T>(elements + start * sizeof(T), count)
+
 		slide = position - end
 		move(elements + end * sizeof(T), elements + start * sizeof(T), slide * sizeof(T))
+
 		position -= count
 	}
 
@@ -201,11 +223,16 @@ export List<T> {
 
 	# Summary: Creates a new list, which contains the specified range of elements
 	slice(start: large, end: large) {
+		require(start >= 0 and start <= end, 'Invalid slice start index')
+		require(end >= 0 and end <= position, 'Invalid slice end index')
+
 		=> List<T>(elements + start * sizeof(T), end - start)
 	}
 
 	# Summary: Returns all the elements starting from the specified index
 	slice(start: large) {
+		require(start >= 0 and start <= position, 'Invalid slice start index')
+
 		=> List<T>(elements + start * sizeof(T), position - start)
 	}
 
@@ -238,11 +265,15 @@ export List<T> {
 
 	# Summary: Sets the value of the element at the specified index
 	set(i: large, value: T) {
+		require(i >= 0 and i < position, 'Invalid setter index')
+
 		elements[i] = value
 	}
 
 	# Summary: Returns the value at the specified index
 	get(i: large) {
+		require(i >= 0 and i < position, 'Invalid getter index')
+
 		=> elements[i]
 	}
 
@@ -399,5 +430,9 @@ export List<T> {
 	}
 
 	# TODO: Decrement operator overload for taking out elements
-	# TODO: Destruct cleared objects
+
+	deinit() {
+		zero<T>(elements, position)
+		deallocate(elements)
+	}
 }

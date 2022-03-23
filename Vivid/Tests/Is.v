@@ -169,6 +169,7 @@ init() {
 	gabe = create_gabe()
 	steve = create_steve()
 
-	can_use(john, car)
+	vehicles = [ pig, bus, car, banana as Vehicle ]
+	choose_vehicle(john, vehicles, 7000)
 	=> true
 }

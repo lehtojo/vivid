@@ -34,7 +34,7 @@ public static class Links
 			// Link nodes can also access static variables for example
 			if (member.IsGlobal) return References.GetVariable(unit, member, mode);
 
-			var left = References.Get(unit, node.Left);
+			var left = References.Get(unit, node.Left, mode);
 
 			// Packs:
 			if (left.Value.Instance == HandleInstanceType.DISPOSABLE_PACK) return left.Value.To<DisposablePackHandle>().Members[member];

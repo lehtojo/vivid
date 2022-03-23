@@ -46,7 +46,7 @@ public static class Resolver
 	/// <summary>
 	/// Tries to resolve supertypes which were not found previously
 	/// </summary>
-	private static void ResolveSupertypes(Context context, Type type)
+	public static void ResolveSupertypes(Context context, Type type)
 	{
 		for (var i = type.Supertypes.Count - 1; i >= 0; i--)
 		{

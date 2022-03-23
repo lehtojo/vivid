@@ -33,7 +33,7 @@ public class CallInstruction : Instruction
 		Description = "Calls function " + Function;
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
-		Result.Format = return_type?.Format ?? Assembler.Format;
+		Result.Format = return_type != null ? return_type.Format : Assembler.Format;
 
 		// Initialize the return pack, if the return type is a pack
 		if (ReturnType != null && ReturnType.IsPack)
@@ -51,7 +51,7 @@ public class CallInstruction : Instruction
 		Description = "Calls the function handle";
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
-		Result.Format = return_type?.Format ?? Assembler.Format;
+		Result.Format = return_type != null ? return_type.Format : Assembler.Format;
 
 		// Initialize the return pack, if the return type is a pack
 		if (ReturnType != null && ReturnType.IsPack)
@@ -177,7 +177,7 @@ public class CallInstruction : Instruction
 			}
 
 			// Ensure the function handle is in the correct format
-			if (Function.Format != Assembler.Format)
+			if (Function.Size != Assembler.Size)
 			{
 				locks.ForEach(i => i.Dispose());
 				locks = MoveToRegister();
@@ -187,7 +187,7 @@ public class CallInstruction : Instruction
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
-			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
+			if (Function.Size != Assembler.Size) throw new ApplicationException("Invalid function handle format");
 
 			Build(
 				is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER,
@@ -210,7 +210,7 @@ public class CallInstruction : Instruction
 			}
 
 			// Ensure the function handle is in the correct format
-			if (Function.Format != Assembler.Format)
+			if (Function.Size != Assembler.Size)
 			{
 				locks.ForEach(i => i.Dispose());
 				locks = MoveToRegister();
@@ -220,7 +220,7 @@ public class CallInstruction : Instruction
 			Unit.Append(new EvacuateInstruction(Unit, this));
 
 			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
-			if (Function.Format != Assembler.Format) throw new ApplicationException("Invalid function handle format");
+			if (Function.Size != Assembler.Size) throw new ApplicationException("Invalid function handle format");
 
 			Build(
 				Instructions.X64.CALL,

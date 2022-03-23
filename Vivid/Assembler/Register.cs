@@ -23,7 +23,6 @@ public class Register
 	public byte Name { get; set; } = 0;
 	public string[] Partitions { get; private set; }
 	public Size Width { get; private set; }
-	public Format Format => IsMediaRegister ? Format.DECIMAL : Assembler.Format;
 
 	private Result? _Value { get; set; } = null;
 	public Result? Handle

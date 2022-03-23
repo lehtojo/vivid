@@ -18,7 +18,7 @@ public class GetRelativeAddressInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		Memory.GetResultRegisterFor(Unit, Result, false);
+		Memory.GetResultRegisterFor(Unit, Result, true, false);
 		Result.Format = Assembler.Format;
 
 		Build(

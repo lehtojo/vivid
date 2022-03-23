@@ -873,7 +873,7 @@ public static class Importer
 				Lexer.RegisterFile(file.Tokens, file);
 
 				// Parse all the tokens
-				var root = new ScopeNode(context, null, null);
+				var root = new ScopeNode(context, null, null, false);
 
 				Parser.Parse(root, context, file.Tokens);
 				

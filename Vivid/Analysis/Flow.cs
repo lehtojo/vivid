@@ -251,24 +251,25 @@ public class Flow
 				Add(new JumpNode(end));
 				Add(new LabelNode(intermediate));
 
-				foreach (var successor in statement.GetSuccessors())
+				foreach (var iterator in statement.GetSuccessors())
 				{
-					if (successor is ElseIfNode x)
+					if (iterator.Instance == NodeType.ELSE_IF)
 					{
+						var successor = iterator.To<ElseIfNode>();
 						intermediate = new Label(GetNextLabel());
 
-						LinearizeCondition(x, intermediate);
+						LinearizeCondition(successor, intermediate);
 
 						// The body may be executed based on the condition. If it executes, it jumps to the end label
-						Linearize(x.Body);
+						Linearize(successor.Body);
 						Add(new JumpNode(end));
 
 						Add(new LabelNode(intermediate));
 					}
-					else if (successor is ElseNode y)
+					else if (iterator.Instance == NodeType.ELSE)
 					{
 						// The body always executes and jumps to the end label
-						Linearize(y.Body);
+						Linearize(iterator.To<ElseNode>().Body);
 					}
 				}
 
@@ -321,8 +322,8 @@ public class Flow
 
 					var start = Loops[loop.To<LoopNode>()].Start;
 
-					Add(new JumpNode(start));
 					Add(node);
+					Add(new JumpNode(start));
 				}
 				else if (instruction == Keywords.STOP)
 				{
@@ -330,8 +331,8 @@ public class Flow
 
 					var end = Loops[loop.To<LoopNode>()].End;
 
-					Add(new JumpNode(end));
 					Add(node);
+					Add(new JumpNode(end));
 				}
 				else
 				{
@@ -674,30 +675,33 @@ public class StatementFlow
 				var end = new Label(GetNextLabel());
 
 				LinearizeCondition(statement, intermediate);
+				Add(statement.GetConditionStep()); // Add the condition scope
 
 				// The body may be executed based on the condition. If it executes, it jumps to the end label
 				Linearize(statement.Body);
 				Add(new JumpNode(end));
 				Add(new LabelNode(intermediate));
 
-				foreach (var successor in statement.GetSuccessors())
+				foreach (var iterator in statement.GetSuccessors())
 				{
-					if (successor is ElseIfNode x)
+					if (iterator.Instance == NodeType.ELSE_IF)
 					{
+						var successor = iterator.To<ElseIfNode>();
 						intermediate = new Label(GetNextLabel());
 
-						LinearizeCondition(x, intermediate);
+						LinearizeCondition(successor, intermediate);
+						Add(successor.GetConditionStep()); // Add the condition scope
 
 						// The body may be executed based on the condition. If it executes, it jumps to the end label
-						Linearize(x.Body);
+						Linearize(successor.Body);
 						Add(new JumpNode(end));
 
 						Add(new LabelNode(intermediate));
 					}
-					else if (successor is ElseNode y)
+					else if (iterator.Instance == NodeType.ELSE)
 					{
 						// The body always executes and jumps to the end label
-						Linearize(y.Body);
+						Linearize(iterator.To<ElseNode>().Body);
 					}
 				}
 
@@ -750,8 +754,8 @@ public class StatementFlow
 
 					var start = Loops[loop.To<LoopNode>()].Start;
 
-					Add(new JumpNode(start));
 					Add(node);
+					Add(new JumpNode(start));
 				}
 				else if (instruction == Keywords.STOP)
 				{
@@ -759,8 +763,8 @@ public class StatementFlow
 
 					var end = Loops[loop.To<LoopNode>()].End;
 
-					Add(new JumpNode(end));
 					Add(node);
+					Add(new JumpNode(end));
 				}
 				else
 				{

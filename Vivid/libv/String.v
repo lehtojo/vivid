@@ -185,27 +185,72 @@ export String {
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: char, strings: List<String>) {
 		if strings.size == 0 => String.empty
+		if strings.size == 1 => strings[0]
 
-		result = strings[0]
+		# Set the length of the result to the number of separators, because each separator adds one character
+		result_length = strings.size - 1
 
-		loop (i = 1, i < strings.size, i++) {
-			result = result + separator + strings[i]
+		# Add the lengths of all the strings to join
+		loop (i = 0, i < strings.size, i++) {
+			result_length += strings[i].length
 		}
 
-		=> result
+		# Allocate and populate the result
+		buffer = allocate(result_length + 1)
+		position = buffer
+
+		loop (i = 0, i < strings.size, i++) {
+			# Add the string to the result
+			string = strings[i]
+			copy(string.text, string.length, position)
+			position += string.length
+
+			# Add the separator, even if it is the last one
+			position[0] = separator
+			position++
+		}
+
+		# Remove the last separator and replace it with a zero terminator
+		buffer[result_length] = 0
+
+		=> String.from(buffer, result_length)
 	}
 
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: String, strings: List<String>) {
 		if strings.size == 0 => String.empty
+		if strings.size == 1 => strings[0]
 
-		result = strings[0]
+		# Set the length of the result to the number of characters the separators will take
+		result_length = (strings.size - 1) * separator.length
 
-		loop (i = 1, i < strings.size, i++) {
-			result = result + separator + strings[i]
+		# Add the lengths of all the strings to join
+		loop (i = 0, i < strings.size, i++) {
+			result_length += strings[i].length
 		}
 
-		=> result
+		# Allocate and populate the result
+		buffer = allocate(result_length + 1)
+
+		# Add the first string to the result
+		string = strings[0]
+		copy(string.text, string.length, buffer)
+
+		# Start after the first added string
+		position = buffer + string.length
+
+		loop (i = 1, i < strings.size, i++) {
+			# Add the separator
+			copy(separator.text, separator.length, position)
+			position += separator.length
+
+			# Add the string to the result
+			string = strings[i]
+			copy(string.text, string.length, position)
+			position += string.length
+		}
+
+		=> String.from(buffer, result_length)
 	}
 
 	public readonly text: link
@@ -296,6 +341,7 @@ export String {
 	}
 
 	insert(index: large, character: u8) {
+		require(index >= 0 and index <= length)
 		a = length
 
 		# Reserve memory: Current memory + Character + Terminator
@@ -360,6 +406,9 @@ export String {
 
 	# Summary: Returns the characters between the specified start and end index as a string
 	slice(start: large, end: large) {
+		require(start >= 0 and start <= end, 'Invalid slice start index')
+		require(end <= length, 'Invalid slice end index')
+
 		a = length
 		require(start >= 0 and start <= a and end >= start and end <= a)
 
@@ -368,6 +417,7 @@ export String {
 
 	# Summary: Returns all the characters after the specified index as a string
 	slice(start: large) {
+		require(start >= 0 and start <= length, 'Invalid slice start index')
 		=> slice(start, length)
 	}
 
@@ -399,7 +449,7 @@ export String {
 
 	# Summary: Returns the index of the first occurance of the specified character
 	index_of(value: char, start: large) {
-		if start < 0 => -1
+		require(start >= 0 and start <= length, 'Invalid start index')
 		
 		a = length
 
@@ -422,19 +472,20 @@ export String {
 
 	# Summary: Returns the index of the first occurance of the specified string
 	index_of(value: String, start: large) {
+		require(start >= 0 and start <= length, 'Invalid start index')
 		=> index_of(value.text, value.length, start)
 	}
 
 	# Summary: Returns the index of the first occurance of the specified string
 	index_of(value: link, start: large) {
+		require(start >= 0 and start <= length, 'Invalid start index')
 		=> index_of(value, length_of(value), start)
 	}
 
 	# Summary: Returns the index of the first occurance of the specified string
 	index_of(value: link, value_length: large, start: large) {
-		if start < 0 => -1
-
 		length: large = this.length
+		require(start >= 0 and start <= length, 'Invalid start index')
 
 		loop (i = start, i <= length - value_length, i++) {
 			match = true
@@ -513,6 +564,7 @@ export String {
 	Summary: Overrides the indexed accessor, returning the character in the specified position
 	###
 	get(i: large) {
+		require(i >= 0 and i <= length, 'Invalid getter index')
 		=> text[i] as u8
 	}
 
@@ -520,6 +572,7 @@ export String {
 	Summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position
 	###
 	set(i: large, value: u8) {
+		require(i >= 0 and i <= length, 'Invalid setter index')
 		text[i] = value
 	}
 	

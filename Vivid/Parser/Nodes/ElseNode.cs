@@ -9,7 +9,7 @@ public class ElseNode : Node, IResolvable
 		Position = start;
 		Instance = NodeType.ELSE;
 
-		Add(new ScopeNode(context, start, end));
+		Add(new ScopeNode(context, start, end, false));
 
 		body.ForEach(i => Body.Add(i));
 	}

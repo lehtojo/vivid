@@ -160,6 +160,9 @@ public static class UnwrapmentAnalysis
 						continue;
 					}
 
+					// Do not remove return values of scopes
+					if (iterator == statement.Last && statement.Instance == NodeType.SCOPE && statement.To<ScopeNode>().IsValueReturned) break;
+
 					// 1. If the statement does not contain any node, which has an effect on the flow (affector), it can be removed
 					// 2. Remove abandoned allocations
 					if ((!ReconstructionAnalysis.IsAffector(iterator) && iterator.Find(i => ReconstructionAnalysis.IsAffector(i)) == null) || (iterator.Instance == NodeType.FUNCTION && iterator.To<FunctionNode>().Function == Parser.AllocationFunction)) iterator.Remove();
@@ -171,8 +174,9 @@ public static class UnwrapmentAnalysis
 			}
 			else if (statement.Is(NodeType.IF, NodeType.ELSE_IF))
 			{
-				// The statement can not be removed, if its body is not empty
-				if (statement.To<IfNode>().Body.First != null) continue;
+				// 1. The statement can not be removed, if its body is not empty
+				// 2. The statement can not be removed, if it has a successor
+				if (statement.To<IfNode>().Body.First != null || statement.To<IfNode>().Successor != null) continue;
 
 				// If the condition has multiple steps, the statement can not be removed
 				var step = statement.To<IfNode>().GetConditionStep();
@@ -251,7 +255,7 @@ public static class UnwrapmentAnalysis
 				var condition = new Node();
 				condition.Add(new VariableNode(dependency, position));
 				
-				var body = new ScopeNode(new Context(environment), position, null);
+				var body = new ScopeNode(new Context(environment), position, null, false);
 				var positive = new IfNode(environment, condition, body, position, null);
 
 				loop.Replace(positive);
@@ -273,7 +277,7 @@ public static class UnwrapmentAnalysis
 				positive.Body.Add(modified_loop);
 
 				// Create a branch, which represents the situation where the dependency is false
-				body = new ScopeNode(new Context(environment), position, null);
+				body = new ScopeNode(new Context(environment), position, null, false);
 				var negative = new ElseNode(environment, body, position, null);
 
 				positive.Parent!.Insert(positive.Next, negative);

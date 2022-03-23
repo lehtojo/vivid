@@ -96,7 +96,7 @@ public static class References
 
 	public static Result GetConstant(Unit unit, NumberNode node)
 	{
-		return new GetConstantInstruction(unit, node.Value, node.Type.IsDecimal()).Execute();
+		return new GetConstantInstruction(unit, node.Value, node.Type.IsUnsigned(), node.Type.IsDecimal()).Execute();
 	}
 
 	public static Result GetString(Unit unit, StringNode node)

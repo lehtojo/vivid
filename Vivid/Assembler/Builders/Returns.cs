@@ -7,7 +7,7 @@ public static class Returns
 	/// <summary>
 	/// Returns the specified pack by using the registers used when passing packs in parameters
 	/// </summary>
-	private static void ReturnPack(Unit unit, Result value)
+	private static void ReturnPack(Unit unit, Result value, Type type)
 	{
 		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
 		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
@@ -17,7 +17,7 @@ public static class Returns
 
 		// Pass the first value using the stack just above the return address
 		var position = new StackMemoryHandle(unit, Assembler.IsX64 ? Assembler.Size.Bytes : 0);
-		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, Assembler.Format);
+		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, Assembler.Format);
 
 		unit.Append(new ReorderInstruction(unit, destinations, sources, unit.Function.ReturnType!));
 	}
@@ -36,7 +36,7 @@ public static class Returns
 
 			unit.TryAppendPosition(scope.End);
 
-			if (to.IsPack) ReturnPack(unit, value);
+			if (to.IsPack) ReturnPack(unit, value, to);
 			return new ReturnInstruction(unit, value, unit.Function.ReturnType).Execute();
 		}
 

@@ -77,8 +77,8 @@ public static class Lexer
 		{
 			'.' => ".0123456789",
 			',' => string.Empty,
-			'<' => "|=",
-			'>' => "|=-:",
+			'<' => "|=+",
+			'>' => "|=+-:",
 			_ => null
 		};
 	}
@@ -190,7 +190,7 @@ public static class Lexer
 
 		switch (previous_type)
 		{
-			case AreaType.TEXT: return current_type == AreaType.NUMBER;
+			case AreaType.TEXT: return current_type == AreaType.NUMBER || current_type == AreaType.HEXADECIMAL;
 
 			case AreaType.HEXADECIMAL: return current_type == AreaType.NUMBER || 
 				(previous == '0' && current == 'x') ||

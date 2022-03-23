@@ -662,8 +662,6 @@ public class ResolverPhase : Phase
 				Assembler.InitializationFunction.Node!.Insert(initializer_destination, initializer);
 			}
 		}
-
-		GarbageCollector.CreateReferenceCountingFunctions(context);
 	}
 
 	public override Status Execute(Bundle bundle)
@@ -689,7 +687,7 @@ public class ResolverPhase : Phase
 
 			ParserPhase.ApplyExtensionFunctions(context, parse.Node);
 			ParserPhase.ImplementFunctions(context, null);
-			GarbageCollector.CreateAllOverloads(context);
+			GarbageCollector.CreateAllRequiredOverloads(context);
 			
 			// Try to resolve problems in the node tree and get the status after that
 			Resolver.ResolveContext(context);

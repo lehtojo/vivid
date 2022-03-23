@@ -3,6 +3,9 @@ export move(source: link, offset: large, destination: link, bytes: large) {
 	buffer = allocate(bytes)
 	source += offset
 	copy(source, bytes, buffer)
+
+	# Zero the area to be moved
+	zero(source, bytes)
 	
 	# Copy the contents of the temporary buffer to the destination
 	copy(buffer, bytes, destination)
@@ -15,6 +18,9 @@ export move(source: link, destination: link, bytes: large) {
 	# Copy the area to be moved to a temporary buffer, since moving can override the bytes to be moved
 	buffer = allocate(bytes)
 	copy(source, bytes, buffer)
+
+	# Zero the area to be moved
+	zero(source, bytes)
 
 	# Copy the contents of the temporary buffer to the destination
 	copy(buffer, bytes, destination)
@@ -29,4 +35,16 @@ export resize(source: link, from: large, to: large) {
 	copy(source, min(from, to), resized)
 	deallocate(source)
 	=> resized
+}
+
+export outline copy<T>(destination: link<T>, source: link<T>, size: large) {
+	loop (i = 0, i < size, i++) {
+		destination[i] = source[i]
+	}
+}
+
+export outline zero<T>(destination: link<T>, size: large) {
+	loop (i = 0, i < size, i++) {
+		destination[i] = 0
+	}
 }

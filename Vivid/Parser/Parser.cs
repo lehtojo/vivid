@@ -585,7 +585,7 @@ public static class Parser
 		var true_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.PRIVATE | Modifier.CONSTANT);
 		var false_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.PRIVATE | Modifier.CONSTANT);
 
-		return new ScopeNode(context, null, null)
+		return new ScopeNode(context, null, null, false)
 		{
 			new OperatorNode(Operators.ASSIGN).SetOperands(
 				new VariableNode(positive_infinity),

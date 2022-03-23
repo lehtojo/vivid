@@ -942,9 +942,9 @@ public class ExpressionHandle : Handle
 
 		return new ExpressionHandle
 		(
-			new Result(Multiplicand.Value, Assembler.Format),
+			new Result(Multiplicand.Value, Multiplicand.Format),
 			Multiplier,
-			Addition == null ? null : new Result(Addition.Value, Assembler.Format),
+			Addition == null ? null : new Result(Addition.Value, Addition.Format),
 			Constant
 		);
 	}

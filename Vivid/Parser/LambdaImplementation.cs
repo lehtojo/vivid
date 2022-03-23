@@ -101,13 +101,13 @@ public class LambdaImplementation : FunctionImplementation
 	/// </summary>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(GetRoot(), Identity, Modifier.DEFAULT, Metadata.Start);
+		Type = new Type(GetRoot(), Identity.Replace('.', '_'), Modifier.DEFAULT, Metadata.Start);
 		Type.AddRuntimeConfiguration();
 
 		Type.AddConstructor(Constructor.Empty(Type, Metadata.Start, Metadata.End));
 		Type.AddDestructor(Destructor.Empty(Type, Metadata.Start, Metadata.End));
 
-		Node = new ScopeNode(this, Metadata.Start, Metadata.End);
+		Node = new ScopeNode(this, Metadata.Start, Metadata.End, false);
 
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}

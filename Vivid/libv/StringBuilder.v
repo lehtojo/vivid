@@ -137,10 +137,15 @@ export StringBuilder {
 	}
 
 	get(i: large) {
+		require(i >= 0 and i < position, 'Index out of bounds')
 		=> buffer[i]
 	}
 
 	string() {
 		=> String(buffer, position)
+	}
+
+	deinit() {
+		deallocate(buffer)
 	}
 }

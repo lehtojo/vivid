@@ -6,7 +6,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 {
 	public bool IsUnsigned { get; set; }
 
-	public LongMultiplicationInstruction(Unit unit, Result first, Result second, bool is_unsigned) : base(unit, first, second, Assembler.Format, InstructionType.LONG_MULTIPLICATION)
+	public LongMultiplicationInstruction(Unit unit, Result first, Result second, bool is_unsigned) : base(unit, first, second, GetSystemFormat(is_unsigned), InstructionType.LONG_MULTIPLICATION)
 	{
 		IsUnsigned = is_unsigned;
 	}
@@ -20,7 +20,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		{
 			Memory.ClearRegister(Unit, location.Register);
 
-			return new MoveInstruction(Unit, new Result(location, Assembler.Format), First)
+			return new MoveInstruction(Unit, new Result(location, GetSystemFormat(Unsigned)), First)
 			{
 				Type = MoveType.COPY
 
@@ -38,7 +38,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		});
 
 		// Even though the numerator is relocated the value is still in the register
-		return new Result(new RegisterHandle(numerator), Assembler.Format);
+		return new Result(new RegisterHandle(numerator), GetSystemFormat(Unsigned));
 	}
 
 	private Register ClearRemainderRegister()

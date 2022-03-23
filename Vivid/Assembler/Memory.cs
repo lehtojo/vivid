@@ -181,14 +181,11 @@ public static class Memory
 			return;
 		}
 
-		if (target.Handle == null)
-		{
-			return;
-		}
+		if (target.Handle == null) return;
 
 		var destination = new RegisterHandle(register);
 
-		unit.Append(new MoveInstruction(unit, new Result(destination, register.Format), target.Handle!)
+		unit.Append(new MoveInstruction(unit, new Result(destination, target.Handle.Format), target.Handle!)
 		{
 			Type = MoveType.RELOCATE,
 			Description = "Relocates the source value so that the register is cleared for another purpose"
@@ -209,7 +206,7 @@ public static class Memory
 
 		var handle = new RegisterHandle(register);
 
-		var instruction = BitwiseInstruction.Xor(unit, new Result(handle, register.Format), new Result(handle, register.Format), register.Format);
+		var instruction = BitwiseInstruction.Xor(unit, new Result(handle, Assembler.Format), new Result(handle, Assembler.Format), Assembler.Format);
 		instruction.Description = "Sets the value of the destination to zero";
 
 		unit.Append(instruction);
@@ -314,7 +311,7 @@ public static class Memory
 	public static Result CopyToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
 		// NOTE: Before the condition checked whether the result was a standard register, so it was changed to check any register, since why would not media registers need register locks as well
-		var format = media_register ? Format.DECIMAL : size.ToFormat();
+		var format = media_register ? Format.DECIMAL : size.ToFormat(result.Format.IsUnsigned());
 
 		if (result.IsAnyRegister)
 		{
@@ -346,7 +343,7 @@ public static class Memory
 			return result;
 		}
 
-		var format = media_register ? Format.DECIMAL : size.ToFormat();
+		var format = media_register ? Format.DECIMAL : size.ToFormat(result.Format.IsUnsigned());
 		var register = GetNextRegister(unit, media_register, directives);
 		var destination = new Result(new RegisterHandle(register), format);
 
@@ -366,7 +363,7 @@ public static class Memory
 		Register? register = null;
 		Result? destination;
 
-		var format = result.Format.IsDecimal() ? Format.DECIMAL : size.ToFormat();
+		var format = result.Format.IsDecimal() ? Format.DECIMAL : size.ToFormat(result.Format.IsUnsigned());
 
 		if (result.IsMediaRegister)
 		{
@@ -415,27 +412,27 @@ public static class Memory
 	/// <summary>
 	/// Moves the specified result to an available register
 	/// </summary>
-	public static void GetRegisterFor(Unit unit, Result result, bool media_register)
+	public static void GetRegisterFor(Unit unit, Result result, bool unsigned, bool media_register)
 	{
 		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result));
 
 		register.Handle = result;
 
 		result.Value = new RegisterHandle(register);
-		result.Format = media_register ? Format.DECIMAL : Assembler.Format;
+		result.Format = media_register ? Format.DECIMAL : Instruction.GetSystemFormat(unsigned);
 	}
 
 	/// <summary>
 	/// Moves the specified result to an available register
 	/// </summary>
-	public static void GetResultRegisterFor(Unit unit, Result result, bool media_register)
+	public static void GetResultRegisterFor(Unit unit, Result result, bool unsigned, bool media_register)
 	{
 		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result), true);
 
 		register.Handle = result;
 
 		result.Value = new RegisterHandle(register);
-		result.Format = media_register ? Format.DECIMAL : Assembler.Format;
+		result.Format = media_register ? Format.DECIMAL : Instruction.GetSystemFormat(unsigned);
 	}
 
 	public static Result Convert(Unit unit, Result result, Size size, HandleType[] types, bool protect, List<Directive>? directives)
@@ -461,7 +458,7 @@ public static class Memory
 				// If the result is empty, a new available register can be assigned to it
 				if (result.IsEmpty)
 				{
-					GetRegisterFor(unit, result, is_media_register);
+					GetRegisterFor(unit, result, result.Format.IsUnsigned(), is_media_register);
 					return result;
 				}
 

@@ -255,7 +255,7 @@ public class BitwiseInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, false);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 
 		Build(
 			Instruction,

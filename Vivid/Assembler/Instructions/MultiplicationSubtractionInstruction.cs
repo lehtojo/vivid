@@ -61,7 +61,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, false);
+		Memory.GetResultRegisterFor(Unit, Result, Format.IsUnsigned(), false);
 
 		Build(
 			Instructions.Arm64.MULTIPLY_SUBTRACT,

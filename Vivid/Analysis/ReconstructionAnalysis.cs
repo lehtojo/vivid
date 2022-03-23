@@ -568,12 +568,15 @@ public static class ReconstructionAnalysis
 
 		return candidates.Where(candidate =>
 		{
-			var node = candidate.FindParent(i => !i.Is(NodeType.CONTENT, NodeType.CONTENT))!;
+			// Find the root of the expression
+			var root = (Node)candidate;
+			while (root.Parent!.Instance == NodeType.CONTENT) { root = root.Parent!; }
 
-			if (IsStatement(node) || node.Is(NodeType.NORMAL) || IsCondition(candidate)) return false;
+			if (IsCondition(root)) return false;
 
 			// Ensure the parent is not a comparison or a logical operator
-			return node is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGIC;
+			var parent = root.Parent!;
+			return parent is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGIC;
 
 		}).ToList();
 	}
@@ -640,7 +643,9 @@ public static class ReconstructionAnalysis
 			NodeType.NOT,
 			NodeType.OFFSET,
 			NodeType.OPERATOR,
-			NodeType.RETURN
+			NodeType.RETURN,
+			NodeType.OBJECT_LINK,
+			NodeType.OBJECT_UNLINK
 		);
 	}
 
@@ -657,7 +662,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsAffector(Node node)
 	{
-		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN) || node.Is(OperatorType.ACTION);
+		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN, NodeType.OBJECT_LINK, NodeType.OBJECT_UNLINK) || node.Is(OperatorType.ACTION);
 	}
 
 	/// <summary>
@@ -871,7 +876,7 @@ public static class ReconstructionAnalysis
 		);
 
 		// Replace the destination with a new offset operation using the loaded variables
-		destination.Detach();
+		destination.RemoveChildren();
 		destination.Add(new VariableNode(start_variable));
 		destination.Add(new ContentNode { new VariableNode(offset_variable) });
 
@@ -894,7 +899,9 @@ public static class ReconstructionAnalysis
 			// { x = b(i), a(x) } and { y = d(j), c(y) }
 			if (iterator.Is(OperatorType.LOGIC))
 			{
-				var scope = new InlineNode();
+				var environment = expression.GetParentContext();
+				var context = new Context(environment);
+				var scope = new ScopeNode(context, iterator.Position, null, true);
 				position.Replace(scope);
 				scope.Add(position);
 				break;
@@ -956,7 +963,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.WHEN);
+		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.OFFSET, NodeType.WHEN);
 		nodes.AddRange(FindBoolValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
@@ -975,6 +982,9 @@ public static class ReconstructionAnalysis
 
 			// Select the parent node, if the current node is a member function call
 			if (node.Is(NodeType.FUNCTION) && parent.Is(NodeType.LINK) && parent.Right == node) { node = parent; }
+
+			// Do not extract accessors, which are destinations of assignments
+			if (node.Instance == NodeType.OFFSET && (Analyzer.IsEdited(node) || parent.Is(Operators.ASSIGN_EXCHANGE_ADD))) continue;
 
 			var position = GetExpressionExtractPosition(node);
 
@@ -1627,6 +1637,33 @@ public static class ReconstructionAnalysis
 			iterator!.Replace(new VariableNode(representive, usage.Position));
 		}
 
+		// Replace all packers, which are accessed using link nodes with the accessed member values
+		var packers = root.FindAll(NodeType.PACK).ToList();
+
+		foreach (var packer in packers)
+		{
+			// Find all packers, whose members are accessed using a link node
+			if (packer.Parent!.Instance != NodeType.LINK || packer.Next!.Instance != NodeType.VARIABLE) continue;
+
+			// Find the member value from the packer, which represents the accessed member
+			var type = packer.To<PackNode>().Type!;
+			var member_value = packer.First ?? throw new ApplicationException("Missing member value");
+			var accessed_member = packer.Next!.To<VariableNode>().Variable;
+
+			foreach (var member in type.Variables.Values)
+			{
+				if (member.Name != accessed_member.Name)
+				{
+					member_value = member_value.Next ?? throw new ApplicationException("Missing member value");
+					continue;
+				}
+
+				// Replace the packer with the member value
+				packer.Parent!.Replace(member_value);
+				break;
+			}
+		}
+
 		// Returned packs from function calls are handled last:
 		foreach (var placeholder in placeholders)
 		{
@@ -1737,12 +1774,21 @@ public static class ReconstructionAnalysis
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
 		RewritePackComparisons(root);
+		RemoveRedundantInlineNodes(root);
+	}
 
-		if (Analysis.IsFunctionInliningEnabled)
-		{
-			Inlines.Build(implementation, root);
-		}
-
+	/// <summary>
+	/// Simplifies the specified node tree
+	/// </summary>
+	public static void Simplify(FunctionImplementation implementation, Node root)
+	{
+		StripLinks(root);
+		RemoveRedundantParentheses(root);
+		RemoveCancellingNegations(root);
+		RemoveCancellingNots(root);
+		RemoveRedundantCasts(root);
+		AddAssignmentCasts(root);
+		RewriteEditsAsAssignments(root);
 		RemoveRedundantInlineNodes(root);
 	}
 

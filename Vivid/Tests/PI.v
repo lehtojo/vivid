@@ -16,7 +16,7 @@ CustomArray<T> {
 	}
 	
 	deinit() {
-		deallocate(data, count)
+		deallocate(data)
 	}
 }
 

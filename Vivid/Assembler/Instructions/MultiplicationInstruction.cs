@@ -94,7 +94,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 		{
 			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= Instructions.X64.EVALUATE_MAX_MULTIPLIER && !First.IsExpiring(Unit.Position))
 			{
-				Memory.GetResultRegisterFor(Unit, Result, false);
+				Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 
 				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
 
@@ -121,7 +121,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(calculation, Assembler.Format),
+						new Result(calculation, GetSystemFormat(Unsigned)),
 						ParameterFlag.NONE,
 						HandleType.EXPRESSION
 					)
@@ -166,7 +166,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				}
 				else
 				{
-					Memory.GetResultRegisterFor(Unit, Result, false);
+					Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 					destination = Result;
 				}
 
@@ -188,7 +188,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(expression, Assembler.Format),
+						new Result(expression, GetSystemFormat(Unsigned)),
 						ParameterFlag.NONE,
 						HandleType.EXPRESSION
 					)
@@ -260,7 +260,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, false);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 
 		Build(
 			Instructions.Shared.ADD,
@@ -344,7 +344,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, is_decimal);
 
 		Build(
 			instruction,

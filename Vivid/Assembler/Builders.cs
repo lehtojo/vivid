@@ -152,6 +152,16 @@ public static class Builders
 				return new AllocateRegisterInstruction(unit, node.To<UndefinedNode>().Format).Execute();
 			}
 
+			case NodeType.OBJECT_LINK:
+			{
+				return Objects.Build(unit, (ObjectLinkNode)node);
+			}
+
+			case NodeType.OBJECT_UNLINK:
+			{
+				return Objects.Build(unit, (ObjectUnlinkNode)node);
+			}
+
 			default: return BuildChilds(unit, node);
 		}
 	}

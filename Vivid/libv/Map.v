@@ -220,6 +220,8 @@ export Map<K, V> {
 		if location < 0 => false
 		
 		states[location] = false
+		keys[location] = none as K
+		values[location] = none as V
 
 		loop (i = 0, i < items.size, i++) {
 			if not (items[i].key == key) continue
@@ -248,8 +250,8 @@ export Map<K, V> {
 
 		items.clear() # Clear the items
 
-		zero(keys, count * sizeof(K))
-		zero(values, count * sizeof(V))
+		zero<K>(keys, count)
+		zero<V>(values, count)
 		zero(states, count)
 	}
 
@@ -284,5 +286,16 @@ export Map<K, V> {
 		}
 
 		=> result
+	}
+
+	deinit() {
+		# Remove all the items so that they get unlinked
+		loop (i = items.size - 1, i >= 0, i--) {
+			remove(items[i].key)
+		}
+
+		deallocate(values)
+		deallocate(keys)
+		deallocate(states)
 	}
 }

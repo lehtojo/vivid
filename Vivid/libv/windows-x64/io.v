@@ -1,7 +1,7 @@
 import init(): large
 
 export internal_init(root: link) {
-	#internal.allocator.initialize()
+	internal.allocator.initialize()
 
 	# Call the actual init function here
 	init()
@@ -44,7 +44,7 @@ namespace internal {
 
 	constant MAXIMUM_PATH_LENGTH = 260
 
-	FileIterator {
+	plain FileIterator {
 		attributes: normal
 		creation_time: large
 		last_access_time: large
@@ -133,7 +133,7 @@ export get_folder_items(folder: String, all: bool) {
 	filter = folder + '*'
 	copy(filter.data(), internal.MAXIMUM_PATH_LENGTH, filename as link)
 
-	file = internal.FindFirstFileA(filename as link, (iterator as link + 8) as internal.FileIterator)
+	file = internal.FindFirstFileA(filename as link, iterator)
 	items = List<FolderItem>()
 
 	# If the handle is none, return an empty list of files
@@ -153,7 +153,7 @@ export get_folder_items(folder: String, all: bool) {
 		}
 		
 		# Try to get the next file, if it is none, it means all the files have been collected
-		if internal.FindNextFileA(file, (iterator as link + 8) as internal.FileIterator) == 0 => items
+		if internal.FindNextFileA(file, iterator) == 0 => items
 	}
 }
 

@@ -31,6 +31,9 @@ public class MergeScopeInstruction : Instruction
 
 		foreach (var variable in Scope.Actives)
 		{
+			// Packs variables are not merged, their members are instead
+			if (variable.Type!.IsPack) continue;
+
 			var source = Unit.GetVariableValue(variable) ?? GetVariableStackHandle(variable);
 
 			// Copy the destination value to prevent any relocation leaks
@@ -48,7 +51,7 @@ public class MergeScopeInstruction : Instruction
 
 			moves.Add(new MoveInstruction(Unit, destination, source)
 			{
-				IsSafe = true,
+				IsDestinationProtected = true,
 				Description = "Relocates the source value to merge the current scope with the outer scope",
 				Type = MoveType.RELOCATE
 			});

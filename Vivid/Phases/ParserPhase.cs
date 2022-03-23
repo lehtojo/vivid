@@ -132,6 +132,40 @@ public class ParserPhase : Phase
 		}
 	}
 
+	/// <summary>
+	/// Goes through all the specified types and ensures all their supertypes are resolved
+	/// </summary>
+	public static void ValidateSupertypes(List<Type> types)
+	{
+		foreach (var type in types)
+		{
+			Resolver.ResolveSupertypes(type.Parent!, type);
+			if (type.Supertypes.All(i => i.IsResolved())) continue;
+
+			throw new ApplicationException($"Could not resolve supertypes for type {type.Name}");
+		}
+	}
+
+	/// <summary>
+	/// Validates the shell of the context.
+	/// Shell means all the types, functions and variables, but not the code.
+	/// </summary>
+	public static Status ValidateShell(Context context)
+	{
+		var types = Common.GetAllTypes(context);
+
+		try
+		{
+			ValidateSupertypes(types);
+		}
+		catch (Exception e)
+		{
+			return Status.Error(e.Message);
+		}
+
+		return Status.OK;
+	}
+
 	public override Status Execute(Bundle bundle)
 	{
 		if (!bundle.Contains(LexerPhase.OUTPUT))
@@ -150,7 +184,7 @@ public class ParserPhase : Phase
 			{
 				var file = files[index];
 				var context = Parser.CreateRootContext(index);
-				var root = new ScopeNode(context, null, null);
+				var root = new ScopeNode(context, null, null, false);
 
 				try
 				{
@@ -244,6 +278,14 @@ public class ParserPhase : Phase
 
 		// Applies all the extension functions
 		ApplyExtensionFunctions(context, root);
+
+		// Validate the shell before proceeding
+		var result = ValidateShell(context);
+
+		if (result.IsProblematic)
+		{
+			return result;
+		}
 
 		// Ensure exported and virtual functions are implemented
 		ImplementFunctions(context, null);

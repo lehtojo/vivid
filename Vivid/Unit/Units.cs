@@ -132,8 +132,8 @@ public class Units
 		Run("Expression variables", AssemblerTests.ExpressionVariables);
 		Run("Iteration", AssemblerTests.Iteration);
 		Run("Lambdas", AssemblerTests.Lambdas);
-		Run("Is", AssemblerTests.Is);
-		Run("Whens", AssemblerTests.Whens);
+		//Run("Is", AssemblerTests.Is);
+		//Run("Whens", AssemblerTests.Whens);
 
 		EndSection();
 

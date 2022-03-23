@@ -128,6 +128,7 @@ public static class Assembler
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();
+	public static Format Signed => Format.INT64;
 	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
 	public static Architecture Architecture { get; set; } = RuntimeInformation.ProcessArchitecture;
 
@@ -203,10 +204,10 @@ public static class Assembler
 		if (alignment != 0)
 		{
 			var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ);
-			var offset = References.GetConstant(unit, new NumberNode(Format, (long)alignment));
+			var offset = References.GetConstant(unit, new NumberNode(Signed, (long)alignment));
 
 			// Convert the self pointer to the type 'to' by offsetting it
-			unit.Append(new SubtractionInstruction(unit, self, offset, Format, true));
+			unit.Append(new SubtractionInstruction(unit, self, offset, Signed, true));
 		}
 	}
 
@@ -229,6 +230,10 @@ public static class Assembler
 			builder.Export(fullname);
 
 			var unit = new Unit(implementation);
+
+			// Update the variable usages before we start
+			foreach (var parameter in implementation.Parameters) { Analyzer.FindUsages(parameter, implementation.Node!); }
+			foreach (var variable in implementation.Locals) { Analyzer.FindUsages(variable, implementation.Node!); }
 
 			unit.Execute(UnitMode.APPEND, () =>
 			{
@@ -291,11 +296,16 @@ public static class Assembler
 	/// </summary>
 	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context, SourceFile[] files)
 	{
+		var implementations = Common.GetAllImplementedFunctions(context, false);
+
 		// Group all functions by their owner files
-		var mapped_functions = Common.GetAllImplementedFunctions(context, false)
+		var mapped_functions = implementations
 			.Where(i => i.Start != null)
 			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"))
 			.ToDictionary(i => i.Key, i => i.ToList());
+
+		// Store the number of assembled functions
+		var assembled_functions = 0;
 
 		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
 
@@ -315,8 +325,15 @@ public static class Assembler
 			{
 				foreach (var function in mapped_functions[file])
 				{
+					if (Assembler.IsVerboseOutputEnabled)
+					{
+						Console.WriteLine($"[{assembled_functions + 1}/{implementations.Length}]: Assembling {function.ToString()}");
+					}
+
 					builder.Add(AssembleFunction(function));
 					builder.Write(SEPARATOR);
+
+					assembled_functions++; // Increment the number of assembled functions
 				}
 			}
 
@@ -643,12 +660,6 @@ public static class Assembler
 	public static void AddFunctionDebugInfo(Debug debug, FunctionImplementation implementation, HashSet<Type> types)
 	{
 		debug.AddFunction(implementation, types);
-
-		foreach (var iterator in implementation.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations))
-		{
-			if (iterator.Node == null || iterator.Metadata.IsImported) continue;
-			AddFunctionDebugInfo(debug, iterator, types);
-		}
 	}
 
 	/// <summary>

@@ -20,7 +20,7 @@ public class ReturnInstruction : Instruction
 		ReturnType = return_type;
 		Dependencies = Object != null ? new[] { Result, Object } : new[] { Result };
 
-		Result.Format = ReturnType?.GetRegisterFormat() ?? Assembler.Format;
+		Result.Format = (ReturnType != null ? ReturnType.GetRegisterFormat() : Assembler.Format);
 	}
 
 	/// <summary>

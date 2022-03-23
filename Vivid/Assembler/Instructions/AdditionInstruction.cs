@@ -161,7 +161,7 @@ public class AdditionInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, is_decimal);
 
 		Build(
 			instruction,

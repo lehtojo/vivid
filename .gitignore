@@ -1,6 +1,8 @@
 .vs/
 
 # Binaries and such
+.tmp.drivedownload/
+.tmp.driveupload/
 Properties/
 Reports/
 TestResults/

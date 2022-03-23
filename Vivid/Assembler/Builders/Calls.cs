@@ -97,7 +97,7 @@ public static class Calls
 			}
 			else
 			{
-				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.GetRegisterFormat());
+				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.Type!, member.GetRegisterFormat());
 			}
 		}
 	}
@@ -105,7 +105,7 @@ public static class Calls
 	/// <summary>
 	/// Passes the specified argument using a register or the specified stack position depending on the situation
 	/// </summary>
-	public static void PassArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Format format)
+	public static void PassArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Type type, Format format)
 	{
 		if (value.Value.Instance == HandleInstanceType.DISPOSABLE_PACK)
 		{
@@ -121,7 +121,7 @@ public static class Calls
 		{
 			// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
 			var destination = new RegisterHandle(register);
-			destination.Format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(value.Format.IsUnsigned());
+			destination.Format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(type.Format.IsUnsigned());
 
 			destinations.Add(destination);
 		}
@@ -161,7 +161,7 @@ public static class Calls
 		if (self_pointer != null)
 		{
 			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
-			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, Assembler.Format);
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, self_type!, Assembler.Format);
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
@@ -171,7 +171,7 @@ public static class Calls
 			var type = parameter_types[i];
 
 			value = Casts.Cast(unit, value, parameter.GetType(), type);
-			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type.GetRegisterFormat());
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, type.GetRegisterFormat());
 		}
 
 		call.Destinations.AddRange(destinations);

@@ -45,10 +45,11 @@ public class SingleParameterInstruction : Instruction
 
 		if (Assembler.IsArm64)
 		{
+			var is_unsigned = Target.Format.IsUnsigned();
 			var is_decimal = Target.Format.IsDecimal();
 			var register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 
-			Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+			Memory.GetResultRegisterFor(Unit, Result, is_unsigned, is_decimal);
 
 			Build(
 				Instruction,

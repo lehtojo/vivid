@@ -12,7 +12,7 @@ public static class Casts
 			var b = y.Format.IsDecimal();
 
 			// Execute only if exactly one of the booleans is true
-			if (a ^ b) return new ConvertInstruction(unit, result, !b).Execute();
+			if (a ^ b) return new ConvertInstruction(unit, result, y.Format).Execute();
 
 			return result;
 		}
@@ -22,7 +22,7 @@ public static class Casts
 			var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not compute base offset of a super type while building down cast");
 			if (base_offset == 0) return result;
 
-			var offset = new Result(new ConstantHandle((long)base_offset), Assembler.Format);
+			var offset = new Result(new ConstantHandle((long)base_offset), Assembler.Signed);
 			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
 		}
 
@@ -31,7 +31,7 @@ public static class Casts
 			var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not compute base offset of a super type while building up cast");
 			if (base_offset == 0) return result;
 
-			var offset = new Result(new ConstantHandle((long)-base_offset), Assembler.Format);
+			var offset = new Result(new ConstantHandle((long)-base_offset), Assembler.Signed);
 			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
 		}
 

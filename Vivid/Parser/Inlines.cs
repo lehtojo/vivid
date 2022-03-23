@@ -190,7 +190,8 @@ public static class Inlines
 
 		LocalizeLabels(environment, body);
 
-		foreach (var local in function.Locals.Concat(function.Parameters))
+		// Localize variables and parameters in the top function context, subcontexts are handled later
+		foreach (var local in function.Variables.Values.Concat(function.Parameters))
 		{
 			if (local.IsSelfPointer) continue;
 
@@ -222,12 +223,33 @@ public static class Inlines
 	/// </summary>
 	public static void Inline(FunctionImplementation environment, FunctionImplementation function, FunctionNode instance)
 	{
+		// Get the root node of the function call
+		var call_root = instance.Parent!.Is(NodeType.LINK) ? instance.Parent! : instance;
+
+		// Get the node before which to insert the body of the called function
+		var insertion_position = ReconstructionAnalysis.GetExpressionExtractPosition(call_root);
+
+		var context = call_root.GetParentContext();
+
 		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
 		{
-			var root = instance.Parent != null && instance.Parent.Is(NodeType.LINK) ? instance.Parent : instance;
-			var container = Common.CreateInlineContainer(function.ReturnType!, root);
-			var context = container.Node.IsContext ? container.Node.To<ContextInlineNode>().Context : instance.GetParentContext();
+			// Prepare the function body for inlining
 			var body = GetInlineBody(environment, context, function, instance, out Node destination);
+
+			// Determine the variable, which will store the result of the function call.
+			// If the function call is assigned to a variable, use that variable.
+			// Otherwise, create a new temporary variable.
+			var return_value = (Variable?)null;
+			var is_assigned_to_local = call_root.Parent!.Is(Operators.ASSIGN) && call_root.Previous!.Instance == NodeType.VARIABLE;
+
+			if (is_assigned_to_local)
+			{
+				return_value = call_root.Previous!.To<VariableNode>().Variable;
+			}
+			else
+			{
+				return_value = context.DeclareHidden(function.ReturnType);
+			}
 
 			// Find all return statements
 			var return_statements = body.FindAll(NodeType.RETURN).Select(i => i.To<ReturnNode>());
@@ -239,21 +261,21 @@ public static class Inlines
 			foreach (var return_statement in return_statements)
 			{
 				// Assign the return value of the function to the variable which represents the result of the function
-				var assign = new OperatorNode(Operators.ASSIGN).SetOperands(new VariableNode(container.Result), return_statement.Value!);
+				var assignment = new OperatorNode(Operators.ASSIGN).SetOperands(new VariableNode(return_value), return_statement.Value!);
 
 				// If the return statement is the last statement in the function, no need to create a jump
 				if (return_statement.Next == null && return_statement.Parent!.Parent == null)
 				{
 					// Just save the return value
-					return_statement.Replace(assign);
+					return_statement.Replace(assignment);
 				}
 				else
 				{
 					if (end == null)
 					{
-						// Declare the return variable at the top of the inlined function
+						// Declare the return variable at the start of the inlined function
 						end = environment.CreateLabel();
-						body.Insert(body.First, new DeclareNode(container.Result) { Registerize = false });
+						body.Insert(body.First, new DeclareNode(return_value) { Registerize = false });
 						body.Add(new JumpNode(end)); // Add this jump because it will trigger label merging
 						body.Add(new LabelNode(end));
 					}
@@ -263,22 +285,35 @@ public static class Inlines
 
 					// Replace the return statement with the assign statement and add a jump to exit the inline node
 					return_statement.Replace(jump);
-					jump.Insert(assign);
+					jump.Insert(assignment);
 				}
 			}
 
-			// Transfer the contents to the container node and replace the destination with it
-			body.ForEach(i => container.Node.Add(i));
-			container.Destination.Replace(container.Node);
+			// Add the return value to the end of the body just in case
+			body.Add(new VariableNode(return_value));
 
-			// The container node must return the result, so add it
-			container.Node.Add(new VariableNode(container.Result, instance.Position));
-			ReconstructionAnalysis.Reconstruct(environment, container.Node);
+			// Insert the body of the called function
+			insertion_position.InsertChildren(body);
+
+			// 1. If the function call was assigned to a local variable,
+			// the return statements were replaced with assignments to the local variable.
+			// Therefore, the assignment created by the user is no longer needed after the inlined body.
+			// 2. If the function call was not assigned to a local variable (complex destination or complex usage),
+			// the return statements were replaced with assignments to a temporary variable.
+			// The function call created by the user after the inlined body must be replaced with the temporary variable.
+			if (is_assigned_to_local)
+			{
+				call_root.Parent!.Remove();
+			}
+			else
+			{
+				call_root.Replace(new VariableNode(return_value));
+			}
 		}
 		else
 		{
 			// Find all return statements
-			var body = GetInlineBody(environment, instance.GetParentContext(), function, instance, out Node destination);
+			var body = GetInlineBody(environment, context, function, instance, out Node destination);
 			var return_statements = body.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
 
 			if (return_statements.Any())
@@ -301,31 +336,17 @@ public static class Inlines
 				body.Add(new LabelNode(end));
 			}
 
-			var container = new InlineNode(instance.Position);
-			body.ForEach(i => container.Add(i));
+			// Insert the body of the called function
+			insertion_position.InsertChildren(body);
 
-			// If the result of the function call is assigned to something, even though the function returns an unit, assign an undefined value to the destination
-			var editor = Analyzer.TryGetEditor(destination);
-
-			if (editor != null && editor.Is(Operators.ASSIGN))
+			// If a value is expected to return even though the function does not return a value, replace the function call with an undefined value
+			if (ReconstructionAnalysis.IsValueUsed(call_root))
 			{
-				var edited = Analyzer.GetEdited(editor);
-
-				body.Add(new OperatorNode(Operators.ASSIGN, editor.Position).SetOperands(
-					edited, new UndefinedNode(function.ReturnType!, Parser.Format)
-				));
-
-				// Now, replace the editor with the inlined body
-				destination = editor;
+				call_root.Replace(new UndefinedNode(function.ReturnType!, Assembler.Format));
 			}
-
-			destination.Replace(container);
-
-			ReconstructionAnalysis.Reconstruct(environment, container);
-
-			if (!ReconstructionAnalysis.IsValueUsed(destination))
+			else
 			{
-				container.ReplaceWithChildren(container);
+				call_root.Remove();
 			}
 		}
 	}

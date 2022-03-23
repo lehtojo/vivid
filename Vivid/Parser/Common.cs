@@ -446,6 +446,15 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Returns whether the specified node is a function call
+	/// </summary>
+	public static bool IsFunctionCall(Node node)
+	{
+		if (node.Instance == NodeType.LINK) { node = node.Right!; }
+		return node.Is(NodeType.CALL, NodeType.FUNCTION);
+	}
+
+	/// <summary>
 	/// Reads a type from the next tokens inside the specified queue
 	/// Pattern: $name [<$1, $2, ... $n>]
 	/// </summary>
@@ -754,38 +763,18 @@ public static class Common
 		var position = construction.Position;
 
 		var size = Math.Max(1L, type.ContentSize);
-		var arguments = new Node { new NumberNode(Assembler.Format, size, position) };
+		var arguments = new Node { new NumberNode(Assembler.Signed, size, position) };
 		
-		if (Analysis.IsGarbageCollectorEnabled)
-		{
-			var linker = Parser.LinkFunction!.Get(type) ?? throw new ApplicationException("Missing link function overload");
-
-			// The following example creates an instance of a type called Object
-			// Example: instance = link(allocate(sizeof(Object))) as Object
-			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
-				new VariableNode(container.Result, position),
-				new CastNode(
-					new FunctionNode(linker, position).SetArguments(new Node {
-						new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments)
-					}),
-					new TypeNode(type, position),
-					position
-				)
-			));
-		}
-		else
-		{
-			// The following example creates an instance of a type called Object
-			// Example: instance = allocate(sizeof(Object)) as Object
-			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
-				new VariableNode(container.Result, position),
-				new CastNode(
-					new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments),
-					new TypeNode(type, position),
-					position
-				)
-			));
-		}
+		// The following example creates an instance of a type called Object
+		// Example: instance = allocate(sizeof(Object)) as Object
+		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(container.Result, position),
+			new CastNode(
+				new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments),
+				new TypeNode(type, position),
+				position
+			)
+		));
 
 		var supertypes = type.GetAllSupertypes();
 

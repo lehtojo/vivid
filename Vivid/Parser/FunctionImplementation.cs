@@ -131,7 +131,7 @@ public class FunctionImplementation : Context
 			};
 		}
 
-		Node = new ScopeNode(this, Metadata.Start, Metadata.End);
+		Node = new ScopeNode(this, Metadata.Start, Metadata.End, false);
 		Parser.Parse(Node, this, blueprint, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 	}
 

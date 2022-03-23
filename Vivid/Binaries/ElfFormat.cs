@@ -162,6 +162,8 @@ public class ElfRelocationEntry
 	public int Symbol => (int)(Info >> 32);
 	public int Type => (int)(Info & 0xFFFFFFFF);
 
+	public ElfRelocationEntry() {}
+
 	public ElfRelocationEntry(ulong offset, long addend)
 	{
 		Offset = offset;
@@ -565,9 +567,12 @@ public static class ElfFormat
 	/// </summary>
 	public static byte[] Build(List<BinarySection> sections, HashSet<string> exports)
 	{
-		// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
-		var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
-		sections.Insert(0, none_section);
+		if (sections.Count == 0 || sections.First().Type != BinarySectionType.NONE)
+		{
+			// Create an empty section, so that it is possible to leave section index unspecified in symbols for example
+			var none_section = new BinarySection(string.Empty, BinarySectionType.NONE, Array.Empty<byte>());
+			sections.Insert(0, none_section);
+		}
 
 		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
 
@@ -692,7 +697,7 @@ public static class ElfFormat
 
 			// Determine the section, which the relocations concern
 			var relocation_section_header = section_intermediates[i];
-			var section = sections[relocation_section_header.Key.Link];
+			var section = sections[relocation_section_header.Key.Info];
 
 			// Copy the relocation table into raw memory
 			var relocation_table = Marshal.AllocHGlobal(relocation_section.Data.Length);
@@ -712,7 +717,7 @@ public static class ElfFormat
 			// Convert the relocation entries into relocation objects
 			foreach (var relocation_entry in relocation_entries)
 			{
-				var symbol = symbols[relocation_entry.Symbol];
+				var symbol = symbols[relocation_entry.Symbol - 1]; // Use -1 because the symbol index is 1-based
 				var type = GetRelocationTypeFromSymbolType((ElfSymbolType)relocation_entry.Type);
 
 				var relocation = new BinaryRelocation(symbol, (int)relocation_entry.Offset, (int)relocation_entry.Addend, type);

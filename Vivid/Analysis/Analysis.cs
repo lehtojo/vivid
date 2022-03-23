@@ -47,7 +47,7 @@ public static class Analysis
 				}
 
 				var is_negative = number_component.Value is long a && a < 0L || number_component.Value is double b && b < 0.0;
-				var number = new NumberNode(number_component.Value is long ? Assembler.Format : Format.DECIMAL, number_component.Value);
+				var number = new NumberNode(number_component.Value is long ? Assembler.Signed : Format.DECIMAL, number_component.Value);
 
 				result = is_negative
 					? new OperatorNode(Operators.SUBTRACT).SetOperands(result, number.Negate())
@@ -86,7 +86,7 @@ public static class Analysis
 					{
 						node = new OperatorNode(Operators.MULTIPLY).SetOperands(
 							node,
-							new NumberNode(Assembler.Format, Math.Abs((long)variable_component.Coefficient))
+							new NumberNode(Assembler.Signed, Math.Abs((long)variable_component.Coefficient))
 						);
 					}
 				}
@@ -129,7 +129,7 @@ public static class Analysis
 	{
 		if (order == 0)
 		{
-			return new NumberNode(Assembler.Format, 1L);
+			return new NumberNode(Assembler.Signed, 1L);
 		}
 
 		var result = (Node)new VariableNode(variable);
@@ -141,7 +141,7 @@ public static class Analysis
 
 		if (order < 0)
 		{
-			result = new OperatorNode(Operators.DIVIDE).SetOperands(new NumberNode(Assembler.Format, 1L), result);
+			result = new OperatorNode(Operators.DIVIDE).SetOperands(new NumberNode(Assembler.Signed, 1L), result);
 		}
 
 		return result;
@@ -152,7 +152,7 @@ public static class Analysis
 	/// </summary>
 	public static Format GetCoefficientFormat(object coefficient)
 	{
-		return coefficient is double ? Format.DECIMAL : Assembler.Format;
+		return coefficient is double ? Format.DECIMAL : Assembler.Signed;
 	}
 
 	/// <summary>
@@ -668,6 +668,7 @@ public static class Analysis
 		}
 		else if (branch.Is(NodeType.LOOP))
 		{
+			if (branch.To<LoopNode>().IsForeverLoop) return false;
 			return perspective == branch.To<LoopNode>().GetConditionStep() || perspective.IsUnder(branch.To<LoopNode>().GetConditionStep()); 
 		}
 
@@ -886,6 +887,7 @@ public static class Analysis
 	private static void CompleteDestructors(Type type)
 	{
 		if (!IsGarbageCollectorEnabled) return;
+		if (type.IsNamespace) return;
 		
 		foreach (var destructor in type.Destructors.Overloads.SelectMany(i => i.Implementations))
 		{
@@ -895,11 +897,20 @@ public static class Analysis
 			foreach (var member in type.Variables.Values)
 			{
 				// If the member is not destructible, it is not unlinkable, so skip it
-				if (member.IsStatic || !member.Type!.IsUserDefined) continue;
+				if (member.IsStatic || member.IsConstant || !GarbageCollector.IsTypeLinkable(member.Type!)) continue;
 
-				// Unlink the member variable
-				var implementation = Parser.UnlinkFunction!.Get(member.Type!) ?? throw new ApplicationException("Missing unlink function overload");;
-				root.Add(new FunctionNode(implementation).SetArguments(new Node { new LinkNode(new VariableNode(self), new VariableNode(member)) }));
+				var member_access = new LinkNode(new VariableNode(self), new VariableNode(member));
+
+				if (member.IsInlined())
+				{
+					// Inlined members can not be unlinked, they are destroyed when the parent object is destroyed, therefore we can call the destructor now
+					GarbageCollector.Destruct(root, member_access, member.Type!);
+				}
+				else
+				{
+					// Unlink the member variable
+					root.Add(GarbageCollector.UnlinkObject(destructor, member_access));
+				}
 			}
 		}
 	}
@@ -993,6 +1004,17 @@ public static class Analysis
 			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
 		}
 
+		if (Analysis.IsFunctionInliningEnabled)
+		{
+			for (var i = 0; i < implementations.Count; i++)
+			{
+				var implementation = implementations[i];
+
+				// Inline functions in the function implementation
+				Inlines.Build(implementation, implementation.Node!);
+			}
+		}
+
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
 		{
@@ -1041,9 +1063,14 @@ public static class Analysis
 
 			// Adds garbage collecting
 			GarbageCollector.Generate(implementation);
-			
-			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
+
+			ReconstructionAnalysis.Simplify(implementation, implementation.Node!);
+
+			if (Analysis.IsFunctionInliningEnabled)
+			{
+				// Inline functions in the function implementation
+				Inlines.Build(implementation, implementation.Node!);
+			}
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);

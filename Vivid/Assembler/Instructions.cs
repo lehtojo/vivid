@@ -105,7 +105,9 @@ public static class Instructions
 
 		public const string DOUBLE_PRECISION_ADD = "addsd";
 
-		public const string ATOMIC_EXCHANGE_ADD = "lock xadd";
+		public const string LOCK_PREFIX = "lock";
+		public const string EXCHANGE_ADD = "xadd";
+		public const string ATOMIC_EXCHANGE_ADD = LOCK_PREFIX + " " + EXCHANGE_ADD;
 
 		public const string CALL = "call";
 		public const string EXTEND_QWORD = "cqo";
@@ -290,7 +292,8 @@ public static class Instructions
 		public const int _CMOVNZ = 39;
 		public const int _CMOVZ = 40;
 		public const int _XORPD = 41;
-		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 42;
+		public const int _XADD = 42;
+		public const int _MAX_DUAL_PARAMETER_INSTRUCTIONS = 43;
 
 		// Triple parameter instructions
 
@@ -1042,6 +1045,12 @@ public static class Instructions
 
 				// movups m128, x
 				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 16, EncodingFilterType.REGISTER, 0, 16),
+
+				// movups x64, m128
+				new InstructionEncoding(0x100F, 0, EncodingRoute.RM, false, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 16),
+
+				// movups m128, x64
+				new InstructionEncoding(0x110F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 16, EncodingFilterType.REGISTER, 0, 8),
 			};
 
 			DualParameterEncodings[_MOVQ] = new List<InstructionEncoding>()
@@ -1344,6 +1353,15 @@ public static class Instructions
 
 				// xorpd x, m128
 				new InstructionEncoding(0x570F, 0, EncodingRoute.RM, false, EncodingFilterType.MEDIA_REGISTER, 0, 8, EncodingFilterType.MEMORY_ADDRESS, 0, 16, 0x66),
+			};
+
+			DualParameterEncodings[_XADD] = new List<InstructionEncoding>()
+			{
+				// xadd m64, r64 | xadd m32, r32 | xadd m16, r16 | xadd m8, r8
+				new InstructionEncoding(0xC00F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.REGISTER, 0, 1),
+				new InstructionEncoding(0xC10F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.REGISTER, 0, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xC10F, 0, EncodingRoute.MR, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.REGISTER, 0, 4),
+				new InstructionEncoding(0xC10F, 0, EncodingRoute.MR, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.REGISTER, 0, 8),
 			};
 
 			TripleParameterEncodings[_IMUL] = new List<InstructionEncoding>()

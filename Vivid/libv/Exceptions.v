@@ -1,32 +1,41 @@
 export Outcome<T, E> {
-	value: u64
 	is_error: bool
 
 	has_value() => !is_error
-	get_value() => value as T
+
+	get_value() {
+		if is_error panic('Outcome has no value')
+		=> this.(Ok<T, E>).value
+	}
+
+	get_error() {
+		if not is_error panic('Outcome has no error')
+		=> this.(Error<T, E>).error
+	}
 
 	# Summary: Returns the specified fallback value if the outcome represents an error, otherwise the contained value is returned
 	value_or(fallback: T) {
-		result = value as T
-		if is_error { result = fallback }
-		=> result
+		if is_error => fallback
+		=> this.(Ok<T, E>).value
 	}
 }
 
 export Outcome<T, E> Ok<T, E> {
+	value: T
+
 	init(value: T) {
-		this.value = value as u64
+		this.value = value
 		this.is_error = false
 	}
 }
 
 export Outcome<T, E> Error<T, E> {
-	init(value: E) {
-		this.value = value as u64
+	error: E
+
+	init(error: E) {
+		this.error = error
 		this.is_error = true
 	}
-
-	get_error() => value as E
 }
 
 export Optional<T> {

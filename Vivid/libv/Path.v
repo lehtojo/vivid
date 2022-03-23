@@ -1,4 +1,4 @@
-namespace path
+namespace io.path
 
 # Summary: Returns the file name with extension from the specified path
 # Examples:

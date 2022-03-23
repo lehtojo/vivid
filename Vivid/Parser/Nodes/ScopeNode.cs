@@ -3,14 +3,21 @@ using System;
 public class ScopeNode : Node, IResolvable, IScope
 {
 	public Context Context { get; private set; }
+	public bool IsValueReturned { get; set; } = false;
 	public Position? End { get; }
 
-	public ScopeNode(Context context, Position? start, Position? end)
+	public ScopeNode(Context context, Position? start, Position? end, bool is_value_returned)
 	{
 		Context = context;
+		IsValueReturned = is_value_returned;
 		Instance = NodeType.SCOPE;
 		Position = start;
 		End = end;
+	}
+
+	public override Type? TryGetType()
+	{
+		return Last?.TryGetType();
 	}
 
 	public Context GetContext()

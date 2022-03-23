@@ -38,11 +38,11 @@ public class DivisionInstruction : DualParameterInstruction
 
 			if (Assigns && !First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.RELOCATE });
+				Unit.Append(new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.RELOCATE });
 				return First;
 			}
 
-			return new MoveInstruction(Unit, new Result(destination, Assembler.Format), First) { Type = MoveType.COPY }.Execute();
+			return new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.COPY }.Execute();
 		}
 		else if (!Assigns)
 		{
@@ -51,7 +51,7 @@ public class DivisionInstruction : DualParameterInstruction
 				Memory.ClearRegister(Unit, destination.Register);
 			}
 
-			return new Result(destination, Assembler.Format);
+			return new Result(destination, GetSystemFormat(Unsigned));
 		}
 
 		return First;
@@ -103,7 +103,7 @@ public class DivisionInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			),
 			new InstructionParameter(
-				new Result(remainder, Assembler.Format),
+				new Result(remainder, GetSystemFormat(Unsigned)),
 				flags | ParameterFlag.DESTINATION,
 				HandleType.REGISTER
 			)
@@ -133,7 +133,7 @@ public class DivisionInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			),
 			new InstructionParameter(
-				new Result(remainder, Assembler.Format),
+				new Result(remainder, GetSystemFormat(Unsigned)),
 				ParameterFlag.HIDDEN | ParameterFlag.LOCKED | ParameterFlag.WRITES,
 				HandleType.REGISTER
 			)
@@ -286,7 +286,7 @@ public class DivisionInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, false);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 
 		Build(
 			Instructions.Arm64.MULTIPLY_SUBTRACT,
@@ -358,7 +358,7 @@ public class DivisionInstruction : DualParameterInstruction
 			return;
 		}
 
-		Memory.GetResultRegisterFor(Unit, Result, is_decimal);
+		Memory.GetResultRegisterFor(Unit, Result, Unsigned, is_decimal);
 
 		Build(
 			instruction,

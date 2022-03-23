@@ -9,42 +9,42 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 
 none = 0
 
-PAGE_SIZE = 10000000
+namespace internal.allocator {
+	arena: link
 
-export Page {
-	address: link
-	position: large
-}
-
-export Allocation {
-	static current: Page
-	static deallocations: large
+	initialize() {
+		arena = internal.allocate(100000000)
+	}
 }
 
 outline allocate(bytes: large) {
-	# Allocate the memory directly if it is large enough
-	if bytes >= 100000 => internal.allocate(bytes)
+	address = internal.allocator.arena
+	internal.allocator.arena += sizeof(normal) * 2 + bytes
 
-	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
-		position = Allocation.current.position
-		Allocation.current.position += bytes
+	# Save the size of the allocation
+	address.(link<normal>)[0] = bytes
+	address += sizeof(normal)
 
-		=> (Allocation.current.address + position) as link
-	}
+	# Save the size of the allocation at the end (for safety)
+	(address + bytes).(link<normal>)[0] = bytes
 
-	address = internal.allocate(PAGE_SIZE)
+	# Zero the allocated memory
+	zero(address, bytes)
 
-	page = internal.allocate(32) as Page
-	page.address = address
-	page.position = bytes
-
-	Allocation.current = page
-
-	=> address as link
+	=> address
 }
 
 outline deallocate(address: link) {
-	address = none as link
+	# Extract the size of the allocation
+	bytes = (address - sizeof(normal)).(link<normal>)[0]
+
+	# Ensure the size of the allocation is correct by comparing it to the size at the end
+	if (address + bytes).(link<normal>)[0] != bytes {
+		panic('Invalid deallocation size')
+	}
+
+	# Fill the allocation with zeros
+	zero(address - sizeof(normal), bytes + sizeof(normal) * 2)
 }
 
 outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>

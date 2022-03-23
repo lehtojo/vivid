@@ -555,6 +555,13 @@ public static class Linker
 		// Load all the relocations from all the sections
 		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
 
+		// Ensure are relocations are resolved
+		foreach (var relocation in relocations)
+		{
+			if (!relocation.Symbol.External) continue;
+			throw new ApplicationException($"Symbol {relocation.Symbol.Name} is not defined locally or externally");
+		}
+
 		// Add dynamic sections if needed
 		var dynamic_linking_information = executable ? null : CreateDynamicSections(fragments, symbols, relocations);
 

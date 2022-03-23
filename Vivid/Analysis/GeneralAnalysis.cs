@@ -214,6 +214,19 @@ public static class GeneralAnalysis
 	}
 
 	/// <summary>
+	/// Adds all the variable usages from the specified node tree 'from' into the specified descriptors
+	/// </summary>
+	private static void AddVariableUsagesFrom(Dictionary<Variable, VariableDescriptor> descriptors, Node from)
+	{
+		var usages = GetAllVariableUsages(from);
+
+		foreach (var usage in usages)
+		{
+			descriptors[usage.To<VariableNode>().Variable].Reads.Add(usage);
+		}
+	}
+
+	/// <summary>
 	/// Assigns the value of the specified write to the specified reads
 	/// </summary>
 	private static bool Assign(Variable variable, VariableWrite write, bool recursive, Dictionary<Variable, VariableDescriptor> descriptors, VariableDescriptor descriptor, StatementFlow flow)
@@ -269,10 +282,7 @@ public static class GeneralAnalysis
 				}
 
 				// Update the local variable usages
-				UpdateVariableUsages(descriptors, root, optimized);
-
-				root.Replace(optimized);
-				flow.Replace(root, optimized);
+				AddVariableUsagesFrom(descriptors, root);
 				assigned = true;
 			}
 		}

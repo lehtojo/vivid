@@ -157,7 +157,7 @@ namespace internal.allocator {
 		}
 
 		dispose() {
-			internal.deallocate(this.start)
+			internal.deallocate(this.start, BUCKET_CAPACITY * capacityof(T))
 		}
 	}
 
@@ -321,7 +321,7 @@ namespace internal.allocator {
 		}
 
 		dispose() {
-			internal.deallocate(this.start)
+			internal.deallocate(this.start, MAX_SEQUENCES * capacityof(T))
 		}
 	}
 
@@ -358,8 +358,8 @@ namespace internal.allocator {
 				extended_deallocation = internal.allocate((capacity + 1) * 2 * capacityof(T))
 				copy(allocation, capacity * capacityof(T), extended_allocation)
 				copy(deallocation, capacity * capacityof(T), extended_deallocation)
-				internal.deallocate(allocation)
-				internal.deallocate(deallocation)
+				internal.deallocate(allocation, capacity * capacityof(T))
+				internal.deallocate(deallocation, capacity * capacityof(T))
 				capacity = (capacity + 1) * 2
 				allocation = extended_allocation
 				deallocation = extended_deallocation
@@ -491,9 +491,13 @@ export outline allocate(bytes: large) {
 	if bytes <= 128 => internal.allocator.s4.allocate(bytes)
 	if bytes <= internal.allocator.MAX_SEQUENCE_LENGTH * 1024 => internal.allocator.m1.allocate(bytes)
 
+	bytes += sizeof(large)
 	address = internal.allocate(bytes)
 	if address == none internal.allocator.panic('Out of memory')
-	=> address
+
+	# Store the size of the allocation at the beginning of the allocated memory
+	address.(link<large>)[0] = bytes
+	=> address + sizeof(large)
 }
 
 export outline deallocate(address: link) {
@@ -504,8 +508,10 @@ export outline deallocate(address: link) {
 	if address >= internal.allocator.s4.low and address <= internal.allocator.s4.high and internal.allocator.s4.deallocate(address) return
 	if address >= internal.allocator.m1.low and address <= internal.allocator.m1.high and internal.allocator.m1.deallocate(address) return
 
-	# The address must have been directly allocated
-	internal.deallocate(address)
+	# Load the size of the allocation and deallocate the memory
+	address -= sizeof(large)
+	bytes = address.(link<large>)[0]
+	internal.deallocate(address, bytes)
 }
 
 outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>

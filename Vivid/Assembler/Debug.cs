@@ -605,7 +605,7 @@ public class Debug
 		if (variable.Type is ArrayType) return;
 		
 		Information.Add(MemberVariableAbbrevation);
-		Information.Add(variable.Name);
+		Information.Add(variable.Name.Replace(".", ""));
 		Information.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
 		Information.Add(GetFile(variable));
 		Information.Add(GetLine(variable));
@@ -627,7 +627,8 @@ public class Debug
 
 	public void AddObjectType(Type type, HashSet<Type> types)
 	{
-		var has_members = type.Supertypes.Any() || type.Variables.Values.Any(i => !i.IsGenerated);
+		var members = type.Variables.Values.Where(i => !i.IsStatic && !i.IsConstant).ToArray();
+		var has_members = type.Supertypes.Any() || members.Any();
 
 		Information.Add(has_members ? ObjectTypeWithMembersAbbrevation : ObjectTypeWithoutMembersAbbrevation);
 		Information.Add(DWARF_CALLING_CONVENTION_PASS_BY_REFERENCE);
@@ -645,10 +646,16 @@ public class Debug
 			Information.Add(DWARF_ACCESS_PUBLIC);
 		}
 
-		foreach (var member in type.Variables.Values)
+		foreach (var member in members)
 		{
-			if (member.IsGenerated || member.IsStatic || member.IsConstant) continue;
+			// NOTE: This is a bit hacky, but it should not cause any harm and is a temporary feature
+			var hidden = member.IsGenerated;
+			if (hidden) { member.Position = type.Position!; }
+
 			AddMemberVariable(member, types);
+
+			// Remove the temporary position
+			if (hidden) { member.Position = null; }
 		}
 
 		if (has_members) Information.Add(DWARF_END);
