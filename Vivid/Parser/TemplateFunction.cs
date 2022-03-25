@@ -76,8 +76,9 @@ public class TemplateFunction : Function
 
 		// Register the new variant
 		var variant = result.To<FunctionDefinitionNode>().Function;
-		Variants.Add(identifier, variant);
+		variant.Modifiers = Modifiers & (~Modifier.IMPORTED); // Remove the imported modifier, because new variants are not imported
 
+		Variants.Add(identifier, variant);
 		return variant;
 	}
 
