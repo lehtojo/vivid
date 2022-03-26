@@ -109,7 +109,7 @@ public static class Linker
 			var type = inner_fragments.First().Type;
 			var name = inner_fragments.First().Name;
 
-			// Compute the margin needed to align the overlay section
+			// Compute the margin needed to align the overlay section, this is different from the inner alignments
 			var alignment = is_allocated_section ? (int)SegmentAlignment : inner_fragments.First().Alignment;
 			var overlay_margin = alignment - (int)file_position % alignment;
 
@@ -120,6 +120,10 @@ public static class Linker
 			// Save the current file position so that the size of the overlay section can be computed below
 			var start_file_position = file_position;
 
+			// Set the alignment to the alignment of the first inner fragment, so that it is the alignment for the whole section if there are no other inner fragments
+			alignment = inner_fragments.First().Alignment;
+
+			// Move over the first inner fragment
 			file_position += (ulong)inner_fragments.First().Data.Length;
 
 			// Skip the first fragment, since it is already part of the section
