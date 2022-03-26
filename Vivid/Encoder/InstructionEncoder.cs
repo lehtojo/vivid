@@ -1564,6 +1564,7 @@ public static class InstructionEncoder
 				if (information.Type == EncoderDebugFrameInformationType.START)
 				{
 					frames.Start(information.To<EncoderDebugFrameStartInformation>().Symbol, offset);
+					position = offset;
 				}
 				else if (information.Type == EncoderDebugFrameInformationType.SET_FRAME_OFFSET)
 				{
