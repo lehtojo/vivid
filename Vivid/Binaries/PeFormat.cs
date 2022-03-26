@@ -402,10 +402,26 @@ public static class PeFormat
 	}
 
 	/// <summary>
+	/// Fills all the empty section in the specified list of sections with one byte.
+	/// Instead of just removing these sections, this is done to preserve all the properties of these sections such as symbols.
+	/// If these sections would have a size of zero, then overlapping sections could emerge.
+	/// </summary>
+	public static void FillEmptySections(List<BinarySection> sections)
+	{
+		foreach (var section in sections)
+		{
+			if (section.Data.Length > 0) continue;
+			section.Data = new byte[1];
+		}
+	}
+
+	/// <summary>
 	/// Creates an object file from the specified sections
 	/// </summary>
 	public static BinaryObjectFile Create(string name, List<BinarySection> sections, HashSet<string> exports)
 	{
+		FillEmptySections(sections);
+
 		// Load all the symbols from the specified sections
 		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
 
@@ -429,6 +445,8 @@ public static class PeFormat
 	/// </summary>
 	public static byte[] Build(List<BinarySection> sections, HashSet<string> exports)
 	{
+		FillEmptySections(sections);
+
 		// Load all the symbols from the specified sections
 		var symbols = BinaryUtility.GetAllSymbolsFromSections(sections);
 
@@ -1090,7 +1108,11 @@ public static class PeFormat
 		var symbols = Linker.ResolveSymbols(objects);
 
 		// Ensure sections are ordered so that sections of same type are next to each other
-		var fragments = objects.SelectMany(i => i.Sections).Where(i => i.Type != BinarySectionType.NONE).Where(Linker.IsLoadableSection).ToList();
+		var fragments = objects.SelectMany(i => i.Sections)
+			.Where(i => i.Type != BinarySectionType.NONE && Linker.IsLoadableSection(i))
+			.ToList();
+
+		FillEmptySections(fragments);
 
 		// Load all the relocations from all the sections
 		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
