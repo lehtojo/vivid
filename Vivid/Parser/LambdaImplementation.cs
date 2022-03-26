@@ -119,6 +119,9 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override string GetHeader()
 	{
-		return $"{Parent!.ToString()} Lambda #{Name}";
+		// Find the function implementation, which contains this lambda
+		var implementation = Parent!.GetImplementationParent() ?? throw Errors.Get(Metadata.Start, "Lambda does not have a parent function");
+
+		return $"{implementation.ToString()} Lambda #{Name}";
 	}
 }
