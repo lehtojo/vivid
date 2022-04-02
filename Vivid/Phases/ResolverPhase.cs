@@ -56,12 +56,14 @@ public class DocumentDiagnostic
 	private const string UNTITLED_FILE_SCHEME = "untitled";
 
 	public DocumentRange Range { get; set; }
+	public SourceFile? File { get; set; }
 	public string Message { get; set; }
 	public int Severity { get; set; }
 
 	public DocumentDiagnostic(Position? start, string message, DocumentDiagnosticSeverity severity)
 	{
 		Range = new DocumentRange(start, start?.Translate(1));
+		File = start != null ? start.File : null;
 		Message = message;
 		Severity = (int)severity;
 
