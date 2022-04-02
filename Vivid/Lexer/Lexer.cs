@@ -53,6 +53,7 @@ public static class Lexer
 	public const string MULTILINE_COMMENT = "###";
 	public const char STRING = '\'';
 	public const char CHARACTER = '`';
+	public const char ESCAPER = '\\';
 	public const char DECIMAL_SEPARATOR = '.';
 	public const char EXPONENT_SEPARATOR = 'e';
 	public const char SIGNED_TYPE_SEPARATOR = 'i';
@@ -255,6 +256,11 @@ public static class Lexer
 			{
 				position = SkipString(text, position);
 			}
+			else if (current == ESCAPER)
+			{
+				position.NextCharacter();
+				position.NextCharacter();
+			}
 			else if (current == CHARACTER)
 			{
 				position = SkipCharacterValue(text, position);
@@ -335,17 +341,26 @@ public static class Lexer
 	/// <returns>Position after the closures</returns>
 	private static Position SkipClosures(char closure, string text, Position start, string error)
 	{
-		var i = text.IndexOf(closure, start.Local + 1);
-		var j = text.IndexOf(LINE_ENDING, start.Local + 1);
-
-		if (i == -1 || j != -1 && j < i)
+		for (var i = start.Local + 1; i < text.Length; i++)
 		{
-			throw new LexerException(start, error);
+			var current = text[i];
+
+			if (current == closure)
+			{
+				var length = (i + 1) - start.Local;
+				return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
+			}
+
+			if (current == ESCAPER)
+			{
+				i++; // Skip the escaper character
+				continue; /// NOTE: Escaped character will be skipped as well
+			}
+
+			if (current == LINE_ENDING) throw new LexerException(start, error);
 		}
 
-		var length = i + 1 - start.Local;
-
-		return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
+		throw new LexerException(start, error);
 	}
 
 	/// <summary>
@@ -408,22 +423,22 @@ public static class Lexer
 	/// </summary>
 	private static ulong GetCharacterValue(Position position, string text)
 	{
-		// Remove the closures
-		text = text[1..^1];
+		// Remove the closures and format it so that its value can be extracted
+		var formatted = FormatSpecialCharacter(text[1..^1]);
 
-		if (text.Length == 0) throw new LexerException(position, "Character value is empty");
+		if (formatted == null) throw new LexerException(position, "Invalid character");
+		if (formatted.Length == 0) throw new LexerException(position, "Character value is empty");
 
-		if (text.First() != '\\')
+		if (formatted.First() != '\\' || formatted.Length == 1)
 		{
-			if (text.Length != 1) throw new LexerException(position, "Character value allows only one character");
+			if (formatted.Length != 1) throw new LexerException(position, "Character value allows only one character");
 
-			return text.First();
+			return formatted.First();
 		}
 
-		if (text.Length == 2 && text[1] == '\\') return (ulong)'\\';
-		if (text.Length <= 2) throw new LexerException(position, "Invalid character");
+		if (formatted.Length <= 2) throw new LexerException(position, "Invalid character");
 
-		return GetSpecialCharacterValue(position, text);
+		return GetSpecialCharacterValue(position, formatted);
 	}
 
 	/// <summary>
@@ -627,9 +642,46 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Converts all special characters in the text to use the hexadecimal character format
+	/// Converts the specified character value text to hexadecimal character value text
 	/// </summary>
-	private static string PreprocessSpecialCharacters(string text)
+	private static string? FormatSpecialCharacter(string text)
+	{
+		// Return if the text is empty
+		if (text.Length == 0) return null;
+
+		// Do nothing if the text does not start with an escape character
+		if (text[0] != ESCAPER) return text;
+
+		// Expect at least one character after the escape character
+		if (text.Length < 2) return null;
+
+		var command = text[1];
+
+		// Just return the text if it is already in hexadecimal format
+		if (command == 'x' || command == 'u' || command == 'U') return text;
+
+		var value = command switch
+		{
+			'a' => "\\x07",
+			'b' => "\\x08",
+			't' => "\\x09",
+			'n' => "\\x0A",
+			'v' => "\\x0B",
+			'f' => "\\x0C",
+			'r' => "\\x0D",
+			'e' => "\\x1B",
+			'\"' => "\\x22",
+			'\'' => "\\x27",
+			_ => null
+		};
+
+		return value != null ? value : text.Substring(1);
+	}
+
+	/// <summary>
+	/// Converts all escaped characters in the specified string to escaped hexadecimal characters
+	/// </summary>
+	private static string PostprocessEscapedCharacters(string text)
 	{
 		var builder = new StringBuilder(text);
 
@@ -655,16 +707,36 @@ public static class Lexer
 				'e' => "\\x1B",
 				'\"' => "\\x22",
 				'\'' => "\\x27",
-				_ => string.Empty
+				_ => null
 			};
 
-			if (string.IsNullOrEmpty(value)) continue;
+			if (value == null) continue;
 
 			builder.Remove(i, 2);
 			builder.Insert(i, value);
 		}
 
 		return builder.ToString();
+	}
+
+	/// <summary>
+	/// Converts all escaped characters in string tokens to escaped hexadecimal characters
+	/// </summary>
+	private static void PostprocessEscapedCharacters(List<Token> tokens)
+	{
+		foreach (var token in tokens)
+		{
+			if (token.Type == TokenType.STRING)
+			{
+				token.To<StringToken>().Text = PostprocessEscapedCharacters(token.To<StringToken>().Text);
+				continue;
+			}
+
+			if (token.Type == TokenType.CONTENT)
+			{
+				PostprocessEscapedCharacters(token.To<ContentToken>().Tokens);
+			}
+		}
 	}
 
 	/// <summary>
@@ -682,8 +754,6 @@ public static class Lexer
 	/// <returns>Text as a token list</returns>
 	public static List<Token> GetTokens(string text, Position anchor, bool join = true)
 	{
-		text = PreprocessSpecialCharacters(text);
-
 		var tokens = new List<Token>();
 		var position = new Position(anchor.Line, anchor.Character, 0, anchor.Absolute);
 
@@ -701,6 +771,8 @@ public static class Lexer
 
 			position = area.End;
 		}
+
+		PostprocessEscapedCharacters(tokens);
 
 		if (join) Join(tokens);
 		
