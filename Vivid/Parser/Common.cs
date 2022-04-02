@@ -951,6 +951,17 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Collects all variables from the specified context and its subcontexts
+	/// </summary>
+	public static List<Variable> GetAllVariables(Context context)
+	{
+		return context.Variables.Values
+			.Concat(context.Subcontexts.SelectMany(i => GetAllVariables(i)))
+			.Distinct()
+			.ToList();
+	}
+
+	/// <summary>
 	/// Collects all local function implementations from the specified context
 	/// </summary>
 	public static FunctionImplementation[] GetLocalFunctionImplementations(Context context)
@@ -1177,6 +1188,7 @@ public static class Common
 			TokenType.NUMBER => token.To<NumberToken>().End ?? token.Position.Translate(1),
 			TokenType.OPERATOR => token.To<OperatorToken>().End,
 			TokenType.STRING => token.To<StringToken>().End,
+			TokenType.END => token.Position.Clone().NextLine(),
 			_ => null
 		};
 	}

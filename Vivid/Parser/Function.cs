@@ -66,13 +66,14 @@ public class Function : Context
 
 	public Variable? Self { get; protected set; }
 	public List<Parameter> Parameters { get; } = new List<Parameter>();
-	public List<Token> Blueprint { get; protected set; }
+	public List<Token> Blueprint { get; set; } = new List<Token>();
 	public Position? Start { get; set; }
 	public Position? End { get; set; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
 	public bool IsConstructor => this is Constructor;
+	public bool IsDestructor => this is Destructor;
 	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
 	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
 	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);

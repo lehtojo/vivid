@@ -2,7 +2,7 @@ using System;
 
 public class StringToken : Token
 {
-	public string Text { get; private set; }
+	public string Text { get; set; }
 	public Position End => Position.Translate(Text.Length);
 
 	public StringToken(string text) : base(TokenType.STRING)

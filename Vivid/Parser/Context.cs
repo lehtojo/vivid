@@ -459,7 +459,7 @@ public class Context : IComparable<Context>
 	}
 	
 	/// <summary>
-	/// Diconnects this context from its parent
+	/// Disconnects this context from its parent
 	/// </summary>
 	public void Disconnect()
 	{
@@ -472,7 +472,7 @@ public class Context : IComparable<Context>
 	/// Moves all types, functions and variables from the specified context to this context
 	/// NOTE: This function does not copy constructors or lambdas for example since this function should be used with normal contexts
 	/// </summary>
-	public void Merge(Context context)
+	public void Merge(Context context, bool update = true)
 	{
 		foreach (var (key, value) in context.Types)
 		{
@@ -482,12 +482,16 @@ public class Context : IComparable<Context>
 
 		foreach (var (key, value) in context.Functions)
 		{
-			if (!Functions.TryAdd(key, value))
+			if (Functions.ContainsKey(key))
 			{
 				var functions = Functions[key];
 
 				// Try to add the overloads separately
 				value.Overloads.ForEach(i => functions.TryAdd(i));
+			}
+			else
+			{
+				Functions.Add(key, new FunctionList(value.Overloads.ToList()));
 			}
 
 			value.Overloads.ForEach(i => i.Parent = this);
@@ -502,7 +506,7 @@ public class Context : IComparable<Context>
 		context.Subcontexts.ForEach(i => i.Parent = this);
 		Subcontexts.AddRange(context.Subcontexts.Where(i => !Subcontexts.Any(j => ReferenceEquals(i, j))).ToArray());
 
-		Update();
+		if (update) Update();
 
 		context.Destroy();
 	}

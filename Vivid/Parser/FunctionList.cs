@@ -6,6 +6,13 @@ public class FunctionList
 {
 	public List<Function> Overloads { get; } = new List<Function>();
 
+	public FunctionList() {}
+
+	public FunctionList(List<Function> overloads)
+	{
+		Overloads = overloads;
+	}
+
 	/// <summary>
 	/// Adds the specified function to the overloads.
 	/// This function throws an exception on fail.

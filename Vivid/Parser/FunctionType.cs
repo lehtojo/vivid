@@ -15,7 +15,7 @@ public class FunctionType : UnresolvedType
 		Position = position;
 	}
 
-	public FunctionType(Type self, List<Type?> parameters, Type? return_type, Position? position) : base(string.Empty)
+	public FunctionType(Type? self, List<Type?> parameters, Type? return_type, Position? position) : base(string.Empty)
 	{
 		Self = self;
 		Parameters = parameters;
