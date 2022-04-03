@@ -3,7 +3,7 @@ using System.Linq;
 
 public class ConstructorPattern : Pattern
 {
-	public const int PRIORITY = 21;
+	public const int PRIORITY = 23;
 
 	private const int HEADER = 0;
 

@@ -69,6 +69,7 @@ public class Function : Context
 	public List<Token> Blueprint { get; set; } = new List<Token>();
 	public Position? Start { get; set; }
 	public Position? End { get; set; }
+	public Type? ReturnType { get; set; }
 
 	public List<FunctionImplementation> Implementations { get; } = new List<FunctionImplementation>();
 
@@ -157,6 +158,9 @@ public class Function : Context
 
 		// Create a function implementation
 		var implementation = new FunctionImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
+
+		// Force the return type, if user added it
+		implementation.ReturnType = ReturnType;
 
 		// Add the created implementation to the list
 		Implementations.Add(implementation);

@@ -28,6 +28,9 @@ public class Lambda : Function
 		// Create a function implementation
 		var implementation = new LambdaImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
 
+		// Force the return type, if user added it
+		implementation.ReturnType = ReturnType;
+
 		// Add the created implementation to the implementations list
 		Implementations.Add(implementation);
 

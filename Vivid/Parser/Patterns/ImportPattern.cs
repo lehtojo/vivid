@@ -7,7 +7,7 @@ public class ImportPattern : Pattern
 	public const string CPP_LANGUAGE_TAG_2 = "c++";
 	public const string VIVID_LANGUAGE_TAG = "vivid";
 
-	private const int PRIORITY = 20;
+	private const int PRIORITY = 22;
 
 	private const int IMPORT = 0;
 	private const int LANGUAGE = 1;

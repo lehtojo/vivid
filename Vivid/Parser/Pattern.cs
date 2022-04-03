@@ -67,6 +67,30 @@ public abstract class Pattern
 		return Parser.TryConsume(state);
 	}
 
+	/// <summary>
+	/// Consumes the next token if it exists and it represents the specified operator
+	/// </summary>
+	public static bool Consume(PatternState state, Operator filter)
+	{
+		var next = Peek(state);
+		if (next == null || !next.Is(filter)) return false;
+
+		Consume(state);
+		return true;
+	}
+
+	/// <summary>
+	/// Consumes the next token if it exists and it represents the specified parenthesis
+	/// </summary>
+	public static bool Consume(PatternState state, ParenthesisType filter)
+	{
+		var next = Peek(state);
+		if (next == null || !next.Is(filter)) return false;
+
+		Consume(state);
+		return true;
+	}
+
 	public static Token? Peek(PatternState state)
 	{
 		return state.Tokens.Count > state.End ? state.Tokens[state.End] : null;

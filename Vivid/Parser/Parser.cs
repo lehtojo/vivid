@@ -340,17 +340,13 @@ public static class Parser
 		var i = state.End;
 
 		// Ensure there are enough tokens
-		if (state.Tokens.Count - i < 1)
-		{
-			return false;
-		}
+		if (state.Tokens.Count - i < 1) return false;
 
-		if (!Flag.Has(mask, state.Tokens[i].Type))
+		var type = state.Tokens[i].Type;
+
+		if (type == TokenType.NONE || !Flag.Has(mask, type))
 		{
-			if (!Flag.Has(mask, TokenType.OPTIONAL))
-			{
-				return false;
-			}
+			if (!Flag.Has(mask, TokenType.OPTIONAL)) return false;
 
 			consumed = new Token(TokenType.NONE);
 		}
