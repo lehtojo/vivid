@@ -70,20 +70,20 @@ public class FileDivider
 public class DocumentAnalysisResponse
 {
 	public int Status { get; set; }
-	public Uri Uri { get; set; }
+	public string Path { get; set; }
 	public string Data { get; set; }
 
 	public DocumentAnalysisResponse(int status, Uri uri, string data)
 	{
 		Status = status;
-		Uri = uri;
+		Path = ServiceUtility.ToPath(uri);
 		Data = data;
 	}
 
-	public DocumentAnalysisResponse(int status, string filename, string data)
+	public DocumentAnalysisResponse(int status, string path, string data)
 	{
 		Status = status;
-		Uri = ServiceUtility.ToUri(filename);
+		Path = path;
 		Data = data;
 	}
 }
