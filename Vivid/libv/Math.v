@@ -22,8 +22,13 @@ export abs(a) {
 	else => -a
 }
 
-export ceil(a: decimal) => (a + 0.5) as large
-export floor(a: decimal) => a as large
+export ceil(a: decimal) {
+	=> (a + 0.5) as large
+}
+
+export floor(a: decimal) {
+	=> a as large
+}
 
 export sign(a: decimal) {
 	if a > 0 => 1
@@ -31,8 +36,13 @@ export sign(a: decimal) {
 	else => 0 
 }
 
-export cbrt(a: large) => pow(a, 1.0 / 3.0)
-export cbrt(a: decimal) => pow(a, 1.0 / 3.0)
+export cbrt(a: large) {
+	=> pow(a, 1.0 / 3.0)
+}
+
+export cbrt(a: decimal) {
+	=> pow(a, 1.0 / 3.0)
+}
 
 Random {
 	static:

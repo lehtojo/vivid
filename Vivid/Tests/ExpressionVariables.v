@@ -46,15 +46,21 @@ Animal {
 		this.reaction = reaction
 	}
 
-	react() => println(reaction)
+	react() {
+		println(reaction)
+	}
 }
 
 Animal Dog {
-	init() => Animal.init(String('Bark'))
+	init() {
+		Animal.init(String('Bark'))
+	}
 }
 
 Animal Cat {
-	init() => Animal.init(String('Meow'))
+	init() {
+		Animal.init(String('Meow'))
+	}
 }
 
 Animals {

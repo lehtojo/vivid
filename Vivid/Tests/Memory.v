@@ -97,4 +97,6 @@ export memory_case_13(a: Object, i: large) {
 	}
 }
 
-init() => true
+init() {
+	=> true
+}

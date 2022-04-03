@@ -30,7 +30,9 @@ Boo Baba {
 		this.x = x
 	}
 
-	value() => x * x
+	value() {
+		=> x * x
+	}
 }
 
 Boo Bui {
@@ -38,7 +40,9 @@ Boo Bui {
 		this.y = y
 	}
 
-	value() => y + y
+	value() {
+		=> y + y
+	}
 }
 
 Baba Bababui {
@@ -47,13 +51,25 @@ Baba Bababui {
 		this.y = y
 	}
 
-	value() => y * Baba.value()
+	value() {
+		=> y * Baba.value()
+	}
 }
 
-export create_boo() => Boo()
-export create_baba(x: large) => Baba(x)
-export create_bui(x: large) => Bui(x)
-export create_bababui(x: large, y: large) => Bababui(x, y)
+export create_boo() {
+	=> Boo()
+}
+
+export create_baba(x: large) {
+	=> Baba(x)
+}
+export create_bui(x: large) {
+	=> Bui(x)
+}
+
+export create_bababui(x: large, y: large) {
+	=> Bababui(x, y)
+}
 
 export is_when(object: Boo) {
 	=> when(object) {

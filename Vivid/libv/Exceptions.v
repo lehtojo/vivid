@@ -1,7 +1,9 @@
 export Outcome<T, E> {
 	is_error: bool
 
-	has_value() => !is_error
+	has_value() {
+		=> !is_error
+	}
 
 	get_value() {
 		if is_error panic('Outcome has no value')
@@ -51,8 +53,13 @@ export Optional<T> {
 		this.empty = false
 	}
 
-	has_value() => !empty
-	get_value() => value
+	has_value() {
+		=> !empty
+	}
+
+	get_value() {
+		=> value
+	}
 
 	value_or(fallback: T) {
 		result = value

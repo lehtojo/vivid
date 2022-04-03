@@ -26,4 +26,6 @@ export assignment_2(instance: Sequence) {
 	instance.address[2] = 101.010
 }
 
-init() => true
+init() {
+	=> 1
+}

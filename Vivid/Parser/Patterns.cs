@@ -114,7 +114,7 @@ public class Patterns
 		Add(new ExpressionVariablePattern());
 		Add(new ReturnPattern());
 		Add(new SectionModificationPattern());
-		Add(new ShortFunctionPattern());
+		//Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
 		Add(new SpecificModificationPattern());
 		Add(new TemplateFunctionCallPattern());

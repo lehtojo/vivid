@@ -69,8 +69,15 @@ export LinkedList<T> {
 		=> size
 	}
 
-	first() => head
-	last() => tail
+	first() {
+		=> head
+	}
 
-	iterator() => head
+	last() {
+		=> tail
+	}
+
+	iterator() {
+		=> head
+	}
 }

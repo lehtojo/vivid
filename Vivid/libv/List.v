@@ -283,7 +283,9 @@ export List<T> {
 	}
 
 	# Summary: Returns the size of this list
-	size() => position
+	size() {
+		=> position
+	}
 
 	# Summary: Returns an iterator which can be used to inspect this list
 	iterator() {

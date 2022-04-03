@@ -24,7 +24,9 @@ Usable Vehicle {
 	acceleration: decimal
 	passengers: small
 
-	time(distance: decimal) => sqrt(2 * distance / acceleration)
+	time(distance: decimal) {
+		=> sqrt(2 * distance / acceleration)
+	}
 
 	virtual skill(): large
 	virtual reliability(): large
@@ -42,8 +44,13 @@ Ridable Vehicle Pig {
 		passengers = 1
 	}
 
-	override skill() => 1
-	override reliability() => -1
+	override skill() {
+		=> 1
+	}
+
+	override reliability() {
+		=> -1
+	}
 
 	override likes(entity: Entity) {
 		=> entity is Person person and person.likes_riding
@@ -59,8 +66,13 @@ Drivable Vehicle Car {
 		passengers = 5
 	}
 
-	override skill() => 10
-	override reliability() => 100
+	override skill() {
+		=> 10
+	}
+
+	override reliability() {
+		=> 100
+	}
 
 	override likes(entity: Entity) {
 		=> entity is Person person and person.likes_driving
@@ -68,7 +80,9 @@ Drivable Vehicle Car {
 }
 
 Usable Entity Banana {
-	override likes(entity: Entity) => true
+	override likes(entity: Entity) {
+		=> true
+	}
 }
 
 Drivable Vehicle Bus {
@@ -79,8 +93,13 @@ Drivable Vehicle Bus {
 		passengers = 40
 	}
 
-	override skill() => 40
-	override reliability() => 100
+	override skill() {
+		=> 40
+	}
+
+	override reliability() {
+		=> 100
+	}
 
 	override likes(entity: Entity) {
 		=> entity is Person person and person.likes_driving
@@ -141,22 +160,49 @@ export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: decimal
 	=> chosen_vehicle
 }
 
-export create_pig() => Pig()
-export create_bus() => Bus()
-export create_car() => Car()
-export create_banana() => Banana()
+export create_pig() {
+	=> Pig()
+}
 
-export create_john() => Person('John', 10, true, false)
-export create_max() => Person('Max', 7, true, true)
-export create_gabe() => Person('Gabe', 50, true, false)
-export create_steve() => Person('Steve', 1, false, true)
+export create_bus() {
+	=> Bus()
+}
 
-export create_array(size: large) => Array<Usable>(size)
+export create_car() {
+	=> Car()
+}
+
+export create_banana() {
+	=> Banana()
+}
+
+export create_john() {
+	=> Person('John', 10, true, false)
+}
+
+export create_max() {
+	=> Person('Max', 7, true, true)
+}
+
+export create_gabe() {
+	=> Person('Gabe', 50, true, false)
+}
+
+export create_steve() {
+	=> Person('Steve', 1, false, true)
+}
+
+export create_array(size: large) {
+	=> Array<Usable>(size)
+}
+
 export set(array: Array<Usable>, usable: Usable, i: large) {
 	array[i] = usable
 }
 
-export is_pig(vehicle: Vehicle) => vehicle is Pig
+export is_pig(vehicle: Vehicle) {
+	=> vehicle is Pig
+}
 
 init() {
 	pig = create_pig()

@@ -238,7 +238,9 @@ export write_file(filename: link, bytes: Array<byte>) {
 }
 
 # Summary: Opens the specified file and returns its contents
-export read_file(filename: String) => read_file(filename.text)
+export read_file(filename: String) {
+	=> read_file(filename.text)
+}
 
 # Summary: Opens the specified file and returns its contents
 export read_file(filename: link) {
@@ -277,7 +279,9 @@ export read_file(filename: link) {
 }
 
 # Summary: Returns whether the specified file or folder exists
-export exists(path: String) => exists(path.text)
+export exists(path: String) {
+	=> exists(path.text)
+}
 
 # Summary: Returns whether the specified file or folder exists
 export exists(path: link) {

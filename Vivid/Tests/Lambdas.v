@@ -18,10 +18,17 @@ Vector {
 		y = -y
 	}
 
-	plus(other: Vector) => Vector(x + other.x, y + other.y)
-	minus(other: Vector) => Vector(x - other.x, y - other.y)
+	plus(other: Vector) {
+		=> Vector(x + other.x, y + other.y)
+	}
 
-	times(magnitude) => Vector(x * magnitude, y * magnitude)
+	minus(other: Vector) {
+		=> Vector(x - other.x, y - other.y)
+	}
+
+	times(magnitude) {
+		=> Vector(x * magnitude, y * magnitude)
+	}
 
 	assign_plus(other: Vector) {
 		x += other.x
@@ -76,7 +83,9 @@ Animal Dog {
 		}
 	}
 
-	bark() => println('Bark')
+	bark() {
+		=> println('Bark')
+	}
 }
 
 CAT_SPEED = 2
@@ -93,7 +102,9 @@ Animal Cat {
 		}
 	}
 
-	meow() => println('Meow')
+	meow() {
+		=> println('Meow')
+	}
 }
 
 export create_default_action() {

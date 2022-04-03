@@ -20,7 +20,7 @@ CustomArray<T> {
 	}
 }
 
-pidigits(digits) {   
+pidigits(digits) {
 	++digits
 
 	l = digits * 10 / 3 + 2

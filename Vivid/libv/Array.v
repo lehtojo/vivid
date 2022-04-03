@@ -11,7 +11,9 @@ export MemoryIterator<T> {
 		this.count = count
 	}
 
-	value() => elements[position]
+	value() {
+		=> elements[position]
+	}
 
 	next() {
 		=> ++position < count

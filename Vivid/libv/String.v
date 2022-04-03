@@ -576,7 +576,9 @@ export String {
 		text[i] = value
 	}
 	
-	data() => text
+	data() {
+		=> text
+	}
 
 	equals(other: String) {
 		a = length

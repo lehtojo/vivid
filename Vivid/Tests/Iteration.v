@@ -9,7 +9,9 @@ ArrayIterator<T> {
 		this.count = count
 	}
 
-	value() => elements[position]
+	value() {
+		=> elements[position]
+	}
 
 	next() {
 		=> ++position < count
@@ -37,7 +39,9 @@ Array<T> {
 		=> data[i]
 	}
 
-	iterator() => ArrayIterator<T>(data, count)
+	iterator() {
+		=> ArrayIterator<T>(data, count)
+	}
 	
 	deinit() {
 		deallocate(data)

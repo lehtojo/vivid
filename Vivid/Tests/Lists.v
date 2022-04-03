@@ -3,7 +3,9 @@ list_1() {
 	=> [ 1, 2, 3, 5, 7, 11, 13 ]
 }
 
-sum(a, b) => a + b
+sum(a, b) {
+	=> a + b
+}
 
 # Test: Create a list of integers, whose elements are expressions
 list_2() {
