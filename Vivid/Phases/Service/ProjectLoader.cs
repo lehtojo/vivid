@@ -267,6 +267,10 @@ public static class ProjectLoader
 	/// </summary>
 	public static List<Token>? TryReuseParse(SourceFile file, DocumentParse parse, string previous_document, string current_document)
 	{
+		/// TODO: Look into this
+		/// NOTE: Disable reusing for now, because the method down below does not adjust positions of shifted code, which can cause problems
+		return null;
+
 		// Get the changed line range between the old and the new document
 		var result = CursorInformationProvider.GetChangedLineRange(previous_document, current_document);
 		if (result == null) return null;
