@@ -104,6 +104,12 @@ public class TypeNode : Node, IScope, IResolvable
 
 	public Status GetStatus()
 	{
+		// Notify if the target type can not be resolved
+		if (Type.IsUnresolved)
+		{
+			return Status.Error(Position, "Can not resolve cast type " + Type.ToString());
+		}
+
 		if (Parent == null || !Parent.Is(NodeType.LINK) || Parent.Left != this) return Status.OK;
 
 		var right = Next!;
