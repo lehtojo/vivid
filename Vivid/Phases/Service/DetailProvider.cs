@@ -4,7 +4,7 @@ public static class DetailProvider
 {
 	public static Project Project { get; set; } = new();
 
-	public static void ProcessOpenRequest(IServiceClient client, DocumentRequest request)
+	public static void ProcessOpenRequest(IServiceResponse response, DocumentRequest request)
 	{
 		var start = DateTime.Now;
 
@@ -12,12 +12,12 @@ public static class DetailProvider
 		Console.WriteLine($"Opening project folder '{folder}'");
 
 		ProjectLoader.OpenProject(Project.Documents, folder);
-		client.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
+		response.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
 
 		Console.WriteLine($"Opening took {(DateTime.Now - start).TotalMilliseconds} ms");
 	}
 
-	public static void Provide(ServiceNetworkClient client, DocumentRequest request)
+	public static void Provide(IServiceResponse response, DocumentRequest request)
 	{
 		var absolute = ServiceUtility.ToAbsolutePosition(request.Document, request.Position.Line, request.Position.Character);
 		request.Absolute = absolute ?? -1;
@@ -27,35 +27,35 @@ public static class DetailProvider
 
 		if (request.Type == DocumentRequestType.OPEN)
 		{
-			ProcessOpenRequest(client, request);
+			ProcessOpenRequest(response, request);
 		}
 		else if (request.Type == DocumentRequestType.COMPLETIONS)
 		{
-			CompletionProvider.Provide(Project, client, request);
+			CompletionProvider.Provide(Project, response, request);
 		}
 		else if (request.Type == DocumentRequestType.SIGNATURES)
 		{
-			FunctionSignatureProvider.Provide(Project, client, request);
+			FunctionSignatureProvider.Provide(Project, response, request);
 		}
 		else if (request.Type == DocumentRequestType.DEFINITION)
 		{
-			DefinitionProvider.Provide(Project, client, request);
+			DefinitionProvider.Provide(Project, response, request);
 		}
 		else if (request.Type == DocumentRequestType.INFORMATION)
 		{
-			HoverProvider.Provide(Project, client, request);
+			HoverProvider.Provide(Project, response, request);
 		}
 		// else if (request.Type == DocumentRequestType.FIND_REFERENCES)
 		// {
-		// 	ReferenceProvider.Provide(Files, client, request);
+		// 	ReferenceProvider.Provide(Files, response, request);
 		// }
 		else if (request.Type == DocumentRequestType.WORKSPACE_SYMBOLS)
 		{
-			WorkspaceSymbolProvider.Provide(Project, client, request);
+			WorkspaceSymbolProvider.Provide(Project, response, request);
 		}
 		else
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 		}
 	}
 }

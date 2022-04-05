@@ -233,7 +233,7 @@ public static class CompletionProvider
 	/// <summary>
 	/// Sends completions to the requester based on the specified request
 	/// </summary>
-	public static void Provide(Project project, IServiceClient client, DocumentRequest request)
+	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
 		var information = UpdateAndMark(project, request);
@@ -243,7 +243,7 @@ public static class CompletionProvider
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -256,7 +256,7 @@ public static class CompletionProvider
 		// If the cursor is not found, send an error
 		if (cursor == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -280,6 +280,6 @@ public static class CompletionProvider
 
 		var completions = items.OrderBy(i => i.Identifier).ToArray();
 
-		client.SendResponse(request.Uri, DocumentResponseStatus.OK, completions);
+		response.SendResponse(request.Uri, DocumentResponseStatus.OK, completions);
 	}
 }

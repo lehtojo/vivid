@@ -101,7 +101,7 @@ public static class FunctionSignatureProvider
 	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
-	public static void Provide(Project project, IServiceClient client, DocumentRequest request)
+	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
 		var information = UpdateAndMark(project, request);
@@ -111,7 +111,7 @@ public static class FunctionSignatureProvider
 		// If no function contains the cursor, send an error
 		if (filter == null || cursor_function == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -124,7 +124,7 @@ public static class FunctionSignatureProvider
 		// If the cursor is not found, send an error
 		if (cursor == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -143,7 +143,7 @@ public static class FunctionSignatureProvider
 				{
 					var signatures = GetFunctionSignatures(overloads.Overloads);
 
-					client.SendResponse(request.Uri, DocumentResponseStatus.OK, signatures);
+					response.SendResponse(request.Uri, DocumentResponseStatus.OK, signatures);
 					return;
 				}
 
@@ -159,10 +159,10 @@ public static class FunctionSignatureProvider
 		if (overloads != null)
 		{
 			var signatures = GetFunctionSignatures(overloads.Overloads);
-			client.SendResponse(request.Uri, DocumentResponseStatus.OK, signatures);
+			response.SendResponse(request.Uri, DocumentResponseStatus.OK, signatures);
 			return;
 		}
 
-		client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+		response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 	}
 }

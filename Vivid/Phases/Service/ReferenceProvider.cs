@@ -59,7 +59,7 @@ public static class ReferenceProvider
 	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
-	public static void Provide(Dictionary<SourceFile, DocumentParse> files, IServiceClient client, DocumentRequest request)
+	public static void Provide(Dictionary<SourceFile, DocumentParse> files, IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
 		var cursor_function = Load(files, request);
@@ -67,7 +67,7 @@ public static class ReferenceProvider
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -80,13 +80,13 @@ public static class ReferenceProvider
 		// If the cursor is not found, send an error
 		if (cursor == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
 		if (!cursor.Is(NodeType.VARIABLE))
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -103,6 +103,6 @@ public static class ReferenceProvider
 				JsonSerializer.Serialize(i.Select(i => new DocumentPosition(i!.Line, i!.Character)).ToArray())
 			)).ToArray();
 
-		client.SendResponse(request.Uri, DocumentResponseStatus.OK, locations);
+		response.SendResponse(request.Uri, DocumentResponseStatus.OK, locations);
 	}
 }

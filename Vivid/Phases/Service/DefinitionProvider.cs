@@ -75,14 +75,14 @@ public static class DefinitionProvider
 
 		// Since the document has remained the same, we can try to find and mark the cursor inside existing function blueprints
 		if (!MarkCursorToken(parse, absolute.Value)) return null;
-		
+
 		return CursorInformationProvider.FindCursorFunction(parse);
 	}
 
 	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
-	public static void Provide(Project project, IServiceClient client, DocumentRequest request)
+	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
 		var cursor_function = UpdateAndMark(project, request);
@@ -90,7 +90,7 @@ public static class DefinitionProvider
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -103,7 +103,7 @@ public static class DefinitionProvider
 		// If the cursor is not found, send an error
 		if (cursor == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -134,13 +134,13 @@ public static class DefinitionProvider
 
 		if (position == null || position.File == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
 		var start = new DocumentPosition(position.Line, position.Character);
 		var end = new DocumentPosition(position.Line, position.Character + length);
 
-		client.SendResponse(position.File.Fullname, DocumentResponseStatus.OK, new DocumentRange(start, end));
+		response.SendResponse(position.File.Fullname, DocumentResponseStatus.OK, new DocumentRange(start, end));
 	}
 }

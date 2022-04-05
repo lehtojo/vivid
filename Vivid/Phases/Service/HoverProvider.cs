@@ -37,7 +37,7 @@ public static class HoverProvider
 	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
-	public static void Provide(Project project, IServiceClient client, DocumentRequest request)
+	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
 		var cursor_function = UpdateAndMark(project, request);
@@ -45,7 +45,7 @@ public static class HoverProvider
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -58,7 +58,7 @@ public static class HoverProvider
 		// If the cursor is not found, send an error
 		if (cursor == null)
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
@@ -93,10 +93,10 @@ public static class HoverProvider
 
 		if (string.IsNullOrEmpty(information))
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			return;
 		}
 
-		client.SendResponse(request.Uri, DocumentResponseStatus.OK, information);
+		response.SendResponse(request.Uri, DocumentResponseStatus.OK, information);
 	}
 }

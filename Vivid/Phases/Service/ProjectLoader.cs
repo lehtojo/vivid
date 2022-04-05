@@ -211,7 +211,7 @@ public static class ProjectLoader
 		// Update the document
 		parse.Document = document;
 
-		// Try to reuse the exising parse by comparing the old and the new document
+		// Try to reuse the existing parse by comparing the old and the new document
 		var tokens = TryReuseParse(file, parse, previous_document, document);
 
 		// If the parse was reused, return the tokens of the changed function

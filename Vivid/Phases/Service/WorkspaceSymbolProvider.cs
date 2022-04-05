@@ -60,7 +60,7 @@ public static class WorkspaceSymbolProvider
 		return SymbolKind.Variable;
 	}
 
-	public static void Provide(Project project, IServiceClient client, DocumentRequest request)
+	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
 	{
 		var result = new List<FileDivider>();
 
@@ -86,6 +86,6 @@ public static class WorkspaceSymbolProvider
 			result.Add(divider);
 		}
 
-		client.SendResponse(string.Empty, DocumentResponseStatus.OK, result.ToArray());
+		response.SendResponse(string.Empty, DocumentResponseStatus.OK, result.ToArray());
 	}
 }

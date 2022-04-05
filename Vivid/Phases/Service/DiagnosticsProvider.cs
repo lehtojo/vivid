@@ -37,7 +37,7 @@ public static class DiagnosticsProvider
 		}
 	}
 
-	public static void ProcessOpenRequest(IServiceClient client, DocumentRequest request)
+	public static void ProcessOpenRequest(IServiceResponse response, DocumentRequest request)
 	{
 		var start = DateTime.Now;
 
@@ -45,7 +45,7 @@ public static class DiagnosticsProvider
 		Console.WriteLine($"Opening project folder '{folder}'");
 
 		ProjectLoader.OpenProject(Project.Documents, folder);
-		client.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
+		response.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
 
 		Console.WriteLine($"Opening took {(DateTime.Now - start).TotalMilliseconds} ms");
 	}
@@ -68,7 +68,7 @@ public static class DiagnosticsProvider
 		}
 	}
 
-	public static void ProcessDiagnosticsRequest(IServiceClient client, DocumentRequest request)
+	public static void ProcessDiagnosticsRequest(IServiceResponse response, DocumentRequest request)
 	{
 		var tokens = (List<Token>?)null;
 		var path = ServiceUtility.ToPath(request.Uri);
@@ -97,14 +97,14 @@ public static class DiagnosticsProvider
 
 			MapDiagnosticRanges(parse.Tokens, new List<DocumentDiagnostic>(diagnostics));
 
-			client.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
+			response.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
 		}
 		catch (LexerException error)
 		{
 			var diagnostics = new List<DocumentDiagnostic> { new DocumentDiagnostic(error.Position, error.Description, DocumentDiagnosticSeverity.ERROR) };
 			diagnostics = FilterDiagnostics(diagnostics, file);
 
-			client.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
+			response.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
 		}
 		catch (SourceException error)
 		{
@@ -116,34 +116,34 @@ public static class DiagnosticsProvider
 				MapDiagnosticRanges(tokens, new List<DocumentDiagnostic>(diagnostics));
 			}
 
-			client.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
+			response.SendResponse(request.Uri, DocumentResponseStatus.OK, diagnostics);
 		}
 		catch
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 		}
 	}
 
-	public static void Provide(IServiceClient client, DocumentRequest request)
+	public static void Provide(IServiceResponse connection, DocumentRequest request)
 	{
 		try
 		{
 			if (request.Type == DocumentRequestType.OPEN)
 			{
-				ProcessOpenRequest(client, request);
+				ProcessOpenRequest(connection, request);
 			}
 			else if (request.Type == DocumentRequestType.DIAGNOSE)
 			{
-				ProcessDiagnosticsRequest(client, request);
+				ProcessDiagnosticsRequest(connection, request);
 			}
 			else
 			{
-				client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+				connection.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 			}
 		}
 		catch
 		{
-			client.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			connection.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 		}
 	}
 }
