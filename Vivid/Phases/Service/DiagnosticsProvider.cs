@@ -146,4 +146,9 @@ public static class DiagnosticsProvider
 			connection.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 		}
 	}
+
+	public static void Reset()
+	{
+		Project = new();
+	}
 }

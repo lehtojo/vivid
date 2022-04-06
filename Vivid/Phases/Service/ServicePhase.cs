@@ -119,10 +119,10 @@ public class ServicePhase : Phase
 		end_point = (diagnostics_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create local service socket");
 
 		// Diagnose projects on another thread
-		Task.Run(() => ServiceNetworkListener.Listen(diagnostics_socket, DiagnosticsProvider.Provide));
+		Task.Run(() => ServiceNetworkListener.Listen(diagnostics_socket, DiagnosticsProvider.Provide, DiagnosticsProvider.Reset));
 
 		// Send detail information on the current thread
-		ServiceNetworkListener.Listen(completions_socket, DetailProvider.Provide);
+		ServiceNetworkListener.Listen(completions_socket, DetailProvider.Provide, DetailProvider.Reset);
 
 		return Status.OK;
 	}

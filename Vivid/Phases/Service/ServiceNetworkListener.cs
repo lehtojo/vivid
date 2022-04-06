@@ -9,15 +9,31 @@ public class ServiceRequestInformation
 	public byte[]? Bytes { get; set; }
 }
 
+public static class SocketExtensions
+{
+	public static bool IsConnected(this Socket socket)
+	{
+		try
+		{
+			return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+		}
+		catch (SocketException) { return false; }
+	}
+}
+
 public static class ServiceNetworkListener
 {
 	/// <summary>
 	/// Receives the next message from the specified socket
 	/// </summary>
-	private static ServiceRequestInformation Receive(Socket socket)
+	private static ServiceRequestInformation? Receive(Socket socket)
 	{
 		// Receive the message header
-		while (socket.Available < sizeof(int) * 2) {}
+		while (socket.Available < sizeof(int) * 2)
+		{
+			// If the socket disconnects, return null
+			if (!socket.IsConnected()) return null;
+		}
 
 		// Extract the size of message
 		var buffer = new byte[sizeof(int) * 2];
@@ -38,7 +54,7 @@ public static class ServiceNetworkListener
 		return new ServiceRequestInformation() { Id = id, Bytes = buffer };
 	}
 
-	public static void Listen(TcpListener listener, Action<IServiceResponse, DocumentRequest> action)
+	public static void Listen(TcpListener listener, Action<IServiceResponse, DocumentRequest> receive, Action disconnect)
 	{
 		listener.Start();
 
@@ -48,8 +64,10 @@ public static class ServiceNetworkListener
 
 			try
 			{
+				Console.WriteLine("Waiting for client to connect...");
 				socket = listener.AcceptTcpClient();
 				socket.ReceiveBufferSize = 10000000;
+				Console.WriteLine("Connection established.");
 			}
 			catch
 			{
@@ -67,6 +85,10 @@ public static class ServiceNetworkListener
 
 					// Receive the next message buffer
 					var information = Receive(socket.Client);
+
+					// If the returned information is null, the socket disconnected so stop waiting for other messages
+					if (information == null) break;
+
 					var response = new ServiceResponse(client, information.Id);
 
 					if (information.Bytes == null)
@@ -89,7 +111,7 @@ public static class ServiceNetworkListener
 					try
 					{
 						// Process the received message
-						action(response, request);
+						receive(response, request);
 					}
 					catch
 					{
@@ -100,6 +122,15 @@ public static class ServiceNetworkListener
 				{
 					Console.WriteLine("ERROR: Something went wrong while processing request: " + error.ToString());
 				}
+			}
+
+			try
+			{
+				disconnect();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("ERROR: Something went wrong while processing disconnection: " + e.ToString());
 			}
 		}
 	}

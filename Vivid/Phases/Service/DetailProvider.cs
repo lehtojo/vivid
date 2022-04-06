@@ -58,4 +58,9 @@ public static class DetailProvider
 			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
 		}
 	}
+
+	public static void Reset()
+	{
+		Project = new();
+	}
 }
