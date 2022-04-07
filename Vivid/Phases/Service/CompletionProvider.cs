@@ -231,6 +231,18 @@ public static class CompletionProvider
 	}
 
 	/// <summary>
+	/// Sends the completion items available in the global scope to the client
+	/// </summary>
+	private static void SendGlobalScopeCompletionItems(Project project, IServiceResponse response, DocumentRequest request)
+	{
+		var items = GetCommonCompletionItems();
+		items.AddRange(project.Documents.Values.Where(i => i.Context != null).SelectMany(i => GetCompletionItems(i.Context!, true)));
+
+		var completions = items.DistinctBy(i => $"{i.Identifier}, {i.Type}").OrderBy(i => i.Identifier).ToArray();
+		response.SendResponse(request.Uri, DocumentResponseStatus.OK, completions);
+	}
+
+	/// <summary>
 	/// Sends completions to the requester based on the specified request
 	/// </summary>
 	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
@@ -243,7 +255,7 @@ public static class CompletionProvider
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
 		{
-			response.SendStatusCode(request.Uri, DocumentResponseStatus.ERROR);
+			SendGlobalScopeCompletionItems(project, response, request);
 			return;
 		}
 

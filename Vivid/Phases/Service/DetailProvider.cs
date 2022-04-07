@@ -2,6 +2,8 @@ using System;
 
 public static class DetailProvider
 {
+	public const int DebugPort = 1111;
+
 	public static Project Project { get; set; } = new();
 
 	public static void ProcessOpenRequest(IServiceResponse response, DocumentRequest request)

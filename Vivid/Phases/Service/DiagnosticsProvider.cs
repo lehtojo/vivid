@@ -4,6 +4,8 @@ using System;
 
 public static class DiagnosticsProvider
 {
+	public const int DebugPort = 2222;
+
 	public static Project Project { get; set; } = new();
 
 	/// <summary>

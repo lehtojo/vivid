@@ -315,8 +315,6 @@ public static class ProjectLoader
 			return tokens;
 		}
 
-		Console.WriteLine("Parsed");
-
 		// Tokenize the document
 		tokens = Lexer.GetTokens(document);
 		Lexer.Join(tokens);

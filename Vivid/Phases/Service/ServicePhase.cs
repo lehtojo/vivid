@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Sockets;
+using System.Threading;
 using System.Linq;
 using System.Net;
 using System;
@@ -108,22 +109,31 @@ public class DocumentParse
 
 public class ServicePhase : Phase
 {
+	private const bool DEBUG = true;
+
 	public override Status Execute(Bundle bundle)
 	{
 		if (!bundle.Get(ConfigurationPhase.SERVICE_FLAG, false)) return Status.OK;
 
-		var completions_socket = new TcpListener(IPAddress.Loopback, 1111);
-		var diagnostics_socket = new TcpListener(IPAddress.Loopback, 2222);
+		var detail_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DetailProvider.DebugPort : 0);
+		var diagnostics_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DiagnosticsProvider.DebugPort : 0);
 
-		var end_point = (completions_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create local service socket");
-		end_point = (diagnostics_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create local service socket");
+		var detail_provider_end_point = (detail_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create compiler service socket");
+		var diagnostics_provider_end_point = (diagnostics_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create compiler service socket");
 
-		// Diagnose projects on another thread
-		Task.Run(() => ServiceNetworkListener.Listen(diagnostics_socket, DiagnosticsProvider.Provide, DiagnosticsProvider.Reset));
+		var is_detail_provider_ready = new bool[1];
+		var is_diagnostics_provider_ready = new bool[1];
+		var detail_provider = Task.Run(() => ServiceNetworkListener.Listen(detail_provider_socket, is_detail_provider_ready, DetailProvider.Provide, DetailProvider.Reset));
+		var diagnostics_provider = Task.Run(() => ServiceNetworkListener.Listen(diagnostics_provider_socket, is_diagnostics_provider_ready, DiagnosticsProvider.Provide, DiagnosticsProvider.Reset));
 
-		// Send detail information on the current thread
-		ServiceNetworkListener.Listen(completions_socket, DetailProvider.Provide, DetailProvider.Reset);
+		// Wait for the providers to become ready
+		while (!is_detail_provider_ready[0] || !is_diagnostics_provider_ready[0]) {}
 
+		// Now, inform tell the client the ports of the providers after a quick delay
+		Thread.Sleep(500);
+
+		Console.WriteLine($"Ports: {detail_provider_end_point.Port}, {diagnostics_provider_end_point.Port}");
+		Task.WaitAll(diagnostics_provider, detail_provider);
 		return Status.OK;
 	}
 }

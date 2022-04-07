@@ -54,7 +54,7 @@ public static class ServiceNetworkListener
 		return new ServiceRequestInformation() { Id = id, Bytes = buffer };
 	}
 
-	public static void Listen(TcpListener listener, Action<IServiceResponse, DocumentRequest> receive, Action disconnect)
+	public static void Listen(TcpListener listener, bool[] listening, Action<IServiceResponse, DocumentRequest> receive, Action disconnect)
 	{
 		listener.Start();
 
@@ -64,14 +64,18 @@ public static class ServiceNetworkListener
 
 			try
 			{
-				Console.WriteLine("Waiting for client to connect...");
+				// Tell we are ready
+				listening[0] = true;
+
+				// Wait for the next connection
 				socket = listener.AcceptTcpClient();
 				socket.ReceiveBufferSize = 10000000;
-				Console.WriteLine("Connection established.");
+
+				Console.WriteLine("Connection established");
 			}
 			catch
 			{
-				continue;
+				continue; // Something went wrong, start over
 			}
 
 			var client = new ServiceNetworkClient(socket.Client, socket.GetStream());
@@ -126,12 +130,14 @@ public static class ServiceNetworkListener
 
 			try
 			{
-				disconnect();
+				disconnect(); // Notify about the disconnection
 			}
 			catch (Exception e)
 			{
 				Console.WriteLine("ERROR: Something went wrong while processing disconnection: " + e.ToString());
 			}
+
+			Console.WriteLine("Waiting for the next connection...");
 		}
 	}
 }
