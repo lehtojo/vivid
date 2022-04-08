@@ -109,7 +109,7 @@ public class DocumentParse
 
 public class ServicePhase : Phase
 {
-	private const bool DEBUG = true;
+	private const bool DEBUG = false;
 
 	public override Status Execute(Bundle bundle)
 	{
@@ -117,9 +117,6 @@ public class ServicePhase : Phase
 
 		var detail_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DetailProvider.DebugPort : 0);
 		var diagnostics_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DiagnosticsProvider.DebugPort : 0);
-
-		var detail_provider_end_point = (detail_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create compiler service socket");
-		var diagnostics_provider_end_point = (diagnostics_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Could not create compiler service socket");
 
 		var is_detail_provider_ready = new bool[1];
 		var is_diagnostics_provider_ready = new bool[1];
@@ -131,6 +128,9 @@ public class ServicePhase : Phase
 
 		// Now, inform tell the client the ports of the providers after a quick delay
 		Thread.Sleep(500);
+
+		var detail_provider_end_point = (detail_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Failed to determine socket port");
+		var diagnostics_provider_end_point = (diagnostics_provider_socket.LocalEndpoint as IPEndPoint) ?? throw new ApplicationException("Failed to determine socket port");
 
 		Console.WriteLine($"Ports: {detail_provider_end_point.Port}, {diagnostics_provider_end_point.Port}");
 		Task.WaitAll(diagnostics_provider, detail_provider);
