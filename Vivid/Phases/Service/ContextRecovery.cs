@@ -4,16 +4,21 @@ using System.Linq;
 public class ContextTypeRecovery
 {
 	public List<Type> Imports { get; }
+	public List<Type> Supertypes { get; }
 
 	public ContextTypeRecovery(Type from)
 	{
 		Imports = from.Imports.ToList();
+		Supertypes = from.Supertypes.ToList();
 	}
 
 	public void Recover(Type to)
 	{
 		to.Imports.Clear();
 		to.Imports.AddRange(Imports);
+
+		to.Supertypes.Clear();
+		to.Supertypes.AddRange(Supertypes);
 	}
 }
 
@@ -76,8 +81,48 @@ public class ContextRecovery
 		}
 	}
 
-	public void Recover(Context context)
+	/// <summary>
+	/// Removes all function overloads from the specified context that are not created in the specified file
+	/// </summary>
+	private void RemoveExternalFunctions(SourceFile file, Context context)
 	{
+		var external = new List<string>();
+
+		foreach (var iterator in context.Functions)
+		{
+			var function = iterator.Value;
+
+			// Remove all function overloads that created in another file
+			for (var i = function.Overloads.Count - 1; i >= 0; i--)
+			{
+				var position = function.Overloads[i].Start;
+				if (position == null || position.File == null || position.File.Fullname == file.Fullname) continue;
+
+				function.Overloads.RemoveAt(i);
+			}
+
+			if (function.Overloads.Any()) continue;
+
+			// Remove the function from the context, since it has no overloads in the specified file
+			external.Add(iterator.Key);
+		}
+
+		foreach (var key in external)
+		{
+			context.Functions.Remove(key);
+		}
+
+		// Remove external functions in the subcontexts as well
+		foreach (var subcontext in context.Subcontexts)
+		{
+			RemoveExternalFunctions(file, subcontext);
+		}
+	}
+
+	public void Recover(SourceFile file, Context context)
+	{
+		RemoveExternalFunctions(file, context);
+
 		var types = Common.GetAllTypes(context);
 		var functions = Common.GetAllVisibleFunctions(context);
 		var variables = Common.GetAllVariables(context);

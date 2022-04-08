@@ -13,12 +13,15 @@ public static class ProjectBuilder
 		var filter = files.Keys.First(i => i.Fullname == filename);
 
 		// Revert changes in all the source files
-		foreach (var parse in files.Values)
+		foreach (var iterator in files)
 		{
+			var file = iterator.Key;
+			var parse = iterator.Value;
+
 			if (parse.Recovery == null || parse.Context == null) continue;
 
 			// Revert changes in the parsed context
-			parse.Recovery.Recover(parse.Context);
+			parse.Recovery.Recover(file, parse.Context);
 		}
 
 		var root = (Node?)null;
@@ -40,7 +43,9 @@ public static class ProjectBuilder
 		context.Update();
 
 		// Applies all the extension functions
-		//ParserPhase.ApplyExtensionFunctions(context, root);
+		ParserPhase.ApplyExtensionFunctions(context, root);
+
+		// TODO: Shell validation
 
 		// Empty out all other function implementations other than the function filter
 		if (function_filter != null)
