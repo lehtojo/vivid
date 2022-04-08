@@ -31,7 +31,7 @@ public static class ProjectLoader
 	/// If the function succeeds, it adds the library import file to the specified source files and returns true.
 	/// Otherwise, nothing happens and false is returned.
 	/// </summary>
-	public static void LoadLibrary(Dictionary<SourceFile, DocumentParse> files, string library)
+	public static void LoadLibrary(Project project, string library)
 	{
 
 	}
@@ -39,41 +39,22 @@ public static class ProjectLoader
 	/// <summary>
 	/// Removes all the information from previous sessions and analyzes the files in the specified folder and in the standard library
 	/// </summary>
-	public static void OpenProject(Dictionary<SourceFile, DocumentParse> files, string folder)
+	public static void OpenProject(Project project, string folder)
 	{
 		// Remove all the files which were prepared previously
-		files.Clear();
+		project.Reset();
 
 		// Load the standard library by default
-		LoadLibrary(files, STANDARD_LIBRARY_FILENAME);
+		LoadLibrary(project, STANDARD_LIBRARY_FILENAME);
 
 		// Prepare the opened folder if it is not empty
-		if (!string.IsNullOrEmpty(folder)) LoadAndParseAll(files, folder);
+		if (!string.IsNullOrEmpty(folder)) LoadAll(project, folder);
 	}
 
 	/// <summary>
-	/// Loads the specified source file and creates tokens from its content
+	/// Loads the project from the specified folder
 	/// </summary>
-	public static void LoadSourceFile(Dictionary<SourceFile, DocumentParse> files, string filename)
-	{
-		var content = File.ReadAllText(filename).Replace(FilePhase.CARRIAGE_RETURN_CHARACTER, ' ').Replace(FilePhase.TAB_CHARACTER, ' ');
-
-		// Find the source file which has the same filename as the specified filename
-		var file = files.Keys.FirstOrDefault(i => i.Fullname == filename);
-		var index = file != null ? file.Index : files.Count;
-
-		if (file == null)
-		{
-			file = new SourceFile(filename, content, index);
-		}
-
-		files[file] = new DocumentParse(Lexer.GetTokens(content));
-	}
-
-	/// <summary>
-	/// Builds all the source files in the specified folder
-	/// </summary>
-	public static void LoadAndParseAll(Dictionary<SourceFile, DocumentParse> files, string folder)
+	public static void LoadAll(Project project, string folder)
 	{
 		var configuration = TryLoadProjectConfiguration(folder);
 		var source_files = (List<string>?)null;
@@ -94,12 +75,23 @@ public static class ProjectLoader
 			source_files = Directory.GetFiles(folder, $"*{ConfigurationPhase.VIVID_EXTENSION}", SearchOption.AllDirectories).ToList();
 		}
 
-		foreach (var source_file in source_files)
+		foreach (var path in source_files)
 		{
-			LoadSourceFile(files, source_file);
+			var document = File.ReadAllText(path).Replace(FilePhase.CARRIAGE_RETURN_CHARACTER, ' ').Replace(FilePhase.TAB_CHARACTER, ' ');
+			var file = project.GetSourceFile(path);
+			var parse = project.GetParse(file);
+
+			Parse(file, parse, document);
 		}
 
-		ParseAll(files);
+		foreach (var parse in project.Documents.Values)
+		{
+			var context = parse.Context;
+			var root = parse.Root;
+			if (context == null || root == null) continue;
+
+			Finalize(parse, context, root);
+		}
 	}
 
 	/// <summary>
@@ -120,105 +112,13 @@ public static class ProjectLoader
 	}
 
 	/// <summary>
-	/// Removes blueprints from all the functions inside the specified parse
+	/// Tokenizes and parses the specified document
 	/// </summary>
-	public static void RemoveFunctionBlueprints(DocumentParse parse)
+	public static void Parse(SourceFile file, DocumentParse parse, string document)
 	{
-		var functions = Common.GetAllVisibleFunctions(parse.Context!);
-
-		foreach (var function in functions)
-		{
-			function.Blueprint = new List<Token>();
-		}
-	}
-
-	public static void ResolveOld(SourceFile file, DocumentParse parse)
-	{
-		var root = parse.Root;
-		var context = parse.Context;
-
-		if (root == null || context == null) throw new ApplicationException("Missing root context and node");
-
-		// Parse all types
-		var types = root.FindAll(NodeType.TYPE);
-
-		foreach (var i in types)
-		{
-			i.To<TypeNode>().Parse();
-		}
-
-		// Parse all namespaces
-		var namespaces = root.FindAll(NodeType.NAMESPACE);
-
-		foreach (var i in namespaces)
-		{
-			i.To<NamespaceNode>().Parse(context);
-		}
-
-		ExtractFunctionBlueprints(parse);
-
-		// Create a context recovery for reverting changes in the context
-		parse.Recovery = new ContextRecovery(context);
-	}
-
-	/// <summary>
-	/// Prepare the specified file for building
-	/// </summary>
-	public static void ParseAll(Dictionary<SourceFile, DocumentParse> files)
-	{
-		foreach (var file in files.Keys.ToArray())
-		{
-			Parse(file, files[file]);
-		}
-
-		foreach (var file in files.Keys.ToArray())
-		{
-			ResolveOld(file, files[file]);
-		}
-	}
-
-	/// <summary>
-	/// Prepare the specified file for building
-	/// </summary>
-	public static void Parse(SourceFile file, DocumentParse parse)
-	{
-		var tokens = new List<Token>(parse.Tokens);
-
-		// Join the tokens now, because the 'source' list now contains the most accurate version of the document
-		Lexer.Join(tokens);
-		Lexer.RegisterFile(tokens, file);
-
-		// Parse the document
-		var context = Parser.CreateRootContext(file.Index);
-		var root = new ScopeNode(context, null, null, false);
-
-		Parser.Parse(root, context, tokens);
-
-		parse.Root = root;
-		parse.Context = context;
-	}
-
-	/// <summary>
-	/// Prepare the specified file for building.
-	/// If the specified parse was reused, tokens of the changed function are returned.
-	/// Otherwise, null is returned.
-	/// </summary>
-	public static List<Token>? Parse(SourceFile file, DocumentParse parse, string document)
-	{
-		// Store the previous document for comparison
-		var previous_document = parse.Document;
-
-		// Update the document
-		parse.Document = document;
-
-		// Try to reuse the existing parse by comparing the old and the new document
-		var tokens = TryReuseParse(file, parse, previous_document, document);
-
-		// If the parse was reused, return the tokens of the changed function
-		if (tokens != null) return tokens;
-
 		// Tokenize the document
-		tokens = Lexer.GetTokens(document);
+		var tokens = Lexer.GetTokens(document);
+
 		Lexer.Join(tokens);
 		Lexer.RegisterFile(tokens, file);
 
@@ -232,12 +132,12 @@ public static class ProjectLoader
 
 		parse.Root = root;
 		parse.Context = context;
-		return null;
 	}
 
-	/// -------------------------------------------------------------------------------------
-
-	public static void Resolve(DocumentParse parse, Context context, Node root)
+	/// <summary>
+	/// Finalizes the specified parse by parsing types and namespaces and then generating a context recovery and extracting function blueprints.
+	/// </summary>
+	public static void Finalize(DocumentParse parse, Context context, Node root)
 	{
 		// Parse all types
 		var types = root.FindAll(NodeType.TYPE);
@@ -259,36 +159,6 @@ public static class ProjectLoader
 
 		// Create a context recovery for reverting changes in the context
 		parse.Recovery = new ContextRecovery(context);
-	}
-
-	/// <summary>
-	/// Tries to find the function that contains all the changes in the specified document and updates its blueprint.
-	/// This function returns if the described process is successful.
-	/// </summary>
-	public static List<Token>? TryReuseParse(SourceFile file, DocumentParse parse, string previous_document, string current_document)
-	{
-		/// TODO: Look into this
-		/// NOTE: Disable reusing for now, because the method down below does not adjust positions of shifted code, which can cause problems
-		return null;
-
-		// Get the changed line range between the old and the new document
-		var result = CursorInformationProvider.GetChangedLineRange(previous_document, current_document);
-		if (result == null) return null;
-
-		var changes = result.Value;
-
-		// Try to find the function, which contains the changed lines
-		var changed_function = CursorInformationProvider.FindChangedFunction(changes, parse);
-		if (changed_function == null) return null;
-
-		// Get the tokens of the changed function
-		var changed_tokens = CursorInformationProvider.GetChangedFunctionTokens(file, changes, changed_function);
-		if (changed_tokens == null) return null;
-
-		// Replace the tokens of the changed function with the new tokens
-		parse.Blueprints[changed_function] = changed_tokens;
-
-		return changed_tokens;
 	}
 
 	/// <summary>
@@ -298,40 +168,12 @@ public static class ProjectLoader
 	/// </summary>
 	public static List<Token> Update(SourceFile file, DocumentParse parse, string document)
 	{
-		// Store the previous document for comparison
-		var previous_document = parse.Document;
-
 		// Update the document
 		parse.Document = document;
 
-		// Try to reuse the existing parse by comparing the old and the new document
-		var tokens = TryReuseParse(file, parse, previous_document, document);
+		Parse(file, parse, document);
+		Finalize(parse, parse.Context!, parse.Root!);
 
-		// If the parse was reused, return the tokens of the changed function
-		if (tokens != null)
-		{
-			Console.WriteLine("Reused");
-			RemoveFunctionBlueprints(parse);
-			return tokens;
-		}
-
-		// Tokenize the document
-		tokens = Lexer.GetTokens(document);
-		Lexer.Join(tokens);
-		Lexer.RegisterFile(tokens, file);
-
-		parse.Tokens = new List<Token>(tokens);
-
-		// Parse the document
-		var context = Parser.CreateRootContext(file.Index);
-		var root = new ScopeNode(context, null, null, false);
-
-		Parser.Parse(root, context, tokens);
-
-		parse.Root = root;
-		parse.Context = context;
-
-		Resolve(parse, context, root);
 		return parse.Tokens;
 	}
 }

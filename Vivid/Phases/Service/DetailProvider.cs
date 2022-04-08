@@ -13,7 +13,7 @@ public static class DetailProvider
 		var folder = ServiceUtility.ToPath(request.Uri);
 		Console.WriteLine($"Opening project folder '{folder}'");
 
-		ProjectLoader.OpenProject(Project.Documents, folder);
+		ProjectLoader.OpenProject(Project, folder);
 		response.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
 
 		Console.WriteLine($"Opening took {(DateTime.Now - start).TotalMilliseconds} ms");
@@ -47,10 +47,10 @@ public static class DetailProvider
 		{
 			HoverProvider.Provide(Project, response, request);
 		}
-		// else if (request.Type == DocumentRequestType.FIND_REFERENCES)
-		// {
-		// 	ReferenceProvider.Provide(Files, response, request);
-		// }
+		else if (request.Type == DocumentRequestType.FIND_REFERENCES)
+		{
+			ReferenceProvider.Provide(Project, response, request);
+		}
 		else if (request.Type == DocumentRequestType.WORKSPACE_SYMBOLS)
 		{
 			WorkspaceSymbolProvider.Provide(Project, response, request);

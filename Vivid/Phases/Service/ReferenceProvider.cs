@@ -23,46 +23,27 @@ public static class ReferenceProvider
 	/// Loads the specified files while taking into account the cursor specified in the request.
 	/// Returns the function, which contains the cursor specified in the request.
 	/// </summary>
-	public static Function? Load(Dictionary<SourceFile, DocumentParse> files, DocumentRequest request)
+	public static Function? UpdateAndMark(Project project, DocumentRequest request)
 	{
-		var path = ServiceUtility.ToPath(request.Uri);
 		var document = request.Document;
+		var file = project.GetSourceFile(request.Uri);
+		var parse = project.GetParse(file);
 
-		// Tokenize the document
-		var tokens = Lexer.GetTokens(document, false);
-		var source = new List<Token>(tokens);
+		var changed = project.Update(request.Uri, document);
 
-		// Join the tokens now, because the 'source' list now contains the most accurate version of the document
-		Lexer.Join(tokens);
-
-		if (!MarkCursorToken(request, tokens)) return null;
-
-		// Find the source file which has the same filename as the specified filename
-		var file = files.Keys.FirstOrDefault(i => i.Fullname == path);
-		var index = file != null ? file.Index : files.Count;
-
-		if (file == null)
-		{
-			file = new SourceFile(path, document, index);
-		}
-
-		files[file] = new DocumentParse(tokens);
-
-		ProjectLoader.Parse(file, files[file]);
-		ProjectLoader.ResolveOld(file, files[file]);
+		if (!MarkCursorToken(request, changed)) return null;
 
 		// Find the function that contains the cursor
-		var cursor_function = CursorInformationProvider.FindCursorFunction(files[file]);
-		return cursor_function;
+		return CursorInformationProvider.FindCursorFunction(parse);
 	}
 
 	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
-	public static void Provide(Dictionary<SourceFile, DocumentParse> files, IServiceResponse response, DocumentRequest request)
+	public static void Provide(Project project,IServiceResponse response, DocumentRequest request)
 	{
 		var filename = ServiceUtility.ToPath(request.Uri);
-		var cursor_function = Load(files, request);
+		var cursor_function = UpdateAndMark(project, request);
 
 		// If no function contains the cursor, send an error
 		if (cursor_function == null)
@@ -72,7 +53,7 @@ public static class ReferenceProvider
 		}
 
 		// Finally, build the document
-		var parse = ProjectBuilder.Build(files, filename, true, cursor_function);
+		var parse = ProjectBuilder.Build(project.Documents, filename, false, cursor_function);
 
 		// Find the cursor
 		var cursor = CursorInformationProvider.FindCursorNode(cursor_function);

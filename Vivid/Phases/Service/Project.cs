@@ -59,4 +59,11 @@ public class Project
 	{
 		return Update(ServiceUtility.ToPath(uri), document);
 	}
+
+	public void Reset()
+	{
+		Files.Clear();
+		Documents.Clear();
+		FileId = 0;
+	}
 }

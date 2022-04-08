@@ -46,7 +46,7 @@ public static class DiagnosticsProvider
 		var folder = ServiceUtility.ToPath(request.Uri);
 		Console.WriteLine($"Opening project folder '{folder}'");
 
-		ProjectLoader.OpenProject(Project.Documents, folder);
+		ProjectLoader.OpenProject(Project, folder);
 		response.SendStatusCode(request.Uri, DocumentResponseStatus.OK);
 
 		Console.WriteLine($"Opening took {(DateTime.Now - start).TotalMilliseconds} ms");
