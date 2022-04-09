@@ -290,7 +290,7 @@ public static class CompletionProvider
 			items.AddRange(GetCompletionItems(cursor.GetParentContext()));
 		}
 
-		var completions = items.OrderBy(i => i.Identifier).ToArray();
+		var completions = items.DistinctBy(i => $"{i.Identifier}, {i.Type}").OrderBy(i => i.Identifier).ToArray();
 
 		response.SendResponse(request.Uri, DocumentResponseStatus.OK, completions);
 	}
