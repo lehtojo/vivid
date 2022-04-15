@@ -12,7 +12,7 @@ public class AssemblyParser
 	public const string QWORD_SPECIFIER = "qword";
 	public const string XWORD_SPECIFIER = "xword";
 	public const string OWORD_SPECIFIER = "yword";
-	public const string SECTION_OFFSET_SPECIFIER = "section_offset";
+	public const string SECTION_RELATIVE_SPECIFIER = "section_relative";
 
 	public const string ALIGN_DIRECTIVE = "align";
 	public const string EXPORT_DIRECTIVE = "export";
@@ -116,7 +116,7 @@ public class AssemblyParser
 		{
 			DWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE32,
 			QWORD_SPECIFIER => BinaryRelocationType.ABSOLUTE64,
-			SECTION_OFFSET_SPECIFIER => BinaryRelocationType.SECTION_RELATIVE_32,
+			SECTION_RELATIVE_SPECIFIER => BinaryRelocationType.SECTION_RELATIVE_32,
 			_ => BinaryRelocationType.ABSOLUTE64,
 		};
 

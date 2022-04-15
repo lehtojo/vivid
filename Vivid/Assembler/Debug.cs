@@ -597,7 +597,7 @@ public class Debug
 
 	public static bool IsPointerType(Type type)
 	{
-		return !type.IsPrimitive;
+		return !type.IsPrimitive && !type.IsPack;
 	}
 
 	public void AddMemberVariable(Variable variable, HashSet<Type> types)

@@ -148,7 +148,7 @@ public static class Assembler
 	public static bool IsVerboseOutputEnabled { get; set; } = false;
 
 	public static string SectionDirective { get; set; } = ".section";
-	public static string SectionRelativeDirective { get; set; } = "?";
+	public static string SectionRelativeDirective { get; set; } = ".section_relative";
 	public static string ExportDirective { get; set; } = ".export";
 	public static string TextSectionIdentifier { get; set; } = "text";
 	public static string DataSectionIdentifier { get; set; } = "data";

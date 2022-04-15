@@ -695,6 +695,11 @@ public class ResolverPhase : Phase
 			Resolver.ResolveContext(context);
 			report = GetReport(context, parse.Node);
 
+			if (Assembler.IsVerboseOutputEnabled)
+			{
+				Console.WriteLine("Resolving " + report.Length + " issues...");
+			}
+
 			// Try again only if the errors have changed
 			if (report != previous) continue;
 			if (evaluated) break;
@@ -709,6 +714,11 @@ public class ResolverPhase : Phase
 			Console.Error.WriteLine(report);
 
 			return Status.Error("Compilation error");
+		}
+
+		if (Assembler.IsVerboseOutputEnabled)
+		{
+			Console.WriteLine("Resolved");
 		}
 
 		// Finds objects whose values should be evaluated or finalized

@@ -180,7 +180,7 @@ public class Type : Context
 		Declare(destructor);
 	}
 
-	public Type(Context context, string name, int modifiers, Position? position) : base(name)
+	public Type(Context context, string name, int modifiers, Position? position) : base(context)
 	{
 		Name = name;
 		Identifier = Name;
@@ -191,11 +191,10 @@ public class Type : Context
 		AddConstructor(Constructor.Empty(this, position, position));
 		AddDestructor(Destructor.Empty(this, position, position));
 
-		Connect(context);
 		context.Declare(this);
 	}
 
-	public Type(Context context, string name, int modifiers) : base(name)
+	public Type(Context context, string name, int modifiers) : base(context)
 	{
 		Name = name;
 		Identifier = Name;
