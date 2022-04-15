@@ -179,6 +179,17 @@ export is_alphabet(value: char) {
 	=> (value >= `a` and value <= `z`) or (value >= `A` and value <= `Z`)
 }
 
+# Summary: Returns the index of the first occurance of the specified character in the specified text
+export index_of(text: link, character: char) {
+	length = length_of(text)
+
+	loop (i = 0, i < length, i++) {
+		if text[i] == character => i
+	}
+
+	=> -1
+}
+
 export String {
 	static empty: String
 

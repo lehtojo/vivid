@@ -514,9 +514,7 @@ export outline deallocate(address: link) {
 	internal.deallocate(address, bytes)
 }
 
-outline allocate<T>(count: large) {
-	=> allocate(count * sizeof(T)) as link<T>
-}
+outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_FULLNAME_END = 1

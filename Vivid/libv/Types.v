@@ -4,14 +4,11 @@ TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET = 2
 TYPE_DESCRIPTOR_SUPERTYPES_FIRST = 3
 
 export TypeDescriptor {
-	private:
-	address: link
+	private address: link
 
-	get_supertype_count() {
+	private get_supertype_count() {
 		=> address[TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET] as normal
 	}
-
-	public:
 
 	init(address: link) {
 		this.address = (address as link<link<link<large>>>)[0][0]

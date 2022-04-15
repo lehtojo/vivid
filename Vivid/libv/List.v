@@ -1,9 +1,7 @@
 export List<T> {
-	private:
-	capacity: large
-	position: large
+	private capacity: large
+	private position: large
 
-	public:
 	readonly elements: link<T>
 
 	# Summary: Creates a list with the specified initial size
@@ -166,7 +164,7 @@ export List<T> {
 	# Summary: Removes the specified range from this list
 	remove_range(start: large, end: large) {
 		require(start >= 0 and start <= end, 'Invalid removal start index')
-		require(end >= 0 and end < position, 'Invalid removal end index')
+		require(end >= 0 and end <= position, 'Invalid removal end index')
 
 		count = end - start
 		if count == 0 return
@@ -299,6 +297,10 @@ export List<T> {
 
 	# Summary: Removes all the elements from this list
 	clear() {
+		deallocate(elements)
+
+		elements = allocate(sizeof(T))
+		capacity = 1
 		position = 0
 	}
 

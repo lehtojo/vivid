@@ -1,5 +1,6 @@
 namespace internal.allocator {
-	constant MAX_ALLOCATORS = 100000
+	constant ESTIMATED_MAX_ALLOCATORS = 100000
+	constant ALLOCATOR_SORT_INTERVAL = 10000
 
 	s16: Allocators<SlabAllocator<byte[16]>, byte[16]>
 	s32: Allocators<SlabAllocator<byte[32]>, byte[32]>
@@ -109,30 +110,63 @@ namespace internal.allocator {
 	}
 
 	export plain Allocators<T, S> {
-		allocators: link
+		allocations: u64 = 0
+		allocators: link<T>
+		deallocators: link<T>
 		size: large = 0
+		capacity: large = ESTIMATED_MAX_ALLOCATORS
 		slabs: normal
 
 		init(slabs: normal) {
-			this.allocators = internal.allocate(MAX_ALLOCATORS * capacityof(T))
+			this.allocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * sizeof(T))
+			this.deallocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * sizeof(T))
 			this.slabs = slabs
 		}
 
-		add() {
-			require(size < MAX_ALLOCATORS, 'Allocator limit reached')
+		sort_allocators() {
+			sort<T>(allocators, size, (a: T, b: T) -> a.used - b.used)
+		}
 
+		add() {
+			if size >= capacity {
+				# Allocate new allocator and deallocator lists
+				new_capacity = size * 2
+				new_allocators = internal.allocate(new_capacity * sizeof(T))
+				new_deallocators = internal.allocate(new_capacity * sizeof(T))
+
+				# Copy the contents of the old allocator and deallocator lists to the new ones
+				copy(allocators, size * sizeof(T), new_allocators)
+				copy(deallocators, size * sizeof(T), new_deallocators)
+
+				# Deallocate the old allocator and deallocator lists
+				internal.deallocate(allocators, capacity * sizeof(T))
+				internal.deallocate(deallocators, capacity * sizeof(T))
+
+				capacity = new_capacity
+				allocators = new_allocators
+				deallocators = new_deallocators
+			}
+
+			# Create a new allocator with its own memory
 			memory = internal.allocate(slabs * capacityof(S))
 
-			allocator = (allocators + size * capacityof(T)) as T
+			allocator = internal.allocate(capacityof(T)) as T
 			allocator.init(memory, slabs)
+
+			# Add the new allocator
+			allocators[size] = allocator
+			deallocators[size] = allocator
 
 			size++
 			=> allocator
 		}
 
 		allocate() {
+			# Sort the allocators from time to time
+			if (++allocations) % ALLOCATOR_SORT_INTERVAL == 0 sort_allocators()
+
 			loop (i = 0, i < size, i++) {
-				allocator = (allocators + i * capacityof(T)) as T
+				allocator = allocators[i]
 				result = allocator.allocate()
 
 				if result != none => result
@@ -141,22 +175,36 @@ namespace internal.allocator {
 			=> add().allocate()
 		}
 
+		remove(deallocator: T, i: large) {
+			deallocator.dispose()
+
+			# Remove deallocator from the list
+			copy(deallocators + (i + 1) * sizeof(T), (size - i - 1) * sizeof(T), deallocators + i * sizeof(T))
+			zero(deallocators + (size - 1) * sizeof(T), sizeof(T))
+
+			# Find the corresponding allocator from the allocator list linearly, because we can not assume the list is sorted in any way
+			loop (j = 0, j < size, j++) {
+				if allocators[j] != deallocator continue
+
+				# Remove allocator from the list
+				copy(allocators + (j + 1) * sizeof(T), (size - j - 1) * sizeof(T), allocators + j * sizeof(T))
+				zero(allocators + (size - 1) * sizeof(T), sizeof(T))
+				stop
+			}
+
+			size--
+		}
+
 		deallocate(address: link) {
 			loop (i = 0, i < size, i++) {
-				allocator = (allocators + i * capacityof(T)) as T
-				if address < allocator.start or address >= allocator.end continue
+				deallocator = deallocators[i]
+				if address < deallocator.start or address >= deallocator.end continue
 
-				allocator.deallocate(address)
+				deallocator.deallocate(address)
 
 				# Deallocate the allocator if it is empty and is used long enough
-				if allocator.allocations > slabs / 2 and allocator.used == 0 {
-					allocator.dispose()
-
-					# Move all allocators one to the left after the current allocator
-					copy(allocators + (i + 1) * capacityof(T), (size - i - 1) * capacityof(T), allocators + i * capacityof(T))
-					zero(allocators + (size - 1) * capacityof(T), capacityof(T))
-
-					size--
+				if deallocator.allocations > slabs / 2 and deallocator.used == 0 {
+					remove(deallocator, i)
 				}
 
 				=> true
@@ -175,13 +223,13 @@ namespace internal.allocator {
 		s512 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[512]>, byte[512]>)) as Allocators<SlabAllocator<byte[512]>, byte[512]>
 		s1024 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[1024]>, byte[1024]>)) as Allocators<SlabAllocator<byte[1024]>, byte[1024]>
 
-		s16.init(1000000)
-		s32.init(1000000 / 2)
-		s64.init(1000000 / 4)
-		s128.init(1000000 / 8)
-		s256.init(1000000 / 16)
-		s512.init(1000000 / 32)
-		s1024.init(1000000 / 64)
+		s16.init(5000000)
+		s32.init(5000000 / 2)
+		s64.init(5000000 / 4)
+		s128.init(5000000 / 8)
+		s256.init(5000000 / 16)
+		s512.init(5000000 / 32)
+		s1024.init(5000000 / 64)
 	}
 }
 

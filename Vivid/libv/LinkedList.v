@@ -8,11 +8,8 @@ export LinkedListElement<T> {
 }
 
 export LinkedList<T> {
-	private:
-	head: LinkedListElement<T> = none as LinkedListElement<T>
-	tail: LinkedListElement<T> = none as LinkedListElement<T>
-
-	public:
+	private head: LinkedListElement<T> = none as LinkedListElement<T>
+	private tail: LinkedListElement<T> = none as LinkedListElement<T>
 
 	add(value: T) {
 		element = LinkedListElement<T>(value)

@@ -1,8 +1,6 @@
 export Set<T> {
-	private:
-	inline container: List<T>
+	private inline container: List<T>
 
-	public:
 	# Summary: Creates a list with the specified initial size
 	init(size: large, fill: bool) {
 		container.init(size, fill)

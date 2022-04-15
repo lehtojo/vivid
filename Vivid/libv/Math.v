@@ -45,11 +45,10 @@ export cbrt(a: decimal) {
 }
 
 Random {
-	static:
-	a: large
-	b: large
-	c: large
-	n: large
+	static a: large
+	static b: large
+	static c: large
+	static n: large
 }
 
 # Summary: Return a random integer number

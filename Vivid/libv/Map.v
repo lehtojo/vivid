@@ -12,15 +12,13 @@ MAX_SLOT_OFFSET = 20
 MAX_LEVEL_SIZE = 20
 
 export Map<K, V> {
-	private:
-	values: link<V>
-	keys: link<K>
-	states: link<bool>
-	items: List<KeyValuePair<K, V>> = List<KeyValuePair<K, V>>()
-	ground: normal
-	levels: normal = 1
+	private values: link<V>
+	private keys: link<K>
+	private states: link<bool>
+	private items: List<KeyValuePair<K, V>> = List<KeyValuePair<K, V>>()
+	private ground: normal
+	private levels: normal = 1
 
-	public:
 	init(ground: tiny) {
 		count = 1 <| ground
 		values_size = count * sizeof(V)
