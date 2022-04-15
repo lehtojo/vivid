@@ -47,7 +47,9 @@ outline deallocate(address: link) {
 	zero(address - sizeof(normal), bytes + sizeof(normal) * 2)
 }
 
-outline allocate<T>(count: large) => allocate(count * sizeof(T)) as link<T>
+outline allocate<T>(count: large) {
+	=> allocate(count * sizeof(T)) as link<T>
+}
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_FULLNAME_END = 1
