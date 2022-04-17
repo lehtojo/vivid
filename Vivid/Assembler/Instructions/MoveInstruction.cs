@@ -39,6 +39,8 @@ public class MoveInstruction : DualParameterInstruction
 			Conditionals.Add(Operators.LESS_OR_EQUAL, new[] { "le" });
 			Conditionals.Add(Operators.EQUALS, new[] { "eq" });
 			Conditionals.Add(Operators.NOT_EQUALS, new[] { "ne" });
+			Conditionals.Add(Operators.ABSOLUTE_EQUALS, new[] { "eq" });
+			Conditionals.Add(Operators.ABSOLUTE_NOT_EQUALS, new[] { "ne" });
 			return;
 		}
 
@@ -48,6 +50,8 @@ public class MoveInstruction : DualParameterInstruction
 		Conditionals.Add(Operators.LESS_OR_EQUAL, new[] { Instructions.X64.CONDITIONAL_MOVE_LESS_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_MOVE_BELOW_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_LESS_THAN_OR_EQUALS, Instructions.X64.CONDITIONAL_SET_BELOW_OR_EQUALS });
 		Conditionals.Add(Operators.EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_EQUALS, Instructions.X64.CONDITIONAL_MOVE_ZERO, Instructions.X64.CONDITIONAL_SET_EQUALS, Instructions.X64.CONDITIONAL_SET_ZERO });
 		Conditionals.Add(Operators.NOT_EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS, Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO, Instructions.X64.CONDITIONAL_SET_NOT_EQUALS, Instructions.X64.CONDITIONAL_SET_NOT_ZERO });
+		Conditionals.Add(Operators.ABSOLUTE_EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_EQUALS, Instructions.X64.CONDITIONAL_MOVE_ZERO, Instructions.X64.CONDITIONAL_SET_EQUALS, Instructions.X64.CONDITIONAL_SET_ZERO });
+		Conditionals.Add(Operators.ABSOLUTE_NOT_EQUALS, new[] { Instructions.X64.CONDITIONAL_MOVE_NOT_EQUALS, Instructions.X64.CONDITIONAL_MOVE_NOT_ZERO, Instructions.X64.CONDITIONAL_SET_NOT_EQUALS, Instructions.X64.CONDITIONAL_SET_NOT_ZERO });
 	}
 
 	private MoveType _Type = MoveType.COPY;

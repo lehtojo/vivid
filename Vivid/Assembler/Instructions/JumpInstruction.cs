@@ -15,21 +15,25 @@ public class JumpInstruction : Instruction
 
 		if (Assembler.IsArm64)
 		{
-			Jumps.Add(Operators.GREATER_THAN,     new[] { Instructions.Arm64.JUMP_GREATER_THAN,           Instructions.Arm64.JUMP_GREATER_THAN });
-			Jumps.Add(Operators.GREATER_OR_EQUAL, new[] { Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS, Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
-			Jumps.Add(Operators.LESS_THAN,        new[] { Instructions.Arm64.JUMP_LESS_THAN,              Instructions.Arm64.JUMP_LESS_THAN });
-			Jumps.Add(Operators.LESS_OR_EQUAL,    new[] { Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS,    Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS });
-			Jumps.Add(Operators.EQUALS,           new[] { Instructions.Arm64.JUMP_EQUALS,                 Instructions.Arm64.JUMP_EQUALS });
-			Jumps.Add(Operators.NOT_EQUALS,       new[] { Instructions.Arm64.JUMP_NOT_EQUALS,             Instructions.Arm64.JUMP_NOT_EQUALS });
+			Jumps.Add(Operators.GREATER_THAN,        new[] { Instructions.Arm64.JUMP_GREATER_THAN,           Instructions.Arm64.JUMP_GREATER_THAN });
+			Jumps.Add(Operators.GREATER_OR_EQUAL,    new[] { Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS, Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
+			Jumps.Add(Operators.LESS_THAN,           new[] { Instructions.Arm64.JUMP_LESS_THAN,              Instructions.Arm64.JUMP_LESS_THAN });
+			Jumps.Add(Operators.LESS_OR_EQUAL,       new[] { Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS,    Instructions.Arm64.JUMP_LESS_THAN_OR_EQUALS });
+			Jumps.Add(Operators.EQUALS,              new[] { Instructions.Arm64.JUMP_EQUALS,                 Instructions.Arm64.JUMP_EQUALS });
+			Jumps.Add(Operators.NOT_EQUALS,          new[] { Instructions.Arm64.JUMP_NOT_EQUALS,             Instructions.Arm64.JUMP_NOT_EQUALS });
+			Jumps.Add(Operators.ABSOLUTE_EQUALS,     new[] { Instructions.Arm64.JUMP_EQUALS,                 Instructions.Arm64.JUMP_EQUALS });
+			Jumps.Add(Operators.ABSOLUTE_NOT_EQUALS, new[] { Instructions.Arm64.JUMP_NOT_EQUALS,             Instructions.Arm64.JUMP_NOT_EQUALS });
 			return;
 		}
 
-		Jumps.Add(Operators.GREATER_THAN,     new[] { Instructions.X64.JUMP_GREATER_THAN,           Instructions.X64.JUMP_ABOVE });
-		Jumps.Add(Operators.GREATER_OR_EQUAL, new[] { Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS, Instructions.X64.JUMP_ABOVE_OR_EQUALS });
-		Jumps.Add(Operators.LESS_THAN,        new[] { Instructions.X64.JUMP_LESS_THAN,              Instructions.X64.JUMP_BELOW });
-		Jumps.Add(Operators.LESS_OR_EQUAL,    new[] { Instructions.X64.JUMP_LESS_THAN_OR_EQUALS,    Instructions.X64.JUMP_BELOW_OR_EQUALS });
-		Jumps.Add(Operators.EQUALS,           new[] { Instructions.X64.JUMP_EQUALS,                 Instructions.X64.JUMP_ZERO });
-		Jumps.Add(Operators.NOT_EQUALS,       new[] { Instructions.X64.JUMP_NOT_EQUALS,             Instructions.X64.JUMP_NOT_ZERO });
+		Jumps.Add(Operators.GREATER_THAN,        new[] { Instructions.X64.JUMP_GREATER_THAN,           Instructions.X64.JUMP_ABOVE });
+		Jumps.Add(Operators.GREATER_OR_EQUAL,    new[] { Instructions.X64.JUMP_GREATER_THAN_OR_EQUALS, Instructions.X64.JUMP_ABOVE_OR_EQUALS });
+		Jumps.Add(Operators.LESS_THAN,           new[] { Instructions.X64.JUMP_LESS_THAN,              Instructions.X64.JUMP_BELOW });
+		Jumps.Add(Operators.LESS_OR_EQUAL,       new[] { Instructions.X64.JUMP_LESS_THAN_OR_EQUALS,    Instructions.X64.JUMP_BELOW_OR_EQUALS });
+		Jumps.Add(Operators.EQUALS,              new[] { Instructions.X64.JUMP_EQUALS,                 Instructions.X64.JUMP_ZERO });
+		Jumps.Add(Operators.NOT_EQUALS,          new[] { Instructions.X64.JUMP_NOT_EQUALS,             Instructions.X64.JUMP_NOT_ZERO });
+		Jumps.Add(Operators.ABSOLUTE_EQUALS,     new[] { Instructions.X64.JUMP_EQUALS,                 Instructions.X64.JUMP_ZERO });
+		Jumps.Add(Operators.ABSOLUTE_NOT_EQUALS, new[] { Instructions.X64.JUMP_NOT_EQUALS,             Instructions.X64.JUMP_NOT_ZERO });
 	}
 
 	public Label Label { get; set; }

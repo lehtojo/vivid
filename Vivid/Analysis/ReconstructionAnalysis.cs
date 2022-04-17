@@ -1702,7 +1702,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void RewritePackComparisons(Node root)
 	{
-		var comparisons = root.FindAll(NodeType.OPERATOR).Where(i => i.Is(Operators.EQUALS) || i.Is(Operators.NOT_EQUALS)).ToList();
+		var comparisons = root.FindAll(NodeType.OPERATOR).Where(i => i.Is(Operators.EQUALS) || i.Is(Operators.ABSOLUTE_EQUALS) || i.Is(Operators.NOT_EQUALS) || i.Is(Operators.ABSOLUTE_NOT_EQUALS)).ToList();
 
 		foreach (var comparison in comparisons)
 		{
@@ -1715,18 +1715,20 @@ public static class ReconstructionAnalysis
 			var left_members = CreatePackMemberAccessors(comparison.Left, left_type, comparison.Left.Position!);
 			var right_members = CreatePackMemberAccessors(comparison.Right, right_type, comparison.Right.Position!);
 
+			var comparison_operator = comparison.To<OperatorNode>().Operator;
+
 			// Rewrite the comparison as follows:
-			if (comparison.Is(Operators.EQUALS))
+			if (comparison_operator == Operators.EQUALS || comparison_operator == Operators.ABSOLUTE_EQUALS)
 			{
 				// Equals: a == b => a.a == b.a && a.b == b.b && ...
-				var result = new OperatorNode(Operators.EQUALS).SetOperands(left_members[0], right_members[0]);
+				var result = new OperatorNode(comparison_operator).SetOperands(left_members[0], right_members[0]);
 
 				for (var i = 1; i < left_members.Count; i++)
 				{
 					var left = left_members[i];
 					var right = right_members[i];
 
-					result = new OperatorNode(Operators.AND).SetOperands(result, new OperatorNode(Operators.EQUALS).SetOperands(left, right));
+					result = new OperatorNode(Operators.AND).SetOperands(result, new OperatorNode(comparison_operator).SetOperands(left, right));
 				}
 
 				comparison.Replace(result);
@@ -1734,14 +1736,14 @@ public static class ReconstructionAnalysis
 			else
 			{
 				// Not equals: a != b => a.a != b.a || a.b != b.b || ...
-				var result = new OperatorNode(Operators.NOT_EQUALS).SetOperands(left_members[0], right_members[0]);
+				var result = new OperatorNode(comparison_operator).SetOperands(left_members[0], right_members[0]);
 
 				for (var i = 1; i < left_members.Count; i++)
 				{
 					var left = left_members[i];
 					var right = right_members[i];
 
-					result = new OperatorNode(Operators.OR).SetOperands(result, new OperatorNode(Operators.NOT_EQUALS).SetOperands(left, right));
+					result = new OperatorNode(Operators.OR).SetOperands(result, new OperatorNode(comparison_operator).SetOperands(left, right));
 				}
 
 				comparison.Replace(result);

@@ -23,6 +23,8 @@ public static class Operators
 
 	public static readonly ComparisonOperator EQUALS = new("==", 8);
 	public static readonly ComparisonOperator NOT_EQUALS = new("!=", 8);
+	public static readonly ComparisonOperator ABSOLUTE_EQUALS = new("===", 8);
+	public static readonly ComparisonOperator ABSOLUTE_NOT_EQUALS = new("!==", 8);
 
 	public static readonly ClassicOperator BITWISE_AND = new("&", 7);
 	public static readonly ClassicOperator BITWISE_XOR = new("¤", 6);
@@ -96,6 +98,8 @@ public static class Operators
 		Add(LESS_OR_EQUAL.SetCounterpart(GREATER_THAN));
 		Add(EQUALS.SetCounterpart(NOT_EQUALS));
 		Add(NOT_EQUALS.SetCounterpart(EQUALS));
+		Add(ABSOLUTE_EQUALS.SetCounterpart(ABSOLUTE_NOT_EQUALS));
+		Add(ABSOLUTE_NOT_EQUALS.SetCounterpart(ABSOLUTE_EQUALS));
 
 		Add(BITWISE_AND);
 		Add(BITWISE_XOR);
