@@ -821,17 +821,19 @@ public class Debug
 
 	public void AddLocalVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
-		if (variable.IsGenerated || variable.LocalAlignment == null || variable.Type is ArrayType) return;
+		// Do not add generated variables
+		if (variable.IsGenerated || variable.Type is ArrayType) return;
 
-		var is_string = IsStringType(variable);
+		// Before adding the local variable, it must have a stack alignment
+		var alignment = variable.LocalAlignment;
+		if (alignment == null) return;
 
 		Information.Add(LocalVariableAbbrevation); // DW_TAG_variable
 		
 		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
-		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Local variable was not aligned");
-		var local_variable_alignment = ToSLEB128(local_memory_size + (int)variable.LocalAlignment!);
+		var local_variable_alignment = ToSLEB128(local_memory_size + (int)alignment);
 
-		if (is_string)
+		if (IsStringType(variable))
 		{
 			// Get the member variable which points to the actual data in the string type
 			var data = type.GetVariable(STRING_TYPE_DATA_VARIABLE) ?? throw new ApplicationException("Missing string data variable");
@@ -839,7 +841,7 @@ public class Debug
 			alignment = data.LocalAlignment ?? throw new ApplicationException("Member variable was not aligned");
 			type = data.Type ?? throw new ApplicationException("Missing variable type");
 
-			var data_variable_alignment = ToSLEB128(alignment);
+			var data_variable_alignment = ToSLEB128((int)alignment);
 
 			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
 
@@ -860,17 +862,19 @@ public class Debug
 
 	public void AddParameterVariable(Variable variable, HashSet<Type> types, int file, int local_memory_size)
 	{
-		if (variable.IsGenerated || variable.LocalAlignment == null) return;
+		// Do not add generated variables
+		if (variable.IsGenerated || variable.Type is ArrayType) return;
 
-		var is_string = IsStringType(variable);
+		// Before adding the local variable, it must have a stack alignment
+		var alignment = variable.LocalAlignment;
+		if (alignment == null) return;
 
 		Information.Add(ParameterVariableAbbrevation); // DW_TAG_variable
 		
 		var type = variable.Type ?? throw new ApplicationException("Missing variable type");
-		var alignment = variable.LocalAlignment ?? throw new ApplicationException("Parameter variable was not aligned");
-		var parameter_alignment = ToSLEB128(local_memory_size + (int)variable.LocalAlignment!);
+		var parameter_alignment = ToSLEB128(local_memory_size + (int)alignment);
 
-		if (is_string)
+		if (IsStringType(variable))
 		{
 			// Get the member variable which points to the actual data in the string type
 			var data = type.GetVariable(STRING_TYPE_DATA_VARIABLE) ?? throw new ApplicationException("Missing string data variable");
@@ -878,7 +882,7 @@ public class Debug
 			alignment = data.LocalAlignment ?? throw new ApplicationException("Member variable was not aligned");
 			type = data.Type ?? throw new ApplicationException("Missing variable type");
 
-			var data_variable_alignment = ToSLEB128(alignment);
+			var data_variable_alignment = ToSLEB128((int)alignment);
 
 			if (data_variable_alignment.Length != 1) throw new ApplicationException("String member variable has too large offset");
 

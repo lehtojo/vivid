@@ -154,7 +154,7 @@ public static class Translator
 		}
 
 		// Align all used local variables
-		Aligner.AlignLocalMemory(local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
+		Aligner.AlignLocalMemory(unit.Function, local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 

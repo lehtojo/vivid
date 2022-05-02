@@ -24,7 +24,12 @@ public class ParameterAligner
 		if (type.IsPack)
 		{
 			var representives = Common.GetPackRepresentives(parameter);
-			foreach (var representive in representives) { Align(representive); }
+
+			foreach (var representive in representives)
+			{
+				Align(representive);
+			}
+
 			return;
 		}
 
@@ -73,11 +78,53 @@ public static class Aligner
 	}
 
 	/// <summary>
+	/// Align all used local packs and their representives sequentially.
+	/// Returns the stack position after aligning.
+	/// NOTE: Available only in debugging mode, because in optimized builds pack representives might not be available
+	/// </summary>
+	private static int AlignPacksForDebugging(FunctionImplementation context, List<Variable> variables, int position)
+	{
+		// Do nothing if debugging mode is not enabled
+		if (!Assembler.IsDebuggingEnabled) return position;
+
+		foreach (var local in context.Locals.Concat(context.Parameters))
+		{
+			// Skip variables that are not packs
+			if (!local.Type!.IsPack) continue;
+
+			// Align the whole pack if it is used
+			var representives = Common.GetPackRepresentives(local);
+			if (representives.All(i => !variables.Contains(i))) continue;
+
+			// Allocate stack memory for the whole pack
+			position -= local.Type!.AllocationSize;
+			local.LocalAlignment = position;
+
+			// Keep track of the position inside the pack, so that we can align the members properly
+			var subposition = position;
+
+			// Align the pack representives inside the allocated stack memory
+			foreach (var representive in representives)
+			{
+				representive.LocalAlignment = subposition;
+				subposition += representive.Type!.AllocationSize;
+
+				// Remove the representive from the variable list that will be aligned later
+				variables.Remove(representive);
+			}
+		}
+
+		return position;
+	}
+
+	/// <summary>
 	/// Align all used local variables and allocate memory for other kinds of local memory such as temporary handles and stack allocation handles
 	/// </summary>
-	public static void AlignLocalMemory(IEnumerable<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<InlineHandle> inline_handles, int top)
+	public static void AlignLocalMemory(FunctionImplementation context, List<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<InlineHandle> inline_handles, int top)
 	{
 		var position = -top;
+
+		position = AlignPacksForDebugging(context, variables, position);
 
 		foreach (var variable in variables)
 		{

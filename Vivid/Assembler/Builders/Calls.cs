@@ -226,24 +226,52 @@ public static class Calls
 		return call.Execute();
 	}
 
+	private static void MovePackToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle stack_position)
+	{
+		foreach (var representive in Common.GetPackRepresentives(parameter))
+		{
+			// Do not use the default parameter alignment, use local stack memory, because we want the pack members to be sequentially
+			representive.LocalAlignment = null;
+
+			var is_decimal = representive.Type!.Format.IsDecimal();
+			var register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+			var source = (Result?)null;
+
+			if (register != null)
+			{
+				source = new Result(new RegisterHandle(register), representive.GetRegisterFormat());
+			}
+			else
+			{
+				source = new Result(stack_position.Finalize(), representive.Type!.Format);
+			}
+
+			var destination = new Result(References.CreateVariableHandle(unit, representive), representive.Type!.Format);
+			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
+
+			// Windows: Even though the first parameters are passed in registers, they still require their own stack memory (shadow space)
+			if (register != null && !Assembler.IsTargetWindows) return;
+
+			// Normal parameters consume one stack unit
+			stack_position.Offset += Parser.Bytes;
+		}
+	}
+
 	/// <summary>
 	/// Moves the specified parameter or its representives to their own stack locations, if they are not already in the stack.
 	/// The location of the parameter is determined by using the specified registers.
 	/// This is used for debugging purposes.
 	/// </summary>
-	public static void MoveParameterToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers)
+	public static void MoveParameterToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle stack_position)
 	{
 		if (parameter.Type!.IsPack)
 		{
-			foreach (var representive in Common.GetPackRepresentives(parameter))
-			{
-				MoveParameterToStack(unit, representive, standard_parameter_registers, decimal_parameter_registers);
-			}
-
+			MovePackToStack(unit, parameter, standard_parameter_registers, decimal_parameter_registers, stack_position);
 			return;
 		}
 
-		var register = parameter.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+		var is_decimal = parameter.Type!.Format.IsDecimal();
+		var register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 
 		if (register != null)
 		{
@@ -251,7 +279,13 @@ public static class Calls
 			var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
 
 			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
+
+			// Windows: Even though the first parameters are passed in registers, they still need their own stack memory (shadow space)
+			if (!Assembler.IsTargetWindows) return;
 		}
+
+		// Normal parameters consume one stack unit
+		stack_position.Offset += Parser.Bytes;
 	}
 
 	/// <summary>
@@ -262,16 +296,18 @@ public static class Calls
 	{
 		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
 		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
+		var stack_position = new StackMemoryHandle(unit, Assembler.IsArm64 ? 0 : Parser.Bytes);
+
+		var parameters = new List<Variable>(unit.Function.Parameters);
 
 		if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
 		{
-			var self = unit.Self ?? throw new ApplicationException("Missing self pointer");
-			MoveParameterToStack(unit, self, standard_parameter_registers, decimal_parameter_registers);
+			parameters.Insert(0, unit.Self ?? throw new ApplicationException("Missing self pointer"));
 		}
 
-		foreach (var parameter in unit.Function.Parameters)
+		foreach (var parameter in parameters)
 		{
-			MoveParameterToStack(unit, parameter, standard_parameter_registers, decimal_parameter_registers);
+			MoveParameterToStack(unit, parameter, standard_parameter_registers, decimal_parameter_registers, stack_position);
 		}
 	}
 }
