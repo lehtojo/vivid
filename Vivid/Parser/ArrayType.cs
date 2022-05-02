@@ -23,7 +23,7 @@ public class ArrayType : Number, IResolvable
 		if (IsUnresolved) throw Errors.Get(Position, "Array size was not resolved");
 
 		var count = (long)Expression!.To<NumberNode>().Value;
-		return Element.ReferenceSize * (int)count;
+		return Element.AllocationSize * (int)count;
 	}
 
 	public override int GetContentSize()
