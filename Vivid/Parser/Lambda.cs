@@ -10,6 +10,9 @@ public class Lambda : Function
 	{
 		// Lambdas usually capture variables from the parent context
 		Connect(context ?? throw new ApplicationException("Tried to define a short function outside a context"));
+
+		var function = context.GetImplementationParent() ?? throw new ApplicationException("Missing parent function");
+		if (function.Metadata.IsImported) { Modifiers |= Modifier.IMPORTED; }
 	}
 
 	/// <summary>
@@ -27,6 +30,7 @@ public class Lambda : Function
 
 		// Create a function implementation
 		var implementation = new LambdaImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
+		implementation.IsImported = IsImported;
 
 		// Force the return type, if user added it
 		implementation.ReturnType = ReturnType;
