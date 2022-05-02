@@ -196,8 +196,8 @@ public class AssemblyParser
 			if (tokens.Count < 5 || tokens[2].Type != TokenType.NUMBER || tokens[3].Type != TokenType.NUMBER || tokens[4].Type != TokenType.NUMBER) return false;
 
 			var file = (long)tokens[2].To<NumberToken>().Value;
-			var line = (long)tokens[3].To<NumberToken>().Value;
-			var character = (long)tokens[4].To<NumberToken>().Value;
+			var line = (long)tokens[3].To<NumberToken>().Value - 1;
+			var character = (long)tokens[4].To<NumberToken>().Value - 1;
 
 			Instructions.Add(new AppendPositionInstruction(Unit, new Position(null, (int)line, (int)character)));
 			return true;
