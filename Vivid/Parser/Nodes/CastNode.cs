@@ -37,6 +37,15 @@ public class CastNode : Node, IResolvable
 
 	public Node? Resolve(Context context)
 	{
+		// If the casted object is a pack construction:
+		// - Set the target type of the pack construction to the target type of this cast
+		// - Replace this cast node with the pack construction by returning it
+		if (First!.Instance == NodeType.PACK_CONSTRUCTION)
+		{
+			First.To<PackConstructionNode>().Type = Last!.To<TypeNode>().Type;
+			return First;
+		}
+
 		Resolve(context, First!);
 		Resolve(context, Last!);
 

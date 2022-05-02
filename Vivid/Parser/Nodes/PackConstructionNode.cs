@@ -31,6 +31,22 @@ public class PackConstructionNode : Node, IResolvable
 		return Members.Distinct().Count() == Members.Count;
 	}
 
+	/// <summary>
+	/// Returns whether the values for all the required members are present.
+	/// If a value for a member is missing, this function returns the member.
+	/// Otherwise, this function returns null.
+	/// </summary>
+	private Variable? CaptureMissingMember()
+	{
+		foreach (var member in Type!.Variables.Values)
+		{
+			if (member.IsStatic || member.IsConstant || member.IsHidden) continue;
+			if (!Members.Contains(member.Name)) return member;
+		}
+
+		return null;
+	}
+
 	public Node? Resolve(Context context)
 	{
 		// Resolve the arguments
@@ -40,7 +56,12 @@ public class PackConstructionNode : Node, IResolvable
 		}
 
 		// Skip the process below, if it has been executed already
-		if (Type != null) return null;
+		if (Type != null)
+		{
+			// Try to resolve the target type, if it is unresolved
+			if (Type.IsUnresolved) { Type = Resolver.Resolve(context, Type); }
+			return null;
+		}
 
 		// Try to resolve the type of the arguments, these types are the types of the members
 		var types = Resolver.GetTypes(this);
@@ -65,8 +86,12 @@ public class PackConstructionNode : Node, IResolvable
 	{
 		// Ensure that all member names are unique
 		if (!ValidateMemberNames()) return Status.Error(Position, "All pack members must be named differently");
-
 		if (Type == null) return Status.Error(Position, "Can not resolve the types of the pack members");
+		if (Type.IsUnresolved) return Status.Error(Position, "Can not resolve the target type");
+		if (!Type.IsPack) return Status.Error(Position, "Target type must be a pack type");
+
+		var missing = CaptureMissingMember();
+		if (missing != null) return Status.Error(Position, $"Missing value for member {missing.Name}");
 
 		return Status.OK;
 	}
