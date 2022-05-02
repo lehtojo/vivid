@@ -140,7 +140,7 @@ public class VariableProductComponent : Component
 					clone = (VariableProductComponent)clone.Multiply(x)!;
 				}
 
-				return this;
+				return clone;
 			}
 
 			default: return null;

@@ -1389,7 +1389,8 @@ public class MoveInstruction : DualParameterInstruction
 					Second,
 					flags_second | ParameterFlag.BIT_LIMIT_64,
 					HandleType.CONSTANT,
-					HandleType.REGISTER
+					HandleType.REGISTER,
+					HandleType.MEMORY
 				)
 			);
 		}

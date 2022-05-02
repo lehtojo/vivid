@@ -232,7 +232,6 @@ public static class GeneralAnalysis
 	private static bool Assign(Variable variable, VariableWrite write, bool recursive, Dictionary<Variable, VariableDescriptor> descriptors, VariableDescriptor descriptor, StatementFlow flow)
 	{
 		var assigned = false;
-		var added = new List<Node>();
 
 		foreach (var read in write.Assignable)
 		{
@@ -624,6 +623,9 @@ public static class GeneralAnalysis
 
 			// If the variable is used, skip it
 			if (variable.IsParameter || descriptor.Reads.Any() || descriptor.Writes.Any()) continue;
+
+			// If the variable is a pack, do not remove it, because we might have to use it later for debugging information for instance
+			if (variable.Type!.IsPack) continue;
 
 			var context = variable.Context;
 
