@@ -421,7 +421,7 @@ public static class GeneralAnalysis
 		var variables = implementation.Locals.Concat(implementation.Variables.Values).Distinct().ToArray();
 		
 		// Create assignments, which initialize the parameters
-		/// NOTE: Fixes the sitation, where the code contains a single conditional assignment to the parameter and one read.
+		/// NOTE: Fixes the situation, where the code contains a single conditional assignment to the parameter and one read.
 		/// Without the initialization, the value of the single assignment would be inlined.
 		var initializations = new List<Node>();
 

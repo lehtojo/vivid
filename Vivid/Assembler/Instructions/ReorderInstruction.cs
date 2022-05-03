@@ -67,7 +67,7 @@ public class ReorderInstruction : Instruction
 			// Find all memory handles
 			var value = iterator.Value;
 			var instance = value.Value.Instance;
-			if (instance != HandleInstanceType.STACK_VARIABLE && instance != HandleInstanceType.STACK_MEMORY && instance != HandleInstanceType.TEMPORARY_MEMORY && instance != HandleInstanceType.MEMORY) continue;
+			if (instance != HandleInstanceType.STACK_MEMORY && instance != HandleInstanceType.TEMPORARY_MEMORY && instance != HandleInstanceType.MEMORY) continue;
 
 			var memory = value.Value.To<MemoryHandle>();
 
@@ -83,20 +83,23 @@ public class ReorderInstruction : Instruction
 
 			// Try to get an available non-volatile register
 			var destination = (Handle?)null;
+			var destination_format = Assembler.Format;
 			var register = Memory.GetNextRegister(Unit, variable.Type!.Format.IsDecimal(), Trace.GetDirectives(Unit, value));
 
 			// Use the non-volatile register, if one was found
 			if (register != null)
 			{
 				destination = new RegisterHandle(register);
+				destination_format = variable.Type!.GetRegisterFormat();
 			}
 			else
 			{
 				// Since there are no non-volatile registers available, the value must be relocated to safe stack location
 				destination = References.CreateVariableHandle(Unit, variable);
+				destination_format = variable.Type!.Format;
 			}
 
-			Unit.Append(new MoveInstruction(Unit, new Result(destination, variable.Type!.GetRegisterFormat()), value)
+			Unit.Append(new MoveInstruction(Unit, new Result(destination, destination_format), value)
 			{
 				Description = $"Evacuate an important value into '{destination}'",
 				Type = MoveType.RELOCATE
