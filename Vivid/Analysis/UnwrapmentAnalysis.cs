@@ -183,7 +183,7 @@ public static class UnwrapmentAnalysis
 				if (step.First != step.Last) continue;
 
 				// If the condition contains affectors, the statement can not be removed
-				if (step.Find(i => ReconstructionAnalysis.IsAffector(i)) == null) continue;
+				if (step.Find(i => ReconstructionAnalysis.IsAffector(i)) != null) continue;
 
 				RemoveConditionalBranch(statement);
 				continue;
