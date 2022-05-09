@@ -5,12 +5,10 @@ using System;
 public class LabelMergeInstruction : Instruction
 {
 	public Label Label { get; set; }
-	public List<Variable> Actives { get;}
 
-	public LabelMergeInstruction(Unit unit, Label label, List<Variable> actives) : base(unit, InstructionType.LABEL_MERGE)
+	public LabelMergeInstruction(Unit unit, Label label) : base(unit, InstructionType.LABEL_MERGE)
 	{
 		Label = label;
-		Actives = actives;
 		IsAbstract = true;
 	}
 

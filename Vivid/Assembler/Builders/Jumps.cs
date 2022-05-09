@@ -10,8 +10,7 @@ public static class Jumps
 		// Build the jump condition, if one is present
 		if (node.Condition != null) Arithmetic.BuildCondition(unit, node.Condition);
 
-		var variables = Scope.GetAllActiveVariables(unit, node);
-		unit.Append(new LabelMergeInstruction(unit, node.Label, variables));
+		unit.Append(new LabelMergeInstruction(unit, node.Label));
 
 		if (node.Condition != null) 
 		{
