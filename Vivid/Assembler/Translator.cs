@@ -71,6 +71,45 @@ public static class Translator
 		}
 	}
 
+	/// <summary>
+	/// Finds sequential debug position instructions and separates them using NOP-instructions
+	/// </summary>
+	private static void SeparateDebugPositions(Unit unit, List<Instruction> instructions)
+	{
+		for (var i = 0; i < instructions.Count;)
+		{
+			// Find the next debug position instruction
+			if (instructions[i].Type != InstructionType.APPEND_POSITION)
+			{
+				i++;
+				continue;
+			}
+
+			// Find the next hardware instruction or debug position instruction
+			var j = i + 1;
+
+			for (; j < instructions.Count; j++)
+			{
+				var instruction = instructions[j];
+
+				if (instruction.Type == InstructionType.LABEL) continue;
+				if (instruction.Type == InstructionType.APPEND_POSITION || !instruction.IsAbstract) break;
+			}
+
+			// We need to insert a NOP-instruction in the following cases:
+			// - We reached the end of the instruction list
+			// - We found a debug position instruction
+			// In the above cases, there are no hardware instructions where the debugger could stop after the debug position instruction.
+			if (j == instructions.Count || instructions[j].Type == InstructionType.APPEND_POSITION)
+			{
+				instructions.Insert(i + 1, new NoOperationInstruction(unit));
+				j++; // Update the index, because we inserted a new instruction
+			}
+
+			i = j;
+		}
+	}
+
 	public static void Translate(AssemblyBuilder builder, Unit unit)
 	{
 		TotalInstructions += unit.Instructions.Count;
@@ -110,12 +149,7 @@ public static class Translator
 
 			instructions.Add(end);
 
-			// Find sequential position instructions and separate them using NOP-instructions
-			for (var i = instructions.Count - 2; i >= 0; i--)
-			{
-				if (!instructions[i].Is(InstructionType.APPEND_POSITION) || !instructions[i + 1].Is(InstructionType.APPEND_POSITION)) continue;
-				instructions.Insert(i + 1, new NoOperationInstruction(unit));
-			}
+			SeparateDebugPositions(unit, instructions);
 		}
 
 		// Build all initialization instructions
