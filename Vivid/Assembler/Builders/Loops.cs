@@ -9,6 +9,9 @@ public static class Loops
 	/// </summary>
 	public static Result BuildControlInstruction(Unit unit, LoopControlNode node)
 	{
+		// Add position of the command node as debug information
+		unit.TryAppendPosition(node.Position);
+
 		if (node.Loop == null) throw new ApplicationException("Loop control instruction was not inside a loop");
 
 		var scope = node.Loop.Scope ?? throw new ApplicationException("Missing loop scope");
