@@ -21,6 +21,8 @@ public static class Builders
 		{
 			case NodeType.CALL:
 			{
+				unit.TryAppendPosition(node.Position);
+
 				var call = (CallNode)node;
 				var self = References.Get(unit, call.Self);
 
