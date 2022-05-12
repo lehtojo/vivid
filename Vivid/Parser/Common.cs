@@ -57,7 +57,9 @@ public static class Common
 			self = new CastNode(self, new TypeNode(required_self_type), self.Position);
 		}
 
-		return new CallNode(self, function_pointer, parameters, new FunctionType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType, position));
+		var descriptor = new FunctionType(required_self_type, overload.Parameters.Select(i => i.Type!).ToList()!, overload.ReturnType, position);
+
+		return new CallNode(self, function_pointer, parameters, descriptor, position);
 	}
 
 	/// <summary>

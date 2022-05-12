@@ -10,10 +10,11 @@ public class CallNode : Node
 	public Node Parameters => Last!;
 	public FunctionType Descriptor { get; private set; }
 
-	public CallNode(Node self, Node pointer, Node parameters, FunctionType descriptor)
+	public CallNode(Node self, Node pointer, Node parameters, FunctionType descriptor, Position? position = null)
 	{
 		Descriptor = descriptor;
 		Instance = NodeType.CALL;
+		Position = position;
 
 		Add(self);
 		Add(pointer);
