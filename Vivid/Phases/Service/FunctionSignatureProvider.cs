@@ -99,6 +99,19 @@ public static class FunctionSignatureProvider
 	}
 
 	/// <summary>
+	/// Returns the function overloads from the specified context that are suitable for the specified filter.
+	/// </summary>
+	public static FunctionList? TryGetFunctionOverloads(Context context, string filter, bool linked)
+	{
+		if (context.IsTypeDeclared(filter, linked))
+		{
+			return context.GetType(filter)!.Constructors;
+		}
+
+		return context.GetFunction(filter);
+	}
+
+	/// <summary>
 	/// Provides function signature information for the specified request.
 	/// </summary>
 	public static void Provide(Project project, IServiceResponse response, DocumentRequest request)
@@ -128,7 +141,7 @@ public static class FunctionSignatureProvider
 			return;
 		}
 
-		FunctionList? overloads;
+		var overloads = (FunctionList?)null;
 
 		if (cursor.Parent != null && cursor.Parent.Is(NodeType.LINK))
 		{
@@ -136,26 +149,20 @@ public static class FunctionSignatureProvider
 
 			if (primary != null)
 			{
-				// Try to get function overloads with the name equal to the filter
-				overloads = primary.GetFunction(filter);
+				overloads = TryGetFunctionOverloads(primary, filter, true);
 
-				if (overloads != null)
-				{
-					var signatures = GetFunctionSignatures(overloads.Overloads);
-
-					response.SendResponse(request.Uri, DocumentResponseStatus.OK, signatures);
-					return;
-				}
-
-				// If no function could be found using the filter, return the global function candidates
+				// If no function could be found using the filter, return the global function candidates:
 			}
 		}
 
-		var environment = cursor.GetParentContext();
+		// Try finding the function overloads using the environment context
+		if (overloads == null)
+		{
+			var environment = cursor.GetParentContext();
+			overloads = TryGetFunctionOverloads(environment, filter, false);
+		}
 
-		// Try to get function overloads with the name equal to the filter using the environment context
-		overloads = environment.GetFunction(filter);
-
+		// Create function signatures from the overloads and send them
 		if (overloads != null)
 		{
 			var signatures = GetFunctionSignatures(overloads.Overloads);
