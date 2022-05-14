@@ -201,6 +201,13 @@ public static class CompletionProvider
 			.Select(i => new CompletionItem(i.Key, CompletionItemType.Function))
 			.ToList();
 
+		// Add virtual functions as well if the specified context is a type
+		if (context.IsType)
+		{
+			var virtuals = context.To<Type>().Virtuals.Values.SelectMany(i => i.Overloads);
+			functions.AddRange(virtuals.Select(i => new CompletionItem(i.Name, CompletionItemType.Function)));
+		}
+
 		// Get all members and variables
 		var variables = context.Variables
 			.Where(i => !i.Value.IsHidden)
