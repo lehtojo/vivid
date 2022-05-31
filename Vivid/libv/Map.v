@@ -1,4 +1,6 @@
-export KeyValuePair<K, V> {
+MIN_MAP_CAPACITY = 5
+
+export plain KeyValuePair<K, V> {
 	key: K
 	value: V
 
@@ -8,268 +10,287 @@ export KeyValuePair<K, V> {
 	}
 }
 
-MAX_SLOT_OFFSET = 20
-MAX_LEVEL_SIZE = 20
+export plain MapIterator<K, V> {
+	slot: MapSlot<K, V>
+	slots: link<MapSlot<K, V>>
+	first: normal
+
+	init(slots: link<MapSlot<K, V>>, first: normal) {
+		this.slots = slots
+		this.first = first
+
+		if first < 0 return
+
+		slot.key = none
+		slot.value = none
+		slot.next = first + 1
+		slot.previous = 0
+	}
+
+	value() {
+		=> this as KeyValuePair<K, V> # NOTE: Map slot is identical to a pair
+	}
+
+	next() {
+		if slot.next <= 0 => false
+
+		index = slot.next - 1
+		slot = slots[index]
+		=> true
+	}
+
+	reset() {
+		slot.key = none
+		slot.value = none
+		slot.next = first + 1
+		slot.previous = 0
+	}
+}
+
+export pack MapSlot<K, V> {
+	key: K
+	value: V
+	next: normal
+	previous: normal
+}
 
 export Map<K, V> {
-	private values: link<V>
-	private keys: link<K>
-	private states: link<bool>
-	private items: List<KeyValuePair<K, V>> = List<KeyValuePair<K, V>>()
-	private ground: normal
-	private levels: normal = 1
+	private first: large = -1 # Zero-based index of first slot
+	private last: large = -1 # Zero-based index of last slot
+	private slots: link<MapSlot<K, V>> = none as link<MapSlot<K, V>>
+	private capacity: large = 1
 
-	init(ground: tiny) {
-		count = 1 <| ground
-		values_size = count * sizeof(V)
-		keys_size = count * sizeof(K)
+	readonly size: large = 0
 
-		values: link = allocate(values_size)
-		keys: link = allocate(keys_size)
-		states: link = allocate(count)
+	init() {}
 
-		zero(values, values_size)
-		zero(keys, keys_size)
-		zero(states, count)
-
-		this.ground = ground
-		this.values = values
-		this.keys = keys
-		this.states = states
+	init(capacity: large) {
+		rehash(capacity)
 	}
 
-	init() {
-		count = 1 <| 6
-		values_size = count * sizeof(V)
-		keys_size = count * sizeof(K)
+	rehash(to: large) {
+		if to < MIN_MAP_CAPACITY { to = MIN_MAP_CAPACITY }
 
-		values: link = allocate(values_size)
-		keys: link = allocate(keys_size)
-		states: link = allocate(count)
+		# Save the old slots for iteration
+		previous_slots = slots
 
-		zero(values, values_size)
-		zero(keys, keys_size)
-		zero(states, count)
+		# Start from the first slot
+		index = first
 
-		this.ground = 6
-		this.values = values
-		this.keys = keys
-		this.states = states
-	}
+		# Allocate the new slots
+		slots = allocate(to * sizeof(MapSlot<K, V>))
+		capacity = to
+		first = -1
+		last = -1
+		size = 0
 
-	get_level_size(i) {
-		if i > MAX_LEVEL_SIZE => 1 <| MAX_LEVEL_SIZE
-		=> 1 <| i
-	}
+		if previous_slots === none return
 
-	grow() {
-		count = 0
+		loop (index >= 0) {
+			slot = previous_slots[index]
+			add(slot.key, slot.value) # Add the slot to the new slots
 
-		loop (i = ground, i < ground + levels, i++) {
-			count += get_level_size(i)
+			index = slot.next - 1 # Indices are 1-based
 		}
 
-		values_size = count * sizeof(V)
-		keys_size = count * sizeof(K)
-
-		extended_values = allocate(values_size)
-		extended_keys = allocate(keys_size)
-		extended_states = allocate(count)
-
-		zero(extended_values, values_size)
-		zero(extended_keys, keys_size)
-		zero(extended_states, count)
-
-		previous_count = count - get_level_size(ground + levels - 1)
-
-		copy(values, previous_count * sizeof(V), extended_values)
-		copy(keys, previous_count * sizeof(K), extended_keys)
-		copy(states, previous_count, extended_states)
-
-		deallocate(values)
-		deallocate(keys)
-		deallocate(states)
-
-		values = extended_values
-		keys = extended_keys
-		states = extended_states
+		deallocate(previous_slots)
 	}
 
-	force_add(key: K, value: V) {
-		items.add(KeyValuePair<K, V>(key, value))
+	add(key: K, value: V) {
+		# If the load factor will exceed 50%, rehash the map now
+		if (size + 1) as decimal / capacity > 0.5 {
+			rehash(capacity * 2)
+		}
 
 		hash = key as large
 		if compiles { key.hash() } { hash = key.hash() }
 
-		position = 0
-		location = 0
-		size = 1
+		attempt = 0
 
-		loop (i = ground, i < ground + levels, i++) {
-			size = get_level_size(i)
+		# Find an available slot by quadratic probing
+		loop {
+			index = 0
+			if attempt < 10 { index = (hash + attempt * attempt) as u64 % capacity }
+			else { index = (hash + attempt) as u64 % capacity }
 
-			location = hash % size
-			if location < 0 { location += size }
+			slot = slots[index]
 
-			start = position + location
-			n = min(MAX_SLOT_OFFSET, position + size - start)
+			# Skip occupied slots
+			if slot.next !== none {
+				# If the slot has the same key, replace the value
+				if slot.key == key {
+					slot.value = value
+					slots[index] = slot
+					return
+				}
 
-			loop (j = 0, j < n, j++) {
-				offset = start + j
-				if states[offset] continue
-				states[offset] = true
-				keys[offset] = key
-				values[offset] = value
-				return
+				attempt++
+				continue
 			}
 
-			position += size
+			# Allocate the slot for the specified key and value
+			slot.key = key
+			slot.value = value
+			slot.next = -1
+			slot.previous = -1
+
+			if last >= 0 {
+				# Connect the last slot to the new slot
+				previous = slots[last]
+				previous.next = index + 1
+				slots[last] = previous
+
+				# Connect the new slot to the last slot
+				slot.previous = last + 1
+
+				# Update the index of the last added slot
+				last = index
+			}
+
+			# If this is the first slot to be added, update the index of the first and the last slot
+			if first < 0 {
+				first = index
+				last = index
+			}
+
+			slots[index] = slot
+			size++
+			return
 		}
-
-		levels++
-		grow()
-
-		size = get_level_size(ground + levels - 1)
-		location = hash % size
-		if location < 0 { location += size }
-
-		position += location
-		states[position] = true
-		keys[position] = key
-		values[position] = value
-	}
-
-	add(key: K, value: V) {
-		if contains_key(key) require(false, 'Map already contains the specified key')
-		force_add(key, value)
 	}
 
 	try_add(key: K, value: V) {
 		if contains_key(key) => false
-		force_add(key, value)
+		add(key, value)
 		=> true
 	}
 
-	set(key: K, value: V) {
-		location = try_find(key)
+	remove(key: K) {
+		# Just return if the map is empty, this also protects from the situation where the map is not allocated yet
+		if size == 0 return
 
-		if location >= 0 {
-			keys[location] = key
-			values[location] = value
-
-			loop item in items {
-				if item.key == key {
-					item.key = key
-					item.value = value
-					return
-				}
-			}
-			return
-		}
-
-		force_add(key, value)
-	}
-
-	try_find(key: K) {
 		hash = key as large
 		if compiles { key.hash() } { hash = key.hash() }
 
-		position = 0
-		size = 1
+		attempt = 0
 
-		loop (i = ground, i < ground + levels, i++) {
-			size = get_level_size(i)
+		# Find the slot by quadratic probing
+		loop {
+			index = 0
+			if attempt < 10 { index = (hash + attempt * attempt) as u64 % capacity }
+			else { index = (hash + attempt) as u64 % capacity }
 
-			location = hash % size
-			if location < 0 { location += size }
-			
-			start = position + location
-			n = min(MAX_SLOT_OFFSET, position + size - start)
+			slot = slots[index]
 
-			loop (j = 0, j < n, j++) {
-				offset = start + j
-				if states[offset] and keys[offset] == key => offset
+			# Stop if we found an empty slot
+			if slot.next === none return
+
+			# If the slot has the same key, remove it
+			if slot.key == key {
+				# If the slot is the first one, update the index of the first slot
+				if index == first {
+					first = slot.next - 1
+				}
+
+				# If the slot is the last one, update the index of the last slot
+				if index == last {
+					last = slot.previous - 1
+				}
+
+				# If the slot has a previous slot, connect it to the next slot
+				if slot.previous > 0 {
+					previous = slots[slot.previous - 1]
+					previous.next = slot.next
+					slots[slot.previous - 1] = previous
+				}
+
+				# If the slot has a next slot, connect it to the previous slot
+				if slot.next > 0 {
+					next = slots[slot.next - 1]
+					next.previous = slot.previous
+					slots[slot.next - 1] = next
+				}
+
+				# Update the size of the map
+				size--
+
+				# Free the slot
+				slot.key = none
+				slot.value = none
+				slot.next = none
+				slot.previous = none
+				slots[index] = slot
+
+				return
 			}
 
-			position += size
+			attempt++
 		}
+	}
 
-		=> -1
+	try_find(key: K) {
+		# Just return -1 if the map is empty, this also protects from the situation where the map is not allocated yet
+		if size == 0 => -1
+
+		hash = key as large
+		if compiles { key.hash() } { hash = key.hash() }
+
+		attempt = 0
+
+		# Find the slot by quadratic probing
+		loop {
+			index = 0
+			if attempt < 10 { index = (hash + attempt * attempt) as u64 % capacity }
+			else { index = (hash + attempt) as u64 % capacity }
+
+			slot = slots[index]
+
+			# Stop if we found an empty slot
+			if slot.next === none => -1
+
+			# If the slot has the same key, return the value
+			if slot.key == key => index
+
+			attempt++
+		}
 	}
 
 	contains_key(key: K) {
 		=> try_find(key) >= 0
 	}
 
-	try_get(key: K) {
-		location = try_find(key)
-		if location >= 0 => Optional<V>(values[location])
-		=> Optional<V>()
-	}
-
 	get(key: K) {
-		location = try_find(key)
-		if location >= 0 => values[location]
-		require(false, 'Map did not contain the specified key')
+		index = try_find(key)
+		if index < 0 panic('Map did not contain the specified key')
+
+		=> slots[index].value
 	}
 
-	remove(key: K) {
-		location = try_find(key)
-		if location < 0 => false
-		
-		states[location] = false
-		keys[location] = none as K
-		values[location] = none as V
+	try_get(key: K) {
+		index = try_find(key)
+		if index < 0 => Optional<V>()
 
-		loop (i = 0, i < items.size, i++) {
-			if not (items[i].key == key) continue
-			items.remove_at(i)
-			stop
-		}
-
-		=> true
+		=> Optional<V>(slots[index].value)
 	}
 
-	size() {
-		=> items.size
+	set(key: K, value: V) {
+		add(key, value)
 	}
 
 	iterator() {
-		=> items.iterator()
+		=> MapIterator<K, V>(slots, first)
 	}
 
-	clear() {
-		# Compute the maximum number of items allocated
-		count = 0
-
-		loop (i = ground, i < ground + levels, i++) {
-			count += get_level_size(i)
-		}
-
-		items.clear() # Clear the items
-
-		zero<K>(keys, count)
-		zero<V>(values, count)
-		zero(states, count)
-	}
-
-	# Summary: Converts the key-value pairs of this map into a list
-	map<U>(mapper: (KeyValuePair<K, V>) -> U) {
-		result = List<U>(items.size, false)
-
-		loop item in items {
-			result.add(mapper(item))
-		}
-
-		=> result
-	}
-
-	# Summary: Returns the keys associated with the values in this map
+	# Summary: Returns the keys associated with the values in this map as a list
 	get_keys() {
-		result = List<K>(items.size, false)
+		result = List<K>(size, false)
+		index = first
 
-		loop item in items {
-			result.add(item.key)
+		loop (index >= 0) {
+			slot = slots[index]
+			result.add(slot.key)
+
+			index = slot.next - 1
 		}
 
 		=> result
@@ -277,23 +298,44 @@ export Map<K, V> {
 
 	# Summary: Returns the values associated with the keys in this map as a list
 	get_values() {
-		result = List<V>(items.size, false)
+		result = List<V>(size, false)
+		index = first
 
-		loop item in items {
-			result.add(item.value)
+		loop (index >= 0) {
+			slot = slots[index]
+			result.add(slot.value)
+
+			index = slot.next - 1
 		}
 
 		=> result
 	}
 
-	deinit() {
-		# Remove all the items so that they get unlinked
-		loop (i = items.size - 1, i >= 0, i--) {
-			remove(items[i].key)
+	clear() {
+		if slots !== none {
+			deallocate(slots)
 		}
 
-		deallocate(values)
-		deallocate(keys)
-		deallocate(states)
+		first = -1
+		last = -1
+		slots = none as link<MapSlot<K, V>>
+		capacity = 1
+		size = 0
+	}
+
+	# Summary: Converts the key-value pairs of this map into a list
+	map<U>(mapper: (KeyValuePair<K, V>) -> U) {
+		result = List<U>(items.size, false)
+		index = first
+
+		loop (index >= 0) {
+			slot = slots[index]
+			pair = (slots + index * sizeof(MapSlot<K, V>)) as KeyValuePair<K, V>
+			result.add(mapper(pair))
+
+			index = slot.next - 1
+		}
+
+		=> result
 	}
 }

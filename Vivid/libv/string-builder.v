@@ -42,7 +42,7 @@ export StringBuilder {
 	}
 
 	append(text: String) {
-		append(text.text, text.length)
+		append(text.data, text.length)
 	}
 
 	append(value: large) {
@@ -59,7 +59,7 @@ export StringBuilder {
 	}
 
 	append_line(text: String) {
-		append(text.text, text.length)
+		append(text.data, text.length)
 		append(`\n`)
 	}
 
@@ -98,6 +98,13 @@ export StringBuilder {
 		move(buffer + index, buffer + index + length, position - index)
 		offset_copy(text, length, buffer, index)
 		position += length
+	}
+
+	insert(index: large, character: char) {
+		if position + 1 > capacity grow(1)
+		move(buffer + index, buffer + index + 1, position - index)
+		buffer[index] = character
+		position++
 	}
 
 	insert(index: large, text: link) {

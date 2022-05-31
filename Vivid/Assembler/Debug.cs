@@ -43,7 +43,7 @@ public class Debug
 	public static string DebugLineTable { get; set; } = "debug_line";
 
 	public const string STRING_TYPE_IDENTIFIER = "String";
-	public const string STRING_TYPE_DATA_VARIABLE = "text";
+	public const string STRING_TYPE_DATA_VARIABLE = "data";
 
 	public const string ARRAY_TYPE_POSTFIX = "_array";
 	public const short ARRAY_TYPE_ELEMENTS = 10000;

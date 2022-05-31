@@ -99,26 +99,26 @@ init() {
 	b = pack_1(3, 5)
 	c = pack_1(7, 11)
 	d = pack_1(13, 17)
-	println(pack_2(c))
-	println(pack_3(a, b, c, d))
+	console.write_line(pack_2(c))
+	console.write_line(pack_3(a, b, c, d))
 	
 	x = pack_4(19, 23)
 	y = pack_5(27, 31)
-	println(pack_6(x, y))
+	console.write_line(pack_6(x, y))
 
 	memory = allocate(sizeof(Bar) * 2) as link<large>
 	zero(memory, sizeof(Bar) * 2)
 	memory[0] = 37
 	memory[1] = 41
 
-	println(pack_7(memory, 0))
+	console.write_line(pack_7(memory, 0))
 
 	pack_8(memory, 2, 43, 47)
-	println(pack_7(memory, 2))
+	console.write_line(pack_7(memory, 2))
 
-	println(pack_9(memory, 0))
+	console.write_line(pack_9(memory, 0))
 
 	pack_10(memory, 0, 53, 59)
-	println(pack_9(memory, 0))
+	console.write_line(pack_9(memory, 0))
 	=> 0
 }

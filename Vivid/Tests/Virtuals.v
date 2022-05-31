@@ -4,7 +4,7 @@ InheritantOne {
 
 InheritantOne VirtualTypeOne {
 	override foo() {
-		println(1 + 2)
+		console.write_line(1 + 2)
 	}
 }
 
@@ -25,7 +25,7 @@ InheritantTwo VirtualTypeTwo {
 	b: decimal
 
 	override bar() {
-		println(a * a + b * b)
+		console.write_line(a * a + b * b)
 	}
 }
 
@@ -49,15 +49,15 @@ InheritantThree VirtualTypeThree {
 
 	override baz(x: tiny, y: small) {
 		if x > y {
-			println(x)
+			console.write_line(x)
 			=> x
 		}
 		else y > x {
-			println(y)
+			console.write_line(y)
 			=> y
 		}
 		else {
-			println(c)
+			console.write_line(c)
 			=> c
 		}
 	}
@@ -68,9 +68,9 @@ execute_virtual_type_three() {
 	x.b = 1
 	x.c = 10
 
-	println(x.baz(1, -1))
-	println((x as InheritantThree).baz(255, 32767))
-	println((x as InheritantThree).baz(7, 7))
+	console.write_line(x.baz(1, -1))
+	console.write_line((x as InheritantThree).baz(255, 32767))
+	console.write_line((x as InheritantThree).baz(7, 7))
 }
 
 InheritantOne InheritantTwo InheritantThree VirtualTypeFour {
@@ -96,11 +96,11 @@ execute_virtual_type_four() {
 
 	x.foo()
 	x.bar()
-	println(x.baz(64, 8)) # 7
+	console.write_line(x.baz(64, 8)) # 7
 
 	(x as InheritantOne).foo()
 	(x as InheritantTwo).bar()
-	println((x as InheritantThree).baz(0, 1)) # -1
+	console.write_line((x as InheritantThree).baz(0, 1)) # -1
 }
 
 init() {

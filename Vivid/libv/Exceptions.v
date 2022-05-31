@@ -54,7 +54,7 @@ export Optional<T> {
 	}
 
 	has_value() {
-		=> !empty
+		=> not empty
 	}
 
 	get_value() {
@@ -68,6 +68,17 @@ export Optional<T> {
 	}
 }
 
+# Summary: Ensures the specified condition is true, otherwise this function exits the application and informs that the requirement was not met
+export require(result: bool) {
+	if not result panic('Requirement failed')
+}
+
+# Summary: Ensures the specified condition is true, otherwise this function exits the application and informs the user with the specified message
+export require(result: bool, message: link) {
+	if not result panic(message)
+}
+
+# Summary: Writes the specified message to the console and exits the application with code 1
 export panic(message: link) {
 	internal.console.write(message, length_of(message))
 	application.exit(1)

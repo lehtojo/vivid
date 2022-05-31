@@ -45,9 +45,9 @@ pack_5(a: { i: { x: large, y: small }, j: { z: normal, w: tiny } }) {
 
 init() {
 	a = pack_1(10, 42)
-	println(pack_2(a))
-	println(pack_3(-42, -10))
+	console.write_line(pack_2(a))
+	console.write_line(pack_3(-42, -10))
 	b = pack_4(11, 7, 5, 3)
-	println(pack_5(b))
+	console.write_line(pack_5(b))
 	=> 0
 }

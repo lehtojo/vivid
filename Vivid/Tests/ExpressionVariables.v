@@ -31,12 +31,12 @@ Base Inheritor {
 outline calculate(x: large, s: decimal) {
 	i = Inheritor(x, s)
 
-	println(i.a)
-	println(i.b)
-	println(i.c)
-	println(i.d)
-	println(i.x)
-	println(i.y)
+	console.write_line(i.a)
+	console.write_line(i.b)
+	console.write_line(i.c)
+	console.write_line(i.d)
+	console.write_line(i.x)
+	console.write_line(i.y)
 }
 
 Animal {
@@ -47,7 +47,7 @@ Animal {
 	}
 
 	react() {
-		println(reaction)
+		console.write_line(reaction)
 	}
 }
 

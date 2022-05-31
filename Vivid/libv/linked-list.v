@@ -11,6 +11,7 @@ export LinkedList<T> {
 	private head: LinkedListElement<T> = none as LinkedListElement<T>
 	private tail: LinkedListElement<T> = none as LinkedListElement<T>
 
+	# Summary: Adds the specified element to the end of this list
 	add(value: T) {
 		element = LinkedListElement<T>(value)
 
@@ -24,6 +25,7 @@ export LinkedList<T> {
 		tail = element
 	}
 
+	# Summary: Searches for the specified element from the list and removes it
 	remove(value: T) {
 		iterator = head
 		previous: LinkedListElement<T> = 0
@@ -58,8 +60,8 @@ export LinkedList<T> {
 
 	size() {
 		size = 0
-		
-		loop (iterator = head, iterator, iterator = iterator.next) {
+
+		loop (iterator = head, iterator !== none, iterator = iterator.next) {
 			size++
 		}
 

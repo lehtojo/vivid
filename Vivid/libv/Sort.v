@@ -7,7 +7,7 @@ sort<T>(list: List<T>) {
 }
 
 sort<T>(array: Array<T>) {
-	quicksort.sort<T>(array.data, 0, list.count - 1)
+	quicksort.sort<T>(array.data, 0, list.size - 1)
 }
 
 sort<T>(elements: link<T>, count: large, comparator: (T, T) -> large) {
@@ -15,11 +15,11 @@ sort<T>(elements: link<T>, count: large, comparator: (T, T) -> large) {
 }
 
 sort<T>(list: List<T>, comparator: (T, T) -> large) {
-	quicksort.sort<T>(list.elements, 0, list.size - 1, comparator)
+	quicksort.sort<T>(list.data, 0, list.size - 1, comparator)
 }
 
 sort<T>(array: Array<T>, comparator: (T, T) -> large) {
-	quicksort.sort<T>(array.data, 0, list.count - 1, comparator)
+	quicksort.sort<T>(array.data, 0, list.size - 1, comparator)
 }
 
 namespace quicksort

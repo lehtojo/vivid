@@ -84,7 +84,7 @@ Animal Dog {
 	}
 
 	bark() {
-		=> println('Bark')
+		=> console.write_line('Bark')
 	}
 }
 
@@ -103,12 +103,12 @@ Animal Cat {
 	}
 
 	meow() {
-		=> println('Meow')
+		=> console.write_line('Meow')
 	}
 }
 
 export create_default_action() {
-	=> () -> println('Hi there!')
+	=> () -> console.write_line('Hi there!')
 }
 
 export execute_default_action(action: () -> _) {
@@ -116,7 +116,7 @@ export execute_default_action(action: () -> _) {
 }
 
 export create_number_action() {
-	=> (n: large) -> println(to_string(n))
+	=> (n: large) -> console.write_line(to_string(n))
 }
 
 export execute_number_action(action: (large) -> _, number: large) {
@@ -180,12 +180,12 @@ init() {
 	c = create_sum_function()
 	x = execute_sum_function(c, 1, 2)
 
-	println(x)
+	console.write_line(x)
 
 	d = create_capturing_function(1, 2, 3, 4, 5)
 	y = execute_capturing_function(d)
 
-	println(y)
+	console.write_line(y)
 
 	e = create_capturing_function_with_parameter(dog, cat)
 	execute_capturing_function_with_parameter(e, 1.414)

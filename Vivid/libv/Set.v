@@ -38,8 +38,4 @@ export Set<T> {
 	to_list() {
 		=> List<T>(container)
 	}
-
-	to_array() {
-		=> container.to_array()
-	}
 }

@@ -9,46 +9,16 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 
 none = 0
 
-PAGE_SIZE = 10000000
-
-export Page {
-	address: link
-	position: large
-}
-
-export Allocation {
-	static current: Page
-	static deallocations: large
+outline allocate<T>(amount: large) {
+	=> allocate(amount * sizeof(T))
 }
 
 outline allocate(bytes: large) {
-	# Allocate the memory directly if it is large enough
-	if bytes >= 100000 => internal.allocate(bytes)
-
-	if Allocation.current != none and Allocation.current.position + bytes <= PAGE_SIZE {
-		position = Allocation.current.position
-		Allocation.current.position += bytes
-
-		=> (Allocation.current.address + position) as link
-	}
-
-	address = internal.allocate(PAGE_SIZE)
-
-	page = internal.allocate(32) as Page
-	page.address = address
-	page.position = bytes
-
-	Allocation.current = page
-
-	=> address as link
+	=> internal.allocate(bytes)
 }
 
 outline deallocate(address: link) {
-	address = none as link
-}
-
-outline allocate<T>(count: large) {
-	=> allocate(count * sizeof(T)) as link<T>
+	address = none # Dummy usage of address to avoid warning
 }
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0

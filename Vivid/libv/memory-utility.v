@@ -37,6 +37,22 @@ export resize(source: link, from: large, to: large) {
 	=> resized
 }
 
+# Summary: Reverses the bytes in the specified memory range
+export reverse(memory: link, size: large) {
+	i = 0
+	j = size - 1
+	n = size / 2
+
+	loop (i < n) {
+		temporary = memory[i]
+		memory[i] = memory[j]
+		memory[j] = temporary
+
+		i++
+		j--
+	}
+}
+
 export outline copy<T>(destination: link<T>, source: link<T>, size: large) {
 	loop (i = 0, i < size, i++) {
 		destination[i] = source[i]

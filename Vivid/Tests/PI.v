@@ -83,6 +83,6 @@ pidigits(digits) {
 
 init() {
 	pi = pidigits(3141)
-	print(pi)
+	console.write(pi)
 	=> 0
 }

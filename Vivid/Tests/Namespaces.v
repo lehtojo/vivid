@@ -43,7 +43,7 @@ factory<T>(n) {
 	loop (i = 0, i < n, i++) {
 		product = factory.new()
 
-		println(product.name)
+		console.write_line(product.name)
 	}
 }
 
@@ -51,6 +51,6 @@ fruits() {
 	apple = Foo.Apple()
 	banana = Foo.Bar.Banana()
 
-	println(apple.name)
-	println(banana.name)
+	console.write_line(apple.name)
+	console.write_line(banana.name)
 }

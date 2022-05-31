@@ -169,7 +169,7 @@ namespace Vivid.Unit
 		private static string ObjectFileExtension => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".obj" : ".o";
 
 		private const string STANDARD_LIBRARY_FOLDER = "libv";
-		private const string STANDARD_LIBRARY_ALLOCATOR_FOLDER = "libv/allocator";
+		private const string TESTS_CORE_FOLDER = "libv/tests";
 		private static string PLATFORM_INTERNAL_FOLDER => STANDARD_LIBRARY_FOLDER + '/' + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "windows-x64/" : "linux-x64/");
 		private const string TESTS = "Tests";
 
@@ -228,15 +228,17 @@ namespace Vivid.Unit
 		{
 			StandardLibraryUtility = new[]
 			{
-				GetProjectFile("String.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("StringBuilder.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("Console.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("Exceptions.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("List.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("Array.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("MemoryUtility.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("Sort.v", STANDARD_LIBRARY_FOLDER),
-				GetProjectFile("Math.v", STANDARD_LIBRARY_FOLDER)
+				GetProjectFile("array.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("console.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("exceptions.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("list.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("math.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("memory-utility.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("sequential-iterator.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("sort.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("string-builder.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("string-utility.v", STANDARD_LIBRARY_FOLDER),
+				GetProjectFile("string.v", STANDARD_LIBRARY_FOLDER)
 			};
 		}
 
@@ -311,10 +313,10 @@ namespace Vivid.Unit
 
 			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
 			{
-				GetProjectFile("Light.v", STANDARD_LIBRARY_ALLOCATOR_FOLDER),
+				GetProjectFile("core.v", TESTS_CORE_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
-				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
-				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)
+				GetProjectFile("internal-console.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal-memory.v", PLATFORM_INTERNAL_FOLDER)
 			}).Concat(GetMinimumObjects()).ToArray());
 
 			// Execute the chain
@@ -355,10 +357,10 @@ namespace Vivid.Unit
 
 			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
 			{
-				GetProjectFile("Light.v", STANDARD_LIBRARY_ALLOCATOR_FOLDER),
+				GetProjectFile("core.v", TESTS_CORE_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
-				GetProjectFile("internal_console.v", PLATFORM_INTERNAL_FOLDER),
-				GetProjectFile("internal_memory.v", PLATFORM_INTERNAL_FOLDER)
+				GetProjectFile("internal-console.v", PLATFORM_INTERNAL_FOLDER),
+				GetProjectFile("internal-memory.v", PLATFORM_INTERNAL_FOLDER)
 			}).Concat(GetMinimumObjects()).ToArray());
 
 			// Execute the chain

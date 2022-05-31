@@ -37,48 +37,9 @@ export sign(a: decimal) {
 }
 
 export cbrt(a: large) {
-	=> pow(a, 1.0 / 3.0)
+	=> pow(a, 0.333333333333333)
 }
 
 export cbrt(a: decimal) {
-	=> pow(a, 1.0 / 3.0)
-}
-
-Random {
-	static a: large
-	static b: large
-	static c: large
-	static n: large
-}
-
-# Summary: Return a random integer number
-export random() {
-	b = Random.b
-	c = Random.c
-	x = Random.a + b + c + Random.n++
-	Random.a = b ¤ (b |> 12)
-	Random.b = c + (c <| 3)
-	Random.c = ((c <| 25) | (c |> 39)) + x # 64 - 25 = 39
-	=> x
-}
-
-# Summary: Returns a random integer number between the specified range where a is the minimum and b the maximum.
-export random(a, b) {
-	=> a + (random() as u64) % (b - a)
-}
-
-# Summary: Returns a random integer number between the specified range where zero is the minimum and a the maximum.
-export random(a) {
-	=> (random() as u64) % a
-}
-
-export set_random_seed(seed: large) {
-	Random.a = seed
-	Random.b = seed
-	Random.c = seed
-	Random.n = 1
-
-	loop (i = 0, i < 12, i++) {
-		random()
-	}
+	=> pow(a, 0.333333333333333)
 }

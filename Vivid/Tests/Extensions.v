@@ -17,16 +17,16 @@ Foo.Bar.Counter.increment() {
 }
 
 Factory.create<T>() {
-	println(String('Factory created new ') + nameof(T))
+	console.write_line(String('Factory created new ') + nameof(T))
 	=> T()
 }
 
 init() {
 	if Foo.is_larger<tiny, decimal>() {
-		println('Tiny is somehow larger than decimal?')
+		console.write_line('Tiny is somehow larger than decimal?')
 	}
 	else {
-		println('Decimal seems to be larger than tiny')
+		console.write_line('Decimal seems to be larger than tiny')
 	}
 
 	factory = Factory()
@@ -36,6 +36,6 @@ init() {
 		counter.increment()
 	}
 
-	println(counter.value)
+	console.write_line(counter.value)
 	=> 0
 }

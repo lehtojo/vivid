@@ -14,27 +14,6 @@ export TypeDescriptor {
 		this.address = (address as link<link<link<large>>>)[0][0]
 	}
 
-	equals(other: TypeDescriptor) {
-		=> equals(other.address)
-	}
-
-	equals(other: link) {
-		if other == address {
-			=> true
-		}
-
-		supertypes = supertypes()
-		count = supertypes.count
-
-		loop (i = 0, i < count, i++) {
-			if supertypes[i].address == other {
-				=> true
-			}
-		}
-
-		=> false
-	}
-
 	name() {
 		=> String(address[TYPE_DESCRIPTOR_NAME_OFFSET] as link)
 	}
@@ -45,7 +24,7 @@ export TypeDescriptor {
 
 	supertypes() {
 		count = get_supertype_count()
-		supertypes = Array<TypeDescriptor>(count)
+		supertypes = List<TypeDescriptor>(count, false)
 
 		loop (i = 0, i < count, i++) {
 			supertype = address[TYPE_DESCRIPTOR_SUPERTYPES_FIRST + i] as link
@@ -58,12 +37,4 @@ export TypeDescriptor {
 
 export typeof(object) {
 	=> TypeDescriptor(object as link)
-}
-
-export internal_sizeof(object) {
-	=> TypeDescriptor(object as link).size()
-}
-
-export internal_nameof(object) {
-	=> TypeDescriptor(object as link).name()
 }

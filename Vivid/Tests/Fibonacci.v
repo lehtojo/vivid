@@ -14,7 +14,7 @@ fibonacci(iterations) {
 			second = next
 		}
 
-		println(to_string(next))
+		console.write_line(to_string(next))
 
 		++i
 	}

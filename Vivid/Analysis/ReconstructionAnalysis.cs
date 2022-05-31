@@ -1487,7 +1487,6 @@ public static class ReconstructionAnalysis
 
 			var destination = assignment.Left;
 			var source = assignment.Right;
-
 			var type = destination.GetType();
 
 			// Skip assignments, whose destination is not a pack
@@ -1503,9 +1502,9 @@ public static class ReconstructionAnalysis
 			var destinations = CreatePackMemberAccessors(destination, type, position);
 			var sources = (List<Node>?)null;
 
-			var is_function_assignment = assignment.Right.Is(NodeType.CALL, NodeType.FUNCTION) || (assignment.Right.Is(NodeType.LINK) && assignment.Right.Right.Is(NodeType.CALL, NodeType.FUNCTION));
+			var is_function_assignment = Common.IsFunctionCall(assignment.Right);
 
-			// The sources of function assignments must be replaced with placeholders, so that they do not get overriden by the local representives of the members
+			// The sources of function assignments must be replaced with placeholders, so that they do not get overridden by the local representives of the members
 			if (is_function_assignment)
 			{
 				var loads = CreatePackMemberAccessors(destination, type, position);
@@ -1529,7 +1528,7 @@ public static class ReconstructionAnalysis
 				container.Insert(assignment.Next, new OperatorNode(Operators.ASSIGN, position).SetOperands(destinations[j], sources[j]));
 			}
 
-			// The assigment must be removed, if its source is not a function call
+			// The assignment must be removed, if its source is not a function call
 			/// NOTE: The function call assignment must be left intact, because it must assign the disposable pack handle, whose usage is demonstrated above
 			if (!is_function_assignment) { assignment.Remove(); }
 
@@ -1549,6 +1548,7 @@ public static class ReconstructionAnalysis
 		for (var i = local_pack_usages.Count - 1; i >= 0; i--)
 		{
 			var usage = local_pack_usages[i];
+			var usage_variable = usage.To<VariableNode>().Variable;
 			var type = usage.GetType();
 
 			// Leave function assignments intact
@@ -1560,9 +1560,12 @@ public static class ReconstructionAnalysis
 			// We start moving from the brackets, because variable a is a local pack usage.
 			// [a].b.c
 			// We must move all the way to nested pack c, because only the members of c are expanded.
-			// a.b.[c] => Packer { a.b.c.x, a.b.c.y }
-			// The next loop will transform the packer elements:
-			// a.b.[c] => Packer { a.b.c.x, a.b.c.y } => Packer { $local-1, $local-2 }
+			// a.b.[c] => PackNode { a.b.c.x, a.b.c.y } => PackNode { $.a.b.c.x, $.a.b.c.y }
+			// If we access a normal member through a pack, we replace the usage directly with a local:
+			// a.b.[c].x => a.b.c.x => $.a.b.c.x
+			var member = (Variable?)null;
+			var path = usage_variable.Name;
+
 			while (true)
 			{
 				// The parent node must be a link, since a member access is expected
@@ -1574,94 +1577,42 @@ public static class ReconstructionAnalysis
 				if (next.Instance != NodeType.VARIABLE) break;
 
 				// Continue if a nested pack is accessed
-				var member = next.To<VariableNode>().Variable;
-				if (!member.Type!.IsPack) break;
-
+				member = next.To<VariableNode>().Variable;
 				type = member.Type!;
+				path += '.' + member.Name;
 				usage = parent;
-			}
-
-			// Remove the usage from the list, because it will be replaced with a pack node
-			local_pack_usages.RemoveAt(i);
-			
-			var packer = new PackNode(type);
-
-			foreach (var accessor in CreatePackMemberAccessors(usage, type, usage.Position!))
-			{
-				packer.Add(accessor);
-			}
-
-			usage.Replace(packer);
-		}
-
-		// Member accessors are replaced with local variables:
-		local_pack_usages = root.FindAll(NodeType.VARIABLE).Where(i => local_packs.Contains(i.To<VariableNode>().Variable)).ToList();
-
-		/// NOTE: All usages are used to access a member here
-		foreach (var usage in local_pack_usages)
-		{
-			// Leave the function assignments intact
-			if (Analyzer.IsEdited(usage)) continue;
-
-			/// NOTE: Add a prefix, because name could conflict with hidden variables
-			var name = '.' + usage.To<VariableNode>().Variable.Name;
-			var iterator = usage;
-			var type = (Type?)null;
-
-			while (iterator != null)
-			{
-				// The parent node must be a link, since a member access is expected
-				var parent = iterator.Parent;
-				if (parent == null || parent.Instance != NodeType.LINK) break;
-
-				// Ensure the current iterator is used for member access
-				var next = iterator.Next!;
-				if (next.Instance != NodeType.VARIABLE) break;
-
-				// Append the member to the name
-				var member = next.To<VariableNode>().Variable;
-				name += '.' + member.Name;
-
-				iterator = parent;
-				type = member.Type!;
 
 				if (!type.IsPack) break;
 			}
 
-			if (type == null) throw new ApplicationException("Pack member did not have a type");
+			// If we are accessing at least one member, add a dot to the beginning of the path
+			if (member != null) { path = '.' + path; }
 
-			// Find or create the representive for the member access
-			var context = usage.To<VariableNode>().Variable.Context;
-			var representive = context.GetVariable(name) ?? throw new ApplicationException("Missing pack member");
+			// Find the local variable that represents the accessed path
+			var context = usage_variable.Context;
+			var accessed = context.GetVariable(path) ?? throw new ApplicationException("Missing pack variable");
 
-			iterator!.Replace(new VariableNode(representive, usage.Position));
-		}
-
-		// Replace all packers, which are accessed using link nodes with the accessed member values
-		var packers = root.FindAll(NodeType.PACK).ToList();
-
-		foreach (var packer in packers)
-		{
-			// Find all packers, whose members are accessed using a link node
-			if (packer.Parent!.Instance != NodeType.LINK || packer.Next!.Instance != NodeType.VARIABLE) continue;
-
-			// Find the member value from the packer, which represents the accessed member
-			var type = packer.To<PackNode>().Type!;
-			var member_value = packer.First ?? throw new ApplicationException("Missing member value");
-			var accessed_member = packer.Next!.To<VariableNode>().Variable;
-
-			foreach (var member in type.Variables.Values)
+			if (member != null && !type.IsPack)
 			{
-				if (member.Name != accessed_member.Name)
+				// Replace the usage with a local pack variable:
+				usage.Replace(new VariableNode(accessed, usage.Position!));
+			}
+			else
+			{
+				// Since we are accessing a pack, we must create a pack from its representives:
+				var packer = new PackNode(type);
+				var representives = Common.GetPackRepresentives(accessed);
+
+				foreach (var representive in representives)
 				{
-					member_value = member_value.Next ?? throw new ApplicationException("Missing member value");
-					continue;
+					packer.Add(new VariableNode(representive, usage.Position!));
 				}
 
-				// Replace the packer with the member value
-				packer.Parent!.Replace(member_value);
-				break;
+				usage.Replace(packer);
 			}
+
+			// Remove the usage from the list, because it was replaced
+			local_pack_usages.RemoveAt(i);
 		}
 
 		// Returned packs from function calls are handled last:

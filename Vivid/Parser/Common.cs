@@ -1240,14 +1240,16 @@ public static class Common
 		{
 			var name = prefix + '.' + member.Name;
 
+			// Create representives for each member, even for nested pack members
+			var representive = context.GetVariable(name);
+			if (representive == null) { representive = context.Declare(member.Type!, category, name); }
+
 			if (member.Type!.IsPack)
 			{
 				representives.AddRange(GetPackRepresentives(context, name, member.Type!, category));
 			}
 			else
 			{
-				var representive = context.GetVariable(name);
-				if (representive == null) { representive = context.Declare(member.Type!, category, name); }
 				representives.Add(representive);
 			}
 		}
@@ -1260,7 +1262,10 @@ public static class Common
 	/// </summary>
 	public static List<Variable> GetPackRepresentives(Variable pack)
 	{
-		return GetPackRepresentives(pack.Context, '.' + pack.Name, pack.Type!, pack.Category);
+		// If we are accessing a pack representive, no need to add dot to the name
+		var prefix = pack.Name.StartsWith('.') ? pack.Name : ('.' + pack.Name);
+
+		return GetPackRepresentives(pack.Context, prefix, pack.Type!, pack.Category);
 	}
 
 	/// <summary>

@@ -61,16 +61,16 @@ list_4() {
 print_list(list) {
 	loop element in list {
 		if compiles { element.string() } {
-			print(element.string())
+			console.write(element.string())
 		}
 		else {
-			print(element)
+			console.write(element)
 		}
 
-		print(', ')
+		console.write(', ')
 	}
 
-	println()
+	console.write_line()
 }
 
 init() {
