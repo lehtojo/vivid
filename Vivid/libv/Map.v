@@ -1,4 +1,5 @@
 MIN_MAP_CAPACITY = 5
+REMOVED_SLOT_MARKER = -2
 
 export plain KeyValuePair<K, V> {
 	key: K
@@ -59,6 +60,7 @@ export Map<K, V> {
 	private last: large = -1 # Zero-based index of last slot
 	private slots: link<MapSlot<K, V>> = none as link<MapSlot<K, V>>
 	private capacity: large = 1
+	private removed: normal = 0 # Number of removed slots
 
 	readonly size: large = 0
 
@@ -83,6 +85,7 @@ export Map<K, V> {
 		first = -1
 		last = -1
 		size = 0
+		removed = 0
 
 		if previous_slots === none return
 
@@ -98,7 +101,9 @@ export Map<K, V> {
 
 	add(key: K, value: V) {
 		# If the load factor will exceed 50%, rehash the map now
-		if (size + 1) as decimal / capacity > 0.5 {
+		load_factor = (size + removed + 1) as decimal / capacity
+
+		if load_factor > 0.5 {
 			rehash(capacity * 2)
 		}
 
@@ -115,8 +120,8 @@ export Map<K, V> {
 
 			slot = slots[index]
 
-			# Skip occupied slots
-			if slot.next !== none {
+			# Process occupied slots separately
+			if slot.next > 0 or slot.next == -1 {
 				# If the slot has the same key, replace the value
 				if slot.key == key {
 					slot.value = value
@@ -126,6 +131,11 @@ export Map<K, V> {
 
 				attempt++
 				continue
+			}
+
+			# If we allocate a removed slot, decrement the removed count
+			if slot.next == REMOVED_SLOT_MARKER {
+				removed--
 			}
 
 			# Allocate the slot for the specified key and value
@@ -180,10 +190,15 @@ export Map<K, V> {
 			if attempt < 10 { index = (hash + attempt * attempt) as u64 % capacity }
 			else { index = (hash + attempt) as u64 % capacity }
 
+			attempt++
+
 			slot = slots[index]
 
 			# Stop if we found an empty slot
-			if slot.next === none return
+			if slot.next == 0 return
+
+			# Continue if we found a removed slot
+			if slot.next == REMOVED_SLOT_MARKER continue
 
 			# If the slot has the same key, remove it
 			if slot.key == key {
@@ -214,17 +229,19 @@ export Map<K, V> {
 				# Update the size of the map
 				size--
 
+				# Update the number of removed slots
+				# NOTE: Removed slots still slow down finding other slots and thus are taken into account in the load factor
+				removed++
+
 				# Free the slot
 				slot.key = none
 				slot.value = none
-				slot.next = none
-				slot.previous = none
+				slot.next = REMOVED_SLOT_MARKER
+				slot.previous = REMOVED_SLOT_MARKER
 				slots[index] = slot
 
 				return
 			}
-
-			attempt++
 		}
 	}
 
@@ -243,15 +260,18 @@ export Map<K, V> {
 			if attempt < 10 { index = (hash + attempt * attempt) as u64 % capacity }
 			else { index = (hash + attempt) as u64 % capacity }
 
+			attempt++
+
 			slot = slots[index]
 
 			# Stop if we found an empty slot
-			if slot.next === none => -1
+			if slot.next == 0 => -1
+
+			# Continue if we found a removed slot
+			if slot.next == REMOVED_SLOT_MARKER continue
 
 			# If the slot has the same key, return the value
 			if slot.key == key => index
-
-			attempt++
 		}
 	}
 
@@ -321,6 +341,7 @@ export Map<K, V> {
 		slots = none as link<MapSlot<K, V>>
 		capacity = 1
 		size = 0
+		removed = 0
 	}
 
 	# Summary: Converts the key-value pairs of this map into a list
