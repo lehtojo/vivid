@@ -181,7 +181,8 @@ public static class Analysis
 
 		if (component is ComplexComponent complex_component)
 		{
-			return complex_component.IsNegative ? new NegateNode(complex_component.Node) : complex_component.Node;
+			var complex_node = complex_component.Node.Clone();
+			return complex_component.IsNegative ? new NegateNode(complex_node) : complex_node;
 		}
 
 		if (component is VariableProductComponent product)
