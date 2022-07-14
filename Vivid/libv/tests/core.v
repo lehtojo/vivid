@@ -10,7 +10,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(amount: large) {
-	=> allocate(amount * sizeof(T))
+	=> allocate(amount * sizeof(T)) as link<T>
 }
 
 outline allocate(bytes: large) {

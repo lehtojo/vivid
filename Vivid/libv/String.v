@@ -404,7 +404,7 @@ export String {
 	# Summary: Overrides the indexed accessor, returning the character in the specified position
 	get(i: large) {
 		require(i >= 0 and i <= length, 'Invalid getter index')
-		=> data[i] as char
+		=> data.(link<char>)[i]
 	}
 
 	# Summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position

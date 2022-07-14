@@ -4,7 +4,7 @@ export internal_init(root: link) {
 	internal.allocator.initialize()
 
 	# Call the actual init function here
-	init()
+	=> init()
 }
 
 namespace io
@@ -41,6 +41,8 @@ namespace internal {
 	import 'C' CloseHandle(handle: link): bool
 
 	import 'C' GetFileAttributesA(path: link): u32
+
+	import 'C' GetExitCodeProcess(handle: link, exit_code: link<u32>): bool
 
 	constant MAXIMUM_PATH_LENGTH = 260
 
@@ -96,7 +98,8 @@ namespace internal {
 
 	import 'C' CreateProcessA(name: link, command_line: link, process_attributes: link, thread_attributes: link, inherit_handles: bool, creation_flags: large, environment: link, working_folder: link, startup_information: StartupInformation, process_information: ProcessInformation): bool
 
-	constant PROCESS_ACCESS_SYNCHRONIZE = 1048576
+	constant PROCESS_ACCESS_SYNCHRONIZE = 0x100000
+	constant PROCESS_QUERY_INFORMATION = 0x0400
 
 	import 'C' OpenProcess(desired_access: normal, inherit_handles: bool, pid: normal): link
 	import 'C' WaitForSingleObject(handle: link, milliseconds: normal): normal
@@ -359,9 +362,17 @@ export shell(command: String) {
 
 # Summary: Waits for the specified process to exit
 export wait_for_exit(pid: large) {
-	handle = internal.OpenProcess(internal.PROCESS_ACCESS_SYNCHRONIZE, false, pid)
+	handle = internal.OpenProcess(internal.PROCESS_ACCESS_SYNCHRONIZE | internal.PROCESS_QUERY_INFORMATION, false, pid)
 	internal.WaitForSingleObject(handle, internal.INFINITE)
+
+	exit_code: u32[1]
+
+	if not internal.GetExitCodeProcess(handle, exit_code as link<u32>) {
+		exit_code[0] = 1
+	}
+
 	internal.CloseHandle(handle)
+	=> exit_code[0] as large
 }
 
 # Command line:

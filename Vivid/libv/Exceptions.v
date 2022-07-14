@@ -2,7 +2,7 @@ export Outcome<T, E> {
 	is_error: bool
 
 	has_value() {
-		=> !is_error
+		=> not is_error
 	}
 
 	get_value() {

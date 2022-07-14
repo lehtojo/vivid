@@ -647,11 +647,6 @@ public class ResolverPhase : Phase
 			Assembler.InitializationFunction = initialization_function_metadata.Get(Array.Empty<Type>());
 		}
 
-		if (Assembler.InitializationFunction != null)
-		{
-			Assembler.InitializationFunction.ReturnType = Primitives.CreateUnit();
-		}
-
 		if (static_initializers.Any())
 		{
 			if (Assembler.InitializationFunction == null) throw new ApplicationException("Missing the application initialization function");

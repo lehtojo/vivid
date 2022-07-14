@@ -312,12 +312,12 @@ export List<T> {
 
 		# Copy this list into the result list
 		if data !== none {
-			copy<T>(data, result.data, size)
+			copy<T>(result.data, data, size)
 		}
 
 		# Copy the other list into the result list
 		if other.data !== none {
-			copy<T>(other.data, result.data + size * sizeof(T), other.size)
+			copy<T>(result.data + size * sizeof(T), other.data, other.size)
 		}
 
 		=> result
@@ -330,7 +330,7 @@ export List<T> {
 
 		# Copy this list into the result list
 		if data !== none {
-			copy<T>(data, result.data, size)
+			copy<T>(result.data, data, size)
 		}
 
 		# Copy the specified element into the result list
