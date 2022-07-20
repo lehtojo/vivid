@@ -250,7 +250,7 @@ public static class Calls
 			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 
 			// Windows: Even though the first parameters are passed in registers, they still require their own stack memory (shadow space)
-			if (register != null && !Assembler.IsTargetWindows) return;
+			if (register != null && !Assembler.IsTargetWindows) continue;
 
 			// Normal parameters consume one stack unit
 			stack_position.Offset += Parser.Bytes;
