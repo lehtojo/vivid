@@ -314,7 +314,7 @@ public static class CursorInformationProvider
 		var absolute = changes.CurrentDocumentLines.Take(function_start_line).Sum(i => i.Length) + line_ending_count;
 
 		var tokens = Lexer.GetTokens(function_content, new Position(function_start_line, 0, 0, absolute));
-		Lexer.Join(tokens);
+		Lexer.Postprocess(tokens);
 		Lexer.RegisterFile(tokens, file);
 
 		// Find all parentheses in the tokens

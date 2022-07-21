@@ -8,7 +8,7 @@ public class HasPattern : Pattern
 	private const int HAS = 1;
 	private const int NAME = 2;
 
-	// Pattern: $object has $name
+	// Pattern: $object has [not] $name
 	public HasPattern() : base
 	(
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
@@ -23,24 +23,27 @@ public class HasPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[HAS].Is(Keywords.HAS);
+		return tokens[HAS].Is(Keywords.HAS) || tokens[HAS].Is(Keywords.HAS_NOT);
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
+		var negate = tokens[HAS].Is(Keywords.HAS_NOT);
+
 		var source = Singleton.Parse(context, tokens.First());
 		var name = tokens[NAME].To<IdentifierToken>();
+		var position = name.Position;
 
 		if (context.IsLocalVariableDeclared(name.Value))
 		{
-			throw Errors.Get(name.Position, $"Variable '{name.Value}' already exists in this context");
+			throw Errors.Get(position, $"Variable '{name.Value}' already exists in this context");
 		}
 
 		var variable = Variable.Create(context, null, VariableCategory.LOCAL, name.Value, Modifier.DEFAULT);
-		variable.Position = name.Position;
+		variable.Position = position;
 
-		var result = new VariableNode(variable, name.Position);
+		var result = new HasNode(source, new VariableNode(variable, position), tokens[HAS].Position);
 
-		return new HasNode(source, result, tokens[HAS].Position);
+		return negate ? new NotNode(result, result.Position) : result;
 	}
 }

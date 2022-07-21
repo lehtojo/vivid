@@ -3,18 +3,18 @@ using System;
 public class StringToken : Token
 {
 	public string Text { get; set; }
+	public char Opening { get; set; }
 	public Position End => Position.Translate(Text.Length);
 
 	public StringToken(string text) : base(TokenType.STRING)
 	{
 		Text = text[1..^1];
+		Opening = text[0];
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is StringToken token &&
-			   base.Equals(other) &&
-			   Text == token.Text;
+		return other is StringToken token && base.Equals(other) && Text == token.Text && Opening == token.Opening;
 	}
 
 	public override int GetHashCode()
@@ -29,6 +29,6 @@ public class StringToken : Token
 
 	public override string ToString()
 	{
-		return Lexer.STRING + Text + Lexer.STRING;
+		return Opening.ToString() + Text + Opening;
 	}
 }

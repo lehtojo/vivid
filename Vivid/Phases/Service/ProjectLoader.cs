@@ -119,7 +119,7 @@ public static class ProjectLoader
 		// Tokenize the document
 		var tokens = Lexer.GetTokens(document);
 
-		Lexer.Join(tokens);
+		Lexer.Postprocess(tokens);
 		Lexer.RegisterFile(tokens, file);
 
 		parse.Tokens = new List<Token>(tokens);

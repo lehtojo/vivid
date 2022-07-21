@@ -62,7 +62,7 @@ public static class CompletionProvider
 		var surroundings = CursorInformationProvider.GetCursorSurroundings(request.Document, tokens, request.Absolute);
 		if (surroundings == null) return null;
 
-		Lexer.Join(tokens);
+		Lexer.Postprocess(tokens);
 
 		var left = surroundings[0];
 		var right = surroundings[1];

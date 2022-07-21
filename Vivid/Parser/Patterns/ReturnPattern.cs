@@ -5,13 +5,9 @@ class ReturnPattern : Pattern
 {
 	public const int PRIORITY = 0;
 
-	public const int RETURN = 0;
-	public const int VALUE = 1;
-
-	// Pattern: => ...
 	public ReturnPattern() : base
 	(
-		TokenType.OPERATOR, TokenType.OBJECT
+		TokenType.KEYWORD | TokenType.OPERATOR
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -21,13 +17,21 @@ class ReturnPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[RETURN].To<OperatorToken>().Operator == Operators.HEAVY_ARROW;
+		if (!tokens.First().Is(Keywords.RETURN) && !tokens.First().Is(Operators.HEAVY_ARROW)) return false;
+
+		Consume(state, TokenType.OBJECT); // Optionally consume a return value
+		return true;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var value = Singleton.Parse(context, tokens[VALUE]);
+		var return_value = (Node?)null;
 
-		return new ReturnNode(value, tokens[RETURN].Position);
+		if (tokens.Count > 1)
+		{
+			return_value = Singleton.Parse(context, tokens[1]);
+		}
+
+		return new ReturnNode(return_value, tokens.First().Position);
 	}
 }

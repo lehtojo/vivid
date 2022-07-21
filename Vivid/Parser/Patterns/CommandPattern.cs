@@ -4,9 +4,9 @@ public class CommandPattern : Pattern
 {
 	private const int PRIORITY = 2;
 
-	private const int INSTRUCTION = 0;
+	private const int KEYWORD = 0;
 
-	// Pattern: stop/continue/return
+	// Pattern: stop/continue
 	public CommandPattern() : base
 	(
 		TokenType.KEYWORD
@@ -19,16 +19,12 @@ public class CommandPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var instruction = tokens[INSTRUCTION].To<KeywordToken>();
-
-		return instruction.Keyword == Keywords.STOP || instruction.Keyword == Keywords.CONTINUE || instruction.Keyword == Keywords.RETURN;
+		var keyword = tokens[KEYWORD].To<KeywordToken>().Keyword;
+		return keyword == Keywords.STOP || keyword == Keywords.CONTINUE;
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var keyword = tokens[INSTRUCTION].To<KeywordToken>().Keyword;
-		if (keyword == Keywords.RETURN) return new ReturnNode(null, tokens[INSTRUCTION].Position);
-
-		return new LoopControlNode(keyword, tokens[INSTRUCTION].Position);
+		return new LoopControlNode(tokens[KEYWORD].To<KeywordToken>().Keyword, tokens[KEYWORD].Position);
 	}
 }

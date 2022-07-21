@@ -101,6 +101,7 @@ public static class Parser
 	public const string StandardRangeType = "Range";
 	public const string StandardListType = "List";
 	public const string StandardListAdder = "add";
+	public const string StandardStringType = "String";
 
 	public static Size Size { get; set; } = Size.QWORD;
 	public static Format Format => Size.ToFormat();

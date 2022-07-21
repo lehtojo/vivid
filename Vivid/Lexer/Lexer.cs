@@ -52,6 +52,7 @@ public static class Lexer
 	public const char COMMENT = '#';
 	public const string MULTILINE_COMMENT = "###";
 	public const char STRING = '\'';
+	public const char STRING_OBJECT = '\"';
 	public const char CHARACTER = '`';
 	public const char ESCAPER = '\\';
 	public const char DECIMAL_SEPARATOR = '.';
@@ -63,9 +64,9 @@ public static class Lexer
 	/// Returns whether the character is a operator
 	/// </summary>
 	/// <returns>True if the character is a operator, otherwise false</returns>
-	private static bool IsOperator(char c)
+	private static bool IsOperator(char i)
 	{
-		return c >= 33 && c <= 47 && c != COMMENT && c != STRING || c >= 58 && c <= 63 || c == 94 || c == 124 || c == 126 || c == '¤';
+		return (i >= '*' && i <= '/') || (i >= ':' && i <= '?') || i == '&' || i == '%' || i == '!' || i == '^' || i == '|' || i == '¤';
 	}
 
 	/// <summary>
@@ -148,7 +149,7 @@ public static class Lexer
 	/// <returns>True if the character is start of a string, otherwise false</returns>
 	private static bool IsString(char c)
 	{
-		return c == STRING;
+		return c == STRING || c == STRING_OBJECT;
 	}
 
 	/// <summary>
@@ -254,7 +255,11 @@ public static class Lexer
 			}
 			else if (current == STRING)
 			{
-				position = SkipString(text, position);
+				position = SkipClosures(STRING, text, position, "Can not find the end of the string");
+			}
+			else if (current == STRING_OBJECT)
+			{
+				position = SkipClosures(STRING_OBJECT, text, position, "Can not find the end of the string");
 			}
 			else if (current == ESCAPER)
 			{
@@ -361,15 +366,6 @@ public static class Lexer
 		}
 
 		throw new LexerException(start, error);
-	}
-
-	/// <summary>
-	/// Skips the current string and returns the position
-	/// </summary>
-	/// <returns>Position after the string</returns>
-	private static Position SkipString(string text, Position start)
-	{
-		return SkipClosures(STRING, text, start, "Can not find the end of the string");
 	}
 
 	/// <summary>
@@ -512,7 +508,7 @@ public static class Lexer
 
 			case AreaType.STRING:
 			{
-				area.End = SkipString(text, area.Start);
+				area.End = SkipClosures(current, text, area.Start, "Can not find the end of the string");
 				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
@@ -607,7 +603,7 @@ public static class Lexer
 	/// <summary>
 	/// Join all sequential modifier keywords into one token
 	/// </summary>
-	public static void Join(List<Token> tokens)
+	public static void JoinSequentialModifiers(List<Token> tokens)
 	{
 		if (tokens.Count == 1) return;
 
@@ -639,6 +635,49 @@ public static class Lexer
 				tokens.Insert(i, new KeywordToken(Keywords.IS_NOT) { Position = a.Position });
 			}
 		}
+	}
+
+	/// <summary>
+	/// Finds not-keywords and negates adjacent keywords when possible
+	/// </summary>
+	public static void NegateKeywords(List<Token> tokens)
+	{
+		for (var i = tokens.Count - 2; i >= 0; i--)
+		{
+			// Require the current token to be a keyword
+			var token = tokens[i];
+			if (token.Type != TokenType.KEYWORD) continue;
+
+			// Require the next token to be a not-keyword
+			if (!tokens[i + 1].Is(Keywords.NOT)) continue;
+
+			var negated = (Keyword?)null;
+			var keyword = token.To<KeywordToken>().Keyword;
+
+			if (keyword == Keywords.IS)
+			{
+				negated = Keywords.IS_NOT;
+			}
+			else if (keyword == Keywords.HAS)
+			{
+				negated = Keywords.HAS_NOT;
+			}
+
+			if (negated != null)
+			{
+				token.To<KeywordToken>().Keyword = negated;
+				tokens.RemoveAt(i + 1);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Postprocesses the specified tokens
+	/// </summary>
+	public static void Postprocess(List<Token> tokens)
+	{
+		JoinSequentialModifiers(tokens);
+		NegateKeywords(tokens);
 	}
 
 	/// <summary>
@@ -743,16 +782,16 @@ public static class Lexer
 	/// Returns the text as a token list
 	/// </summary>
 	/// <returns>Text as a token list</returns>
-	public static List<Token> GetTokens(string text, bool join = true)
+	public static List<Token> GetTokens(string text, bool postprocess = true)
 	{
-		return GetTokens(text, new Position(), join);
+		return GetTokens(text, new Position(), postprocess);
 	}
 
 	/// <summary>
 	/// Returns the text as a token list
 	/// </summary>
 	/// <returns>Text as a token list</returns>
-	public static List<Token> GetTokens(string text, Position anchor, bool join = true)
+	public static List<Token> GetTokens(string text, Position anchor, bool postprocess = true)
 	{
 		var tokens = new List<Token>();
 		var position = new Position(anchor.Line, anchor.Character, 0, anchor.Absolute);
@@ -774,7 +813,7 @@ public static class Lexer
 
 		PostprocessEscapedCharacters(tokens);
 
-		if (join) Join(tokens);
+		if (postprocess) Postprocess(tokens);
 		
 		return tokens;
 	}

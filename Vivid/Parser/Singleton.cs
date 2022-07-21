@@ -251,11 +251,28 @@ public static class Singleton
 	}
 
 	/// <summary>
+	/// Creates a string object from the specified string node
+	/// </summary>
+	public static Node CreateStringObject(StringNode node)
+	{
+		var arguments = new Node { node };
+
+		return new UnresolvedFunction(Parser.StandardStringType, node.Position).SetArguments(arguments);
+	}
+
+	/// <summary>
 	/// Builds the specified string into a node
 	/// </summary>
 	public static Node GetString(StringToken token)
 	{
-		return new StringNode(token.Text, token.Position);
+		var string_node = new StringNode(token.Text, token.Position);
+
+		if (token.Opening == '\"')
+		{
+			return CreateStringObject(string_node);
+		}
+
+		return string_node;
 	}
 
 	public static Node Parse(Context context, Token token)

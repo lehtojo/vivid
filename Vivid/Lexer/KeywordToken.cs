@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class KeywordToken : Token
 {
-	public Keyword Keyword { get; private set; }
+	public Keyword Keyword { get; set; }
 	public Position End => Position.Translate(Keyword.Identifier.Length);
 
 	public KeywordToken(string text) : base(TokenType.KEYWORD)

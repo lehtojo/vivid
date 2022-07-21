@@ -51,7 +51,7 @@ public static class FunctionSignatureProvider
 		// If the cursor is not inside parenthesis, nothing can be done
 		if (parenthesis == null) return null;
 
-		Lexer.Join(tokens);
+		Lexer.Postprocess(tokens);
 
 		// Require the previous token to be an identifier token
 		if (parenthesis.Index - 1 < 0 || !parenthesis.Container[parenthesis.Index - 1].Is(TokenType.IDENTIFIER)) return null;
