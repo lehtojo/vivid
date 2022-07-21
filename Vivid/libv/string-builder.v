@@ -108,7 +108,7 @@ export StringBuilder {
 	}
 
 	insert(index: large, text: link) {
-		=> insert(index, text, length_of(text))
+		return insert(index, text, length_of(text))
 	}
 
 	replace(from: link, to: link) {
@@ -145,11 +145,11 @@ export StringBuilder {
 
 	get(i: large) {
 		require(i >= 0 and i < position, 'Index out of bounds')
-		=> buffer[i]
+		return buffer[i]
 	}
 
 	string() {
-		=> String(buffer, position)
+		return String(buffer, position)
 	}
 
 	deinit() {

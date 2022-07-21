@@ -1,15 +1,15 @@
 # Test: Create a simple list of integers
 list_1() {
-	=> [ 1, 2, 3, 5, 7, 11, 13 ]
+	return [ 1, 2, 3, 5, 7, 11, 13 ]
 }
 
 sum(a, b) {
-	=> a + b
+	return a + b
 }
 
 # Test: Create a list of integers, whose elements are expressions
 list_2() {
-	=> [ 2 * (7 + 7) + 14, sum(6 * 6, 11 * 3) ]
+	return [ 2 * (7 + 7) + 14, sum(6 * 6, 11 * 3) ]
 }
 
 Item {
@@ -20,7 +20,7 @@ Item {
 	}
 
 	virtual string() {
-		=> String(name)
+		return String(name)
 	}
 }
 
@@ -33,13 +33,13 @@ Item Bundle {
 	}
 
 	override string() {
-		=> String(name) + ' x ' + to_string(quantity)
+		return String(name) + ' x ' + to_string(quantity)
 	}
 }
 
 # Test: Create a list of items (all items have the same type)
 list_3() {
-	=> [
+	return [
 		Item('Foo'),
 		Item('Bar'),
 		Item('Baz'),
@@ -50,7 +50,7 @@ list_3() {
 
 # Test: Create a list of items (shared type)
 list_4() {
-	=> [
+	return [
 		Item('Foo'), Item('Bar'), # Test: Multiline list can still add multiple items in one row
 		Bundle('Baz', 3),
 		Item('Qux'),
@@ -78,5 +78,5 @@ init() {
 	print_list(list_2())
 	print_list(list_3())
 	print_list(list_4())
-	=> 0
+	return 0
 }

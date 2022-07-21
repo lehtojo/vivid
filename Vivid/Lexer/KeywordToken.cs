@@ -11,9 +11,10 @@ public class KeywordToken : Token
 		Keyword = Keywords.Get(text);
 	}
 
-	public KeywordToken(Keyword keyword) : base(TokenType.KEYWORD)
+	public KeywordToken(Keyword keyword, Position position) : base(TokenType.KEYWORD)
 	{
 		Keyword = keyword;
+		Position = position;
 	}
 
 	public override bool Equals(object? other)

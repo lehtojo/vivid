@@ -8,38 +8,38 @@ import cos(a: decimal): decimal
 import tan(a: decimal): decimal
 
 export min(a, b) {
-	if a < b => a
-	else => b
+	if a < b return a
+	else return b
 }
 
 export max(a, b) {
-	if a > b => a
-	else => b
+	if a > b return a
+	else return b
 }
 
 export abs(a) {
-	if a > 0 => a
-	else => -a
+	if a > 0 return a
+	else return -a
 }
 
 export ceil(a: decimal) {
-	=> (a + 0.5) as large
+	return (a + 0.5) as large
 }
 
 export floor(a: decimal) {
-	=> a as large
+	return a as large
 }
 
 export sign(a: decimal) {
-	if a > 0 => 1
-	else a < 0 => -1
-	else => 0 
+	if a > 0 return 1
+	else a < 0 return -1
+	else return 0
 }
 
 export cbrt(a: large) {
-	=> pow(a, 0.333333333333333)
+	return pow(a, 0.333333333333333)
 }
 
 export cbrt(a: decimal) {
-	=> pow(a, 0.333333333333333)
+	return pow(a, 0.333333333333333)
 }

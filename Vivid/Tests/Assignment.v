@@ -27,5 +27,5 @@ export assignment_2(instance: Sequence) {
 }
 
 init() {
-	=> 1
+	return 1
 }

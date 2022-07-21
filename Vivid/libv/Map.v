@@ -29,15 +29,15 @@ export plain MapIterator<K, V> {
 	}
 
 	value() {
-		=> this as KeyValuePair<K, V> # NOTE: Map slot is identical to a pair
+		return this as KeyValuePair<K, V> # NOTE: Map slot is identical to a pair
 	}
 
 	next() {
-		if slot.next <= 0 => false
+		if slot.next <= 0 return false
 
 		index = slot.next - 1
 		slot = slots[index]
-		=> true
+		return true
 	}
 
 	reset() {
@@ -170,9 +170,9 @@ export Map<K, V> {
 	}
 
 	try_add(key: K, value: V) {
-		if contains_key(key) => false
+		if contains_key(key) return false
 		add(key, value)
-		=> true
+		return true
 	}
 
 	remove(key: K) {
@@ -247,7 +247,7 @@ export Map<K, V> {
 
 	try_find(key: K) {
 		# Just return -1 if the map is empty, this also protects from the situation where the map is not allocated yet
-		if size == 0 => -1
+		if size == 0 return -1
 
 		hash = key as large
 		if compiles { key.hash() } { hash = key.hash() }
@@ -265,32 +265,32 @@ export Map<K, V> {
 			slot = slots[index]
 
 			# Stop if we found an empty slot
-			if slot.next == 0 => -1
+			if slot.next == 0 return -1
 
 			# Continue if we found a removed slot
 			if slot.next == REMOVED_SLOT_MARKER continue
 
 			# If the slot has the same key, return the value
-			if slot.key == key => index
+			if slot.key == key return index
 		}
 	}
 
 	contains_key(key: K) {
-		=> try_find(key) >= 0
+		return try_find(key) >= 0
 	}
 
 	get(key: K) {
 		index = try_find(key)
 		if index < 0 panic('Map did not contain the specified key')
 
-		=> slots[index].value
+		return slots[index].value
 	}
 
 	try_get(key: K) {
 		index = try_find(key)
-		if index < 0 => Optional<V>()
+		if index < 0 return Optional<V>()
 
-		=> Optional<V>(slots[index].value)
+		return Optional<V>(slots[index].value)
 	}
 
 	set(key: K, value: V) {
@@ -298,7 +298,7 @@ export Map<K, V> {
 	}
 
 	iterator() {
-		=> MapIterator<K, V>(slots, first)
+		return MapIterator<K, V>(slots, first)
 	}
 
 	# Summary: Returns the keys associated with the values in this map as a list
@@ -313,7 +313,7 @@ export Map<K, V> {
 			index = slot.next - 1
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Returns the values associated with the keys in this map as a list
@@ -328,7 +328,7 @@ export Map<K, V> {
 			index = slot.next - 1
 		}
 
-		=> result
+		return result
 	}
 
 	clear() {
@@ -357,6 +357,6 @@ export Map<K, V> {
 			index = slot.next - 1
 		}
 
-		=> result
+		return result
 	}
 }

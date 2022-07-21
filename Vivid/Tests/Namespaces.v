@@ -24,7 +24,7 @@ namespace Foo {
 
 	Factory<T> {
 		new() {
-			=> T(String('Factory ') + nameof(T))
+			return T(String('Factory ') + nameof(T))
 		}
 	}
 }
@@ -32,7 +32,7 @@ namespace Foo {
 init() {
 	Baz.fruits()
 	Baz.factory<Foo.Apple>(3)
-	=> 0
+	return 0
 }
 
 namespace Baz

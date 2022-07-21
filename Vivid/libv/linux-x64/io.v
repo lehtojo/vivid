@@ -31,7 +31,7 @@ export internal_init(root: link) {
 	io.internal.executable = arguments[0]
 
 	# Call the actual init function here
-	=> init()
+	return init()
 }
 
 namespace io
@@ -151,7 +151,7 @@ FolderItem {
 export get_folder_items(folder: String, all: bool) {
 	# Try to open the specified folder
 	file_descriptor = internal.system_open(folder.data, internal.FLAG_DIRECTORY, 0)
-	if file_descriptor < 0 => none as List<FolderItem>
+	if file_descriptor < 0 return none as List<FolderItem>
 
 	items = List<FolderItem>()
 	buffer: char[1000]
@@ -161,7 +161,7 @@ export get_folder_items(folder: String, all: bool) {
 		result = internal.system_get_directory_entries(file_descriptor, buffer as link, 1000)
 		if result < 0 {
 			internal.system_close(file_descriptor)
-			=> none as List<FolderItem>
+			return none as List<FolderItem>
 		}
 
 		# If the result is zero, it means the end has been reached
@@ -189,7 +189,7 @@ export get_folder_items(folder: String, all: bool) {
 	}
 
 	internal.system_close(file_descriptor)
-	=> items
+	return items
 }
 
 # Summary: Returns all the filenames inside the specified folder
@@ -202,50 +202,50 @@ export get_folder_files(folder: String, all: bool) {
 		files.add(item)
 	}
 
-	=> files
+	return files
 }
 
 # Summary: Returns all the filenames inside the specified folder
 export get_folder_files(folder: link, all: bool) {
-	=> get_folder_files(String(folder), all)
+	return get_folder_files(String(folder), all)
 }
 
 # Summary: Writes the specified text to the specified file
 export write_file(filename: String, text: String) {
-	=> write_file(filename.data, Array<byte>(text.data, text.length))
+	return write_file(filename.data, Array<byte>(text.data, text.length))
 }
 
 # Summary: Writes the specified text to the specified file
 export write_file(filename: String, bytes: Array<byte>) {
-	=> write_file(filename.data, bytes)
+	return write_file(filename.data, bytes)
 }
 
 # Summary: Writes the specified text to the specified file
 export write_file(filename: link, text: String) {
-	=> write_file(filename, Array<byte>(text.data, text.length))
+	return write_file(filename, Array<byte>(text.data, text.length))
 }
 
 # Summary: Writes the specified byte array to the specified file
 export write_file(filename: link, bytes: Array<byte>) {
 	file_descriptor = internal.system_open(filename, internal.FLAG_CREATE | internal.FLAG_WRITE | internal.FLAG_TRUNCATE, internal.DEFAULT_FILE_MODE)
-	if file_descriptor < 0 => false
+	if file_descriptor < 0 return false
 
 	result = internal.system_write(file_descriptor, bytes.data, bytes.size)
-	if result < 0 => false
+	if result < 0 return false
 
 	internal.system_close(file_descriptor)
-	=> true
+	return true
 }
 
 # Summary: Opens the specified file and returns its contents
 export read_file(filename: String) {
-	=> read_file(filename.data)
+	return read_file(filename.data)
 }
 
 # Summary: Opens the specified file and returns its contents
 export read_file(filename: link) {
 	file_descriptor = internal.system_open(filename, 0, 0)
-	if file_descriptor < 0 => Optional<Array<byte>>()
+	if file_descriptor < 0 return Optional<Array<byte>>()
 
 	buffer = allocate(100)
 	size = 100
@@ -259,7 +259,7 @@ export read_file(filename: link) {
 		if result < 0 {
 			deallocate(buffer)
 			internal.system_close(file_descriptor)
-			=> Optional<Array<byte>>()
+			return Optional<Array<byte>>()
 		}
 
 		# If the result is zero, it means the end has been reached
@@ -275,69 +275,69 @@ export read_file(filename: link) {
 	}
 
 	internal.system_close(file_descriptor)
-	=> Optional<Array<byte>>(Array<byte>(buffer, position))
+	return Optional<Array<byte>>(Array<byte>(buffer, position))
 }
 
 # Summary: Returns whether the specified file or folder exists
 export exists(path: String) {
-	=> exists(path.data)
+	return exists(path.data)
 }
 
 # Summary: Returns whether the specified file or folder exists
 export exists(path: link) {
 	result = inline internal.FileStatus()
-	=> internal.system_status(path, result as link) == 0
+	return internal.system_status(path, result as link) == 0
 }
 
 # Summary: Returns whether the path represents a folder in the filesystem
 export is_folder(path: String) {
-	=> is_folder(path.data)
+	return is_folder(path.data)
 }
 
 # Summary: Returns whether the path represents a folder in the filesystem
 export is_folder(path: link) {
 	result = inline internal.FileStatus()
-	=> internal.system_status(path, result as link) == 0 and (result.mode & internal.FILE_TYPE_MASK) == internal.FILE_MODE_DIRECTORY
+	return internal.system_status(path, result as link) == 0 and (result.mode & internal.FILE_TYPE_MASK) == internal.FILE_MODE_DIRECTORY
 }
 
 # Summary: Returns the size of the specified file or folder
 export size(path: String) {
-	=> size(path.data)
+	return size(path.data)
 }
 
 # Summary: Returns the size of the specified file or folder
 export size(path: link) {
 	if is_folder(path) {
 		files = get_folder_files(path, true)
-		if files == none => 0
+		if files == none return 0
 
 		total = 0
 		loop file in files { total += size(file.fullname) }
 		
-		=> total
+		return total
 	}
 
 	result = inline internal.FileStatus()
-	if internal.system_status(path, result as link) != 0 => -1
-	=> result.size
+	if internal.system_status(path, result as link) != 0 return -1
+	return result.size
 }
 
 # Summary: Deletes the specified file system object
 export delete(path: link) {
-	if is_folder(path) => internal.system_remove_folder(path) == 0
-	=> internal.system_unlink(path) == 0
+	if is_folder(path) return internal.system_remove_folder(path) == 0
+	return internal.system_unlink(path) == 0
 }
 
 # Summary: Deletes the specified file system object
 export delete(path: String) {
-	=> delete(path.data)
+	return delete(path.data)
 }
 
 # TODO: Seperate files?
 # Processes:
 start_process(executable: String, command_line_arguments: List<String>, working_folder: String) {
 	result = internal.system_fork()
-	if result == -1 => -1
+	if result == -1 return -1
 
 	if result == 0 {
 		# Executes in the child process:
@@ -369,21 +369,21 @@ start_process(executable: String, command_line_arguments: List<String>, working_
 
 		result = internal.system_execute('/usr/bin/sh', arguments.elements, environment_variables.elements)
 		exit(result)
-		=> -1
+		return -1
 	}
 
 	# Executes in the parent process:
 	# Return the process id of the created process
-	=> result
+	return result
 }
 
 start_process(executable: String, command_line_arguments: List<String>) {
-	=> start_process(executable, command_line_arguments, none as String)
+	return start_process(executable, command_line_arguments, none as String)
 }
 
 shell(command: String, working_folder: String) {
 	result = internal.system_fork()
-	if result == -1 => -1
+	if result == -1 return -1
 
 	if result == 0 {
 		# Executes in the child process:
@@ -405,22 +405,22 @@ shell(command: String, working_folder: String) {
 
 		result = internal.system_execute('/usr/bin/sh', arguments.elements, environment_variables.elements)
 		exit(result)
-		=> -1
+		return -1
 	}
 
 	# Executes in the parent process: Wait for the process to exit and return its exit code or signal
-	=> wait_for_exit(result)
+	return wait_for_exit(result)
 }
 
 shell(command: String) {
-	=> shell(command, none as String)
+	return shell(command, none as String)
 }
 
 # Summary: Waits for the specified process to exit
 wait_for_exit(pid: large) {
 	information = inline internal.SignalInformation()
 	internal.system_wait_id(internal.ID_TYPE_PID, pid, information, internal.WAIT_OPTIONS_EXITED, none)
-	=> information.status
+	return information.status
 }
 
 # Command line:
@@ -429,28 +429,28 @@ export get_environment_variable(name: link) {
 	start = String.from(name, length_of(name)) + '='
 
 	loop environment_variable in internal.environment_variables {
-		if environment_variable.starts_with(start) => environment_variable.slice(start.length, environment_variable.length)
+		if environment_variable.starts_with(start) return environment_variable.slice(start.length, environment_variable.length)
 	}
 
-	=> none as String
+	return none as String
 }
 
 # Summary: Returns the filename of the currently running process executable
 export get_process_filename() {
-	=> internal.executable
+	return internal.executable
 }
 
 # Summary: Returns the folder which contains the current process executable
 export get_process_folder() {
 	filename = get_process_filename()
-	if filename as link == none => none as String
+	if filename as link == none return none as String
 
 	# Find the index of the last separator
 	i = filename.last_index_of(`/`)
-	if i == -1 => none as String
+	if i == -1 return none as String
 	
 	# Include the separator to the folder path
-	=> filename.slice(0, i + 1)
+	return filename.slice(0, i + 1)
 }
 
 # Summary: Returns the current working folder of the running process
@@ -459,7 +459,7 @@ export get_process_working_folder() {
 	size = 50
 
 	loop {
-		if internal.system_get_working_folder(buffer, size) != 0 => String.from(buffer, length_of(buffer))
+		if internal.system_get_working_folder(buffer, size) != 0 return String.from(buffer, length_of(buffer))
 		deallocate(buffer)
 		size = size * 2
 		buffer = allocate(size)
@@ -468,5 +468,5 @@ export get_process_working_folder() {
 
 # Summary: Returns the list of the arguments passed to this application
 export get_command_line_arguments() {
-	=> internal.arguments
+	return internal.arguments
 }

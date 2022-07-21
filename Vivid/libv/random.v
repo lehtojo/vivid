@@ -13,17 +13,17 @@ export random() {
 	internal.random.a = b ¤ (b |> 12)
 	internal.random.b = c + (c <| 3)
 	internal.random.c = ((c <| 25) | (c |> 39)) + x # 64 - 25 = 39
-	=> x
+	return x
 }
 
 # Summary: Returns a random integer number between the specified range where a is the minimum and b the maximum.
 export random(a, b) {
-	=> a + (random() as u64) % (b - a)
+	return a + (random() as u64) % (b - a)
 }
 
 # Summary: Returns a random integer number between the specified range where zero is the minimum and a the maximum.
 export random(a) {
-	=> (random() as u64) % a
+	return (random() as u64) % a
 }
 
 export set_random_seed(seed: large) {

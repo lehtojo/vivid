@@ -9,9 +9,9 @@ export basename(path: String) {
 	j = path.last_index_of(`\\`)
 	start = max(i, j)
 
-	if start >= 0 => path.slice(start + 1)
+	if start >= 0 return path.slice(start + 1)
 
-	=> path
+	return path
 }
 
 # Summary: Returns the full path to the parent folder of the specified path
@@ -23,7 +23,7 @@ export folder(path: String) {
 	j = path.last_index_of(`\\`)
 	start = max(i, j)
 
-	if start >= 0 => path.slice(0, start)
+	if start >= 0 return path.slice(0, start)
 
-	=> path
+	return path
 }

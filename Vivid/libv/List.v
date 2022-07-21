@@ -5,8 +5,8 @@ export List<T> {
 	readonly size: large
 
 	private static allocate_elements(size: large) {
-		if size > 0 => allocate(size * sizeof(T)) as link<T>
-		=> none as link<T>
+		if size > 0 return allocate(size * sizeof(T)) as link<T>
+		return none as link<T>
 	}
 
 	# Summary: Creates a list with the specified initial size
@@ -164,11 +164,11 @@ export List<T> {
 		loop (i = 0, i < size, i++) {
 			if data[i] == element {
 				remove_at(i)
-				=> true
+				return true
 			}
 		}
 
-		=> false
+		return false
 	}
 
 	# Summary: Removes the specified range from this list
@@ -190,7 +190,7 @@ export List<T> {
 
 	# Summary: Takes the value of the first element and removes it from the beginning of the list
 	pop_or(fallback: T) {
-		if size == 0 => fallback
+		if size == 0 return fallback
 		first = data[0]
 
 		# Move all elements left by one
@@ -199,34 +199,34 @@ export List<T> {
 		}
 
 		data[--size] = fallback
-		=> first
+		return first
 	}
 
 	# Summary: Returns the index, which contains the specified element. If it is not found, this function returns -1.
 	index_of(element: T) {
 		loop (i = 0, i < size, i++) {
-			if data[i] == element => i
+			if data[i] == element return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the index of the last occurrence of the specified element. If the specified element is not in the list, this function returns -1.
 	last_index_of(element: T) {
 		loop (i = size - 1, i >= 0, i--) {
-			if data[i] == element => i
+			if data[i] == element return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns whether the list contains the specified element
 	contains(element: T) {
 		loop (i = 0, i < size, i++) {
-			if data[i] == element => true
+			if data[i] == element return true
 		}
 
-		=> false
+		return false
 	}
 
 	# Summary: Creates a new list, which contains the specified range of elements
@@ -236,9 +236,9 @@ export List<T> {
 
 		# Compute the size of the result list
 		size: large = end - start
-		if size == 0 => List<T>()
+		if size == 0 return List<T>()
 
-		=> List<T>(data + start * sizeof(T), size)
+		return List<T>(data + start * sizeof(T), size)
 	}
 
 	# Summary: Returns all the elements starting from the specified index
@@ -247,9 +247,9 @@ export List<T> {
 
 		# Compute the size of the result list
 		size: large = this.size - start
-		if size == 0 => List<T>()
+		if size == 0 return List<T>()
 
-		=> List<T>(data + start * sizeof(T), size)
+		return List<T>(data + start * sizeof(T), size)
 	}
 
 	# Summary: Reverses the order of the elements
@@ -262,7 +262,7 @@ export List<T> {
 			data[size - i - 1] = element
 		}
 
-		=> this
+		return this
 	}
 
 	# Summary: Removes duplicated elements from this list
@@ -276,7 +276,7 @@ export List<T> {
 			}
 		}
 
-		=> this
+		return this
 	}
 
 	# Summary: Sets the value of the element at the specified index
@@ -290,7 +290,7 @@ export List<T> {
 	get(i: large) {
 		require(i >= 0 and i < size, 'Invalid getter index')
 
-		=> data[i]
+		return data[i]
 	}
 
 	# Summary: Adds the specified element to this list
@@ -320,7 +320,7 @@ export List<T> {
 			copy<T>(result.data + size * sizeof(T), other.data, other.size)
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Adds the elements from this and the specified element to a new list
@@ -336,7 +336,7 @@ export List<T> {
 		# Copy the specified element into the result list
 		result[size] = element
 
-		=> result
+		return result
 	}
 
 	# Summary: Removes all the elements from this list
@@ -359,14 +359,14 @@ export List<T> {
 			if filter(data[i]) result.add(data[i])
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Returns the first element, which passes the specified filter, otherwise the function panics
 	find(filter: (T) -> bool) {
 		loop (i = 0, i < size, i++) {
 			element = data[i]
-			if filter(element) => element
+			if filter(element) return element
 		}
 
 		panic('No element passed the filter')
@@ -376,20 +376,20 @@ export List<T> {
 	find_or(filter: (T) -> bool, default: T) {
 		loop (i = 0, i < size, i++) {
 			element = data[i]
-			if filter(element) => element
+			if filter(element) return element
 		}
 
-		=> default
+		return default
 	}
 
 	# Summary: Returns the index of the first element, which passes the specified filter, otherwise the function returns -1
 	find_index(filter: (T) -> bool) {
 		loop (i = 0, i < size, i++) {
 			element = data[i]
-			if filter(element) => i
+			if filter(element) return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the first element to produce the maximum value using the specified mapper
@@ -409,12 +409,12 @@ export List<T> {
 			}
 		}
 
-		=> max
+		return max
 	}
 
 	# Summary: Returns the first element to produce the maximum value using the specified mapper
 	find_max_or(mapper: (T) -> large, default: T) {
-		if size == 0 => default
+		if size == 0 return default
 
 		max = data[0]
 		max_value = mapper(max)
@@ -429,7 +429,7 @@ export List<T> {
 			}
 		}
 
-		=> max
+		return max
 	}
 
 	# Summary: Converts the elements of this list into another types of elements
@@ -440,7 +440,7 @@ export List<T> {
 			result[i] = mapper(data[i])
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Creates a new list of all the element collections returned by the mapper by adding them sequentially
@@ -452,15 +452,15 @@ export List<T> {
 			result.add_all(collection)
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Sorts the elements in this list using the specified comparator
 	order(comparator: (T, T) -> large) {
-		if size == 0 => this
+		if size == 0 return this
 
 		sort<T>(data, size, comparator)
-		=> this
+		return this
 	}
 
 	# Summary: Returns the number of elements which pass the specified filter
@@ -471,30 +471,30 @@ export List<T> {
 			if filter(data[i]) { count++ }
 		}
 
-		=> count
+		return count
 	}
 	
 	# Summary: Returns whether all the elements pass the specified filter
 	all(filter: (T) -> bool) {
 		loop (i = 0, i < size, i++) {
-			if not filter(data[i]) => false
+			if not filter(data[i]) return false
 		}
 
-		=> true
+		return true
 	}
 
 	# Summary: Returns true if any of the elements pass the specified filter
 	any(filter: (T) -> bool) {
 		loop (i = 0, i < size, i++) {
-			if filter(data[i]) => true
+			if filter(data[i]) return true
 		}
 
-		=> false
+		return false
 	}
 
 	# Summary: Returns an iterator which can be used to inspect this list
 	iterator() {
-		=> SequentialIterator<T>(data, size)
+		return SequentialIterator<T>(data, size)
 	}
 
 	deinit() {

@@ -8,9 +8,9 @@ export read_line() {
 	buffer: char[CONSOLE_READ_LINE_MAX_LENGTH]
 	size = internal.console.read(buffer as link, CONSOLE_READ_LINE_MAX_LENGTH) - 2
 
-	if size <= 0 => String.empty
+	if size <= 0 return String.empty
 
-	=> String(buffer as link, size)
+	return String(buffer as link, size)
 }
 
 # Summary: Reads the next line of characters from the console and returns it to the specified buffer

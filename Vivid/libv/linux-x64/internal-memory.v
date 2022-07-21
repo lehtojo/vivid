@@ -10,7 +10,7 @@ import 'C' system_memory_map(address: link, length: large, protection: large, fl
 import 'C' system_memory_unmap(address: link, length: large): normal
 
 export allocate(size: large) {
-	=> system_memory_map(0 as link, size, PERMISSION_READ | PERMISSION_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
+	return system_memory_map(0 as link, size, PERMISSION_READ | PERMISSION_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
 }
 
 export deallocate(address: link, size: large) {

@@ -22,20 +22,20 @@ export Set<T> {
 	}
 
 	contains(element: T) {
-		=> container.contains(element)
+		return container.contains(element)
 	}
 
 	add(element: T) {
-		if container.contains(element) => false
+		if container.contains(element) return false
 		container.add(element)
-		=> true
+		return true
 	}
 
 	iterator() {
-		=> container.iterator()
+		return container.iterator()
 	}
 
 	to_list() {
-		=> List<T>(container)
+		return List<T>(container)
 	}
 }

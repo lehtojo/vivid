@@ -36,16 +36,16 @@ export Array<T> {
 	get(i: large) {
 		require(i >= 0 and i < size, 'Index out of bounds')
 
-		=> data[i]
+		return data[i]
 	}
 
 	# Summary: Returns the index of the specified element in the array. Returns -1 if the element is not found.
 	index_of(value: T) {
 		loop (i = 0, i < size, i++) {
-			if data[i] == value => i
+			if data[i] == value return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the elements between the specified range as an array.
@@ -54,12 +54,12 @@ export Array<T> {
 		require(end >= 0 and end <= size, 'Invalid end index')
 		require(start <= end, 'Start index can not be greater than end index')
 
-		=> Array<T>(data + start * sizeof(T), end - start)
+		return Array<T>(data + start * sizeof(T), end - start)
 	}
 
 	# Summary: Returns an iterator that can be used to inspect this array
 	iterator() {
-		=> SequentialIterator<T>(data, size)
+		return SequentialIterator<T>(data, size)
 	}
 	
 	deinit() {

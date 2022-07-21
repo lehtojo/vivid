@@ -9,16 +9,16 @@ namespace Foo {
 Factory {}
 
 Foo.is_larger<Ta, Tb>() {
-	=> sizeof(Ta) > sizeof(Tb)
+	return sizeof(Ta) > sizeof(Tb)
 }
 
 Foo.Bar.Counter.increment() {
-	=> ++value
+	return ++value
 }
 
 Factory.create<T>() {
 	console.write_line(String('Factory created new ') + nameof(T))
-	=> T()
+	return T()
 }
 
 init() {
@@ -37,5 +37,5 @@ init() {
 	}
 
 	console.write_line(counter.value)
-	=> 0
+	return 0
 }

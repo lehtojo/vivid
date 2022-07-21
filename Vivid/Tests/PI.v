@@ -12,7 +12,7 @@ CustomArray<T> {
 	}
 	
 	get(i: large) {
-		=> data[i]
+		return data[i]
 	}
 	
 	deinit() {
@@ -78,11 +78,11 @@ pidigits(digits) {
 		i -= 1
 	}
 	
-	=> result.data
+	return result.data
 }
 
 init() {
 	pi = pidigits(3141)
 	console.write(pi)
-	=> 0
+	return 0
 }

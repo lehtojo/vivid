@@ -14,17 +14,17 @@ pack_1(x: large, y: large) {
 	foo: Foo
 	foo.x = y
 	foo.y = x
-	=> foo
+	return foo
 }
 
 # Test: Receive a pack as a parameter and use it
 pack_2(foo: Foo) {
-	=> foo.x * foo.x + foo.y * foo.y
+	return foo.x * foo.x + foo.y * foo.y
 }
 
 # Test: Receive so many packs that stack must be used
 pack_3(a: Foo, b: Foo, c: Foo, d: Foo) {
-	=> a.x * b.x * c.x * d.x + a.y * b.y * c.y * d.y
+	return a.x * b.x * c.x * d.x + a.y * b.y * c.y * d.y
 }
 
 # Test: Create a nested pack and return it
@@ -38,7 +38,7 @@ pack_4(x: large, y: large) {
 	result: Bar
 	result.a = a
 	result.b = b
-	=> result
+	return result
 }
 
 # Test: Create a nested pack (duplicate inside) and return it
@@ -50,22 +50,22 @@ pack_5(x: large, y: large) {
 	result.a = c
 	result.x = c
 	result.b = c
-	=> result
+	return result
 }
 
 goo(a: large, x: Bar) {
-	=> x.a.x * x.b.x + x.a.y * x.b.y
+	return x.a.x * x.b.x + x.a.y * x.b.y
 }
 
 # Test: Receive nested packs
 pack_6(x: Bar, y: Bar) {
-	=> x.a.x * x.b.x + x.a.y * x.b.y + y.a.x * y.b.x + y.a.y * y.b.y
+	return x.a.x * x.b.x + x.a.y * x.b.y + y.a.x * y.b.x + y.a.y * y.b.y
 }
 
 # Test: Loading pack from memory
 pack_7(memory: link<Foo>, i: large) {
 	foo = memory[i]
-	=> foo.x * foo.x + foo.y * foo.y
+	return foo.x * foo.x + foo.y * foo.y
 }
 
 # Test: Store pack in memory
@@ -79,7 +79,7 @@ pack_8(memory: link<Foo>, i: large, x: large, y: large) {
 # Test: Loading nested pack from memory
 pack_9(memory: link<Bar>, i: large) {
 	bar = memory[i]
-	=> bar.a.x * bar.b.x + bar.a.y * bar.b.y
+	return bar.a.x * bar.b.x + bar.a.y * bar.b.y
 }
 
 # Test: Store nested pack in memory
@@ -120,5 +120,5 @@ init() {
 
 	pack_10(memory, 0, 53, 59)
 	console.write_line(pack_9(memory, 0))
-	=> 0
+	return 0
 }

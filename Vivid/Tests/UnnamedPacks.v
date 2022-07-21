@@ -5,7 +5,7 @@ pack Foo {
 
 # Test: Create an unnamed pack and return it
 pack_1(x: large, y: small) {
-	=> pack {
+	return pack {
 		x: y as large,
 		y: x as small
 	}
@@ -13,7 +13,7 @@ pack_1(x: large, y: small) {
 
 # Test: Receiving a unnamed pack and using it
 pack_2(a: { x: large, y: small }) {
-	=> a.x * a.y
+	return a.x * a.y
 }
 
 # Test: Convert a named pack to unnamed pack
@@ -21,12 +21,12 @@ pack_3(x: large, y: small) {
 	foo: Foo
 	foo.x = x
 	foo.y = y
-	=> pack_2(foo)
+	return pack_2(foo)
 }
 
 # Test: Create nested packs
 pack_4(x: large, y: small, z: normal, w: tiny) {
-	=> pack {
+	return pack {
 		i: pack {
 			x: x * 3,
 			y: (y * 5) as small
@@ -40,7 +40,7 @@ pack_4(x: large, y: small, z: normal, w: tiny) {
 
 # Test: Receive nested packs
 pack_5(a: { i: { x: large, y: small }, j: { z: normal, w: tiny } }) {
-	=> pack_2(a.i) + a.j.z * a.j.w
+	return pack_2(a.i) + a.j.z * a.j.w
 }
 
 init() {
@@ -49,5 +49,5 @@ init() {
 	console.write_line(pack_3(-42, -10))
 	b = pack_4(11, 7, 5, 3)
 	console.write_line(pack_5(b))
-	=> 0
+	return 0
 }

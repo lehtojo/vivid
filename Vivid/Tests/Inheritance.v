@@ -43,15 +43,15 @@ Animal Fish Salmon {
 }
 
 export get_animal() {
-	=> Animal()
+	return Animal()
 }
 
 export get_fish() {
-	=> Fish()
+	return Fish()
 }
 
 export get_salmon() {
-	=> Salmon()
+	return Salmon()
 }
 
 export animal_moves(animal: Animal) {
@@ -91,7 +91,7 @@ Salmon_Gang {
 }
 
 init() {
-	=> true
+	return true
 
 	gang = Salmon_Gang(10)
 

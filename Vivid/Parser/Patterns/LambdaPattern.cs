@@ -72,7 +72,7 @@ public class LambdaPattern : Pattern
 
 		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			blueprint.Insert(0, new OperatorToken(Operators.HEAVY_ARROW) { Position = tokens[OPERATOR].Position });
+			blueprint.Insert(0, new KeywordToken(Keywords.RETURN, tokens[OPERATOR].Position));
 		}
 
 		var start = tokens[PARAMETERS].Position;

@@ -10,11 +10,11 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(amount: large) {
-	=> allocate(amount * sizeof(T)) as link<T>
+	return allocate(amount * sizeof(T)) as link<T>
 }
 
 outline allocate(bytes: large) {
-	=> internal.allocate(bytes)
+	return internal.allocate(bytes)
 }
 
 outline deallocate(address: link) {
@@ -25,7 +25,7 @@ TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_FULLNAME_END = 1
 
 outline internal_is(inspected: link, inheritant: link) {
-	if inspected == inheritant => true
+	if inspected == inheritant return true
 	
 	inspected_fullname = inspected.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 	inheritant_fullname = inheritant.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
@@ -39,7 +39,7 @@ outline internal_is(inspected: link, inheritant: link) {
 
 	loop {
 		value = inspected_fullname[position]
-		if value == TYPE_DESCRIPTOR_FULLNAME_END => false
+		if value == TYPE_DESCRIPTOR_FULLNAME_END return false
 		
 		if value == 0 {
 			# Ensure the names have the same length
@@ -60,7 +60,7 @@ outline internal_is(inspected: link, inheritant: link) {
 				}
 
 				# If the names differ, index i must be -1
-				if i != -1 => true
+				if i != -1 return true
 			}
 			
 			position++
@@ -72,7 +72,7 @@ outline internal_is(inspected: link, inheritant: link) {
 		length++
 	}
 
-	=> false
+	return false
 }
 
 export RangeIterator {
@@ -87,11 +87,11 @@ export RangeIterator {
 	}
 
 	next() {
-		=> ++position <= end
+		return ++position <= end
 	}
 
 	value() {
-		=> position
+		return position
 	}
 
 	reset() {
@@ -109,6 +109,6 @@ export Range {
 	}
 
 	iterator() {
-		=> RangeIterator(start, end)
+		return RangeIterator(start, end)
 	}
 }

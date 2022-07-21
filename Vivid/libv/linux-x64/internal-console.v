@@ -11,5 +11,5 @@ export write(bytes: link, length: large) {
 }
 
 export read(bytes: link, length: large) {
-	=> system_read(STANDARD_INPUT_HANDLE, bytes, length)
+	return system_read(STANDARD_INPUT_HANDLE, bytes, length)
 }

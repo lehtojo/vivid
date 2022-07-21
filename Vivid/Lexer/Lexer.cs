@@ -621,7 +621,7 @@ public static class Lexer
 
 					tokens.RemoveAt(i);
 					tokens.RemoveAt(i);
-					tokens.Insert(i, new KeywordToken(combined) { Position = a.Position });
+					tokens.Insert(i, new KeywordToken(combined, a.Position));
 					continue;
 				}
 				
@@ -632,7 +632,7 @@ public static class Lexer
 
 				tokens.RemoveAt(i);
 				tokens.RemoveAt(i);
-				tokens.Insert(i, new KeywordToken(Keywords.IS_NOT) { Position = a.Position });
+				tokens.Insert(i, new KeywordToken(Keywords.IS_NOT, a.Position));
 			}
 		}
 	}

@@ -33,14 +33,14 @@ export LinkedList<T> {
 		loop (iterator) {
 			if iterator.value == value {
 				remove(previous, iterator)
-				=> true
+				return true
 			}
 
 			iterator = iterator.next
 			previous = iterator
 		}
 
-		=> false
+		return false
 	}
 
 	remove(previous: LinkedListElement<T>, iterator: LinkedListElement<T>) {
@@ -65,18 +65,18 @@ export LinkedList<T> {
 			size++
 		}
 
-		=> size
+		return size
 	}
 
 	first() {
-		=> head
+		return head
 	}
 
 	last() {
-		=> tail
+		return tail
 	}
 
 	iterator() {
-		=> head
+		return head
 	}
 }

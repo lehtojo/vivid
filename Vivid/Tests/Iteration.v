@@ -10,11 +10,11 @@ ArrayIterator<T> {
 	}
 
 	value() {
-		=> elements[position]
+		return elements[position]
 	}
 
 	next() {
-		=> ++position < count
+		return ++position < count
 	}
 
 	reset() {
@@ -36,11 +36,11 @@ Array<T> {
 	}
 	
 	get(i: large) {
-		=> data[i]
+		return data[i]
 	}
 
 	iterator() {
-		=> ArrayIterator<T>(data, count)
+		return ArrayIterator<T>(data, count)
 	}
 	
 	deinit() {
@@ -55,7 +55,7 @@ Object {
 	
 	value() {
 		flag = true
-		=> value
+		return value
 	}
 }
 
@@ -99,19 +99,19 @@ export iteration_5(objects: Array<Object>) {
 }
 
 export range_1() {
-	=> 1..10
+	return 1..10
 }
 
 export range_2() {
-	=> -5e2..10e10
+	return -5e2..10e10
 }
 
 export range_3(a: large, b: large) {
-	=> a..b
+	return a..b
 }
 
 export range_4(a: large, b: large) {
-	=> a * a .. b * b
+	return a * a .. b * b
 }
 
 init() {
@@ -133,5 +133,5 @@ init() {
 	array[2] = c
 
 	#iteration_5(array)
-	=> 1
+	return 1
 }

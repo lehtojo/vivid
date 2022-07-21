@@ -25,7 +25,7 @@ Usable Vehicle {
 	passengers: small
 
 	time(distance: decimal) {
-		=> sqrt(2 * distance / acceleration)
+		return sqrt(2 * distance / acceleration)
 	}
 
 	virtual skill(): large
@@ -45,15 +45,15 @@ Ridable Vehicle Pig {
 	}
 
 	override skill() {
-		=> 1
+		return 1
 	}
 
 	override reliability() {
-		=> -1
+		return -1
 	}
 
 	override likes(entity: Entity) {
-		=> entity is Person person and person.likes_riding
+		return entity is Person person and person.likes_riding
 	}
 }
 
@@ -67,21 +67,21 @@ Drivable Vehicle Car {
 	}
 
 	override skill() {
-		=> 10
+		return 10
 	}
 
 	override reliability() {
-		=> 100
+		return 100
 	}
 
 	override likes(entity: Entity) {
-		=> entity is Person person and person.likes_driving
+		return entity is Person person and person.likes_driving
 	}
 }
 
 Usable Entity Banana {
 	override likes(entity: Entity) {
-		=> true
+		return true
 	}
 }
 
@@ -94,27 +94,27 @@ Drivable Vehicle Bus {
 	}
 
 	override skill() {
-		=> 40
+		return 40
 	}
 
 	override reliability() {
-		=> 100
+		return 100
 	}
 
 	override likes(entity: Entity) {
-		=> entity is Person person and person.likes_driving
+		return entity is Person person and person.likes_driving
 	}
 }
 
 export can_use(entity: Entity, usable: Usable) {
 	if !usable.likes(entity) {
-		=> false
+		return false
 	}
 	else usable is Vehicle vehicle and entity is Person person {
-		=> person.skill >= vehicle.skill()
+		return person.skill >= vehicle.skill()
 	}
 
-	=> false
+	return false
 }
 
 export get_reliable_vehicles(usables: Array<Usable>, min_reliability: large) {
@@ -132,16 +132,16 @@ export get_reliable_vehicles(usables: Array<Usable>, min_reliability: large) {
 		}
 	}
 
-	=> vehicles
+	return vehicles
 }
 
 export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: large) {
-	=> choose_vehicle(entity, vehicles, distance as decimal)
+	return choose_vehicle(entity, vehicles, distance as decimal)
 }
 
 export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: decimal) {
 	if entity is Person person and person.name == 'Steve' {
-		=> Pig() as Vehicle
+		return Pig() as Vehicle
 	}
 
 	chosen_vehicle = vehicles[0]
@@ -157,43 +157,43 @@ export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: decimal
 		}
 	}
 
-	=> chosen_vehicle
+	return chosen_vehicle
 }
 
 export create_pig() {
-	=> Pig()
+	return Pig()
 }
 
 export create_bus() {
-	=> Bus()
+	return Bus()
 }
 
 export create_car() {
-	=> Car()
+	return Car()
 }
 
 export create_banana() {
-	=> Banana()
+	return Banana()
 }
 
 export create_john() {
-	=> Person('John', 10, true, false)
+	return Person('John', 10, true, false)
 }
 
 export create_max() {
-	=> Person('Max', 7, true, true)
+	return Person('Max', 7, true, true)
 }
 
 export create_gabe() {
-	=> Person('Gabe', 50, true, false)
+	return Person('Gabe', 50, true, false)
 }
 
 export create_steve() {
-	=> Person('Steve', 1, false, true)
+	return Person('Steve', 1, false, true)
 }
 
 export create_array(size: large) {
-	=> Array<Usable>(size)
+	return Array<Usable>(size)
 }
 
 export set(array: Array<Usable>, usable: Usable, i: large) {
@@ -201,7 +201,7 @@ export set(array: Array<Usable>, usable: Usable, i: large) {
 }
 
 export is_pig(vehicle: Vehicle) {
-	=> vehicle is Pig
+	return vehicle is Pig
 }
 
 init() {
@@ -217,5 +217,5 @@ init() {
 
 	vehicles = [ pig, bus, car, banana as Vehicle ]
 	choose_vehicle(john, vehicles, 7000)
-	=> true
+	return true
 }

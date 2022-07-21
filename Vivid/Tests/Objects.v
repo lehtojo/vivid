@@ -14,13 +14,13 @@ Car {
 }
 
 export create_apple() {
-	=> Apple()
+	return Apple()
 }
 
 export create_car(price: decimal) {
-	=> Car(price)
+	return Car(price)
 }
 
 init() {
-	=> 1
+	return 1
 }

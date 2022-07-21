@@ -7,7 +7,7 @@ class ReturnPattern : Pattern
 
 	public ReturnPattern() : base
 	(
-		TokenType.KEYWORD | TokenType.OPERATOR
+		TokenType.KEYWORD
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -17,7 +17,7 @@ class ReturnPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if (!tokens.First().Is(Keywords.RETURN) && !tokens.First().Is(Operators.HEAVY_ARROW)) return false;
+		if (!tokens.First().Is(Keywords.RETURN)) return false;
 
 		Consume(state, TokenType.OBJECT); // Optionally consume a return value
 		return true;

@@ -7,7 +7,7 @@ export TypeDescriptor {
 	private address: link
 
 	private get_supertype_count() {
-		=> address[TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET] as normal
+		return address[TYPE_DESCRIPTOR_SUPERTYPES_COUNT_OFFSET] as normal
 	}
 
 	init(address: link) {
@@ -15,11 +15,11 @@ export TypeDescriptor {
 	}
 
 	name() {
-		=> String(address[TYPE_DESCRIPTOR_NAME_OFFSET] as link)
+		return String(address[TYPE_DESCRIPTOR_NAME_OFFSET] as link)
 	}
 
 	size() {
-		=> address[TYPE_DESCRIPTOR_SIZE_OFFSET] as normal
+		return address[TYPE_DESCRIPTOR_SIZE_OFFSET] as normal
 	}
 
 	supertypes() {
@@ -31,10 +31,10 @@ export TypeDescriptor {
 			supertypes[i] = TypeDescriptor(supertype)
 		}
 
-		=> supertypes
+		return supertypes
 	}
 }
 
 export typeof(object) {
-	=> TypeDescriptor(object as link)
+	return TypeDescriptor(object as link)
 }

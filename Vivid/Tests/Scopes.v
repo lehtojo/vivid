@@ -27,7 +27,7 @@ export scopes_nested_if_statements(a, b, c, d, e, f, g, h) {
 		large_function()
 	}
 
-	=> (a + b + c + d + e + f + g + h) * x * y * z
+	return (a + b + c + d + e + f + g + h) * x * y * z
 }
 
 export scopes_single_loop(a, b, c, d, e, f, g, h) {
@@ -39,7 +39,7 @@ export scopes_single_loop(a, b, c, d, e, f, g, h) {
 		large_function()
 	}
 
-	=> (a + b + c + d + e + f + g + h) * x * y * z
+	return (a + b + c + d + e + f + g + h) * x * y * z
 }
 
 export scopes_nested_loops(a, b, c, d, e, f, g, h) {
@@ -55,11 +55,11 @@ export scopes_nested_loops(a, b, c, d, e, f, g, h) {
 		large_function()
 	}
 
-	=> (a + b + c + d + e + f + g + h) * x * y * z
+	return (a + b + c + d + e + f + g + h) * x * y * z
 }
 
 init() {
-	=> 1
+	return 1
 	scopes_nested_if_statements(0, 0, 0, 0, 0, 0, 0, 0)
 	scopes_single_loop(0, 0, 0, 0, 0, 0, 0, 0)
 	scopes_nested_loops(0, 0, 0, 0, 0, 0, 0, 0)

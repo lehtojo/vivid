@@ -25,5 +25,5 @@ String.split(character: char) {
 	}
 
 	slices[slot] = String(data + start, index - start)
-	=> slices
+	return slices
 }

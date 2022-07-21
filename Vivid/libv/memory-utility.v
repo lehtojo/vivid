@@ -34,7 +34,7 @@ export resize(source: link, from: large, to: large) {
 	resized = allocate(to)
 	copy(source, min(from, to), resized)
 	deallocate(source)
-	=> resized
+	return resized
 }
 
 # Summary: Reverses the bytes in the specified memory range

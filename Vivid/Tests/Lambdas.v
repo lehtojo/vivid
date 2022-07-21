@@ -19,15 +19,15 @@ Vector {
 	}
 
 	plus(other: Vector) {
-		=> Vector(x + other.x, y + other.y)
+		return Vector(x + other.x, y + other.y)
 	}
 
 	minus(other: Vector) {
-		=> Vector(x - other.x, y - other.y)
+		return Vector(x - other.x, y - other.y)
 	}
 
 	times(magnitude) {
-		=> Vector(x * magnitude, y * magnitude)
+		return Vector(x * magnitude, y * magnitude)
 	}
 
 	assign_plus(other: Vector) {
@@ -79,12 +79,12 @@ Animal Dog {
 				bark()
 			}
 
-			=> direction
+			return direction
 		}
 	}
 
 	bark() {
-		=> console.write_line('Bark')
+		return console.write_line('Bark')
 	}
 }
 
@@ -98,17 +98,17 @@ Animal Cat {
 		action = (other: Animal) -> {
 			meow()
 
-			=> (other.position - position) * CAT_SPEED
+			return (other.position - position) * CAT_SPEED
 		}
 	}
 
 	meow() {
-		=> console.write_line('Meow')
+		return console.write_line('Meow')
 	}
 }
 
 export create_default_action() {
-	=> () -> console.write_line('Hi there!')
+	return () -> console.write_line('Hi there!')
 }
 
 export execute_default_action(action: () -> _) {
@@ -116,7 +116,7 @@ export execute_default_action(action: () -> _) {
 }
 
 export create_number_action() {
-	=> (n: large) -> console.write_line(to_string(n))
+	return (n: large) -> console.write_line(to_string(n))
 }
 
 export execute_number_action(action: (large) -> _, number: large) {
@@ -124,23 +124,23 @@ export execute_number_action(action: (large) -> _, number: large) {
 }
 
 export create_sum_function() {
-	=> (a: large, b: large) -> a + b
+	return (a: large, b: large) -> a + b
 }
 
 export execute_sum_function(function: (large, large) -> large, a: large, b: large) {
-	=> function(a, b)
+	return function(a, b)
 }
 
 export create_capturing_function(x: tiny, y: small, z: normal, w: large, i: decimal) {
-	=> () -> x + y + z + w + i
+	return () -> x + y + z + w + i
 }
 
 export execute_capturing_function(function: () -> decimal) {
-	=> function()
+	return function()
 }
 
 export create_capturing_function_with_parameter(dog: Dog, cat: Cat) {
-	=> (n: decimal) -> {
+	return (n: decimal) -> {
 		h = n / 2.0
 
 		dog.position = Vector(1, 1) * h
@@ -191,5 +191,5 @@ init() {
 	execute_capturing_function_with_parameter(e, 1.414)
 	execute_capturing_function_with_parameter(e, -0.1)
 
-	=> 0
+	return 0
 }

@@ -1,21 +1,21 @@
 export single_boolean(b: bool) {
 	if b == true {
-		=> false
+		return false
 	}
 	else {
-		=> true
+		return true
 	}
 }
 
 export two_booleans(a: bool, b: bool) {
 	if a == true {
-		=> 1
+		return 1
 	}
 	else b == true {
-		=> 2
+		return 2
 	}
 	else {
-		=> 3
+		return 3
 	}
 }
 
@@ -23,123 +23,123 @@ export nested_if_statements(x: large, y: large, z: large) {
 	if x == 1 {
 		if y == 2 {
 			if z == 3 {
-				=> true
+				return true
 			}
 			else z == 4 {
-				=> true
+				return true
 			}
 		}
 		else y == 0 {
 			if z == 1 {
-				=> true
+				return true
 			}
 			else z == -1 {
-				=> true
+				return true
 			}
 		}
 		
-		=> false
+		return false
 	}
 	else x == 2 {
 		if y == 4 {
 			if z == 8 {
-				=> true
+				return true
 			}
 			else z == 6 {
-				=> true
+				return true
 			}
 		}
 		else y == 3 {
 			if z == 4 {
-				=> true
+				return true
 			}
 			else z == 5 {
-				=> true
+				return true
 			}
 		}
 		
-		=> false
+		return false
 	}
 	
-	=> false
+	return false
 }
 
 export logical_and_in_if_statement(a: bool, b: bool) {
 	if a == true and b == true {
-		=> 10
+		return 10
 	}
 	
-	=> 0
+	return 0
 }
 
 export logical_or_in_if_statement(a: bool, b: bool) {
 	if a == true or b == true {
-		=> 10
+		return 10
 	}
 	
-	=> 0
+	return 0
 }
 
 export nested_logical_statements(a: bool, b: bool, c: bool, d: bool) {
 	if (a == true and b == true) and (c == true and d == true) {
-		=> 1
+		return 1
 	}
 	else (a == true or b == true) and (c == true and d == true) {
-		=> 2
+		return 2
 	}
 	else (a == true and b == true) and (c == true or d == true) {
-		=> 3
+		return 3
 	}
 	else (a == true and b == true) or (c == true and d == true) {
-		=> 4
+		return 4
 	}
 	else (a == true or b == true) or (c == true or d == true) {
-		=> 5
+		return 5
 	}
 	else {
-		=> 6
+		return 6
 	}
 }
 
 export logical_operators_1(a: large, b: large) {
 	if a > b or a == 0 {
-		=> b
+		return b
 	}
 	else a == b and b == 1 {
-		=> a
+		return a
 	}
 	else {
-		=> 0
+		return 0
 	}
 }
 
 export logical_operators_2(a: large, b: large, c: large) {
 	if (a > b and a > c) or c > b {
-		=> 1
+		return 1
 	}
 	else (a <= b or b >= c) and (c == 1 or a == 1) {
-		=> 0
+		return 0
 	}
 	else {
-		=> -1
+		return -1
 	}
 }
 
 f(a: large) {
 	if a == 7 {
-		=> true
+		return true
 	}
 	else {
-		=> false
+		return false
 	}
 }
 
 export logical_operators_3(a: large, b: large) {
 	if (a > 10 or f(a) == true) and a > b {
-		=> 0
+		return 0
 	}
 	else {
-		=> 1
+		return 1
 	}
 }
 
@@ -153,5 +153,5 @@ init() {
 	logical_and_in_if_statement(true, true)
 	logical_or_in_if_statement(true, true)
 	nested_logical_statements(true, true, true, true)
-	=> 1
+	return 1
 }

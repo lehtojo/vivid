@@ -10,11 +10,11 @@ export SequentialIterator<T> {
 	}
 
 	value() {
-		=> elements[position]
+		return elements[position]
 	}
 
 	next() {
-		=> ++position < size
+		return ++position < size
 	}
 
 	reset() {

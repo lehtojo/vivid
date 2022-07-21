@@ -9,5 +9,5 @@ export constant_permanence_and_array_copy(source: link, destination: link) {
 }
 
 init() {
-	=> 1
+	return 1
 }

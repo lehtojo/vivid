@@ -44,7 +44,7 @@ partition<T>(elements, low, high) {
 	}
 
 	swap(elements + (i + 1) * sizeof(T), elements + high * sizeof(T))
-	=> i + 1
+	return i + 1
 }
 
 partition<T>(elements, low, high, comparator) {
@@ -60,7 +60,7 @@ partition<T>(elements, low, high, comparator) {
 	}
 
 	swap(elements + (i + 1) * sizeof(T), elements + high * sizeof(T))
-	=> i + 1
+	return i + 1
 }
 
 sort<T>(elements, low, high) {

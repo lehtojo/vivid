@@ -1,14 +1,14 @@
 export linkage_1(b) {
 	a = b
 	b = 1 + a # Since a is linked to b, the compiler could forget to differentiate a from b before this assign 
-	=> a + b # If the differentiation fails, the result will be 2b + 2 (On success: 2b + 1)
+	return a + b # If the differentiation fails, the result will be 2b + 2 (On success: 2b + 1)
 }
 
 # Parameter b must not be 1
 export linkage_2(b) {
 	a = b
 	a = 1 # Since b is linked to a, the compiler could forget to differentiate b from a before this assign 
-	=> 2 * b + 2 * a # If the differentiation fails, the result will be 2 + 2 (On success: 2b + 2)
+	return 2 * b + 2 * a # If the differentiation fails, the result will be 2 + 2 (On success: 2b + 2)
 }
 
 export linkage_3(b) {
@@ -27,7 +27,7 @@ export linkage_3(b) {
 		++i
 	}
 
-	=> a + b # On success: 5, on failure: 6
+	return a + b # On success: 5, on failure: 6
 }
 
 export linkage_4(b) {
@@ -47,7 +47,7 @@ export linkage_4(b) {
 
 	# x = b + 5, y = b + 10, z = b + 20, w = b + 40
 	# Success: 4b + 75
-	=> x + y + z + w
+	return x + y + z + w
 }
 
 import large_function()
@@ -85,7 +85,7 @@ export linkage_5(z) {
 	# e = 25 f = 30 g = 35 h = 40
 	# i = 45 j = 50
 	# Success: 275 + 10z
-	=> a + b + c + d + e + f + g + h + i + j
+	return a + b + c + d + e + f + g + h + i + j
 }
 
 export linked_variables(x, y) {
@@ -95,7 +95,7 @@ export linked_variables(x, y) {
 		large_function()
 	}
 
-	=> a + x
+	return a + x
 }
 
 export linked_variables_2(x, y) {
@@ -107,11 +107,11 @@ export linked_variables_2(x, y) {
 		r += a
 	}
 
-	=> r + x
+	return r + x
 }
 
 init() {
-	=> 1
+	return 1
 	linkage_1(10)
 	linkage_2(10)
 	linkage_3(10)

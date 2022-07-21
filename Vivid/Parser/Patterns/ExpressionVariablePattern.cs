@@ -29,7 +29,7 @@ public class ExpressionVariablePattern : Pattern
 
 		// Collect the tokens of the body
 		// Add the heavy arrow operator token to the start of the blueprint to represent a return statement
-		var blueprint = new List<Token> { tokens[ARROW] };
+		var blueprint = new List<Token> { new KeywordToken(Keywords.RETURN, tokens[ARROW].Position)};
 
 		if (!Common.ConsumeBlock(function, state, blueprint))
 		{

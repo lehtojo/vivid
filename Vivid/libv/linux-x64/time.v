@@ -2,5 +2,5 @@ namespace time
 
 export now() {
 	# TODO
-	=> 0
+	return 0
 }

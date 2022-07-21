@@ -5,7 +5,7 @@ export length_of(text: link) {
 	length = 0
 
 	loop {
-		if text[length] == 0 => length
+		if text[length] == 0 return length
 		length++
 	}
 }
@@ -15,20 +15,20 @@ export index_of(string: link, character: char) {
 	length = length_of(string)
 
 	loop (i = 0, i < length, i++) {
-		if string[i] == character => i
+		if string[i] == character return i
 	}
 
-	=> -1
+	return -1
 }
 
 # Summary: Returns whether the specified character is a digit
 export is_digit(value: char) {
-	=> value >= `0` and value <= `9`
+	return value >= `0` and value <= `9`
 }
 
 # Summary: Returns whether the specified character is an alphabet
 export is_alphabet(value: char) {
-	=> (value >= `a` and value <= `z`) or (value >= `A` and value <= `Z`)
+	return (value >= `a` and value <= `z`) or (value >= `A` and value <= `Z`)
 }
 
 # Summary: Converts the specified number into a string and stores it in the specified buffer
@@ -64,7 +64,7 @@ export to_string(number: large, result: link) {
 	}
 
 	reverse(result, position)
-	=> position
+	return position
 }
 
 # Summary: Converts the specified number into a string and stores it in the specified buffer
@@ -84,7 +84,7 @@ export to_string(number: decimal, result: link) {
 	# If the number is zero, skip the fractional part computation
 	if number == 0 {
 		result[position] = `0`
-		=> position + 1
+		return position + 1
 	}
 
 	# Compute the fractional part
@@ -97,7 +97,7 @@ export to_string(number: decimal, result: link) {
 		position++
 	}
 
-	=> position
+	return position
 }
 
 # Summary: Converts the specified string into an integer
@@ -119,7 +119,7 @@ export to_integer(string: link, length: large) {
 		index++
 	}
 
-	=> result * sign
+	return result * sign
 }
 
 # Summary: Converts the specified string to a decimal using the specified separator
@@ -137,7 +137,7 @@ export to_decimal(string: link, length: large, separator: char) {
 	}
 
 	# If the separator does not exist, we can treat the string as an integer
-	if separator_index < 0 => to_integer(string, length) as decimal
+	if separator_index < 0 return to_integer(string, length) as decimal
 
 	# Compute the integer value before the separator
 	integer_value = to_integer(string, separator_index) as decimal
@@ -162,13 +162,13 @@ export to_decimal(string: link, length: large, separator: char) {
 		scale *= 10
 	}
 
-	if integer_value < 0 => integer_value - fraction / (scale as decimal)
-	=> integer_value + fraction / (scale as decimal)
+	if integer_value < 0 return integer_value - fraction / (scale as decimal)
+	return integer_value + fraction / (scale as decimal)
 }
 
 # Summary: Converts the specified string to a decimal
 export to_decimal(string: link, length: large) {
-	=> to_decimal(string, length, `.`)
+	return to_decimal(string, length, `.`)
 }
 
 # Summary: Tries to convert the specified string to a decimal number
@@ -184,12 +184,12 @@ export as_decimal(string: link, length: large) {
 		character = string[index]
 
 		if is_digit(character) continue
-		if separated or character != `.` => Optional<decimal>()
+		if separated or character != `.` return Optional<decimal>()
 
 		separated = true
 	}
 
-	=> Optional<decimal>(to_decimal(string, length))
+	return Optional<decimal>(to_decimal(string, length))
 }
 
 # Summary: Tries to convert the specified string to an integer number
@@ -200,8 +200,8 @@ export as_integer(string: link, length: large) {
 	if first == `-` or first == `+` { index++ }
 
 	loop (index < length, index++) {
-		if not is_digit(string[index]) => Optional<large>()
+		if not is_digit(string[index]) return Optional<large>()
 	}
 
-	=> Optional<large>(to_integer(string, length))
+	return Optional<large>(to_integer(string, length))
 }

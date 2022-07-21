@@ -1,21 +1,21 @@
 # Summary: Tries to convert the specified string to a decimal number
 export as_decimal(string: String) {
-	=> as_decimal(string.data, string.length)
+	return as_decimal(string.data, string.length)
 }
 
 # Summary: Tries to convert the specified string to an integer number
 export as_integer(string: String) {
-	=> as_integer(string.data, string.length)
+	return as_integer(string.data, string.length)
 }
 
 # Summary: Tries to convert the specified string to a decimal number
 export to_decimal(string: String) {
-	=> to_decimal(string.data, string.length)
+	return to_decimal(string.data, string.length)
 }
 
 # Summary: Tries to convert the specified string to an integer number
 export to_integer(string: String) {
-	=> to_integer(string.data, string.length)
+	return to_integer(string.data, string.length)
 }
 
 # Summary: Converts the specified decimal to a string
@@ -23,7 +23,7 @@ export to_string(value: decimal) {
 	buffer: byte[64]
 	zero(buffer as link, 64)
 	length = to_string(value, buffer as link)
-	=> String(buffer as link, length)
+	return String(buffer as link, length)
 }
 
 # Summary: Converts the specified integer to a string
@@ -31,7 +31,7 @@ export to_string(value: large) {
 	buffer: byte[32]
 	zero(buffer as link, 32)
 	length = to_string(value, buffer as link)
-	=> String(buffer as link, length)
+	return String(buffer as link, length)
 }
 
 export String {
@@ -39,8 +39,8 @@ export String {
 
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: char, strings: List<String>) {
-		if strings.size == 0 => String.empty
-		if strings.size == 1 => strings[0]
+		if strings.size == 0 return String.empty
+		if strings.size == 1 return strings[0]
 
 		# Set the length of the result to the number of separators, because each separator adds one character
 		result_length = strings.size - 1
@@ -68,13 +68,13 @@ export String {
 		# Remove the last separator and replace it with a zero terminator
 		buffer[result_length] = 0
 
-		=> String.from(buffer, result_length)
+		return String.from(buffer, result_length)
 	}
 
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: String, strings: List<String>) {
-		if strings.size == 0 => String.empty
-		if strings.size == 1 => strings[0]
+		if strings.size == 0 return String.empty
+		if strings.size == 1 return strings[0]
 
 		# Set the length of the result to the number of characters the separators will take
 		result_length = (strings.size - 1) * separator.length
@@ -105,7 +105,7 @@ export String {
 			position += string.length
 		}
 
-		=> String.from(buffer, result_length)
+		return String.from(buffer, result_length)
 	}
 
 	public readonly data: link
@@ -119,7 +119,7 @@ export String {
 		result = String()
 		result.data = data
 		result.length = length
-		=> result
+		return result
 	}
 
 	# Summary: Converts the specified character into a string
@@ -175,34 +175,34 @@ export String {
 		result = String()
 		result.data = memory
 		result.length = a + 1
-		=> result
+		return result
 	}
 
 	# Summary: Returns whether the first characters match the specified string
 	starts_with(start: String) {
-		=> starts_with(start.data)
+		return starts_with(start.data)
 	}
 
 	# Summary: Returns whether the first characters match the specified string
 	starts_with(start: link) {
 		a = length_of(start)
-		if a == 0 or a > length => false
+		if a == 0 or a > length return false
 
 		loop (i = 0, i < a, i++) {
-			if data[i] != start[i] => false
+			if data[i] != start[i] return false
 		}
 
-		=> true
+		return true
 	}
 
 	# Summary: Returns whether the first character matches the specified character
 	starts_with(value: char) {
-		=> length > 0 and data[0] == value
+		return length > 0 and data[0] == value
 	}
 
 	# Summary: Returns whether the last character matches the specified character
 	ends_with(value: char) {
-		=> length > 0 and data[length - 1] == value
+		return length > 0 and data[length - 1] == value
 	}
 
 	# Summary: Returns whether the last characters match the specified string
@@ -210,13 +210,13 @@ export String {
 		a = length_of(end)
 		b = length
 
-		if a == 0 or a > b => false
+		if a == 0 or a > b return false
 
 		loop (a > 0) {
-			if end[--a] != data[--b] => false
+			if end[--a] != data[--b] return false
 		}
 
-		=> true
+		return true
 	}
 
 	# Summary: Returns the characters between the specified start and end index as a string
@@ -227,13 +227,13 @@ export String {
 		a = length
 		require(start >= 0 and start <= a and end >= start and end <= a)
 
-		=> String(data + start, end - start)
+		return String(data + start, end - start)
 	}
 
 	# Summary: Returns all the characters after the specified index as a string
 	slice(start: large) {
 		require(start >= 0 and start <= length, 'Invalid slice start index')
-		=> slice(start, length)
+		return slice(start, length)
 	}
 
 	# Summary: Replaces all the occurrences of the specified character with the specified replacement
@@ -248,7 +248,7 @@ export String {
 			data[i] = new
 		}
 
-		=> result
+		return result
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified character
@@ -256,10 +256,10 @@ export String {
 		a = length
 
 		loop (i = 0, i < a, i++) {
-			if data[i] == value => i
+			if data[i] == value return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified character
@@ -269,32 +269,32 @@ export String {
 		a = length
 
 		loop (i = start, i < a, i++) {
-			if data[i] == value => i
+			if data[i] == value return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified string
 	index_of(value: String) {
-		=> index_of(value.data, value.length, 0)
+		return index_of(value.data, value.length, 0)
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified string
 	index_of(value: link) {
-		=> index_of(value, length_of(value), 0)
+		return index_of(value, length_of(value), 0)
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified string
 	index_of(value: String, start: large) {
 		require(start >= 0 and start <= length, 'Invalid start index')
-		=> index_of(value.data, value.length, start)
+		return index_of(value.data, value.length, start)
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified string
 	index_of(value: link, start: large) {
 		require(start >= 0 and start <= length, 'Invalid start index')
-		=> index_of(value, length_of(value), start)
+		return index_of(value, length_of(value), start)
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified string
@@ -311,19 +311,19 @@ export String {
 				stop
 			}
 
-			if match => i
+			if match return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Returns the index of the last occurrence of the specified character
 	last_index_of(value: char) {
 		loop (i = length - 1, i >= 0, i--) {
-			if data[i] == value => i
+			if data[i] == value return i
 		}
 
-		=> -1
+		return -1
 	}
 
 	# Summary: Converts all upper case alphabetic characters to lower case and returns a new string
@@ -337,7 +337,7 @@ export String {
 			buffer[i] = value
 		}
 
-		=> String.from(buffer, length)
+		return String.from(buffer, length)
 	}
 
 	# Summary: Converts all lower case alphabetic characters to upper case and returns a new string
@@ -351,7 +351,7 @@ export String {
 			buffer[i] = value
 		}
 
-		=> String.from(buffer, length)
+		return String.from(buffer, length)
 	}
 
 	# Summary: Adds the two strings together and returns a new string
@@ -368,17 +368,17 @@ export String {
 		result = String()
 		result.data = memory
 		result.length = c
-		=> result
+		return result
 	}
 
 	# Summary: Adds the two strings together and returns a new string
 	plus(string: String) {
-		=> plus(string.data, string.length)
+		return plus(string.data, string.length)
 	}
 
 	# Summary: Adds the two strings together and returns a new string
 	plus(other: link) {
-		=> plus(other, length_of(other))
+		return plus(other, length_of(other))
 	}
 
 	# Summary: Creates a new string which has this string in the beginning and the specified character added to the end
@@ -398,13 +398,13 @@ export String {
 		result = String()
 		result.data = memory
 		result.length = a + 1
-		=> result
+		return result
 	}
 
 	# Summary: Overrides the indexed accessor, returning the character in the specified position
 	get(i: large) {
 		require(i >= 0 and i <= length, 'Invalid getter index')
-		=> data.(link<char>)[i]
+		return data.(link<char>)[i]
 	}
 
 	# Summary: Overrides the indexed accessor, allowing the user to edit the character in the specified position
@@ -418,13 +418,13 @@ export String {
 		a = length
 		b = other.length
 
-		if a != b => false
+		if a != b return false
 
 		loop (i = 0, i < a, i++) {
-			if data[i] != other.data[i] => false
+			if data[i] != other.data[i] return false
 		}
 
-		=> true
+		return true
 	}
 
 	# Summary: Returns whether the two strings are equal
@@ -432,13 +432,13 @@ export String {
 		a = length
 		b = length_of(data)
 
-		if a != b => false
+		if a != b return false
 
 		loop (i = 0, i < a, i++) {
-			if this.data[i] != data[i] => false
+			if this.data[i] != data[i] return false
 		}
 
-		=> true
+		return true
 	}
 
 	# Summary: Computes hash code for the string
@@ -450,6 +450,6 @@ export String {
 			hash = ((hash <| 5) + hash) + data[i] # hash = hash * 33 + data[i]
 		}
 
-		=> hash
+		return hash
 	}
 }

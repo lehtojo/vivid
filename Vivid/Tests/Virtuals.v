@@ -50,15 +50,15 @@ InheritantThree VirtualTypeThree {
 	override baz(x: tiny, y: small) {
 		if x > y {
 			console.write_line(x)
-			=> x
+			return x
 		}
 		else y > x {
 			console.write_line(y)
-			=> y
+			return y
 		}
 		else {
 			console.write_line(c)
-			=> c
+			return c
 		}
 	}
 }
@@ -85,7 +85,7 @@ InheritantOne InheritantTwo InheritantThree VirtualTypeFour {
 	}
 
 	override baz(x: tiny, y: small) {
-		=> a / b + x / y
+		return a / b + x / y
 	}
 }
 
@@ -108,5 +108,5 @@ init() {
 	execute_virtual_type_two()
 	execute_virtual_type_three()
 	execute_virtual_type_four()
-	=> 0
+	return 0
 }

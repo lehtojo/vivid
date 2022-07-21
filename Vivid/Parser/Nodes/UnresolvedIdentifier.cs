@@ -30,7 +30,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 		// Create a blueprint which calls the specified function
 		// Example: => Namespace.Type.function(a, b, c)
-		var blueprint = new List<Token> { new OperatorToken(Operators.HEAVY_ARROW, position)};
+		var blueprint = new List<Token> { new KeywordToken(Keywords.RETURN, position) };
 		
 		// Add the namespaces or types which contain the specified function before the function token
 		if (function.Parent != null && function.Parent.IsType)

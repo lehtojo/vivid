@@ -56,7 +56,7 @@ namespace internal.allocator {
 				used++
 
 				zero(result, capacityof(T))
-				=> result
+				return result
 			}
 
 			if position < slabs {
@@ -72,10 +72,10 @@ namespace internal.allocator {
 				used++
 
 				zero(result, capacityof(T))
-				=> result
+				return result
 			}
 
-			=> none as link
+			return none as link
 		}
 
 		allocate_slab(index: large) {
@@ -158,7 +158,7 @@ namespace internal.allocator {
 			deallocators[size] = allocator
 
 			size++
-			=> allocator
+			return allocator
 		}
 
 		allocate() {
@@ -169,10 +169,10 @@ namespace internal.allocator {
 				allocator = allocators[i]
 				result = allocator.allocate()
 
-				if result != none => result
+				if result != none return result
 			}
 
-			=> add().allocate()
+			return add().allocate()
 		}
 
 		remove(deallocator: T, i: large) {
@@ -207,10 +207,10 @@ namespace internal.allocator {
 					remove(deallocator, i)
 				}
 
-				=> true
+				return true
 			}
 
-			=> false
+			return false
 		}
 	}
 
@@ -234,13 +234,13 @@ namespace internal.allocator {
 }
 
 export outline allocate(bytes: large) {
-	if bytes <= 16 => internal.allocator.s16.allocate()
-	if bytes <= 32 => internal.allocator.s32.allocate()
-	if bytes <= 64 => internal.allocator.s64.allocate()
-	if bytes <= 128 => internal.allocator.s128.allocate()
-	if bytes <= 256 => internal.allocator.s256.allocate()
-	if bytes <= 512 => internal.allocator.s512.allocate()
-	if bytes <= 1024 => internal.allocator.s1024.allocate()
+	if bytes <= 16 return internal.allocator.s16.allocate()
+	if bytes <= 32 return internal.allocator.s32.allocate()
+	if bytes <= 64 return internal.allocator.s64.allocate()
+	if bytes <= 128 return internal.allocator.s128.allocate()
+	if bytes <= 256 return internal.allocator.s256.allocate()
+	if bytes <= 512 return internal.allocator.s512.allocate()
+	if bytes <= 1024 return internal.allocator.s1024.allocate()
 
 	bytes += sizeof(large)
 	address = internal.allocate(bytes)
@@ -248,7 +248,7 @@ export outline allocate(bytes: large) {
 
 	# Store the size of the allocation at the beginning of the allocated memory
 	address.(link<large>)[0] = bytes
-	=> address + sizeof(large)
+	return address + sizeof(large)
 }
 
 
@@ -281,14 +281,14 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(count: large) {
-	=> allocate(count * sizeof(T)) as link<T>
+	return allocate(count * sizeof(T)) as link<T>
 }
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
 TYPE_DESCRIPTOR_FULLNAME_END = 1
 
 outline internal_is(inspected: link, inheritant: link) {
-	if inspected == inheritant => true
+	if inspected == inheritant return true
 	
 	inspected_fullname = inspected.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 	inheritant_fullname = inheritant.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
@@ -302,7 +302,7 @@ outline internal_is(inspected: link, inheritant: link) {
 
 	loop {
 		value = inspected_fullname[position]
-		if value == TYPE_DESCRIPTOR_FULLNAME_END => false
+		if value == TYPE_DESCRIPTOR_FULLNAME_END return false
 		
 		if value == 0 {
 			# Ensure the names have the same length
@@ -323,7 +323,7 @@ outline internal_is(inspected: link, inheritant: link) {
 				}
 
 				# If the names differ, index i must be -1
-				if i != -1 => true
+				if i != -1 return true
 			}
 			
 			position++
@@ -335,7 +335,7 @@ outline internal_is(inspected: link, inheritant: link) {
 		length++
 	}
 
-	=> false
+	return false
 }
 
 export RangeIterator {
@@ -350,11 +350,11 @@ export RangeIterator {
 	}
 
 	next() {
-		=> ++position <= end
+		return ++position <= end
 	}
 
 	value() {
-		=> position
+		return position
 	}
 
 	reset() {
@@ -372,6 +372,6 @@ export Range {
 	}
 
 	iterator() {
-		=> RangeIterator(start, end)
+		return RangeIterator(start, end)
 	}
 }
