@@ -13,10 +13,10 @@ export plain KeyValuePair<K, V> {
 
 export plain MapIterator<K, V> {
 	slot: MapSlot<K, V>
-	slots: link<MapSlot<K, V>>
+	slots: MapSlot<K, V>*
 	first: normal
 
-	init(slots: link<MapSlot<K, V>>, first: normal) {
+	init(slots: MapSlot<K, V>*, first: normal) {
 		this.slots = slots
 		this.first = first
 
@@ -58,7 +58,7 @@ export pack MapSlot<K, V> {
 export Map<K, V> {
 	private first: large = -1 # Zero-based index of first slot
 	private last: large = -1 # Zero-based index of last slot
-	private slots: link<MapSlot<K, V>> = none as link<MapSlot<K, V>>
+	private slots: MapSlot<K, V>* = none as MapSlot<K, V>*
 	private capacity: large = 1
 	private removed: normal = 0 # Number of removed slots
 
@@ -338,7 +338,7 @@ export Map<K, V> {
 
 		first = -1
 		last = -1
-		slots = none as link<MapSlot<K, V>>
+		slots = none as MapSlot<K, V>*
 		capacity = 1
 		size = 0
 		removed = 0

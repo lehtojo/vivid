@@ -3,7 +3,7 @@ using System.Linq;
 
 public class HasPattern : Pattern
 {
-	public const int PRIORITY = 5;
+	public const int PRIORITY = 16;
 
 	private const int HAS = 1;
 	private const int NAME = 2;

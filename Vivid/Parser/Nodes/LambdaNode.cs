@@ -59,7 +59,7 @@ public class LambdaNode : Node, IResolvable
 			if (parameter.Type.IsUnresolved)
 			{
 				// Try to resolve the parameter type
-				var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
+				var type = parameter.Type.To<UnresolvedType>().ResolveOrNull(context);
 
 				if (type != null)
 				{

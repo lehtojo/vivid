@@ -4,8 +4,8 @@ constant STANDARD_OUTPUT_HANDLE = -11
 constant STANDARD_INPUT_HANDLE = -10
 
 import 'C' GetStdHandle(handle: large): large
-import 'C' WriteFile(handle: large, buffer: link, size: large, written: link<large>, overlapped: link<large>): bool
-import 'C' ReadConsoleA(handle: large, buffer: link, size: large, read: link<large>, overlapped: link<large>): bool
+import 'C' WriteFile(handle: large, buffer: link, size: large, written: large*, overlapped: large*): bool
+import 'C' ReadConsoleA(handle: large, buffer: link, size: large, read: large*, overlapped: large*): bool
 
 export write(bytes: link, length: large) {
 	written: large[1]

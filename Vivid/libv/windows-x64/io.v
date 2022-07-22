@@ -35,14 +35,14 @@ namespace internal {
 	import 'C' FindNextFileA(handle: link, iterator: FileIterator): link
 
 	import 'C' CreateFileA(filename: link, access: normal, share_mode: normal, security_attributes: link, creation_disposition: normal, flags_and_attributes: normal, template: link): link
-	import 'C' GetFileSizeEx(handle: link, size: link<large>): bool
-	import 'C' WriteFile(handle: link, buffer: link, size: large, written: link<large>, overlapped: link): bool
-	import 'C' ReadFile(handle: link, buffer: link, size: large, read: link<large>, overlapped: link): bool
+	import 'C' GetFileSizeEx(handle: link, size: large*): bool
+	import 'C' WriteFile(handle: link, buffer: link, size: large, written: large*, overlapped: link): bool
+	import 'C' ReadFile(handle: link, buffer: link, size: large, read: large*, overlapped: link): bool
 	import 'C' CloseHandle(handle: link): bool
 
 	import 'C' GetFileAttributesA(path: link): u32
 
-	import 'C' GetExitCodeProcess(handle: link, exit_code: link<u32>): bool
+	import 'C' GetExitCodeProcess(handle: link, exit_code: u32*): bool
 
 	constant MAXIMUM_PATH_LENGTH = 260
 
@@ -201,7 +201,7 @@ export write_file(filename: link, bytes: Array<byte>) {
 
 	# Write the specified byte array to the opened file
 	written: large[1]
-	result = internal.WriteFile(file, bytes.data, bytes.size, written as link<large>, none)
+	result = internal.WriteFile(file, bytes.data, bytes.size, written as large*, none)
 
 	# Finally, release the handle
 	internal.CloseHandle(file)
@@ -223,14 +223,14 @@ export read_file(filename: link) {
 	# Try to get the size of the opened file
 	size: large[1]
 
-	if internal.GetFileSizeEx(file, size as link<large>) == 0 {
+	if internal.GetFileSizeEx(file, size as large*) == 0 {
 		internal.CloseHandle(file)
 		return Optional<Array<byte>>()
 	}
 	
 	buffer = Array<byte>(size[0])
 
-	if internal.ReadFile(file, buffer.data, buffer.size, size as link<large>, none) == 0 {
+	if internal.ReadFile(file, buffer.data, buffer.size, size as large*, none) == 0 {
 		internal.CloseHandle(file)
 		return Optional<Array<byte>>()
 	}
@@ -297,7 +297,7 @@ export size(path: link) {
 	# Try to get the size of the opened file
 	size: large[1]
 	
-	if internal.GetFileSizeEx(file, size as link<large>) == 0 {
+	if internal.GetFileSizeEx(file, size as large*) == 0 {
 		internal.CloseHandle(file)
 		return -1
 	}
@@ -367,7 +367,7 @@ export wait_for_exit(pid: large) {
 
 	exit_code: u32[1]
 
-	if not internal.GetExitCodeProcess(handle, exit_code as link<u32>) {
+	if not internal.GetExitCodeProcess(handle, exit_code as u32*) {
 		exit_code[0] = 1
 	}
 

@@ -27,7 +27,7 @@ public static class Resolver
 		// Resolve array types, because their sizes need to be determined at compile time and they can be dependent on expressions
 		if (type is ArrayType) return ResolveArrayType(context, (ArrayType)type);
 
-		return type.To<UnresolvedType>().TryResolveType(context);
+		return type.To<UnresolvedType>().ResolveOrNull(context);
 	}
 
 	/// <summary>
@@ -84,7 +84,7 @@ public static class Resolver
 		{
 			if (implementation.ReturnType.IsUnresolved)
 			{
-				var type = implementation.ReturnType!.To<UnresolvedType>().TryResolveType(implementation);
+				var type = implementation.ReturnType!.To<UnresolvedType>().ResolveOrNull(implementation);
 
 				if (type != null)
 				{
@@ -165,7 +165,7 @@ public static class Resolver
 			{
 				if (parameter.Type == null || !parameter.Type.IsUnresolved) continue;
 				
-				var type = parameter.Type.To<UnresolvedType>().TryResolveType(context);
+				var type = parameter.Type.To<UnresolvedType>().ResolveOrNull(context);
 
 				if (!Equals(type, null))
 				{

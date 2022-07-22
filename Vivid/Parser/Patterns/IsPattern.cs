@@ -3,7 +3,7 @@ using System.Linq;
 
 public class IsPattern : Pattern
 {
-	public const int PRIORITY = 5;
+	public const int PRIORITY = 16;
 
 	private const int KEYWORD = 1;
 	private const int TYPE = 2;

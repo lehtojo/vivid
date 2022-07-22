@@ -33,7 +33,7 @@ export floor(a: decimal) {
 export sign(a: decimal) {
 	if a > 0 return 1
 	else a < 0 return -1
-	else return 0
+	else return 0 
 }
 
 export cbrt(a: large) {

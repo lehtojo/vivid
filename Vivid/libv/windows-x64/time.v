@@ -1,9 +1,9 @@
 namespace time
 
-import 'C' GetSystemTimeAsFileTime(result: link<large>)
+import 'C' GetSystemTimeAsFileTime(result: large*)
 
 export now() {
 	value: large[1]
-	GetSystemTimeAsFileTime(value as link<large>)
+	GetSystemTimeAsFileTime(value as large*)
 	return value[0]
 }

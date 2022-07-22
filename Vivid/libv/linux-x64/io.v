@@ -3,14 +3,14 @@ import init(): large
 export internal_init(root: link) {
 	internal.allocator.initialize()
 
-	count = root.(link<large>)[0]
+	count = root.(large*)[0]
 
 	arguments = List<String>(count, false)
 	environment_variables = List<String>()
 
 	# Load all the command line arguments
 	loop (i = 0, i < count, i++) {
-		argument = root.(link<link>)[i + 1]
+		argument = root.(link*)[i + 1]
 		arguments.add(String.from(argument, length_of(argument)))
 	}
 
@@ -19,7 +19,7 @@ export internal_init(root: link) {
 
 	# Load environment variables as long as the pointer is not none
 	loop {
-		environment_variable = root.(link<link>)[i]
+		environment_variable = root.(link*)[i]
 		if environment_variable == none stop
 
 		environment_variables.add(String.from(environment_variable, length_of(environment_variable)))
@@ -68,7 +68,7 @@ namespace internal {
 	import 'C' system_change_folder(folder: link)
 
 	# Summary: Replaces the current process image with the specified executable and arguments
-	import 'C' system_execute(executable: link, arguments: link<link>, environment_variables: link<link>): large
+	import 'C' system_execute(executable: link, arguments: link*, environment_variables: link*): large
 
 	# Summary: Deletes a folder
 	import 'C' system_remove_folder(folder: link): large

@@ -247,59 +247,72 @@ public static class Common
 		return true;
 	}
 
-	/// <summary>
-	/// Consumes a type
-	/// </summary>
-	public static bool ConsumeType(PatternState state)
+	public static void ConsumeTypeEnd(PatternState state)
 	{
-		var is_normal_type = Pattern.Consume(state, TokenType.IDENTIFIER);
+		var next = (Token?)null;
 
-		if (!is_normal_type)
-		{
-			var next = Pattern.Peek(state);
-			if (next == null || (!next.Is(ParenthesisType.PARENTHESIS) && !next.Is(ParenthesisType.CURLY_BRACKETS))) return false;
-		}
-
+		// Consume pointers
 		while (true)
 		{
+			next = Pattern.Peek(state);
+			if (next == null) return;
+
+			if (!next.Is(Operators.MULTIPLY)) break;
+			Pattern.Consume(state);
+		}
+
+		// Do not allow creating nested arrays
+		if (next.Is(ParenthesisType.BRACKETS))
+		{
+			Pattern.Consume(state);
+		}
+	}
+
+	public static bool ConsumeType(PatternState state)
+	{
+		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
+		{
 			var next = Pattern.Peek(state);
+			if (next == null) return false;
 
-			if (next == null) return true;
-
-			if (next.Is(Operators.DOT))
+			if (next.Is(ParenthesisType.CURLY_BRACKETS))
 			{
-				Pattern.Consume(state);
-
-				if (!Pattern.Consume(state, TokenType.IDENTIFIER)) return false;
-
-				Pattern.Try(ConsumeTemplateArguments, state);
-			}
-			else if (next.Is(Operators.LESS_THAN))
-			{
-				if (!ConsumeTemplateArguments(state)) return false;
-			}
-			else if (next.Is(ParenthesisType.BRACKETS))
-			{
-				Pattern.Consume(state);
-				return true;
-			}
-			else if (is_normal_type)
-			{
-				return true;
+				if (!ConsumePackType(state)) return false;
 			}
 			else if (next.Is(ParenthesisType.PARENTHESIS))
 			{
 				if (!ConsumeFunctionType(state)) return false;
 			}
-			else if (next.Is(ParenthesisType.CURLY_BRACKETS))
+			else
 			{
-				if (!ConsumePackType(state)) return false;
+				return false;
+			}
+
+			return true;
+		}
+
+		while (true)
+		{
+			var next = Pattern.Peek(state);
+			if (next == null) return true;
+
+			if (next.Is(Operators.DOT))
+			{
+				Pattern.Consume(state);
+				if (!Pattern.Consume(state, TokenType.IDENTIFIER)) return false;
+			}
+			else if (next.Is(Operators.LESS_THAN))
+			{
+				if (!ConsumeTemplateArguments(state)) return false;
 			}
 			else
 			{
-				return true;
+				break;
 			}
 		}
+
+		ConsumeTypeEnd(state);
+		return true;
 	}
 
 	/// <summary>
@@ -406,13 +419,15 @@ public static class Common
 	/// </summary>
 	public static Type? ReadType(Context context, Queue<Token> tokens)
 	{
+		if (!tokens.Any()) return null;
+
 		var next = tokens.Peek();
-		var position = next.Position;
 
 		if (next.Is(TokenType.CONTENT))
 		{
-			if (next.Is(ParenthesisType.PARENTHESIS)) return ReadFunctionType(context, tokens, position);
-			if (next.Is(ParenthesisType.CURLY_BRACKETS)) return ReadPackType(context, tokens, position);
+			if (next.Is(ParenthesisType.PARENTHESIS)) return ReadFunctionType(context, tokens, next.Position);
+			if (next.Is(ParenthesisType.CURLY_BRACKETS)) return ReadPackType(context, tokens, next.Position);
+
 			return null;
 		}
 
@@ -431,20 +446,37 @@ public static class Common
 		}
 
 		var type = new UnresolvedType(components.ToArray());
-		type.Position = position;
+		type.Position = next.Position;
 
-		if (tokens.Any())
+		// If there are no more tokens, return the type
+		if (!tokens.Any()) return type.ResolveOrThis(context);
+
+		// Array types:
+		next = tokens.Peek();
+
+		if (next.Is(ParenthesisType.BRACKETS))
 		{
-			next = tokens.Peek();
+			tokens.Dequeue();
 
-			if (next.Is(ParenthesisType.BRACKETS))
-			{
-				type.Count = next.To<ContentToken>();
-				tokens.Dequeue();
-			}
+			type.Size = next.To<ContentToken>();
+			return type.ResolveOrThis(context);
 		}
 
-		return type.TryResolveType(context) ?? type;
+		// Count the number of pointers
+		while (true)
+		{
+			// Require at least one token
+			if (!tokens.Any()) break;
+
+			// Expect a multiplication token (pointer)
+			if (!tokens.Peek().Is(Operators.MULTIPLY)) break;
+			tokens.Dequeue();
+
+			// Wrap the current type around a pointer
+			type.Pointers++;
+		}
+
+		return type.ResolveOrThis(context);
 	}
 
 	/// <summary>
@@ -493,16 +525,15 @@ public static class Common
 
 		var parameters = new List<Type>();
 
-		Type? parameter;
-
-		while ((parameter = ReadType(context, tokens)) != null)
+		while (true)
 		{
+			var parameter = ReadType(context, tokens);
+			if (parameter == null) break;
+
 			parameters.Add(parameter);
 
-			if (tokens.Peek().Is(Operators.COMMA))
-			{
-				tokens.Dequeue();
-			}
+			// Consume the next token, if it is a comma
+			if (tokens.First().Is(Operators.COMMA)) tokens.Dequeue();
 		}
 
 		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))

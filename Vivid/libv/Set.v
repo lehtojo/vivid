@@ -7,7 +7,7 @@ export Set<T> {
 	}
 
 	# Summary: Creates a list with the specified initial size
-	init(elements: link<T>, size: large) {
+	init(elements: T*, size: large) {
 		container.init(elements, size)
 	}
 

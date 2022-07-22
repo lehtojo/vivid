@@ -81,6 +81,7 @@ public static class Lexer
 			',' => string.Empty,
 			'<' => "|=+",
 			'>' => "|=+-:",
+			'*' => "=",
 			_ => null
 		};
 	}

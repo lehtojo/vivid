@@ -1,9 +1,9 @@
 export Array<T> {
-	readonly data: link<T>
+	readonly data: T*
 	readonly size: large
 
 	init() {
-		data = none as link<T>
+		data = none as T*
 		size = 0
 	}
 
@@ -16,7 +16,7 @@ export Array<T> {
 	}
 
 	# Summary: Creates an array from the specified data and size
-	init(data: link<T>, size: large) {
+	init(data: T*, size: large) {
 		require(data != none, 'Invalid array data')
 		require(size >= 0, 'Array size can not be negative')
 

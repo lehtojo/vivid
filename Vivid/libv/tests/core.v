@@ -10,7 +10,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(amount: large) {
-	return allocate(amount * sizeof(T)) as link<T>
+	return allocate(amount * sizeof(T)) as T*
 }
 
 outline allocate(bytes: large) {
@@ -27,8 +27,8 @@ TYPE_DESCRIPTOR_FULLNAME_END = 1
 outline internal_is(inspected: link, inheritant: link) {
 	if inspected == inheritant return true
 	
-	inspected_fullname = inspected.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
-	inheritant_fullname = inheritant.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	inspected_fullname = inspected.(large*)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	inheritant_fullname = inheritant.(large*)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 	
 	# Determine the length of the name of the inheritant type
 	inheritant_name_length = 0

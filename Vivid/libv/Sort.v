@@ -1,4 +1,4 @@
-sort<T>(elements: link<T>, count: large) {
+sort<T>(elements: T*, count: large) {
 	quicksort.sort<T>(elements, 0, count - 1)
 }
 
@@ -10,7 +10,7 @@ sort<T>(array: Array<T>) {
 	quicksort.sort<T>(array.data, 0, list.size - 1)
 }
 
-sort<T>(elements: link<T>, count: large, comparator: (T, T) -> large) {
+sort<T>(elements: T*, count: large, comparator: (T, T) -> large) {
 	quicksort.sort<T>(elements, 0, count - 1, comparator)
 }
 

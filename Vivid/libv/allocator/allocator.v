@@ -49,7 +49,7 @@ namespace internal.allocator {
 				index = (result - start) / capacityof(T)
 				states[index / 8] |= 1 <| (index % 8)
 
-				next = result.(link<link>)[0]
+				next = result.(link*)[0]
 				available = next
 
 				allocations++
@@ -97,7 +97,7 @@ namespace internal.allocator {
 			# Ensure the slab is not already deallocated
 			allocate_slab(index)
 
-			address.(link<link>)[0] = available
+			address.(link*)[0] = available
 			available = address
 
 			used--
@@ -111,8 +111,8 @@ namespace internal.allocator {
 
 	export plain Allocators<T, S> {
 		allocations: u64 = 0
-		allocators: link<T>
-		deallocators: link<T>
+		allocators: T*
+		deallocators: T*
 		size: large = 0
 		capacity: large = ESTIMATED_MAX_ALLOCATORS
 		slabs: normal
@@ -247,7 +247,7 @@ export outline allocate(bytes: large) {
 	if address == none internal.allocator.panic('Out of memory')
 
 	# Store the size of the allocation at the beginning of the allocated memory
-	address.(link<large>)[0] = bytes
+	address.(large*)[0] = bytes
 	return address + sizeof(large)
 }
 
@@ -263,7 +263,7 @@ export outline deallocate(address: link) {
 
 	# Load the size of the allocation and deallocate the memory
 	address -= sizeof(large)
-	bytes = address.(link<large>)[0]
+	bytes = address.(large*)[0]
 	internal.deallocate(address, bytes)
 }
 
@@ -281,7 +281,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(count: large) {
-	return allocate(count * sizeof(T)) as link<T>
+	return allocate(count * sizeof(T)) as T*
 }
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
@@ -290,8 +290,8 @@ TYPE_DESCRIPTOR_FULLNAME_END = 1
 outline internal_is(inspected: link, inheritant: link) {
 	if inspected == inheritant return true
 	
-	inspected_fullname = inspected.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
-	inheritant_fullname = inheritant.(link<large>)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	inspected_fullname = inspected.(large*)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
+	inheritant_fullname = inheritant.(large*)[TYPE_DESCRIPTOR_FULLNAME_OFFSET] as link
 	
 	# Determine the length of the name of the inheritant type
 	inheritant_name_length = 0

@@ -53,13 +53,13 @@ export reverse(memory: link, size: large) {
 	}
 }
 
-export outline copy<T>(destination: link<T>, source: link<T>, size: large) {
+export outline copy<T>(destination: T*, source: T*, size: large) {
 	loop (i = 0, i < size, i++) {
 		destination[i] = source[i]
 	}
 }
 
-export outline zero<T>(destination: link<T>, size: large) {
+export outline zero<T>(destination: T*, size: large) {
 	loop (i = 0, i < size, i++) {
 		destination[i] = 0
 	}

@@ -1,12 +1,12 @@
 export List<T> {
 	private capacity: large
 
-	readonly data: link<T>
+	readonly data: T*
 	readonly size: large
 
 	private static allocate_elements(size: large) {
-		if size > 0 return allocate(size * sizeof(T)) as link<T>
-		return none as link<T>
+		if size > 0 return allocate(size * sizeof(T)) as T*
+		return none as T*
 	}
 
 	# Summary: Creates a list with the specified initial size
@@ -26,7 +26,7 @@ export List<T> {
 	}
 
 	# Summary: Creates a list with the specified initial size
-	init(data: link<T>, size: large) {
+	init(data: T*, size: large) {
 		require(data != none, 'Invalid list data')
 		require(size >= 0, 'Size of a list can not be negative')
 
@@ -346,7 +346,7 @@ export List<T> {
 			deallocate(data)
 		}
 
-		data = none as link<T>
+		data = none as T*
 		capacity = 0
 		size = 0
 	}

@@ -42,7 +42,8 @@ public class UnresolvedTypeComponent
 public class UnresolvedType : Type, IResolvable
 {
 	private UnresolvedTypeComponent[] Components { get; }
-	public ContentToken? Count { get; set; }
+	public ContentToken? Size { get; set; }
+	public int Pointers { get; set; } = 0;
 
 	public UnresolvedType(string identifier) : base(string.Empty, Modifier.DEFAULT)
 	{
@@ -54,10 +55,10 @@ public class UnresolvedType : Type, IResolvable
 		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
 	}
 
-	public UnresolvedType(UnresolvedTypeComponent[] components, ContentToken? count = null) : base(string.Empty, Modifier.DEFAULT)
+	public UnresolvedType(UnresolvedTypeComponent[] components, ContentToken? size = null) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Components = components;
-		Count = count;
+		Size = size;
 	}
 
 	public override bool IsResolved()
@@ -116,17 +117,32 @@ public class UnresolvedType : Type, IResolvable
 			context = type;
 		}
 
-		if (Count != null)
+		var result = context.To<Type>();
+
+		// Array types:
+		if (Size != null)
 		{
-			return new TypeNode(new ArrayType(environment, context.To<Type>(), Count, Position));
+			return new TypeNode(new ArrayType(environment, result, Size, Position));
 		}
 
-		return new TypeNode(context.To<Type>());
+		// Wrap the result type around pointers
+		for (var i = 0; i < Pointers; i++)
+		{
+			var pointer = new Link(result);
+			result = pointer;
+		}
+
+		return new TypeNode(result);
 	}
 
-	public Type? TryResolveType(Context context)
+	public Type? ResolveOrNull(Context context)
 	{
 		return Resolve(context)?.TryGetType();
+	}
+
+	public Type ResolveOrThis(Context context)
+	{
+		return Resolve(context)?.TryGetType() ?? this;
 	}
 
 	public override bool Equals(object? other)
@@ -141,6 +157,6 @@ public class UnresolvedType : Type, IResolvable
 
 	public override string ToString()
 	{
-		return string.Join('.', (object[])Components) + (Count != null ? "[]" : string.Empty);
+		return string.Join('.', (object[])Components) + (Size != null ? "[]" : string.Empty);
 	}
 }

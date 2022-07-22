@@ -11,7 +11,7 @@ export TypeDescriptor {
 	}
 
 	init(address: link) {
-		this.address = (address as link<link<link<large>>>)[0][0]
+		this.address = (address as large***)[0][0]
 	}
 
 	name() {
