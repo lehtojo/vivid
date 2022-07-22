@@ -108,7 +108,7 @@ export to_integer(string: link, length: large) {
 	index = 0
 	sign = 1
 
-	if string[0] == `-` {
+	if string[] == `-` {
 		sign = -1
 		index++
 	}
@@ -175,7 +175,7 @@ export to_decimal(string: link, length: large) {
 export as_decimal(string: link, length: large) {
 	index = 0
 
-	first = string[0]
+	first = string[]
 	if first == `-` or first == `+` { index++ }
 
 	separated = false
@@ -196,7 +196,7 @@ export as_decimal(string: link, length: large) {
 export as_integer(string: link, length: large) {
 	index = 0
 
-	first = string[0]
+	first = string[]
 	if first == `-` or first == `+` { index++ }
 
 	loop (index < length, index++) {

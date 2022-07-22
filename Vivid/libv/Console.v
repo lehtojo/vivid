@@ -131,6 +131,6 @@ export write_line() {
 # Summary: Writes the specified character to the console
 export put(value: char) {
 	buffer: char[1]
-	buffer[0] = value
+	buffer[] = value
 	internal.console.write(buffer as link, 1)
 }

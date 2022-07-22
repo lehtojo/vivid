@@ -191,7 +191,7 @@ export List<T> {
 	# Summary: Takes the value of the first element and removes it from the beginning of the list
 	pop_or(fallback: T) {
 		if size == 0 return fallback
-		first = data[0]
+		first = data[]
 
 		# Move all elements left by one
 		loop (i = 1, i < size, i++) {
@@ -396,7 +396,7 @@ export List<T> {
 	find_max(mapper: (T) -> large) {
 		if size == 0 panic('Can not find the maximum value of an empty list')
 
-		max = data[0]
+		max = data[]
 		max_value = mapper(max)
 
 		loop (i = 1, i < size, i++) {
@@ -416,7 +416,7 @@ export List<T> {
 	find_max_or(mapper: (T) -> large, default: T) {
 		if size == 0 return default
 
-		max = data[0]
+		max = data[]
 		max_value = mapper(max)
 
 		loop (i = 1, i < size, i++) {

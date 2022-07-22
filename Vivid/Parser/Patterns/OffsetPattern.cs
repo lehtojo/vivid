@@ -5,7 +5,7 @@ public class OffsetPattern : Pattern
 	private const int PRIORITY = 19;
 
 	private const int OBJECT = 0;
-	private const int INDICES = 1;
+	private const int ARGUMENTS = 1;
 
 	// Pattern: ... [...]
 	public OffsetPattern() : base
@@ -20,18 +20,20 @@ public class OffsetPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		var index = tokens[INDICES].To<ContentToken>();
-
-		if (!Equals(index.Type, ParenthesisType.BRACKETS)) return false;
-
-		return !index.IsEmpty;
+		return tokens[ARGUMENTS].To<ContentToken>().Type == ParenthesisType.BRACKETS;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
-		var indices = Singleton.Parse(context, tokens[INDICES]);
+		var arguments = Singleton.Parse(context, tokens[ARGUMENTS]);
 
-		return new OffsetNode(source, indices, tokens[INDICES].Position);
+		// If there are no arguments, add number zero as argument
+		if (arguments.First == null)
+		{
+			arguments.Add(new NumberNode(Parser.Format, 0L, tokens[ARGUMENTS].Position));
+		}
+
+		return new OffsetNode(source, arguments, tokens[ARGUMENTS].Position);
 	}
 }

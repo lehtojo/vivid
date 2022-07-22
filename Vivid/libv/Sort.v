@@ -26,9 +26,9 @@ namespace quicksort
 
 # Summary: Swap the positions of the specified elements
 swap(a, b) {
-	c = a[0]
-	a[0] = b[0]
-	b[0] = c
+	c = a[]
+	a[] = b[]
+	b[] = c
 }
 
 partition<T>(elements, low, high) {

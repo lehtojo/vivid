@@ -3,7 +3,7 @@ import init(): large
 export internal_init(root: link) {
 	internal.allocator.initialize()
 
-	count = root.(large*)[0]
+	count = root.(large*)[]
 
 	arguments = List<String>(count, false)
 	environment_variables = List<String>()
@@ -28,7 +28,7 @@ export internal_init(root: link) {
 
 	io.internal.arguments = arguments
 	io.internal.environment_variables = environment_variables
-	io.internal.executable = arguments[0]
+	io.internal.executable = arguments[]
 
 	# Call the actual init function here
 	return init()

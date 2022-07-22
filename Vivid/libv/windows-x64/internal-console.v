@@ -17,5 +17,5 @@ export read(bytes: link, length: large) {
 	read: large[1]
 	handle = internal.console.GetStdHandle(internal.console.STANDARD_INPUT_HANDLE)
 	internal.console.ReadConsoleA(handle, bytes, length, read as link, none)
-	return read[0]
+	return read[]
 }

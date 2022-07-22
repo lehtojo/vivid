@@ -49,7 +49,7 @@ namespace internal.allocator {
 				index = (result - start) / capacityof(T)
 				states[index / 8] |= 1 <| (index % 8)
 
-				next = result.(link*)[0]
+				next = result.(link*)[]
 				available = next
 
 				allocations++
@@ -97,7 +97,7 @@ namespace internal.allocator {
 			# Ensure the slab is not already deallocated
 			allocate_slab(index)
 
-			address.(link*)[0] = available
+			address.(link*)[] = available
 			available = address
 
 			used--
@@ -247,7 +247,7 @@ export outline allocate(bytes: large) {
 	if address == none internal.allocator.panic('Out of memory')
 
 	# Store the size of the allocation at the beginning of the allocated memory
-	address.(large*)[0] = bytes
+	address.(large*)[] = bytes
 	return address + sizeof(large)
 }
 
@@ -263,7 +263,7 @@ export outline deallocate(address: link) {
 
 	# Load the size of the allocation and deallocate the memory
 	address -= sizeof(large)
-	bytes = address.(large*)[0]
+	bytes = address.(large*)[]
 	internal.deallocate(address, bytes)
 }
 

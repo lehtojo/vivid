@@ -228,7 +228,7 @@ export read_file(filename: link) {
 		return Optional<Array<byte>>()
 	}
 	
-	buffer = Array<byte>(size[0])
+	buffer = Array<byte>(size[])
 
 	if internal.ReadFile(file, buffer.data, buffer.size, size as large*, none) == 0 {
 		internal.CloseHandle(file)
@@ -304,7 +304,7 @@ export size(path: link) {
 
 	# Finally, release the handle
 	internal.CloseHandle(file)
-	return size[0]
+	return size[]
 }
 
 # Processes:
@@ -368,11 +368,11 @@ export wait_for_exit(pid: large) {
 	exit_code: u32[1]
 
 	if not internal.GetExitCodeProcess(handle, exit_code as u32*) {
-		exit_code[0] = 1
+		exit_code[] = 1
 	}
 
 	internal.CloseHandle(handle)
-	return exit_code[0] as large
+	return exit_code[] as large
 }
 
 # Command line:

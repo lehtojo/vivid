@@ -40,7 +40,7 @@ export String {
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: char, strings: List<String>) {
 		if strings.size == 0 return String.empty
-		if strings.size == 1 return strings[0]
+		if strings.size == 1 return strings[]
 
 		# Set the length of the result to the number of separators, because each separator adds one character
 		result_length = strings.size - 1
@@ -61,7 +61,7 @@ export String {
 			position += string.length
 
 			# Add the separator, even if it is the last one
-			position[0] = separator
+			position[] = separator
 			position++
 		}
 
@@ -74,7 +74,7 @@ export String {
 	# Summary: Combines all the specified strings while separating them the specified separator
 	static join(separator: String, strings: List<String>) {
 		if strings.size == 0 return String.empty
-		if strings.size == 1 return strings[0]
+		if strings.size == 1 return strings[]
 
 		# Set the length of the result to the number of characters the separators will take
 		result_length = (strings.size - 1) * separator.length
@@ -88,7 +88,7 @@ export String {
 		buffer = allocate(result_length + 1)
 
 		# Add the first string to the result
-		string = strings[0]
+		string = strings[]
 		copy(string.data, string.length, buffer)
 
 		# Start after the first added string
@@ -125,7 +125,7 @@ export String {
 	# Summary: Converts the specified character into a string
 	init(value: char) {
 		data = allocate(2)
-		data[0] = value
+		data[] = value
 		data[1] = 0
 		length = 1
 	}
@@ -197,7 +197,7 @@ export String {
 
 	# Summary: Returns whether the first character matches the specified character
 	starts_with(value: char) {
-		return length > 0 and data[0] == value
+		return length > 0 and data[] == value
 	}
 
 	# Summary: Returns whether the last character matches the specified character
