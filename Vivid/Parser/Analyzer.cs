@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 public enum AccessType
 {
@@ -295,34 +296,28 @@ public static class Analyzer
 	/// </summary>
 	public static void ApplyConstants(Context context)
 	{
-		var constants = context.Variables.Values.Where(i => i.IsConstant);
-
-		foreach (var constant in constants)
+		foreach (var iterator in context.Variables)
 		{
-			if (constant.Writes.Count == 0) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
-			if (constant.Writes.Count > 1) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned more than once");
+			var variable = iterator.Value;
+			if (!variable.IsConstant) continue;
 
-			var write = constant.Writes.First().Parent;
+			// Try to categorize the usages of the constant
+			// If no accurate information is available, the value of the constant can not be inlined
+			if (!TryCategorizeUsages(variable)) continue;
 
-			if (write == null || !write.Is(Operators.ASSIGN)) throw Errors.Get(constant.Position, $"Invalid assignment for constant '{constant.Name}'");
-			
-			var value = Analyzer.GetSource(write.Right);
-			if (!value.Is(NodeType.NUMBER) && !value.Is(NodeType.STRING)) throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
+			if (variable.Writes.Count == 0) throw Errors.Get(variable.Position, $"Value for the constant '{variable.Name}' is never assigned");
+			if (variable.Writes.Count > 1) throw Errors.Get(variable.Position, $"Value for the constant '{variable.Name}' is assigned more than once");
 
-			foreach (var usage in constant.Reads)
+			var value = EvaluateConstant(variable);
+			if (value == null) throw Errors.Get(variable.Position, $"Could not evaluate a constant value for '{variable.Name}'");
+
+			foreach (var usage in variable.Reads)
 			{
-				var destination = usage;
-
 				// If the parent of the constant is a link node, it needs to be replaced with the value of the constant
-				// Example:
-				// namespace A { C = 0 }
-				// print(A.C) => print(0)
-				if (usage.Parent != null && usage.Parent.Is(NodeType.LINK))
-				{
-					destination = usage.Parent;
-				}
+				var destination = usage;
+				if (usage.Previous != null && usage.Parent != null && usage.Parent.Instance == NodeType.LINK) { destination = usage.Parent; }
 
-				destination.Replace(write.Right.Clone());
+				destination.Replace(value.Clone());
 			}
 		}
 
@@ -331,40 +326,85 @@ public static class Analyzer
 	}
 
 	/// <summary>
+	/// Evaluates the value of the specified constant and returns it. If evaluation fails, none is returned.
+	/// </summary>
+	public static Node? EvaluateConstant(Variable variable, HashSet<Variable> trace)
+	{
+		// Ensure we do not enter into an infinite evaluation cycle
+		if (trace.Contains(variable)) return null;
+		trace.Add(variable);
+
+		// Verify there is exactly one definition for the specified constant
+		TryCategorizeUsages(variable);
+
+		var writes = variable.Writes;
+		if (writes.Count != 1) return null;
+
+		var write = variable.Writes.First().Parent;
+		if (write == null || !write.Is(Operators.ASSIGN)) return null;
+
+		// Extract the definition for the constant
+		var value = Analyzer.GetSource(write.Last!);
+
+		// If the current value is a constant, we can just stop
+		if (value.Is(NodeType.NUMBER, NodeType.STRING)) return write.Last!;
+
+		// Find other constant from the extracted definition
+		var dependencies = value.FindAll(NodeType.VARIABLE).Where(i => i.To<VariableNode>().Variable.IsConstant).ToList();
+
+		if (value.Instance == NodeType.VARIABLE && value.To<VariableNode>().Variable.IsConstant)
+		{
+			dependencies = new List<Node> { value };
+		}
+
+		var evaluation = (Node?)null;
+
+		// Evaluate the dependencies
+		foreach (var dependency in dependencies) {
+			// If the evaluation of the dependency fails, the whole evaluation fails as well
+			evaluation = EvaluateConstant(dependency.To<VariableNode>().Variable, trace);
+			if (evaluation == null) return null;
+
+			// If the parent of the dependency is a link node, it needs to be replaced with the value of the dependency
+			var destination = dependency;
+			if (dependency.Previous != null && dependency.Parent != null && dependency.Parent.Instance == NodeType.LINK) { destination = dependency.Parent; }
+
+			// Replace the dependency with its value
+			destination.Replace(evaluation);
+		}
+
+		// Since all of the dependencies were evaluated successfully, we can try evaluating the value of the specified constant
+		evaluation = Analysis.GetSimplifiedValue(value);
+		if (!evaluation.Is(NodeType.NUMBER, NodeType.STRING)) return null;
+
+		value.Replace(evaluation);
+		return write.Last!;
+	}
+
+	/// <summary>
+	/// Evaluates the value of the specified constant and returns it. If evaluation fails, none is returned.
+	/// </summary>
+	public static Node? EvaluateConstant(Variable variable)
+	{
+		return EvaluateConstant(variable, new HashSet<Variable>());
+	}
+
+	/// <summary>
 	/// Finds all the constant usages in the specified node tree and inserts the values of the constants into their usages
 	/// </summary>
-	public static void ApplyConstants(Node root)
+	public static void ApplyConstantsInto(Node root)
 	{
-		var constants = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable.IsConstant).ToArray();
+		var usages = root.FindAll(NodeType.VARIABLE).Where(i => i.To<VariableNode>().Variable.IsConstant);
 
-		foreach (var usage in constants)
+		foreach (var usage in usages)
 		{
-			var constant = usage.Variable;
+			var value = EvaluateConstant(usage.To<VariableNode>().Variable);
+			if (value == null) continue;
 
-			// Try to categorize the usages of the constant
-			// If no accurate information is available, the value of the constant can not be inlined
-			if (!TryCategorizeUsages(constant)) continue;
-
-			if (constant.Writes.Count == 0) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is never assigned");
-			if (constant.Writes.Count > 1) throw Errors.Get(constant.Position, $"Value for the constant '{constant.Name}' is assigned more than once");
-
-			var write = constant.Writes.First().Parent;
-
-			if (write == null || !write.Is(Operators.ASSIGN)) throw Errors.Get(constant.Position, $"Invalid assignment for constant '{constant.Name}'");
-			
-			var value = Analyzer.GetSource(write.Right);
-			if (!value.Is(NodeType.NUMBER) && !value.Is(NodeType.STRING)) throw Errors.Get(constant.Position, $"Value assigned to constant '{constant.Name}' is not a constant");
-			
-			var destination = (Node)usage;
 
 			// If the parent of the constant is a link node, it needs to be replaced with the value of the constant
-			// Example:
-			// namespace A { C = 0 }
-			// print(A.C) => print(0)
-			if (usage.Parent != null && usage.Parent.Is(NodeType.LINK))
-			{
-				destination = usage.Parent;
-			}
+			var destination = usage;
+			if (usage.Previous != null && usage.Parent != null && usage.Parent.Instance == NodeType.LINK) { destination = usage.Parent; }
 
 			destination.Replace(value.Clone());
 		}

@@ -688,6 +688,8 @@ public class ResolverPhase : Phase
 			
 			// Try to resolve problems in the node tree and get the status after that
 			Resolver.ResolveContext(context);
+			Resolver.Resolve(context, parse.Node);
+
 			report = GetReport(context, parse.Node);
 
 			if (Assembler.IsVerboseOutputEnabled)

@@ -56,13 +56,18 @@ public class ArrayType : Number, IResolvable
 		if (Expression.First == null) return null;
 
 		// Insert values of constants manually
-		Analyzer.ApplyConstants(Expression);
+		Analyzer.ApplyConstantsInto(Expression);
 
 		// Try to convert the expression into a constant number
-		var value = Analysis.GetSimplifiedValue(Expression.First);
-		if (value.Instance != NodeType.NUMBER || value.To<NumberNode>().Type.IsDecimal()) return null;
+		if (Expression.First.Instance != NodeType.NUMBER)
+		{
+			var evaluated = Analysis.GetSimplifiedValue(Expression.First);
+			if (evaluated.Instance != NodeType.NUMBER || evaluated.To<NumberNode>().Type == Format.DECIMAL) return null;
 
-		Expression = new NumberNode(Parser.Format, (long)value.To<NumberNode>().Value);
+			Expression.First.Replace(evaluated);
+		}
+
+		Expression = new NumberNode(Parser.Format, (long)Expression.First.To<NumberNode>().Value);
 		return null;
 	}
 

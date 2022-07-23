@@ -1,5 +1,9 @@
 public abstract class Component
 {
+	public const int COMPARISON_UNKNOWN = 2;
+
+	public bool IsInteger => this is NumberComponent && ((NumberComponent)this).Value is long;
+
 	public abstract void Negate();
 
 	public virtual Component? Add(Component other)
@@ -20,6 +24,26 @@ public abstract class Component
 	public virtual Component? Divide(Component other)
 	{
 		return null;
+	}
+
+	public virtual Component? BitwiseAnd(Component other)
+	{
+		return null;
+	}
+
+	public virtual Component? BitwiseXor(Component other)
+	{
+		return null;
+	}
+
+	public virtual Component? BitwiseOr(Component other)
+	{
+		return null;
+	}
+
+	public virtual int Compare(Component component)
+	{
+		return COMPARISON_UNKNOWN;
 	}
 
 	public static Component? operator +(Component left, Component right)

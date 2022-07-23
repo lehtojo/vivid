@@ -73,6 +73,8 @@ public static class ProjectBuilder
 			var previous = report;
 
 			Resolver.ResolveContext(context);
+			Resolver.Resolve(context, root);
+
 			report = ResolverPhase.GetReport(context);
 
 			if (report == previous) break;
@@ -107,6 +109,8 @@ public static class ProjectBuilder
 				ParserPhase.ImplementFunctions(context, all ? null : filter, true);
 
 				Resolver.ResolveContext(context);
+				Resolver.Resolve(context, root);
+
 				report = ResolverPhase.GetReport(context);
 			}
 

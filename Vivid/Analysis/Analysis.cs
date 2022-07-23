@@ -321,6 +321,26 @@ public static class Analysis
 			return SimplifyShiftRight(left_components, right_components);
 		}
 
+		if (Equals(node.Operator, Operators.BITWISE_AND))
+		{
+			return SimplifyBitwiseAnd(left_components, right_components);
+		}
+
+		if (Equals(node.Operator, Operators.BITWISE_XOR))
+		{
+			return SimplifyBitwiseXor(left_components, right_components);
+		}
+
+		if (Equals(node.Operator, Operators.BITWISE_OR))
+		{
+			return SimplifyBitwiseOr(left_components, right_components);
+		}
+
+		if (Equals(node.Operator.Type, OperatorType.COMPARISON))
+		{
+			return SimplifyComparison(node.Operator, left_components, right_components);
+		}
+
 		return new List<Component>
 		{
 			new ComplexComponent(new OperatorNode(node.Operator).SetOperands(Recreate(left_components), Recreate(right_components)))
@@ -475,6 +495,78 @@ public static class Analysis
 		}
 
 		return components;
+	}
+
+	/// <summary>
+	/// Simplifies bitwise and between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyBitwiseAnd(List<Component> left_components, List<Component> right_components)
+	{
+		if (left_components.Count == 1 && right_components.Count == 1)
+		{
+			var result = left_components.First().BitwiseAnd(right_components.First());
+			if (result != null) return new List<Component> { result };
+		}
+
+		return new List<Component> { new ComplexComponent(new OperatorNode(Operators.BITWISE_AND).SetOperands(Recreate(left_components), Recreate(right_components))) };
+	}
+
+	/// <summary>
+	/// Simplifies bitwise xor between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyBitwiseXor(List<Component> left_components, List<Component> right_components)
+	{
+		if (left_components.Count == 1 && right_components.Count == 1)
+		{
+			var result = left_components.First().BitwiseXor(right_components.First());
+			if (result != null) return new List<Component> { result };
+		}
+
+		return new List<Component> { new ComplexComponent(new OperatorNode(Operators.BITWISE_XOR).SetOperands(Recreate(left_components), Recreate(right_components))) };
+	}
+
+	/// <summary>
+	/// Simplifies bitwise or between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyBitwiseOr(List<Component> left_components, List<Component> right_components)
+	{
+		if (left_components.Count == 1 && right_components.Count == 1)
+		{
+			var result = left_components.First().BitwiseOr(right_components.First());
+			if (result != null) return new List<Component> { result };
+		}
+
+		return new List<Component> { new ComplexComponent(new OperatorNode(Operators.BITWISE_OR).SetOperands(Recreate(left_components), Recreate(right_components))) };
+	}
+
+	/// <summary>
+	/// Simplifies comparison operators between the specified operands
+	/// </summary>
+	public static List<Component> SimplifyComparison(Operator operation, List<Component> left_components, List<Component> right_components)
+	{
+		if (left_components.Count == 1 && right_components.Count == 1)
+		{
+			var comparison = left_components.First().Compare(right_components.First());
+
+			if (comparison != Component.COMPARISON_UNKNOWN)
+			{
+				var result = false;
+
+				if (operation == Operators.GREATER_THAN)               { result = comparison > 0;  }
+				else if (operation == Operators.GREATER_OR_EQUAL)      { result = comparison >= 0; }
+				else if (operation == Operators.LESS_THAN)             { result = comparison < 0;  }
+				else if (operation == Operators.LESS_OR_EQUAL)         { result = comparison <= 0; }
+				else if (operation == Operators.EQUALS)                { result = comparison == 0; }
+				else if (operation == Operators.NOT_EQUALS)            { result = comparison != 0; }
+				else if (operation == Operators.ABSOLUTE_EQUALS)       { result = comparison == 0; }
+				else if (operation == Operators.ABSOLUTE_NOT_EQUALS)   { result = comparison != 0; }
+				else { throw new ApplicationException("Unknown comparison operator"); }
+
+				return new List<Component> { new NumberComponent(result) };
+			}
+		}
+
+		return new List<Component> { new ComplexComponent(new OperatorNode(operation).SetOperands(Recreate(left_components), Recreate(right_components))) };
 	}
 
 	/// <summary>

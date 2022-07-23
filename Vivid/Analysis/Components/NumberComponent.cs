@@ -106,6 +106,55 @@ public class NumberComponent : Component
 		return null;
 	}
 
+	public override Component? BitwiseAnd(Component other)
+	{
+		if (Value is long && other.IsInteger)
+		{
+			return new NumberComponent((long)Value & (long)((NumberComponent)other).Value);
+		}
+
+		return null;
+	}
+
+	public override Component? BitwiseOr(Component other)
+	{
+		if (Value is long && other.IsInteger)
+		{
+			return new NumberComponent((long)Value | (long)((NumberComponent)other).Value);
+		}
+
+		return null;
+	}
+
+	public override int Compare(Component component)
+	{
+		if (component is NumberComponent other)
+		{
+			if (Value is double)
+			{
+				if (other.Value is double) return Math.Sign((double)Value - (double)other.Value);
+				return Math.Sign((double)Value - (long)other.Value);
+			}
+			else
+			{
+				if (other.Value is double) return Math.Sign((long)Value - (double)other.Value);
+				return Math.Sign((long)Value - (long)other.Value);
+			}
+		}
+
+		return COMPARISON_UNKNOWN;
+	}
+
+	public override Component? BitwiseXor(Component other)
+	{
+		if (Value is long && other.IsInteger)
+		{
+			return new NumberComponent((long)Value ^ (long)((NumberComponent)other).Value);
+		}
+
+		return null;
+	}
+
 	public override bool Equals(object? other)
 	{
 		return other is NumberComponent component && Equals(component.Value, Value);
