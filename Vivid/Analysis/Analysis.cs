@@ -1092,6 +1092,11 @@ public static class Analysis
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
+
+			if (verbose)
+			{
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] Reconstructing {implementation.GetHeader()}");
+			}
 			
 			// Reconstruct necessary nodes in the function implementation
 			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
@@ -1132,11 +1137,11 @@ public static class Analysis
 
 			if (time)
 			{
-				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{duration} ms]");
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] Optimizing {implementation.GetHeader()} [{duration} ms]");
 			}
 			else if (verbose)
 			{
-				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()}");
+				Console.WriteLine($"[{i + 1}/{implementations.Count}] Optimizing {implementation.GetHeader()}");
 			}
 		}
 

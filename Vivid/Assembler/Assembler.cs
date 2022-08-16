@@ -212,81 +212,75 @@ public static class Assembler
 	}
 
 	/// <summary>
-	/// Assembles the specified function
+	/// Assembles the specified function implementation
 	/// </summary>
-	private static AssemblyBuilder AssembleFunction(Function function)
+	private static AssemblyBuilder GetTextSection(FunctionImplementation implementation)
 	{
 		var builder = new AssemblyBuilder();
 
-		foreach (var implementation in function.Implementations)
+		var fullname = implementation.GetFullname();
+
+		// Ensure this function is visible to other units
+		builder.WriteLine($"{ExportDirective} {fullname}");
+		builder.Export(fullname);
+
+		var unit = new Unit(implementation);
+
+		// Update the variable usages before we start
+		foreach (var parameter in implementation.Parameters) { Analyzer.FindUsages(parameter, implementation.Node!); }
+		foreach (var variable in implementation.Locals) { Analyzer.FindUsages(variable, implementation.Node!); }
+
+		unit.Execute(UnitMode.APPEND, () =>
 		{
-			// Skip imported functions
-			if (implementation.IsImported) continue;
+			// Create the most outer scope where all instructions will be placed
+			using var scope = new Scope(unit, implementation.Node!);
 
-			var fullname = implementation.GetFullname();
-
-			// Ensure this function is visible to other units
-			builder.WriteLine($"{ExportDirective} {fullname}");
-			builder.Export(fullname);
-
-			var unit = new Unit(implementation);
-
-			// Update the variable usages before we start
-			foreach (var parameter in implementation.Parameters) { Analyzer.FindUsages(parameter, implementation.Node!); }
-			foreach (var variable in implementation.Locals) { Analyzer.FindUsages(variable, implementation.Node!); }
-
-			unit.Execute(UnitMode.APPEND, () =>
+			if (implementation.VirtualFunction != null)
 			{
-				// Create the most outer scope where all instructions will be placed
-				using var scope = new Scope(unit, implementation.Node!);
+				builder.WriteLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
+				builder.Export(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX);
 
-				if (implementation.VirtualFunction != null)
-				{
-					builder.WriteLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
-					builder.Export(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX);
+				AddVirtualFunctionHeader(unit, implementation, fullname);
+			}
 
-					AddVirtualFunctionHeader(unit, implementation, fullname);
-				}
+			// Append the function name to the output as a label
+			unit.Append(new LabelInstruction(unit, new Label(fullname)));
 
-				// Append the function name to the output as a label
-				unit.Append(new LabelInstruction(unit, new Label(fullname)));
+			// Initialize this function
+			unit.Append(new InitializeInstruction(unit));
 
-				// Initialize this function
-				unit.Append(new InitializeInstruction(unit));
+			// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
+			var parameters = new List<Variable>(unit.Function.Parameters);
 
-				// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
-				var parameters = new List<Variable>(unit.Function.Parameters);
+			if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
+			{
+				parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
+			}
 
-				if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
-				{
-					parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
-				}
+			// Include pack representives as well
+			var parameter_count = parameters.Count;
 
-				// Include pack representives as well
-				var parameter_count = parameters.Count;
+			for (var i = 0; i < parameter_count; i++)
+			{
+				var parameter = parameters[i];
+				if (!parameter.Type!.IsPack) continue;
+				parameters.AddRange(Common.GetPackRepresentives(parameter));
+			}
 
-				for (var i = 0; i < parameter_count; i++)
-				{
-					var parameter = parameters[i];
-					if (!parameter.Type!.IsPack) continue;
-					parameters.AddRange(Common.GetPackRepresentives(parameter));
-				}
+			unit.Append(new RequireVariablesInstruction(unit, parameters));
 
-				unit.Append(new RequireVariablesInstruction(unit, parameters));
+			if (Assembler.IsDebuggingEnabled)
+			{
+				Calls.MoveParametersToStack(unit);
+			}
 
-				if (Assembler.IsDebuggingEnabled)
-				{
-					Calls.MoveParametersToStack(unit);
-				}
+			Builders.Build(unit, implementation.Node!);
+		});
 
-				Builders.Build(unit, implementation.Node!);
-			});
+		unit.Reindex();
+		unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });
 
-			unit.Reindex();
-			unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });
-
-			Translator.Translate(builder, unit);
-		}
+		Translator.Translate(builder, unit);
 
 		return builder;
 	}
@@ -296,16 +290,16 @@ public static class Assembler
 	/// </summary>
 	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context, SourceFile[] files)
 	{
-		var implementations = Common.GetAllImplementedFunctions(context, false);
+		var all = Common.GetAllFunctionImplementations(context, false);
 
 		// Group all functions by their owner files
-		var mapped_functions = implementations
-			.Where(i => i.Start != null)
-			.GroupBy(i => i.Start!.File ?? throw new ApplicationException("Missing declaration file"))
+		var implementations = all
+			.Where(i => i.Metadata.Start != null)
+			.GroupBy(i => i.Metadata.Start!.File ?? throw new ApplicationException("Missing declaration file"))
 			.ToDictionary(i => i.Key, i => i.ToList());
 
 		// Store the number of assembled functions
-		var assembled_functions = 0;
+		var index = 0;
 
 		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
 
@@ -321,19 +315,21 @@ public static class Assembler
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
-			if (mapped_functions.ContainsKey(file))
+			if (implementations.ContainsKey(file))
 			{
-				foreach (var function in mapped_functions[file])
+				foreach (var implementation in implementations[file])
 				{
+					if (implementation.IsImported) continue;
+
 					if (Assembler.IsVerboseOutputEnabled)
 					{
-						Console.WriteLine($"[{assembled_functions + 1}/{implementations.Length}]: Assembling {function.ToString()}");
+						Console.WriteLine($"[{index + 1}/{all.Length}]: Assembling {implementation.ToString()}");
 					}
 
-					builder.Add(AssembleFunction(function));
+					builder.Add(GetTextSection(implementation));
 					builder.Write(SEPARATOR);
 
-					assembled_functions++; // Increment the number of assembled functions
+					index++; // Increment the number of assembled functions
 				}
 			}
 
