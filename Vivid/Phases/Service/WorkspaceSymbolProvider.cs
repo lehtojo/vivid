@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Linq;
+using System;
 
 public enum SymbolKind
 {
@@ -46,6 +47,16 @@ public class WorkspaceSymbolInformation
 		Container = container;
 		Position = position;
 	}
+
+	public override bool Equals(object? other)
+	{
+		return other is WorkspaceSymbolInformation symbol && Name == symbol.Name && Kind == symbol.Kind && Container == symbol.Container && Position.Equals(symbol.Position);
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Name, Kind, Container, Position);
+	}
 }
 
 public static class WorkspaceSymbolProvider
@@ -74,7 +85,7 @@ public static class WorkspaceSymbolProvider
 
 			var functions = parse.Blueprints.Keys.ToList();
 			var types = Common.GetAllTypes(parse.Context);
-			var variables = Common.GetAllVariables(parse.Context);
+			var variables = Common.GetAllVariablesOutsideFunctions(parse.Context);
 
 			symbols.AddRange(functions.Where(i => i.Start != null).Select(i => new WorkspaceSymbolInformation(i.ToString(), SymbolKind.Function, string.Empty, new DocumentPosition(i.Start!.FriendlyLine, i.Start!.FriendlyCharacter))));
 			symbols.AddRange(types.Where(i => i.Position != null).Select(i => new WorkspaceSymbolInformation(i.ToString(), i.IsStatic ? SymbolKind.Namespace : SymbolKind.Class, string.Empty, new DocumentPosition(i.Position!.FriendlyLine, i.Position!.FriendlyCharacter))));
@@ -86,6 +97,6 @@ public static class WorkspaceSymbolProvider
 			result.Add(divider);
 		}
 
-		response.SendResponse(string.Empty, DocumentResponseStatus.OK, result.ToArray());
+		response.SendResponse(string.Empty, DocumentResponseStatus.OK, result.Distinct().ToArray());
 	}
 }

@@ -995,6 +995,19 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Collects all variables from the specified context and its subcontexts, but not from functions
+	/// </summary>
+	public static List<Variable> GetAllVariablesOutsideFunctions(Context context)
+	{
+		var subcontexts = context.Subcontexts.Where(i => !i.IsFunction && !i.IsImplementation);
+
+		return context.Variables.Values
+			.Concat(subcontexts.SelectMany(i => GetAllVariablesOutsideFunctions(i)))
+			.Distinct()
+			.ToList();
+	}
+
+	/// <summary>
 	/// Collects all local function implementations from the specified context
 	/// </summary>
 	public static FunctionImplementation[] GetLocalFunctionImplementations(Context context)
