@@ -359,6 +359,19 @@ public static class Resolver
 	/// </summary>	
 	private static void Resolve(Variable variable)
 	{
+		if (variable.Type != null)
+		{
+			// If the variable is already resolved, there is no need to do anything
+			if (variable.Type.IsResolved()) return;
+
+			// Try to resolve the variable type
+			var resolved = Resolve(variable.Context, variable.Type);
+			if (resolved == null) return;
+
+			variable.Type = resolved;
+			return;
+		}
+
 		var types = new List<Type>();
 
 		// Try resolving the type of the variable from its references
@@ -412,7 +425,7 @@ public static class Resolver
 	/// </summary>
 	private static void ResolveVariables(Context context)
 	{
-		foreach (var variable in context.Variables.Values.Where(i => i.Type == null))
+		foreach (var variable in context.Variables.Values)
 		{
 			Resolve(variable);
 		}
