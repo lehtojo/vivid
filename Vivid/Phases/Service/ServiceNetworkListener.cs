@@ -28,16 +28,9 @@ public static class ServiceNetworkListener
 	/// </summary>
 	private static ServiceRequestInformation? Receive(Socket socket)
 	{
-		// Receive the message header
-		while (socket.Available < sizeof(int) * 2)
-		{
-			// If the socket disconnects, return null
-			if (!socket.IsConnected()) return null;
-		}
-
-		// Extract the size of message
+		// Receive the message header that contains the size and id of the message
 		var buffer = new byte[sizeof(int) * 2];
-		socket.Receive(buffer);
+		if (socket.Receive(buffer, 0, buffer.Length, SocketFlags.None) != buffer.Length) return null;
 
 		var size = BitConverter.ToUInt32(buffer);
 		var id = BitConverter.ToInt32(buffer, sizeof(int));
