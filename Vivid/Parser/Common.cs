@@ -433,6 +433,9 @@ public static class Common
 
 		if (!next.Is(TokenType.IDENTIFIER)) return null;
 
+		// Self return type:
+		if (next.To<IdentifierToken>().Value == Function.SELF_POINTER_IDENTIFIER) return Primitives.SELF;
+
 		var components = new List<UnresolvedTypeComponent>();
 
 		while (true)

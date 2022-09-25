@@ -1,6 +1,6 @@
 export Array<T> {
-	readonly data: T*
-	readonly size: large
+	readable data: T*
+	readable size: large
 
 	init() {
 		data = none as T*

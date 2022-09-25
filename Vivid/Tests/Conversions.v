@@ -42,7 +42,7 @@ Bar {
 		this.d = d
 	}
 
-	virtual bar(): decimal
+	open bar(): decimal
 }
 
 Foo Bar Baz {

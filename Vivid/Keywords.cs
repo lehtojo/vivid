@@ -28,11 +28,11 @@ public static class Keywords
 	public static readonly Keyword PRIVATE = new ModifierKeyword("private", Modifier.PRIVATE);
 	public static readonly Keyword PROTECTED = new ModifierKeyword("protected", Modifier.PROTECTED);
 	public static readonly Keyword PUBLIC = new ModifierKeyword("public", Modifier.PUBLIC);
-	public static readonly Keyword READONLY = new ModifierKeyword("readonly", Modifier.READONLY);
+	public static readonly Keyword READABLE = new ModifierKeyword("readable", Modifier.READONLY);
 	public static readonly Keyword RETURN = new("return", KeywordType.FLOW);
-	public static readonly Keyword STATIC = new ModifierKeyword("static", Modifier.STATIC);
+	public static readonly Keyword SHARED = new ModifierKeyword("shared", Modifier.STATIC);
 	public static readonly Keyword STOP = new("stop", KeywordType.FLOW);
-	public static readonly Keyword VIRTUAL = new("virtual", KeywordType.NORMAL);
+	public static readonly Keyword VIRTUAL = new("open", KeywordType.NORMAL);
 	public static readonly Keyword WHEN = new("when", KeywordType.FLOW);
 
 	public static Dictionary<string, Keyword> Definitions { get; } = new Dictionary<string, Keyword>();
@@ -62,9 +62,9 @@ public static class Keywords
 		Definitions.Add(PRIVATE.Identifier, PRIVATE);
 		Definitions.Add(PROTECTED.Identifier, PROTECTED);
 		Definitions.Add(PUBLIC.Identifier, PUBLIC);
-		Definitions.Add(READONLY.Identifier, READONLY);
+		Definitions.Add(READABLE.Identifier, READABLE);
 		Definitions.Add(RETURN.Identifier, RETURN);
-		Definitions.Add(STATIC.Identifier, STATIC);
+		Definitions.Add(SHARED.Identifier, SHARED);
 		Definitions.Add(STOP.Identifier, STOP);
 		Definitions.Add(VIRTUAL.Identifier, VIRTUAL);
 		Definitions.Add(WHEN.Identifier, WHEN);

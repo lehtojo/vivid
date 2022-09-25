@@ -62,7 +62,7 @@ export Map<K, V> {
 	private capacity: large = 1
 	private removed: normal = 0 # Number of removed slots
 
-	readonly size: large = 0
+	readable size: large = 0
 
 	init() {}
 

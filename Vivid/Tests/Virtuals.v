@@ -1,5 +1,5 @@
 InheritantOne {
-	virtual foo()
+	open foo()
 }
 
 InheritantOne VirtualTypeOne {
@@ -18,7 +18,7 @@ execute_virtual_type_one() {
 InheritantTwo {
 	a: large
 
-	virtual bar()
+	open bar()
 }
 
 InheritantTwo VirtualTypeTwo {
@@ -41,7 +41,7 @@ execute_virtual_type_two() {
 InheritantThree {
 	b: large
 
-	virtual baz(x: tiny, y: small): large
+	open baz(x: tiny, y: small): large
 }
 
 InheritantThree VirtualTypeThree {

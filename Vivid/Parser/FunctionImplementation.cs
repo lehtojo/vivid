@@ -25,6 +25,7 @@ public class FunctionImplementation : Context
 	public Type? ReturnType { get; set; }
 
 	public bool IsImported { get; set; } = false;
+	public bool IsSelfReturning { get; set; } = false;
 	public bool IsEmpty => (Node == null || Node.First == null) && !Metadata.IsImported;
 
 	public bool IsConstructor => Metadata is Constructor;

@@ -1,5 +1,7 @@
 public static class Primitives
 {
+	public static readonly Type SELF = new(Function.SELF_POINTER_IDENTIFIER, Modifier.SELF);
+
 	public const string UNIT = "_";
 	public const string LINK = "link";
 	public const string BOOL = "bool";

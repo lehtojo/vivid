@@ -1009,6 +1009,17 @@ public static class Analysis
 	}
 
 	/// <summary>
+	/// Completes the specified function if it is self returning
+	/// </summary>
+	private static void CompleteSelfReturningFunction(FunctionImplementation implementation)
+	{
+		// Process only self returning functions
+		if (!implementation.ReturnType!.IsSelf || !implementation.IsMember) return;
+
+		ReconstructionAnalysis.CompleteSelfReturningFunction(implementation);
+	}
+
+	/// <summary>
 	/// Evaluates the values of inspection nodes
 	/// </summary>
 	private static void CompleteInspections(Node root)
@@ -1050,6 +1061,7 @@ public static class Analysis
 		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
 			Complete(implementation);
+			CompleteSelfReturningFunction(implementation);
 			CompleteInspections(implementation.Node!);
 		}
 	}

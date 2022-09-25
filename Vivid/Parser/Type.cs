@@ -120,6 +120,7 @@ public class Type : Context
 	public bool IsGenericType => !Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsTemplateType => Flag.Has(Modifiers, Modifier.TEMPLATE_TYPE);
 	public bool IsPack => Flag.Has(Modifiers, Modifier.PACK);
+	public bool IsSelf => Flag.Has(Modifiers, Modifier.SELF);
 	public bool IsUnnamedPack => IsPack && Name.IndexOf('.') != -1;
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 

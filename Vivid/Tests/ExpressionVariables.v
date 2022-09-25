@@ -64,7 +64,7 @@ Animal Cat {
 }
 
 Animals {
-	static:
+	shared:
 	dog => Dog()
 	cat => Cat()
 }

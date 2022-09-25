@@ -15,7 +15,7 @@ Entity Person {
 }
 
 Usable {
-	virtual likes(entity: Entity): bool
+	open likes(entity: Entity): bool
 }
 
 Usable Vehicle {
@@ -28,8 +28,8 @@ Usable Vehicle {
 		return sqrt(2 * distance / acceleration)
 	}
 
-	virtual skill(): large
-	virtual reliability(): large
+	open skill(): large
+	open reliability(): large
 }
 
 Drivable {}

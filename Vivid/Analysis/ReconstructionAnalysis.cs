@@ -221,6 +221,27 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Completes the specified self returning function by adding the necessary statements and by modifying the function information
+	/// </summary>
+	public static void CompleteSelfReturningFunction(FunctionImplementation implementation)
+	{
+		var position = implementation.Metadata.Start;
+
+		implementation.ReturnType = implementation.Parent as Type;
+		implementation.IsSelfReturning = true;
+		implementation.Node!.Add(new ReturnNode(null, position));
+
+		var self = implementation.GetSelfPointer() ?? throw new ApplicationException("Missing self parameter");
+
+		var statements = implementation.Node.FindAll(NodeType.RETURN);
+
+		foreach (var statement in statements)
+		{
+			statement.Add(new VariableNode(self, position));
+		}
+	}
+
+	/// <summary>
 	/// Removes redundant parentheses in the specified node tree
 	/// Example: x = x * (((x + 1)))
 	/// </summary>
@@ -1002,6 +1023,60 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Rewrites self returning functions, so that the self argument is modified after the call:
+	/// Case 1:
+	/// local.modify(...)
+	/// =>
+	/// local = local.modify(...)
+	/// Case 2:
+	/// a[i].b.f(...)
+	/// =>
+	/// t = a[i].b.f(...)
+	/// a[i].b = t
+	/// </summary>
+	private static void RewriteSelfReturningFunctions(Node root)
+	{
+		var calls = root.FindAll(NodeType.FUNCTION);
+
+		foreach (var call in calls)
+		{
+			// Process only self returning functions
+			var function = call.To<FunctionNode>().Function;
+			if (!function.IsSelfReturning) continue;
+
+			// Verify the called function is a member function
+			if (!function.IsMember) continue;
+
+			// Verify the node tree is here as follows: <self>.<call>
+			var caller = call.Parent!;
+			if (caller.Instance != NodeType.LINK) throw new ApplicationException("Member call is in invalid state");
+
+			// Find the self argument
+			var self = call.Previous!;
+
+			// Replace the caller with a placeholder node
+			var placeholder = new Node();
+			caller.Replace(placeholder);
+
+			var return_value = caller;
+
+			if (self.Instance != NodeType.VARIABLE)
+			{
+				// Create a temporary variable that will store the return value
+				var context = placeholder.GetParentContext();
+				var temporary_variable = context.DeclareHidden(function.ReturnType);
+
+				// Store the return value into the temporary variable
+				placeholder.Insert(new OperatorNode(Operators.ASSIGN, caller.Position).SetOperands(new VariableNode(temporary_variable), caller));
+
+				return_value = new VariableNode(temporary_variable);
+			}
+
+			placeholder.Replace(new OperatorNode(Operators.ASSIGN, caller.Position).SetOperands(self.Clone(), return_value));
+		}
+	}
+
+	/// <summary>
 	/// Rewrites the specified remainder operation where the divisor is an integer constant as:
 	/// Formula: a % c = a - (a / c) * c
 	/// </summary>
@@ -1634,6 +1709,7 @@ public static class ReconstructionAnalysis
 		RemoveRedundantCasts(root);
 		RewriteDiscardedIncrements(root);
 		ExtractExpressions(root);
+		RewriteSelfReturningFunctions(root);
 		AddAssignmentCasts(root);
 		RewriteSupertypeAccessors(root);
 		RewriteWhenExpressions(root);

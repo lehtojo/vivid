@@ -35,10 +35,10 @@ export to_string(value: large) {
 }
 
 export String {
-	static empty: String
+	shared empty: String
 
 	# Summary: Combines all the specified strings while separating them the specified separator
-	static join(separator: char, strings: List<String>) {
+	shared join(separator: char, strings: List<String>) {
 		if strings.size == 0 return String.empty
 		if strings.size == 1 return strings[]
 
@@ -72,7 +72,7 @@ export String {
 	}
 
 	# Summary: Combines all the specified strings while separating them the specified separator
-	static join(separator: String, strings: List<String>) {
+	shared join(separator: String, strings: List<String>) {
 		if strings.size == 0 return String.empty
 		if strings.size == 1 return strings[]
 
@@ -108,14 +108,14 @@ export String {
 		return String.from(buffer, result_length)
 	}
 
-	public readonly data: link
-	public readonly length: large
+	public readable data: link
+	public readable length: large
 
 	# Summary: Returns whether this string is empty
 	empty => length == 0
 
 	# Summary: Creates a string from the specified data. Does not copy the content of the specified data.
-	static from(data: link, length: large) {
+	shared from(data: link, length: large) {
 		result = String()
 		result.data = data
 		result.length = length

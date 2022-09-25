@@ -19,7 +19,7 @@ Item {
 		this.name = name
 	}
 
-	virtual string() {
+	open string() {
 		return String(name)
 	}
 }

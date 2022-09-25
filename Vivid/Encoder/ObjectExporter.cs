@@ -139,8 +139,8 @@ public static class ObjectExporter
 		var result = new List<string>();
 		if (Flag.Has(modifiers, Modifier.PRIVATE)) result.Add(Keywords.PRIVATE.Identifier);
 		if (Flag.Has(modifiers, Modifier.PROTECTED)) result.Add(Keywords.PROTECTED.Identifier);
-		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.STATIC.Identifier);
-		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READONLY.Identifier);
+		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.SHARED.Identifier);
+		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READABLE.Identifier);
 		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
 		if (Flag.Has(modifiers, Modifier.CONSTANT)) result.Add(Keywords.CONSTANT.Identifier);
 		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);

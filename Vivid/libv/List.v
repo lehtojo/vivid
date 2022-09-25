@@ -1,10 +1,10 @@
 export List<T> {
 	private capacity: large
 
-	readonly data: T*
-	readonly size: large
+	readable data: T*
+	readable size: large
 
-	private static allocate_elements(size: large) {
+	private shared allocate_elements(size: large) {
 		if size > 0 return allocate(size * sizeof(T)) as T*
 		return none as T*
 	}
