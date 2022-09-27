@@ -105,8 +105,8 @@ public class VirtualFunctionPattern : Pattern
 		}
 		else
 		{
-			blueprint = tokens.Last().To<ContentToken>().Tokens;
-			end = tokens.Last().To<ContentToken>().End;
+			blueprint = tokens.Last().To<ParenthesisToken>().Tokens;
+			end = tokens.Last().To<ParenthesisToken>().End;
 		}
 
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();

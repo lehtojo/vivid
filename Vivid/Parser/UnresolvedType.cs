@@ -42,7 +42,7 @@ public class UnresolvedTypeComponent
 public class UnresolvedType : Type, IResolvable
 {
 	private UnresolvedTypeComponent[] Components { get; }
-	public ContentToken? Size { get; set; }
+	public ParenthesisToken? Size { get; set; }
 	public int Pointers { get; set; } = 0;
 
 	public UnresolvedType(string identifier) : base(string.Empty, Modifier.DEFAULT)
@@ -55,7 +55,7 @@ public class UnresolvedType : Type, IResolvable
 		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
 	}
 
-	public UnresolvedType(UnresolvedTypeComponent[] components, ContentToken? size = null) : base(string.Empty, Modifier.DEFAULT)
+	public UnresolvedType(UnresolvedTypeComponent[] components, ParenthesisToken? size = null) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Components = components;
 		Size = size;

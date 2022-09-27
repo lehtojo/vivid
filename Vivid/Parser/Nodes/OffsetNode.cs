@@ -54,7 +54,7 @@ public class OffsetNode : Node, IResolvable
 	private Node? TryResolveAsIndexedGetter(Type type)
 	{
 		// Determine if this node represents a setter
-		if (Parent != null && Parent.Is(NodeType.OPERATOR) && Parent.To<OperatorNode>().Operator.Type == OperatorType.ACTION && Parent.First == this)
+		if (Parent != null && Parent.Is(NodeType.OPERATOR) && Parent.To<OperatorNode>().Operator.Type == OperatorType.ASSIGNMENT && Parent.First == this)
 		{
 			// Indexed accessor setter is handled elsewhere
 			return null;

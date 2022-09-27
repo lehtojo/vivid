@@ -12,9 +12,9 @@ public class WhenPattern : Pattern
 	public WhenPattern() : base
 	(
 		TokenType.KEYWORD,
-		TokenType.CONTENT,
+		TokenType.PARENTHESIS,
 		TokenType.END | TokenType.OPTIONAL,
-		TokenType.CONTENT
+		TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -39,7 +39,7 @@ public class WhenPattern : Pattern
 		var inspected_value = Singleton.Parse(environment, all[VALUE]);
 		var inspected_value_variable = environment.DeclareHidden(inspected_value.TryGetType());
 		
-		var tokens = all[BODY].To<ContentToken>().Tokens;
+		var tokens = all[BODY].To<ParenthesisToken>().Tokens;
 
 		Parser.RemoveLineEndingDuplications(tokens);
 		Parser.CreateFunctionTokens(tokens);
@@ -95,7 +95,7 @@ public class WhenPattern : Pattern
 
 			if (tokens.First().Is(ParenthesisType.CURLY_BRACKETS))
 			{
-				var parenthesis = tokens.Pop()!.To<ContentToken>();
+				var parenthesis = tokens.Pop()!.To<ParenthesisToken>();
 				body = Parser.Parse(context, parenthesis.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 			}
 			else

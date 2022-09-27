@@ -48,7 +48,7 @@ namespace Vivid.Unit
 				new OperatorToken(Operators.MODULUS),
 				new IdentifierToken("a"),
 				new OperatorToken(Operators.POWER),
-				new ContentToken
+				new ParenthesisToken
 				(
 					new IdentifierToken("number"),
 					new OperatorToken(Operators.DIVIDE),
@@ -89,17 +89,17 @@ namespace Vivid.Unit
 			(
 				new IdentifierToken("apple"),
 				new OperatorToken(Operators.ADD),
-				new ContentToken
+				new ParenthesisToken
 				(
 					new IdentifierToken("banana"),
 					new OperatorToken(Operators.MULTIPLY),
-					new ContentToken
+					new ParenthesisToken
 					(
 						new IdentifierToken("orange"),
 						new OperatorToken(Operators.SUBTRACT),
 						new IdentifierToken("dragonfruit"),
 						new OperatorToken(Operators.POWER),
-						new ContentToken
+						new ParenthesisToken
 						(
 							new NumberToken(5),
 							new OperatorToken(Operators.ADD),
@@ -107,7 +107,7 @@ namespace Vivid.Unit
 						)
 					),
 					new OperatorToken(Operators.SUBTRACT),
-					new ContentToken
+					new ParenthesisToken
 					(
 						new IdentifierToken("blueberry"),
 						new OperatorToken(Operators.DIVIDE),

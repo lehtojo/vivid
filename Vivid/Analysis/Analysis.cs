@@ -663,7 +663,7 @@ public static class Analysis
 			}
 		}
 
-		var precomputations = root.FindAll(i => i.Is(OperatorType.LOGIC));
+		var precomputations = root.FindAll(i => i.Is(OperatorType.LOGICAL));
 		precomputations.Reverse();
 
 		foreach (var condition in precomputations)

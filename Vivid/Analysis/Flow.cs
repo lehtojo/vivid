@@ -110,7 +110,7 @@ public class Flow
 
 	private void LinearizeLogicalOperator(OperatorNode operation, Label success, Label failure)
 	{
-		if (operation.Left is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
+		if (operation.Left is OperatorNode x && x.Operator.Type == OperatorType.LOGICAL)
 		{
 			var intermediate = new Label(GetNextLabel());
 
@@ -140,7 +140,7 @@ public class Flow
 			Add(new JumpNode(success, true));
 		}
 
-		if (operation.Right is OperatorNode y && y.Operator.Type == OperatorType.LOGIC)
+		if (operation.Right is OperatorNode y && y.Operator.Type == OperatorType.LOGICAL)
 		{
 			LinearizeLogicalOperator(y, success, failure);
 		}
@@ -172,7 +172,7 @@ public class Flow
 		// Add the condition back
 		parent.Add(condition);
 
-		if (condition.Is(OperatorType.LOGIC))
+		if (condition.Is(OperatorType.LOGICAL))
 		{
 			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
@@ -199,7 +199,7 @@ public class Flow
 		// Add the condition back
 		parent.Add(condition);
 
-		if (condition.Is(OperatorType.LOGIC))
+		if (condition.Is(OperatorType.LOGICAL))
 		{
 			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
@@ -224,7 +224,7 @@ public class Flow
 					throw new ApplicationException("Flow analysis encountered wild logical operator");
 				}
 
-				if (operation.Operator.Type == OperatorType.ACTION)
+				if (operation.Operator.Type == OperatorType.ASSIGNMENT)
 				{
 					// Action operators are processed the other way around
 					// node.Reverse().ForEach(i => Linearize(i));
@@ -557,7 +557,7 @@ public class StatementFlow
 
 	private void LinearizeLogicalOperator(OperatorNode operation, Label success, Label failure)
 	{
-		if (operation.Left is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
+		if (operation.Left is OperatorNode x && x.Operator.Type == OperatorType.LOGICAL)
 		{
 			var intermediate = new Label(GetNextLabel());
 
@@ -587,7 +587,7 @@ public class StatementFlow
 			Add(new JumpNode(success, true));
 		}
 
-		if (operation.Right is OperatorNode y && y.Operator.Type == OperatorType.LOGIC)
+		if (operation.Right is OperatorNode y && y.Operator.Type == OperatorType.LOGICAL)
 		{
 			LinearizeLogicalOperator(y, success, failure);
 		}
@@ -619,7 +619,7 @@ public class StatementFlow
 		// Add the condition back
 		parent.Add(condition);
 
-		if (condition.Is(OperatorType.LOGIC))
+		if (condition.Is(OperatorType.LOGICAL))
 		{
 			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);
@@ -646,7 +646,7 @@ public class StatementFlow
 		// Add the condition back
 		parent.Add(condition);
 
-		if (condition.Is(OperatorType.LOGIC))
+		if (condition.Is(OperatorType.LOGICAL))
 		{
 			var success = new Label(GetNextLabel());
 			LinearizeLogicalOperator(condition.To<OperatorNode>(), success, failure);

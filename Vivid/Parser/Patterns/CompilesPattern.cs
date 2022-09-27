@@ -12,7 +12,7 @@ public class CompilesPattern : Pattern
 	(
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL,
-		TokenType.CONTENT
+		TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -27,7 +27,7 @@ public class CompilesPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var conditions = Singleton.Parse(context, tokens[CONDITION].To<ContentToken>());
+		var conditions = Singleton.Parse(context, tokens[CONDITION].To<ParenthesisToken>());
 		var result = new CompilesNode(tokens[COMPILES].Position);
 
 		conditions.ForEach(i => result.Add(i));

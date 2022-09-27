@@ -22,7 +22,7 @@ public class IterationLoopPattern : Pattern
 		TokenType.KEYWORD,
 		TokenType.OBJECT,
 		TokenType.END | TokenType.OPTIONAL,
-		TokenType.CONTENT
+		TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -84,7 +84,7 @@ public class IterationLoopPattern : Pattern
 
 		var steps = new Node { new Node() { initialization }, new Node { condition }, new Node() };
 
-		var token = tokens[BODY].To<ContentToken>();
+		var token = tokens[BODY].To<ParenthesisToken>();
 		var body = new ScopeNode(body_context, token.Position, token.End, false) { load };
 
 		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(i => body.Add(i));

@@ -115,7 +115,7 @@ public static class Singleton
 	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked)
 	{
 		var descriptor = (FunctionToken)token.Clone();
-		var arguments = descriptor.GetParsedParameters(environment);
+		var arguments = descriptor.Parse(environment);
 
 		var types = Resolver.GetTypes(arguments);
 
@@ -186,7 +186,7 @@ public static class Singleton
 	/// </summary>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken descriptor, Type[] template_arguments, bool linked)
 	{
-		var parameters = descriptor.GetParsedParameters(environment);
+		var parameters = descriptor.Parse(environment);
 		var types = Resolver.GetTypes(parameters);
 
 		if (types == null || template_arguments.Any(i => i.IsUnresolved))
@@ -238,7 +238,7 @@ public static class Singleton
 	/// <summary>
 	/// Builds the specified content into a node
 	/// </summary>
-	public static Node GetContent(Context context, ContentToken content)
+	public static Node GetContent(Context context, ParenthesisToken content)
 	{
 		var node = new ContentNode(content.Position);
 
@@ -299,9 +299,9 @@ public static class Singleton
 				return GetNumber((NumberToken)token);
 			}
 
-			case TokenType.CONTENT:
+			case TokenType.PARENTHESIS:
 			{
-				return GetContent(primary, (ContentToken)token);
+				return GetContent(primary, (ParenthesisToken)token);
 			}
 
 			case TokenType.STRING:
@@ -324,7 +324,7 @@ public static class Singleton
 		{
 			TokenType.IDENTIFIER => new UnresolvedIdentifier(token.To<IdentifierToken>().Value, token.To<IdentifierToken>().Position),
 
-			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetArguments(token.To<FunctionToken>().GetParsedParameters(environment)),
+			TokenType.FUNCTION => new UnresolvedFunction(token.To<FunctionToken>().Name, token.To<FunctionToken>().Position).SetArguments(token.To<FunctionToken>().Parse(environment)),
 
 			_ => throw new Exception($"Could not create unresolved node"),
 		};

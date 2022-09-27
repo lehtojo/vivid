@@ -144,7 +144,7 @@ public static class ReconstructionAnalysis
 			return null;
 		}
 
-		var action_operator = Operators.GetActionOperator(operation.Operator);
+		var action_operator = Operators.GetAssignmentOperator(operation.Operator);
 
 		if (action_operator == null)
 		{
@@ -199,11 +199,11 @@ public static class ReconstructionAnalysis
 
 			case OperatorNode operation:
 			{
-				if (operation.Operator.Type != OperatorType.ACTION) return null;
+				if (operation.Operator.Type != OperatorType.ASSIGNMENT) return null;
 				if (operation.Operator == Operators.ASSIGN) return edit;
 
 				var destination = operation.Left.Clone();
-				var type = ((ActionOperator)operation.Operator).Operator;
+				var type = ((AssignmentOperator)operation.Operator).Operator;
 
 				if (type == null) return null;
 
@@ -258,7 +258,7 @@ public static class ReconstructionAnalysis
 			}
 
 			// Remove all parentheses, which block logical operators
-			if (root.First is OperatorNode x && x.Operator.Type == OperatorType.LOGIC)
+			if (root.First is OperatorNode x && x.Operator.Type == OperatorType.LOGICAL)
 			{
 				root.Replace(root.First!);
 			}
@@ -585,7 +585,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static List<OperatorNode> FindBoolValues(Node root)
 	{
-		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.Is(OperatorType.COMPARISON) || i.Is(OperatorType.LOGIC))).Cast<OperatorNode>();
+		var candidates = root.FindAll(i => i.Is(NodeType.OPERATOR) && (i.Is(OperatorType.COMPARISON) || i.Is(OperatorType.LOGICAL))).Cast<OperatorNode>();
 
 		return candidates.Where(candidate =>
 		{
@@ -597,7 +597,7 @@ public static class ReconstructionAnalysis
 
 			// Ensure the parent is not a comparison or a logical operator
 			var parent = root.Parent!;
-			return parent is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGIC;
+			return parent is not OperatorNode operation || operation.Operator.Type != OperatorType.LOGICAL;
 
 		}).ToList();
 	}
@@ -683,7 +683,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsAffector(Node node)
 	{
-		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN, NodeType.OBJECT_LINK, NodeType.OBJECT_UNLINK) || node.Is(OperatorType.ACTION);
+		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN, NodeType.OBJECT_LINK, NodeType.OBJECT_UNLINK) || node.Is(OperatorType.ASSIGNMENT);
 	}
 
 	/// <summary>
@@ -746,7 +746,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RewriteEditsAsAssignments(Node root)
 	{
-		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || i.Is(OperatorType.ACTION));
+		var edits = root.FindAll(i => i.Is(NodeType.INCREMENT, NodeType.DECREMENT) || i.Is(OperatorType.ASSIGNMENT));
 
 		foreach (var edit in edits)
 		{
@@ -786,7 +786,7 @@ public static class ReconstructionAnalysis
 
 			if (value == null) continue;
 
-			var action_operator = Operators.GetActionOperator(operation.Operator);
+			var action_operator = Operators.GetAssignmentOperator(operation.Operator);
 			if (action_operator == null) continue;
 
 			assignment.Replace(new OperatorNode(action_operator, assignment.Position).SetOperands(assignment.Left, value));
@@ -838,7 +838,7 @@ public static class ReconstructionAnalysis
 			// a(b(i)) and c(d(j))
 			// =>
 			// { x = b(i), a(x) } and { y = d(j), c(y) }
-			if (iterator.Is(OperatorType.LOGIC))
+			if (iterator.Is(OperatorType.LOGICAL))
 			{
 				var environment = expression.GetParentContext();
 				var context = new Context(environment);
@@ -919,7 +919,7 @@ public static class ReconstructionAnalysis
 			if (parent.Is(Operators.ASSIGN) && ReferenceEquals(parent.Right, node) && parent.Left.Is(NodeType.VARIABLE) && parent.Left.To<VariableNode>().Variable.IsPredictable) continue;
 
 			// Nothing can be done if the value is directly under a logical operator
-			if (parent.Is(OperatorType.LOGIC) || parent.Is(NodeType.CONSTRUCTION)) continue;
+			if (parent.Is(OperatorType.LOGICAL) || parent.Is(NodeType.CONSTRUCTION)) continue;
 
 			// Select the parent node, if the current node is a member function call
 			if (node.Is(NodeType.FUNCTION) && parent.Is(NodeType.LINK) && parent.Right == node) { node = parent; }

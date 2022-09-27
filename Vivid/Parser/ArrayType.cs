@@ -7,7 +7,7 @@ public class ArrayType : Number, IResolvable
 	public Node? Expression { get; private set; }
 	public long Count => (long)Expression!.To<NumberNode>().Value;
 
-	public ArrayType(Context context, Type element, ContentToken count, Position? position) : base(Parser.Format, Size.QWORD.Bits, true, element.ToString() + "[]")
+	public ArrayType(Context context, Type element, ParenthesisToken count, Position? position) : base(Parser.Format, Size.QWORD.Bits, true, element.ToString() + "[]")
 	{
 		Modifiers = Modifier.DEFAULT | Modifier.PRIMITIVE | Modifier.INLINE;
 		Element = element;

@@ -24,17 +24,17 @@ public class IfPattern : Pattern
 	{
 		if (tokens[IF].To<KeywordToken>().Keyword != Keywords.IF) return false;
 
-		Try(state, () => Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
+		Try(state, () => Consume(state, out Token? body, TokenType.PARENTHESIS) && body!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS);
 		return true;
 	}
 
 	public override Node Build(Context environment, PatternState state, List<Token> tokens)
 	{
 		var condition = Singleton.Parse(environment, tokens[CONDITION]);
-		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
+		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().Tokens : null;
 		
 		var start = tokens[IF].Position;
-		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().End : null;
 
 		var context = new Context(environment);
 

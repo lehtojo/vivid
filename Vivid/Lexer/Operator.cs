@@ -13,6 +13,11 @@ public class Operator
 		Priority = priority;
 	}
 
+	public T To<T>() where T : Operator
+	{
+		return (T)this;
+	}
+
 	public override bool Equals(object? other)
 	{
 		return other is Operator operation &&

@@ -2,7 +2,7 @@ public enum OperatorType
 {
 	CLASSIC,
 	COMPARISON,
-	LOGIC,
-	ACTION,
+	LOGICAL,
+	ASSIGNMENT,
 	INDEPENDENT
 }

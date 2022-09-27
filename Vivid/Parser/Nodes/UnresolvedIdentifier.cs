@@ -43,7 +43,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 		blueprint.Add(new FunctionToken
 		(
 			new IdentifierToken(function.Name, position),
-			new ContentToken(parameters.Select(i => (Token)new IdentifierToken(i.Name, position)).ToList()),
+			new ParenthesisToken(parameters.Select(i => (Token)new IdentifierToken(i.Name, position)).ToList()),
 			position
 		));
 

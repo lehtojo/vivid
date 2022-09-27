@@ -10,7 +10,7 @@ public class PackConstructionPattern : Pattern
 	public PackConstructionPattern() : base
 	(
 		TokenType.KEYWORD,
-		TokenType.CONTENT
+		TokenType.PARENTHESIS
 	) {}
 
 	public override int GetPriority(List<Token> tokens)
@@ -23,14 +23,14 @@ public class PackConstructionPattern : Pattern
 		// Ensure the keyword is 'pack'
 		if (!tokens.First().Is(Keywords.PACK)) return false;
 
-		if (tokens[CONTENT].To<ContentToken>().Type != ParenthesisType.CURLY_BRACKETS) return false;
+		if (tokens[CONTENT].To<ParenthesisToken>().Opening != ParenthesisType.CURLY_BRACKETS) return false;
 
 		// The pack must have members
-		if (tokens[CONTENT].To<ContentToken>().Tokens.Count == 0) return false;
+		if (tokens[CONTENT].To<ParenthesisToken>().Tokens.Count == 0) return false;
 
 		// Now, we must ensure this really is a pack construction.
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }
-		var sections = tokens[CONTENT].To<ContentToken>().GetSections();
+		var sections = tokens[CONTENT].To<ParenthesisToken>().GetSections();
 
 		foreach (var section in sections.Select(i => i.Where(j => j.Type != TokenType.END).ToArray()))
 		{
@@ -54,7 +54,7 @@ public class PackConstructionPattern : Pattern
 	{
 		// We know that this is a pack construction.
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }
-		var sections = tokens[CONTENT].To<ContentToken>().GetSections();
+		var sections = tokens[CONTENT].To<ParenthesisToken>().GetSections();
 
 		var members = new List<string>();
 		var arguments = new List<Node>();

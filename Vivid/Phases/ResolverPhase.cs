@@ -171,7 +171,7 @@ public class ResolverPhase : Phase
 			}
 
 			// Ensure assignments are used properly
-			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ACTION));
+			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ASSIGNMENT));
 
 			foreach (var iterator in nodes)
 			{
@@ -361,7 +361,7 @@ public class ResolverPhase : Phase
 			);
 
 			// Ensure assignments are used properly
-			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ACTION));
+			var nodes = implementation.Node.FindAll(i => i.Is(OperatorType.ASSIGNMENT));
 
 			foreach (var iterator in nodes)
 			{
@@ -637,7 +637,7 @@ public class ResolverPhase : Phase
 			// Application initialization function calls the entry function: init()
 			var initialization_function_blueprint = new List<Token>()
 			{
-				new FunctionToken(new IdentifierToken(Keywords.INIT.Identifier), new ContentToken())
+				new FunctionToken(new IdentifierToken(Keywords.INIT.Identifier), new ParenthesisToken())
 			};
 
 			// Create an application initialization function, which calls the entry function, so that the static member assignments can be executed

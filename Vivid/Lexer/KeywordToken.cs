@@ -6,9 +6,9 @@ public class KeywordToken : Token
 	public Keyword Keyword { get; set; }
 	public Position End => Position.Translate(Keyword.Identifier.Length);
 
-	public KeywordToken(string text) : base(TokenType.KEYWORD)
+	public KeywordToken(string keyword) : base(TokenType.KEYWORD)
 	{
-		Keyword = Keywords.Get(text);
+		Keyword = Keywords.Get(keyword);
 	}
 
 	public KeywordToken(Keyword keyword, Position position) : base(TokenType.KEYWORD)

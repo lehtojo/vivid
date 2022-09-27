@@ -10,7 +10,7 @@ public class TypePattern : Pattern
 	// Pattern: $name [\n] {...}
 	public TypePattern() : base
 	(
-		TokenType.IDENTIFIER, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.IDENTIFIER, TokenType.END | TokenType.OPTIONAL, TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -20,13 +20,13 @@ public class TypePattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[BODY].To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
+		return tokens[BODY].To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
-		var body = tokens[BODY].To<ContentToken>();
+		var body = tokens[BODY].To<ParenthesisToken>();
 
 		var type = new Type(context, name.Value, Modifier.DEFAULT, name.Position);
 

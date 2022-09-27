@@ -19,7 +19,7 @@ public static class Analyzer
 	{
 		var parent = node.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Node did not have a valid parent");
 
-		if (parent.Is(OperatorType.ACTION))
+		if (parent.Is(OperatorType.ASSIGNMENT))
 		{
 			return parent.Left == node || node.IsUnder(parent.Left);
 		}
@@ -35,7 +35,7 @@ public static class Analyzer
 		var parent = node.FindParent(i => !i.Is(NodeType.CAST));
 		if (parent == null) return AccessType.UNKNOWN;
 
-		if (parent.Is(OperatorType.ACTION))
+		if (parent.Is(OperatorType.ASSIGNMENT))
 		{
 			if (parent.Left == node || node.IsUnder(parent.Left)) return AccessType.WRITE;
 			return AccessType.READ;
@@ -59,7 +59,7 @@ public static class Analyzer
 	public static Node GetEditor(Node edited)
 	{
 		var editor = edited.FindParent(i => !i.Is(NodeType.CAST)) ?? throw new ApplicationException("Could not find the editor node");
-		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : throw new ApplicationException("Could not find the editor node");
+		return (editor.Is(OperatorType.ASSIGNMENT) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : throw new ApplicationException("Could not find the editor node");
 	}
 
 	/// <summary>
@@ -75,7 +75,7 @@ public static class Analyzer
 			return null;
 		}
 
-		return (editor.Is(OperatorType.ACTION) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : null;
+		return (editor.Is(OperatorType.ASSIGNMENT) || editor.Is(NodeType.INCREMENT, NodeType.DECREMENT)) ? editor : null;
 	}
 
 	/// <summary>

@@ -15,11 +15,11 @@ public class LinkPattern : Pattern
 	// Pattern: ... [\n] . [\n] ...
 	public LinkPattern() : base
 	(
-		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.CONTENT | TokenType.DYNAMIC,
+		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.PARENTHESIS | TokenType.DYNAMIC,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
-		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.CONTENT
+		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -57,10 +57,10 @@ public class LinkPattern : Pattern
 		var left = Singleton.Parse(environment, tokens[LEFT]);
 
 		// If the right operand is a content token, this is a cast expression
-		if (tokens[RIGHT].Is(TokenType.CONTENT))
+		if (tokens[RIGHT].Is(TokenType.PARENTHESIS))
 		{
 			// Read the cast type from the content token
-			var type = Common.ReadType(environment, new Queue<Token>(tokens[RIGHT].To<ContentToken>().Tokens));
+			var type = Common.ReadType(environment, new Queue<Token>(tokens[RIGHT].To<ParenthesisToken>().Tokens));
 			if (type == null) throw Errors.Get(tokens[RIGHT].Position, "Can not understand the cast");
 
 			return new CastNode(left, new TypeNode(type, tokens[RIGHT].Position), tokens[OPERATOR].Position);
@@ -78,9 +78,9 @@ public class LinkPattern : Pattern
 			if (template_arguments.Any())
 			{
 				var name = tokens[RIGHT].To<IdentifierToken>();
-				var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
+				var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>()) { Position = name.Position };
 
-				right = new UnresolvedFunction(name.Value, template_arguments, name.Position).SetArguments(descriptor.GetParsedParameters(environment));
+				right = new UnresolvedFunction(name.Value, template_arguments, name.Position).SetArguments(descriptor.Parse(environment));
 			}
 			else
 			{
@@ -94,7 +94,7 @@ public class LinkPattern : Pattern
 		if (template_arguments.Any())
 		{
 			var name = tokens[RIGHT].To<IdentifierToken>();
-			var descriptor = new FunctionToken(name, tokens.Last().To<ContentToken>()) { Position = name.Position };
+			var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>()) { Position = name.Position };
 
 			right = Singleton.GetFunction(environment, primary, descriptor, template_arguments, true);
 		}

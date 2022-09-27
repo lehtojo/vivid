@@ -67,7 +67,7 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetVirtualFunctionCall(Context environment, Node self, Type self_type, FunctionToken descriptor)
 	{
-		var parameters = descriptor.GetParsedParameters(environment);
+		var parameters = descriptor.Parse(environment);
 		var parameter_types = parameters.Select(i => i.TryGetType()).ToList();
 
 		return TryGetVirtualFunctionCall(self, self_type, descriptor.Name, parameters, parameter_types!, descriptor.Position);
@@ -126,7 +126,7 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetLambdaCall(Context environment, Context primary, Node left, FunctionToken descriptor)
 	{
-		var parameters = descriptor.GetParsedParameters(environment);
+		var parameters = descriptor.Parse(environment);
 		var parameter_types = parameters.Select(i => i.TryGetType()).ToList();
 
 		return TryGetLambdaCall(primary, left, descriptor.Name, parameters, parameter_types);
@@ -173,7 +173,7 @@ public static class Common
 	/// </summary>
 	public static CallNode? TryGetLambdaCall(Context environment, FunctionToken descriptor)
 	{
-		var parameters = descriptor.GetParsedParameters(environment);
+		var parameters = descriptor.Parse(environment);
 		var parameter_types = parameters.Select(i => i.TryGetType()).ToList();
 
 		return TryGetLambdaCall(environment, descriptor.Name, parameters, parameter_types);
@@ -210,7 +210,7 @@ public static class Common
 	public static bool ConsumeFunctionType(PatternState state)
 	{
 		// Consume a normal parenthesis token
-		if (!Pattern.Consume(state, out Token? parameters, TokenType.CONTENT) || !parameters!.Is(ParenthesisType.PARENTHESIS)) return false;
+		if (!Pattern.Consume(state, out Token? parameters, TokenType.PARENTHESIS) || !parameters!.Is(ParenthesisType.PARENTHESIS)) return false;
 
 		// Consume an arrow operator
 		if (!Pattern.Consume(state, out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW)) return false;
@@ -226,11 +226,11 @@ public static class Common
 	public static bool ConsumePackType(PatternState state)
 	{
 		// Consume curly brackets
-		if (!Pattern.Consume(state, out Token? brackets, TokenType.CONTENT) || !brackets!.Is(ParenthesisType.CURLY_BRACKETS)) return false;
+		if (!Pattern.Consume(state, out Token? brackets, TokenType.PARENTHESIS) || !brackets!.Is(ParenthesisType.CURLY_BRACKETS)) return false;
 
 		// Verify the curly brackets contain pack members using sections
 		// Pattern: { $member-1: $type, $member-2: $type, ... }
-		var sections = brackets!.To<ContentToken>().GetSections();
+		var sections = brackets!.To<ParenthesisToken>().GetSections();
 		if (sections.Count == 0) return false;
 
 		foreach (var section in sections)
@@ -328,7 +328,7 @@ public static class Common
 		}
 
 		// Now there must be function parameters next
-		return Pattern.Consume(state, out Token? parameters, TokenType.CONTENT) && parameters!.To<ContentToken>().Type == ParenthesisType.PARENTHESIS;
+		return Pattern.Consume(state, out Token? parameters, TokenType.PARENTHESIS) && parameters!.To<ParenthesisToken>().Opening == ParenthesisType.PARENTHESIS;
 	}
 
 	/// <summary>
@@ -338,7 +338,7 @@ public static class Common
 	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens, Position? position)
 	{
 		// Dequeue the parameter types
-		var parameters = tokens.Dequeue().To<ContentToken>();
+		var parameters = tokens.Dequeue().To<ParenthesisToken>();
 
 		// Dequeue the arrow operator
 		if (!tokens.TryDequeue(out _)) return null;
@@ -378,7 +378,7 @@ public static class Common
 	private static Type? ReadPackType(Context context, Queue<Token> tokens, Position? position)
 	{
 		var pack = context.DeclareHiddenPack(position);
-		var sections = tokens.Dequeue().To<ContentToken>().GetSections();
+		var sections = tokens.Dequeue().To<ParenthesisToken>().GetSections();
 
 		// We are not going to feed the sections straight to the parser while using the pack type as context, because it would allow defining whole member functions
 		foreach (var section in sections)
@@ -423,7 +423,7 @@ public static class Common
 
 		var next = tokens.Peek();
 
-		if (next.Is(TokenType.CONTENT))
+		if (next.Is(TokenType.PARENTHESIS))
 		{
 			if (next.Is(ParenthesisType.PARENTHESIS)) return ReadFunctionType(context, tokens, next.Position);
 			if (next.Is(ParenthesisType.CURLY_BRACKETS)) return ReadPackType(context, tokens, next.Position);
@@ -461,7 +461,7 @@ public static class Common
 		{
 			tokens.Dequeue();
 
-			type.Size = next.To<ContentToken>();
+			type.Size = next.To<ParenthesisToken>();
 			return type.ResolveOrThis(context);
 		}
 
@@ -684,7 +684,7 @@ public static class Common
 	/// </summary>
 	public static bool ConsumeBody(PatternState state)
 	{
-		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.CONTENT) && body!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS);
+		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.PARENTHESIS) && body!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS);
 	}
 
 	/// <summary>
@@ -935,7 +935,7 @@ public static class Common
 			var next = iterator.Parent;
 			if (next == null) break;
 
-			if (next.Is(NodeType.OPERATOR) && !next.Is(OperatorType.ACTION)) { iterator = next; }
+			if (next.Is(NodeType.OPERATOR) && !next.Is(OperatorType.ASSIGNMENT)) { iterator = next; }
 			else if (next.Is(NodeType.CONTENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.PACK)) { iterator = next; }
 			else { break; }
 		}
@@ -1144,7 +1144,7 @@ public static class Common
 			}).ToArray();
 
 			// Now, join the token arrays with commas and put them inside curly brackets: { $member-1: $type-1, $member-2: $type-2, ... }
-			result.Add(new ContentToken(ParenthesisType.CURLY_BRACKETS, Join(new OperatorToken(Operators.COMMA, position), members), position));
+			result.Add(new ParenthesisToken(ParenthesisType.CURLY_BRACKETS, Join(new OperatorToken(Operators.COMMA, position), members), position));
 
 			return result.ToArray();
 		}
@@ -1154,7 +1154,7 @@ public static class Common
 			var parameters = function.Parameters.Select(i => GetTokens(i!, position)).ToArray();
 			var separator = new OperatorToken(Operators.COMMA) { Position = position };
 
-			result.Add(new ContentToken(ParenthesisType.PARENTHESIS, Join(separator, parameters)) { Position = position });
+			result.Add(new ParenthesisToken(ParenthesisType.PARENTHESIS, Join(separator, parameters)) { Position = position });
 			result.Add(new OperatorToken(Operators.ARROW) { Position = position });
 			result.AddRange(GetTokens(function.ReturnType!, position));
 
@@ -1164,7 +1164,7 @@ public static class Common
 		if (type is ArrayType array)
 		{
 			result.AddRange(GetTokens(array.Element, position));
-			result.Add(new ContentToken(ParenthesisType.BRACKETS, new NumberToken(array.Count)));
+			result.Add(new ParenthesisToken(ParenthesisType.BRACKETS, new NumberToken(array.Count)));
 			return result.ToArray();
 		}
 
@@ -1230,7 +1230,7 @@ public static class Common
 	{
 		return token.Type switch
 		{
-			TokenType.CONTENT => token.To<ContentToken>().End ?? token.Position.Translate(1),
+			TokenType.PARENTHESIS => token.To<ParenthesisToken>().End ?? token.Position.Translate(1),
 			TokenType.FUNCTION => token.To<FunctionToken>().Identifier.End,
 			TokenType.IDENTIFIER => token.To<IdentifierToken>().End,
 			TokenType.KEYWORD => token.To<KeywordToken>().End,

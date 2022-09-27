@@ -37,7 +37,7 @@ public static class ParserExtensions
 
 	public static bool Is(this Token token, ParenthesisType type)
 	{
-		return token.Type == TokenType.CONTENT && token.To<ContentToken>().Type == type;
+		return token.Type == TokenType.PARENTHESIS && token.To<ParenthesisToken>().Opening == type;
 	}
 
 	public static bool Is(this Token token, Operator operation)

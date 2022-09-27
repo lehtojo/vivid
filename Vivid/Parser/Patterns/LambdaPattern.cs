@@ -15,7 +15,7 @@ public class LambdaPattern : Pattern
 	// Pattern 3: ($1, $2, ..., $n) -> [\n] {...}
 	public LambdaPattern() : base
 	(
-		 TokenType.CONTENT | TokenType.IDENTIFIER,
+		 TokenType.PARENTHESIS | TokenType.IDENTIFIER,
 		 TokenType.OPERATOR,
 		 TokenType.END | TokenType.OPTIONAL
 	) { }
@@ -51,7 +51,7 @@ public class LambdaPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		if ((tokens[PARAMETERS].Is(TokenType.CONTENT) && !tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS)) || !tokens[OPERATOR].Is(Operators.ARROW))
+		if ((tokens[PARAMETERS].Is(TokenType.PARENTHESIS) && !tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS)) || !tokens[OPERATOR].Is(Operators.ARROW))
 		{
 			return false;
 		}
@@ -59,16 +59,16 @@ public class LambdaPattern : Pattern
 		return TryConsumeBody(context, state);
 	}
 
-	private static ContentToken GetParameterTokens(List<Token> tokens)
+	private static ParenthesisToken GetParameterTokens(List<Token> tokens)
 	{
-		return tokens[PARAMETERS].Type == TokenType.CONTENT
-			? tokens[PARAMETERS].To<ContentToken>()
-			: new ContentToken(tokens[PARAMETERS]);
+		return tokens[PARAMETERS].Type == TokenType.PARENTHESIS
+			? tokens[PARAMETERS].To<ParenthesisToken>()
+			: new ParenthesisToken(tokens[PARAMETERS]);
 	}
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var blueprint = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().Tokens : tokens.Skip(BODY).ToList();
+		var blueprint = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ParenthesisToken>().Tokens : tokens.Skip(BODY).ToList();
 
 		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
 		{
@@ -76,7 +76,7 @@ public class LambdaPattern : Pattern
 		}
 
 		var start = tokens[PARAMETERS].Position;
-		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ContentToken>().End : null;
+		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ParenthesisToken>().End : null;
 
 		var environment = context.GetImplementationParent() ?? throw Errors.Get(start, "Lambda must be inside a function");
 		var name = environment.CreateLambda().ToString();

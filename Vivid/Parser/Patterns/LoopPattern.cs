@@ -20,7 +20,7 @@ public class LoopPattern : Pattern
 	// Pattern: loop [(...)] [\n] {...}
 	public LoopPattern() : base
 	(
-		TokenType.KEYWORD, TokenType.CONTENT | TokenType.OPTIONAL, TokenType.END | TokenType.OPTIONAL, TokenType.CONTENT
+		TokenType.KEYWORD, TokenType.PARENTHESIS | TokenType.OPTIONAL, TokenType.END | TokenType.OPTIONAL, TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -33,7 +33,7 @@ public class LoopPattern : Pattern
 		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP && tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	private static Node? GetSteps(Context context, ContentToken content)
+	private static Node? GetSteps(Context context, ParenthesisToken content)
 	{
 		if (content.IsEmpty)
 		{
@@ -89,10 +89,10 @@ public class LoopPattern : Pattern
 
 		if (steps_token.Type != TokenType.NONE)
 		{
-			steps = GetSteps(steps_context, steps_token.To<ContentToken>());
+			steps = GetSteps(steps_context, steps_token.To<ParenthesisToken>());
 		}
 
-		var token = tokens[BODY].To<ContentToken>();
+		var token = tokens[BODY].To<ParenthesisToken>();
 		var body = new ScopeNode(body_context, token.Position, token.End, false);
 
 		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));

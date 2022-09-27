@@ -34,7 +34,7 @@ public static class DiagnosticsProvider
 				break;
 			}
 
-			if (token.Type == TokenType.CONTENT) MapDiagnosticRanges(token.To<ContentToken>().Tokens, diagnostics);
+			if (token.Type == TokenType.PARENTHESIS) MapDiagnosticRanges(token.To<ParenthesisToken>().Tokens, diagnostics);
 			if (token.Type == TokenType.FUNCTION) MapDiagnosticRanges(token.To<FunctionToken>().Parameters.Tokens, diagnostics);
 		}
 	}

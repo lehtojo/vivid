@@ -124,7 +124,7 @@ public static class CompletionProvider
 			var parenthesis = CursorInformationProvider.FindCursorParenthesis(tokens, request.Absolute);
 			if (parenthesis == null) return string.Empty;
 
-			container = parenthesis.Token.To<ContentToken>().Tokens;
+			container = parenthesis.Token.To<ParenthesisToken>().Tokens;
 			index = 0;
 			position = parenthesis.Token.Position.Clone().NextCharacter();
 		}

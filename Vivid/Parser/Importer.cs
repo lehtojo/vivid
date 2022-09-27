@@ -987,7 +987,7 @@ public static class Importer
 				
 				// Extract the parameter types
 				var parameter_types = new List<Type>();
-				tokens = new Queue<Token>(tokens.First().To<ContentToken>().Tokens);
+				tokens = new Queue<Token>(tokens.First().To<ParenthesisToken>().Tokens);
 
 				while (tokens.Count > 0)
 				{

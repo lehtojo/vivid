@@ -40,7 +40,7 @@ public static class GeneralAnalysis
 		var nodes = new List<Node>();
 		var iterator = (IEnumerable<Node>)root;
 
-		if (root.Is(OperatorType.ACTION))
+		if (root.Is(OperatorType.ASSIGNMENT))
 		{
 			iterator = iterator.Reverse();
 		}
@@ -329,7 +329,7 @@ public static class GeneralAnalysis
 		// 1. True if the node is simple and does not represent assignment
 		// 2. True if the node represent a free cast
 		return assignment.Find(i => {
-			if (!(i.Is(NodeType.VARIABLE, NodeType.NUMBER, NodeType.DATA_POINTER, NodeType.TYPE, NodeType.OPERATOR, NodeType.STACK_ADDRESS) && !i.Is(OperatorType.ACTION)) &&
+			if (!(i.Is(NodeType.VARIABLE, NodeType.NUMBER, NodeType.DATA_POINTER, NodeType.TYPE, NodeType.OPERATOR, NodeType.STACK_ADDRESS) && !i.Is(OperatorType.ASSIGNMENT)) &&
 				 !(i.Is(NodeType.CAST) && i.To<CastNode>().IsFree()))
 			{
 				return true;
@@ -351,7 +351,7 @@ public static class GeneralAnalysis
 		{
 			for (var iterator = assignment.Parent; iterator != null; iterator = iterator.Parent)
 			{
-				if (iterator.Is(NodeType.OPERATOR) && !iterator.Is(OperatorType.LOGIC)) throw new ApplicationException("Found a nested assignment while optimizing");
+				if (iterator.Is(NodeType.OPERATOR) && !iterator.Is(OperatorType.LOGICAL)) throw new ApplicationException("Found a nested assignment while optimizing");
 			}
 		}
 	}

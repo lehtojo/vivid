@@ -33,7 +33,7 @@ public class TemplateType : Type
 	public TemplateType(Context context, string name, int modifiers, int argument_count) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE)
 	{
 		// Create an empty type with the specified name using tokens
-		Blueprint = new List<Token> { new IdentifierToken(name), new ContentToken() { Type = ParenthesisType.CURLY_BRACKETS } };
+		Blueprint = new List<Token> { new IdentifierToken(name), new ParenthesisToken() { Opening = ParenthesisType.CURLY_BRACKETS } };
 		TemplateParameters = new List<string>();
 
 		// Generate the template arguments
@@ -77,9 +77,9 @@ public class TemplateType : Type
 			{
 				InsertArguments(tokens[i].To<FunctionToken>().Parameters.Tokens, arguments);
 			}
-			else if (tokens[i].Type == TokenType.CONTENT)
+			else if (tokens[i].Type == TokenType.PARENTHESIS)
 			{
-				InsertArguments(tokens[i].To<ContentToken>().Tokens, arguments);
+				InsertArguments(tokens[i].To<ParenthesisToken>().Tokens, arguments);
 			}
 		}
 	}

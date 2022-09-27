@@ -44,9 +44,9 @@ public static class CursorInformationProvider
 {
 	public static DocumentToken?[]? GetCursorSurroundings(Token token, int absolute)
 	{
-		if (token.Type == TokenType.CONTENT)
+		if (token.Type == TokenType.PARENTHESIS)
 		{
-			return GetCursorSurroundings(token.To<ContentToken>().Tokens, token.Position.Absolute, absolute, token.To<ContentToken>().End!.Absolute);
+			return GetCursorSurroundings(token.To<ParenthesisToken>().Tokens, token.Position.Absolute, absolute, token.To<ParenthesisToken>().End!.Absolute);
 		}
 
 		return null;
@@ -128,12 +128,12 @@ public static class CursorInformationProvider
 		{
 			var token = tokens[i];
 
-			if (!token.Is(TokenType.CONTENT)) continue;
+			if (!token.Is(TokenType.PARENTHESIS)) continue;
 
-			var result = FindCursorParenthesis(token.To<ContentToken>().Tokens, absolute);
+			var result = FindCursorParenthesis(token.To<ParenthesisToken>().Tokens, absolute);
 			if (result != null) return result;
 
-			var end = token.To<ContentToken>().End;
+			var end = token.To<ParenthesisToken>().End;
 
 			if (token.Is(ParenthesisType.PARENTHESIS) && end != null && IsBetween(token.Position, absolute, end))
 			{
@@ -151,9 +151,9 @@ public static class CursorInformationProvider
 	{
 		foreach (var token in tokens)
 		{
-			if (token.Type == TokenType.CONTENT)
+			if (token.Type == TokenType.PARENTHESIS)
 			{
-				var cursor = FindUnmarkedCursorToken(token.To<ContentToken>().Tokens, absolute);
+				var cursor = FindUnmarkedCursorToken(token.To<ParenthesisToken>().Tokens, absolute);
 				if (cursor != null) return cursor;
 			}
 
@@ -173,9 +173,9 @@ public static class CursorInformationProvider
 		foreach (var token in tokens)
 		{
 			if (token.Position.IsCursor) return token;
-			if (token.Type != TokenType.CONTENT) continue;
+			if (token.Type != TokenType.PARENTHESIS) continue;
 
-			var cursor = FindMarkedCursorToken(token.To<ContentToken>().Tokens);
+			var cursor = FindMarkedCursorToken(token.To<ParenthesisToken>().Tokens);
 			if (cursor != null) return cursor;
 		}
 
@@ -190,9 +190,9 @@ public static class CursorInformationProvider
 		foreach (var token in tokens)
 		{
 			if (token.Position.IsCursor) { token.Position.IsCursor = false; }
-			if (token.Type != TokenType.CONTENT) continue;
+			if (token.Type != TokenType.PARENTHESIS) continue;
 
-			UnmarkCursors(token.To<ContentToken>().Tokens);
+			UnmarkCursors(token.To<ParenthesisToken>().Tokens);
 		}
 
 		return null;
@@ -327,6 +327,6 @@ public static class CursorInformationProvider
 		if (!ReferenceEquals(tokens.Last(), parentheses[1])) return null;
 
 		// Return the function body tokens
-		return tokens.Last().To<ContentToken>().Tokens;
+		return tokens.Last().To<ParenthesisToken>().Tokens;
 	}
 }

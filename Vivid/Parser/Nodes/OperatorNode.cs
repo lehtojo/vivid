@@ -52,8 +52,8 @@ public class OperatorNode : Node, IResolvable
 		{
 			OperatorType.CLASSIC => GetClassicType(),
 			OperatorType.COMPARISON => Primitives.CreateBool(),
-			OperatorType.ACTION => GetActionType(),
-			OperatorType.LOGIC => Primitives.CreateBool(),
+			OperatorType.ASSIGNMENT => GetActionType(),
+			OperatorType.LOGICAL => Primitives.CreateBool(),
 			_ => throw new Exception("Independent operator should not be processed here")
 		};
 	}
@@ -106,7 +106,7 @@ public class OperatorNode : Node, IResolvable
 		Resolver.Resolve(context, Right);
 
 		// Check if the left node represents an indexed accessor and if it is being assigned a value
-		if (Operator.Type == OperatorType.ACTION && Left.Is(NodeType.OFFSET))
+		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.OFFSET))
 		{
 			var result = TryResolveAsIndexedSetter();
 
@@ -182,10 +182,10 @@ public class OperatorNode : Node, IResolvable
 
 		return Operator.Type switch
 		{
-			OperatorType.ACTION => GetActionStatus(left, right),
+			OperatorType.ASSIGNMENT => GetActionStatus(left, right),
 			OperatorType.CLASSIC => GetClassicStatus(left, right),
 			OperatorType.COMPARISON => GetClassicStatus(left, right),
-			OperatorType.LOGIC => GetLogicStatus(left, right),
+			OperatorType.LOGICAL => GetLogicStatus(left, right),
 			_ => Status.OK
 		};
 	}

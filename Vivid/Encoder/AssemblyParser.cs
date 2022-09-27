@@ -408,7 +408,7 @@ public class AssemblyParser
 			if (bytes > 0)
 			{
 				// Ensure the next token represents a memory address
-				if (++i >= all.Count || all[i].Type != TokenType.CONTENT) throw Errors.Get(parameter.Position, "Expected a memory address after this size specifier");
+				if (++i >= all.Count || all[i].Type != TokenType.PARENTHESIS) throw Errors.Get(parameter.Position, "Expected a memory address after this size specifier");
 
 				var memory_address = ParseInstructionParameter(all, i);
 				memory_address.Format = Size.FromBytes(bytes).ToFormat();
@@ -426,9 +426,9 @@ public class AssemblyParser
 			return new ConstantHandle(number.Value, number.Format);
 		}
 
-		if (parameter.Type == TokenType.CONTENT)
+		if (parameter.Type == TokenType.PARENTHESIS)
 		{
-			var tokens = parameter.To<ContentToken>().Tokens;
+			var tokens = parameter.To<ParenthesisToken>().Tokens;
 
 			if (tokens.Count == 1)
 			{

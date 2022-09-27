@@ -36,7 +36,7 @@ class FunctionPattern : Pattern
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
-		var blueprint = tokens.Last().To<ContentToken>();
+		var blueprint = tokens.Last().To<ParenthesisToken>();
 		var return_type = (Type?)null;
 
 		// Process the return type if such was consumed

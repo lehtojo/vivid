@@ -53,7 +53,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 		{
 			function = new TemplateFunction(Destination, Modifier.DEFAULT, Descriptor.Name, TemplateParameters, Descriptor.Parameters.Tokens, Start, End);
 			function.To<TemplateFunction>().Initialize();
-			function.Blueprint.AddRange(new[] { Descriptor, (Token)new ContentToken(Body) { Type = ParenthesisType.CURLY_BRACKETS } });
+			function.Blueprint.AddRange(new[] { Descriptor, (Token)new ParenthesisToken(Body) { Opening = ParenthesisType.CURLY_BRACKETS } });
 		}
 		else
 		{

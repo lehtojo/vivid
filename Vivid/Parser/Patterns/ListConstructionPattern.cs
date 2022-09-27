@@ -10,7 +10,7 @@ public class ListConstructionPattern : Pattern
 
 	public ListConstructionPattern() : base
 	(
-		TokenType.CONTENT
+		TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -20,7 +20,7 @@ public class ListConstructionPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[LIST].To<ContentToken>().Type == ParenthesisType.BRACKETS;
+		return tokens[LIST].To<ParenthesisToken>().Opening == ParenthesisType.BRACKETS;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)

@@ -14,15 +14,7 @@ public class ComparisonOperator : Operator
 
 	public override bool Equals(object? other)
 	{
-		if (other is ComparisonOperator operation)
-		{
-			var a = Counterpart?.Identifier;
-			var b = operation.Counterpart?.Identifier;
-
-			return base.Equals(other) && a == b;
-		}
-
-		return false;
+		return ReferenceEquals(this, other);
 	}
 
 	public override int GetHashCode()

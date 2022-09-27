@@ -13,8 +13,8 @@ public class DataEncoderTests
 		Instructions.X64.Initialize();
 		Keywords.Definitions.Clear();
 		Operators.Initialize();
-		Operators.Definitions.Remove(Operators.AND.Identifier);
-		Operators.Definitions.Remove(Operators.OR.Identifier);
+		Operators.All.Remove(Operators.AND.Identifier);
+		Operators.All.Remove(Operators.OR.Identifier);
 
 		// Support custom working folder for testing
 		if (Environment.GetEnvironmentVariable("UNIT_TEST_FOLDER") != null)

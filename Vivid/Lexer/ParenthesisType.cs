@@ -30,11 +30,6 @@ public class ParenthesisType
 		return Map[opening];
 	}
 
-	public static bool Has(char opening)
-	{
-		return Map.ContainsKey(opening);
-	}
-
 	public override bool Equals(object? other)
 	{
 		return other is ParenthesisType type &&

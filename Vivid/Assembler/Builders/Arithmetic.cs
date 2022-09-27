@@ -81,7 +81,7 @@ public static class Arithmetic
 		{
 			return BuildAtomicExchangeAdd(unit, node);
 		}
-		if (operation.Type == OperatorType.COMPARISON || operation.Type == OperatorType.LOGIC)
+		if (operation.Type == OperatorType.COMPARISON || operation.Type == OperatorType.LOGICAL)
 		{
 			throw new InvalidOperationException("Found a boolean value which should have been already outlined");
 		}

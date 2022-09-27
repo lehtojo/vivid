@@ -239,7 +239,7 @@ public static class Conditionals
 			var operation = condition.To<OperatorNode>();
 			var type = operation.Operator.Type;
 
-			if (type == OperatorType.LOGIC)
+			if (type == OperatorType.LOGICAL)
 			{
 				return BuildLogicalCondition(unit, operation, success, failure);
 			}
@@ -381,7 +381,7 @@ public static class Conditionals
 		// NOTE: There can not be increments and decrements operations since they can not be processed in the back end
 
 		// Since there will not be function calls, the only meaningful nodes currently are edits
-		var a = statement.Body.FindAll(i => i.Is(OperatorType.ACTION));
+		var a = statement.Body.FindAll(i => i.Is(OperatorType.ASSIGNMENT));
 
 		// If the specified node contains memory edits, branchless execution should not be built
 		if (a.Any(i => !IsValidBranchlessExecutionEdit(i)))
@@ -402,7 +402,7 @@ public static class Conditionals
 
 		if (statement.Successor != null)
 		{
-			var b = statement.Successor.To<ElseNode>().Body.FindAll(i => i.Is(OperatorType.ACTION));
+			var b = statement.Successor.To<ElseNode>().Body.FindAll(i => i.Is(OperatorType.ASSIGNMENT));
 
 			// If the specified node contains memory edits, branchless execution should not be built
 			if (b.Any(i => !IsValidBranchlessExecutionEdit(i)))

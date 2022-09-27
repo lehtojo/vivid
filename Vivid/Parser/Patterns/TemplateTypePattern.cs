@@ -60,13 +60,13 @@ public class TemplateTypePattern : Pattern
 		// Optionally consume a line-ending
 		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
-		return Consume(state, out Token? parenthesis, TokenType.CONTENT) && parenthesis!.To<ContentToken>().Type == ParenthesisType.CURLY_BRACKETS;
+		return Consume(state, out Token? parenthesis, TokenType.PARENTHESIS) && parenthesis!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
-		var body = tokens.Last().To<ContentToken>();
+		var body = tokens.Last().To<ParenthesisToken>();
 
 		var template_parameter_tokens = tokens.GetRange(TEMPLATE_PARAMETERS_START, tokens.Count - TEMPLATE_PARAMETERS_END - TEMPLATE_PARAMETERS_START);
 		var template_parameters = Common.GetTemplateParameters(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS].Position);

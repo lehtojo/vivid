@@ -510,11 +510,11 @@ public static class Parser
 			{
 				var next = tokens[i + 1];
 
-				if (next.Type == TokenType.CONTENT)
+				if (next.Type == TokenType.PARENTHESIS)
 				{
-					var parameters = (ContentToken)next;
+					var parameters = (ParenthesisToken)next;
 
-					if (Equals(parameters.Type, ParenthesisType.PARENTHESIS))
+					if (Equals(parameters.Opening, ParenthesisType.PARENTHESIS))
 					{
 						var name = (IdentifierToken)current;
 						var function = new FunctionToken(name, parameters)

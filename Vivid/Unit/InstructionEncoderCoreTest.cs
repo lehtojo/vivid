@@ -294,8 +294,8 @@ public class InstructionEncoderCoreTest
 		Instructions.X64.Initialize();
 		Keywords.Definitions.Clear();
 		Operators.Initialize();
-		Operators.Definitions.Remove(Operators.AND.Identifier);
-		Operators.Definitions.Remove(Operators.OR.Identifier);
+		Operators.All.Remove(Operators.AND.Identifier);
+		Operators.All.Remove(Operators.OR.Identifier);
 
 		// Now parse the generated assembly and then encode it
 		var parser = new AssemblyParser();

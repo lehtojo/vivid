@@ -355,7 +355,7 @@ public static class Loops
 			var operation = condition.To<OperatorNode>();
 			var type = operation.Operator.Type;
 
-			if (type == OperatorType.LOGIC)
+			if (type == OperatorType.LOGICAL)
 			{
 				return BuildLogicalCondition(unit, operation, success, failure);
 			}

@@ -17,28 +17,26 @@ public class LexerException : Exception
 	}
 }
 
-public enum AreaType
+public enum TextType
 {
 	UNSPECIFIED,
 	TEXT,
-	COMMENT,
 	NUMBER,
-	CONTENT,
+	PARENTHESIS,
 	OPERATOR,
+	COMMENT,
 	STRING,
 	CHARACTER,
 	HEXADECIMAL,
 	END
 }
 
-public class Area
+public class TextArea
 {
-	public AreaType Type { get; set; }
-
-	public string Text { get; set; } = string.Empty;
-
 	public Position Start { get; set; } = new Position();
 	public Position End { get; set; } = new Position();
+	public TextType Type { get; set; }
+	public string Text { get; set; } = string.Empty;
 }
 
 public static class Lexer
@@ -61,9 +59,8 @@ public static class Lexer
 	public const char UNSIGNED_TYPE_SEPARATOR = 'u';
 
 	/// <summary>
-	/// Returns whether the character is a operator
+	/// Returns whether the specified character is an operator
 	/// </summary>
-	/// <returns>True if the character is a operator, otherwise false</returns>
 	private static bool IsOperator(char i)
 	{
 		return (i >= '*' && i <= '/') || (i >= ':' && i <= '?') || i == '&' || i == '%' || i == '!' || i == '^' || i == '|' || i == '¤';
@@ -73,9 +70,9 @@ public static class Lexer
 	/// Returns all the characters which can mix with the specified character.
 	/// If this function returns null, it means the specified character can mix with any character.
 	/// </summary>
-	private static string? GetMixingCharacters(char c)
+	private static string? GetMixingCharacters(char i)
 	{
-		return c switch
+		return i switch
 		{
 			'.' => ".0123456789",
 			',' => string.Empty,
@@ -91,11 +88,11 @@ public static class Lexer
 	/// </summary>
 	private static bool Mixes(char a, char b)
 	{
-		var x = GetMixingCharacters(a);
-		if (x != null) return x.Contains(b);
+		var allowed = GetMixingCharacters(a);
+		if (allowed != null) return allowed.Contains(b);
 
-		var y = GetMixingCharacters(b);
-		if (y != null) return y.Contains(a);
+		allowed = GetMixingCharacters(b);
+		if (allowed != null) return allowed.Contains(a);
 
 		return true;
 	}
@@ -111,101 +108,92 @@ public static class Lexer
 	/// <summary>
 	/// Returns whether the character is a digit
 	/// </summary>
-	/// <returns>True if the character is a digit, otherwise false</returns>
-	private static bool IsDigit(char c)
+	private static bool IsDigit(char i)
 	{
-		return c >= 48 && c <= 57;
+		return i >= '0' && i <= '9';
 	}
 
 	/// <summary>
 	/// Returns whether the character is a text
 	/// </summary>
-	/// <returns>True if the character is a text, otherwise false</returns>
-	private static bool IsText(char c)
+	private static bool IsText(char i)
 	{
-		return c >= 65 && c <= 90 || c >= 97 && c <= 122 || c == 95;
+		return (i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z') || (i == '_');
 	}
 
 	/// <summary>
 	/// Returns whether the character is start of a parenthesis
 	/// </summary>
-	/// <returns>True if the character is start of a parenthesis, otherwise false</returns>
-	private static bool IsContent(char c)
+	private static bool IsParenthesis(char i)
 	{
-		return ParenthesisType.Has(c);
+		return i == '(' || i == '[' || i == '{';
 	}
 
 	/// <summary>
 	/// Returns whether the character is start of a comment
 	/// </summary>
-	/// <returns>True if the character is start of a comment, otherwise false</returns>
-	private static bool IsComment(char c)
+	private static bool IsComment(char i)
 	{
-		return c == COMMENT;
+		return i == COMMENT;
 	}
 
 	/// <summary>
 	/// Returns whether the character start of a string
 	/// </summary>
-	/// <returns>True if the character is start of a string, otherwise false</returns>
-	private static bool IsString(char c)
+	private static bool IsString(char i)
 	{
-		return c == STRING || c == STRING_OBJECT;
+		return i == STRING || i == STRING_OBJECT;
 	}
 
 	/// <summary>
 	/// Returns whether the character start of a character value
 	/// </summary>
-	/// <returns>True if the character is start of a character value, otherwise false</returns>
-	private static bool IsCharacterValue(char c)
+	private static bool IsCharacterValue(char i)
 	{
-		return c == CHARACTER;
+		return i == CHARACTER;
 	}
 
 	/// <summary>
 	/// Returns the type of the character
 	/// </summary>
-	/// <returns>Type of the character</returns>
-	private static AreaType GetType(char current, char next)
+	private static TextType GetType(char current, char next)
 	{
-		if (IsText(current)) return AreaType.TEXT;
-		if (IsStartOfHexadecimal(current, next)) return AreaType.HEXADECIMAL;
-		if (IsDigit(current)) return AreaType.NUMBER;
-		if (IsContent(current)) return AreaType.CONTENT;
-		if (IsOperator(current)) return AreaType.OPERATOR;
-		if (IsComment(current)) return AreaType.COMMENT;
-		if (IsString(current)) return AreaType.STRING;
-		if (IsCharacterValue(current)) return AreaType.CHARACTER;
-		if (current == LINE_ENDING) return AreaType.END;
-
-		return AreaType.UNSPECIFIED;
+		if (IsText(current)) return TextType.TEXT;
+		if (IsStartOfHexadecimal(current, next)) return TextType.HEXADECIMAL;
+		if (IsDigit(current)) return TextType.NUMBER;
+		if (IsParenthesis(current)) return TextType.PARENTHESIS;
+		if (IsOperator(current)) return TextType.OPERATOR;
+		if (IsComment(current)) return TextType.COMMENT;
+		if (IsString(current)) return TextType.STRING;
+		if (IsCharacterValue(current)) return TextType.CHARACTER;
+		if (current == LINE_ENDING) return TextType.END;
+		return TextType.UNSPECIFIED;
 	}
 
 	/// <summary>
 	/// Returns whether the character is part of the progressing token
 	/// </summary>
-	/// <returns>True if the character is part of the progressing token</returns>
-	private static bool IsPartOf(AreaType previous_type, AreaType current_type, char previous, char current, char next)
+	private static bool IsPartOf(TextType previous_type, TextType current_type, char previous, char current, char next)
 	{
 		if (!Mixes(previous, current)) return false;
 
-		if (current_type == previous_type || previous_type == AreaType.UNSPECIFIED) return true;
+		if (current_type == previous_type || previous_type == TextType.UNSPECIFIED) return true;
 
 		switch (previous_type)
 		{
-			case AreaType.TEXT: return current_type == AreaType.NUMBER || current_type == AreaType.HEXADECIMAL;
+			case TextType.TEXT: return current_type == TextType.NUMBER || current_type == TextType.HEXADECIMAL;
 
-			case AreaType.HEXADECIMAL: return current_type == AreaType.NUMBER || 
+			case TextType.HEXADECIMAL: return current_type == TextType.NUMBER || 
 				(previous == '0' && current == 'x') ||
 				(current >= 'a' && current <= 'f') || (current >= 'A' && current <= 'F');
 
-			case AreaType.NUMBER:
+			case TextType.NUMBER:
 			{
-				return (current == DECIMAL_SEPARATOR && char.IsDigit(next)) || // Example: 7.0
-					current == EXPONENT_SEPARATOR || // Example: 100e0
-					current == SIGNED_TYPE_SEPARATOR || // Example 0i8
-					current == UNSIGNED_TYPE_SEPARATOR || // Example 0u32
-					(previous == EXPONENT_SEPARATOR && (current == '+' || current == '-')); // Examples: 3.14159e+10, 10e-10
+				return (current == DECIMAL_SEPARATOR && char.IsDigit(next)) ||
+					current == EXPONENT_SEPARATOR ||
+					current == SIGNED_TYPE_SEPARATOR ||
+					current == UNSIGNED_TYPE_SEPARATOR ||
+					(previous == EXPONENT_SEPARATOR && (current == '+' || current == '-'));
 			}
 
 			default: return false;
@@ -213,16 +201,13 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Skips all the spaces starting from the given position
+	/// Skips all the spaces starting from the specified position
 	/// </summary>
-	/// <returns>Returns the position after the spaces</returns>
 	private static Position SkipSpaces(string text, Position position)
 	{
 		while (position.Local < text.Length)
 		{
-			var current = text[position.Local];
-			if (current != ' ') break;
-
+			if (text[position.Local] != ' ') break;
 			position.NextCharacter();
 		}
 
@@ -232,8 +217,7 @@ public static class Lexer
 	/// <summary>
 	/// Finds the corresponding end parenthesis and returns its position
 	/// </summary>
-	/// <returns>Position of the closing parenthesis</returns>
-	private static Position SkipContent(string text, Position start)
+	private static Position SkipParenthesis(string text, Position start)
 	{
 		var position = start.Clone();
 
@@ -296,7 +280,6 @@ public static class Lexer
 	/// <summary>
 	/// Skips the current comment and returns the position
 	/// </summary>
-	/// <returns>Position after the comment</returns>
 	private static Position SkipComment(string text, Position start)
 	{
 		if (IsMultilineComment(text, start))
@@ -314,17 +297,13 @@ public static class Lexer
 			// Determine the index of the last line ending inside the comment
 			var last_line_ending = comment.LastIndexOf(LINE_ENDING);
 
-			// Check if the comment is a multiline comment
-			if (last_line_ending != -1)
-			{
-				last_line_ending += start.Local; // The index must be relative to the whole text
-				last_line_ending++; // Skip the line ending
+			// If the 'multiline comment' is actually expressed in a single line, handle it separately
+			if (last_line_ending == -1) return new Position(start.Line + lines, start.Character + comment.Length, end, start.Absolute + comment.Length);
 
-				return new Position(start.Line + lines, end - last_line_ending, end, start.Absolute + comment.Length);
-			}
+			last_line_ending += start.Local; // The index must be relative to the whole text
+			last_line_ending++; // Skip the line ending
 
-			/// NOTE: The comment is a single-line comment
-			return new Position(start.Line + lines, start.Character + comment.Length, end, start.Absolute + comment.Length);
+			return new Position(start.Line + lines, end - last_line_ending, end, start.Absolute + comment.Length);
 		}
 
 		var i = text.IndexOf(LINE_ENDING, start.Local);
@@ -344,7 +323,6 @@ public static class Lexer
 	/// <summary>
 	/// Skips closures which has the same character in both ends
 	/// </summary>
-	/// <returns>Position after the closures</returns>
 	private static Position SkipClosures(char closure, string text, Position start, string error)
 	{
 		for (var i = start.Local + 1; i < text.Length; i++)
@@ -395,12 +373,12 @@ public static class Lexer
 		else if (command == 'u')
 		{
 			length = 4;
-			error = "Can not understand Unicode character";
+			error = "Can not understand unicode character";
 		}
 		else if (command == 'U')
 		{
 			length = 8;
-			error = "Can not understand Unicode character";
+			error = "Can not understand unicode character";
 		}
 		else
 		{
@@ -466,8 +444,7 @@ public static class Lexer
 	/// <summary>
 	/// Returns the next token area in the text
 	/// </summary>
-	/// <returns>The next token in the text</returns>
-	public static Area? GetNextToken(string text, Position start)
+	public static TextArea? GetNextToken(string text, Position start)
 	{
 		// Firstly the spaces must be skipped to find the next token
 		var position = SkipSpaces(text, start);
@@ -478,7 +455,7 @@ public static class Lexer
 		var current = text[position.Local];
 		var next = position.Local + 1 < text.Length ? text[position.Local + 1] : (char)0;
 
-		var area = new Area
+		var area = new TextArea
 		{
 			Start = position.Clone(),
 			Type = GetType(current, next)
@@ -486,42 +463,42 @@ public static class Lexer
 
 		switch (area.Type)
 		{
-			case AreaType.COMMENT:
+			case TextType.COMMENT:
 			{
 				area.End = SkipComment(text, area.Start);
 				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
-			case AreaType.CONTENT:
+			case TextType.PARENTHESIS:
 			{
-				area.End = SkipContent(text, area.Start);
+				area.End = SkipParenthesis(text, area.Start);
 				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
-			case AreaType.END:
+			case TextType.END:
 			{
 				area.End = position.Clone().NextLine();
 				area.Text = LINE_ENDING.ToString();
 				return area;
 			}
 
-			case AreaType.STRING:
+			case TextType.STRING:
 			{
 				area.End = SkipClosures(current, text, area.Start, "Can not find the end of the string");
 				area.Text = text[area.Start.Local..area.End.Local];
 				return area;
 			}
 
-			case AreaType.CHARACTER:
+			case TextType.CHARACTER:
 			{
 				area.End = SkipCharacterValue(text, area.Start);
-				area.Type = AreaType.NUMBER;
+				area.Type = TextType.NUMBER;
 
 				var value = (long)GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]);
 				var bits = GetBits(value);
-				
+
 				area.Text = value.ToString() + SIGNED_TYPE_SEPARATOR + bits.ToString();
 				return area;
 			}
@@ -536,7 +513,7 @@ public static class Lexer
 			current = next;
 			next = position.Local + 1 < text.Length ? text[position.Local + 1] : (char)0;
 
-			if (IsContent(current)) break;
+			if (IsParenthesis(current)) break;
 
 			// Determine what area type the current character represents
 			var type = GetType(current, next);
@@ -575,7 +552,7 @@ public static class Lexer
 	/// <summary>
 	/// Parses the specified hexadecimal
 	/// </summary>
-	private static long ParseHexadecimal(Area area)
+	private static long ParseHexadecimal(TextArea area)
 	{
 		if (long.TryParse(area.Text.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value)) return value;
 
@@ -586,17 +563,17 @@ public static class Lexer
 	/// Parses a token from a text area
 	/// </summary>
 	/// <returns>Area as a token</returns>
-	private static Token ParseToken(Area area)
+	private static Token ParseToken(TextArea area)
 	{
 		return area.Type switch
 		{
-			AreaType.TEXT => ParseTextToken(area.Text),
-			AreaType.NUMBER => new NumberToken(area.Text, area.Start),
-			AreaType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw new LexerException(area.Start, $"Unknown operator '{area.Text}'")),
-			AreaType.CONTENT => new ContentToken(area.Text, area.Start, area.End),
-			AreaType.END => new Token(TokenType.END),
-			AreaType.STRING => new StringToken(area.Text),
-			AreaType.HEXADECIMAL => new NumberToken(ParseHexadecimal(area)),
+			TextType.TEXT => ParseTextToken(area.Text),
+			TextType.NUMBER => new NumberToken(area.Text, area.Start),
+			TextType.OPERATOR => new OperatorToken(Operators.Exists(area.Text) ? area.Text : throw new LexerException(area.Start, $"Unknown operator '{area.Text}'")),
+			TextType.PARENTHESIS => new ParenthesisToken(area.Text, area.Start, area.End),
+			TextType.END => new Token(TokenType.END),
+			TextType.STRING => new StringToken(area.Text),
+			TextType.HEXADECIMAL => new NumberToken(ParseHexadecimal(area)),
 			_ => throw new LexerException(area.Start, $"Unknown token '{area.Text}'"),
 		};
 	}
@@ -606,35 +583,23 @@ public static class Lexer
 	/// </summary>
 	public static void JoinSequentialModifiers(List<Token> tokens)
 	{
-		if (tokens.Count == 1) return;
-
 		for (var i = tokens.Count - 2; i >= 0; i--)
 		{
-			var current = tokens[i];
-			var next = tokens[i + 1];
+			// Require both the current and the next tokens to be modifier keywords
+			var a = tokens[i];
+			var b = tokens[i + 1];
 
-			if (current is KeywordToken a && next is KeywordToken b)
-			{
-				if (a.Keyword is ModifierKeyword x && b.Keyword is ModifierKeyword y)
-				{
-					var identifier = x.Identifier + ' ' + y.Identifier;
-					var combined = new ModifierKeyword(identifier, x.Modifier | y.Modifier);
+			if (a.Type != TokenType.KEYWORD || b.Type != TokenType.KEYWORD) continue;
 
-					tokens.RemoveAt(i);
-					tokens.RemoveAt(i);
-					tokens.Insert(i, new KeywordToken(combined, a.Position));
-					continue;
-				}
-				
-				if (a.Keyword != Keywords.IS || b.Keyword != Keywords.NOT)
-				{
-					continue;
-				}
+			var x = a.To<KeywordToken>().Keyword;
+			var y = b.To<KeywordToken>().Keyword;
 
-				tokens.RemoveAt(i);
-				tokens.RemoveAt(i);
-				tokens.Insert(i, new KeywordToken(Keywords.IS_NOT, a.Position));
-			}
+			if (x.Type != KeywordType.MODIFIER || y.Type != KeywordType.MODIFIER) continue;
+
+			// Combine the two modifiers into one token, and remove the second token
+			var modifiers = x.To<ModifierKeyword>().Modifier | y.To<ModifierKeyword>().Modifier;
+			a.To<KeywordToken>().Keyword = new ModifierKeyword(string.Empty, modifiers);
+			tokens.RemoveAt(i + 1);
 		}
 	}
 
@@ -772,9 +737,9 @@ public static class Lexer
 				continue;
 			}
 
-			if (token.Type == TokenType.CONTENT)
+			if (token.Type == TokenType.PARENTHESIS)
 			{
-				PostprocessEscapedCharacters(token.To<ContentToken>().Tokens);
+				PostprocessEscapedCharacters(token.To<ParenthesisToken>().Tokens);
 			}
 		}
 	}
@@ -791,7 +756,6 @@ public static class Lexer
 	/// <summary>
 	/// Returns the text as a token list
 	/// </summary>
-	/// <returns>Text as a token list</returns>
 	public static List<Token> GetTokens(string text, Position anchor, bool postprocess = true)
 	{
 		var tokens = new List<Token>();
@@ -802,7 +766,7 @@ public static class Lexer
 			var area = GetNextToken(text, position.Clone());
 			if (area == null) break;
 
-			if (area.Type != AreaType.COMMENT)
+			if (area.Type != TextType.COMMENT)
 			{
 				var token = ParseToken(area);
 				token.Position = area.Start;
@@ -828,9 +792,9 @@ public static class Lexer
 		{
 			token.Position.File = file;
 
-			if (token.Is(TokenType.CONTENT))
+			if (token.Is(TokenType.PARENTHESIS))
 			{
-				RegisterFile(token.To<ContentToken>().Tokens, file);
+				RegisterFile(token.To<ParenthesisToken>().Tokens, file);
 			}
 			else if (token.Is(TokenType.FUNCTION))
 			{

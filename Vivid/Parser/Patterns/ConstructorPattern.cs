@@ -32,7 +32,7 @@ public class ConstructorPattern : Pattern
 		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		// Try to consume curly brackets
-		if (Consume(state, out Token? brackets, TokenType.CONTENT)) return brackets!.Is(ParenthesisType.CURLY_BRACKETS);
+		if (Consume(state, out Token? brackets, TokenType.PARENTHESIS)) return brackets!.Is(ParenthesisType.CURLY_BRACKETS);
 
 		// Try to consume a heavy arrow operator
 		return Consume(state, out Token? arrow, TokenType.OPERATOR) && arrow!.Is(Operators.HEAVY_ARROW);
@@ -67,14 +67,14 @@ public class ConstructorPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
+		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().Tokens : null;
 
 		var function = (Function?)null;
 		var descriptor = tokens[HEADER].To<FunctionToken>();
 		var type = (Type)context;
 
 		var start = descriptor.Position;
-		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().End : null;
 
 		if (descriptor.Name == Keywords.INIT.Identifier)
 		{

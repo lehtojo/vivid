@@ -11,7 +11,7 @@ public class TemplateFunction : Function
 	public TemplateFunction(Context context, int modifiers, string name, List<string> template_parameters, List<Token> parameter_tokens, Position? start, Position? end) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, start, end)
 	{
 		TemplateParameters = template_parameters;
-		Header = new FunctionToken(new IdentifierToken(name), new ContentToken(parameter_tokens));
+		Header = new FunctionToken(new IdentifierToken(name), new ParenthesisToken(parameter_tokens));
 	}
 
 	/// <summary>
@@ -49,9 +49,9 @@ public class TemplateFunction : Function
 			{
 				InsertArguments(tokens[i].To<FunctionToken>().Parameters.Tokens, arguments);
 			}
-			else if (tokens[i].Type == TokenType.CONTENT)
+			else if (tokens[i].Type == TokenType.PARENTHESIS)
 			{
-				InsertArguments(tokens[i].To<ContentToken>().Tokens, arguments);
+				InsertArguments(tokens[i].To<ParenthesisToken>().Tokens, arguments);
 			}
 		}
 	}

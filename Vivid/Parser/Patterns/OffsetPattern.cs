@@ -10,7 +10,7 @@ public class OffsetPattern : Pattern
 	// Pattern: ... [...]
 	public OffsetPattern() : base
 	(
-		TokenType.OBJECT, TokenType.CONTENT
+		TokenType.OBJECT, TokenType.PARENTHESIS
 	) { }
 
 	public override int GetPriority(List<Token> tokens)
@@ -20,7 +20,7 @@ public class OffsetPattern : Pattern
 
 	public override bool Passes(Context context, PatternState state, List<Token> tokens)
 	{
-		return tokens[ARGUMENTS].To<ContentToken>().Type == ParenthesisType.BRACKETS;
+		return tokens[ARGUMENTS].To<ParenthesisToken>().Opening == ParenthesisType.BRACKETS;
 	}
 
 	public override Node Build(Context context, PatternState state, List<Token> tokens)

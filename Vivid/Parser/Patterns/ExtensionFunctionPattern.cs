@@ -49,7 +49,7 @@ public class ExtensionFunctionPattern : Pattern
 				continue;
 			}
 
-			if (Consume(state, out consumed, TokenType.CONTENT))
+			if (Consume(state, out consumed, TokenType.PARENTHESIS))
 			{
 				// If parenthesis were consumed, it must be standard parenthesis
 				if (!consumed!.Is(ParenthesisType.PARENTHESIS)) return false;
@@ -64,7 +64,7 @@ public class ExtensionFunctionPattern : Pattern
 		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		// The last token must be the body of the function
-		return Consume(state, out consumed, TokenType.CONTENT) && consumed!.Is(ParenthesisType.CURLY_BRACKETS);
+		return Consume(state, out consumed, TokenType.PARENTHESIS) && consumed!.Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
 	private static bool IsTemplateFunction(List<Token> tokens)
@@ -110,8 +110,8 @@ public class ExtensionFunctionPattern : Pattern
 		var template_parameters = Common.GetTemplateParameters(tokens.GetRange(template_parameters_start, template_parameters_end - template_parameters_start), tokens[i].Position);
 		
 		var name = tokens[i - 1].To<IdentifierToken>();
-		var parameters = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<ContentToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>();
+		var parameters = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<ParenthesisToken>();
+		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ParenthesisToken>();
 
 		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
 
@@ -126,7 +126,7 @@ public class ExtensionFunctionPattern : Pattern
 		if (destination == null) throw new ApplicationException("Invalid template function extension");
 
 		var descriptor = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<FunctionToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ContentToken>();
+		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ParenthesisToken>();
 
 		return new ExtensionFunctionNode(destination, descriptor, body.Tokens, descriptor.Position, body.End);
 	}

@@ -159,13 +159,6 @@ public class NumberToken : Token
 		Bits = Lexer.Size.Bytes * 8;
 	}
 
-	public NumberToken(double number) : base(TokenType.NUMBER)
-	{
-		Value = number;
-		Format = Format.DECIMAL;
-		Bits = Lexer.Size.Bytes * 8;
-	}
-
 	public override bool Equals(object? other)
 	{
 		return other is NumberToken token &&

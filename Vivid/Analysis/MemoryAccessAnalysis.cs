@@ -174,7 +174,7 @@ public static class MemoryAccessAnalysis
 				if (accesses[i]) continue;
 
 				// Find all edits between the start and the repetition
-				var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ACTION) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
+				var edits = flow.FindBetween(start, repetition, i => i.Is(OperatorType.ASSIGNMENT) || i.Is(NodeType.INCREMENT, NodeType.DECREMENT));
 				
 				// If any of the edits contain a destination which matches any of the dependencies, a store is required
 				foreach (var edit in edits)

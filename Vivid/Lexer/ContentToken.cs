@@ -2,16 +2,61 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class ContentToken : Token
+public class ParenthesisToken : Token
 {
 	private const int OPENING = 0;
 	private const int EMPTY = 2;
 
+	public ParenthesisType Opening { get; set; }
 	public List<Token> Tokens { get; private set; } = new List<Token>();
 	public Position? End { get; private set; }
+
 	public bool IsEmpty => Tokens.Count == 0;
 
-	public new ParenthesisType Type { get; set; }
+	public ParenthesisToken(string raw, Position start, Position end) : base(TokenType.PARENTHESIS)
+	{
+		Position = start;
+		End = end;
+		Opening = ParenthesisType.Get(raw[OPENING]);
+
+		if (raw.Length == EMPTY)
+		{
+			return;
+		}
+
+		Tokens = Lexer.GetTokens(raw[1..^1], start.Clone().NextCharacter());
+	}
+
+	public ParenthesisToken() : base(TokenType.PARENTHESIS)
+	{
+		Opening = ParenthesisType.PARENTHESIS;
+		Tokens = new List<Token>();
+	}
+
+	public ParenthesisToken(List<Token> tokens) : base(TokenType.PARENTHESIS)
+	{
+		Opening = ParenthesisType.PARENTHESIS;
+		Tokens = new List<Token>(tokens);
+	}
+
+	public ParenthesisToken(params Token[] tokens) : base(TokenType.PARENTHESIS)
+	{
+		Opening = ParenthesisType.PARENTHESIS;
+		Tokens = new List<Token>(tokens);
+	}
+
+	public ParenthesisToken(ParenthesisType type, params Token[] tokens) : base(TokenType.PARENTHESIS)
+	{
+		Opening = type;
+		Tokens = new List<Token>(tokens);
+	}
+
+	public ParenthesisToken(ParenthesisType type, Token[] tokens, Position position) : base(TokenType.PARENTHESIS)
+	{
+		Opening = type;
+		Tokens = new List<Token>(tokens);
+		Position = position;
+	}
 
 	public List<List<Token>> GetSections()
 	{
@@ -33,85 +78,33 @@ public class ContentToken : Token
 		}
 
 		sections.Add(section);
-
 		return sections;
-	}
-
-	public ContentToken(string raw, Position start, Position end) : base(TokenType.CONTENT)
-	{
-		Position = start;
-		End = end;
-		Type = ParenthesisType.Get(raw[OPENING]);
-
-		if (raw.Length == EMPTY)
-		{
-			return;
-		}
-
-		Tokens = Lexer.GetTokens(raw[1..^1], start.Clone().NextCharacter());
-	}
-
-	public ContentToken() : base(TokenType.CONTENT)
-	{
-		Type = ParenthesisType.PARENTHESIS;
-		Tokens = new List<Token>();
-	}
-
-	public ContentToken(List<Token> tokens) : base(TokenType.CONTENT)
-	{
-		Type = ParenthesisType.PARENTHESIS;
-		Tokens = new List<Token>(tokens);
-	}
-
-	public ContentToken(params Token[] tokens) : base(TokenType.CONTENT)
-	{
-		Type = ParenthesisType.PARENTHESIS;
-		Tokens = new List<Token>(tokens);
-	}
-
-	public ContentToken(ParenthesisType type, params Token[] tokens) : base(TokenType.CONTENT)
-	{
-		Type = type;
-		Tokens = new List<Token>(tokens);
-	}
-
-	public ContentToken(ParenthesisType type, Token[] tokens, Position position) : base(TokenType.CONTENT)
-	{
-		Type = type;
-		Tokens = new List<Token>(tokens);
-		Position = position;
-	}
-
-	public ContentToken(params ContentToken[] sections) : base(TokenType.CONTENT)
-	{
-		Type = ParenthesisType.PARENTHESIS;
-		Tokens = sections.SelectMany(i => i.Tokens).ToList();
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is ContentToken token &&
+		return other is ParenthesisToken token &&
 			   base.Equals(other) &&
 			   Tokens.SequenceEqual(token.Tokens) &&
-			   EqualityComparer<ParenthesisType>.Default.Equals(Type, token.Type) &&
+			   EqualityComparer<ParenthesisType>.Default.Equals(Opening, token.Opening) &&
 			   IsEmpty == token.IsEmpty;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Tokens, Type, IsEmpty);
+		return HashCode.Combine(base.GetHashCode(), Tokens, Opening, IsEmpty);
 	}
 
 	public override object Clone()
 	{
-		var clone = (ContentToken)MemberwiseClone();
-		clone.Tokens = Tokens.Select(t => (Token)t.Clone()).ToList();
+		var clone = (ParenthesisToken)MemberwiseClone();
+		clone.Tokens = Tokens.Select(i => (Token)i.Clone()).ToList();
 
 		return clone;
 	}
 
 	public override string ToString()
 	{
-		return Type.Opening + string.Join(' ', Tokens) + Type.Closing;
+		return Opening.Opening + string.Join(' ', Tokens) + Opening.Closing;
 	}
 }

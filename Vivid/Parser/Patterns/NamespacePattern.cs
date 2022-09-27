@@ -42,7 +42,7 @@ public class NamespacePattern : Pattern
 		Consume(state, TokenType.END | TokenType.OPTIONAL);
 
 		// Optionally consume curly brackets
-		Consume(state, TokenType.CONTENT | TokenType.OPTIONAL);
+		Consume(state, TokenType.PARENTHESIS | TokenType.OPTIONAL);
 
 		return tokens.Last().Is(TokenType.NONE) || tokens.Last().Is(ParenthesisType.CURLY_BRACKETS);
 	}
@@ -66,7 +66,7 @@ public class NamespacePattern : Pattern
 		else
 		{
 			// Get the blueprint from the the curly brackets
-			blueprint = state.Formatted.Last().To<ContentToken>().Tokens;
+			blueprint = state.Formatted.Last().To<ParenthesisToken>().Tokens;
 		}
 
 		// Find the line ending token which is after the name

@@ -31,10 +31,10 @@ public class ShortFunctionPattern : Pattern
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var header = tokens[HEADER].To<FunctionToken>();
-		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().Tokens : null;
+		var blueprint = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().Tokens : null;
 
 		var start = header.Position;
-		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ContentToken>().End : null;
+		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().End : null;
 
 		var function = new Function(context, Modifier.DEFAULT, header.Name, start, end);
 		function.Parameters.AddRange(header.GetParameters(function));

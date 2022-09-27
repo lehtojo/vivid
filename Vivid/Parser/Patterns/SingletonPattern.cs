@@ -6,7 +6,7 @@ public class SingletonPattern : Pattern
 	public const int PRIORITY = 0;
 
 	// Pattern: ...
-	public SingletonPattern() : base(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER | TokenType.STRING | TokenType.CONTENT) { }
+	public SingletonPattern() : base(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER | TokenType.STRING | TokenType.PARENTHESIS) { }
 
 	public override int GetPriority(List<Token> tokens)
 	{

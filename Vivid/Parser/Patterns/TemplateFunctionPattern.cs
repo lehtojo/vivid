@@ -59,7 +59,7 @@ public class TemplateFunctionPattern : Pattern
 	public override Node Build(Context context, PatternState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
-		var blueprint = tokens.Last().To<ContentToken>();
+		var blueprint = tokens.Last().To<ParenthesisToken>();
 		var start = name.Position;
 		var end = blueprint.End;
 
@@ -84,7 +84,7 @@ public class TemplateFunctionPattern : Pattern
 		var template_parameter_tokens = tokens.GetRange(TEMPLATE_PARAMETERS_START, template_parameters_end - TEMPLATE_PARAMETERS_START);
 		var template_parameter_names = Common.GetTemplateParameters(template_parameter_tokens, tokens[TEMPLATE_PARAMETERS_START + 1].Position);
 
-		var parameters = tokens[parameters_index].To<ContentToken>();
+		var parameters = tokens[parameters_index].To<ParenthesisToken>();
 		var descriptor = new FunctionToken(name, parameters) { Position = start };
 
 		// Create the template function
