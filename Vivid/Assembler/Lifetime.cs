@@ -1,36 +1,98 @@
-using System.Globalization;
+using System.Collections.Generic;
 
 public class Lifetime
 {
-	public int Start { get; set; } = -1;
-	public int End { get; set; } = -1;
+	public List<Instruction> Usages { get; set; } = new();
 
 	public void Reset()
 	{
-		Start = -1;
-		End = -1;
+		Usages.Clear();
 	}
 
-	/// <summary>
-	/// Returns whether this lifetime is active, that is, whether the lifetime has started but not ended from the perspective of the specified position
-	/// </summary>
-	public bool IsActive(int position)
+	// Summary: Returns whether this lifetime is active
+	public bool IsActive()
 	{
-		return position >= Start && (End == -1 || position <= End);
+		var started = false;
+
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			var state = Usages[i].State;
+
+			// If one of the usages is being built, the lifetime must be active
+			if (state == InstructionState.BUILDING) return true;
+
+			// If one of the usages is built, the lifetime must have started already
+			if (state == InstructionState.BUILT)
+			{
+				started = true;
+				break;
+			}
+		}
+
+		// If the lifetime has not started, it can not be active
+		if (!started) return false;
+
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			// Since the lifetime has started, if any of the usages is not built, this lifetime must be active 
+			if (Usages[i].State != InstructionState.BUILT) return true;
+		}
+
+		return false;
 	}
 
-	/// <summary>
-	/// Returns true, if the lifetime is active and is not starting or ending at the specified instruction position, otherwise false
-	/// </summary>
-	public bool IsOnlyActive(int position)
+	// Summary: Returns true if the lifetime is active and is not starting or ending
+	public bool IsOnlyActive()
 	{
-		return IsActive(position) && Start != position && End != position;
+		var started = false;
+
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			// If one of the usages is built, the lifetime must have started already
+			if (Usages[i].State == InstructionState.BUILT)
+			{
+				started = true;
+				break;
+			}
+		}
+
+		// If the lifetime has not started, it can not be only active
+		if (!started) return false;
+
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			// Look for usage, which has not been built and is not being built
+			if (Usages[i].State == InstructionState.NOT_BUILT) return true;
+		}
+
+		return false;
 	}
 
-	public override string ToString()
+	// Summary: Returns true if the lifetime is expiring
+	public bool IsDeactivating()
 	{
-		if (Start == -1 && End == -1) return "static";
+		var building = false;
 
-		return (Start == -1 ? string.Empty : Start.ToString()) + ".." + (End == -1 ? string.Empty : End.ToString());
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			// Look for usage, which is being built
+			#warning: Should be Usages[i].State == InstructionState.BUILDING
+			if (true)
+			{
+				building = true;
+				break;
+			}
+		}
+
+		// If none of usages is being built, the lifetime can not be expiring
+		if (!building) return false;
+
+		for (var i = 0; i < Usages.Count; i++)
+		{
+			// If one of the usages is not built, the lifetime can not be expiring
+			if (Usages[i].State == InstructionState.NOT_BUILT) return false;
+		}
+
+		return true;
 	}
 }

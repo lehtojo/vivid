@@ -199,7 +199,7 @@ public class AssemblyParser
 			var line = (long)tokens[3].To<NumberToken>().Value - 1;
 			var character = (long)tokens[4].To<NumberToken>().Value - 1;
 
-			Instructions.Add(new AppendPositionInstruction(Unit, new Position(null, (int)line, (int)character)));
+			Instructions.Add(new DebugBreakInstruction(Unit, new Position(null, (int)line, (int)character)));
 			return true;
 		}
 
@@ -690,11 +690,11 @@ public class AssemblyParser
 	/// <summary>
 	/// Finds instruction prefixes and merges them into the instruction
 	/// </summary>
-	private void JoinInstructionPrefixes(List<Token> tokens)
+	private static void JoinInstructionPrefixes(List<Token> tokens)
 	{
 		for (var i = tokens.Count - 2; i >= 0; i--)
 		{
-			// Find ajacent identifier tokens
+			// Find adjacent identifier tokens
 			var current = tokens[i];
 			var next = tokens[i + 1];
 			if (current.Type != TokenType.IDENTIFIER || next.Type != TokenType.IDENTIFIER) continue;

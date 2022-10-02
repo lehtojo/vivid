@@ -11,13 +11,13 @@ public static class Links
 		}
 
 		// Retrieve the context where the function is defined
-		var function_context = function.Function.Metadata!.FindTypeParent()!;
+		var primary = function.Function.Metadata!.FindTypeParent()!;
 		var self = References.Get(unit, self_node);
 
 		// If the function is not defined inside the type of the self pointer, it means it must have been defined in its supertypes, therefore casting is needed
-		if (function_context != self_type)
+		if (primary != self_type)
 		{
-			self = Casts.Cast(unit, self, self_type, function_context);
+			self = Casts.Cast(unit, self, self_type, primary);
 		}
 
 		return Calls.Build(unit, self, function);
@@ -40,7 +40,7 @@ public static class Links
 			if (left.Value.Instance == HandleInstanceType.DISPOSABLE_PACK) return left.Value.To<DisposablePackHandle>().Members[member];
 
 			var alignment = member.GetAlignment(self_type) ?? throw new ApplicationException("Member variable was not aligned");
-			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Execute();
+			return new GetObjectPointerInstruction(unit, member, left, alignment, mode).Add();
 		}
 
 		if (!node.Right.Is(NodeType.FUNCTION)) throw new NotImplementedException("Unsupported member node");

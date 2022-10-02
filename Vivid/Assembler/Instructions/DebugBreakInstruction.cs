@@ -2,25 +2,23 @@
 /// This instruction appends the specified source file position to the generated assembly for debug information
 /// This instruction is works on all architectures
 /// </summary>
-public class AppendPositionInstruction : Instruction
+public class DebugBreakInstruction : Instruction
 {
 	public const string INSTRUCTION = ".loc";
 
-	public new Position Position { get; private set; }
+	public Position Position { get; private set; }
 
 	public static string GetPositionInstruction(Position position)
 	{
-		var line = position.FriendlyLine.ToString();
-		var character = position.FriendlyCharacter.ToString();
-
-		return INSTRUCTION + " 1 " + line + ' ' + character;
+		return INSTRUCTION + " 1 " + position.FriendlyLine.ToString() + ' ' + position.FriendlyCharacter.ToString();
 	}
 
-	public AppendPositionInstruction(Unit unit, Position position) : base(unit, InstructionType.APPEND_POSITION)
+	public DebugBreakInstruction(Unit unit, Position position) : base(unit, InstructionType.DEBUG_BREAK)
 	{
 		Position = position;
 		Operation = GetPositionInstruction(Position);
-		IsBuilt = true;
+		State = InstructionState.BUILT;
+		Description = ToString();
 	}
 
 	public override string ToString()

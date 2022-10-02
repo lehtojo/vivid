@@ -314,7 +314,7 @@ public class Flow
 
 			case NodeType.LOOP_CONTROL:
 			{
-				var instruction = node.To<LoopControlNode>().Instruction;
+				var instruction = node.To<CommandNode>().Instruction;
 
 				if (instruction == Keywords.CONTINUE)
 				{
@@ -746,7 +746,7 @@ public class StatementFlow
 
 			case NodeType.LOOP_CONTROL:
 			{
-				var instruction = node.To<LoopControlNode>().Instruction;
+				var instruction = node.To<CommandNode>().Instruction;
 
 				if (instruction == Keywords.CONTINUE)
 				{

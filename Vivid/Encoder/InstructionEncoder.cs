@@ -669,7 +669,7 @@ public static class InstructionEncoder
 			HandleInstanceType.MEMORY => new MemoryAddressDescriptor(handle.To<MemoryHandle>().GetStart(), null, 0, handle.To<MemoryHandle>().GetOffset()),
 			HandleInstanceType.COMPLEX_MEMORY => new MemoryAddressDescriptor(handle.To<ComplexMemoryHandle>().GetStart(), handle.To<ComplexMemoryHandle>().GetIndex(), handle.To<ComplexMemoryHandle>().Stride, handle.To<ComplexMemoryHandle>().GetOffset()),
 			HandleInstanceType.EXPRESSION => new MemoryAddressDescriptor(handle.To<ExpressionHandle>().GetStart(), handle.To<ExpressionHandle>().GetIndex(), handle.To<ExpressionHandle>().Multiplier, handle.To<ExpressionHandle>().GetOffset()),
-			HandleInstanceType.INLINE => new MemoryAddressDescriptor(handle.To<InlineHandle>().Unit.GetStackPointer(), null, 1, handle.To<InlineHandle>().AbsoluteOffset),
+			HandleInstanceType.STACK_ALLOCATION => new MemoryAddressDescriptor(handle.To<StackAllocationHandle>().Unit.GetStackPointer(), null, 1, handle.To<StackAllocationHandle>().AbsoluteOffset),
 			HandleInstanceType.STACK_MEMORY => new MemoryAddressDescriptor(handle.To<StackMemoryHandle>().GetStart(), null, 1, handle.To<StackMemoryHandle>().GetOffset()),
 			HandleInstanceType.DATA_SECTION => new MemoryAddressDescriptor(handle.To<DataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
 			HandleInstanceType.CONSTANT_DATA_SECTION => new MemoryAddressDescriptor(handle.To<ConstantDataSectionHandle>().Identifier, handle.To<DataSectionHandle>().Modifier, handle.To<DataSectionHandle>().Offset),
@@ -910,9 +910,9 @@ public static class InstructionEncoder
 	/// </summary>
 	public static bool ProcessDebugInstructions(EncoderModule module, Instruction instruction)
 	{
-		if (instruction.Type == InstructionType.APPEND_POSITION)
+		if (instruction.Type == InstructionType.DEBUG_BREAK)
 		{
-			var position = instruction.To<AppendPositionInstruction>().Position;
+			var position = instruction.To<DebugBreakInstruction>().Position;
 			module.DebugLineInformation.Add(new EncoderDebugLineInformation(module.Position, position.FriendlyLine, position.FriendlyCharacter));
 			module.DebugFrameInformation.Add(new EncoderDebugFrameInformation(EncoderDebugFrameInformationType.ADVANCE, module.Position));
 			return true;

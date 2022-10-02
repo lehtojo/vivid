@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System;
+using System.Threading.Tasks;
+using System.Threading;
 
 public class AssemblyBuilder
 {
@@ -191,7 +193,10 @@ public static class Assembler
 
 	private static void AddVirtualFunctionHeader(Unit unit, FunctionImplementation implementation, string fullname)
 	{
-		unit.Append(new LabelInstruction(unit, new Label(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX)));
+		unit.Add(new LabelInstruction(unit, new Label(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX)));
+
+		// Do not try to convert the self pointer, if it is not used
+		if (unit.Self!.References.Count == 0) return;
 
 		var from = implementation.VirtualFunction!.FindTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
 		var to = implementation.FindTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
@@ -203,11 +208,41 @@ public static class Assembler
 
 		if (alignment != 0)
 		{
-			var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ);
+			var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.WRITE);
 			var offset = References.GetConstant(unit, new NumberNode(Signed, (long)alignment));
 
-			// Convert the self pointer to the type 'to' by offsetting it
-			unit.Append(new SubtractionInstruction(unit, self, offset, Signed, true));
+			// Convert the self pointer to the type 'to' by offsetting it by the alignment
+			unit.Add(new SubtractionInstruction(unit, self, offset, Signed, true));
+		}
+	}
+
+	/// <summary>
+	/// Summary: Connects the specified scope to the destination scope.
+	/// </summary>
+	public static void ConnectBackwardsJump(Unit unit, Scope from, Scope to)
+	{
+		// Require the input variables of the destination scope in the arrival scope
+		foreach (var iterator in to.Inputs)
+		{
+			unit.RequireVariable(iterator.Key, from);
+		}
+	}
+
+	/// <summary>
+	/// Finds all scopes that arrive to scopes before them and connects them.
+	/// </summary>
+	public static void ConnectBackwardsJumps(Unit unit)
+	{
+		foreach (var i in unit.Arrivals)
+		{
+			var destination = unit.Scopes[i.Key];
+			var arrivals = i.Value;
+
+			foreach (var arrival in arrivals)
+			{
+				if (arrival.Index < destination.Index) continue;
+				ConnectBackwardsJump(unit, arrival, destination);
+			}
 		}
 	}
 
@@ -225,60 +260,88 @@ public static class Assembler
 		builder.Export(fullname);
 
 		var unit = new Unit(implementation);
+		unit.Mode = UnitMode.ADD;
+
+		var scope = new Scope(unit, Scope.ENTRY);
 
 		// Update the variable usages before we start
-		foreach (var parameter in implementation.Parameters) { Analyzer.FindUsages(parameter, implementation.Node!); }
-		foreach (var variable in implementation.Locals) { Analyzer.FindUsages(variable, implementation.Node!); }
+		Analyzer.LoadVariableUsages(implementation);
 
-		unit.Execute(UnitMode.APPEND, () =>
+		// Add virtual function header, if the implementation overrides a virtual function
+		if (implementation.VirtualFunction != null)
 		{
-			// Create the most outer scope where all instructions will be placed
-			using var scope = new Scope(unit, implementation.Node!);
+			builder.WriteLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
+			builder.Export(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX);
 
-			if (implementation.VirtualFunction != null)
+			AddVirtualFunctionHeader(unit, implementation, fullname);
+		}
+
+		// Add the function name to the output as a label
+		unit.Add(new LabelInstruction(unit, new Label(fullname)));
+
+		// Initialize this function
+		unit.Add(new InitializeInstruction(unit));
+
+		// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
+		var parameters = new List<Variable>(unit.Function.Parameters);
+
+		if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
+		{
+			parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
+		}
+
+		// Include pack proxies as well
+		var parameter_count = parameters.Count;
+
+		for (var i = 0; i < parameter_count; i++)
+		{
+			var parameter = parameters[i];
+			if (!parameter.Type!.IsPack) continue;
+			parameters.AddRange(Common.GetPackProxies(parameter));
+		}
+
+		if (Assembler.IsDebuggingEnabled)
+		{
+			Calls.MoveParametersToStack(unit);
+		}
+
+		Builders.Build(unit, implementation.Node!);
+
+		// Connect scopes that jump backwards
+		ConnectBackwardsJumps(unit);
+
+		foreach (var instruction in unit.Instructions)
+		{
+			instruction.Reindex();
+		}
+
+		// Build:
+		unit.Scope = null;
+		unit.StackOffset = 0;
+		unit.Mode = UnitMode.BUILD;
+
+		foreach (var register in unit.Registers) { register.Reset(); }
+
+		for (unit.Position = 0; unit.Position < unit.Instructions.Count; unit.Position++)
+		{
+			var instruction = unit.Instructions[unit.Position];
+
+			// All instructions must have a scope
+			if (instruction.Scope == null) throw new ApplicationException("Missing instruction scope");
+
+			unit.Anchor = instruction;
+
+			// Switch between scopes
+			if (!ReferenceEquals(unit.Scope, instruction.Scope))
 			{
-				builder.WriteLine($"{ExportDirective} {fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX}");
-				builder.Export(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX);
-
-				AddVirtualFunctionHeader(unit, implementation, fullname);
+				instruction.Scope.Enter();
 			}
 
-			// Append the function name to the output as a label
-			unit.Append(new LabelInstruction(unit, new Label(fullname)));
+			instruction.Build();
+		}
 
-			// Initialize this function
-			unit.Append(new InitializeInstruction(unit));
-
-			// Parameters are active from the start of the function, so they must be required now otherwise they would become active at their first usage
-			var parameters = new List<Variable>(unit.Function.Parameters);
-
-			if ((unit.Function.Metadata.IsMember && !unit.Function.IsStatic) || implementation.IsLambdaImplementation)
-			{
-				parameters.Add(unit.Self ?? throw new ApplicationException("Missing self pointer in a member function"));
-			}
-
-			// Include pack representives as well
-			var parameter_count = parameters.Count;
-
-			for (var i = 0; i < parameter_count; i++)
-			{
-				var parameter = parameters[i];
-				if (!parameter.Type!.IsPack) continue;
-				parameters.AddRange(Common.GetPackRepresentives(parameter));
-			}
-
-			unit.Append(new RequireVariablesInstruction(unit, parameters));
-
-			if (Assembler.IsDebuggingEnabled)
-			{
-				Calls.MoveParametersToStack(unit);
-			}
-
-			Builders.Build(unit, implementation.Node!);
-		});
-
-		unit.Reindex();
-		unit.Simulate(UnitMode.BUILD, instruction => { instruction.Build(); });
+		// Reset the state
+		unit.Mode = UnitMode.NONE;
 
 		Translator.Translate(builder, unit);
 
@@ -471,7 +534,7 @@ public static class Assembler
 	/// <summary>
 	/// Allocates the specified table label using assembly directives
 	/// </summary>
-	private static string AddTableLable(TableLabel label)
+	private static string AddTableLabel(TableLabel label)
 	{
 		if (label.Declare)
 		{
@@ -523,7 +586,7 @@ public static class Assembler
 				Table f => $"{Size.Allocator} {f.Name}",
 				Label g => $"{Size.Allocator} {g.GetName()}",
 				Offset h => $"{Size.DWORD.Allocator} {h.To.Name} - {h.From.Name}",
-				TableLabel i => AddTableLable(i),
+				TableLabel i => AddTableLabel(i),
 				_ => throw new ApplicationException("Invalid table item")
 			};
 
@@ -623,30 +686,6 @@ public static class Assembler
 			builders[iterator.Key!] = builder;
 		}
 
-		// Export all the types using mangled symbols
-		foreach (var iterator in types)
-		{
-			var builder = builders[iterator.Key];
-			var symbols = new List<string>();
-			var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
-
-			builder.Write(SEPARATOR);
-
-			foreach (var type in iterator)
-			{
-				// 1. Skip imported types, because they are already exported
-				if (type.IsImported) continue;
-
-				var symbol = ObjectExporter.ExportType(builder, type);
-				if (symbol == null) continue;
-
-				builder.Export(symbol);
-				module.CreateLocalSymbol(symbol, module.Position);
-			}
-
-			builder.Write(SEPARATOR);
-		}
-
 		return builders;
 	}
 
@@ -737,15 +776,6 @@ public static class Assembler
 	
 		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
 		var standard_library_object_file = new SourceFile(AssemblyPhase.StandardLibrary, string.Empty, files.Max(i => i.Index) + 1);
-
-		// if (object_files.Keys.All(i => i.Filename != AssemblyPhase.ImportedStandardLibraryObjectFile))
-		// {
-		// 	object_files.Add
-		// 	(
-		// 		standard_library_object_file,
-		// 		IsTargetWindows ? PeFormat.Import(standard_library_object_file.Fullname) : ElfFormat.Import(standard_library_object_file.Fullname)
-		// 	);
-		// }
 
 		// Import user defined object files
 		var user_imported_object_files = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());

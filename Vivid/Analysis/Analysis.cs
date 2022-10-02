@@ -232,7 +232,7 @@ public static class Analysis
 		{
 			result.AddRange(CollectComponents(expression.To<OperatorNode>()));
 		}
-		else if (expression.Is(NodeType.CONTENT))
+		else if (expression.Is(NodeType.PARENTHESIS))
 		{
 			if (!Equals(expression.First, null))
 			{
@@ -861,7 +861,7 @@ public static class Analysis
 					result += STANDARD_OPERATOR_COST;
 				}
 			}
-			else if (iterator.Is(NodeType.LINK, NodeType.OFFSET))
+			else if (iterator.Is(NodeType.LINK, NodeType.ACCESSOR))
 			{
 				result += MEMORY_ACCESS_COST;
 			}

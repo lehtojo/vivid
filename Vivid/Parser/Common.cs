@@ -50,7 +50,7 @@ public static class Common
 		var alignment = (long)required_self_type.GetAllVirtualFunctions().IndexOf(overload);
 		if (alignment == -1) throw new ApplicationException("Could not compute virtual function alignment");
 
-		var function_pointer = new OffsetNode(new LinkNode(self.Clone(), new VariableNode(configuration)), new NumberNode(Parser.Format, alignment + 1));
+		var function_pointer = new AccessorNode(new LinkNode(self.Clone(), new VariableNode(configuration)), new NumberNode(Parser.Format, alignment + 1));
 		
 		if (self_type != required_self_type)
 		{
@@ -116,7 +116,7 @@ public static class Common
 
 		var self = new LinkNode(left, new VariableNode(variable));
 		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
-		var function_pointer = new OffsetNode(self.Clone(), new NumberNode(Parser.Format, offset));
+		var function_pointer = new AccessorNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
 		return new CallNode(self, function_pointer, parameters, properties);
 	}
@@ -163,7 +163,7 @@ public static class Common
 		}
 
 		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
-		var function_pointer = new OffsetNode(self.Clone(), new NumberNode(Parser.Format, offset));
+		var function_pointer = new AccessorNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
 		return new CallNode(self, function_pointer, parameters, properties);
 	}
@@ -627,7 +627,7 @@ public static class Common
 				typeof(IsPattern),
 				typeof(LinkPattern),
 				typeof(NotPattern),
-				typeof(OffsetPattern),
+				typeof(AccessorPattern),
 				typeof(OperatorPattern),
 				typeof(PostIncrementAndDecrementPattern),
 				typeof(PreIncrementAndDecrementPattern),
@@ -664,7 +664,7 @@ public static class Common
 				typeof(LoopPattern),
 				typeof(LinkPattern),
 				typeof(NotPattern),
-				typeof(OffsetPattern),
+				typeof(AccessorPattern),
 				typeof(OperatorPattern),
 				typeof(PostIncrementAndDecrementPattern),
 				typeof(PreIncrementAndDecrementPattern),
@@ -936,7 +936,7 @@ public static class Common
 			if (next == null) break;
 
 			if (next.Is(NodeType.OPERATOR) && !next.Is(OperatorType.ASSIGNMENT)) { iterator = next; }
-			else if (next.Is(NodeType.CONTENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.PACK)) { iterator = next; }
+			else if (next.Is(NodeType.PARENTHESIS, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.ACCESSOR, NodeType.PACK)) { iterator = next; }
 			else { break; }
 		}
 
@@ -948,7 +948,7 @@ public static class Common
 	/// </summary>
 	public static bool IsCallArgument(Node node)
 	{
-		var result = node.FindParent(i => !i.Is(NodeType.CONTENT, NodeType.CAST));
+		var result = node.FindParent(i => !i.Is(NodeType.PARENTHESIS, NodeType.CAST));
 
 		return result != null && result.Is(NodeType.CALL, NodeType.FUNCTION, NodeType.UNRESOLVED_FUNCTION);
 	}
@@ -969,7 +969,7 @@ public static class Common
 	/// </summary>
 	public static Node FindCondition(Node start)
 	{
-		return start.GetRightWhile(i => i.Is(NodeType.SCOPE, NodeType.INLINE, NodeType.NORMAL, NodeType.CONTENT)) ?? throw new ApplicationException("Conditional statement did not have a condition");
+		return start.GetRightWhile(i => i.Is(NodeType.SCOPE, NodeType.INLINE, NodeType.NORMAL, NodeType.PARENTHESIS)) ?? throw new ApplicationException("Conditional statement did not have a condition");
 	}
 
 	/// <summary>
@@ -1199,6 +1199,14 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Returns whether the specified node represents a local variable
+	/// </summary>
+	public static bool IsLocalVariable(Node node)
+	{
+		return node.Instance == NodeType.VARIABLE && node.To<VariableNode>().Variable.IsPredictable;
+	}
+
+	/// <summary>
 	/// Returns how many bits the specified number requires
 	/// </summary>
 	public static int GetBits(object value)
@@ -1279,40 +1287,40 @@ public static class Common
 	/// <summary>
 	/// Returns all local variables, which represent the specified pack variable
 	/// </summary>
-	private static List<Variable> GetPackRepresentives(Context context, string prefix, Type type, VariableCategory category)
+	private static List<Variable> GetPackProxies(Context context, string prefix, Type type, VariableCategory category)
 	{
-		var representives = new List<Variable>();
+		var proxies = new List<Variable>();
 
 		foreach (var member in type.Variables.Values)
 		{
 			var name = prefix + '.' + member.Name;
 
-			// Create representives for each member, even for nested pack members
-			var representive = context.GetVariable(name);
-			if (representive == null) { representive = context.Declare(member.Type!, category, name); }
+			// Create proxies for each member, even for nested pack members
+			var proxy = context.GetVariable(name);
+			if (proxy == null) { proxy = context.Declare(member.Type!, category, name); }
 
 			if (member.Type!.IsPack)
 			{
-				representives.AddRange(GetPackRepresentives(context, name, member.Type!, category));
+				proxies.AddRange(GetPackProxies(context, name, member.Type!, category));
 			}
 			else
 			{
-				representives.Add(representive);
+				proxies.Add(proxy);
 			}
 		}
 
-		return representives;
+		return proxies;
 	}
 
 	/// <summary>
 	/// Returns all local variables, which represent the specified pack variable
 	/// </summary>
-	public static List<Variable> GetPackRepresentives(Variable pack)
+	public static List<Variable> GetPackProxies(Variable pack)
 	{
-		// If we are accessing a pack representive, no need to add dot to the name
+		// If we are accessing a pack proxy, no need to add dot to the name
 		var prefix = pack.Name.StartsWith('.') ? pack.Name : ('.' + pack.Name);
 
-		return GetPackRepresentives(pack.Context, prefix, pack.Type!, pack.Category);
+		return GetPackProxies(pack.Context, prefix, pack.Type!, pack.Category);
 	}
 
 	/// <summary>

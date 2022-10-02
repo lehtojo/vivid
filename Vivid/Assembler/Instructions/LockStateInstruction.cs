@@ -23,11 +23,8 @@ public class LockStateInstruction : Instruction
 		IsLocked = locked;
 		IsAbstract = true;
 		Description = (IsLocked ? "Lock" : "Unlock") + $" '{register.Partitions[0]}'";
-	}
 
-	public override void OnSimulate()
-	{
-		Register.IsLocked = IsLocked;
+		register.IsLocked = locked;
 	}
 
 	public override void OnBuild()

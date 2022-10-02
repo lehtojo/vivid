@@ -30,13 +30,11 @@
 			// "args": [
 			// 	"C:/Users/joona/vivid-2/",
 			// 	"C:/Users/joona/vivid-2/entries/vivid.v",
+			// 	"C:/Users/joona/vivid-2/optimizer/",
 			// 	"C:/Users/joona/vivid-2/libv/",
-			// 	"C:/Users/joona/vivid-2/libv/windows-x64",
-			// 	"C:/Users/joona/vivid-2/libv/allocator/Primary2.v",
-			// 	"minimum.math.obj",
-			// 	"minimum.memory.obj",
-			// 	"minimum.tests.obj",
-			// 	"-o", "v", "-a", "-f", "-l", "kernel32", "-d", "-verbose"
+			// 	"C:/Users/joona/vivid-2/libv/linux-x64",
+			// 	"C:/Users/joona/vivid-2/libv/allocator/allocator.v",
+			// 	"-o", "v", "-a", "-f", "-d", "-verbose", "-st"
 			// ],
 
 			// Build an assembly file
@@ -90,6 +88,19 @@
 			// 	"-a"
 			// ],
 
+			"args": [
+				"${workspaceFolder}/Examples/main.v",
+				"minimum.math.obj",
+				"minimum.memory.obj",
+				"minimum.tests.obj",
+				"-f",
+				"-o",
+				"app",
+				"-a",
+				"-l",
+				"kernel32.dll"
+			],
+
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"stopAtEntry": false,
@@ -105,7 +116,7 @@
 			"program": "${workspaceFolder}/bin/Units/net6.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
-			"args": [ "-O2" ],
+			"args": [],
 			"env": { "LD_LIBRARY_PATH": "LD_LIBRARY_PATH:${workspaceFolder}" },
 			"stopAtEntry": false,
 			"logging": {

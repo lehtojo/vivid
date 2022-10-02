@@ -6,9 +6,6 @@ using System.Linq;
 /// </summary>
 public class AdditionInstruction : DualParameterInstruction
 {
-	private const int STANDARD_ADDITION_FIRST = 0;
-	private const int STANDARD_ADDITION_SECOND = 1;
-
 	public bool Assigns { get; private set; }
 
 	public AdditionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.ADDITION)
@@ -34,7 +31,7 @@ public class AdditionInstruction : DualParameterInstruction
 		{
 			if (Assigns && First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+				Unit.Add(new MoveInstruction(Unit, First, Result), true);
 			}
 
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
@@ -82,7 +79,7 @@ public class AdditionInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (First.IsExpiring(Position))
+		if (First.IsDeactivating())
 		{
 			Build(
 				Instructions.Shared.ADD,
@@ -133,7 +130,7 @@ public class AdditionInstruction : DualParameterInstruction
 		{
 			if (First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+				Unit.Add(new MoveInstruction(Unit, First, Result), true);
 			}
 
 			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
@@ -196,8 +193,8 @@ public class AdditionInstruction : DualParameterInstruction
 			return true;
 		}
 
-		var first = Parameters[STANDARD_ADDITION_FIRST];
-		var second = Parameters[STANDARD_ADDITION_SECOND];
+		var first = Parameters[0];
+		var second = Parameters[1];
 
 		if (handle.Type == HandleType.REGISTER && first.IsAnyRegister && (second.IsAnyRegister || second.IsConstant))
 		{

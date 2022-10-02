@@ -23,7 +23,7 @@ public class DeclareInstruction : Instruction
 		}
 		
 		var media_register = Variable.GetRegisterFormat().IsDecimal();
-		var register = Memory.GetNextRegister(Unit, media_register, Trace.GetDirectives(Unit, Result));
+		var register = Memory.GetNextRegister(Unit, media_register, Trace.For(Unit, Result));
 
 		Result.Value = new RegisterHandle(register);
 		Result.Format = Variable.GetRegisterFormat();

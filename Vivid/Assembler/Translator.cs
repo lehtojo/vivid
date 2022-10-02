@@ -18,7 +18,7 @@ public static class Translator
 
 	private static IEnumerable<Handle> GetAllHandles(Unit unit)
 	{
-		var handles = unit.Instructions.SelectMany(i => i.Parameters.Select(p => p.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
+		var handles = unit.Instructions.SelectMany(i => i.Parameters.Select(i => i.Value ?? throw new ApplicationException("Instruction parameter was not assigned")));
 
 		return handles.Concat(handles.SelectMany(i => GetAllHandles(i.GetInnerResults())));
 	}
@@ -42,11 +42,11 @@ public static class Translator
 			.ToList();
 	}
 
-	private static List<InlineHandle> GetAllInlineHandles(Unit unit)
+	private static List<StackAllocationHandle> GetAllInlineHandles(Unit unit)
 	{
 		return GetAllHandles(unit)
-			.Where(i => i.Is(HandleInstanceType.INLINE))
-			.Cast<InlineHandle>()
+			.Where(i => i.Is(HandleInstanceType.STACK_ALLOCATION))
+			.Cast<StackAllocationHandle>()
 			.ToList();
 	}
 
@@ -65,7 +65,7 @@ public static class Translator
 			var current = constant_data_section_handles.First();
 			var copies = constant_data_section_handles.Where(i => i.Equals(current)).ToList();
 
-			var identifier = unit.GetNextConstantIdentifier(current.Value);
+			var identifier = unit.GetNextConstant();
 			copies.ForEach(i => i.Identifier = identifier);
 			copies.ForEach(i => constant_data_section_handles.Remove(i));
 		}
@@ -79,7 +79,7 @@ public static class Translator
 		for (var i = 0; i < instructions.Count;)
 		{
 			// Find the next debug position instruction
-			if (instructions[i].Type != InstructionType.APPEND_POSITION)
+			if (instructions[i].Type != InstructionType.DEBUG_BREAK)
 			{
 				i++;
 				continue;
@@ -93,14 +93,14 @@ public static class Translator
 				var instruction = instructions[j];
 
 				if (instruction.Type == InstructionType.LABEL) continue;
-				if (instruction.Type == InstructionType.APPEND_POSITION || !instruction.IsAbstract) break;
+				if (instruction.Type == InstructionType.DEBUG_BREAK || !instruction.IsAbstract) break;
 			}
 
 			// We need to insert a NOP-instruction in the following cases:
 			// - We reached the end of the instruction list
 			// - We found a debug position instruction
 			// In the above cases, there are no hardware instructions where the debugger could stop after the debug position instruction.
-			if (j == instructions.Count || instructions[j].Type == InstructionType.APPEND_POSITION)
+			if (j == instructions.Count || instructions[j].Type == InstructionType.DEBUG_BREAK)
 			{
 				instructions.Insert(i + 1, new NoOperationInstruction(unit));
 				j++; // Update the index, because we inserted a new instruction
@@ -135,7 +135,7 @@ public static class Translator
 		{
 			if (Assembler.IsDebuggingEnabled && unit.Function.Metadata.End != null)
 			{
-				instructions.Add(new AppendPositionInstruction(unit, unit.Function.Metadata.End));
+				instructions.Add(new DebugBreakInstruction(unit, unit.Function.Metadata.End));
 			}
 
 			instructions.Add(new ReturnInstruction(unit, null, null));
@@ -197,9 +197,9 @@ public static class Translator
 		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled)
 		{
 			// Convert all instructions into textual assembly
-			instructions.ForEach(i => i.Translate());
+			instructions.ForEach(i => i.Finish());
 
-			builder.Write(unit.Export());
+			builder.Write(unit.ToString());
 
 			// Add a directive, which tells the assembler to finish debugging information regarding the current function
 			if (Assembler.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);

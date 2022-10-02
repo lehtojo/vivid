@@ -15,7 +15,7 @@ public class CreatePackInstruction : Instruction
 		dependencies.Add(Result);
 		dependencies.AddRange(values);
 
-		Dependencies = dependencies.ToArray();
+		Dependencies = dependencies;
 		Value = new DisposablePackHandle(unit, type);
 
 		OnBuild();

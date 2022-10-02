@@ -6,33 +6,33 @@ public static class Casts
 	{
 		if (from == to) return result;
 
-		if (from is Number x && to is Number y)
+		// Number casts:
+		if (from.IsNumber && to.IsNumber)
 		{
-			var a = x.Format.IsDecimal();
-			var b = y.Format.IsDecimal();
+			var a = from.To<Number>().Format;
+			var b = to.To<Number>().Format;
 
-			// Execute only if exactly one of the booleans is true
-			if (a ^ b) return new ConvertInstruction(unit, result, y.Format).Execute();
+			if (a != b) return new ConvertInstruction(unit, result, b).Add();
 
 			return result;
 		}
 
-		if (from.IsTypeInherited(to)) // Determine whether the cast is a down cast
+		// Determine whether the cast is a down cast
+		if (from.IsTypeInherited(to))
 		{
-			var base_offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not compute base offset of a super type while building down cast");
-			if (base_offset == 0) return result;
+			var offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not compute base offset of a super type while building down cast");
+			if (offset == 0) return result;
 
-			var offset = new Result(new ConstantHandle((long)base_offset), Assembler.Signed);
-			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
+			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)offset), Assembler.Signed), result.Format, false).Add();
 		}
 
-		if (to.IsTypeInherited(from)) // Determine whether the cast is a up cast
+		// Determine whether the cast is a up cast
+		if (to.IsTypeInherited(from))
 		{
-			var base_offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not compute base offset of a super type while building up cast");
-			if (base_offset == 0) return result;
+			var offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not compute base offset of a super type while building up cast");
+			if (offset == 0) return result;
 
-			var offset = new Result(new ConstantHandle((long)-base_offset), Assembler.Signed);
-			return new AdditionInstruction(unit, result, offset, result.Format, false).Execute();
+			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)-offset), Assembler.Signed), result.Format, false).Add();
 		}
 
 		// This means that the cast is unsafe since the types have nothing in common

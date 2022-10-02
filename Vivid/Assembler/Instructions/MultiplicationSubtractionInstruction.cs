@@ -1,5 +1,7 @@
+using System.Collections.Generic;
+
 /// <summary>
-/// Substracts the specified values together
+/// Subtracts the specified values together
 /// This instruction is works only on architecture Arm64
 /// </summary>
 public class MultiplicationSubtractionInstruction : Instruction
@@ -18,7 +20,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 		Minued = minued;
 		Assigns = assigns;
 		Format = format;
-		Dependencies = new[] { Multiplicand, Multiplier, Minued, Result };
+		Dependencies = new List<Result> { Multiplicand, Multiplier, Minued, Result };
 	}
 
 	public override void OnBuild()
@@ -54,7 +56,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 
 			if (Minued.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, Minued, result), true);
+				Unit.Add(new MoveInstruction(Unit, Minued, result), true);
 			}
 
 			Result.Format = Format;

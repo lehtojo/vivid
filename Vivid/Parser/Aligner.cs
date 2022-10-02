@@ -9,8 +9,8 @@ public class ParameterAligner
 
 	public ParameterAligner(int position)
 	{
-		StandardRegisters = Calls.GetStandardParameterRegisters().Count();
-		DecimalRegisters = Calls.GetMaxMediaRegisterParameters();
+		StandardRegisters = Calls.GetStandardParameterRegisterCount();
+		DecimalRegisters = Calls.GetDecimalParameterRegisterCount();
 		Position = position;
 	}
 
@@ -23,11 +23,11 @@ public class ParameterAligner
 
 		if (type.IsPack)
 		{
-			var representives = Common.GetPackRepresentives(parameter);
+			var proxies = Common.GetPackProxies(parameter);
 
-			foreach (var representive in representives)
+			foreach (var proxy in proxies)
 			{
-				Align(representive);
+				Align(proxy);
 			}
 
 			return;
@@ -78,9 +78,9 @@ public static class Aligner
 	}
 
 	/// <summary>
-	/// Align all used local packs and their representives sequentially.
+	/// Align all used local packs and their proxies sequentially.
 	/// Returns the stack position after aligning.
-	/// NOTE: Available only in debugging mode, because in optimized builds pack representives might not be available
+	/// NOTE: Available only in debugging mode, because in optimized builds pack proxies might not be available
 	/// </summary>
 	private static int AlignPacksForDebugging(FunctionImplementation context, List<Variable> variables, int position)
 	{
@@ -93,8 +93,8 @@ public static class Aligner
 			if (!local.Type!.IsPack) continue;
 
 			// Align the whole pack if it is used
-			var representives = Common.GetPackRepresentives(local);
-			if (representives.All(i => !variables.Contains(i))) continue;
+			var proxies = Common.GetPackProxies(local);
+			if (proxies.All(i => !variables.Contains(i))) continue;
 
 			// Allocate stack memory for the whole pack
 			position -= local.Type!.AllocationSize;
@@ -103,14 +103,14 @@ public static class Aligner
 			// Keep track of the position inside the pack, so that we can align the members properly
 			var subposition = position;
 
-			// Align the pack representives inside the allocated stack memory
-			foreach (var representive in representives)
+			// Align the pack proxies inside the allocated stack memory
+			foreach (var proxy in proxies)
 			{
-				representive.LocalAlignment = subposition;
-				subposition += representive.Type!.AllocationSize;
+				proxy.LocalAlignment = subposition;
+				subposition += proxy.Type!.AllocationSize;
 
-				// Remove the representive from the variable list that will be aligned later
-				variables.Remove(representive);
+				// Remove the proxy from the variable list that will be aligned later
+				variables.Remove(proxy);
 			}
 		}
 
@@ -120,7 +120,7 @@ public static class Aligner
 	/// <summary>
 	/// Align all used local variables and allocate memory for other kinds of local memory such as temporary handles and stack allocation handles
 	/// </summary>
-	public static void AlignLocalMemory(FunctionImplementation context, List<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<InlineHandle> inline_handles, int top)
+	public static void AlignLocalMemory(FunctionImplementation context, List<Variable> variables, List<TemporaryMemoryHandle> temporary_handles, List<StackAllocationHandle> inline_handles, int top)
 	{
 		var position = -top;
 
@@ -135,11 +135,11 @@ public static class Aligner
 		while (temporary_handles.Count > 0)
 		{
 			var first = temporary_handles.First();
-			var identifier = first.Identifier;
+			var identifier = first.Identity;
 
 			position -= first.Size.Bytes;
 
-			var copies = temporary_handles.Where(i => i.Identifier.Equals(identifier)).ToList();
+			var copies = temporary_handles.Where(i => i.Identity.Equals(identifier)).ToList();
 
 			copies.ForEach(i => i.Offset = position);
 			copies.ForEach(i => temporary_handles.Remove(i));

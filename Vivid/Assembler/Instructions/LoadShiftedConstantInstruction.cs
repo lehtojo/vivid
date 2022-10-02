@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 /// <summary>
 /// Shifts the specified value with the specified amount and loads the value into the specified destination
 /// This instruction is works only on architecture Arm64
@@ -13,7 +15,7 @@ public class LoadShiftedConstantInstruction : Instruction
 		Destination = destination;
 		Value = value;
 		Shift = shift;
-		Dependencies = new[] { Result, Destination };
+		Dependencies = new List<Result> { Result, Destination };
 	}
 
 	public override void OnBuild()

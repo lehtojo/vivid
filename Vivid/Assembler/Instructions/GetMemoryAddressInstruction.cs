@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 /// <summary>
 /// Returns a handle for accessing raw memory
 /// This instruction works on all architectures
@@ -20,7 +22,7 @@ public class GetMemoryAddressInstruction : Instruction
 		Stride = stride;
 		Format = format;
 		IsAbstract = true;
-		Dependencies = new[] { Result, Start, Offset };
+		Dependencies = new List<Result> { Result, Start, Offset };
 
 		if (type.IsPack)
 		{
@@ -63,11 +65,11 @@ public class GetMemoryAddressInstruction : Instruction
 			{
 				// 1. Ensure we are in build mode, so we can use registers
 				// 2. Ensure the pack member is used, so we do not move it to a register unnecessarily
-				if (Unit.Mode == UnitMode.BUILD && !value.IsExpiring(Unit.Position))
+				if (Unit.Mode == UnitMode.BUILD && !value.IsDeactivating())
 				{
 					// Since we are in build mode and the member is required, we need to output a register value
 					value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
-					Memory.MoveToRegister(Unit, value, Size.FromFormat(value.Format), value.Format.IsDecimal(), Trace.GetDirectives(Unit, value));
+					Memory.MoveToRegister(Unit, value, Size.FromFormat(value.Format), value.Format.IsDecimal(), Trace.For(Unit, value));
 				}
 				else
 				{
@@ -84,8 +86,8 @@ public class GetMemoryAddressInstruction : Instruction
 	private void ValidateHandle()
 	{
 		// Ensure the start value is a constant or in a register
-		if (Start.IsConstant || Start.IsInline || Start.IsStandardRegister) return;
-		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.GetDirectives(Unit, Start));
+		if (Start.IsConstant || Start.IsStackAllocation || Start.IsStandardRegister) return;
+		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.For(Unit, Start));
 	}
 
 	public override void OnBuild()
@@ -100,29 +102,16 @@ public class GetMemoryAddressInstruction : Instruction
 			return;
 		}
 
-		// Fixes situations where a memory address is requested by not immediately loaded into a register, so another instruction might affect the value before loading
-		/// Example: address[0] + call(address)
-		/// NOTE: In the example above the first operand requests the memory address but does not necessarily load it so the function call might modify the contents of the address
-		if (Mode != AccessMode.READ && !Trace.IsLoadingRequired(Unit, Result))
-		{
-			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
-			Result.Format = Format;
-			return;
-		}
-
 		if (Mode == AccessMode.READ)
 		{
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;
 
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Trace.GetDirectives(Unit, Result));
+			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Trace.For(Unit, Result));
 		}
 		else
 		{
-			var address = new Result(ExpressionHandle.CreateMemoryAddress(Start, Offset, Stride), Assembler.Format);
-			Memory.MoveToRegister(Unit, address, Assembler.Size, false, Trace.GetDirectives(Unit, Result));
-
-			Result.Value = new MemoryHandle(Unit, address, 0);
+			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;
 		}
 	}

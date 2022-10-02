@@ -325,6 +325,26 @@ public class Context : IComparable<Context>
 
 	protected Indexer Indexer { get; set; } = new Indexer();
 
+	public List<Variable> GetAllVariables()
+	{
+		var result = new List<Variable>();
+
+		foreach (var iterator in Variables)
+		{
+			var variable = iterator.Value;
+			if (variable.Category == VariableCategory.LOCAL && variable.Category == VariableCategory.PARAMETER) continue;
+			result.Add(variable);
+		}
+
+		foreach (var subcontext in Subcontexts)
+		{
+			if (IsType || IsFunction || IsImplementation) continue;
+			result.AddRange(subcontext.GetAllVariables());
+		}
+
+		return result;
+	}
+
 	/// <summary>
 	/// Create a new root context
 	/// </summary>

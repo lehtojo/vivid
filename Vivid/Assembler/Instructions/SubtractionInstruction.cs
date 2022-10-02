@@ -1,14 +1,11 @@
 using System.Linq;
 
 /// <summary>
-/// Substracts the specified values together
+/// Subtracts the specified values together
 /// This instruction works on all architectures
 /// </summary>
 public class SubtractionInstruction : DualParameterInstruction
 {
-	private const int STANDARD_SUBTRACTION_FIRST = 0;
-	private const int STANDARD_SUBTRACTION_SECOND = 1;
-
 	public bool Assigns { get; private set; }
 
 	public SubtractionInstruction(Unit unit, Result first, Result second, Format format, bool assigns) : base(unit, first, second, format, InstructionType.SUBTRACT)
@@ -37,17 +34,16 @@ public class SubtractionInstruction : DualParameterInstruction
 		{
 			if (Assigns && First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+				Unit.Add(new MoveInstruction(Unit, First, Result), true);
 			}
 
-			var instruction = Instructions.X64.DOUBLE_PRECISION_SUBTRACT;
-			var result = Memory.LoadOperand(Unit, First, true, Assigns);
+			var operand = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			Build(
-				instruction,
+				Instructions.X64.DOUBLE_PRECISION_SUBTRACT,
 				new InstructionParameter(
-					result,
+					operand,
 					ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
@@ -112,7 +108,7 @@ public class SubtractionInstruction : DualParameterInstruction
 		{
 			if (First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+				Unit.Add(new MoveInstruction(Unit, First, Result), true);
 			}
 
 			var result = Memory.LoadOperand(Unit, First, is_decimal, Assigns);
@@ -167,8 +163,8 @@ public class SubtractionInstruction : DualParameterInstruction
 	{
 		if (Operation == Instructions.X64.DOUBLE_PRECISION_SUBTRACT) return false;
 
-		var first = Parameters[STANDARD_SUBTRACTION_FIRST];
-		var second = Parameters[STANDARD_SUBTRACTION_SECOND];
+		var first = Parameters[0];
+		var second = Parameters[1];
 
 		if (handle.Type == HandleType.REGISTER && first.IsAnyRegister && second.IsConstant)
 		{

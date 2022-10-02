@@ -104,7 +104,7 @@ public class Patterns
 		Add(new ModifierSectionPattern());
 		Add(new NamespacePattern());
 		Add(new NotPattern());
-		Add(new OffsetPattern());
+		Add(new AccessorPattern());
 		Add(new OperatorPattern());
 		Add(new OverrideFunctionPattern());
 		Add(new PackConstructionPattern());

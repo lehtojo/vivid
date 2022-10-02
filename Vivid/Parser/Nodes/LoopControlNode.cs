@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 
-public class LoopControlNode : Node, IResolvable
+public class CommandNode : Node, IResolvable
 {
 	public Keyword Instruction { get; private set; }
-	public Condition? Condition { get; set; }
-	public LoopNode? Loop => (LoopNode?)FindParent(NodeType.LOOP);
+	public LoopNode? Container => (LoopNode?)FindParent(NodeType.LOOP);
 	public bool Finished { get; set; } = false;
 
-	public LoopControlNode(Keyword instruction, Position? position = null)
+	public CommandNode(Keyword instruction, Position? position = null)
 	{
 		Instruction = instruction;
 		Position = position;
@@ -17,10 +16,9 @@ public class LoopControlNode : Node, IResolvable
 		if (Instruction != Keywords.CONTINUE) { Finished = true; }
 	}
 
-	public LoopControlNode(Keyword instruction, Condition? condition, Position? position, bool finished = false)
+	public CommandNode(Keyword instruction, Position? position, bool finished = false)
 	{
 		Instruction = instruction;
-		Condition = condition;
 		Finished = finished;
 		Position = position;
 		Instance = NodeType.LOOP_CONTROL;
@@ -31,7 +29,7 @@ public class LoopControlNode : Node, IResolvable
 		if (Finished) return null;
 
 		// Try to find the parent loop
-		var loop = Loop;
+		var loop = Container;
 		if (loop == null) return null;
 
 		// Continue nodes must execute the action of their parent loops
@@ -48,20 +46,20 @@ public class LoopControlNode : Node, IResolvable
 		var result = new InlineNode();
 		loop.Action.ForEach(i => result.Add(i.Clone()));
 
-		result.Add(new LoopControlNode(Instruction, Condition, Position, true));
+		result.Add(new CommandNode(Instruction, Position, true));
 
 		return result;
 	}
 
 	public Status GetStatus()
 	{
-		if (Finished && Loop != null) return Status.OK;
+		if (Finished && Container != null) return Status.OK;
 		return Status.Error(Position, $"Keyword '{Instruction.Identifier}' must be used inside a loop");
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is LoopControlNode node &&
+		return other is CommandNode node &&
 				base.Equals(other) &&
 				EqualityComparer<Keyword>.Default.Equals(Instruction, node.Instruction);
 	}

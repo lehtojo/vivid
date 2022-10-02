@@ -22,20 +22,13 @@ public class Register
 	public byte Identifier { get; set; } = 0;
 	public byte Name { get; set; } = 0;
 	public string[] Partitions { get; private set; }
+	public Result? Value { get; set; } = null;
+	public int Flags { get; set; }
 	public Size Width { get; private set; }
-
-	private Result? _Value { get; set; } = null;
-	public Result? Handle
-	{
-		get => _Value;
-		set { _Value = value; }
-	}
+	public bool IsLocked { get; set; } = false;
 
 	public string this[Size size] => Partitions[(int)Math.Log2(Width.Bytes) - (int)Math.Log2(size.Bytes)];
 
-	public int Flags { get; set; }
-
-	public bool IsLocked { get; set; } = false;
 	public bool IsVolatile => Flag.Has(Flags, RegisterFlag.VOLATILE);
 	public bool IsReserved => Flag.Has(Flags, RegisterFlag.RESERVED);
 	public bool IsMediaRegister => Flag.Has(Flags, RegisterFlag.MEDIA);
@@ -56,29 +49,39 @@ public class Register
 		Flags = Flag.Combine(flags);
 	}
 
-	public string GetDescription()
-	{
-		return _Value == null ? "Empty" : "Occupied";
-	}
-
 	public bool IsHandleCopy()
 	{
-		return Handle != null && !(Handle.Value.Is(HandleInstanceType.REGISTER) && Handle.Value.To<RegisterHandle>().Register == this);
+		return Value != null && !(Value.Value.Is(HandleInstanceType.REGISTER) && Value.Value.To<RegisterHandle>().Register == this);
 	}
 
-	public bool IsAvailable(int position)
+	public bool IsAvailable()
 	{
-		return !IsLocked && (Handle == null || !Handle.IsValid(position) || IsHandleCopy());
+		return !IsLocked && (Value == null || !Value.IsActive() || IsHandleCopy());
+	}
+
+	public bool IsDeactivating()
+	{
+		return !IsLocked && Value != null && Value.IsDeactivating();
 	}
 
 	public bool IsReleasable(Unit unit)
 	{
-		return !IsLocked && (Handle == null || Handle.IsReleasable(unit));
+		return !IsLocked && (Value == null || Value.IsReleasable(unit));
+	}
+
+	public void Lock()
+	{
+		IsLocked = true;
+	}
+
+	public void Unlock()
+	{
+		IsLocked = false;
 	}
 
 	public void Reset()
 	{
-		_Value = null;
+		Value = null;
 	}
 
 	public override string ToString()

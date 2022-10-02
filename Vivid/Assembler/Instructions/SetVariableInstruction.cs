@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Updates the current value of the variable
@@ -6,64 +7,68 @@ using System;
 /// </summary>
 public class SetVariableInstruction : Instruction
 {
-	public Variable Variable { get; private set; }
-	public Result Value { get; private set; }
+	public Variable Variable { get; set; }
+	public Result Value { get; set; }
+	public bool IsCopied { get; set; } = false;
 
 	public SetVariableInstruction(Unit unit, Variable variable, Result value) : base(unit, InstructionType.SET_VARIABLE)
 	{
-		if (!variable.IsPredictable) throw new ArgumentException("Setting value for unpredictable variables is not allowed");
+		if (!variable.IsPredictable) throw new ApplicationException("Setting value for unpredictable variables is not allowed");
 
-		Variable = variable;
-		Value = value;
+		this.Variable = variable;
+		this.Value = value;
+		this.Dependencies!.Add(value);
+		this.Description = "Updates the value of the variable " + variable.Name;
+		this.IsAbstract = true;
+		this.Result.Format = variable.Type!.GetRegisterFormat();
 
-		// If the variable has a previous value, hold it until this instruction is executed
-		var previous = Unit.GetVariableValue(Variable, false);
-		if (previous != null) { Dependencies = new[] { Result, Value, previous }; }
-		else { Dependencies = new[] { Result, Value }; }
-		
-		Description = $"Updates the value of the variable '{variable.Name}'";
-		IsAbstract = true;
+		// If the value represents another variable or is a constant, it must be copied
+		this.IsCopied = unit.IsVariableValue(value) || value.IsConstant;
 
-		Result.Format = Variable.GetRegisterFormat();
-		OnSimulate();
-	}
-
-	public override void OnSimulate()
-	{
-		// If the value does not represent another variable, it does not need to be copied
-		if (!Unit.IsVariableValue(Value))
+		if (IsCopied)
 		{
-			Unit.SetVariableValue(Variable, Value);
+			unit.SetVariableValue(variable, Result);
 			return;
 		}
-		
-		// Since the value represents another variable, the value has been copied to the result of this instruction
-		Unit.SetVariableValue(Variable, Result);
+
+		unit.SetVariableValue(variable, value);
 	}
 
-	public override void OnBuild() 
+	public void CopyValue()
 	{
-		// Do not copy the value if it does not represent another variable
-		if (!Unit.IsVariableValue(Value)) return;
+		var format = Variable.Type!.GetRegisterFormat();
+		var register = Memory.GetNextRegisterWithoutReleasing(Unit, format.IsDecimal(), Trace.For(Unit, Result));
 
-		// Try to get the current location of the variable to be updated
-		var current = Unit.GetVariableValue(Variable);
-
-		// Use the location if it is available
-		if (current != null)
+		if (register != null)
 		{
-			Result.Value = current.Value;
-			Result.Format = current.Format;
+			Result.Value = new RegisterHandle(register);
+			Result.Format = format;
+
+			// Attach the result to the register
+			register.Value = Result;
 		}
-		else
-		{
-			// Set the default values since the location is not available
-			Result.Value = new Handle();
-			Result.Format = Variable.GetRegisterFormat();
+		else {
+			Result.Value = References.CreateVariableHandle(Unit, Variable);
+			Result.Format = Variable.Type!.Format;
 		}
 
 		// Copy the value to the result of this instruction
-		// NOTE: If the result is empty, the system will reserve a register
-		Unit.Append(new MoveInstruction(Unit, Result, Value) { Type = MoveType.LOAD });
+		var instruction = new MoveInstruction(Unit, Result, Value);
+		instruction.Type = MoveType.LOAD;
+		Unit.Add(instruction);
+	}
+
+	public override void OnBuild()
+	{
+		// If the value represents another variable or is a constant, it must be copied
+		if (IsCopied)
+		{
+			CopyValue();
+
+			Unit.SetVariableValue(Variable, Result);
+			return;
+		}
+
+		Unit.SetVariableValue(Variable, Value);
 	}
 }

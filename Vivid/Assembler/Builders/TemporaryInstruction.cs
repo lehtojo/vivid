@@ -6,5 +6,4 @@ public abstract class TemporaryInstruction : Instruction
 
 	public override void OnBuild() { throw new ApplicationException("Tried to build a temporary instruction"); }
 	public override void OnPostBuild() { throw new ApplicationException("Tried to build a temporary instruction"); }
-	public override void OnSimulate() { throw new ApplicationException("Tried to build a temporary instruction"); }
 }

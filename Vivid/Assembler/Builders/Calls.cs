@@ -7,41 +7,41 @@ public static class Calls
 	public const int SHADOW_SPACE_SIZE = 32;
 	public const int STACK_ALIGNMENT = 16;
 
-	private const int UNIX_X64_MEDIA_REGISTER_PARAMETERS = 7;
-	private const int WINDOWS_X64_MEDIA_REGISTER_PARAMETERS = 4;
-
-	private const int UNIX_ARM64_MEDIA_REGISTER_PARAMETERS = 8;
-	private const int WINDOWS_ARM64_MEDIA_REGISTER_PARAMETERS = 8;
-
-	private static readonly string[] UNIX_X64_STANDARD_PARAMETER_REGISTERS = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
-	private static readonly string[] WINDOWS_X64_STANDARD_PARAMETER_REGISTERS = { "rcx", "rdx", "r8", "r9" };
-
-	private static readonly string[] WINDOWS_ARM64_STANDARD_PARAMETER_REGISTERS = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
-	private static readonly string[] UNIX_ARM64_STANDARD_PARAMETER_REGISTERS = { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
-
-	public static IEnumerable<string> GetStandardParameterRegisters()
+	public static string[] GetStandardParameterRegisterNames()
 	{
-		if (Assembler.IsArm64)
-		{
-			return Assembler.IsTargetWindows ? WINDOWS_ARM64_STANDARD_PARAMETER_REGISTERS : UNIX_ARM64_STANDARD_PARAMETER_REGISTERS;
-		}
+		if (Assembler.IsArm64) return new[] { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
 
-		return Assembler.IsTargetWindows ? WINDOWS_X64_STANDARD_PARAMETER_REGISTERS : UNIX_X64_STANDARD_PARAMETER_REGISTERS;
+		return Assembler.IsTargetWindows ? new[] { "rcx", "rdx", "r8", "r9" } : new[] { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
 	}
 
-	public static int GetMaxMediaRegisterParameters()
+	public static int GetStandardParameterRegisterCount()
 	{
-		if (Assembler.IsArm64)
-		{
-			return Assembler.IsTargetWindows ? WINDOWS_ARM64_MEDIA_REGISTER_PARAMETERS : UNIX_ARM64_MEDIA_REGISTER_PARAMETERS;
-		}
+		if (Assembler.IsArm64) return 8;
 
-		return Assembler.IsTargetWindows ? WINDOWS_X64_MEDIA_REGISTER_PARAMETERS : UNIX_X64_MEDIA_REGISTER_PARAMETERS;
+		return Assembler.IsTargetWindows ? 4 : 6;
+	}
+
+	public static int GetDecimalParameterRegisterCount()
+	{
+		if (Assembler.IsArm64) return 8;
+
+		return Assembler.IsTargetWindows ? 4 : 7;
+	}
+
+	public static List<Register> GetStandardParameterRegisters(Unit unit)
+	{
+		var names = GetStandardParameterRegisterNames();
+		return unit.StandardRegisters.Where(i => names.Contains(i.Partitions.First())).ToList();
+	}
+
+	public static List<Register> GetDecimalParameterRegisters(Unit unit)
+	{
+		return unit.MediaRegisters.GetRange(0, GetDecimalParameterRegisterCount());
 	}
 
 	public static Result Build(Unit unit, FunctionNode node)
 	{
-		unit.TryAppendPosition(node);
+		unit.AddDebugPosition(node);
 
 		Result? self = null;
 
@@ -64,7 +64,7 @@ public static class Calls
 
 	public static Result Build(Unit unit, Result self, FunctionNode node)
 	{
-		unit.TryAppendPosition(node);
+		unit.AddDebugPosition(node);
 		return Build(unit, self, node.Parameters, node.Function!);
 	}
 
@@ -143,8 +143,8 @@ public static class Calls
 	/// <returns>Returns the amount of parameters moved to stack</returns>
 	private static void PassArguments(Unit unit, CallInstruction call, Result? self_pointer, Type? self_type, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
 	{
-		var standard_parameter_registers = GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
-		var decimal_parameter_registers = unit.MediaRegisters.Take(GetMaxMediaRegisterParameters()).ToList();
+		var standard_parameter_registers = GetStandardParameterRegisters(unit);
+		var decimal_parameter_registers = GetDecimalParameterRegisters(unit);
 
 		// Retrieve the this pointer if it is required and it is not loaded
 		if (self_pointer == null && is_self_pointer_required)
@@ -175,7 +175,7 @@ public static class Calls
 		}
 
 		call.Destinations.AddRange(destinations);
-		unit.Append(new ReorderInstruction(unit, destinations, sources, call.ReturnType));
+		unit.Add(new ReorderInstruction(unit, destinations, sources, call.ReturnType));
 	}
 
 	/// <summary>
@@ -213,7 +213,7 @@ public static class Calls
 		// Pass the parameters to the function and then execute it
 		PassArguments(unit, call, self, self_type, false, CollectParameters(parameters), implementation.ParameterTypes);
 
-		return call.Execute();
+		return call.Add();
 	}
 
 	public static Result Build(Unit unit, Result? self, Type? self_type, Result function, Type? return_type, Node parameters, List<Type> parameter_types)
@@ -223,31 +223,31 @@ public static class Calls
 		// Pass the parameters to the function and then execute it
 		PassArguments(unit, call, self, self_type, true, CollectParameters(parameters), parameter_types);
 
-		return call.Execute();
+		return call.Add();
 	}
 
 	private static void MovePackToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle stack_position)
 	{
-		foreach (var representive in Common.GetPackRepresentives(parameter))
+		foreach (var proxy in Common.GetPackProxies(parameter))
 		{
 			// Do not use the default parameter alignment, use local stack memory, because we want the pack members to be sequentially
-			representive.LocalAlignment = null;
+			proxy.LocalAlignment = null;
 
-			var is_decimal = representive.Type!.Format.IsDecimal();
+			var is_decimal = proxy.Type!.Format.IsDecimal();
 			var register = is_decimal ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 			var source = (Result?)null;
 
 			if (register != null)
 			{
-				source = new Result(new RegisterHandle(register), representive.GetRegisterFormat());
+				source = new Result(new RegisterHandle(register), proxy.GetRegisterFormat());
 			}
 			else
 			{
-				source = new Result(stack_position.Finalize(), representive.Type!.Format);
+				source = new Result(stack_position.Finalize(), proxy.Type!.Format);
 			}
 
-			var destination = new Result(References.CreateVariableHandle(unit, representive), representive.Type!.Format);
-			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
+			var destination = new Result(References.CreateVariableHandle(unit, proxy), proxy.Type!.Format);
+			unit.Add(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 
 			// Windows: Even though the first parameters are passed in registers, they still require their own stack memory (shadow space)
 			if (register != null && !Assembler.IsTargetWindows) continue;
@@ -258,7 +258,7 @@ public static class Calls
 	}
 
 	/// <summary>
-	/// Moves the specified parameter or its representives to their own stack locations, if they are not already in the stack.
+	/// Moves the specified parameter or its proxies to their own stack locations, if they are not already in the stack.
 	/// The location of the parameter is determined by using the specified registers.
 	/// This is used for debugging purposes.
 	/// </summary>
@@ -278,7 +278,7 @@ public static class Calls
 			var destination = new Result(References.CreateVariableHandle(unit, parameter), parameter.Type!.Format);
 			var source = new Result(new RegisterHandle(register), parameter.GetRegisterFormat());
 
-			unit.Append(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
+			unit.Add(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 
 			// Windows: Even though the first parameters are passed in registers, they still need their own stack memory (shadow space)
 			if (!Assembler.IsTargetWindows) return;
@@ -289,13 +289,13 @@ public static class Calls
 	}
 
 	/// <summary>
-	/// Moves the specified parameters or their representives to their own stack locations, if they are not already in the stack.
+	/// Moves the specified parameters or their proxies to their own stack locations, if they are not already in the stack.
 	/// This is used for debugging purposes.
 	/// </summary>
 	public static void MoveParametersToStack(Unit unit)
 	{
-		var decimal_parameter_registers = unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
-		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => unit.Registers.Find(i => i[Size.QWORD] == name)!).ToList();
+		var standard_parameter_registers = GetStandardParameterRegisters(unit);
+		var decimal_parameter_registers = GetDecimalParameterRegisters(unit);
 		var stack_position = new StackMemoryHandle(unit, Assembler.IsArm64 ? 0 : Parser.Bytes);
 
 		var parameters = new List<Variable>(unit.Function.Parameters);

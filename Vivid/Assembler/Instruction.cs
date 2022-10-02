@@ -130,22 +130,27 @@ public class InstructionParameter
 	}
 }
 
+public enum InstructionState
+{
+	NOT_BUILT = 1,
+	BUILDING = 2,
+	BUILT = 4
+}
+
 public class Instruction
 {
 	public Unit Unit { get; private set; }
 	public Scope? Scope { get; set; }
 	public Result Result { get; private set; }
-	public int Position { get; set; } = -1;
 	public InstructionType Type { get; }
-
 	public string Description { get; set; } = string.Empty;
 	public string Operation { get; set; } = string.Empty;
-
 	public List<InstructionParameter> Parameters { get; private set; } = new List<InstructionParameter>();
-	public InstructionParameter? Destination => Parameters.Find(p => p.IsDestination);
-	public InstructionParameter? Source => Parameters.Find(p => !p.IsDestination);
+	public List<Result>? Dependencies { get; set; }
+	public InstructionState State { get; set; } = InstructionState.NOT_BUILT;
 
-	public Result[]? Dependencies { get; set; }
+	public InstructionParameter? Destination => Parameters.Find(i => i.IsDestination);
+	public InstructionParameter? Source => Parameters.Find(i => !i.IsDestination);
 
 	public bool IsUsageAnalyzed { get; set; } = true; // Controls whether the unit is allowed to load operands into registers while respecting the constraints
 	public bool IsBuilt { get; protected set; } = false; // Tells whether this instructions is built
@@ -189,7 +194,7 @@ public class Instruction
 		Unit = unit;
 		Type = type;
 		Result = new Result();
-		Dependencies = new[] { Result };
+		Dependencies = new List<Result> { Result };
 	}
 
 	public bool Is(InstructionType type)
@@ -203,11 +208,11 @@ public class Instruction
 	}
 
 	/// <summary>
-	/// Depending on the state of the unit, this instruction is executed or added to the execution chain
+	/// Adds this instruction to the unit and returns the result of this instruction
 	/// </summary>
-	public Result Execute()
+	public Result Add()
 	{
-		Unit.Append(this);
+		Unit.Add(this);
 		return Result;
 	}
 
@@ -216,55 +221,28 @@ public class Instruction
 		return (T)this;
 	}
 
-	public Result Convert(InstructionParameter parameter)
+	/// <summary>
+	/// Prepares the handle for use by relocating its inner handles into registers, therefore its use does not require additional steps, except if it is in invalid format
+	/// </summary>
+	/// <returns>
+	/// Returns a list of register locks which must be active while the handle is in use
+	/// </returns>
+	private void ValidateHandle(Handle handle, List<Register> locked)
 	{
-		var protect = parameter.IsDestination && parameter.IsProtected;
-		var directives = parameter.IsDestination ? Trace.GetDirectives(Unit, Result) : Trace.GetDirectives(Unit, parameter.Result);
+		var results = handle.GetRegisterDependentResults();
 
-		if (parameter.IsValid())
+		foreach (var iterator in results)
 		{
-			// Get the more preferred options for this parameter
-			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
-
-			if (options.Contains(HandleType.REGISTER))
+			if (!iterator.IsStandardRegister)
 			{
-				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsExpiring(Position) && Unit.GetNextRegisterWithoutReleasing() != null)
-				{
-					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, directives);
-				}
-			}
-			else if (options.Contains(HandleType.MEDIA_REGISTER))
-			{
-				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
-				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsExpiring(Position) && Unit.GetNextMediaRegisterWithoutReleasing() != null)
-				{
-					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, directives);
-				}
+				Memory.MoveToRegister(Unit, iterator, Assembler.Size, false, Trace.For(Unit, iterator));
 			}
 
-			// If the parameter size does not match the required size, it can be converted by moving it to register
-			// NOTE: The parameter shall not be converted if it represents a destination memory address which is being written to
-			if (parameter.Size != Size.NONE && parameter.Result.Size != parameter.Size)
-			{
-				if (parameter.Result.IsMemoryAddress && parameter.IsDestination)
-				{
-					throw new ApplicationException("Could not convert memory address to the required size since it was specified as a destination");
-				}
+			var register = iterator.Register;
+			register.Lock();
 
-				Memory.Convert(Unit, parameter.Result, parameter.Size, directives);
-			}
-
-			// If the current parameter is the destination and it is needed later, then it must me copied to another register
-			if (protect && parameter.Result.IsOnlyValid(Position))
-			{
-				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), directives);
-			}
-
-			return parameter.Result;
+			locked.Add(register);
 		}
-
-		return Memory.Convert(Unit, parameter.Result, parameter.Size, parameter.Types, protect, directives);
 	}
 
 	/// <summary>
@@ -284,15 +262,13 @@ public class Instruction
 			{
 				// There should not be multiple destinations
 				if (destination != null) throw new ApplicationException("Instruction had multiple destinations");
-
-				destination = parameter.Value;
+				destination = parameter.Value!.Finalize();
 			}
 
 			if (parameter.IsSource && parameter.IsAttachable)
 			{
 				if (source != null) throw new InvalidOperationException("Instruction had multiple sources");
-
-				source = parameter.Value;
+				source = parameter.Value!.Finalize();
 			}
 
 			var is_relocated = Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE);
@@ -307,7 +283,7 @@ public class Instruction
 
 		if (destination != null)
 		{
-			if (destination.Is(HandleInstanceType.REGISTER))
+			if (destination.Instance == HandleInstanceType.REGISTER)
 			{
 				var register = destination.To<RegisterHandle>().Register;
 				var attached = false;
@@ -317,7 +293,7 @@ public class Instruction
 				{
 					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_DESTINATION) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_DESTINATION))
 					{
-						register.Handle = parameter.Result;
+						register.Value = parameter.Result;
 						parameter.Result.Format = destination.Format;
 						attached = true;
 						break;
@@ -327,7 +303,7 @@ public class Instruction
 				// If no result was attached to the destination, the default action should be taken
 				if (!attached)
 				{
-					register.Handle = Result;
+					register.Value = Result;
 					Result.Format = destination.Format;
 				}
 			}
@@ -345,7 +321,7 @@ public class Instruction
 
 		if (source != null)
 		{
-			if (source.Is(HandleInstanceType.REGISTER))
+			if (source.Instance == HandleInstanceType.REGISTER)
 			{
 				var register = source.To<RegisterHandle>().Register;
 
@@ -354,7 +330,7 @@ public class Instruction
 				{
 					if (Flag.Has(parameter.Flags, ParameterFlag.ATTACH_TO_SOURCE) || Flag.Has(parameter.Flags, ParameterFlag.RELOCATE_TO_SOURCE))
 					{
-						register.Handle = parameter.Result;
+						register.Value = parameter.Result;
 						parameter.Result.Format = source.Format;
 						break;
 					}
@@ -371,6 +347,57 @@ public class Instruction
 				}
 			}
 		}
+	}
+
+	public Result Convert(InstructionParameter parameter)
+	{
+		var protect = parameter.IsDestination && parameter.IsProtected;
+		var directives = parameter.IsDestination ? Trace.For(Unit, Result) : Trace.For(Unit, parameter.Result);
+
+		if (parameter.IsValid())
+		{
+			// Get the more preferred options for this parameter
+			var options = parameter.GetLowerCostHandleOptions(parameter.Result.Value.Type);
+
+			if (options.Contains(HandleType.REGISTER))
+			{
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsDeactivating() && Unit.GetNextRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, false, directives);
+				}
+			}
+			else if (options.Contains(HandleType.MEDIA_REGISTER))
+			{
+				// If the value will be used later in the future and the register situation is good, the value can be moved to a register
+				if (IsUsageAnalyzed && !parameter.IsDestination && !parameter.Result.IsDeactivating() && Unit.GetNextMediaRegisterWithoutReleasing() != null)
+				{
+					return Memory.MoveToRegister(Unit, parameter.Result, parameter.Size, true, directives);
+				}
+			}
+
+			// If the parameter size does not match the required size, it can be converted by moving it to register
+			// NOTE: The parameter shall not be converted if it represents a destination memory address which is being written to
+			if (parameter.Size != Size.NONE && parameter.Result.Size != parameter.Size)
+			{
+				if (parameter.Result.IsMemoryAddress && parameter.IsDestination)
+				{
+					throw new ApplicationException("Could not convert memory address to the required size since it was specified as a destination");
+				}
+
+				Memory.Convert(Unit, parameter.Result, parameter.Size, directives);
+			}
+
+			// If the current parameter is the destination and it is needed later, then it must me copied to another register
+			if (protect && parameter.Result.IsOnlyActive())
+			{
+				return Memory.CopyToRegister(Unit, parameter.Result, parameter.Size, parameter.Types.Contains(HandleType.MEDIA_REGISTER), directives);
+			}
+
+			return parameter.Result;
+		}
+
+		return Memory.Convert(Unit, parameter.Result, parameter.Size, parameter.Types, protect, directives);
 	}
 
 	/// <summary>
@@ -399,37 +426,13 @@ public class Instruction
 	}
 
 	/// <summary>
-	/// Prepares the handle for use by relocating its inner handles into registers, therefore its use does not require additional steps, except if it is in invalid format
-	/// </summary>
-	/// <returns>
-	/// Returns a list of register locks which must be active while the handle is in use
-	/// </returns>
-	private List<RegisterLock> ValidateHandle(Handle handle)
-	{
-		var results = handle.GetRegisterDependentResults();
-		var locks = new List<RegisterLock>();
-
-		foreach (var result in results)
-		{
-			if (!result.IsStandardRegister)
-			{
-				Memory.MoveToRegister(Unit, result, Assembler.Size, false, Trace.GetDirectives(Unit, result));
-			}
-
-			locks.Add(RegisterLock.Create(result));
-		}
-
-		return locks;
-	}
-
-	/// <summary>
 	/// Builds the instruction with the specified arguments and forces the parameters to match the specified size
 	/// </summary>
 	public void Build(string operation, Size size, params InstructionParameter[] parameters)
 	{
 		Parameters.Clear();
 
-		var locks = new List<RegisterLock>();
+		var locked = new List<Register>();
 
 		for (var i = 0; i < parameters.Length; i++)
 		{
@@ -438,28 +441,30 @@ public class Instruction
 			parameter.Size = size == Size.NONE ? parameter.Result.Size : size;
 
 			// Convert the parameter to a valid format for this instruction
-			var result = Convert(parameter);
+			var converted = Convert(parameter);
 
+			// Set the result of this instruction to match the parameter, if it is the destination
 			if (parameter.IsDestination)
 			{
-				// Set the result to be equal to the destination
-				Result.Value = result.Value;
-				Result.Format = result.Format;
+				Result.Value = converted.Value;
+				Result.Format = converted.Format;
 			}
 
 			// Prepare the handle for use
-			locks.AddRange(ValidateHandle(result.Value));
+			ValidateHandle(converted.Value, locked);
 
 			// Prevents other parameters from stealing the register of the current parameter in the middle of this instruction
-			if (result.Value.Is(HandleInstanceType.REGISTER))
+			if (converted.Value.Is(HandleInstanceType.REGISTER))
 			{
-				locks.Add(new RegisterLock(result.Value.To<RegisterHandle>().Register));
+				var register = converted.Register;
+				register.Lock();
+				locked.Add(register);
 			}
 
-			var format = result.Format;
+			var format = converted.Format;
 
-			parameter.Result = result;
-			parameter.Value = result.Value.Finalize();
+			parameter.Result = converted;
+			parameter.Value = converted.Value.Finalize();
 			parameter.Value.Format = format.IsDecimal() ? Format.DECIMAL : parameter.Size.ToFormat(format.IsUnsigned());
 
 			Parameters.Add(parameter);
@@ -472,69 +477,22 @@ public class Instruction
 		Operation = operation;
 		OnPostBuild();
 
-		// Unlock the register locks since the instruction has been executed
-		locks.ForEach(l => l.Dispose());
+		// Unlock the registers since the instruction has been executed
+		locked.ForEach(i => i.Unlock());
 	}
 
-	public void Translate()
+	public void Reindex()
 	{
-		// Skip empty instructions
-		if (string.IsNullOrEmpty(Operation))
-		{
-			ApplyParameterFlags();
-			return;
-		}
+		var dependencies = GetAllDependencies();
+		foreach (var dependency in dependencies) { dependency.Use(this); }
 
-		foreach (var parameter in Parameters)
-		{
-			if (parameter.Value == null)
-			{
-				throw new ApplicationException("Instruction parameter did not have a value");
-			}
-
-			if (parameter.IsDestination)
-			{
-				// Set the result to be equal to the destination
-				Result.Value = parameter.Value;
-			}
-		}
-
-		var result = new StringBuilder(Operation);
-
-		foreach (var parameter in Parameters)
-		{
-			if (!parameter.IsHidden)
-			{
-				var value = parameter.Value?.ToString();
-
-				if (string.IsNullOrEmpty(value))
-				{
-					throw new ApplicationException("Instruction parameter could not be converted into assembly");
-				}
-
-				result.Append($" {value},");
-			}
-		}
-
-		// Simulate the effects of the parameter flags
-		ApplyParameterFlags();
-
-		if (Parameters.Count > 0 && Parameters.Any(i => !i.IsHidden))
-		{
-			result.Remove(result.Length - 1, 1);
-		}
-
-		Unit.Write(result.ToString());
+		// Use the result at its usages
+		Result.Use(Result.Lifetime.Usages);
 	}
-
-	public virtual void OnSimulate() { }
-	public virtual void OnBuild() { }
-	public virtual void OnPostBuild() { }
-	public virtual bool Redirect(Handle handle, bool root) { return false; }
 
 	public void Build()
 	{
-		if (IsBuilt)
+		if (State == InstructionState.BUILT)
 		{
 			foreach (var parameter in Parameters)
 			{
@@ -555,42 +513,65 @@ public class Instruction
 		}
 		else
 		{
-			IsBuilt = true;
-
-			// Reindex the inner results before and after building, so that their lifetimes are valid
-			Unit.Reindex(this);
+			State = InstructionState.BUILDING;
+			Reindex();
 			OnBuild();
-			Unit.Reindex(this);
+			Reindex();
+			State = InstructionState.BUILT;
 		}
 
 		// Extend all inner results to last at least as long as their parents
 		/// NOTE: This fixes the issue where for example a memory address is created but the lifetime of the starting address is not extended so its register could be stolen
-		foreach (var iterator in GetAllUsedResults())
+		foreach (var iterator in GetAllDependencies())
 		{
 			foreach (var inner in iterator.Value.GetInnerResults())
 			{
-				inner.Use(iterator.Lifetime.End);
+				inner.Use(iterator.Lifetime.Usages);
 			}
 		}
 	}
 
-	public virtual Result[] GetResultReferences()
+	public void Finish()
+	{
+		// Skip empty instructions
+		if (string.IsNullOrEmpty(Operation)) return;
+
+		var builder = new StringBuilder(Operation);
+		var added = false;
+
+		foreach (var parameter in Parameters)
+		{
+			if (parameter.IsHidden) continue;
+
+			var value = parameter.Value?.ToString();
+			if (string.IsNullOrEmpty(value)) throw new ApplicationException("Instruction parameter could not be converted into assembly");
+
+			builder.Append($" {value},");
+			added = true;
+		}
+
+		// If any parameters were added, remove the comma from the end
+		if (added) builder.Remove(builder.Length - 1, 1);
+
+		Unit.Write(builder.ToString());
+	}
+
+	public virtual void OnBuild() {}
+	public virtual void OnPostBuild() {}
+	public virtual bool Redirect(Handle handle, bool root) { return false; }
+
+	public virtual Result[] GetDependencies()
 	{
 		return new[] { Result };
 	}
 
-	public IEnumerable<Result> GetAllUsedResults()
+	public IEnumerable<Result> GetAllDependencies()
 	{
 		if (Dependencies == null)
 		{
-			return Parameters.Select(i => i.Result).Concat(GetResultReferences());
+			return Parameters.Select(i => i.Result).Concat(GetDependencies());
 		}
 
 		return Parameters.Select(i => i.Result).Concat(Dependencies);
-	}
-
-	public override string ToString()
-	{
-		return string.IsNullOrEmpty(Description) ? GetType().Name : Description;
 	}
 }

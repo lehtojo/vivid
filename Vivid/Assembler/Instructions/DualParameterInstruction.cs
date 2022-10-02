@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 public abstract class DualParameterInstruction : Instruction
 {
 	public Result First { get; private set; }
@@ -11,10 +13,10 @@ public abstract class DualParameterInstruction : Instruction
 		Unsigned = format.IsUnsigned();
 		Result.Format = format;
 
-		Dependencies = new[] { Result, First, Second };
+		Dependencies = new List<Result> { Result, First, Second };
 	}
 
-	public override Result[] GetResultReferences()
+	public override Result[] GetDependencies()
 	{
 		return new[] { Result, First, Second };
 	}

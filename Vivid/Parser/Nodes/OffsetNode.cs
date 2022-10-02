@@ -1,23 +1,23 @@
 using System;
 
-public class OffsetNode : Node, IResolvable
+public class AccessorNode : Node, IResolvable
 {
 	public Node Start => First!;
 	public Node Offset => Last!;
 
-	public OffsetNode(Node start, Node offset)
+	public AccessorNode(Node start, Node offset)
 	{
 		Add(start);
 		Add(new ContentNode { offset });
-		Instance = NodeType.OFFSET;
+		Instance = NodeType.ACCESSOR;
 	}
 
-	public OffsetNode(Node start, Node offset, Position? position)
+	public AccessorNode(Node start, Node offset, Position? position)
 	{
 		Add(start);
 		Add(offset);
 		Position = position;
-		Instance = NodeType.OFFSET;
+		Instance = NodeType.ACCESSOR;
 	}
 
 	public int GetStride()
@@ -83,7 +83,7 @@ public class OffsetNode : Node, IResolvable
 
 	public override bool Equals(object? other)
 	{
-		return other is OffsetNode && base.Equals(other);
+		return other is AccessorNode && base.Equals(other);
 	}
 
 	public override int GetHashCode()

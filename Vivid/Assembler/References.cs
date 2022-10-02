@@ -36,7 +36,7 @@ public static class References
 			case VariableCategory.LOCAL:
 			{
 				return variable.IsInlined()
-					? new InlineHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
+					? new StackAllocationHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
 					: new StackVariableHandle(unit, variable);
 			}
 
@@ -81,22 +81,28 @@ public static class References
 		return GetVariable(unit, node.Variable, mode);
 	}
 
+	public static Result GetVariableDebug(Unit unit, Variable variable, AccessMode mode)
+	{
+		if (variable.Type!.IsPack) return unit.GetVariableValue(variable);
+
+		return new GetVariableInstruction(unit, variable, mode).Add();
+	}
+
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
-		if (variable.IsMember)
+		if (Assembler.IsDebuggingEnabled) return GetVariableDebug(unit, variable, mode);
+
+		if (variable.IsStatic || variable.IsInlined())
 		{
-			var self = new GetVariableInstruction(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.READ).Execute();
-			var self_type = unit.Self.Type!;
-			return new GetVariableInstruction(unit, self, self_type, variable, mode).Execute();
+			return new GetVariableInstruction(unit, variable, mode).Add();
 		}
 
-		if (!Assembler.IsDebuggingEnabled && unit.IsInitialized(variable)) return unit.GetVariableValue(variable)!;
-		return new GetVariableInstruction(unit, null, null, variable, mode).Execute();
+		return unit.GetVariableValue(variable);
 	}
 
 	public static Result GetConstant(Unit unit, NumberNode node)
 	{
-		return new GetConstantInstruction(unit, node.Value, node.Type.IsUnsigned(), node.Type.IsDecimal()).Execute();
+		return new GetConstantInstruction(unit, node.Value, node.Type.IsUnsigned(), node.Type.IsDecimal()).Add();
 	}
 
 	public static Result GetString(Unit unit, StringNode node)
@@ -174,9 +180,9 @@ public static class References
 				return Builders.Build(unit, (OperatorNode)node);
 			}
 
-			case NodeType.OFFSET:
+			case NodeType.ACCESSOR:
 			{
-				return Arrays.BuildOffset(unit, (OffsetNode)node, mode);
+				return Accessors.Build(unit, (AccessorNode)node, mode);
 			}
 
 			case NodeType.LINK:
@@ -184,7 +190,7 @@ public static class References
 				return Links.Build(unit, (LinkNode)node, mode);
 			}
 
-			case NodeType.CONTENT:
+			case NodeType.PARENTHESIS:
 			{
 				Result? result = null;
 
@@ -198,7 +204,7 @@ public static class References
 
 			case NodeType.STACK_ADDRESS:
 			{
-				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Execute();
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Add();
 			}
 
 			default:

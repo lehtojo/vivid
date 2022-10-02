@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
+using System;
 
 /// <summary>
 /// Initializes the functions by handling the stack properly
@@ -23,7 +23,7 @@ public class InitializeInstruction : Instruction
 
 		if (!parameter_memory_offsets.Any())
 		{
-			// Even though no instruction writes to memory, on Windows x64 there is a requirement to allocate so called 'shadow space' for the first four parameters
+			// Even though no instruction writes to memory, on Windows there is a requirement to allocate so called 'shadow space' for the first four parameters
 			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
 			return 0;
 		}
@@ -150,7 +150,7 @@ public class InitializeInstruction : Instruction
 			}
 
 			builder.AppendLine();
-			builder.AppendLine(AppendPositionInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
+			builder.AppendLine(DebugBreakInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
 		}
 
 		if (Assembler.IsArm64 && calls.Any())
@@ -191,6 +191,9 @@ public class InitializeInstruction : Instruction
 			Unit.StackOffset += padding;
 			additional_memory += padding;
 		}
+
+		// Verify the size of the allocated stack memory does not exceed the maximum signed 32-bit integer
+		if (additional_memory >= int.MaxValue) throw new ApplicationException($"Function allocates too much stack memory at {Unit.Function.Metadata.Start!.ToString()}");
 
 		if (additional_memory > 0)
 		{

@@ -9,9 +9,9 @@ public class AllocateRegisterInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var register = Memory.GetNextRegister(Unit, Format.IsDecimal(), Trace.GetDirectives(Unit, Result), true);
+		var register = Memory.GetNextRegister(Unit, Format.IsDecimal(), Trace.For(Unit, Result), true);
 		Result.Value = new RegisterHandle(register);
 		Result.Format = Format;
-		register.Handle = Result;
+		register.Value = Result;
 	}
 }

@@ -25,7 +25,7 @@ public enum HandleInstanceType
 	TEMPORARY_MEMORY,
 	COMPLEX_MEMORY,
 	EXPRESSION,
-	INLINE,
+	STACK_ALLOCATION,
 	REGISTER,
 	MODIFIER,
 	LOWER_12_BITS,
@@ -36,7 +36,6 @@ public class Handle
 {
 	public HandleType Type { get; protected set; }
 	public HandleInstanceType Instance { get; protected set; }
-
 	public Format Format { get; set; } = Assembler.Format;
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
@@ -63,11 +62,6 @@ public class Handle
 		return Instance == instance;
 	}
 
-	public bool Is(params HandleInstanceType[] instances)
-	{
-		return instances.Contains(Instance);
-	}
-
 	/// <summary>
 	/// Returns all results which the handle requires to be in registers
 	/// </summary>
@@ -89,7 +83,7 @@ public class Handle
 		return (T)this;
 	}
 
-	public virtual void Use(int position) { }
+	public virtual void Use(Instruction instruction) { }
 
 	public virtual Handle Finalize()
 	{
@@ -202,10 +196,10 @@ public class DataSectionHandle : Handle
 		// Apply the offset if it is not zero
 		if (Offset != 0)
 		{
-			var offset = Offset.ToString();
-			if (Offset > 0) { offset = '+' + offset; }
+			var postfix = Offset.ToString();
+			if (Offset > 0) { postfix = '+' + postfix; }
 
-			return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}{offset}]";
+			return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}{postfix}]";
 		}
 
 		return $"{Size}{Assembler.MemoryAddressExtension}[{Assembler.RelativeSymbolSpecifier}{Identifier}]";
@@ -372,9 +366,9 @@ public class MemoryHandle : Handle
 		return Offset;
 	}
 
-	public override void Use(int position)
+	public override void Use(Instruction instruction)
 	{
-		Start.Use(position);
+		Start.Use(instruction);
 	}
 
 	public Register? GetStart()
@@ -382,7 +376,7 @@ public class MemoryHandle : Handle
 		return Start.Value.Instance switch
 		{
 			HandleInstanceType.REGISTER => Start.Value.To<RegisterHandle>().Register,
-			HandleInstanceType.INLINE => Unit.GetStackPointer(),
+			HandleInstanceType.STACK_ALLOCATION => Unit.GetStackPointer(),
 			_ => null
 		};
 	}
@@ -392,7 +386,7 @@ public class MemoryHandle : Handle
 		return Start.Value.Instance switch
 		{
 			HandleInstanceType.CONSTANT => (int)(long)Start.Value.To<ConstantHandle>().Value + AbsoluteOffset,
-			HandleInstanceType.INLINE => Start.Value.To<InlineHandle>().AbsoluteOffset + AbsoluteOffset,
+			HandleInstanceType.STACK_ALLOCATION => Start.Value.To<StackAllocationHandle>().AbsoluteOffset + AbsoluteOffset,
 			_ => AbsoluteOffset
 		};
 	}
@@ -411,19 +405,19 @@ public class MemoryHandle : Handle
 		{
 			if (Assembler.IsArm64) return $"[{start}, #{offset.ToString(false)}]";
 			else {
-				var constant = string.Empty;
+				var offset_text = string.Empty;
 
-				if (offset > 0) { constant = $"+{offset}"; }
-				else if (offset < 0) { constant = $"-{-offset}"; }
+				if (offset > 0) { offset_text = $"+{offset}"; }
+				else if (offset < 0) { offset_text = $"-{-offset}"; }
 
-				return $"{Size}{Assembler.MemoryAddressExtension}[{start}{constant}]";
+				return $"{Size}{Assembler.MemoryAddressExtension}[{start}{offset_text}]";
 			}
 		}
 	}
 
 	public override Result[] GetRegisterDependentResults()
 	{
-		if (Start.IsInline)
+		if (Start.IsStackAllocation)
 		{
 			return Array.Empty<Result>();
 		}
@@ -438,7 +432,7 @@ public class MemoryHandle : Handle
 
 	public override Handle Finalize()
 	{
-		if (Start.IsStandardRegister || Start.IsConstant || Start.IsInline)
+		if (Start.IsStandardRegister || Start.IsConstant || Start.IsStackAllocation)
 		{
 			return new MemoryHandle(Unit, new Result(Start.Value, Start.Format), Offset);
 		}
@@ -500,11 +494,11 @@ public class StackMemoryHandle : MemoryHandle
 
 public class TemporaryMemoryHandle : StackMemoryHandle
 {
-	public string Identifier { get; private set; }
+	public string Identity { get; private set; }
 
 	public TemporaryMemoryHandle(Unit unit) : base(unit, 0)
 	{
-		Identifier = unit.GetNextIdentity();
+		Identity = unit.GetNextIdentity();
 		Instance = HandleInstanceType.TEMPORARY_MEMORY;
 	}
 
@@ -517,12 +511,12 @@ public class TemporaryMemoryHandle : StackMemoryHandle
 	{
 		return other is TemporaryMemoryHandle handle &&
 			  base.Equals(other) &&
-			  Equals(Identifier, handle.Identifier);
+			  Equals(Identity, handle.Identity);
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Identifier);
+		return HashCode.Combine(base.GetHashCode(), Identity);
 	}
 }
 
@@ -546,10 +540,10 @@ public class ComplexMemoryHandle : Handle
 		}
 	}
 
-	public override void Use(int position)
+	public override void Use(Instruction instruction)
 	{
-		Start.Use(position);
-		Index.Use(position);
+		Start.Use(instruction);
+		Index.Use(instruction);
 	}
 
 	public Register? GetStart()
@@ -753,10 +747,10 @@ public class ExpressionHandle : Handle
 		Constant = constant;
 	}
 
-	public override void Use(int position)
+	public override void Use(Instruction instruction)
 	{
-		Multiplicand.Use(position);
-		Addition?.Use(position);
+		Multiplicand.Use(instruction);
+		Addition?.Use(instruction);
 	}
 
 	private void Validate()
@@ -970,24 +964,22 @@ public class ExpressionHandle : Handle
 	}
 }
 
-public class InlineHandle : Handle
+public class StackAllocationHandle : Handle
 {
-	public string Identity { get; private set; }
-
 	public Unit Unit { get; private set; }
-
 	public int Offset { get; set; }
 	public int Bytes { get; private set; }
+	public string Identity { get; private set; }
 
 	public int AbsoluteOffset => Unit.StackOffset + Offset;
 
-	public InlineHandle(Unit unit, int bytes, string identity)
+	public StackAllocationHandle(Unit unit, int bytes, string identity)
 	{
 		Unit = unit;
-		Identity = identity;
 		Bytes = bytes;
+		Identity = identity;
 		Type = HandleType.EXPRESSION;
-		Instance = HandleInstanceType.INLINE;
+		Instance = HandleInstanceType.STACK_ALLOCATION;
 	}
 
 	public override Handle Finalize()
@@ -1013,7 +1005,7 @@ public class InlineHandle : Handle
 
 	public override bool Equals(object? other)
 	{
-		return other is InlineHandle handle &&
+		return other is StackAllocationHandle handle &&
 				 Type == handle.Type &&
 				 Format == handle.Format &&
 				 Offset == handle.Offset &&
@@ -1151,11 +1143,11 @@ public class DisposablePackHandle : Handle
 		}
 	}
 
-	public override void Use(int position)
+	public override void Use(Instruction instruction)
 	{
 		foreach (var member in Members.Values)
 		{
-			member.Use(position);
+			member.Use(instruction);
 		}
 	}
 

@@ -9,18 +9,15 @@ public static class Memory
 	/// </summary>
 	public static Result LoadOperand(Unit unit, Result operand, bool media_register, bool assigns)
 	{
-		if (!assigns)
-		{
-			return operand;
-		}
+		if (!assigns) return operand;
 
 		if (operand.IsMemoryAddress)
 		{
-			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, Trace.GetDirectives(unit, operand));
+			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, Trace.For(unit, operand));
 		}
 		else
 		{
-			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, Trace.GetDirectives(unit, operand));
+			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, Trace.For(unit, operand));
 		}
 
 		return operand;
@@ -29,7 +26,7 @@ public static class Memory
 	/// <summary>
 	/// Minimizes intersection between the specified move instructions and tries to use exchange instructions
 	/// </summary>
-	private static List<Instruction> Align(Unit unit, List<DualParameterInstruction> moves)
+	private static List<Instruction> MinimizeIntersections(Unit unit, List<DualParameterInstruction> moves)
 	{
 		// Find moves that can be replaced with an exchange instruction
 		var result = new List<DualParameterInstruction>(moves);
@@ -42,13 +39,13 @@ public static class Memory
 			{
 				for (var j = 0; j < result.Count; j++)
 				{
-					if (i == j || exchanged_indices.Contains(i) || exchanged_indices.Contains(j))
-					{
-						continue;
-					}
+					if (i == j || exchanged_indices.Contains(i) || exchanged_indices.Contains(j)) continue;
 
 					var current = result[i];
 					var other = result[j];
+
+					// Can not exchange non-integer values
+					if (current.First.Value.Format.IsDecimal() || current.Second.Value.Format.IsDecimal()) continue;
 
 					if (current.First.Value.Equals(other.Second.Value) && current.Second.Value.Equals(other.First.Value))
 					{
@@ -61,7 +58,7 @@ public static class Memory
 			}
 		}
 
-		// Append the created exchanges and remove the moves which were replaced by the exchanges
+		// Add the created exchanges and remove the moves which were replaced by the exchanges
 		result.AddRange(exchanges);
 		exchanged_indices.OrderByDescending(i => i).ForEach(i => result.RemoveAt(i));
 
@@ -87,31 +84,32 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Safely executes the specified move instructions, making sure that no value is corrupted
+	/// Aligns the specified moves so that intersections are minimized
 	/// </summary>
-	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves)
+	public static void Align(Unit unit, List<MoveInstruction> moves)
 	{
-		return Align(unit, moves, out _);
-	}
+		var complex = new List<Instruction>();
 
-	/// <summary>
-	/// Safely executes the specified move instructions, making sure that no value is corrupted
-	/// </summary>
-	public static List<Instruction> Align(Unit unit, List<MoveInstruction> moves, out List<Register> registers)
-	{
+		// Execute complex moves before anything else, because they might require multiple steps
+		for (var i = moves.Count - 1; i >= 0; i--)
+		{
+			var move = moves[i];
+
+			if (!move.First.IsAnyRegister || move.Second.IsEmpty)
+			{
+				complex.Add(move);
+				moves.RemoveAt(i);
+			}
+		}
+
 		var locks = moves.Where(i => i.IsRedundant && i.First.IsStandardRegister).Select(i => LockStateInstruction.Lock(unit, i.First.Value.To<RegisterHandle>().Register)).ToList();
 		var unlocks = locks.Select(i => LockStateInstruction.Unlock(unit, i.Register)).ToList();
 
-		registers = locks.Select(i => i.Register).ToList();
+		var aligned = MinimizeIntersections(unit, moves.Select(i => i.To<DualParameterInstruction>()).ToList());
 
-		// Now remove all redundant moves
-		moves.RemoveAll(i => i.IsRedundant);
-
-		var optimized = Align(unit, moves.Select(i => i.To<DualParameterInstruction>()).ToList());
-
-		for (var i = optimized.Count - 1; i >= 0; i--)
+		for (var i = aligned.Count - 1; i >= 0; i--)
 		{
-			var instruction = optimized[i];
+			var instruction = aligned[i];
 
 			if (instruction.Is(InstructionType.EXCHANGE))
 			{
@@ -120,14 +118,11 @@ public static class Memory
 				var first = exchange.First.Value.To<RegisterHandle>().Register;
 				var second = exchange.Second.Value.To<RegisterHandle>().Register;
 
-				optimized.Insert(i + 1, LockStateInstruction.Lock(unit, second));
-				optimized.Insert(i + 1, LockStateInstruction.Lock(unit, first));
+				aligned.Insert(i + 1, LockStateInstruction.Lock(unit, second));
+				aligned.Insert(i + 1, LockStateInstruction.Lock(unit, first));
 
 				unlocks.Add(LockStateInstruction.Unlock(unit, first));
 				unlocks.Add(LockStateInstruction.Unlock(unit, second));
-
-				registers.Add(first);
-				registers.Add(second);
 			}
 			else if (instruction.Is(InstructionType.MOVE))
 			{
@@ -137,19 +132,22 @@ public static class Memory
 				{
 					var register = move.First.Value.To<RegisterHandle>().Register;
 
-					optimized.Insert(i + 1, LockStateInstruction.Lock(unit, register));
+					aligned.Insert(i + 1, LockStateInstruction.Lock(unit, register));
 					unlocks.Add(LockStateInstruction.Unlock(unit, register));
-
-					registers.Add(register);
 				}
 			}
 			else
 			{
-				throw new ApplicationException("Unsupported instruction type found while optimizing relocation");
+				throw new ApplicationException("Unsupported instruction type found while aligning move instructions");
 			}
 		}
 
-		return locks.Concat(optimized.Concat(unlocks)).ToList();
+		var result = complex.Concat(locks).Concat(aligned).Concat(unlocks).Reverse();
+
+		foreach (var instruction in result)
+		{
+			unit.Add(instruction, true);
+		}
 	}
 
 	/// <summary>
@@ -159,21 +157,18 @@ public static class Memory
 	{
 		// 1. If the register is already available, no need to clear it
 		// 2. If the value inside the register does not own the register, no need to clear it
-		if (target.IsAvailable(unit.Position) || target.IsHandleCopy()) return;
+		if (target.IsAvailable() || target.IsHandleCopy()) return;
 
 		var register = (Register?)null;
 
-		using (RegisterLock.Create(target))
-		{
-			var directives = (List<Directive>?)null;
+		target.Lock();
 
-			if (target.Handle != null)
-			{
-				directives = Trace.GetDirectives(unit, target.Handle);
-			}
+		var directives = (List<Directive>?)null;
+		if (target.Value != null) { directives = Trace.For(unit, target.Value); }
 
-			register = GetNextRegisterWithoutReleasing(unit, target.IsMediaRegister, directives);
-		}
+		register = GetNextRegisterWithoutReleasing(unit, target.IsMediaRegister, directives);
+
+		target.Unlock();
 
 		if (register == null)
 		{
@@ -181,11 +176,11 @@ public static class Memory
 			return;
 		}
 
-		if (target.Handle == null) return;
+		if (target.Value == null) return;
 
 		var destination = new RegisterHandle(register);
 
-		unit.Append(new MoveInstruction(unit, new Result(destination, target.Handle.Format), target.Handle!)
+		unit.Add(new MoveInstruction(unit, new Result(destination, target.Value.Format), target.Value!)
 		{
 			Type = MoveType.RELOCATE,
 			Description = "Relocates the source value so that the register is cleared for another purpose"
@@ -199,17 +194,14 @@ public static class Memory
 	/// </summary>
 	public static void Zero(Unit unit, Register register)
 	{
-		if (!register.IsAvailable(unit.Position))
-		{
-			ClearRegister(unit, register);
-		}
+		if (!register.IsAvailable()) ClearRegister(unit, register);
 
 		var handle = new RegisterHandle(register);
 
-		var instruction = BitwiseInstruction.Xor(unit, new Result(handle, Assembler.Format), new Result(handle, Assembler.Format), Assembler.Format);
+		var instruction = BitwiseInstruction.CreateXor(unit, new Result(handle, Assembler.Format), new Result(handle, Assembler.Format), Assembler.Format);
 		instruction.Description = "Sets the value of the destination to zero";
 
-		unit.Append(instruction);
+		unit.Add(instruction);
 	}
 
 	/// <summary>
@@ -227,27 +219,6 @@ public static class Memory
 	}
 
 	/// <summary>
-	/// Tries to apply the most important directive
-	/// </summary>
-	public static Register? Consider(Unit unit, List<Directive> directives, bool media_register)
-	{
-		var register = (Register?)null;
-
-		foreach (var directive in directives)
-		{
-			var result = Consider(unit, directive, media_register);
-
-			if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
-			{
-				register = result;
-				break;
-			}
-		}
-
-		return register;
-	}
-
-	/// <summary>
 	/// Determines the next register to use
 	/// </summary>
 	public static Register GetNextRegister(Unit unit, bool media_register, List<Directive>? directives = null, bool is_result = false)
@@ -260,7 +231,9 @@ public static class Memory
 			{
 				var result = Consider(unit, directive, media_register);
 
-				if (result != null && media_register == result.IsMediaRegister && (is_result ? result.IsAvailable(unit.Position + 1) : result.IsAvailable(unit.Position)))
+				if (result == null || media_register != result.IsMediaRegister) continue;
+
+				if (is_result ? (result.IsAvailable() || result.IsDeactivating()) : result.IsAvailable())
 				{
 					register = result;
 					break;
@@ -279,7 +252,7 @@ public static class Memory
 	/// <summary>
 	/// Tries to get a register without releasing based on the specified directives
 	/// </summary>
-	private static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, List<Directive>? directives = null)
+	public static Register? GetNextRegisterWithoutReleasing(Unit unit, bool media_register, List<Directive>? directives = null)
 	{
 		var register = (Register?)null;
 
@@ -289,7 +262,7 @@ public static class Memory
 			{
 				var result = Consider(unit, directive, media_register);
 
-				if (result != null && media_register == result.IsMediaRegister && result.IsAvailable(unit.Position))
+				if (result != null && media_register == result.IsMediaRegister && result.IsAvailable())
 				{
 					register = result;
 					break;
@@ -315,20 +288,22 @@ public static class Memory
 
 		if (result.IsAnyRegister)
 		{
-			using (RegisterLock.Create(result))
-			{
-				var register = GetNextRegister(unit, media_register, directives);
-				var destination = new Result(new RegisterHandle(register), format);
+			var source = result.Register;
 
-				return new MoveInstruction(unit, destination, result).Execute();
-			}
+			source.Lock();
+			var register = GetNextRegister(unit, media_register, directives);
+			var destination = new Result(new RegisterHandle(register), format);
+			result = new MoveInstruction(unit, destination, result).Add();
+			source.Unlock();
+
+			return result;
 		}
 		else
 		{
 			var register = GetNextRegister(unit, media_register, directives);
 			var destination = new Result(new RegisterHandle(register), format);
 
-			return new MoveInstruction(unit, destination, result).Execute();
+			return new MoveInstruction(unit, destination, result).Add();
 		}
 	}
 
@@ -338,10 +313,7 @@ public static class Memory
 	public static Result MoveToRegister(Unit unit, Result result, Size size, bool media_register, List<Directive>? directives = null)
 	{
 		// Prevents redundant moving to registers
-		if (result.Value.Type == (media_register ? HandleType.MEDIA_REGISTER : HandleType.REGISTER))
-		{
-			return result;
-		}
+		if (result.Value.Type == (media_register ? HandleType.MEDIA_REGISTER : HandleType.REGISTER)) return result;
 
 		var format = media_register ? Format.DECIMAL : size.ToFormat(result.Format.IsUnsigned());
 		var register = GetNextRegister(unit, media_register, directives);
@@ -352,7 +324,7 @@ public static class Memory
 			Description = "Move source to register",
 			Type = MoveType.RELOCATE
 
-		}.Execute();
+		}.Add();
 	}
 
 	/// <summary>
@@ -388,7 +360,7 @@ public static class Memory
 				Description = "Converts the format of the source operand",
 				Type = MoveType.RELOCATE
 
-			}.Execute();
+			}.Add();
 		}
 		else
 		{
@@ -406,7 +378,7 @@ public static class Memory
 			Description = "Converts the format of the source operand",
 			Type = MoveType.RELOCATE
 
-		}.Execute();
+		}.Add();
 	}
 
 	/// <summary>
@@ -414,9 +386,9 @@ public static class Memory
 	/// </summary>
 	public static void GetRegisterFor(Unit unit, Result result, bool unsigned, bool media_register)
 	{
-		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result));
+		var register = GetNextRegister(unit, media_register, Trace.For(unit, result));
 
-		register.Handle = result;
+		register.Value = result;
 
 		result.Value = new RegisterHandle(register);
 		result.Format = media_register ? Format.DECIMAL : Instruction.GetSystemFormat(unsigned);
@@ -427,9 +399,9 @@ public static class Memory
 	/// </summary>
 	public static void GetResultRegisterFor(Unit unit, Result result, bool unsigned, bool media_register)
 	{
-		var register = GetNextRegister(unit, media_register, Trace.GetDirectives(unit, result), true);
+		var register = GetNextRegister(unit, media_register, Trace.For(unit, result), true);
 
-		register.Handle = result;
+		register.Value = result;
 
 		result.Value = new RegisterHandle(register);
 		result.Format = media_register ? Format.DECIMAL : Instruction.GetSystemFormat(unsigned);
@@ -468,31 +440,29 @@ public static class Memory
 					return CopyToRegister(unit, result, size, is_media_register, directives);
 				}
 
-				var expiring = result.IsExpiring(unit.Position);
+				var expiring = result.IsDeactivating();
 
 				// The result must be loaded into a register
-				// The recommendation should not be given to the load instructions if copying is needed, since it would conflict with the copy instructions
-				var copy = protect && !expiring;
-				var destination = MoveToRegister(unit, result, size, is_media_register, copy ? null : directives);
-
-				// If no copying is needed, the loaded value can be returned right away
-				if (!copy)
+				if (protect && !expiring)
 				{
-					return destination;
+					// Do not use the directives here, because it would conflict with the upcoming copy
+					result = MoveToRegister(unit, result, size, is_media_register, null);
+					var register = result.Register;
+
+					// Now copy the registered value into another register using the directives
+					register.Lock();
+					result = CopyToRegister(unit, result, size, is_media_register, directives);
+					register.Unlock();
+
+					return result;
 				}
 
-				using (new RegisterLock(destination.Value.To<RegisterHandle>().Register))
-				{
-					return CopyToRegister(unit, destination, size, is_media_register, directives);
-				}
+				return MoveToRegister(unit, result, size, is_media_register, directives);
 			}
 
 			case HandleType.MEMORY:
 			{
-				if (!Assembler.IsArm64 || !result.IsDataSectionHandle)
-				{
-					return null;
-				}
+				if (!Assembler.IsArm64 || !result.IsDataSectionHandle) return null;
 
 				var handle = result.Value.To<DataSectionHandle>();
 
@@ -501,7 +471,7 @@ public static class Memory
 				// =>
 				// adrp x0, :got:S0
 				// ldr x0, [x0, :got_lo12:S0]
-				var intermediate = new GetRelativeAddressInstruction(unit, handle).Execute();
+				var intermediate = new GetRelativeAddressInstruction(unit, handle).Add();
 				var offset = new Result(new Lower12Bits(handle, true), Assembler.Format);
 				var address = Memory.MoveToRegister(unit, new Result(new ComplexMemoryHandle(intermediate, offset, 1), Assembler.Format), Assembler.Size, false);
 

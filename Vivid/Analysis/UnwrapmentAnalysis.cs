@@ -51,7 +51,7 @@ public class LoopConditionalStatementLiftupDescriptor
 		}
 
 		// The condition is predictable when it is not dependent on external factors such as function calls
-		IsConditionPredictable = condition.Find(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LINK, NodeType.OFFSET) == null;
+		IsConditionPredictable = condition.Find(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LINK, NodeType.ACCESSOR) == null;
 	}
 }
 
@@ -448,7 +448,7 @@ public static class UnwrapmentAnalysis
 		if (loop.GetConditionInitialization().Any()) return null;
 
 		// Unwrapping loops which have loop control nodes, is currently too complex
-		if (loop.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().Any(i => ReferenceEquals(i.Loop, loop))) return null;
+		if (loop.FindAll(NodeType.LOOP_CONTROL).Cast<CommandNode>().Any(i => ReferenceEquals(i.Container, loop))) return null;
 
 		if (!condition.Is(OperatorType.COMPARISON) || !Analysis.IsPrimitive(condition)) return null;
 

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
-	public Condition? Condition { get; set; }
 
 	public OperatorNode(Operator operation)
 	{
@@ -106,7 +105,7 @@ public class OperatorNode : Node, IResolvable
 		Resolver.Resolve(context, Right);
 
 		// Check if the left node represents an indexed accessor and if it is being assigned a value
-		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.OFFSET))
+		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.ACCESSOR))
 		{
 			var result = TryResolveAsIndexedSetter();
 

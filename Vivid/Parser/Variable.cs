@@ -137,7 +137,7 @@ public class Variable
 	{
 		foreach (var usage in Reads)
 		{
-			var link = usage.FindParent(i => !i.Is(NodeType.CAST, NodeType.CONTENT));
+			var link = usage.FindParent(i => !i.Is(NodeType.CAST, NodeType.PARENTHESIS));
 			if (link == null) continue;
 			
 			// Only reading from this variable using links is allowed

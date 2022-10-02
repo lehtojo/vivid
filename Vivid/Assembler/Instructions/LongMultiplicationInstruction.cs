@@ -1,5 +1,5 @@
 /// <summary>
-/// Multiplicates the specified values together while supporting larger output number
+/// Multiplies the specified values together while supporting larger output number
 /// This instruction works only on architecture x86-64
 /// </summary>
 public class LongMultiplicationInstruction : DualParameterInstruction
@@ -24,18 +24,20 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 			{
 				Type = MoveType.COPY
 
-			}.Execute();
+			}.Add();
 		}
 
-		using var numerator_lock = new RegisterLock(numerator);
+		numerator.Lock();
 
 		// Get next register for the numerator where it will be relocated since it should not be edited
-		var register = Memory.GetNextRegister(Unit, false, Trace.GetDirectives(Unit, First));
+		var register = Memory.GetNextRegister(Unit, false, Trace.For(Unit, First));
 
-		Unit.Append(new MoveInstruction(Unit, new Result(new RegisterHandle(register), First.Format), First)
+		Unit.Add(new MoveInstruction(Unit, new Result(new RegisterHandle(register), First.Format), First)
 		{
 			Type = MoveType.RELOCATE
 		});
+
+		numerator.Unlock();
 
 		// Even though the numerator is relocated the value is still in the register
 		return new Result(new RegisterHandle(numerator), GetSystemFormat(Unsigned));
@@ -46,9 +48,9 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		var numerator = Unit.GetNumeratorRegister();
 		var remainder = Unit.GetRemainderRegister();
 
-		using var numerator_lock = new RegisterLock(numerator);
-
+		numerator.Lock();
 		Memory.ClearRegister(Unit, remainder);
+		numerator.Unlock();
 
 		return remainder;
 	}
@@ -58,7 +60,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 		var numerator = CorrectDestinationOperandLocation();
 		var remainder = ClearRemainderRegister();
 
-		using var remainder_lock = new RegisterLock(remainder);
+		remainder.Lock();
 
 		Result.Value = new RegisterHandle(remainder);
 
@@ -82,5 +84,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 				HandleType.MEMORY
 			)
 		);
+
+		remainder.Unlock();
 	}
 }

@@ -435,7 +435,7 @@ public static class GarbageCollector
 		if (source.Instance == NodeType.PACK)
 		{
 			// If the return value contains memory accesses or function calls, flag the return value as complex
-			var is_complex = source.Find(NodeType.CALL, NodeType.FUNCTION, NodeType.LINK, NodeType.OFFSET) != null;
+			var is_complex = source.Find(NodeType.CALL, NodeType.FUNCTION, NodeType.LINK, NodeType.ACCESSOR) != null;
 
 			// Find all the parameters that are returned, they can be linked
 			var parameters = source.FindAll(i => i.Instance == NodeType.VARIABLE && i.To<VariableNode>().Variable.IsParameter && i.Parent!.Instance == NodeType.PACK);
@@ -477,7 +477,7 @@ public static class GarbageCollector
 		scopes.Add(root, new ScopeDestructionDescriptor());
 
 		var returns = root.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
-		var controls = root.FindAll(NodeType.LOOP_CONTROL).Cast<LoopControlNode>().ToArray();
+		var controls = root.FindAll(NodeType.LOOP_CONTROL).Cast<CommandNode>().ToArray();
 
 		// Register scopes which can not be exited
 		foreach (var statement in returns)

@@ -583,7 +583,7 @@ public static class InstructionAnalysis
 		{
 			var instruction = instructions[i];
 
-			if (!instruction.Is(InstructionType.MOVE) || instruction.To<MoveInstruction>().Condition != null)
+			if (!instruction.Is(InstructionType.MOVE))
 			{
 				continue;
 			}
@@ -620,8 +620,6 @@ public static class InstructionAnalysis
 
 		InlineMoveInstructions(unit, instructions, false, true);
 
-		unit.Reindex();
-
 		Combine(unit, instructions);
 
 		// Remove all redundant move instructions
@@ -642,8 +640,6 @@ public static class InstructionAnalysis
 				instructions.RemoveAt(i);
 			}
 		}
-
-		unit.Reindex();
 	}
 
 	public static bool IsIntersectionPossible(Handle i, Handle j)

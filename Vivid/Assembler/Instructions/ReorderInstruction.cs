@@ -49,8 +49,8 @@ public class ReorderInstruction : Instruction
 	/// </summary>
 	private int ComputeReturnOverflow(Type type)
 	{
-		var decimal_parameter_registers = Unit.MediaRegisters.Take(Calls.GetMaxMediaRegisterParameters()).ToList();
-		var standard_parameter_registers = Calls.GetStandardParameterRegisters().Select(name => Unit.Registers.Find(r => r[Size.QWORD] == name)!).ToList();
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters(Unit);
+		var decimal_parameter_registers = Calls.GetDecimalParameterRegisters(Unit);
 
 		return ComputeReturnOverflow(type, 0, decimal_parameter_registers, standard_parameter_registers);
 	}
@@ -75,7 +75,7 @@ public class ReorderInstruction : Instruction
 			var start = memory.GetStart();
 			if (start == null || start != Unit.GetStackPointer()) continue;
 
-			// Ensure the memort address overlaps with the overflow
+			// Ensure the memory address overlaps with the overflow
 			var offset = memory.GetAbsoluteOffset();
 			if (offset < 0 || offset >= overflow) continue;
 
@@ -84,7 +84,7 @@ public class ReorderInstruction : Instruction
 			// Try to get an available non-volatile register
 			var destination = (Handle?)null;
 			var destination_format = Assembler.Format;
-			var register = Memory.GetNextRegister(Unit, variable.Type!.Format.IsDecimal(), Trace.GetDirectives(Unit, value));
+			var register = Memory.GetNextRegister(Unit, variable.Type!.Format.IsDecimal(), Trace.For(Unit, value));
 
 			// Use the non-volatile register, if one was found
 			if (register != null)
@@ -99,9 +99,9 @@ public class ReorderInstruction : Instruction
 				destination_format = variable.Type!.Format;
 			}
 
-			Unit.Append(new MoveInstruction(Unit, new Result(destination, destination_format), value)
+			Unit.Add(new MoveInstruction(Unit, new Result(destination, destination_format), value)
 			{
-				Description = $"Evacuate an important value into '{destination}'",
+				Description = "Evacuate overflow",
 				Type = MoveType.RELOCATE
 			});
 		}
@@ -109,7 +109,7 @@ public class ReorderInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		if (ReturnType != null && ReturnType.IsPack) EvacuateOverflowZone(ReturnType);
+		if (ReturnType != null) EvacuateOverflowZone(ReturnType);
 
 		var instructions = new List<Instruction>();
 
@@ -121,13 +121,11 @@ public class ReorderInstruction : Instruction
 			instructions.Add(new MoveInstruction(Unit, destination, source) { IsDestinationProtected = true });
 		}
 
-		instructions = Memory.Align(Unit, instructions.Cast<MoveInstruction>().ToList());
-		
+		Memory.Align(Unit, instructions.Cast<MoveInstruction>().ToList());
 		Extracted = true;
-		Unit.Append(instructions);
 	}
 
-	public override Result[] GetResultReferences()
+	public override Result[] GetDependencies()
 	{
 		if (Extracted) return Array.Empty<Result>();
 		return Sources.ToArray();

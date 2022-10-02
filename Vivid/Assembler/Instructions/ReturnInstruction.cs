@@ -18,7 +18,8 @@ public class ReturnInstruction : Instruction
 	{
 		Object = value;
 		ReturnType = return_type;
-		Dependencies = Object != null ? new[] { Result, Object } : new[] { Result };
+
+		if (Object != null) { Dependencies!.Add(Object); }
 
 		Result.Format = (ReturnType != null ? ReturnType.GetRegisterFormat() : Assembler.Format);
 	}
@@ -36,12 +37,9 @@ public class ReturnInstruction : Instruction
 		// 1. Skip if there is no return value
 		// 2. Packs are handled separately
 		// 3. Ensure the return value is in the correct register
-		if (Object == null || (ReturnType != null && ReturnType.IsPack) || IsValueInReturnRegister())
-		{
-			return;
-		}
+		if (Object == null || (ReturnType != null && ReturnType.IsPack) || IsValueInReturnRegister()) return;
 
-		Unit.Append(new MoveInstruction(Unit, new Result(ReturnRegisterHandle, ReturnType!.GetRegisterFormat()), Object)
+		Unit.Add(new MoveInstruction(Unit, new Result(ReturnRegisterHandle, ReturnType!.GetRegisterFormat()), Object)
 		{
 			Type = MoveType.RELOCATE
 		});

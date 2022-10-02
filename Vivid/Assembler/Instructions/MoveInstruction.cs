@@ -78,22 +78,9 @@ public class MoveInstruction : DualParameterInstruction
 	/// </summary>
 	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size);
 
-	public Condition? Condition { get; private set; }
-
 	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
 	{
 		IsUsageAnalyzed = false;
-	}
-
-	public MoveInstruction(Unit unit, Result first, Result second, Condition? condition) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
-	{
-		Condition = condition;
-		IsUsageAnalyzed = false;
-
-		if (Condition != null)
-		{
-			Dependencies = new[] { Result, First, Second, Condition.Left, Condition.Right };
-		}
 	}
 
 	private void UpdateResultFormat()
@@ -451,7 +438,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
 					if (Second.IsMemoryAddress)
 					{
-						Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, Second));
+						Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.For(Unit, Second));
 					}
 
 					// Example:
@@ -862,69 +849,8 @@ public class MoveInstruction : DualParameterInstruction
 				continue;
 			}
 
-			Unit.Append(new LoadShiftedConstantInstruction(Unit, First, section, i * 16), true);
+			Unit.Add(new LoadShiftedConstantInstruction(Unit, First, section, i * 16), true);
 		}
-	}
-
-	private void BuildConditionalMoveArm64(int flags_first)
-	{
-		Memory.MoveToRegister(Unit, First, Assembler.Size, false, Trace.GetDirectives(Unit, First));
-		Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, First));
-
-		Arithmetic.BuildCondition(Unit, Condition!);
-
-		var condition = Conditionals[Condition!.Operator].First();
-
-		Build(
-			Instructions.Arm64.CONDITIONAL_MOVE,
-			Assembler.Size,
-			new InstructionParameter(
-				First,
-				flags_first | ParameterFlag.NO_ATTACH | ParameterFlag.READS,
-				HandleType.REGISTER
-			),
-			new InstructionParameter(
-				Second,
-				ParameterFlag.NONE,
-				HandleType.REGISTER
-			),
-			new InstructionParameter(
-				First,
-				ParameterFlag.READS,
-				HandleType.REGISTER
-			),
-			new InstructionParameter(
-				new Result(new ModifierHandle(condition), Assembler.Format),
-				ParameterFlag.NONE,
-				HandleType.MODIFIER
-			)
-		);
-	}
-
-	private void BuildConditionalMoveX64(int flags_first)
-	{
-		Memory.MoveToRegister(Unit, First, Assembler.Size, false, Trace.GetDirectives(Unit, First));
-		Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, First));
-
-		Arithmetic.BuildCondition(Unit, Condition!);
-
-		var options = Conditionals[Condition!.Operator];
-		var instruction = options[Condition.IsDecimal ? 1 : 0];
-
-		Build(
-			instruction,
-			Assembler.Size,
-			new InstructionParameter(
-				First,
-				flags_first | ParameterFlag.NO_ATTACH | ParameterFlag.READS,
-				HandleType.REGISTER
-			),
-			new InstructionParameter(
-				Second,
-				ParameterFlag.NONE,
-				HandleType.REGISTER
-			)
-		);
 	}
 
 	public override void OnBuild()
@@ -951,7 +877,7 @@ public class MoveInstruction : DualParameterInstruction
 			// Attach the source value to the destination, if it is a register
 			if (Second.IsAnyRegister)
 			{
-				Second.Value.To<RegisterHandle>().Register.Handle = Second;
+				Second.Value.To<RegisterHandle>().Register.Value = Second;
 			}
 
 			return;
@@ -981,23 +907,6 @@ public class MoveInstruction : DualParameterInstruction
 				flags_second |= ParameterFlag.ATTACH_TO_DESTINATION | ParameterFlag.RELOCATE_TO_DESTINATION;
 				break;
 			}
-		}
-
-		if (First.Format.IsDecimal() && Condition != null)
-		{
-			throw new InvalidOperationException("Conditional media register moves are not supported");
-		}
-
-		if (Condition != null)
-		{
-			if (Assembler.IsArm64)
-			{
-				BuildConditionalMoveArm64(flags_first);
-				return;
-			}
-
-			BuildConditionalMoveX64(flags_first);
-			return;
 		}
 
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
@@ -1070,7 +979,7 @@ public class MoveInstruction : DualParameterInstruction
 
 					var handle = First.Value.To<DataSectionHandle>();
 
-					var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+					var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
 					var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
 					var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
 
@@ -1118,14 +1027,14 @@ public class MoveInstruction : DualParameterInstruction
 
 				First.Value = new MemoryHandle(Unit, address, offset);
 
-				Unit.Append(new MoveInstruction(Unit, First, Second) { Type = Type }, true);
+				Unit.Add(new MoveInstruction(Unit, First, Second) { Type = Type }, true);
 				return;
 			}
 
 			// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
 			if (Second.IsMemoryAddress)
 			{
-				Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.GetDirectives(Unit, Second));
+				Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.For(Unit, Second));
 			}
 
 			// Examples:
@@ -1168,7 +1077,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Add the handle offset
 					if (handle.Offset != 0)
 					{
-						Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+						Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
 					}
 
 					handle.Address = true;
@@ -1186,7 +1095,7 @@ public class MoveInstruction : DualParameterInstruction
 				Second.Value = new MemoryHandle(Unit, First, (int)handle.Offset);
 
 				var instruction = new MoveInstruction(Unit, First, Second) { Type = Type };
-				Unit.Append(instruction, true);
+				Unit.Add(instruction, true);
 				return;
 			}
 
@@ -1214,7 +1123,7 @@ public class MoveInstruction : DualParameterInstruction
 				// ldr x0, [x0, :got_lo12:S0]
 				// ldr x0, [x0]
 
-				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
 				var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
 				var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
 
@@ -1245,7 +1154,7 @@ public class MoveInstruction : DualParameterInstruction
 				// adrp x0, :got:S0
 				// ldr x0, [x0, :got_lo12:S0]
 
-				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Execute();
+				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
 				Second.Value = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
 
 				Build(
@@ -1271,7 +1180,7 @@ public class MoveInstruction : DualParameterInstruction
 				if (handle.Offset != 0)
 				{
 					// Add the handle offset
-					Unit.Append(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Signed), Assembler.Format, true), true);
+					Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Signed), Assembler.Format, true), true);
 				}
 			}
 		}

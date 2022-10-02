@@ -21,7 +21,7 @@ public static class Builders
 		{
 			case NodeType.CALL:
 			{
-				unit.TryAppendPosition(node.Position);
+				unit.AddDebugPosition(node.Position);
 
 				var call = (CallNode)node;
 				var self = References.Get(unit, call.Self);
@@ -59,8 +59,8 @@ public static class Builders
 				// Do not declare the variable twice
 				if (unit.IsInitialized(declaration.Variable)) return new Result();
 
-				var result = new DeclareInstruction(unit, declaration.Variable, declaration.Registerize).Execute();
-				return new SetVariableInstruction(unit, declaration.Variable, result).Execute();
+				var result = new DeclareInstruction(unit, declaration.Variable, declaration.Registerize).Add();
+				return new SetVariableInstruction(unit, declaration.Variable, result).Add();
 			}
 
 			case NodeType.JUMP:
@@ -73,9 +73,9 @@ public static class Builders
 				return Arithmetic.Build(unit, (OperatorNode)node);
 			}
 
-			case NodeType.OFFSET:
+			case NodeType.ACCESSOR:
 			{
-				return Arrays.BuildOffset(unit, (OffsetNode)node, AccessMode.READ);
+				return Accessors.Build(unit, (AccessorNode)node, AccessMode.READ);
 			}
 
 			case NodeType.LAMBDA:
@@ -120,12 +120,12 @@ public static class Builders
 
 			case NodeType.LABEL:
 			{
-				return new LabelInstruction(unit, node.To<LabelNode>().Label).Execute();
+				return new LabelInstruction(unit, node.To<LabelNode>().Label).Add();
 			}
 
 			case NodeType.LOOP_CONTROL:
 			{
-				return Loops.BuildControlInstruction(unit, (LoopControlNode)node);
+				return Loops.BuildCommand(unit, (CommandNode)node);
 			}
 
 			case NodeType.ELSE_IF:
@@ -139,19 +139,19 @@ public static class Builders
 			{
 				var values = new List<Result>();
 				foreach (var iterator in node) { values.Add(References.Get(unit, iterator)); }
-				return new CreatePackInstruction(unit, node.GetType(), values).Execute();
+				return new CreatePackInstruction(unit, node.GetType(), values).Add();
 			}
 
 			case NodeType.STACK_ADDRESS:
 			{
-				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Execute();
+				return new AllocateStackInstruction(unit, node.To<StackAddressNode>()).Add();
 			}
 
 			case NodeType.DISABLED: return new Result();
 
 			case NodeType.UNDEFINED:
 			{
-				return new AllocateRegisterInstruction(unit, node.To<UndefinedNode>().Format).Execute();
+				return new AllocateRegisterInstruction(unit, node.To<UndefinedNode>().Format).Add();
 			}
 
 			case NodeType.OBJECT_LINK:

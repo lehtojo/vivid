@@ -12,32 +12,36 @@ public class BitwiseInstruction : DualParameterInstruction
 	public bool IsUnsigned { get; set; } = false;
 	public bool Assigns { get; set; } = false;
 
-	public static BitwiseInstruction And(Unit unit, Result first, Result second, Format format, bool assigns = false)
+	public static BitwiseInstruction CreateAnd(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
 		return new BitwiseInstruction(unit, Instructions.Shared.AND, first, second, format, assigns);
 	}
 
-	public static BitwiseInstruction Xor(Unit unit, Result first, Result second, Format format, bool assigns = false)
+	public static BitwiseInstruction CreateXor(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		if (format.IsDecimal())
+		if (Assembler.IsX64)
 		{
-			return new BitwiseInstruction(unit, Instructions.X64.DOUBLE_PRECISION_XOR, first, second, format, assigns);
+			if (format.IsDecimal()) return new BitwiseInstruction(unit, Instructions.X64.DOUBLE_PRECISION_XOR, first, second, format, assigns);
+
+			return new BitwiseInstruction(unit, Instructions.X64.XOR, first, second, format, assigns);
 		}
 
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.XOR : Instructions.X64.XOR, first, second, format, assigns);
+		if (format.IsDecimal()) throw new ApplicationException("Unsupported instruction");
+
+		return new BitwiseInstruction(unit, Instructions.Arm64.XOR, first, second, format, assigns);
 	}
 
-	public static BitwiseInstruction Or(Unit unit, Result first, Result second, Format format, bool assigns = false)
+	public static BitwiseInstruction CreateOr(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
 		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.OR : Instructions.X64.OR, first, second, format, assigns);
 	}
 
-	public static BitwiseInstruction ShiftLeft(Unit unit, Result first, Result second, Format format, bool assigns = false)
+	public static BitwiseInstruction CreateShiftLeft(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
 		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_LEFT : Instructions.X64.SHIFT_LEFT, first, second, format, assigns);
 	}
 
-	public static BitwiseInstruction ShiftRight(Unit unit, Result first, Result second, Format format, bool is_unsigned, bool assigns = false)
+	public static BitwiseInstruction CreateShiftRight(Unit unit, Result first, Result second, Format format, bool is_unsigned, bool assigns = false)
 	{
 		var instruction = string.Empty;
 
@@ -76,7 +80,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	private void BuildShiftX64()
 	{
-		var unlock = (Instruction?)null;
+		var locked = (Register?)null;
 		var shifter = new Result(Second.Value, Format.INT8);
 
 		if (!Second.IsConstant)
@@ -89,11 +93,11 @@ public class BitwiseInstruction : DualParameterInstruction
 			{
 				Type = Assigns ? MoveType.RELOCATE : MoveType.COPY
 
-			}.Execute();
+			}.Add();
 
 			// Lock the shift register since it is very important it does not get relocated
-			LockStateInstruction.Lock(Unit, register).Execute();
-			unlock = LockStateInstruction.Unlock(Unit, register);
+			register.Lock();
+			locked = register;
 		}
 
 		var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
@@ -115,12 +119,8 @@ public class BitwiseInstruction : DualParameterInstruction
 				)
 			);
 
-			// Finally, if a unlock operation is specified, output it since this instruction is over
-			if (unlock != null)
-			{
-				Unit.Append(unlock, true);
-			}
-
+			// Finally, if a register was locked, unlock it now
+			if (locked != null) locked.Unlock();
 			return;
 		}
 
@@ -139,11 +139,8 @@ public class BitwiseInstruction : DualParameterInstruction
 			)
 		);
 
-		// Finally, if a unlock operation is specified, output it since this instruction is over
-		if (unlock != null)
-		{
-			Unit.Append(unlock, true);
-		}
+		// Finally, if a register was locked, unlock it now
+		if (locked != null) locked.Unlock();
 	}
 
 	public void OnBuildX64()
@@ -173,7 +170,7 @@ public class BitwiseInstruction : DualParameterInstruction
 			return;
 		}
 
-		if (Instruction == Instructions.X64.SHIFT_LEFT || Instruction == Instructions.X64.SHIFT_RIGHT)
+		if (Instruction == Instructions.X64.SHIFT_LEFT || Instruction == Instructions.X64.SHIFT_RIGHT || Instruction == Instructions.X64.SHIFT_RIGHT_UNSIGNED)
 		{
 			BuildShiftX64();
 			return;
@@ -226,7 +223,7 @@ public class BitwiseInstruction : DualParameterInstruction
 		{
 			if (First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, First, Result), true);
+				Unit.Add(new MoveInstruction(Unit, First, Result), true);
 			}
 
 			var result = Memory.LoadOperand(Unit, First, false, Assigns);

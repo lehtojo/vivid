@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-public class OffsetPattern : Pattern
+public class AccessorPattern : Pattern
 {
 	private const int PRIORITY = 19;
 
@@ -8,7 +8,7 @@ public class OffsetPattern : Pattern
 	private const int ARGUMENTS = 1;
 
 	// Pattern: ... [...]
-	public OffsetPattern() : base
+	public AccessorPattern() : base
 	(
 		TokenType.OBJECT, TokenType.PARENTHESIS
 	) { }
@@ -34,6 +34,6 @@ public class OffsetPattern : Pattern
 			arguments.Add(new NumberNode(Parser.Format, 0L, tokens[ARGUMENTS].Position));
 		}
 
-		return new OffsetNode(source, arguments, tokens[ARGUMENTS].Position);
+		return new AccessorNode(source, arguments, tokens[ARGUMENTS].Position);
 	}
 }

@@ -4,52 +4,50 @@
 /// </summary>
 public class EvacuateInstruction : Instruction
 {
-	public Instruction Perspective { get; private set; }
-
-	public EvacuateInstruction(Unit unit, Instruction perspective) : base(unit, InstructionType.EVACUATE)
+	public EvacuateInstruction(Unit unit) : base(unit, InstructionType.EVACUATE)
 	{
-		Perspective = perspective;
 		IsAbstract = true;
 	}
 
 	public override void OnBuild()
 	{
-		// Save all important values in the standard volatile registers
-		Unit.VolatileRegisters.ForEach(i =>
+		while (true)
 		{
-			i.IsLocked = true;
+			var evacuated = false;
 
-			// Skip values which are not needed after the call instruction
-			/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
-			if (i.Handle == null || !i.Handle.IsValid(Perspective.Position + 1) || i.IsHandleCopy())
+			// Save all important values in the standard volatile registers
+			foreach (var register in Unit.VolatileRegisters)
 			{
-				return;
+				// Skip values which are not needed after the call instruction
+				/// NOTE: The availability of the register is not checked the standard way since they are usually locked at this stage
+				if (register.Value == null || !register.Value.IsActive() || register.Value.IsDeactivating() || register.IsHandleCopy()) continue;
+
+				evacuated = true;
+
+				// Try to get an available non-volatile register
+				var destination = (Handle?)null;
+				var non_volatile_register = Unit.GetNextNonVolatileRegister(register.IsMediaRegister, false);
+
+				// Use the non-volatile register, if one was found
+				if (non_volatile_register != null)
+				{
+					destination = new RegisterHandle(non_volatile_register);
+				}
+				else
+				{
+					// Since there are no non-volatile registers available, the value must be relocated to stack memory
+					Unit.Release(register);
+					continue;
+				}
+
+				Unit.Add(new MoveInstruction(Unit, new Result(destination, register.Value!.Format), register.Value!)
+				{
+					Description = "Evacuates a value",
+					Type = MoveType.RELOCATE
+				});
 			}
 
-			// Try to get an available non-volatile register
-			var destination = (Handle?)null;
-			var register = Unit.GetNextNonVolatileRegister(i.IsMediaRegister, false);
-
-			// Use the non-volatile register, if one was found
-			if (register != null)
-			{
-				destination = new RegisterHandle(register);
-			}
-			else
-			{
-				// Since there are no non-volatile registers available, the value must be relocated to stack memory
-				Unit.Release(i);
-				return;
-			}
-
-			Unit.Append(new MoveInstruction(Unit, new Result(destination, i.Handle.Format), i.Handle!)
-			{
-				Description = $"Evacuate an important value into '{destination}'",
-				Type = MoveType.RELOCATE
-			});
-		});
-
-		// Unlock all the volatile registers
-		Unit.VolatileRegisters.ForEach(i => i.IsLocked = false);
+			if (!evacuated) break;
+		}
 	}
 }

@@ -14,14 +14,9 @@ public class AllocateStackInstruction : Instruction
 		IsAbstract = true;
 	}
 
-	public override void OnSimulate()
-	{
-		Result.Value = new InlineHandle(Unit, Bytes, Identity);
-		Result.Format = Assembler.Format;
-	}
-
 	public override void OnBuild()
 	{
-		OnSimulate();
+		Result.Value = new StackAllocationHandle(Unit, Bytes, Identity);
+		Result.Format = Assembler.Format;
 	}
 }

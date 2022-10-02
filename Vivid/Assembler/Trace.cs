@@ -1,75 +1,118 @@
 using System.Collections.Generic;
-using System.Linq;
 
-public static class Trace
+public enum DirectiveType
 {
-	private const int NEAR_DISTANCE = 20;
+	NON_VOLATILITY,
+	SPECIFIC_REGISTER,
+	AVOID_REGISTERS
+}
 
-	public static List<Directive> GetDirectives(Unit unit, Result result)
+public class Directive
+{
+	public DirectiveType Type { get; }
+
+	public Directive(DirectiveType type)
 	{
-		var start = result.Lifetime.Start;
-		var end = result.Lifetime.End;
+		Type = type;
+	}
 
-		end = end == -1 ? unit.Instructions.Count - 1 : end;
-		start = start == -1 ? unit.Instructions.Count - 1 : start;
-		
-		if (unit.Position > 0 && unit.Position > start) { start = unit.Position; }
+	public T To<T>() where T : Directive
+	{
+		return (T)this;
+	}
+}
+
+public class NonVolatilityDirective : Directive
+{
+	public NonVolatilityDirective() : base(DirectiveType.NON_VOLATILITY) { }
+}
+
+public class SpecificRegisterDirective : Directive
+{
+	public Register Register { get; }
+
+	public SpecificRegisterDirective(Register register) : base(DirectiveType.SPECIFIC_REGISTER)
+	{
+		Register = register;
+	}
+}
+
+public class AvoidRegistersDirective : Directive
+{
+	public List<Register> Registers { get; }
+
+	public AvoidRegistersDirective(List<Register> registers) : base(DirectiveType.AVOID_REGISTERS)
+	{
+		Registers = registers;
+	}
+}
+
+public class Trace
+{
+	public static List<Directive> For(Unit unit, Result result)
+	{
+		var directives = new List<Directive>();
+		var reorders = new List<ReorderInstruction>();
+
+		var usages = result.Lifetime.Usages;
+		var instructions = unit.Instructions;
+
+		var start = usages.Count;
+		var end = -1;
+
+		// Find the last usage
+		foreach (var usage in usages)
+		{
+			var position = unit.Instructions.IndexOf(usage);
+			if (position > end) { end = position; }
+			if (position < start) { start = position; }
+		}
+
+		if (unit.Position > start) { start = unit.Position; }
 
 		// Do not process results, which have already expired
-		if (start > end) { return new List<Directive>(); }
-
-		var reorders = new List<ReorderInstruction>();
-		var calls = new List<CallInstruction>();
-		var directives = new List<Directive>();
-		var avoid = new List<Register>();
+		if (start > end) return new List<Directive>();
 
 		for (var i = start; i <= end; i++)
 		{
-			var instruction = unit.Instructions[i];
+			var instruction = instructions[i];
 
 			if (instruction.Type == InstructionType.CALL)
 			{
-				calls.Add(unit.Instructions[i].To<CallInstruction>());
+				directives.Add(new NonVolatilityDirective());
+				continue;
 			}
-			else if (instruction.Type == InstructionType.REORDER)
-			{
-				reorders.Add(unit.Instructions[i].To<ReorderInstruction>());
-			}
-			else if (instruction.Type == InstructionType.MOVE && (i - start) <= NEAR_DISTANCE) // Look for register move instructions
-			{
-				var desination = instruction.To<MoveInstruction>().First;
-				if (desination == null || !desination.IsAnyRegister) continue;
 
-				var register = desination.Value!.To<RegisterHandle>().Register;
-
-				// Avoid or target the destination register based on what the source value is
-				if (ReferenceEquals(instruction.Source, result)) directives.Add(new SpecificRegisterDirective(register));
-				else avoid.Add(register);
+			if (instruction.Type == InstructionType.REORDER)
+			{
+				reorders.Add((ReorderInstruction)instruction);
 			}
 		}
 
-		// There can be calls which intersect with the lifetime of the value but it does not mean the value is used after them
-		if (calls.Any(i => i.Position < end))
-		{
-			directives.Add(new NonVolatilityDirective());
-		}
+		var avoid = new List<Register>();
 
+		// Look for return instructions, which have return values, if the current function has a return type
 		if (!Primitives.IsPrimitive(unit.Function.ReturnType, Primitives.UNIT))
 		{
-			for (var i = start; i < unit.Instructions.Count; i++)
+			for (var i = start; i <= end; i++)
 			{
-				if (!unit.Instructions[i].Is(InstructionType.RETURN)) continue;
+				var instruction = instructions[i];
 
-				var instruction = unit.Instructions[i].To<ReturnInstruction>();
-				if (instruction.Object == null) continue;
+				// Look for return instructions, which have return values
+				if (instruction.Type != InstructionType.RETURN) continue;
+				if (instruction.To<ReturnInstruction>().Object == null) continue;
 
-				if (!instruction.Object.Equals(result))
+				// If the returned object is the specified result, it should try to use the return register, otherwise it should avoid it
+				var register = instruction.To<ReturnInstruction>().ReturnRegister;
+
+				if (instruction.To<ReturnInstruction>().Object != result)
 				{
-					avoid.Add(instruction.ReturnRegister);
-					break;
+					avoid.Add(register);
+				}
+				else {
+					directives.Add(new SpecificRegisterDirective(register));
 				}
 
-				directives.Add(new SpecificRegisterDirective(instruction.ReturnRegister));
 				break;
 			}
 		}
@@ -78,83 +121,116 @@ public static class Trace
 		{
 			for (var i = start; i <= end; i++)
 			{
-				if (!unit.Instructions[i].Is(InstructionType.DIVISION)) continue;
+				var instruction = instructions[i];
 
-				var division = unit.Instructions[i].To<DivisionInstruction>();
+				// Look for division instructions
+				if (instruction.Type != InstructionType.DIVISION) continue;
 
-				if (division.First.Equals(result))
+				// If the first operand of the division is the specified result, it should try to use the numerator register, otherwise it should avoid it
+				var register = unit.GetNumeratorRegister();
+
+				if (instruction.To<DivisionInstruction>().First != result)
 				{
-					directives.Add(new SpecificRegisterDirective(unit.GetNumeratorRegister()));
+					avoid.Add(register);
 				}
 				else
 				{
-					avoid.Add(unit.GetNumeratorRegister());
+					directives.Add(new SpecificRegisterDirective(register));
 				}
 
+				// All results should avoid the remainder register
 				avoid.Add(unit.GetRemainderRegister());
+				break;
 			}
 		}
 
 		foreach (var reorder in reorders)
 		{
+			// Check if the specified result is relocated to any register
 			for (var i = 0; i < reorder.Destinations.Count; i++)
 			{
-				if (!reorder.Sources[i].Equals(result) || !reorder.Destinations[i].Is(HandleInstanceType.REGISTER)) continue;
+				var destination = reorder.Destinations[i];
+				if (destination.Instance != HandleInstanceType.REGISTER) continue;
 
-				directives.Add(new SpecificRegisterDirective(reorder.Destinations[i].To<RegisterHandle>().Register));
+				var register = destination.To<RegisterHandle>().Register;
+
+				if (reorder.Sources[i] != result)
+				{
+					avoid.Add(register);
+					continue;
+				}
+
+				directives.Add(new SpecificRegisterDirective(register));
+				break;
 			}
 		}
 
-		var registers = reorders.SelectMany(i => i.Destinations).Where(i => i.Is(HandleInstanceType.REGISTER)).Select(i => i.To<RegisterHandle>().Register).Distinct();
-
-		directives.Add(new AvoidRegistersDirective(avoid.Concat(registers).ToArray()));
-
+		directives.Add(new AvoidRegistersDirective(avoid));
 		return directives;
 	}
 
-
-	/// <summary>
-	/// Returns whether the specified result lives through at least one call
-	/// </summary>
+	// Summary: Returns whether the specified result lives through at least one call
 	public static bool IsUsedAfterCall(Unit unit, Result result)
 	{
-		var start = result.Lifetime.Start;
-		var end = result.Lifetime.End;
+		var usages = result.Lifetime.Usages;
+		var instructions = unit.Instructions;
 
-		end = end == -1 ? unit.Instructions.Count : end;
-		start = start == -1 ? unit.Instructions.Count : start;
+		var start = usages.Count;
+		var end = -1;
 
-		for (var i = start + 1; i < end; i++)
+		// Find the last usage
+		foreach (var usage in usages)
 		{
-			if (unit.Instructions[i].Is(InstructionType.CALL))
-			{
-				return true;
-			}
+			var position = instructions.IndexOf(usage);
+			if (position > end) { end = position; }
+			if (position < start) { start = position; }
+		}
+
+		if (unit.Position > start) { start = unit.Position; }
+
+		// Do not process results, which have already expired
+		if (start > end) return false;
+
+		for (var i = start; i < end; i++)
+		{
+			if (instructions[i].Type == InstructionType.CALL) return true;
 		}
 
 		return false;
 	}
 
-	/// <summary>
-	/// Returns whether the specified result stays constant during the lifetime of the specified parent
-	/// </summary>
+	// Summary: Returns whether the specified result stays constant during the lifetime of the specified parent
 	public static bool IsLoadingRequired(Unit unit, Result result)
 	{
-		if (IsUsedAfterCall(unit, result))
+		var usages = result.Lifetime.Usages;
+		var instructions = unit.Instructions;
+
+		var start = usages.Count;
+		var end = -1;
+
+		// Find the last usage
+		foreach (var usage in usages)
 		{
-			return true;
+			var position = instructions.IndexOf(usage);
+			if (position > end) { end = position; }
+			if (position < start) { start = position; }
 		}
 
-		var start = result.Lifetime.Start;
-		var end = result.Lifetime.End;
+		if (unit.Position > start) { start = unit.Position + 1; }
 
-		end = end == -1 ? unit.Instructions.Count : end;
-		start = start == -1 ? unit.Instructions.Count : start;
+		// Do not process results, which have already expired
+		if (start > end) return false;
 
-		return unit.Instructions.GetRange(start, end - start).Any(i =>
-			i.Is(InstructionType.GET_VARIABLE) && i.To<GetVariableInstruction>().Mode == AccessMode.WRITE && !i.To<GetVariableInstruction>().Result.Equals(result) ||
-			i.Is(InstructionType.GET_OBJECT_POINTER) && i.To<GetObjectPointerInstruction>().Mode == AccessMode.WRITE && !i.To<GetObjectPointerInstruction>().Result.Equals(result) ||
-			i.Is(InstructionType.GET_MEMORY_ADDRESS) && i.To<GetMemoryAddressInstruction>().Mode == AccessMode.WRITE && !i.To<GetMemoryAddressInstruction>().Result.Equals(result)
-		);
+		for (var i = start; i < end; i++)
+		{
+			var instruction = instructions[i];
+			var type = instruction.Type;
+
+			if (type == InstructionType.CALL) return true;
+			if (type == InstructionType.GET_OBJECT_POINTER && instruction.To<GetObjectPointerInstruction>().Mode == AccessMode.WRITE) return true;
+			if (type == InstructionType.GET_MEMORY_ADDRESS && instruction.To<GetMemoryAddressInstruction>().Mode == AccessMode.WRITE) return true;
+		}
+
+		return false;
 	}
 }

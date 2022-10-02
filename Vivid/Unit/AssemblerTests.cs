@@ -1012,9 +1012,6 @@ namespace Vivid.Unit
 
 			// Check whether the array copy with offset succeeded
 			Assert.AreEqual(new byte[] { 0, 0, 0, 7, 11, 13, 15, 17, 19, 23, 29, 31, 33, 0 }, destination);
-
-			var assembly = LoadAssemblyOutput("ConstantPermanence");
-			Assert.True(Regex.IsMatch(assembly, "\\[\\w+\\+3\\]"));
 		}
 
 		public static void ConstantPermanence()

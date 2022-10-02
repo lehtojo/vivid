@@ -94,7 +94,7 @@ public static class MemoryAccessAnalysis
 		var before = Analysis.GetCost(node);
 		var root = node.Clone();
 
-		var links = root.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
+		var links = root.FindTop(i => i.Is(NodeType.LINK, NodeType.ACCESSOR));
 
 		while (true)
 		{
@@ -119,7 +119,7 @@ public static class MemoryAccessAnalysis
 				var other = links[i];
 
 				// If the current link contains nodes which should not be moved, skip it
-				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.OFFSET, NodeType.CONTENT, NodeType.NUMBER)) != null)
+				if (other.Find(i => !i.Is(NodeType.VARIABLE, NodeType.TYPE, NodeType.LINK, NodeType.ACCESSOR, NodeType.PARENTHESIS, NodeType.NUMBER)) != null)
 				{
 					links.RemoveAt(i);
 					continue;
@@ -147,7 +147,7 @@ public static class MemoryAccessAnalysis
 			if (!repetitions.Any())
 			{
 				// Find inner links inside the current one and process them now
-				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
+				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.ACCESSOR));
 				links.InsertRange(0, inner);
 				continue;
 			}
@@ -193,7 +193,7 @@ public static class MemoryAccessAnalysis
 						if (!is_member_variable_edited || !members.Contains(edited.Right.To<VariableNode>().Variable))
 						{
 							// None of the edits must access raw memory, since they can edit the repetitions
-							if (!edited.Is(NodeType.OFFSET) && edited.Find(NodeType.OFFSET) == null) continue;
+							if (!edited.Is(NodeType.ACCESSOR) && edited.Find(NodeType.ACCESSOR) == null) continue;
 						}
 					}
 
@@ -249,7 +249,7 @@ public static class MemoryAccessAnalysis
 			if (!accesses.Contains(false))
 			{
 				// Find inner links inside the current one and process them now
-				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.OFFSET));
+				var inner = first.FindTop(i => i.Is(NodeType.LINK, NodeType.ACCESSOR));
 				links.InsertRange(0, inner);
 				continue;
 			}

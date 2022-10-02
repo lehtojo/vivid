@@ -10,27 +10,22 @@ public class ConvertInstruction : Instruction
 	public ConvertInstruction(Unit unit, Result number, Format format) : base(unit, InstructionType.CONVERT)
 	{
 		Number = number;
-		Dependencies = new[] { Number, Result };
 		Format = format;
+		Dependencies!.Add(Number);
 		IsAbstract = true;
+		Description = "Converts the specified number into the specified format";
 
 		Result.Format = Format.IsDecimal() ? Format.DECIMAL : GetSystemFormat(format);
 	}
 
 	public override void OnBuild()
 	{
-		if (Number.Format.IsDecimal() == Format.IsDecimal())
-		{
-			// The result must be equal to the value if there is no needed for conversion, since the result is directly used
-			Result.Join(Number);
-			return;
-		}
+		Memory.GetResultRegisterFor(Unit, Result, Format.IsUnsigned(), Format.IsDecimal());
 
-		Memory.GetRegisterFor(Unit, Result, Format.IsUnsigned(), Format.IsDecimal());
-
-		Unit.Append(new MoveInstruction(Unit, Result, Number)
+		Unit.Add(new MoveInstruction(Unit, Result, Number)
 		{
-			Type = MoveType.LOAD
+			Type = MoveType.LOAD,
+			Description = "Loads the specified number into the specified register"
 		});
 	}
 }

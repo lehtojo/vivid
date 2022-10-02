@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 
 /// <summary>
-/// Multiplicates to specified values together
+/// Multiplies to specified values together
 /// This instruction works on all architectures
 /// </summary>
 public class MultiplicationInstruction : DualParameterInstruction
@@ -45,7 +45,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 	{
 		if (Assigns && First.IsMemoryAddress)
 		{
-			Unit.Append(new MoveInstruction(Unit, First, Result), true);
+			Unit.Add(new MoveInstruction(Unit, First, Result), true);
 		}
 
 		if (Assembler.IsX64)
@@ -61,20 +61,19 @@ public class MultiplicationInstruction : DualParameterInstruction
 	public void OnBuildX64()
 	{
 		var flags = ParameterFlag.DESTINATION | (Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE);
-		var result = (Result?)null;
+		var operand = (Result?)null;
 
 		// Handle decimal multiplication separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Instructions.X64.DOUBLE_PRECISION_MULTIPLY;
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
-			result = Memory.LoadOperand(Unit, First, true, Assigns);
+			operand = Memory.LoadOperand(Unit, First, true, Assigns);
 
 			Build(
-				instruction,
+				Instructions.X64.DOUBLE_PRECISION_MULTIPLY,
 				new InstructionParameter(
-					result,
+					operand,
 					ParameterFlag.READS | flags,
 					HandleType.MEDIA_REGISTER
 				),
@@ -92,11 +91,11 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		if (multiplication != null && multiplication.Constant > 0)
 		{
-			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= Instructions.X64.EVALUATE_MAX_MULTIPLIER && !First.IsExpiring(Unit.Position))
+			if (!Assigns && Common.IsPowerOfTwo(multiplication.Constant) && multiplication.Constant <= Instructions.X64.EVALUATE_MAX_MULTIPLIER && !First.IsDeactivating())
 			{
 				Memory.GetResultRegisterFor(Unit, Result, Unsigned, false);
 
-				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
+				operand = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
 
 				// Example:
 				// mov rax, rcx
@@ -104,13 +103,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				// =>
 				// lea rax, [rcx*4]
 
-				var calculation = new ExpressionHandle
-				(
-					result,
-					(int)multiplication.Constant,
-					null,
-					0
-				);
+				var calculation = new ExpressionHandle(operand, (int)multiplication.Constant, null, 0);
 
 				Build(
 					Instructions.X64.EVALUATE,
@@ -134,13 +127,13 @@ public class MultiplicationInstruction : DualParameterInstruction
 			{
 				var count = new ConstantHandle((long)Math.Log2(multiplication.Constant));
 
-				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
+				operand = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
 
 				Build(
 					Instructions.X64.SHIFT_LEFT,
 					Assembler.Size,
 					new InstructionParameter(
-						result,
+						operand,
 						ParameterFlag.READS | flags,
 						HandleType.REGISTER
 					),
@@ -156,13 +149,13 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 			if (IsConstantValidForExtendedMultiplication(multiplication.Constant - 1))
 			{
-				result = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
+				operand = Memory.LoadOperand(Unit, multiplication.Multiplicand, false, Assigns);
 
 				var destination = (Result?)null;
 
 				if (Assigns)
 				{
-					destination = result;
+					destination = operand;
 				}
 				else
 				{
@@ -171,13 +164,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				}
 
 				// Example: imul rax, 3 => lea ..., [rax*2+rax]
-				var expression = new ExpressionHandle
-				(
-					result,
-					(int)multiplication.Constant - 1,
-					result,
-					0
-				);
+				var expression = new ExpressionHandle(operand, (int)multiplication.Constant - 1, operand, 0);
 
 				Build(
 					Instructions.X64.EVALUATE,
@@ -198,13 +185,13 @@ public class MultiplicationInstruction : DualParameterInstruction
 			}
 		}
 
-		result = Memory.LoadOperand(Unit, First, false, Assigns);
+		operand = Memory.LoadOperand(Unit, First, false, Assigns);
 
 		Build(
 			Instructions.X64.SIGNED_MULTIPLY,
 			Assembler.Size,
 			new InstructionParameter(
-				result,
+				operand,
 				ParameterFlag.READS | flags,
 				HandleType.REGISTER
 			),

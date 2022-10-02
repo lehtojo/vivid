@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Represents single parameter instructions
@@ -7,16 +8,16 @@ using System;
 public class SingleParameterInstruction : Instruction
 {
 	public string Instruction { get; private set; }
-	public Result Target { get; private set; }
+	public Result First { get; private set; }
 
-	public static SingleParameterInstruction Negate(Unit unit, Result target, bool is_decimal)
+	public static SingleParameterInstruction Negate(Unit unit, Result first, bool is_decimal)
 	{
 		if (is_decimal && !Assembler.IsArm64)
 		{
 			throw new InvalidOperationException("Negating decimal value using single parameter instruction on architecture x64 is not allowed");
 		}
 
-		return new SingleParameterInstruction(unit, is_decimal ? Instructions.Arm64.DECIMAL_NEGATE : Instructions.Shared.NEGATE, target)
+		return new SingleParameterInstruction(unit, is_decimal ? Instructions.Arm64.DECIMAL_NEGATE : Instructions.Shared.NEGATE, first)
 		{
 			Description = "Negates the target value"
 		};
@@ -30,23 +31,23 @@ public class SingleParameterInstruction : Instruction
 		};
 	}
 
-	private SingleParameterInstruction(Unit unit, string instruction, Result target) : base(unit, InstructionType.SINGLE_PARAMATER)
+	private SingleParameterInstruction(Unit unit, string instruction, Result target) : base(unit, InstructionType.SINGLE_PARAMETER)
 	{
 		Instruction = instruction;
-		Target = target;
-		Dependencies = new[] { Result, Target };
+		First = target;
+		Dependencies = new List<Result> { Result, First };
 
-		Result.Format = Target.Format;
+		Result.Format = First.Format;
 	}
 
 	public override void OnBuild()
 	{
-		Result.Format = Target.Format;
+		Result.Format = First.Format;
 
 		if (Assembler.IsArm64)
 		{
-			var is_unsigned = Target.Format.IsUnsigned();
-			var is_decimal = Target.Format.IsDecimal();
+			var is_unsigned = First.Format.IsUnsigned();
+			var is_decimal = First.Format.IsDecimal();
 			var register_type = is_decimal ? HandleType.MEDIA_REGISTER : HandleType.REGISTER;
 
 			Memory.GetResultRegisterFor(Unit, Result, is_unsigned, is_decimal);
@@ -60,7 +61,7 @@ public class SingleParameterInstruction : Instruction
 					register_type
 				),
 				new InstructionParameter(
-					Target,
+					First,
 					ParameterFlag.NONE,
 					register_type
 				)
@@ -73,7 +74,7 @@ public class SingleParameterInstruction : Instruction
 			Instruction,
 			Assembler.Size,
 			new InstructionParameter(
-				Target,
+				First,
 				ParameterFlag.DESTINATION | ParameterFlag.READS,
 				HandleType.REGISTER
 			)

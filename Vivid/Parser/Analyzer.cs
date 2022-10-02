@@ -94,7 +94,7 @@ public static class Analyzer
 			}
 
 			// Do not return the following nodes since they do not represent the source value
-			if (node.Is(NodeType.CONTENT, NodeType.INLINE))
+			if (node.Is(NodeType.PARENTHESIS, NodeType.INLINE))
 			{
 				node = node.Right;
 				continue;
@@ -153,6 +153,42 @@ public static class Analyzer
 	{
 		FindUsages(variable, root);
 		return Common.GetAllFunctionImplementations(context).Select(i => Task.Run(() => FindUsages(variable, i.Node!, false))).ToArray();
+	}
+
+	/// <summary>
+	/// Loads all variable usages from the specified function
+	/// </summary>
+	public static void LoadVariableUsages(FunctionImplementation implementation)
+	{
+		// Reset all parameters and locals
+		foreach (var variable in implementation.GetAllVariables())
+		{
+			variable.References.Clear();
+			variable.Writes.Clear();
+			variable.Reads.Clear();
+		}
+
+		var self = implementation.Self;
+
+		if (self != null)
+		{
+			self.References.Clear();
+			self.Writes.Clear();
+			self.Reads.Clear();
+		}
+
+		var usages = implementation.Node!.FindAll(NodeType.VARIABLE);
+
+		foreach (var usage in usages)
+		{
+			var variable = usage.To<VariableNode>().Variable;
+			if (!variable.IsPredictable) continue;
+
+			if (IsEdited(usage)) { variable.Writes.Add(usage); }
+			else { variable.Reads.Add(usage); }
+
+			variable.References.Add(usage);
+		}
 	}
 
 	/// <summary>

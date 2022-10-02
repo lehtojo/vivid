@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 /// <summary>
 /// Ensures that the lifetimes of the specified variables begin at least at this instruction
@@ -7,12 +6,13 @@ using System.Linq;
 /// </summary>
 public class RequireVariablesInstruction : Instruction
 {
-	public List<Variable> Variables { get; private set; }
+	public bool IsInputter { get; set; } = false;
 
-	public RequireVariablesInstruction(Unit unit, List<Variable> variables) : base(unit, InstructionType.REQUIRE_VARIABLES)
+	public RequireVariablesInstruction(Unit unit, bool is_inputter) : base(unit, InstructionType.REQUIRE_VARIABLES)
 	{
-		Variables = variables;
-		Dependencies = Variables.Select(i => References.GetVariable(unit, i, AccessMode.READ)).ToArray();
+		Dependencies = new List<Result>();
+		IsInputter = is_inputter;
 		IsAbstract = true;
+		Description = is_inputter ? "Inputs variables to the scope" : "Outputs variables to the scope";
 	}
 }

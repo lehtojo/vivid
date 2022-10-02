@@ -247,7 +247,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void RemoveRedundantParentheses(Node root)
 	{
-		if (root.Is(NodeType.CONTENT) || root.Is(NodeType.LIST))
+		if (root.Is(NodeType.PARENTHESIS) || root.Is(NodeType.LIST))
 		{
 			foreach (var iterator in root)
 			{
@@ -324,7 +324,7 @@ public static class ReconstructionAnalysis
 		var start = new LinkNode(source, new VariableNode(configuration));
 
 		var condition = new FunctionNode(Parser.InheritanceFunction!).SetArguments(new Node {
-			new OffsetNode(start, new NumberNode(Parser.Format, 0L)),
+			new AccessorNode(start, new NumberNode(Parser.Format, 0L)),
 			new DataPointer(expected.Configuration.Descriptor)
 		});
 
@@ -591,7 +591,7 @@ public static class ReconstructionAnalysis
 		{
 			// Find the root of the expression
 			var root = (Node)candidate;
-			while (root.Parent!.Instance == NodeType.CONTENT) { root = root.Parent!; }
+			while (root.Parent!.Instance == NodeType.PARENTHESIS) { root = root.Parent!; }
 
 			if (IsCondition(root)) return false;
 
@@ -654,7 +654,7 @@ public static class ReconstructionAnalysis
 		return value.Parent!.Is(
 			NodeType.CALL,
 			NodeType.CAST,
-			NodeType.CONTENT,
+			NodeType.PARENTHESIS,
 			NodeType.CONSTRUCTION,
 			NodeType.DECREMENT,
 			NodeType.FUNCTION,
@@ -662,7 +662,7 @@ public static class ReconstructionAnalysis
 			NodeType.LINK,
 			NodeType.NEGATE,
 			NodeType.NOT,
-			NodeType.OFFSET,
+			NodeType.ACCESSOR,
 			NodeType.OPERATOR,
 			NodeType.RETURN,
 			NodeType.OBJECT_LINK,
@@ -904,7 +904,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.OFFSET, NodeType.WHEN);
+		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.ACCESSOR, NodeType.WHEN);
 		nodes.AddRange(FindBoolValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
@@ -925,7 +925,7 @@ public static class ReconstructionAnalysis
 			if (node.Is(NodeType.FUNCTION) && parent.Is(NodeType.LINK) && parent.Right == node) { node = parent; }
 
 			// Do not extract accessors, which are destinations of assignments
-			if (node.Instance == NodeType.OFFSET && (Analyzer.IsEdited(node) || parent.Is(Operators.ASSIGN_EXCHANGE_ADD))) continue;
+			if (node.Instance == NodeType.ACCESSOR && (Analyzer.IsEdited(node) || parent.Is(Operators.ASSIGN_EXCHANGE_ADD))) continue;
 
 			var position = GetExpressionExtractPosition(node);
 
@@ -1499,7 +1499,7 @@ public static class ReconstructionAnalysis
 
 			var is_function_assignment = Common.IsFunctionCall(assignment.Right);
 
-			// The sources of function assignments must be replaced with placeholders, so that they do not get overridden by the local representives of the members
+			// The sources of function assignments must be replaced with placeholders, so that they do not get overridden by the local proxies of the members
 			if (is_function_assignment)
 			{
 				var loads = CreatePackMemberAccessors(destination, type, position);
@@ -1534,8 +1534,8 @@ public static class ReconstructionAnalysis
 		// Find all local variables, which are packs
 		var local_packs = implementation.Locals.Concat(implementation.Parameters).Concat(implementation.Variables.Values).Where(i => i.Type!.IsPack).ToList();
 
-		// Create the pack representives for all the collected local packs
-		foreach (var pack in local_packs) { Common.GetPackRepresentives(pack); }
+		// Create the pack proxies for all the collected local packs
+		foreach (var pack in local_packs) { Common.GetPackProxies(pack); }
 
 		// Find all the usages of the collected local packs
 		var local_pack_usages = root.FindAll(NodeType.VARIABLE).Where(i => local_packs.Contains(i.To<VariableNode>().Variable)).ToList();
@@ -1594,13 +1594,13 @@ public static class ReconstructionAnalysis
 			}
 			else
 			{
-				// Since we are accessing a pack, we must create a pack from its representives:
+				// Since we are accessing a pack, we must create a pack from its proxies:
 				var packer = new PackNode(type);
-				var representives = Common.GetPackRepresentives(accessed);
+				var proxies = Common.GetPackProxies(accessed);
 
-				foreach (var representive in representives)
+				foreach (var proxy in proxies)
 				{
-					packer.Add(new VariableNode(representive, usage.Position!));
+					packer.Add(new VariableNode(proxy, usage.Position!));
 				}
 
 				usage.Replace(packer);
@@ -1708,8 +1708,8 @@ public static class ReconstructionAnalysis
 		RemoveCancellingNots(root);
 		RemoveRedundantCasts(root);
 		RewriteDiscardedIncrements(root);
-		ExtractExpressions(root);
 		RewriteSelfReturningFunctions(root);
+		ExtractExpressions(root);
 		AddAssignmentCasts(root);
 		RewriteSupertypeAccessors(root);
 		RewriteWhenExpressions(root);

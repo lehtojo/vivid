@@ -175,7 +175,7 @@ public class ResolverPhase : Phase
 
 			foreach (var iterator in nodes)
 			{
-				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.OFFSET)) continue;
+				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.ACCESSOR)) continue;
 				diagnostics.Add(new DocumentDiagnostic(iterator.Position, "Can not understand the assignment", DocumentDiagnosticSeverity.ERROR));
 			}
 
@@ -192,7 +192,7 @@ public class ResolverPhase : Phase
 			foreach (var iterator in nodes)
 			{
 				var source = Analyzer.GetSource(iterator);
-				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
+				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.ACCESSOR, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
 
 				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
 				diagnostics.Add(new DocumentDiagnostic(iterator.Position, $"Can not understand the {name}", DocumentDiagnosticSeverity.ERROR));
@@ -365,7 +365,7 @@ public class ResolverPhase : Phase
 
 			foreach (var iterator in nodes)
 			{
-				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.OFFSET)) continue;
+				if (iterator.Left.Is(NodeType.VARIABLE, NodeType.LINK, NodeType.ACCESSOR)) continue;
 				errors.Add(Status.Error(iterator.Position, "Can not understand the assignment"));
 			}
 
@@ -382,7 +382,7 @@ public class ResolverPhase : Phase
 			foreach (var iterator in nodes)
 			{
 				var source = Analyzer.GetSource(iterator);
-				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.OFFSET, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
+				if (source.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DATA_POINTER, NodeType.DECREMENT, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.LINK, NodeType.NEGATE, NodeType.NOT, NodeType.ACCESSOR, NodeType.STACK_ADDRESS, NodeType.VARIABLE)) continue;
 
 				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
 				errors.Add(Status.Error(iterator.Position, $"Can not understand the {name}"));

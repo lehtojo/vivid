@@ -25,6 +25,6 @@ public class CommandPattern : Pattern
 
 	public override Node? Build(Context context, PatternState state, List<Token> tokens)
 	{
-		return new LoopControlNode(tokens[KEYWORD].To<KeywordToken>().Keyword, tokens[KEYWORD].Position);
+		return new CommandNode(tokens[KEYWORD].To<KeywordToken>().Keyword, tokens[KEYWORD].Position);
 	}
 }

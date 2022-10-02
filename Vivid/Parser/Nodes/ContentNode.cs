@@ -3,7 +3,7 @@ public class ContentNode : Node, IResolvable
 	public ContentNode(Position? position = null)
 	{
 		Position = position;
-		Instance = NodeType.CONTENT;
+		Instance = NodeType.PARENTHESIS;
 	}
 
 	public Node? Resolve(Context context)

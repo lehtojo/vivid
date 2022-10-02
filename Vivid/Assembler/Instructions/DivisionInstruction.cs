@@ -10,7 +10,7 @@ public class DivisionInstruction : DualParameterInstruction
 {
 	public bool Modulus { get; private set; }
 	public bool Assigns { get; private set; }
-	public bool Unsigned { get; private set; }
+	public new bool Unsigned { get; private set; }
 
 	public DivisionInstruction(Unit unit, bool modulus, Result first, Result second, Format format, bool assigns, bool unsigned) : base(unit, first, second, format, InstructionType.DIVISION)
 	{
@@ -31,22 +31,21 @@ public class DivisionInstruction : DualParameterInstruction
 
 		if (!First.Value.Equals(destination))
 		{
-			using (RegisterLock.Create(remainder))
-			{
-				Memory.ClearRegister(Unit, destination.Register);
-			}
+			remainder.Lock();
+			Memory.ClearRegister(Unit, destination.Register);
+			remainder.Unlock();
 
 			if (Assigns && !First.IsMemoryAddress)
 			{
-				Unit.Append(new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.RELOCATE });
+				Unit.Add(new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.RELOCATE });
 				return First;
 			}
 
-			return new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.COPY }.Execute();
+			return new MoveInstruction(Unit, new Result(destination, GetSystemFormat(Unsigned)), First) { Type = MoveType.COPY }.Add();
 		}
 		else if (!Assigns)
 		{
-			if (!First.IsExpiring(Unit.Position))
+			if (!First.IsDeactivating())
 			{
 				Memory.ClearRegister(Unit, destination.Register);
 			}
@@ -65,8 +64,8 @@ public class DivisionInstruction : DualParameterInstruction
 		var numerator_register = Unit.GetNumeratorRegister();
 		var remainder_register = Unit.GetRemainderRegister();
 
-		using var numerator_lock = new RegisterLock(numerator_register);
-		using var remainder_lock = new RegisterLock(remainder_register);
+		numerator_register.Lock();
+		remainder_register.Lock();
 
 		if (Unsigned)
 		{
@@ -76,8 +75,11 @@ public class DivisionInstruction : DualParameterInstruction
 		else
 		{
 			Memory.ClearRegister(Unit, remainder_register);
-			Unit.Append(new ExtendNumeratorInstruction(Unit));
+			Unit.Add(new ExtendNumeratorInstruction(Unit));
 		}
+
+		numerator_register.Unlock();
+		remainder_register.Unlock();
 	}
 
 	/// <summary>
@@ -143,12 +145,12 @@ public class DivisionInstruction : DualParameterInstruction
 	private class ConstantDivision
 	{
 		public Result Dividend;
-		public long Constant;
+		public long Number;
 
-		public ConstantDivision(Result dividend, Result constant)
+		public ConstantDivision(Result dividend, Result number)
 		{
 			Dividend = dividend;
-			Constant = (long)constant.Value.To<ConstantHandle>().Value;
+			Number = (long)number.Value.To<ConstantHandle>().Value;
 		}
 	}
 
@@ -172,13 +174,12 @@ public class DivisionInstruction : DualParameterInstruction
 		// Handle decimal division separately
 		if (First.Format.IsDecimal() || Second.Format.IsDecimal())
 		{
-			var instruction = Instructions.X64.DOUBLE_PRECISION_DIVIDE;
 			var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
 			var result = Memory.LoadOperand(Unit, First, true, Assigns);
 			var types = Second.Format.IsDecimal() ? new[] { HandleType.MEDIA_REGISTER, HandleType.MEMORY } : new[] { HandleType.MEDIA_REGISTER };
 
 			Build(
-				instruction,
+				Instructions.X64.DOUBLE_PRECISION_DIVIDE,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
@@ -198,17 +199,18 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			var division = TryGetConstantDivision();
 
-			if (division != null && Common.IsPowerOfTwo(division.Constant) && division.Constant != 0L)
+			if (division != null && Common.IsPowerOfTwo(division.Number) && division.Number != 0L)
 			{
-				var count = new ConstantHandle((long)Math.Log2(division.Constant));
+				var count = new ConstantHandle((long)Math.Log2(division.Number));
 				var flags = Assigns ? ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH : ParameterFlag.NONE;
-				var result = Memory.LoadOperand(Unit, division.Dividend, false, Assigns);
+				var instruction = Unsigned ? Instructions.X64.SHIFT_RIGHT_UNSIGNED : Instructions.X64.SHIFT_RIGHT;
+				var operand = Memory.LoadOperand(Unit, division.Dividend, false, Assigns);
 
 				Build(
 					Instructions.X64.SHIFT_RIGHT,
 					Assembler.Size,
 					new InstructionParameter(
-						result,
+						operand,
 						ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
 						HandleType.REGISTER
 					),
@@ -230,8 +232,8 @@ public class DivisionInstruction : DualParameterInstruction
 
 		PrepareRemainderRegister();
 
-		using var numerator_lock = new RegisterLock(numerator_register);
-		using var remainder_lock = new RegisterLock(remainder_register);
+		numerator_register.Lock();
+		remainder_register.Lock();
 
 		if (Modulus)
 		{
@@ -241,6 +243,9 @@ public class DivisionInstruction : DualParameterInstruction
 		{
 			BuildDivision(numerator);
 		}
+
+		numerator_register.Unlock();
+		remainder_register.Unlock();
 	}
 
 	public void BuildModulusArm64()
@@ -255,7 +260,7 @@ public class DivisionInstruction : DualParameterInstruction
 		// msub x0, x2, x1, x0 (assigns)
 
 		var first = Memory.LoadOperand(Unit, First, false, Assigns);
-		var division = new DivisionInstruction(Unit, false, first, Second, Result.Format, false, Unsigned).Execute();
+		var division = new DivisionInstruction(Unit, false, first, Second, Result.Format, false, Unsigned).Add();
 
 		if (Assigns)
 		{
@@ -324,9 +329,9 @@ public class DivisionInstruction : DualParameterInstruction
 		var division = TryGetConstantDivision();
 		var second = Second;
 
-		if (!is_decimal && division != null && Common.IsPowerOfTwo(division.Constant) && division.Constant != 0)
+		if (!is_decimal && division != null && Common.IsPowerOfTwo(division.Number) && division.Number != 0)
 		{
-			second = new Result(new ConstantHandle((long)Math.Log2(division.Constant)), Assembler.Format);
+			second = new Result(new ConstantHandle((long)Math.Log2(division.Number)), Assembler.Format);
 			types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
 			instruction = Instructions.Arm64.SHIFT_RIGHT;
 		}
@@ -385,7 +390,7 @@ public class DivisionInstruction : DualParameterInstruction
 	{
 		if (Assigns && First.IsMemoryAddress)
 		{
-			Unit.Append(new MoveInstruction(Unit, First, Result), true);
+			Unit.Add(new MoveInstruction(Unit, First, Result), true);
 		}
 
 		if (Assembler.IsX64)
