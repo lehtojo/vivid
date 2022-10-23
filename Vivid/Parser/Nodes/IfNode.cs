@@ -52,7 +52,7 @@ public class IfNode : Node, IResolvable
 	/// <summary>
 	/// Returns all the nodes which are executed during the condition step
 	/// </summary>
-	public Node GetConditionStep()
+	public Node GetConditionContainer()
 	{
 		return First!;
 	}

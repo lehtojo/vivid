@@ -172,7 +172,7 @@ public class Debug
 
 		Information.Add(fullname.Replace("\\", "/")); // DW_AT_name
 
-		Information.Add(new TableLabel(DebugLineTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows }); // DW_AT_stmt_list
+		Information.Add(new TableLabel(DebugLineTable, Size.DWORD, false) { IsSectionRelative = Settings.IsX64 && Settings.IsTargetWindows }); // DW_AT_stmt_list
 
 		Information.Add(Environment.CurrentDirectory.Replace("\\", "/") ?? throw new ApplicationException("Could not retrieve source file folder")); // DW_AT_comp_dir
 
@@ -262,7 +262,7 @@ public class Debug
 
 		Information.Add(GetOffset(start, GetEnd(implementation))); // DW_AT_high_pc
 
-		AddOperation(Assembler.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
+		AddOperation(Settings.IsX64 ? X64_DWARF_STACK_POINTER_REGISTER : ARM64_DWARF_STACK_POINTER_REGISTER); // DW_AT_frame_base
 		Information.Add(implementation.GetHeader()); // DW_AT_name
 		Information.Add(file); // DW_AT_decl_file
 		Information.Add(GetLine(implementation)); // DW_AT_decl_line
@@ -609,7 +609,7 @@ public class Debug
 		Information.Add(GetOffset(Start, GetTypeLabel(variable.Type!, types, IsPointerType(variable.Type!))));
 		Information.Add(GetFile(variable));
 		Information.Add(GetLine(variable));
-		Information.Add(variable.GetAlignment(variable.Context.To<Type>()) ?? throw new ApplicationException("Missing member variable alignment"));
+		Information.Add(variable.GetAlignment(variable.Parent.To<Type>()) ?? throw new ApplicationException("Missing member variable alignment"));
 
 		if (Flag.Has(variable.Modifiers, Modifier.PRIVATE))
 		{
@@ -694,7 +694,7 @@ public class Debug
 
 	public void AddLink(Type type, HashSet<Type> types)
 	{
-		var element = type.GetOffsetType() ?? throw new ApplicationException("Missing link offset type");
+		var element = type.GetAccessorType() ?? throw new ApplicationException("Missing link offset type");
 
 		if (!Primitives.IsPrimitive(element, Primitives.BYTE) && !Primitives.IsPrimitive(element, Primitives.CHAR) && !Primitives.IsPrimitive(element, Primitives.U8))
 		{
@@ -915,8 +915,8 @@ public class Debug
 		Information.Add(GetOffset(version_number_label, End));
 		Information.Add(version_number_label);
 		Information.Add(DWARF_VERSION);
-		Information.Add(new TableLabel(DebugAbbrevationTable, Size.DWORD, false) { IsSectionRelative = Assembler.IsX64 && Assembler.IsTargetWindows });
-		Information.Add((byte)Assembler.Size.Bytes);
+		Information.Add(new TableLabel(DebugAbbrevationTable, Size.DWORD, false) { IsSectionRelative = Settings.IsX64 && Settings.IsTargetWindows });
+		Information.Add((byte)Settings.Bytes);
 
 		AddFileAbbrevation();
 		AddObjectTypeWithMembersAbbrevation();
@@ -947,7 +947,7 @@ public class Debug
 		Assembler.AddTable(builder, Abbrevation, TableMarker.TextualAssembly);
 		Assembler.AddTable(builder, Information, TableMarker.TextualAssembly);
 
-		if (Assembler.IsDebuggingEnabled)
+		if (Settings.IsDebuggingEnabled)
 		{
 			var abbreviation_section = builder.GetDataSection(file, Abbrevation.Name);
 			var information_section = builder.GetDataSection(file, Information.Name);

@@ -312,7 +312,7 @@ public static class StaticLibraryFormat
 				var object_file_name = AssemblyPhase.GetObjectFileName(source_file, output_name);
 				var object_file_symbols = object_file.Exports.ToArray();
 
-				var bytes = Assembler.IsTargetWindows
+				var bytes = Settings.IsTargetWindows
 					? PeFormat.Build(object_file.Sections, object_file.Exports)
 					: ElfFormat.Build(object_file.Sections, object_file.Exports);
 

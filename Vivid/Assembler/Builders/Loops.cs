@@ -34,7 +34,7 @@ public static class Loops
 			statement.Condition.Instance = NodeType.DISABLED;
 
 			// Initialization of the condition might happen multiple times, therefore inner labels can duplicate
-			Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
+			Inliner.LocalizeLabels(unit.Function, statement.Initialization.Next!);
 
 			Builders.Build(unit, statement.Initialization.Next!);
 
@@ -89,7 +89,7 @@ public static class Loops
 		statement.Condition.Instance = NodeType.DISABLED;
 
 		// Initialization of the condition might happen multiple times, therefore inner labels can duplicate
-		Inlines.LocalizeLabels(unit.Function, statement.Initialization.Next!);
+		Inliner.LocalizeLabels(unit.Function, statement.Initialization.Next!);
 
 		Builders.Build(unit, statement.Initialization.Next!);
 

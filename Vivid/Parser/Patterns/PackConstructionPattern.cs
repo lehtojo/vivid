@@ -3,22 +3,16 @@ using System.Linq;
 
 public class PackConstructionPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	public const int CONTENT = 1;
 
 	public PackConstructionPattern() : base
 	(
 		TokenType.KEYWORD,
 		TokenType.PARENTHESIS
-	) {}
+	)
+	{ Priority = 19; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Ensure the keyword is 'pack'
 		if (!tokens.First().Is(Keywords.PACK)) return false;
@@ -50,7 +44,7 @@ public class PackConstructionPattern : Pattern
 		return true;
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
 		// We know that this is a pack construction.
 		// The tokens must be in the form of: { $member-1 : $value-1, $member-2 : $value-2, ... }

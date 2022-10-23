@@ -48,7 +48,7 @@ public class LabelMergeInstruction : Instruction
 
 			if ((instance & allowed) == 0)
 			{
-				Memory.MoveToRegister(Unit, result, Assembler.Size, result.Format.IsDecimal(), Trace.For(Unit, result));
+				Memory.MoveToRegister(Unit, result, Settings.Size, result.Format.IsDecimal(), Trace.For(Unit, result));
 			}
 		}
 	}

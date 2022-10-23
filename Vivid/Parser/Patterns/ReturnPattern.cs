@@ -3,27 +3,21 @@ using System.Linq;
 
 class ReturnPattern : Pattern
 {
-	public const int PRIORITY = 0;
-
 	public ReturnPattern() : base
 	(
 		TokenType.KEYWORD
-	) { }
+	)
+	{ Priority = 0; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		if (!tokens.First().Is(Keywords.RETURN)) return false;
 
-		Consume(state, TokenType.OBJECT); // Optionally consume a return value
+		state.Consume(TokenType.OBJECT); // Optionally consume a return value
 		return true;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var return_value = (Node?)null;
 

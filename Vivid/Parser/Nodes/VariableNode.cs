@@ -9,7 +9,7 @@ public class VariableNode : Node
 	{
 		Variable = variable;
 		Instance = NodeType.VARIABLE;
-		Variable.References.Add(this);
+		Variable.Usages.Add(this);
 	}
 
 	public VariableNode(Variable variable, Position? position)
@@ -17,11 +17,18 @@ public class VariableNode : Node
 		Variable = variable;
 		Instance = NodeType.VARIABLE;
 		Position = position;
-		Variable.References.Add(this);
+		Variable.Usages.Add(this);
 	}
 
 	public override Type? TryGetType()
 	{
+		var type = Variable.Type;
+
+		if (type != null && type is ArrayType)
+		{
+			return type.To<ArrayType>().UsageType;
+		}
+
 		return Variable.Type;
 	}
 

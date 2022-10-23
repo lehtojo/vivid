@@ -14,12 +14,12 @@ public class ExtendNumeratorInstruction : Instruction
 		Build(
 			Instructions.X64.EXTEND_QWORD,
 			new InstructionParameter(
-				new Result(new RegisterHandle(remainder), Assembler.Format),
+				new Result(new RegisterHandle(remainder), Settings.Format),
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				new Result(new RegisterHandle(numerator), Assembler.Format),
+				new Result(new RegisterHandle(numerator), Settings.Format),
 				ParameterFlag.HIDDEN | ParameterFlag.LOCKED,
 				HandleType.REGISTER
 			)

@@ -31,7 +31,7 @@ public class GetMemoryAddressInstruction : Instruction
 			OutputPack(Pack, 0);
 
 			Result.Value = Pack;
-			Result.Format = Assembler.Format;
+			Result.Format = Settings.Format;
 			return;
 		}
 
@@ -87,7 +87,7 @@ public class GetMemoryAddressInstruction : Instruction
 	{
 		// Ensure the start value is a constant or in a register
 		if (Start.IsConstant || Start.IsStackAllocation || Start.IsStandardRegister) return;
-		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.For(Unit, Start));
+		Memory.MoveToRegister(Unit, Start, Settings.Size, false, Trace.For(Unit, Start));
 	}
 
 	public override void OnBuild()
@@ -98,7 +98,7 @@ public class GetMemoryAddressInstruction : Instruction
 		{
 			OutputPack(Pack, 0);
 			Result.Value = Pack;
-			Result.Format = Assembler.Format;
+			Result.Format = Settings.Format;
 			return;
 		}
 
@@ -107,7 +107,7 @@ public class GetMemoryAddressInstruction : Instruction
 			Result.Value = new ComplexMemoryHandle(Start, Offset, Stride);
 			Result.Format = Format;
 
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Format.IsDecimal(), Trace.For(Unit, Result));
+			Memory.MoveToRegister(Unit, Result, Settings.Size, Format.IsDecimal(), Trace.For(Unit, Result));
 		}
 		else
 		{

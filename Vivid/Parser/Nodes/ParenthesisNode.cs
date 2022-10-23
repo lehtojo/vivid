@@ -1,6 +1,6 @@
-public class ContentNode : Node, IResolvable
+public class ParenthesisNode : Node, IResolvable
 {
-	public ContentNode(Position? position = null)
+	public ParenthesisNode(Position? position = null)
 	{
 		Position = position;
 		Instance = NodeType.PARENTHESIS;
@@ -22,5 +22,5 @@ public class ContentNode : Node, IResolvable
 		return First != null ? Status.OK : Status.Error(Position, "Empty parenthesis are not allowed");
 	}
 
-	public override string ToString() => "Content";
+	public override string ToString() => "Parenthesis";
 }

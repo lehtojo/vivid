@@ -74,7 +74,7 @@ public static class ReferenceProvider
 		var variable = cursor.To<VariableNode>().Variable;
 		Task.WaitAll(Analyzer.FindAllUsagesAsync(variable, parse.Node, parse.Context));
 
-		var locations = variable.References
+		var locations = variable.Usages
 			.Select(i => i.Position)
 			.Where(i => i != null && i.File != null)
 			.GroupBy(i => i!.File)

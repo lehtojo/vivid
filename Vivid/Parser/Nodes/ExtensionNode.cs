@@ -38,11 +38,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 		if (Destination.IsUnresolved)
 		{
 			var destination = Resolver.Resolve(context, Destination);
-
-			if (destination == null)
-			{
-				return null;
-			}
+			if (destination == null) return null;
 
 			Destination = destination;
 		}
@@ -66,7 +62,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 		{
 			function.Modifiers |= Modifier.STATIC;
 		}
-			
+
 		Destination.Declare(function);
 
 		return new FunctionDefinitionNode(function, Position);

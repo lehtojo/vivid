@@ -117,9 +117,6 @@ public static class Translator
 		// Take only the instructions which are actual assembly instructions
 		var instructions = unit.Instructions.Where(i => !i.IsAbstract).ToList();
 
-		// If optimization is enabled, try to optimize the generated code on instruction level
-		if (Analysis.IsInstructionAnalysisEnabled) InstructionAnalysis.Optimize(unit, instructions);
-
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
@@ -133,7 +130,7 @@ public static class Translator
 		// Append a return instruction at the end if there is no return instruction present
 		if (!instructions.Any() || !instructions.Last().Is(InstructionType.RETURN))
 		{
-			if (Assembler.IsDebuggingEnabled && unit.Function.Metadata.End != null)
+			if (Settings.IsDebuggingEnabled && unit.Function.Metadata.End != null)
 			{
 				instructions.Add(new DebugBreakInstruction(unit, unit.Function.Metadata.End));
 			}
@@ -142,7 +139,7 @@ public static class Translator
 		}
 
 		// If debug information is being generated, append a debug information label at the end
-		if (Assembler.IsDebuggingEnabled)
+		if (Settings.IsDebuggingEnabled)
 		{
 			var end = new LabelInstruction(unit, new Label(Debug.GetEnd(unit.Function).Name));
 			end.OnBuild();
@@ -173,19 +170,13 @@ public static class Translator
 
 			// Save the local memory size for later use
 			unit.Function.SizeOfLocals = unit.StackOffset - local_memory_top;
-			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Assembler.Size.Bytes;
+			unit.Function.SizeOfLocalMemory = unit.Function.SizeOfLocals + registers.Count * Settings.Bytes;
 
 			instruction.To<ReturnInstruction>().Build(registers, local_memory_top);
 		}
 
 		// Reverse the register list to its original order
 		registers.Reverse();
-
-		// If optimization is enabled, finish the instructions
-		if (Analysis.IsInstructionAnalysisEnabled)
-		{
-			InstructionAnalysis.Finish(unit, instructions, registers, required_local_memory);
-		}
 
 		// Align all used local variables
 		Aligner.AlignLocalMemory(unit.Function, local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
@@ -194,7 +185,7 @@ public static class Translator
 
 		var file = unit.Function.Metadata.Start!.File!;
 
-		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled)
+		if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 		{
 			// Convert all instructions into textual assembly
 			instructions.ForEach(i => i.Finish());
@@ -202,7 +193,7 @@ public static class Translator
 			builder.Write(unit.ToString());
 
 			// Add a directive, which tells the assembler to finish debugging information regarding the current function
-			if (Assembler.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);
+			if (Settings.IsDebuggingEnabled) builder.WriteLine(Assembler.DebugFunctionEndDirective);
 		}
 
 		builder.Add(file, instructions);

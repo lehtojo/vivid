@@ -3,8 +3,6 @@ using System.Linq;
 
 public class HasPattern : Pattern
 {
-	public const int PRIORITY = 16;
-
 	private const int HAS = 1;
 	private const int NAME = 2;
 
@@ -14,19 +12,15 @@ public class HasPattern : Pattern
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
 		TokenType.KEYWORD,
 		TokenType.IDENTIFIER
-	) { }
+	)
+	{ Priority = 16; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[HAS].Is(Keywords.HAS) || tokens[HAS].Is(Keywords.HAS_NOT);
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var negate = tokens[HAS].Is(Keywords.HAS_NOT);
 
@@ -44,6 +38,6 @@ public class HasPattern : Pattern
 
 		var result = new HasNode(source, new VariableNode(variable, position), tokens[HAS].Position);
 
-		return negate ? new NotNode(result, result.Position) : result;
+		return negate ? new NotNode(result, false, result.Position) : result;
 	}
 }

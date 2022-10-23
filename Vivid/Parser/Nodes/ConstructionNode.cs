@@ -21,6 +21,7 @@ public class ConstructionNode : Node, IResolvable
 		return Constructor.Function.FindTypeParent();
 	}
 
+	#warning Add to stage2
 	public Status GetStatus()
 	{
 		var type = TryGetType();

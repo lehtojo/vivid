@@ -24,13 +24,13 @@ public class Link : Number
 		return link;
 	}
 
-	public Link() : base(Parser.Format, Parser.Size.Bits, true, "link")
+	public Link() : base(Parser.Format, Parser.Bits, true, "link")
 	{
 		Identifier = Primitives.LINK_IDENTIFIER;
 		Modifiers |= Modifier.TEMPLATE_TYPE;
 	}
 
-	public Link(Type argument) : base(Parser.Format, Parser.Size.Bits, true, "link")
+	public Link(Type argument) : base(Parser.Format, Parser.Bits, true, "link")
 	{
 		Identifier = Primitives.LINK_IDENTIFIER;
 		Modifiers |= Modifier.TEMPLATE_TYPE;
@@ -45,28 +45,28 @@ public class Link : Number
 		return clone;
 	}
 
-	public override Type GetOffsetType()
+	public override Type GetAccessorType()
 	{
 		return TemplateArguments.FirstOrDefault() ?? Primitives.CreateNumber(Primitives.U8, Format.UINT8);
 	}
 
 	public override int GetContentSize()
 	{
-		return GetOffsetType().ReferenceSize;
+		return GetAccessorType().ReferenceSize;
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is Link link && Name == link.Name && Identifier == link.Identifier && Equals(GetOffsetType(), link.GetOffsetType());
+		return other is Link link && Name == link.Name && Identifier == link.Identifier && Equals(GetAccessorType(), link.GetAccessorType());
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Name, Identifier, GetOffsetType());
+		return HashCode.Combine(Name, Identifier, GetAccessorType());
 	}
 
 	public override string ToString()
 	{
-		return Name + '<' + GetOffsetType() + '>';
+		return GetAccessorType().ToString() + '*';
 	}
 }

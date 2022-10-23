@@ -7,32 +7,28 @@ public class TypeInspectionPattern : Pattern
 	public const string CAPACITY_INSPECTION_IDENTIFIER = "capacityof";
 	public const string NAME_INSPECTION_IDENTIFIER = "nameof";
 
-	public const int PRIORITY = 18;
-
 	// Pattern: sizeof(...)/capacityof(...)/nameof(...)
-	public TypeInspectionPattern() : base(TokenType.FUNCTION) { }
-
-	public override int GetPriority(List<Token> tokens)
+	public TypeInspectionPattern() : base(TokenType.FUNCTION)
 	{
-		return PRIORITY;
+		Priority = 18;
 	}
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		var descriptor = tokens.First().To<FunctionToken>();
 
 		if (descriptor.Name != SIZE_INSPECTION_IDENTIFIER && descriptor.Name != CAPACITY_INSPECTION_IDENTIFIER && descriptor.Name != NAME_INSPECTION_IDENTIFIER) return false;
 
 		// Create a temporary state which in order to check whether the parameters contains a type
-		state = new PatternState(descriptor.Parameters.Tokens);
+		state = new ParserState(descriptor.Parameters.Tokens);
 
-		return Common.ConsumeType(state) && state.End == state.Tokens.Count;
+		return Common.ConsumeType(state) && state.End == state.All.Count;
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var descriptor = tokens.First().To<FunctionToken>();
-		var type = Common.ReadType(context, new Queue<Token>(descriptor.Parameters.Tokens));
+		var type = Common.ReadType(context, descriptor.Parameters.Tokens);
 
 		if (type == null) throw Errors.Get(descriptor.Position, "Can not resolve the inspected type");
 

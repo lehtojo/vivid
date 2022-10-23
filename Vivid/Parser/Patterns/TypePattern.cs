@@ -2,8 +2,6 @@
 
 public class TypePattern : Pattern
 {
-	public const int PRIORITY = 22;
-
 	public const int NAME = 0;
 	public const int BODY = 2;
 
@@ -11,25 +9,21 @@ public class TypePattern : Pattern
 	public TypePattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.END | TokenType.OPTIONAL, TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 22; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[BODY].To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens[BODY].To<ParenthesisToken>();
 
 		var type = new Type(context, name.Value, Modifier.DEFAULT, name.Position);
 
-		return new TypeNode(type, body.Tokens, name.Position);
+		return new TypeDefinitionNode(type, body.Tokens, name.Position);
 	}
 }

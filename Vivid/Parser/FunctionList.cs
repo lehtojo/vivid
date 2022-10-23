@@ -83,10 +83,7 @@ public class FunctionList
 
 		for (var i = 0; i < parameters.Count; i++)
 		{
-			if (candidate.Parameters[i].Type == null || candidate.Parameters[i].Type!.Equals(parameters[i]))
-			{
-				continue;
-			}
+			if (candidate.Parameters[i].Type == null || candidate.Parameters[i].Type!.Equals(parameters[i])) continue;
 
 			casts++;
 		}

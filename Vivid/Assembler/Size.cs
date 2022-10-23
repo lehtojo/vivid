@@ -68,7 +68,7 @@ public class Size
 			Format.INT64 or Format.UINT64 => QWORD,
 			Format.INT128 or Format.UINT128 => XWORD,
 			Format.INT256 or Format.UINT256 => YWORD,
-			Format.DECIMAL => Assembler.Size,
+			Format.DECIMAL => Settings.Size,
 			_ => throw new ArgumentException("Could not convert format to size"),
 		};
 	}

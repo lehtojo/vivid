@@ -35,11 +35,26 @@ public static class Resolver
 	/// </summary>
 	public static void Resolve(Context context, Node node)
 	{
-		var resolved = ResolveTree(context, node);
+		var result = ResolveTree(context, node);
+		if (result == null) return;
+		node.Replace(result);
+	}
 
-		if (resolved != null)
+	/// <summary>
+	/// Resolves the parameters of the specified function
+	/// </summary>
+	public static void Resolve(Function function)
+	{
+		// Resolve the parameters
+		foreach (var parameter in function.Parameters)
 		{
-			node.Replace(resolved);
+			var type = parameter.Type;
+			if (type == null || type.IsResolved()) continue;
+
+			type = Resolve(function, type);
+			if (type == null) continue;
+
+			parameter.Type = type;
 		}
 	}
 
@@ -51,24 +66,16 @@ public static class Resolver
 		for (var i = type.Supertypes.Count - 1; i >= 0; i--)
 		{
 			var supertype = type.Supertypes[i];
+			if (!supertype.IsUnresolved) continue;
 
-			// Skip supertypes which are already resolved
-			if (!supertype.IsUnresolved)
-			{
-				continue;
-			}
-
+			// Try to resolve the supertype
 			var resolved = Resolve(context, supertype);
 
 			// Skip the supertype if it could not be resolved or if it is not allowed to be inherited
-			if (resolved == null || !type.IsInheritingAllowed(resolved))
-			{
-				continue;
-			}
+			if (resolved == null || !type.IsInheritingAllowed(resolved)) continue;
 
 			// Replace the old unresolved supertype with the resolved one
-			type.Supertypes.RemoveAt(i);
-			type.Supertypes.Insert(i, resolved);
+			type.Supertypes[i] = resolved;
 		}
 	}
 
@@ -77,116 +84,60 @@ public static class Resolver
 	/// </summary>
 	public static void ResolveImplementation(FunctionImplementation implementation)
 	{
+		ResolveReturnType(implementation);
 		ResolveVariables(implementation);
 
-		// Check if the implementation has a return type and if it is unresolved
-		if (implementation.ReturnType != null)
-		{
-			if (implementation.ReturnType.IsUnresolved)
-			{
-				var type = implementation.ReturnType!.To<UnresolvedType>().ResolveOrNull(implementation);
-
-				if (type != null)
-				{
-					implementation.ReturnType = type;
-				}
-			}
-		}
-		else
-		{
-			ResolveReturnType(implementation);
-		}
-
-		if (implementation.Node != null)
-		{
-			if (implementation.ReturnType == null && implementation.Node.Find(NodeType.RETURN) == null)
-			{
-				implementation.ReturnType = Primitives.CreateUnit();
-			}
-
-			ResolveTree(implementation, implementation.Node!);
-		}
-
-		// Resolve short functions
-		ResolveContext(implementation);
+		if (implementation.Node == null) return;
+		ResolveTree(implementation, implementation.Node);
 	}
 
 	/// <summary>
-	/// Tries to resolve the problems in the given context
+	/// Tries to resolve every problem in the specified context
 	/// </summary>
 	public static void ResolveContext(Context context)
 	{
-		context.Update(true);
+		var functions = Common.GetAllVisibleFunctions(context);
+		foreach (var function in functions) { Resolve(function); }
 
-		ResolveVariables(context);
+		var types = Common.GetAllTypes(context);
 
-		var types = new List<Type>(context.Types.Values);
-		var overloads = (List<Function>?)null;
-
+		// Resolve all the types
 		foreach (var type in types)
 		{
 			ResolveSupertypes(context, type);
-			ResolveVariables(type);
-			ResolveContext(type);
 
-			// Virtual functions do not have return types defined sometimes, the return types of those virtual functions are dependent on their default implementations
-			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			// Resolve all member variables
+			foreach (var iterator in type.Variables)
 			{
-				if (virtual_function.ReturnType != null) continue;
-				
-				// Find all overrides with the same name as the virtual function
-				overloads = type.GetOverride(virtual_function.Name)?.Overloads;
-				if (overloads == null) continue;
-
-				// Take out the expected parameter types
-				var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
-
-				foreach (var overload in overloads)
-				{
-					// Ensure the actual parameter types match the expected types
-					var actual = overload.Parameters.Select(i => i.Type).ToList();
-					if (actual.Count != expected.Count || !actual.SequenceEqual(expected)) continue;
-
-					if (!overload.Implementations.Any()) continue;
-
-					// Now the current overload must be the default implementation for the virtual function
-					virtual_function.ReturnType = overload.Implementations.First().ReturnType;
-					break;
-				}
-			}
-		}
-
-		overloads = Common.GetAllVisibleFunctions(context).ToList();
-
-		// Resolve parameter types
-		foreach (var function in overloads)
-		{
-			foreach (var parameter in function.Parameters)
-			{
-				if (parameter.Type == null || !parameter.Type.IsUnresolved) continue;
-				
-				var type = parameter.Type.To<UnresolvedType>().ResolveOrNull(context);
-
-				if (!Equals(type, null))
-				{
-					parameter.Type = type;
-				}
+				Resolve(iterator.Value);
 			}
 
-			// Resolve virtual function return types
-			if (function is not VirtualFunction virtual_function || virtual_function.ReturnType == null || !virtual_function.ReturnType.IsUnresolved) continue;
+			// Resolve all initializations
+			foreach (var initialization in type.Initialization)
+			{
+				Resolve(type, initialization);
+			}
 
-			// Update the return type only if it is resolved
-			var resolved = Resolver.Resolve(context, virtual_function.ReturnType);
-			if (resolved == null) continue;
+			// Resolve array types, because their sizes need to be determined at compile time and they can be dependent on expressions
+			if (type is ArrayType) ResolveArrayType(type.Parent!, type.To<ArrayType>());
 
-			virtual_function.ReturnType = resolved;
+			ResolveVirtualFunctions(type);
 		}
 
-		foreach (var implementation in Common.GetAllFunctionImplementations(context))
+		var implementations = Common.GetAllFunctionImplementations(context);
+
+		// Resolve all implementation variables and node trees
+		foreach (var implementation in implementations)
 		{
-			ResolveImplementation(implementation);
+			ResolveReturnType(implementation);
+			ResolveVariables(implementation);
+
+			if (implementation.Node == null) continue;
+			ResolveTree(implementation, implementation.Node);
 		}
+
+		// Resolve constants
+		ResolveVariables(context);
 	}
 
 	/// <summary>
@@ -194,35 +145,27 @@ public static class Resolver
 	/// </summary>
 	private static Node? ResolveTree(Context context, Node node)
 	{
+		// If the node is unresolved, try to resolve it
 		if (node is IResolvable resolvable)
 		{
 			try
 			{
-				return resolvable.Resolve(context) ?? node;
+				return resolvable.Resolve(context);
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($"{YELLOW}Internal warning{RESET}: {e.Message}");
+				Console.WriteLine($"{YELLOW}Internal{RESET}: {e.Message}");
 			}
 
 			return null;
 		}
 
-		var iterator = node.First;
-
-		while (iterator != null)
+		foreach (var child in node)
 		{
-			var resolved = ResolveTree(context, iterator);
-
-			if (resolved != null)
-			{
-				iterator.Replace(resolved);
-			}
-
-			iterator = iterator.Next;
+			Resolve(context, child);
 		}
 
-		return node;
+		return null;
 	}
 
 	/// <summary>
@@ -266,26 +209,23 @@ public static class Resolver
 	/// <returns>Success: Shared type between the types, Failure: null</returns>
 	public static Type? GetSharedType(Type? expected, Type? actual)
 	{
-		if (Equals(expected, actual)) return expected;
 		if (expected == null || actual == null) return null;
+		if (Equals(expected, actual)) return expected;
 
-		if (expected is Number x && actual is Number y)
+		// Do not allow implicit conversions between links and non-links
+		if ((expected is Link) ^ (actual is Link)) return null;
+
+		if (expected is Number && actual is Number)
 		{
-			if (expected.Format.IsDecimal()) return expected;
-			if (actual.Format.IsDecimal()) return actual;
-
-			return GetSharedNumber(x, y);
+			return GetSharedNumber(expected.To<Number>(), actual.To<Number>());
 		}
 
-		var expected_supertypes = GetAllTypes(expected);
-		var actual_supertypes = GetAllTypes(actual);
+		var expected_all_types = GetAllTypes(expected);
+		var actual_all_types = GetAllTypes(actual);
 
-		foreach (var supertype in expected_supertypes)
+		foreach (var supertype in expected_all_types)
 		{
-			if (actual_supertypes.Contains(supertype))
-			{
-				return supertype;
-			}
+			if (actual_all_types.Contains(supertype)) return supertype;
 		}
 
 		return null;
@@ -323,35 +263,13 @@ public static class Resolver
 		while (iterator != null)
 		{
 			var type = iterator.TryGetType();
-
-			if (type == null || type.IsUnresolved)
-			{
-				// This operation must be aborted since type list cannot contain unresolved types
-				return null;
-			}
-
+			if (type == null) return null;
 			types.Add(type);
 
 			iterator = iterator.Next;
 		}
 
 		return types;
-	}
-
-	/// <summary>
-	/// Tries to get the assign type from the given assign operation
-	///</summary>
-	private static Type? TryGetTypeFromAssignOperation(Node assign)
-	{
-		var operation = assign.To<OperatorNode>();
-
-		// Try to resolve the type using the right operand if the operation node represents an assignment
-		if (operation.Operator == Operators.ASSIGN)
-		{
-			return operation.Right.TryGetType();
-		}
-
-		return null;
 	}
 
 	/// <summary>
@@ -365,7 +283,7 @@ public static class Resolver
 			if (variable.Type.IsResolved()) return;
 
 			// Try to resolve the variable type
-			var resolved = Resolve(variable.Context, variable.Type);
+			var resolved = Resolve(variable.Parent, variable.Type);
 			if (resolved == null) return;
 
 			variable.Type = resolved;
@@ -374,50 +292,41 @@ public static class Resolver
 
 		var types = new List<Type>();
 
-		// Try resolving the type of the variable from its references
-		foreach (var reference in variable.References)
+		foreach (var usage in variable.Usages)
 		{
-			var parent = reference.Parent;
+			var parent = usage.Parent;
 			if (parent == null) continue;
 
-			if (parent.Instance == NodeType.OPERATOR) // Locals
+			if (parent.Is(Operators.ASSIGN))
 			{
-				// Reference must be the destination in assign operation in order to resolve the type
-				if (parent.First != reference) continue;
-
-				var type = TryGetTypeFromAssignOperation(parent);
-
-				if (type != null)
-				{
-					types.Add(type);
-				}
+				// The usage must be the destination
+				if (parent.First != usage) continue;
 			}
-			else if (parent.Instance == NodeType.LINK) // Members
+			else if (parent.Instance == NodeType.LINK)
 			{
-				// Reference must be the destination in assign operation in order to resolve the type
-				if (parent.Last != reference) continue;
+				// The usage must be the destination
+				if (parent.Last != usage) continue;
 
 				parent = parent.Parent;
-
-				if (parent == null || !parent.Is(NodeType.OPERATOR)) continue;
-
-				var type = TryGetTypeFromAssignOperation(parent!);
-
-				if (type != null)
-				{
-					types.Add(type);
-				}
+				if (parent == null || !parent.Is(Operators.ASSIGN)) continue;
 			}
+			else
+			{
+				continue;
+			}
+
+			// Get the assignment type from the source operand
+			var type = parent.Right.TryGetType();
+			if (type == null) continue;
+
+			types.Add(type);
 		}
 
 		// Get the shared type between the references
 		var shared = GetSharedType(types);
+		if (shared == null) return;
 
-		if (shared != null)
-		{
-			// Now the type is resolved
-			variable.Type = shared;
-		}
+		variable.Type = shared;
 	}
 
 	/// <summary>
@@ -441,30 +350,89 @@ public static class Resolver
 	/// </summary>
 	private static void ResolveReturnType(FunctionImplementation implementation)
 	{
-		if (implementation.Node == null) return;
+		// Do not resolve the return type if it is already resolved.
+		// This also prevents virtual function overrides from overriding the return type, enforced by the virtual function declaration
+		if (implementation.ReturnType != null)
+		{
+			// Try to resolve the return type
+			var resolved = Resolve(implementation, implementation.ReturnType);
+			if (resolved == null) return;
 
-		var statements = implementation.Node.FindAll(NodeType.RETURN).Cast<ReturnNode>();
+			// Update the return type, since we resolved it
+			implementation.ReturnType = resolved;
+			return;
+		}
 
+		var statements = implementation.Node!.FindAll(NodeType.RETURN).Cast<ReturnNode>();
+
+		// If there are no return statements, the return type of the implementation must be unit
+		if (!statements.Any())
+		{
+			implementation.ReturnType = Primitives.CreateUnit();
+			return;
+		}
+
+		// If any of the return statements does not have a return value, the return type must be unit
 		if (statements.Any(i => i.Value == null))
 		{
 			implementation.ReturnType = Primitives.CreateUnit();
 			return;
 		}
 
+		// Collect all return statement value types
 		var types = statements.Select(i => i.Value!.TryGetType()).ToList();
-
-		if (types.Any(i => i == null || i.IsUnresolved))
-		{
-			return;
-		}
+		if (types.Any(i => i == null || i.IsUnresolved)) return;
 
 		var type = Resolver.GetSharedType(types!);
-
-		if (type == null)
-		{
-			return;
-		}
+		if (type == null) return;
 
 		implementation.ReturnType = type;
+	}
+
+	/// <summary>
+	/// Resolves return types of the virtual functions declared in the specified type
+	/// </summary>
+	private static void ResolveVirtualFunctions(Type type)
+	{
+		var overloads = new List<VirtualFunction>();
+		foreach (var iterator in type.Virtuals) { overloads.AddRange(iterator.Value.Overloads.Cast<VirtualFunction>()); }
+
+		// Virtual functions do not have return types defined sometimes, the return types of those virtual functions are dependent on their default implementations
+		foreach (var virtual_function in overloads)
+		{
+			if (virtual_function.ReturnType != null) continue;
+
+			// Find all overrides with the same name as the virtual function
+			var result = type.GetOverride(virtual_function.Name);
+			if (result == null) continue;
+			var virtual_function_overloads = result.Overloads;
+
+			// Take out the expected parameter types
+			var expected = new List<Type?>();
+			foreach (var parameter in virtual_function.Parameters) { expected.Add(parameter.Type); }
+
+			foreach (var overload in virtual_function_overloads)
+			{
+				// Ensure the actual parameter types match the expected types
+				var actual = overload.Parameters.Select(i => i.Type).ToList();
+
+				if (actual.Count != expected.Count) continue;
+
+				var skip = false;
+
+				for (var i = 0; i < expected.Count; i++)
+				{
+					if (Equals(expected[i], actual[i])) continue;
+					skip = true;
+					break;
+				}
+
+				if (skip || overload.Implementations.Count == 0) continue;
+
+				// Now the current overload must be the default implementation for the virtual function
+				virtual_function.ReturnType = overload.Implementations.First().ReturnType;
+				break;
+			}
+		}
 	}
 }

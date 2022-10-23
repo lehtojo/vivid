@@ -217,7 +217,7 @@ public class Mangle
 			{
 				Value += POINTER_COMMAND;
 				
-				var argument = type.GetOffsetType() ?? throw new ApplicationException("Missing offset type");
+				var argument = type.GetAccessorType() ?? throw new ApplicationException("Missing offset type");
 				pointers = argument.IsPrimitive ? 0 : 1;
 				
 				Add(argument, pointers);
@@ -226,7 +226,7 @@ public class Mangle
 				if (type is ArrayType)
 				{
 					Value += START_ARRAY_LENGTH_COMMAND;
-					Value += type.To<ArrayType>().Count;
+					Value += type.To<ArrayType>().Size;
 				}
 
 				return;
@@ -293,14 +293,21 @@ public class Mangle
 
 public class Context : IComparable<Context>
 {
-	public Mangle? Mangled { get; private set; }
 	public string Identity { get; private set; }
-
 	public string Identifier { get; set; } = string.Empty;
 	public string Name { get; protected set; } = string.Empty;
+	public Mangle? Mangled { get; private set; }
+
+	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
+	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
+	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
 
 	public Context? Parent { get; set; }
 	public List<Context> Subcontexts { get; private set; } = new List<Context>();
+	public List<Type> Imports { get; } = new List<Type>();
+
+	protected Indexer Indexer { get; set; } = new Indexer();
 
 	public bool IsGlobal => FindTypeParent() == null;
 	public bool IsMember => FindTypeParent() != null;
@@ -310,20 +317,12 @@ public class Context : IComparable<Context>
 	public bool IsLambda => this is Lambda;
 	public bool IsImplementation => this is FunctionImplementation;
 	public bool IsLambdaImplementation => this is LambdaImplementation;
+	public bool IsLambdaContainer { get; set; } = false;
 
-	public bool IsInsideLambda => IsLambdaImplementation || IsLambda || GetImplementationParent() is LambdaImplementation || GetFunctionParent() is Lambda;
-	public bool IsInsideFunction => IsImplementation || IsFunction || GetImplementationParent() != null || GetFunctionParent() != null;
-
-	public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
-	public Dictionary<string, FunctionList> Functions { get; } = new Dictionary<string, FunctionList>();
-	public Dictionary<string, Type> Types { get; } = new Dictionary<string, Type>();
-	public Dictionary<string, Label> Labels { get; } = new Dictionary<string, Label>();
+	public bool IsInsideLambda => IsLambdaImplementation || IsLambda || FindImplementationParent() is LambdaImplementation || FindFunctionParent() is Lambda;
+	public bool IsInsideFunction => IsImplementation || IsFunction || FindImplementationParent() != null || FindFunctionParent() != null;
 
 	public List<Variable> Locals => Variables.Values.Where(i => i.IsLocal).Concat(Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction).SelectMany(i => i.Locals)).ToList();
-
-	public List<Type> Imports { get; } = new List<Type>();
-
-	protected Indexer Indexer { get; set; } = new Indexer();
 
 	public List<Variable> GetAllVariables()
 	{
@@ -373,18 +372,19 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Returns all parent contexts which are types
 	/// </summary>
-	public Type[] GetParentTypes()
+	public List<Type> GetParentTypes()
 	{
-		var types = new List<Type>();
+		var result = new List<Type>();
 		var iterator = Parent;
 
-		while (iterator != null && iterator.IsType)
+		while (iterator != null)
 		{
-			types.Insert(0, (Type)iterator);
+			if (iterator.IsType) result.Add((Type)iterator);
 			iterator = iterator.Parent;
 		}
 
-		return types.ToArray();
+		result.Reverse();
+		return result;
 	}
 
 	/// <summary>
@@ -397,10 +397,7 @@ public class Context : IComparable<Context>
 	/// </summary>
 	private void Mangle()
 	{
-		if (Mangled != null)
-		{
-			return;
-		}
+		if (Mangled != null) return;
 
 		Mangled = new Mangle((Mangle?)null);
 		OnMangle(Mangled);
@@ -417,75 +414,12 @@ public class Context : IComparable<Context>
 	}
 
 	/// <summary>
-	/// Updates types, function and variables when new context is linked
-	/// </summary>
-	public void Update(bool local = false)
-	{
-		for (var i = 0; i < Imports.Count; i++)
-		{
-			var import = Imports[i];
-
-			if (!import.IsUnresolved) continue;
-
-			// Try to resolve the import
-			var node = ((IResolvable)import).Resolve(this);
-			var type = node?.TryGetType();
-
-			if (type != null)
-			{
-				Imports[i] = type;
-			}
-		}
-
-		foreach (var variable in Variables.Values)
-		{
-			if (!variable.IsUnresolved) continue;
-
-			var resolvable = (IResolvable?)variable.Type;
-
-			if (resolvable == null) continue;
-
-			// Try to resolve the type
-			var node = resolvable.Resolve(this);
-			var type = node?.TryGetType();
-
-			if (type != null)
-			{
-				variable.Type = type;
-			}
-		}
-
-		if (local) return;
-
-		foreach (var type in new List<Type>(Types.Values))
-		{
-			type.Update();
-		}
-
-		foreach (var subcontext in new List<Context>(Subcontexts))
-		{
-			subcontext.Update();
-		}
-	}
-
-	/// <summary>
 	/// Links this context with the given context, allowing access to the information of the given context
 	/// </summary>
 	public void Connect(Context context)
 	{
 		Parent = context;
 		Parent.Subcontexts.Add(this);
-		Update();
-	}
-	
-	/// <summary>
-	/// Disconnects this context from its parent
-	/// </summary>
-	public void Disconnect()
-	{
-		if (Parent == null) return;
-		Parent.Subcontexts.Remove(this);
-		Parent = null;
 	}
 
 	/// <summary>
@@ -520,13 +454,11 @@ public class Context : IComparable<Context>
 		foreach (var (key, value) in context.Variables)
 		{
 			Variables.TryAdd(key, value);
-			value.Context = this;
+			value.Parent = this;
 		}
 
 		context.Subcontexts.ForEach(i => i.Parent = this);
 		Subcontexts.AddRange(context.Subcontexts.Where(i => !Subcontexts.Any(j => ReferenceEquals(i, j))).ToArray());
-
-		if (update) Update();
 
 		context.Destroy();
 	}
@@ -574,10 +506,7 @@ public class Context : IComparable<Context>
 			throw Errors.Get(variable.Position, $"Variable '{variable.Name}' already exists in this context");
 		}
 
-		// Update variable context
-		variable.Context = this;
-
-		// Add variable to the list
+		variable.Parent = this;
 		Variables.Add(variable.Name, variable);
 	}
 
@@ -606,22 +535,9 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Declares an unnamed pack type
 	/// </summary>
-	public Type DeclareHiddenPack(Position? position)
+	public Type DeclareUnnamedPack(Position? position)
 	{
 		return new Type(this, $"{Identity}.{Indexer[Indexer.HIDDEN]}", Modifier.PACK, position);
-	}
-
-	/// <summary>
-	/// Declares a label into the context
-	/// </summary>
-	public void Declare(Label label)
-	{
-		if (IsLocalLabelDeclared(label.GetName()))
-		{
-			throw Errors.Get(null, $"Label '{label.GetName()}' already exists in this context");
-		}
-
-		Labels.Add(label.GetName(), label);
 	}
 
 	/// <summary>
@@ -754,27 +670,16 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public Type? GetType(string name)
 	{
-		if (Types.ContainsKey(name))
-		{
-			return Types[name];
-		}
+		if (Types.ContainsKey(name)) return Types[name];
 
 		foreach (var import in Imports)
 		{
-			if (import.Types.ContainsKey(name))
-			{
-				return import.Types[name];
-			}
+			if (import.Types.ContainsKey(name)) return import.Types[name];
 		}
 		
-		if (Parent != null)
-		{
-			return Parent.GetType(name);
-		}
-		else
-		{
-			return null;
-		}
+		if (Parent != null) return Parent.GetType(name);
+
+		return null;
 	}
 
 	/// <summary>
@@ -782,27 +687,16 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public virtual FunctionList? GetFunction(string name)
 	{
-		if (Functions.ContainsKey(name))
-		{
-			return Functions[name];
-		}
+		if (Functions.ContainsKey(name)) return Functions[name];
 
 		foreach (var import in Imports)
 		{
-			if (import.Functions.ContainsKey(name))
-			{
-				return import.Functions[name];
-			}
+			if (import.Functions.ContainsKey(name)) return import.Functions[name];
 		}
 
-		if (Parent != null)
-		{
-			return Parent.GetFunction(name);
-		}
-		else
-		{
-			return null;
-		}
+		if (Parent != null) return Parent.GetFunction(name);
+
+		return null;
 	}
 
 	/// <summary>
@@ -810,27 +704,16 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public virtual Variable? GetVariable(string name)
 	{
-		if (Variables.ContainsKey(name))
-		{
-			return Variables[name];
-		}
+		if (Variables.ContainsKey(name)) return Variables[name];
 
 		foreach (var import in Imports)
 		{
-			if (import.Variables.ContainsKey(name))
-			{
-				return import.Variables[name];
-			}
+			if (import.Variables.ContainsKey(name)) return import.Variables[name];
 		}
 
-		if (Parent != null)
-		{
-			return Parent.GetVariable(name);
-		}
-		else
-		{
-			return null;
-		}
+		if (Parent != null) return Parent.GetVariable(name);
+
+		return null;
 	}
 
 	/// <summary>
@@ -854,10 +737,7 @@ public class Context : IComparable<Context>
 	/// </summary>
 	public Type? FindTypeParent()
 	{
-		if (IsType)
-		{
-			return (Type)this;
-		}
+		if (IsType) return (Type)this;
 
 		return Parent?.FindTypeParent();
 	}
@@ -865,27 +745,31 @@ public class Context : IComparable<Context>
 	/// <summary>
 	/// Tries to returns the first parent context which is a function
 	/// </summary>
-	public Function? GetFunctionParent()
+	public Function? FindFunctionParent()
 	{
-		if (IsFunction)
-		{
-			return (Function)this;
-		}
+		if (IsFunction) return (Function)this;
 
-		return Parent?.GetFunctionParent();
+		return Parent?.FindFunctionParent();
 	}
 
 	/// <summary>
 	/// Tries to returns the first parent context which is a function implementation
 	/// </summary>
-	public FunctionImplementation? GetImplementationParent()
+	public FunctionImplementation? FindImplementationParent()
 	{
-		if (IsImplementation)
-		{
-			return (FunctionImplementation)this;
-		}
+		if (IsImplementation) return (FunctionImplementation)this;
 
-		return Parent?.GetImplementationParent();
+		return Parent?.FindImplementationParent();
+	}
+
+	/// <summary>
+	/// Tries to find the first parent context which can contain a lambda
+	/// </summary>
+	public Context? FindLambdaContainerParent()
+	{
+		if (IsLambdaContainer) return this;
+
+		return Parent?.FindLambdaContainerParent();
 	}
 
 	/// <summary>
@@ -894,11 +778,6 @@ public class Context : IComparable<Context>
 	public Context GetRoot()
 	{
 		return Parent == null ? this : Parent.GetRoot();
-	}
-
-	public virtual IEnumerable<FunctionImplementation> GetImplementedFunctions()
-	{
-		return Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations).Where(i => i.Node != null);
 	}
 
 	public virtual Label CreateLabel()

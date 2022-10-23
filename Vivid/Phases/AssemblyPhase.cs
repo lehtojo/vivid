@@ -30,7 +30,7 @@ public class AssemblyPhase : Phase
 	public static string StaticLibraryExtension => IsLinux ? ".a" : ".lib";
 	public static string ExecutableExtension => IsLinux ? string.Empty : ".exe";
 
-	public static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Assembler.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
+	public static string StandardLibrary => STANDARD_LIBRARY + '_' + Enum.GetName(typeof(Architecture), Settings.Architecture)!.ToLowerInvariant() + ObjectFileExtension;
 	public static string ImportedStandardLibraryObjectFile => "v." + StandardLibrary;
 
 	private const string RED = "\x1B[1;31m";
@@ -45,7 +45,7 @@ public class AssemblyPhase : Phase
 	/// </summary>
 	private static string GetAssembler()
 	{
-		return Assembler.IsArm64 ? ARM64_ASSEMBLER : X64_ASSEMBLER;
+		return Settings.IsArm64 ? ARM64_ASSEMBLER : X64_ASSEMBLER;
 	}
 
 	/// <summary>
@@ -53,7 +53,7 @@ public class AssemblyPhase : Phase
 	/// </summary>
 	private static string GetLinker()
 	{
-		return Assembler.IsArm64 ? ARM64_LINKER : X64_LINKER;
+		return Settings.IsArm64 ? ARM64_LINKER : X64_LINKER;
 	}
 
 	/// <summary>
@@ -119,9 +119,8 @@ public class AssemblyPhase : Phase
 	/// <summary>
 	/// Compiles the specified input file and exports the result with the specified output filename
 	/// </summary>
-	private static Status Compile(Bundle bundle, string input_file, string output_file)
+	private static Status Compile(string input_file, string output_file)
 	{
-		var keep_assembly = bundle.Get("assembly", false);
 		var arguments = new List<string>();
 
 		// Add output file, input file and enable debug information using the arguments
@@ -134,7 +133,7 @@ public class AssemblyPhase : Phase
 
 		var status = Run(GetAssembler(), arguments);
 
-		if (!keep_assembly)
+		if (!Settings.IsAssemblyOutputEnabled)
 		{
 			try
 			{
@@ -152,9 +151,9 @@ public class AssemblyPhase : Phase
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private static Status Windows_Link(Bundle bundle, IEnumerable<string> input_files, string output_name)
+	private static Status Windows_Link(IEnumerable<string> input_files, string output_name)
 	{
-		var output_type = bundle.Get<BinaryType>(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
+		var output_type = Settings.OutputType;
 		var output_extension = output_type switch
 		{
 			BinaryType.SHARED_LIBRARY => SharedLibraryExtension,
@@ -192,9 +191,7 @@ public class AssemblyPhase : Phase
 
 		arguments.AddRange(library_paths);
 
-		var libraries = bundle.Get("libraries", Array.Empty<string>());
-
-		foreach (var library in libraries)
+		foreach (var library in Settings.Libraries)
 		{
 			arguments.Add(library);
 		}
@@ -205,9 +202,9 @@ public class AssemblyPhase : Phase
 	/// <summary>
 	/// Links the specified input file with necessary system files and produces an executable with the specified output filename
 	/// </summary>
-	private static Status Linux_Link(Bundle bundle, IEnumerable<string> input_files, string output_file)
+	private static Status Linux_Link(IEnumerable<string> input_files, string output_file)
 	{
-		var output_type = bundle.Get<BinaryType>(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
+		var output_type = Settings.OutputType;
 
 		if (output_type == BinaryType.STATIC_LIBRARY)
 		{
@@ -246,64 +243,12 @@ public class AssemblyPhase : Phase
 
 		arguments.AddRange(library_paths);
 
-		var libraries = bundle.Get("libraries", Array.Empty<string>());
-
-		foreach (var library in libraries)
+		foreach (var library in Settings.Libraries)
 		{
 			arguments.Add("-l" + library);
 		}
 
 		return Run(GetLinker(), arguments);
-	}
-
-	public static SourceFile[] GetModifiedFiles(Bundle bundle, IEnumerable<SourceFile> files)
-	{
-		// If the bundle contains a flag, which forces to rebuild, just return the specified files
-		if (bundle.Get(ConfigurationPhase.REBUILD_FLAG, false))
-		{
-			return files.ToArray();
-		}
-
-		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
-		var modified = new List<SourceFile>();
-
-		foreach (var file in files)
-		{
-			var object_file = output_name + '.' + file.GetFilenameWithoutExtension() + ObjectFileExtension;
-
-			if (!File.Exists(object_file))
-			{
-				if (Assembler.IsVerboseOutputEnabled)
-				{
-					Console.WriteLine($"{file.Fullname} {CYAN}is a new file{RESET}");
-				}
-
-				modified.Add(file);
-				continue;
-			}
-
-			var source_file_last_write = File.GetLastWriteTime(file.Fullname);
-			var object_file_last_write = File.GetLastWriteTime(object_file);
-
-			if (source_file_last_write < object_file_last_write)
-			{
-				if (Assembler.IsVerboseOutputEnabled)
-				{
-					Console.WriteLine($"{file.Fullname} {GREEN}has not changed{RESET}");
-				}
-
-				continue;
-			}
-
-			if (Assembler.IsVerboseOutputEnabled)
-			{
-				Console.WriteLine($"{file.Fullname} {RED}has changed{RESET}");
-			}
-
-			modified.Add(file);
-		}
-
-		return modified.ToArray();
 	}
 
 	/// <summary>
@@ -314,25 +259,17 @@ public class AssemblyPhase : Phase
 		return output_name + '.' + source_file.GetFilenameWithoutExtension() + ObjectFileExtension;
 	}
 
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
 		Translator.TotalInstructions = 0;
-		
-		if (!bundle.Contains(ParserPhase.OUTPUT))
-		{
-			return Status.Error("Nothing to assemble");
-		}
 
-		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
-		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
-		var objects = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());
-		var imports = bundle.Get(ConfigurationPhase.LIBRARIES, Array.Empty<string>()).ToList();
+		var parse = Settings.Parse ?? throw new ApplicationException("Missing parse");
+		var files = Settings.SourceFiles;
+		var objects = Settings.UserImportedObjectFiles;
+		var imports = Settings.Libraries;
 
-		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
-		var output_type = bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE);
-
-		// Filter out files that have not changed since the last compilation
-		var modified = GetModifiedFiles(bundle, files);
+		var output_name = Settings.OutputName;
+		var output_type = Settings.OutputType;
 
 		var context = parse.Context;
 		var assemblies = (Dictionary<SourceFile, string>?)null;
@@ -340,7 +277,7 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			assemblies = Assembler.Assemble(bundle, context, modified, imports, exports, output_name, output_type);
+			assemblies = Assembler.Assemble(context, files, imports, exports, output_name, output_type);
 		}
 		catch (Exception e)
 		{
@@ -349,9 +286,9 @@ public class AssemblyPhase : Phase
 
 		try
 		{
-			if (Assembler.IsAssemblyOutputEnabled)
+			if (Settings.IsAssemblyOutputEnabled)
 			{
-				foreach (var file in modified)
+				foreach (var file in files)
 				{
 					var assembly = assemblies[file];
 					var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
@@ -366,21 +303,21 @@ public class AssemblyPhase : Phase
 		}
 
 		// Skip using the legacy system if it is not required
-		if (!Assembler.IsLegacyAssemblyEnabled) return Status.OK;
+		if (!Settings.IsLegacyAssemblyEnabled) return Status.OK;
 
-		if (Assembler.IsVerboseOutputEnabled)
+		if (Settings.IsVerboseOutputEnabled)
 		{
 			Console.WriteLine("Total Instructions: " + Translator.TotalInstructions);
 		}
 
 		Status status;
 
-		foreach (var file in modified)
+		foreach (var file in files)
 		{
 			var assembly_file = output_name + '.' + file.GetFilenameWithoutExtension() + ASSEMBLY_OUTPUT_EXTENSION;
 			var object_file = GetObjectFileName(file, output_name);
 
-			if ((status = Compile(bundle, assembly_file, object_file)).IsProblematic)
+			if ((status = Compile(assembly_file, object_file)).IsProblematic)
 			{
 				return status;
 			}
@@ -395,11 +332,11 @@ public class AssemblyPhase : Phase
 
 		if (IsLinux)
 		{
-			return Linux_Link(bundle, object_files, output_name);
+			return Linux_Link(object_files, output_name);
 		}
 		else
 		{
-			return Windows_Link(bundle, object_files, output_name);
+			return Windows_Link(object_files, output_name);
 		}
 	}
 }

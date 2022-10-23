@@ -66,7 +66,7 @@ public class LongMultiplicationInstruction : DualParameterInstruction
 
 		Build(
 			IsUnsigned ? Instructions.X64.UNSIGNED_MULTIPLY : Instructions.X64.SIGNED_MULTIPLY,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.READS | ParameterFlag.HIDDEN | ParameterFlag.LOCKED,

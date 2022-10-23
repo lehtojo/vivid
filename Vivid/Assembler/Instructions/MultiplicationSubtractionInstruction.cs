@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Subtracts the specified values together
-/// This instruction is works only on architecture Arm64
+/// This instruction is works only on architecture arm64
 /// </summary>
 public class MultiplicationSubtractionInstruction : Instruction
 {
@@ -31,7 +31,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 
 			Build(
 				Instructions.Arm64.MULTIPLY_SUBTRACT,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -67,7 +67,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 
 		Build(
 			Instructions.Arm64.MULTIPLY_SUBTRACT,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,

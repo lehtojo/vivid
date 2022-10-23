@@ -23,7 +23,7 @@ public static class Casts
 			var offset = from.GetSupertypeBaseOffset(to) ?? throw new ApplicationException("Could not compute base offset of a super type while building down cast");
 			if (offset == 0) return result;
 
-			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)offset), Assembler.Signed), result.Format, false).Add();
+			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)offset), Settings.Signed), result.Format, false).Add();
 		}
 
 		// Determine whether the cast is a up cast
@@ -32,7 +32,7 @@ public static class Casts
 			var offset = to.GetSupertypeBaseOffset(from) ?? throw new ApplicationException("Could not compute base offset of a super type while building up cast");
 			if (offset == 0) return result;
 
-			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)-offset), Assembler.Signed), result.Format, false).Add();
+			return new AdditionInstruction(unit, result, new Result(new ConstantHandle((long)-offset), Settings.Signed), result.Format, false).Add();
 		}
 
 		// This means that the cast is unsafe since the types have nothing in common

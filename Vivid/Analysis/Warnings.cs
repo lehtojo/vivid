@@ -122,7 +122,7 @@ public static class Warnings
 
 		foreach (var iterator in implementation.Locals.Concat(implementation.Parameters))
 		{
-			if (iterator.References.Any() || captures.Contains(iterator)) continue;
+			if (iterator.Usages.Any() || captures.Contains(iterator)) continue;
 			if (iterator.IsParameter && implementation.VirtualFunction != null) continue;
 
 			var message = iterator.IsParameter ? $"Unused parameter '{iterator.Name}'" : $"Unused local variable '{iterator.Name}'";

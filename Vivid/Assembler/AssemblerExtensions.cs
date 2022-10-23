@@ -42,10 +42,7 @@ public static class AssemblerExtensions
 
 	public static T? Pop<T>(this List<T> source) where T : class
 	{
-		if (source.Count == 0)
-		{
-			return null;
-		}
+		if (source.Count == 0) return null;
 
 		var element = source[0];
 		source.RemoveAt(0);

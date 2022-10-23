@@ -19,11 +19,9 @@ public static class Analysis
 	public const int MEMORY_ACCESS_COST = 50 * STANDARD_OPERATOR_COST;
 	public const int CONDITIONAL_JUMP_COST = 20 * STANDARD_OPERATOR_COST;
 
-	public static bool IsInstructionAnalysisEnabled { get; set; } = false;
-	public static bool IsUnwrapAnalysisEnabled { get; set; } = false;
+	public const int MAXIMUM_LOOP_UNWRAP_STEPS = 100;
+
 	public static bool IsMathematicalAnalysisEnabled { get; set; } = false;
-	public static bool IsRepetitionAnalysisEnabled { get; set; } = false;
-	public static bool IsFunctionInliningEnabled { get; set; } = false;
 	public static bool IsGarbageCollectorEnabled { get; set; } = false;
 
 	#region Components
@@ -47,7 +45,7 @@ public static class Analysis
 				}
 
 				var is_negative = number_component.Value is long a && a < 0L || number_component.Value is double b && b < 0.0;
-				var number = new NumberNode(number_component.Value is long ? Assembler.Signed : Format.DECIMAL, number_component.Value);
+				var number = new NumberNode(number_component.Value is long ? Settings.Signed : Format.DECIMAL, number_component.Value);
 
 				result = is_negative
 					? new OperatorNode(Operators.SUBTRACT).SetOperands(result, number.Negate())
@@ -86,7 +84,7 @@ public static class Analysis
 					{
 						node = new OperatorNode(Operators.MULTIPLY).SetOperands(
 							node,
-							new NumberNode(Assembler.Signed, Math.Abs((long)variable_component.Coefficient))
+							new NumberNode(Settings.Signed, Math.Abs((long)variable_component.Coefficient))
 						);
 					}
 				}
@@ -129,7 +127,7 @@ public static class Analysis
 	{
 		if (order == 0)
 		{
-			return new NumberNode(Assembler.Signed, 1L);
+			return new NumberNode(Settings.Signed, 1L);
 		}
 
 		var result = (Node)new VariableNode(variable);
@@ -141,7 +139,7 @@ public static class Analysis
 
 		if (order < 0)
 		{
-			result = new OperatorNode(Operators.DIVIDE).SetOperands(new NumberNode(Assembler.Signed, 1L), result);
+			result = new OperatorNode(Operators.DIVIDE).SetOperands(new NumberNode(Settings.Signed, 1L), result);
 		}
 
 		return result;
@@ -152,7 +150,7 @@ public static class Analysis
 	/// </summary>
 	public static Format GetCoefficientFormat(object coefficient)
 	{
-		return coefficient is double ? Format.DECIMAL : Assembler.Signed;
+		return coefficient is double ? Format.DECIMAL : Settings.Signed;
 	}
 
 	/// <summary>
@@ -753,16 +751,16 @@ public static class Analysis
 	{
 		if (branch.Is(NodeType.IF))
 		{
-			return perspective == branch.To<IfNode>().GetConditionStep() || perspective.IsUnder(branch.To<IfNode>().GetConditionStep());
+			return perspective == branch.To<IfNode>().GetConditionContainer() || perspective.IsUnder(branch.To<IfNode>().GetConditionContainer());
 		}
 		else if (branch.Is(NodeType.ELSE_IF))
 		{
-			return perspective == branch.To<ElseIfNode>().GetConditionStep() || perspective.IsUnder(branch.To<ElseIfNode>().GetConditionStep());
+			return perspective == branch.To<ElseIfNode>().GetConditionContainer() || perspective.IsUnder(branch.To<ElseIfNode>().GetConditionContainer());
 		}
 		else if (branch.Is(NodeType.LOOP))
 		{
 			if (branch.To<LoopNode>().IsForeverLoop) return false;
-			return perspective == branch.To<LoopNode>().GetConditionStep() || perspective.IsUnder(branch.To<LoopNode>().GetConditionStep()); 
+			return perspective == branch.To<LoopNode>().GetConditionContainer() || perspective.IsUnder(branch.To<LoopNode>().GetConditionContainer()); 
 		}
 
 		return false;
@@ -801,7 +799,7 @@ public static class Analysis
 		if (self) DenyOtherBranches(denylist, perspective);
 
 		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.References.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective))) return true;
+		if (variable.Usages.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective))) return true;
 
 		return perspective.FindParent(NodeType.LOOP) != null;
 	}
@@ -833,7 +831,7 @@ public static class Analysis
 					var multipliers = iterator.Where(i => i.Is(NodeType.NUMBER)).Cast<NumberNode>();
 
 					// Take into account that power of two multiplications are significantly faster
-					if (multipliers.Any(i => !i.Type.IsDecimal() && Common.IsPowerOfTwo((long)i.Value)))
+					if (multipliers.Any(i => !i.Format.IsDecimal() && Common.IsPowerOfTwo((long)i.Value)))
 					{
 						result += POWER_OF_TWO_MULTIPLICATION_COST;
 					}
@@ -847,7 +845,7 @@ public static class Analysis
 					var divisor = iterator.Right.Is(NodeType.NUMBER) ? iterator.Right.To<NumberNode>() : null;
 
 					// Take into account that power of two division are significantly faster
-					if (divisor != null && !divisor.Type.IsDecimal() && Common.IsPowerOfTwo((long)divisor.Value))
+					if (divisor != null && !divisor.Format.IsDecimal() && Common.IsPowerOfTwo((long)divisor.Value))
 					{
 						result += POWER_OF_TWO_DIVISION_COST;
 					}
@@ -872,7 +870,7 @@ public static class Analysis
 			else if (iterator.Is(NodeType.LOOP))
 			{
 				result += CONDITIONAL_JUMP_COST;
-				result += GetCost(iterator) * UnwrapmentAnalysis.MAXIMUM_LOOP_UNWRAP_STEPS;
+				result += GetCost(iterator) * MAXIMUM_LOOP_UNWRAP_STEPS;
 
 				iterator = iterator.Next;
 				continue;
@@ -1073,15 +1071,10 @@ public static class Analysis
 	/// </summary>
 	public static void CaptureContextLeaks(Context context, Node root)
 	{
-		var variables = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
+		var variables = root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Parent.IsInside(context));
 
 		// Try to find variables whose parent context is not defined inside the implementation, if even one is found it means something has leaked
 		if (variables.Any()) { throw new ApplicationException("Found a context leak"); }
-
-		var declarations = root.FindAll(NodeType.DECLARE).Cast<DeclareNode>().Where(i => !i.Variable.IsConstant && i.Variable.IsPredictable && !i.Variable.Context.IsInside(context));
-
-		// Try to find declaration nodes whose variable is not defined inside the implementation, if even one is found it means something has leaked
-		if (declarations.Any()) { throw new ApplicationException("Found a context leak"); }
 
 		var subcontexts = root.FindAll(i => i is IScope && !i.Is(NodeType.TYPE)).Cast<IScope>().Where(i => !i.GetContext().IsInside(context));
 
@@ -1092,37 +1085,24 @@ public static class Analysis
 	/// <summary>
 	/// Analyzes the specified context
 	/// </summary>
-	public static void Analyze(Bundle bundle, Context context)
+	public static void Analyze(Context context)
 	{
 		var implementations = Common.GetAllFunctionImplementations(context).OrderByDescending(i => i.Usages.Count).ToList();
-		var verbose = Assembler.IsVerboseOutputEnabled;
-		var time = bundle.Get(ConfigurationPhase.OUTPUT_TIME, false);
 
-		if (time || verbose) Console.WriteLine("1. Pass");
+		if (Settings.Time || Settings.IsVerboseOutputEnabled) Console.WriteLine("1. Pass");
 
 		// Reconstruct all implementations before doing anything
 		for (var i = 0; i < implementations.Count; i++)
 		{
 			var implementation = implementations[i];
 
-			if (verbose)
+			if (Settings.IsVerboseOutputEnabled)
 			{
 				Console.WriteLine($"[{i + 1}/{implementations.Count}] Reconstructing {implementation.GetHeader()}");
 			}
 			
 			// Reconstruct necessary nodes in the function implementation
 			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
-		}
-
-		if (Analysis.IsFunctionInliningEnabled)
-		{
-			for (var i = 0; i < implementations.Count; i++)
-			{
-				var implementation = implementations[i];
-
-				// Inline functions in the function implementation
-				Inlines.Build(implementation, implementation.Node!);
-			}
 		}
 
 		// Optimize all function implementations
@@ -1147,18 +1127,18 @@ public static class Analysis
 
 			var duration = (DateTime.UtcNow - start).TotalMilliseconds;
 
-			if (time)
+			if (Settings.Time)
 			{
 				Console.WriteLine($"[{i + 1}/{implementations.Count}] Optimizing {implementation.GetHeader()} [{duration} ms]");
 			}
-			else if (verbose)
+			else if (Settings.IsVerboseOutputEnabled)
 			{
 				Console.WriteLine($"[{i + 1}/{implementations.Count}] Optimizing {implementation.GetHeader()}");
 			}
 		}
 
 		if (!IsGarbageCollectorEnabled) return;
-		if (time || verbose) Console.WriteLine("2. Pass");
+		if (Settings.Time || Settings.IsVerboseOutputEnabled) Console.WriteLine("2. Pass");
 
 		// Optimize all function implementations
 		for (var i = 0; i < implementations.Count; i++)
@@ -1176,12 +1156,6 @@ public static class Analysis
 
 			ReconstructionAnalysis.Simplify(implementation, implementation.Node!);
 
-			if (Analysis.IsFunctionInliningEnabled)
-			{
-				// Inline functions in the function implementation
-				Inlines.Build(implementation, implementation.Node!);
-			}
-
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);
 
@@ -1193,11 +1167,11 @@ public static class Analysis
 
 			var interval = (DateTime.UtcNow - start).TotalMilliseconds;
 
-			if (time)
+			if (Settings.Time)
 			{
 				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()} [{interval} ms]");
 			}
-			else if (verbose)
+			else if (Settings.IsVerboseOutputEnabled)
 			{
 				Console.WriteLine($"[{i + 1}/{implementations.Count}] {implementation.GetHeader()}");
 			}

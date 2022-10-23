@@ -39,7 +39,7 @@ public class AssemblyParser
 		Unit = new Unit();
 
 		// Add every standard register partition as a register handle
-		var n = (int)Math.Log2(Assembler.Size.Bytes) + 1;
+		var n = (int)Math.Log2(Settings.Bytes) + 1;
 
 		for (var i = 0; i < n; i++)
 		{
@@ -441,7 +441,7 @@ public class AssemblyParser
 					return start;
 				}
 
-				return new MemoryHandle(Unit, new Result(start, Assembler.Signed), 0);
+				return new MemoryHandle(Unit, new Result(start, Settings.Signed), 0);
 			}
 			else if (tokens.Count == 2)
 			{
@@ -463,7 +463,7 @@ public class AssemblyParser
 					throw Errors.Get(tokens[0].Position, "Expected the first token to be a plus or minus operator");
 				}
 
-				return new MemoryHandle(Unit, new Result(new ConstantHandle(offset), Assembler.Signed), 0);
+				return new MemoryHandle(Unit, new Result(new ConstantHandle(offset), Settings.Signed), 0);
 			}
 			else if (tokens.Count == 3)
 			{
@@ -484,7 +484,7 @@ public class AssemblyParser
 						return start;
 					}
 
-					return new ComplexMemoryHandle(new Result(start, Assembler.Signed), new Result(offset, Assembler.Signed), 1);
+					return new ComplexMemoryHandle(new Result(start, Settings.Signed), new Result(offset, Settings.Signed), 1);
 				}
 
 				// Patterns: $register - $number / $symbol - $number
@@ -502,14 +502,14 @@ public class AssemblyParser
 						return start;
 					}
 
-					return new MemoryHandle(null!, new Result(start, Assembler.Signed), (int)offset);
+					return new MemoryHandle(null!, new Result(start, Settings.Signed), (int)offset);
 				}
 
 				// Pattern: $register * $number
 				if (tokens[1].Is(Operators.MULTIPLY) && tokens[2].Type == TokenType.NUMBER)
 				{
-					var first = new Result(new ConstantHandle(0L), Assembler.Signed);
-					var second = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
+					var first = new Result(new ConstantHandle(0L), Settings.Signed);
+					var second = new Result(ParseInstructionParameter(tokens, 0), Settings.Signed);
 					var stride = (long)tokens[2].To<NumberToken>().Value;
 
 					return new ComplexMemoryHandle(first, second, (int)stride);
@@ -517,7 +517,7 @@ public class AssemblyParser
 			}
 			else if (tokens.Count == 5)
 			{
-				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Settings.Signed);
 
 				// Patterns: $register + $register + $number / $register + $register - $number
 				if (tokens[1].Is(Operators.ADD))
@@ -541,7 +541,7 @@ public class AssemblyParser
 						offset = (long)tokens[4].To<NumberToken>().Value;
 					}
 
-					var second = new Result(ParseInstructionParameter(tokens, 2), Assembler.Signed);
+					var second = new Result(ParseInstructionParameter(tokens, 2), Settings.Signed);
 
 					return new ComplexMemoryHandle(first, second, 1, (int)offset);
 				}
@@ -564,7 +564,7 @@ public class AssemblyParser
 					else
 					{
 						// Pattern: $register * $number + $register
-						var offset = new Result(ParseInstructionParameter(tokens, 4), Assembler.Signed);
+						var offset = new Result(ParseInstructionParameter(tokens, 4), Settings.Signed);
 
 						/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
 						if (stride == 1) return new ComplexMemoryHandle(first, offset, 1, 0);
@@ -599,9 +599,9 @@ public class AssemblyParser
 				}
 
 				// Patterns: $register * $number + $register + $number
-				var first = new Result(ParseInstructionParameter(tokens, 0), Assembler.Signed);
+				var first = new Result(ParseInstructionParameter(tokens, 0), Settings.Signed);
 				var stride = (long)tokens[2].To<NumberToken>().Value;
-				var second = new Result(ParseInstructionParameter(tokens, 4), Assembler.Signed);
+				var second = new Result(ParseInstructionParameter(tokens, 4), Settings.Signed);
 
 				/// NOTE: This is redundant, but the external assembler encodes differently if this code is not present
 				if (stride == 1) return new ComplexMemoryHandle(first, second, 1, (int)offset);

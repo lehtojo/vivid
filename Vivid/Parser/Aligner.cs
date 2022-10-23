@@ -37,7 +37,7 @@ public class ParameterAligner
 		if (type.Format.IsDecimal() && DecimalRegisters-- > 0 || !type.Format.IsDecimal() && StandardRegisters-- > 0)
 		{
 			// On Windows even though the first parameters are passed in registers, they still need have their own stack alignment (shadow space)
-			if (!Assembler.IsTargetWindows) return;
+			if (!Settings.IsTargetWindows) return;
 		}
 
 		// Normal parameters consume one stack unit
@@ -85,7 +85,7 @@ public static class Aligner
 	private static int AlignPacksForDebugging(FunctionImplementation context, List<Variable> variables, int position)
 	{
 		// Do nothing if debugging mode is not enabled
-		if (!Assembler.IsDebuggingEnabled) return position;
+		if (!Settings.IsDebuggingEnabled) return position;
 
 		foreach (var local in context.Locals.Concat(context.Parameters))
 		{
@@ -216,7 +216,7 @@ public static class Aligner
 			parameters.Insert(0, function.Variables[Lambda.SELF_POINTER_IDENTIFIER]);
 		}
 
-		var aligner = new ParameterAligner(Assembler.IsArm64 ? 0 : Parser.Bytes);
+		var aligner = new ParameterAligner(Settings.IsArm64 ? 0 : Parser.Bytes);
 		aligner.Align(parameters);
 	}
 }

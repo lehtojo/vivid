@@ -7,7 +7,7 @@ using System;
 public class ProjectBuildConfiguration
 {
 	public string Name { get; set; } = string.Empty;
-	public string Output { get; set; } = ConfigurationPhase.DEFAULT_OUTPUT;
+	public string Output { get; set; } = "v";
 	public bool Default { get; set; } = false;
 	public bool Debug { get; set; } = false;
 	public string[] Include { get; set; } = Array.Empty<string>();
@@ -31,7 +31,7 @@ public class ProjectBuildConfiguration
 		foreach (var included_folder in included_folders)
 		{
 			var files = Directory.GetFiles(included_folder);
-			included_files.AddRange(files.Where(i => i.EndsWith(ConfigurationPhase.VIVID_EXTENSION)));
+			included_files.AddRange(files.Where(i => i.EndsWith(Settings.VIVID_EXTENSION)));
 		}
 
 		// Remove duplicated source files

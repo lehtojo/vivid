@@ -1,623 +1,585 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Sublist<T> : IList<T>
+public class ParserState
 {
-	private List<T> Parent { get; set; }
-	private int Start { get; set; }
-	private int End { get; set; }
+	public List<Token> All { get; set; } = new List<Token>();
+	public List<Token> Tokens { get; set; } = new List<Token>();
+	public Pattern? Pattern { get; set; }
+	public int Start { get; set; }
+	public int End { get; set; }
 
-	public Sublist(List<T> parent, int start, int end)
+	public ParserState() {}
+	public ParserState(List<Token> all)
 	{
-		Parent = parent;
-		Start = start;
-		End = end;
+		All = all;
 	}
 
-	public T this[int index]
+	public ParserState Save()
 	{
-		get => Parent[Start + index];
-		set => Parent[Start + index] = value;
+		var result = new ParserState();
+		result.All = new List<Token>(All);
+		result.Tokens = new List<Token>(Tokens);
+		result.Start = Start;
+		result.End = End;
+		return result;
 	}
 
-	public int Count => End - Start;
-
-	public bool IsReadOnly => false;
-
-	public void Add(T item)
+	public void Restore(ParserState from)
 	{
-		Parent.Insert(End++, item);
+		All.Clear();
+		All.AddRange(from.All);
+		Tokens.Clear();
+		Tokens.AddRange(from.Tokens);
+		Start = from.Start;
+		End = from.End;
 	}
 
-	public void Clear()
+	public void Consume()
 	{
-		Parent.RemoveRange(Start, End - Start);
-		End = Start;
-	}
-
-	public bool Contains(T item)
-	{
-		return Parent.GetRange(Start, End).Contains(item);
-	}
-
-	public void CopyTo(T[] array, int index)
-	{
-		Parent.CopyTo(Start, array, index, Count);
-	}
-
-	public IEnumerator<T> GetEnumerator()
-	{
-		return Parent.GetRange(Start, End - Start).GetEnumerator();
-	}
-
-	public int IndexOf(T item)
-	{
-		return Parent.GetRange(Start, End - Start).IndexOf(item);
-	}
-
-	public void Insert(int index, T item)
-	{
-		Parent.Insert(Start + index, item);
+		Tokens.Add(All[End]);
 		End++;
 	}
 
-	public bool Remove(T item)
+	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	public bool Consume(long types)
 	{
-		var i = IndexOf(item);
-
-		if (i == -1)
-		{
-			return false;
-		}
-
-		Parent.RemoveAt(i);
-		End--;
-
+		if (End >= All.Count) return false;
+		var next = All[End];
+		if (!Flag.Has(types, next.Type)) return false;
+		Tokens.Add(next);
+		End++;
 		return true;
 	}
 
-	public void RemoveAt(int index)
+	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	public bool Consume(out Token? next, long types)
 	{
-		Parent.RemoveAt(Start + index);
-		End--;
+		next = null;
+		if (End >= All.Count) return false;
+		next = All[End];
+		if (!Flag.Has(types, next.Type)) return false;
+		Tokens.Add(next);
+		End++;
+		return true;
 	}
 
-	IEnumerator IEnumerable.GetEnumerator()
+	// Summary: Consumes the next token if it exists and it represents the specified operator
+	public bool ConsumeOperator(Operator operation)
 	{
-		return Parent.GetEnumerator();
+		if (End >= All.Count) return false;
+		var next = All[End];
+		if (!next.Is(operation)) return false;
+		Tokens.Add(next);
+		End++;
+		return true;
+	}
+
+	// Summary: Consumes the next token if it exists and it represents the specified parenthesis
+	public bool ConsumeParenthesis(ParenthesisType type)
+	{
+		if (End >= All.Count) return false;
+		var next = All[End];
+		if (!next.Is(type)) return false;
+		Tokens.Add(next);
+		End++;
+		return true;
+	}
+
+	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise an empty token is consumed and false is returned.
+	public bool ConsumeOptional(long types)
+	{
+		if (End >= All.Count)
+		{
+			Tokens.Add(new Token(TokenType.NONE));
+			return false;
+		}
+
+		var next = All[End];
+
+		if (!Flag.Has(types, next.Type))
+		{
+			Tokens.Add(new Token(TokenType.NONE));
+			return false;
+		}
+
+		Tokens.Add(next);
+		End++;
+		return true;
+	}
+
+	public Token? Peek()
+	{
+		if (All.Count > End) return All[End];
+		return null;
 	}
 }
 
 public static class Parser
 {
-	public static FunctionImplementation? AllocationFunction { get; set; }
-	public static FunctionImplementation? DeallocationFunction { get; set; }
-	public static FunctionImplementation? InheritanceFunction { get; set; }
-	public static Function? LinkFunction { get; set; }
-	public static Function? UnlinkFunction { get; set; }
+	public static List<List<Pattern>> Patterns { get; set; } = new();
 
-	public const string StandardRangeType = "Range";
-	public const string StandardListType = "List";
-	public const string StandardListAdder = "add";
-	public const string StandardStringType = "String";
+	public const Format Format = global::Format.UINT64;
+	public const Format Signed = global::Format.INT64;
+	public const int Bytes = 8;
+	public const int Bits = 64;
 
-	public static Size Size { get; set; } = Size.QWORD;
-	public static Format Format => Size.ToFormat();
-	public static int Bytes => Size.Bytes;
-
-	public const int MAX_PRIORITY = 23;
-	public const int MAX_FUNCTION_BODY_PRIORITY = 19;
 	public const int MIN_PRIORITY = 0;
+	public const int MAX_FUNCTION_BODY_PRIORITY = 19;
+	public const int MAX_PRIORITY = 23;
 	public const int PRIORITY_ALL = -1;
-	public const int PRIORITY_NEVER = -2;
 
-	private const int FUNCTION_LENGTH = 2;
+	public const string STANDARD_RANGE_TYPE = "Range";
+	public const string STANDARD_LIST_TYPE = "List";
+	public const string STANDARD_LIST_ADDER = "add";
+	public const string STANDARD_STRING_TYPE = "String";
 
-	private class Instance
+	public static List<Pattern> GetPatterns(int priority)
 	{
-		public Pattern Pattern { get; private set; }
-		public IList<Token> Tokens { get; set; }
-		public List<Token> Formatted { get; private set; }
-		public PatternState State { get; private set; }
+		return Patterns[priority];
+	}
 
-		public Instance(Pattern pattern, IList<Token> tokens, List<Token> formatted, PatternState state)
+	public static void Add(Pattern pattern)
+	{
+		if (pattern.Priority != -1)
 		{
-			Pattern = pattern;
-			Tokens = tokens;
-			Formatted = formatted;
-			State = state;
+			Patterns[pattern.Priority].Add(pattern);
+			return;
 		}
 
-		public void Remove()
+		for (var i = 0; i < Patterns.Count; i++)
 		{
-			var start = Pattern.GetStart();
-			var end = Pattern.GetEnd();
-			var count = (end == -1 ? Tokens.Count : end) - start;
-
-			for (var i = 0; i < count; i++)
-			{
-				Tokens.RemoveAt(start);
-			}
+			Patterns[i].Add(pattern);
 		}
+	}
 
-		private int GetAbsolutePosition(int p)
+	static Parser()
+	{
+		Patterns = new List<List<Pattern>>();
+		for (var i = 0; i < MAX_PRIORITY + 1; i++) { Patterns.Add(new List<Pattern>());  }
+
+		Add(new CommandPattern());
+		Add(new AssignPattern());
+		Add(new FunctionPattern());
+		Add(new OperatorPattern());
+		Add(new TypePattern());
+		Add(new ReturnPattern());
+		Add(new IfPattern());
+		Add(new InheritancePattern());
+		Add(new LinkPattern());
+		Add(new ListConstructionPattern());
+		Add(new ListPattern());
+		Add(new SingletonPattern());
+		Add(new LoopPattern());
+		Add(new ForeverLoopPattern());
+		Add(new CastPattern());
+		Add(new AccessorPattern());
+		Add(new ImportPattern());
+		Add(new ConstructorPattern());
+		Add(new NotPattern());
+		Add(new VariableDeclarationPattern());
+		Add(new ElsePattern());
+		Add(new UnarySignPattern());
+		Add(new PostIncrementPattern());
+		Add(new PreIncrementPattern());
+		Add(new ExpressionVariablePattern());
+		Add(new ModifierSectionPattern());
+		Add(new SectionModificationPattern());
+		Add(new NamespacePattern());
+		Add(new IterationLoopPattern());
+		Add(new TemplateFunctionPattern());
+		Add(new TemplateFunctionCallPattern());
+		Add(new TemplateTypePattern());
+		Add(new VirtualFunctionPattern());
+		Add(new SpecificModificationPattern());
+		Add(new TypeInspectionPattern());
+		Add(new CompilesPattern());
+		Add(new IsPattern());
+		Add(new OverrideFunctionPattern());
+		Add(new PackConstructionPattern());
+		Add(new LambdaPattern());
+		Add(new RangePattern());
+		Add(new HasPattern());
+		Add(new ExtensionFunctionPattern());
+		Add(new WhenPattern());
+	}
+
+	// Summary: Returns whether the specified pattern can be built at the specified position
+	public static bool Fits(Pattern pattern, List<Token> tokens, int start, ParserState state)
+	{
+		var path = pattern.Path;
+		var result = new List<Token>();
+
+		var i = 0;
+		var j = 0;
+
+		for (; i < path.Count; i++)
 		{
-			var x = 0;
+			var types = path[i];
 
-			for (var i = 0; i < p; i++)
+			// Ensure there is a token available
+			if (start + j >= tokens.Count)
 			{
-				if (Formatted[i].Type != TokenType.NONE)
+				// If the token type is optional on the path, we can add a none token even though there are no tokens available
+				if (Flag.Has(types, TokenType.OPTIONAL))
 				{
-					x++;
-				}
-			}
-
-			return x;
-		}
-
-		public Range GetRange()
-		{
-			var start = Pattern.GetStart();
-			var end = Pattern.GetEnd();
-
-			return new Range(
-				start == -1 ? Tokens.Count : GetAbsolutePosition(start),
-				end == -1 ? Tokens.Count : GetAbsolutePosition(end)
-			);
-		}
-
-		public void Replace(DynamicToken token)
-		{
-			var range = GetRange();
-			var length = range.End.Value - range.Start.Value;
-
-			for (var i = 0; i < length; i++)
-			{
-				Tokens.RemoveAt(range.Start.Value);
-			}
-
-			Tokens.Insert(range.Start.Value, token);
-		}
-	}
-
-	private static List<Token> Mold(List<int> indices, IList<Token> candidate)
-	{
-		var formatted = new List<Token>(candidate);
-
-		foreach (var index in indices)
-		{
-			formatted.Insert(index, new Token(TokenType.NONE));
-		}
-
-		return formatted;
-	}
-
-	/// <summary>
-	/// Tries to find the next pattern from the tokens by comparing the priority
-	/// </summary>
-	/// <returns>Success: Next important pattern in tokens, Failure null</returns>
-	private static Instance? Next(Context context, List<Token> tokens, int min, int priority, List<System.Type> allowlist, int start = 0)
-	{
-		for (; start < tokens.Count; start++)
-		{
-			// Start from the root
-			var patterns = Patterns.Root;
-
-			if (patterns == null)
-			{
-				throw new ApplicationException("The root of the patterns was not initialized");
-			}
-
-			Instance? instance = null;
-
-			// Try finding the next pattern
-			for (var end = start; end < tokens.Count; end++)
-			{
-				// Navigate forward on the tree
-				patterns = patterns.Navigate(tokens[end].Type);
-
-				// When tree becomes null the end of the tree is reached
-				if (patterns == null)
-				{
-					break;
-				}
-
-				if (patterns.HasOptions)
-				{
-					var candidate = tokens.Sublist(start, end + 1);
-
-					foreach (var option in patterns.Options)
-					{
-						var pattern = option.Pattern;
-
-						// Skip this candidate if it is denylisted
-						if (allowlist.Any() && !allowlist.Exists(i => i == pattern.GetType()))
-						{
-							continue;
-						}
-
-						var formatted = Mold(option.Missing, candidate);
-						var pattern_priority = pattern.GetPriority(formatted);
-
-						if (pattern_priority == priority || pattern_priority == Parser.PRIORITY_ALL)
-						{
-							var state = new PatternState(tokens, formatted, start, end + 1, min, priority);
-
-							if (!pattern.Passes(context, state, formatted))
-							{
-								continue;
-							}
-
-							candidate = tokens.Sublist(state.Start, state.End);
-							instance = new Instance(pattern, candidate, state.Formatted, state);
-							break;
-						}
-					}
-				}
-			}
-
-			if (instance != null)
-			{
-				return instance;
-			}
-		}
-
-		return null;
-	}
-
-	/// <summary>
-	/// Parses tokens with minimum and maximum priority range
-	/// </summary>
-	/// <returns>Parsed node tree</returns>
-	public static Node Parse(Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
-	{
-		var node = new Node();
-		Parse(node, context, tokens, min, max);
-
-		return node;
-	}
-
-	private class Consumption
-	{
-		public DynamicToken Token { get; set; }
-		public int Count { get; set; }
-
-		public Consumption(DynamicToken token, int count)
-		{
-			Token = token;
-			Count = count;
-		}
-	}
-
-	public static bool TryConsume(PatternState state, out List<Token> consumed, params int[] path)
-	{
-		consumed = new List<Token>();
-
-		var i = state.End;
-
-		// Ensure there are enough tokens
-		if (state.Tokens.Count - i < path.Length)
-		{
-			return false;
-		}
-
-		foreach (var type in path)
-		{
-			var token = state.Tokens[i];
-
-			if (!Flag.Has(type, token.Type))
-			{
-				if (Flag.Has(type, TokenType.OPTIONAL))
-				{
-					consumed.Add(new Token(TokenType.NONE));
+					result.Add(new Token(TokenType.NONE));
 					continue;
 				}
 
-				consumed.Clear();
 				return false;
 			}
-			else
+
+			var token = tokens[start + j];
+			var type = token.Type;
+
+			// Add the token if the allowed types contains its type
+			if (Flag.Has(types, type))
 			{
-				i++;
+				result.Add(token);
+				j++;
 			}
-		}
-
-		var count = i - state.End;
-
-		consumed = state.Tokens.GetRange(state.End, count);
-
-		state.Formatted.AddRange(consumed);
-		state.End += count;
-
-		return true;
-	}
-
-	public static bool TryConsume(PatternState state, out Token? consumed, int mask)
-	{
-		consumed = null;
-
-		var i = state.End;
-
-		// Ensure there are enough tokens
-		if (state.Tokens.Count - i < 1) return false;
-
-		var type = state.Tokens[i].Type;
-
-		if (type == TokenType.NONE || !Flag.Has(mask, type))
-		{
-			if (!Flag.Has(mask, TokenType.OPTIONAL)) return false;
-
-			consumed = new Token(TokenType.NONE);
-		}
-		else
-		{
-			consumed = state.Tokens[i];
-			state.End++;
-		}
-
-		state.Formatted.Add(consumed);
-
-		return true;
-	}
-
-	public static bool TryConsume(PatternState state)
-	{
-		var i = state.End;
-
-		// Ensure there are enough tokens
-		if (state.Tokens.Count - i < 1)
-		{
-			return false;
-		}
-
-		state.Formatted.Add(state.Tokens[i]);
-		state.End = i + 1;
-
-		return true;
-	}
-
-	public static List<Token> Consume(Context context, PatternState state, List<System.Type> patterns)
-	{
-		if (patterns.Exists(i => !i.IsSubclassOf(typeof(Pattern)))) throw new ArgumentException("Pattern list contained a non-pattern type");
-
-		var clone = new List<Token>(state.Tokens.Select(i => (Token)i.Clone()));
-		var consumption = new List<Consumption>();
-
-		for (var priority = state.Max; priority >= state.Min;)
-		{
-			var instance = Next(context, clone, state.Min, priority, patterns, state.End);
-
-			if (instance == null)
+			else if (Flag.Has(types, TokenType.OPTIONAL))
 			{
-				priority--;
-				continue;
-			}
-
-			// Build the pattern into a node
-			var pattern = instance.Pattern;
-			var node = pattern.Build(context, instance.State, instance.Formatted);
-
-			instance.Tokens = clone.Sublist(instance.State.Start, instance.State.End);
-
-			if (node != null)
-			{
-				// Calculate how many tokens the pattern holds inside
-				var range = instance.GetRange();
-				var start = range.Start.Value;
-				var length = range.End.Value - start;
-				var count = instance.Tokens.Skip(start).Take(length).Sum(t => consumption.FirstOrDefault(i => i.Token == t)?.Count ?? 1);
-
-				// Replace the pattern with a dynamic token
-				var token = new DynamicToken(node);
-				consumption.Add(new Consumption(token, count));
-
-				instance.Replace(token);
+				result.Add(new Token(TokenType.NONE));
+				// NOTE: Do not skip the current token, since it was not consumed
 			}
 			else
 			{
-				Console.WriteLine("Warning: Consumption encountered unverified state");
-				instance.Remove();
+				result.Clear();
+				return false;
 			}
 		}
 
-		// Return an empty list if nothing was consumed
-		if (state.End >= clone.Count) return new List<Token>();
+		state.Tokens = result;
+		state.Pattern = pattern;
+		state.Start = start;
+		state.End = start + j;
 
-		List<Token>? consumed;
-
-		if (clone[state.End].Type == TokenType.DYNAMIC)
-		{
-			var count = consumption.Find(i => i.Token == clone[state.End].To<DynamicToken>())?.Count ?? 1;
-			consumed = state.Tokens.GetRange(state.End, count);
-
-			state.Formatted.AddRange(consumed);
-			state.End += count;
-
-			return consumed;
-		}
-
-		consumed = new List<Token> { state.Tokens[state.End++] };
-		state.Formatted.AddRange(consumed);
-
-		return consumed;
+		return true;
 	}
 
-	/// <summary>
-	/// Parses tokens into a node tree and attaches it to the parent node. 
-	/// Parsing is done by looking for prioritized patterns which are filtered using the min and max priority parameters.
-	/// </summary>
-	public static void Parse(Node parent, Context context, List<Token> tokens, int min = MIN_PRIORITY, int max = MAX_PRIORITY)
+	// Summary: Tries to find the next pattern from the specified tokens, which has the specified priority
+	public static bool Next(Context context, List<Token> tokens, int priority, int start, ParserState state)
 	{
-		RemoveLineEndingDuplications(tokens);
-		CreateFunctionTokens(tokens);
+		var all = Patterns[priority];
 
-		var denylist = new List<System.Type>();
-
-		for (var priority = max; priority >= min; priority--)
+		for (; start < tokens.Count; start++)
 		{
-			Instance? instance;
-
-			// Find all patterns with the current priority
-			while ((instance = Next(context, tokens, min, priority, denylist)) != null)
+			// NOTE: Patterns all sorted so that the longest pattern is first, so if it passes, it takes priority over all the other patterns
+			for (var i = 0; i < all.Count; i++)
 			{
-				// Build the pattern into a node
-				var pattern = instance.Pattern;
-				var node = pattern.Build(context, instance.State, instance.Formatted);
-
-				instance.Tokens = tokens.Sublist(instance.State.Start, instance.State.End);
-
-				if (node != null)
-				{
-					// Replace the pattern with a dynamic token
-					instance.Replace(new DynamicToken(node));
-				}
-				else
-				{
-					instance.Remove();
-				}
+				var pattern = all[i];
+				if (Fits(pattern, tokens, start, state) && pattern.Passes(context, state, state.Tokens, priority)) return true;
 			}
 		}
 
-		// Try to find drifting tokens
-		var i = tokens.FindIndex(j => !j.Is(TokenType.DYNAMIC, TokenType.END));
-
-		if (i != -1)
-		{
-			throw Errors.Get(tokens[i].Position, "Can not understand");
-		}
-
-		// Combine all dynamic tokens in order
-		foreach (var dynamic in tokens.Where(token => token.Type == TokenType.DYNAMIC).Cast<DynamicToken>())
-		{
-			parent.Add(dynamic.Node);
-		}
+		return false;
 	}
 
-	/// <summary>
-	/// Forms function tokens from the specified tokens
-	/// </summary>
+	// Summary: Tries to find the next pattern from the specified tokens, which has the specified priority
+	public static bool NextConsumable(Context context, List<Token> tokens, int priority, int start, ParserState state, long disabled)
+	{
+		var all = Patterns[priority];
+
+		for (; start < tokens.Count; start++)
+		{
+			// NOTE: Patterns all sorted so that the longest pattern is first, so if it passes, it takes priority over all the other patterns
+			for (var i = 0; i < all.Count; i++)
+			{
+				var pattern = all[i];
+
+				// Ensure the pattern is consumable and is not disabled
+				if (!pattern.IsConsumable || (disabled & pattern.Id) != 0) continue;
+
+				if (Fits(pattern, tokens, start, state) && pattern.Passes(context, state, state.Tokens, priority)) return true;
+			}
+		}
+
+		return false;
+	}
+
+	public static void Parse(Node root, Context context, List<Token> tokens)
+	{
+		Parse(root, context, tokens, Parser.MIN_PRIORITY, Parser.MAX_PRIORITY);
+	}
+
+	// Summary: Forms function tokens from the specified tokens
 	public static void CreateFunctionTokens(List<Token> tokens)
 	{
-		if (tokens.Count < FUNCTION_LENGTH) return;
+		if (tokens.Count < 2) return;
 
-		for (var i = tokens.Count - 2; i >= 0;)
+		for (var i = tokens.Count - 2; i >= 0; i--)
 		{
-			var current = tokens[i];
+			var name = tokens[i];
+			if (name.Type != TokenType.IDENTIFIER) continue;
+			var parameters = tokens[i + 1];
+			if (!parameters.Is(ParenthesisType.PARENTHESIS)) continue;
 
-			if (current.Type == TokenType.IDENTIFIER)
-			{
-				var next = tokens[i + 1];
-
-				if (next.Type == TokenType.PARENTHESIS)
-				{
-					var parameters = (ParenthesisToken)next;
-
-					if (Equals(parameters.Opening, ParenthesisType.PARENTHESIS))
-					{
-						var name = (IdentifierToken)current;
-						var function = new FunctionToken(name, parameters)
-						{
-							Position = name.Position
-						};
-
-						tokens[i] = function;
-						tokens.RemoveAt(i + 1);
-
-						i -= FUNCTION_LENGTH;
-						continue;
-					}
-				}
-			}
+			tokens[i] = new FunctionToken(name.To<IdentifierToken>(), parameters.To<ParenthesisToken>(), name.Position);
+			tokens.RemoveAt(i + 1);
 
 			i--;
 		}
 	}
 
-	/// <summary>
-	/// Removes all line ending duplications
-	/// </summary>
-	public static void RemoveLineEndingDuplications(List<Token> tokens)
+	public static bool IsLineRelated(List<Token> tokens, int i, int j, int k)
 	{
-		for (var i = 0; i < tokens.Count - 1;)
+		var first_line_end_index = j - 1;
+		var second_line_start_index = j + 1;
+
+		var first_line_end = (Token?)null;
+		if (first_line_end_index >= 0) { first_line_end = tokens[first_line_end_index]; }
+
+		var second_line_start = (Token?)null;
+		if (second_line_start_index < tokens.Count) { second_line_start = tokens[second_line_start_index]; }
+
+		if (first_line_end != null && first_line_end.Is(TokenType.OPERATOR, TokenType.KEYWORD)) return true;
+		if (second_line_start != null && (second_line_start.Is(TokenType.OPERATOR, TokenType.KEYWORD) || second_line_start.Is(ParenthesisType.CURLY_BRACKETS))) return true;
+
+		for (var l = i; l < j; l++)
 		{
-			if (tokens[i].Type != TokenType.END || tokens[i + 1].Type != TokenType.END)
+			if (tokens[l].Type != TokenType.KEYWORD) continue;
+
+			var keyword = tokens[l].To<KeywordToken>().Keyword;
+			if (keyword.Type == KeywordType.FLOW) return true;
+		}
+
+		return false;
+	}
+
+	public static List<Token>? IsConsumingNamespace(List<Token> tokens, int i)
+	{
+		// Save the position of the namespace keyword
+		var start = i;
+
+		// Move to the next token
+		i++;
+
+		// Find the start of the body by skipping the name
+		for (; i < tokens.Count && tokens[i].Is(TokenType.IDENTIFIER | TokenType.OPERATOR); i++) {}
+
+		// If we reached the end, stop and return none
+		if (i >= tokens.Count) return (List<Token>?)null;
+
+		// Optionally consume a line ending
+		if (tokens[i].Type == TokenType.END)
+		{
+			i++;
+
+			// If we reached the end, stop and return none
+			if (i >= tokens.Count) return (List<Token>?)null;
+		}
+
+		// If this namespace is a consuming section, then the next token is not curly brackets
+		if (tokens[i].Is(ParenthesisType.CURLY_BRACKETS)) return (List<Token>?)null;
+
+		var section = tokens.GetRange(start, tokens.Count - start);
+		tokens.RemoveRange(start, tokens.Count - start);
+
+		return section;
+	}
+
+	// Summary:
+	// Returns the first section from the specified tokens that consumes all the lines below it.
+	// If such section can not be found, none is returned.
+	public static List<Token>? FindConsumingSection(List<Token> tokens)
+	{
+		for (var i = 0; i < tokens.Count; i++)
+		{
+			var section = (List<Token>?)null;
+			var next = tokens[i];
+
+			if (next.Is(Keywords.NAMESPACE))
 			{
-				i++;
+				section = IsConsumingNamespace(tokens, i);
+			}
+
+			if (section != null) return section;
+		}
+
+		return null;
+	}
+
+	public static List<List<Token>> Split(List<Token> tokens)
+	{
+		var consuming_section = FindConsumingSection(tokens);
+
+		var sections = new List<List<Token>>();
+		var i = 0;
+
+		while (i < tokens.Count)
+		{
+			// Look for the first line ending after i
+			var j = i + 1;
+			for (; j < tokens.Count && tokens[j].Type != TokenType.END; j++) { }
+
+			// If we reached the end here, we can just add the active section and stop
+			if (j == tokens.Count)
+			{
+				var section = tokens.GetRange(i, j - i);
+				sections.Add(section);
+				break;
+			}
+
+			// Start consuming lines after j
+			var k = j + 1;
+
+			for (; k < tokens.Count; k++)
+			{
+				if (tokens[k].Type != TokenType.END) continue;
+
+				// If the line is related to the active section, we can just consume it and continue
+				if (IsLineRelated(tokens, i, j, k))
+				{
+					j = k;
+					continue;
+				}
+
+				// Since the line is not related to the active section, the active section ends at j
+				var section = tokens.GetRange(i, j - i);
+				sections.Add(section);
+
+				i = j; // Start over in a situation where the line i+1..j is the first
+				break;
+			}
+
+			if (k != tokens.Count) continue;
+
+			if (IsLineRelated(tokens, i, j, k))
+			{
+				var section = tokens.GetRange(i, k - i);
+				sections.Add(section);
+			}
+			else
+			{
+				var section = tokens.GetRange(i, j - i);
+				sections.Add(section);
+
+				section = tokens.GetRange(j, k - j);
+				sections.Add(section);
+			}
+
+			break;
+		}
+
+		// Add the consuming section to the end of all sections, if such was found
+		if (consuming_section != null) sections.Add(consuming_section);
+
+		return sections;
+	}
+
+	public static void ParseSection(Node root, Context context, List<Token> tokens, int min, int max)
+	{
+		CreateFunctionTokens(tokens);
+
+		var state = new ParserState();
+		state.All = tokens;
+
+		for (var priority = max; priority >= min; priority--)
+		{
+			while (true)
+			{
+				if (!Next(context, tokens, priority, 0, state)) break;
+
+				var node = state.Pattern!.Build(context, state, state.Tokens);
+
+				// Remove the consumed tokens
+				var length = state.End - state.Start;
+				while (length-- > 0) { tokens.RemoveAt(state.Start); }
+
+				// Remove the consumed tokens from the state
+				state.Tokens.Clear();
+
+				// Replace the consumed tokens with the a dynamic token if a node was returned
+				if (node != null) tokens.Insert(state.Start, new DynamicToken(node));
+			}
+		}
+
+		foreach (var token in tokens)
+		{
+			if (token.Type == TokenType.DYNAMIC)
+			{
+				root.Add(token.To<DynamicToken>().Node);
 				continue;
 			}
 
-			tokens.RemoveAt(i);
+			if (token.Type != TokenType.END)
+			{
+				throw Errors.Get(token.Position, "Can not understand");
+			}
 		}
 	}
 
 	/// <summary>
-	/// Creates a root context
+	/// Creates the root context, which might contain some default types
+	/// </summary>
+	public static Context CreateRootContext(int index)
+	{
+		var context = new Context(index.ToString());
+		Primitives.Inject(context);
+		return context;
+	}
+
+	/// <summary>
+	/// Creates the root context, which might contain some default types
 	/// </summary>
 	public static Context CreateRootContext(string identity)
 	{
 		var context = new Context(identity);
 		Primitives.Inject(context);
-
 		return context;
 	}
 
-	/// <summary>
-	/// Creates a root context
-	/// </summary>
-	public static Context CreateRootContext(int identity)
-	{
-		return CreateRootContext(identity.ToString());
-	}
-
-	/// <summary>
-	/// Creates a root node
-	/// </summary>
 	public static Node CreateRootNode(Context context)
 	{
-		var positive_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.POSITIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
-		var negative_infinity = Variable.Create(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Lexer.NEGATIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
+		var root = new ScopeNode(context, null, null, false);
 
-		var true_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.PRIVATE | Modifier.CONSTANT);
-		var false_constant = Variable.Create(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.PRIVATE | Modifier.CONSTANT);
+		var positive_infinity = new Variable(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Settings.POSITIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
+		var negative_infinity = new Variable(context, Primitives.CreateNumber(Primitives.DECIMAL, Format.DECIMAL), VariableCategory.GLOBAL, Settings.NEGATIVE_INFINITY_CONSTANT, Modifier.PRIVATE | Modifier.CONSTANT);
 
-		return new ScopeNode(context, null, null, false)
-		{
-			new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(positive_infinity),
-				new NumberNode(Format.DECIMAL, double.PositiveInfinity)
-			),
-			new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(negative_infinity),
-				new NumberNode(Format.DECIMAL, double.NegativeInfinity)
-			),
-			new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(true_constant),
-				new CastNode(new NumberNode(Format.UINT64, 1L), new TypeNode(Primitives.CreateBool()))
-			),
-			new OperatorNode(Operators.ASSIGN).SetOperands(
-				new VariableNode(false_constant),
-				new CastNode(new NumberNode(Format.UINT64, 0L), new TypeNode(Primitives.CreateBool()))
-			)
-		};
+		var true_constant = new Variable(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "true", Modifier.PRIVATE | Modifier.CONSTANT);
+		var false_constant = new Variable(context, Primitives.CreateBool(), VariableCategory.GLOBAL, "false", Modifier.PRIVATE | Modifier.CONSTANT);
+
+		var position = (Position?)null;
+
+		root.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(positive_infinity, position),
+			new NumberNode(Format.DECIMAL, double.MaxValue, position)
+		));
+
+		root.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(negative_infinity, position),
+			new NumberNode(Format.DECIMAL, double.MinValue, position)
+		));
+
+		root.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(true_constant, position),
+			new CastNode(new NumberNode(Settings.Format, 1L, position), new TypeNode(Primitives.CreateBool(), position), position)
+		));
+
+		root.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+			new VariableNode(false_constant, position),
+			new CastNode(new NumberNode(Settings.Format, 0L, position), new TypeNode(Primitives.CreateBool(), position), position)
+		));
+
+		return root;
 	}
 
-	public static int Print(Node root, int identation = 0, int total = 0)
+	public static void Parse(Node root, Context context, List<Token> tokens, int min, int max)
 	{
-		var padding = new char[identation * 2];
-		Array.Fill(padding, ' ');
-		
-		Console.Write(new string(padding));
-		Console.WriteLine(root.ToString());
+		var sections = Split(tokens);
 
-		total++;
-
-		foreach (var child in root)
+		foreach (var section in sections)
 		{
-			total += Print(child, identation + 1);
+			ParseSection(root, context, section, min, max);
 		}
+	}
 
-		return total;
+	public static Node Parse(Context context, List<Token> tokens, int min, int max)
+	{
+		var result = new Node();
+		Parse(result, context, tokens, min, max);
+		return result;
 	}
 }

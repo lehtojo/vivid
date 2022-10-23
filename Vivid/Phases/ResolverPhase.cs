@@ -202,7 +202,7 @@ public class ResolverPhase : Phase
 
 			foreach (var iterator in nodes)
 			{
-				if (IsAccessable(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
+				if (IsAccessible(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
 				diagnostics.Add(new DocumentDiagnostic(iterator.Right.Position, "Can not access the member here", DocumentDiagnosticSeverity.ERROR));
 			}
 		}
@@ -294,12 +294,12 @@ public class ResolverPhase : Phase
 	/// <summary>
 	/// Returns whether the specified object is accessible based on the specified environment
 	/// </summary>
-	public static bool IsAccessable(FunctionImplementation environment, LinkNode link, bool reads)
+	public static bool IsAccessible(FunctionImplementation environment, LinkNode link, bool reads)
 	{
 		// Only variables and function calls can be checked
 		if (!link.Right.Is(NodeType.VARIABLE, NodeType.FUNCTION)) return true;
 
-		var context = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Context : link.Right.To<FunctionNode>().Function.Parent;
+		var context = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Parent : link.Right.To<FunctionNode>().Function.Parent;
 		if (context == null || !context.IsType) return true;
 
 		// Determine which type owns the accessed object
@@ -392,7 +392,7 @@ public class ResolverPhase : Phase
 
 			foreach (var iterator in nodes)
 			{
-				if (IsAccessable(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
+				if (IsAccessible(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
 				errors.Add(Status.Error(iterator.Right.Position, "Can not access the member here"));
 			}
 
@@ -567,7 +567,7 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
-	/// Finds all static member assignmens which should be executed before the entry function
+	/// Finds all static member assignments which should be executed before the entry function
 	/// </summary>
 	private static List<Node> CollectStaticInitializers(Context context)
 	{
@@ -589,7 +589,7 @@ public class ResolverPhase : Phase
 				if (member.IsStatic)
 				{
 					edited.Replace(new LinkNode(
-						new TypeNode(member.Context.To<Type>(), member.Position),
+						new TypeNode(member.Parent.To<Type>(), member.Position),
 						edited.Clone(),
 						member.Position
 					));
@@ -617,20 +617,18 @@ public class ResolverPhase : Phase
 
 		var integer_parameter_type = Primitives.CreateNumber(Primitives.LARGE, Format.INT64);
 
-		Parser.AllocationFunction = allocation_function.GetImplementation(integer_parameter_type);
-		Assembler.AllocationFunction = allocation_function.GetOverload(integer_parameter_type);
+		Settings.AllocationFunction = allocation_function.GetImplementation(integer_parameter_type);
 
-		Parser.DeallocationFunction = deallocation_function.GetImplementation(new Link());
-		Assembler.DeallocationFunction = deallocation_function.GetOverload(new Link());
+		Settings.DeallocationFunction = deallocation_function.GetImplementation(new Link());
 
-		Parser.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link());
+		Settings.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link());
 
 		// Find all the static member assignments and add them to the application initialization function
 		var static_initializers = CollectStaticInitializers(context);
 
 		if (initialization_function != null)
 		{
-			Assembler.InitializationFunction = initialization_function.GetImplementation(new Link()) ?? initialization_function.GetImplementation();
+			Settings.InitializationFunction = initialization_function.GetImplementation(new Link()) ?? initialization_function.GetImplementation();
 		}
 		else if (static_initializers.Any())
 		{
@@ -641,34 +639,31 @@ public class ResolverPhase : Phase
 			};
 
 			// Create an application initialization function, which calls the entry function, so that the static member assignments can be executed
-			var initialization_function_metadata = new Function(context, Modifier.EXPORTED, "internal_init", initialization_function_blueprint, Parser.AllocationFunction!.Metadata.Start, null);
+			var initialization_function_metadata = new Function(context, Modifier.EXPORTED, "internal_init", initialization_function_blueprint, Settings.AllocationFunction!.Metadata.Start, null);
 			context.Declare(initialization_function_metadata);
 	
-			Assembler.InitializationFunction = initialization_function_metadata.Get(Array.Empty<Type>());
+			Settings.InitializationFunction = initialization_function_metadata.Get(Array.Empty<Type>());
 		}
 
 		if (static_initializers.Any())
 		{
-			if (Assembler.InitializationFunction == null) throw new ApplicationException("Missing the application initialization function");
+			if (Settings.InitializationFunction == null) throw new ApplicationException("Missing the application initialization function");
 
 			// Add the static initializers to the application initialization function
 			for (var i = static_initializers.Count - 1; i >= 0; i--)
 			{
 				var initializer = static_initializers[i];
-				var initializer_destination = Assembler.InitializationFunction!.Node!.First;
-				Assembler.InitializationFunction.Node!.Insert(initializer_destination, initializer);
+				var initializer_destination = Settings.InitializationFunction!.Node!.First;
+				Settings.InitializationFunction.Node!.Insert(initializer_destination, initializer);
 			}
 		}
 	}
 
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
-		if (!bundle.Contains(ParserPhase.OUTPUT))
-		{
-			return Status.Error("Nothing to resolve");
-		}
+		if (Settings.Parse == null) return Status.Error("Nothing to resolve");
 
-		var parse = bundle.Get<Parse>(ParserPhase.OUTPUT);
+		var parse = Settings.Parse;
 
 		var context = parse.Context;
 		var report = GetReport(context, parse.Node);
@@ -692,7 +687,7 @@ public class ResolverPhase : Phase
 
 			report = GetReport(context, parse.Node);
 
-			if (Assembler.IsVerboseOutputEnabled)
+			if (Settings.IsVerboseOutputEnabled)
 			{
 				Console.WriteLine("Resolving " + report.Length + " issues...");
 			}
@@ -713,7 +708,7 @@ public class ResolverPhase : Phase
 			return Status.Error("Compilation error");
 		}
 
-		if (Assembler.IsVerboseOutputEnabled)
+		if (Settings.IsVerboseOutputEnabled)
 		{
 			Console.WriteLine("Resolved");
 		}
@@ -737,7 +732,7 @@ public class ResolverPhase : Phase
 		}
 
 		// Apply analysis to the functions
-		Analysis.Analyze(bundle, context);
+		Analysis.Analyze(context);
 
 		// Reanalyze the output after the changes
 		Analyzer.Analyze(parse.Node, context);

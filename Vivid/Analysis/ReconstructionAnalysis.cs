@@ -4,6 +4,9 @@ using System.Linq;
 
 public static class ReconstructionAnalysis
 {
+	public const string RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER = "has_value";
+	public const string RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER = "get_value";
+
 	/// <summary>
 	/// Returns the first position where a statement can be placed outside the scope of the specified node
 	/// </summary>
@@ -99,7 +102,7 @@ public static class ReconstructionAnalysis
 
 			return new OperatorNode(Operators.ASSIGN_ADD, increment.Position).SetOperands(
 				destination,
-				new NumberNode(Assembler.Format, 1L, increment.Position)
+				new NumberNode(Settings.Format, 1L, increment.Position)
 			);
 		}
 
@@ -110,7 +113,7 @@ public static class ReconstructionAnalysis
 
 			return new OperatorNode(Operators.ASSIGN_SUBTRACT, decrement.Position).SetOperands(
 				destination,
-				new NumberNode(Assembler.Format, 1L, decrement.Position)
+				new NumberNode(Settings.Format, 1L, decrement.Position)
 			);
 		}
 
@@ -251,7 +254,7 @@ public static class ReconstructionAnalysis
 		{
 			foreach (var iterator in root)
 			{
-				if (iterator is ContentNode parenthesis && parenthesis.Count() == 1)
+				if (iterator is ParenthesisNode parenthesis && parenthesis.Count() == 1)
 				{
 					iterator.Replace(iterator.First!);
 				}
@@ -323,9 +326,9 @@ public static class ReconstructionAnalysis
 		var configuration = type.GetConfigurationVariable();
 		var start = new LinkNode(source, new VariableNode(configuration));
 
-		var condition = new FunctionNode(Parser.InheritanceFunction!).SetArguments(new Node {
+		var condition = new FunctionNode(Settings.InheritanceFunction!).SetArguments(new Node {
 			new AccessorNode(start, new NumberNode(Parser.Format, 0L)),
-			new DataPointer(expected.Configuration.Descriptor)
+			new DataPointerNode(expected.Configuration.Descriptor)
 		});
 
 		return condition;
@@ -415,7 +418,7 @@ public static class ReconstructionAnalysis
 		{
 			var position = expression.Position;
 			var return_type = Resolver.GetSharedType(expression.Sections.Select(i => expression.GetSectionBody(i).Last!.GetType()).ToArray()) ?? throw Errors.Get(position, "Could not resolve the return type of the statement");
-			var container = Common.CreateInlineContainer(return_type, expression);
+			var container = Common.CreateInlineContainer(return_type, expression, false);
 
 			// The load must be executed before the actual when-statement
 			container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
@@ -511,7 +514,7 @@ public static class ReconstructionAnalysis
 		{
 			var list_type = construction.GetType();
 			var list_constructor = list_type.Constructors.GetImplementation(Array.Empty<Type>())!;
-			var container = Common.CreateInlineContainer(list_type, construction);
+			var container = Common.CreateInlineContainer(list_type, construction, false);
 
 			// Create a new list and assign it to the result variable
 			container.Node.Add(new OperatorNode(Operators.ASSIGN, construction.Position).SetOperands(
@@ -522,7 +525,7 @@ public static class ReconstructionAnalysis
 			// Add all the elements to the list
 			foreach (var element in construction.Elements)
 			{
-				var adder = list_type.GetFunction(Parser.StandardListAdder)!.GetImplementation(new[] { element.GetType() })!;
+				var adder = list_type.GetFunction(Parser.STANDARD_LIST_ADDER)!.GetImplementation(new[] { element.GetType() })!;
 
 				container.Node.Add(new LinkNode(
 					new VariableNode(container.Result),
@@ -550,7 +553,7 @@ public static class ReconstructionAnalysis
 		{
 			var type = construction.GetType();
 			var members = construction.Members;
-			var container = Common.CreateInlineContainer(type, construction);
+			var container = Common.CreateInlineContainer(type, construction, false);
 
 			// Initialize the pack result variable
 			container.Node.Add(new VariableNode(container.Result));
@@ -611,7 +614,7 @@ public static class ReconstructionAnalysis
 
 		foreach (var expression in expressions)
 		{
-			var container = Common.CreateInlineContainer(Primitives.CreateBool(), expression);
+			var container = Common.CreateInlineContainer(Primitives.CreateBool(), expression, true);
 			var position = expression.Position;
 
 			// Create the container, since it will contain a conditional statement
@@ -683,7 +686,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static bool IsAffector(Node node)
 	{
-		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECLARE, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.INSTRUCTION, NodeType.JUMP, NodeType.LABEL, NodeType.LOOP_CONTROL, NodeType.RETURN, NodeType.OBJECT_LINK, NodeType.OBJECT_UNLINK) || node.Is(OperatorType.ASSIGNMENT);
+		return node.Is(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.DECREMENT, NodeType.DISABLED, NodeType.FUNCTION, NodeType.INCREMENT, NodeType.JUMP, NodeType.LABEL, NodeType.COMMAND, NodeType.RETURN, NodeType.OBJECT_LINK, NodeType.OBJECT_UNLINK) || node.Is(OperatorType.ASSIGNMENT);
 	}
 
 	/// <summary>
@@ -803,23 +806,13 @@ public static class ReconstructionAnalysis
 		foreach (var inline in inlines)
 		{
 			// If the inline node contains only one child node, the inline node can be replaced with it
-			if (inline.Count() == 1)
+			if (inline.First != null && ReferenceEquals(inline.First, inline.Last))
 			{
 				inline.Replace(inline.Left);
 			}
 			else if (inline.Parent != null && (ReconstructionAnalysis.IsStatement(inline.Parent) || inline.Parent.Is(NodeType.INLINE, NodeType.NORMAL)))
 			{
 				inline.ReplaceWithChildren(inline);
-			}
-			else
-			{
-				continue;
-			}
-
-			if (inline.IsContext)
-			{
-				var environment = inline.GetParentContext();
-				environment.Merge(inline.To<ContextInlineNode>().Context);
 			}
 		}
 	}
@@ -1156,34 +1149,25 @@ public static class ReconstructionAnalysis
 	/// 	}
 	/// }
 	/// </summary>
-	public static void RewriteSupertypeAccessors(Node root)
+	public static void RewriteSuperAccessors(Node root)
 	{
 		var links = root.FindTop(i => i.Is(NodeType.LINK)).Cast<LinkNode>();
 
 		foreach (var link in links)
 		{
-			if (!IsUsingLocalSelfPointer(link.Right))
-			{
-				continue;
-			}
+			if (!IsUsingLocalSelfPointer(link.Right)) continue;
 
 			if (link.Right.Is(NodeType.FUNCTION))
 			{
 				var function = link.Right.To<FunctionNode>();
 
-				if (function.Function.IsStatic || !function.Function.IsMember)
-				{
-					continue;
-				}
+				if (function.Function.IsStatic || !function.Function.IsMember) continue;
 			}
 			else if (link.Right.Is(NodeType.VARIABLE))
 			{
 				var variable = link.Right.To<VariableNode>();
 
-				if (variable.Variable.IsStatic || !variable.Variable.IsMember)
-				{
-					continue;
-				}
+				if (variable.Variable.IsStatic || !variable.Variable.IsMember) continue;
 			}
 			else
 			{
@@ -1303,7 +1287,7 @@ public static class ReconstructionAnalysis
 
 			var type = implementation.Type!;
 
-			var container = Common.CreateInlineContainer(type, construction);
+			var container = Common.CreateInlineContainer(type, construction, true);
 			var allocator = (Node?)null;
 
 			if (IsStackConstructionPreferred(root, construction))
@@ -1315,7 +1299,7 @@ public static class ReconstructionAnalysis
 				var arguments = new Node();
 				arguments.Add(new NumberNode(Parser.Format, (long)type.ContentSize));
 
-				var call = new FunctionNode(Parser.AllocationFunction!, construction.Position).SetArguments(arguments);
+				var call = new FunctionNode(Settings.AllocationFunction!, construction.Position).SetArguments(arguments);
 
 				allocator = new CastNode(call, new TypeNode(type), position);
 			}
@@ -1331,7 +1315,7 @@ public static class ReconstructionAnalysis
 			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands
 			(
 				new LinkNode(new CastNode(new VariableNode(container.Result), new TypeNode(type)), new VariableNode(implementation.Function!), position),
-				new DataPointer(implementation)
+				new DataPointerNode(implementation)
 			);
 
 			container.Node.Add(function_pointer_assignment);
@@ -1348,6 +1332,87 @@ public static class ReconstructionAnalysis
 			}
 
 			container.Node.Add(new VariableNode(container.Result));
+			container.Destination.Replace(container.Node);
+		}
+	}
+
+	/// <summary>
+	/// Rewrites has nodes using simpler nodes
+	/// </summary>
+	public static void RewriteHasExpressions(Node root)
+	{
+		var expressions = root.FindAll(NodeType.HAS).ToList();
+
+		foreach (var expression in expressions)
+		{
+			var container = Common.CreateInlineContainer(Primitives.CreateBool(), expression, true);
+
+			var context = expression.GetParentContext();
+			var position = expression.Position;
+
+			var source = expression.To<HasNode>().Source;
+			var source_type = source.GetType();
+			var source_variable = (Variable?)null;
+			var source_load = (Node?)null;
+
+			var has_value_function = source_type.GetFunction(RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
+			var get_value_function = source_type.GetFunction(RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER)?.GetImplementation();
+			if (has_value_function == null || get_value_function == null) throw new ApplicationException("Inspected object did not have the required functions");
+
+			// 1. Determine the variable that will store the source value
+			// 2. Load the source value into the variable if necessary
+			if (source.Instance == NodeType.VARIABLE)
+			{
+				source_variable = source.To<VariableNode>().Variable;
+			}
+			else
+			{
+				source_variable = context.DeclareHidden(source_type);
+				source_load = new OperatorNode(Operators.ASSIGN, position).SetOperands(new VariableNode(source_variable, position), source);
+			}
+
+			// Initialize the output variable before the expression
+			var output_variable = expression.To<HasNode>().Output.Variable;
+
+			var output_initialization = new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(output_variable, position),
+				new CastNode(new NumberNode(Settings.Format, 0L, position), new TypeNode(get_value_function.ReturnType!, position), position)
+			);
+
+			GetInsertPosition(expression).Insert(output_initialization);
+
+			// Set the result variable equal to false
+			var result_initialization = new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
+				new NumberNode(Settings.Format, 0L, position)
+			);
+
+			// First the function 'has_value(): bool' must return true in order to call the function 'get_value(): any'
+			var condition = new LinkNode(new VariableNode(source_variable, position), new FunctionNode(has_value_function, position), position);
+
+			// If the function 'has_value(): bool' returns true, load the value using the function 'get_value(): any' and set the result variable equal to true
+			var body = new Node();
+
+			// Load the value and store it in the output variable
+			body.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(output_variable, position),
+				new LinkNode(new VariableNode(source_variable), new FunctionNode(get_value_function, position), position)
+			));
+
+			// Indicate we have loaded a value
+			body.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
+				new VariableNode(container.Result, position),
+				new NumberNode(Settings.Format, 1L, position)
+			));
+
+			var conditional_context = new Context(context);
+			var conditional = new IfNode(conditional_context, condition, body, position, null);
+
+			container.Node.Add(result_initialization);
+			if (source_load != null) container.Node.Add(source_load);
+			container.Node.Add(conditional);
+			container.Node.Add(new VariableNode(container.Result));
+
 			container.Destination.Replace(container.Node);
 		}
 	}
@@ -1584,7 +1649,7 @@ public static class ReconstructionAnalysis
 			if (member != null) { path = '.' + path; }
 
 			// Find the local variable that represents the accessed path
-			var context = usage_variable.Context;
+			var context = usage_variable.Parent;
 			var accessed = context.GetVariable(path) ?? throw new ApplicationException("Missing pack variable");
 
 			if (member != null && !type.IsPack)
@@ -1711,13 +1776,14 @@ public static class ReconstructionAnalysis
 		RewriteSelfReturningFunctions(root);
 		ExtractExpressions(root);
 		AddAssignmentCasts(root);
-		RewriteSupertypeAccessors(root);
+		RewriteSuperAccessors(root);
 		RewriteWhenExpressions(root);
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
 		RewriteListConstructions(root);
 		RewritePackConstructions(root);
 		RewriteConstructions(root);
+		RewriteHasExpressions(root);
 		ExtractBoolValues(root);
 		RewriteEditsAsAssignments(root);
 		RewriteRemainderOperations(root);

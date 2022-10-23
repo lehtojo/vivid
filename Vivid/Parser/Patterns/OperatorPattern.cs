@@ -14,19 +14,15 @@ public class OperatorPattern : Pattern
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.OBJECT
-	) { }
+	)
+	{ Priority = Parser.PRIORITY_ALL; }
 
-	public override int GetPriority(List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
-		return tokens[OPERATOR].To<OperatorToken>().Operator.Priority;
+		return tokens[OPERATOR].To<OperatorToken>().Operator.Priority == priority;
 	}
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
-	{
-		return true;
-	}
-
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		return new OperatorNode(tokens[OPERATOR].To<OperatorToken>().Operator, tokens[OPERATOR].Position).SetOperands(
 			Singleton.Parse(context, tokens[LEFT]),

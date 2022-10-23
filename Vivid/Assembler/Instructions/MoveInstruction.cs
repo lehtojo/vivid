@@ -31,7 +31,7 @@ public class MoveInstruction : DualParameterInstruction
 	{
 		Conditionals.Clear();
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			Conditionals.Add(Operators.GREATER_THAN, new[] { "gt" });
 			Conditionals.Add(Operators.GREATER_OR_EQUAL, new[] { "ge" });
@@ -78,7 +78,7 @@ public class MoveInstruction : DualParameterInstruction
 	/// </summary>
 	public bool IsRedundant => First.Value.Equals(Second.Value) && (First.Format.IsDecimal() || Second.Format.IsDecimal() ? First.Format == Second.Format : First.Size == Second.Size);
 
-	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.MOVE)
+	public MoveInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Settings.Format, InstructionType.MOVE)
 	{
 		IsUsageAnalyzed = false;
 	}
@@ -127,7 +127,7 @@ public class MoveInstruction : DualParameterInstruction
 				// pxor xmm0, xmm0
 				if (Numbers.IsZero(Second.Value.To<ConstantHandle>().Value))
 				{
-					if (Assembler.IsArm64)
+					if (Settings.IsArm64)
 					{
 						// Examples:
 						// 0 => d0
@@ -141,7 +141,7 @@ public class MoveInstruction : DualParameterInstruction
 								HandleType.MEDIA_REGISTER
 							),
 							new InstructionParameter(
-								new Result(new RegisterHandle(Unit.GetZeroRegister()), Assembler.Format),
+								new Result(new RegisterHandle(Unit.GetZeroRegister()), Settings.Format),
 								ParameterFlag.NONE,
 								HandleType.MEDIA_REGISTER
 							),
@@ -177,7 +177,7 @@ public class MoveInstruction : DualParameterInstruction
 					return;
 				}
 
-				if (Assembler.IsArm64)
+				if (Settings.IsArm64)
 				{
 					// Ensure the source value is in decimal format
 					Second.Value.To<ConstantHandle>().Convert(Format.DECIMAL);
@@ -207,14 +207,14 @@ public class MoveInstruction : DualParameterInstruction
 
 				BuildDecimalConstantMoveX64(flags_first, flags_second);
 			}
-			else if (Assembler.IsArm64)
+			else if (Settings.IsArm64)
 			{
 				// Example: scvtf d0, x0
 				instruction = Instructions.Arm64.CONVERT_INTEGER_TO_DECIMAL;
 
 				Build(
 					instruction,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -234,7 +234,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				Build(
 					instruction,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -271,7 +271,7 @@ public class MoveInstruction : DualParameterInstruction
 				// 3.14159 => rax
 				// mov rax, 3
 				//
-				// Example (Arm64):
+				// Example (arm64):
 				// 3.14159 => x0
 				// mov x0, #3
 
@@ -297,7 +297,7 @@ public class MoveInstruction : DualParameterInstruction
 			}
 			else
 			{
-				if (Assembler.IsArm64)
+				if (Settings.IsArm64)
 				{
 					// Example:
 					// fcvtzs x0, d0
@@ -306,7 +306,7 @@ public class MoveInstruction : DualParameterInstruction
 
 					Build(
 						instruction,
-						Assembler.Size,
+						Settings.Size,
 						new InstructionParameter(
 							First,
 							flags_first,
@@ -326,7 +326,7 @@ public class MoveInstruction : DualParameterInstruction
 
 				Build(
 					instruction,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -365,9 +365,9 @@ public class MoveInstruction : DualParameterInstruction
 				{
 					// Convert the decimal value to integer format
 					Second.Value.To<ConstantHandle>().Convert(First.Format);
-					Second.Format = Assembler.Signed;
+					Second.Format = Settings.Signed;
 
-					if (Assembler.IsArm64)
+					if (Settings.IsArm64)
 					{
 						// Example:
 						// 3.141 => [sp, #16] (integer)
@@ -411,7 +411,7 @@ public class MoveInstruction : DualParameterInstruction
 				}
 				else
 				{
-					if (Assembler.IsArm64)
+					if (Settings.IsArm64)
 					{
 						// Example:
 						// d0 (decimal) => [sp, #16] (integer)
@@ -438,7 +438,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
 					if (Second.IsMemoryAddress)
 					{
-						Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.For(Unit, Second));
+						Memory.MoveToRegister(Unit, Second, Settings.Size, false, Trace.For(Unit, Second));
 					}
 
 					// Example:
@@ -481,7 +481,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Convert the integer value to the decimal format
 					Second.Value.To<ConstantHandle>().Value = BitConverter.DoubleToInt64Bits((long)Second.Value.To<ConstantHandle>().Value);
 
-					if (Assembler.IsArm64)
+					if (Settings.IsArm64)
 					{
 						// Example:
 						// 10.0 => [x0]
@@ -526,7 +526,7 @@ public class MoveInstruction : DualParameterInstruction
 				}
 				else
 				{
-					if (Assembler.IsArm64)
+					if (Settings.IsArm64)
 					{
 						// Example:
 						// x0 (integer) => [sp, #8] (decimal)
@@ -577,7 +577,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 		else if ((First.IsMediaRegister || First.IsEmpty) && Second.IsConstant && Numbers.IsZero(Second.Value.To<ConstantHandle>().Value))
 		{
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				// Examples:
 				// 0 => d0
@@ -591,7 +591,7 @@ public class MoveInstruction : DualParameterInstruction
 						HandleType.MEDIA_REGISTER
 					),
 					new InstructionParameter(
-						new Result(new RegisterHandle(Unit.GetZeroRegister()), Assembler.Format),
+						new Result(new RegisterHandle(Unit.GetZeroRegister()), Settings.Format),
 						ParameterFlag.NONE,
 						HandleType.MEDIA_REGISTER
 					),
@@ -635,7 +635,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		if (Second.IsConstant)
 		{
-			if (Assembler.IsX64)
+			if (Settings.IsX64)
 			{
 				BuildDecimalConstantMoveX64(flags_first, flags_second);
 				return;
@@ -647,7 +647,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		if (First.IsMemoryAddress)
 		{
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				// Examples:
 				// ldr d0, [x0, #-8]
@@ -693,7 +693,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		var types = new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER, HandleType.MEMORY };
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			// Examples:
 			// fmov d0, d1
@@ -744,17 +744,17 @@ public class MoveInstruction : DualParameterInstruction
 			if (Second.Format.IsDecimal())
 			{
 				handle.Value = BitConverter.DoubleToInt64Bits((double)handle.Value);
-				handle.Format = Assembler.Format;
+				handle.Format = Settings.Format;
 			}
 			else
 			{
 				handle.Value = BitConverter.DoubleToInt64Bits((double)(long)handle.Value);
-				handle.Format = Assembler.Format;
+				handle.Format = Settings.Format;
 			}
 
-			Second.Format = Assembler.Format;
+			Second.Format = Settings.Format;
 
-			Memory.MoveToRegister(Unit, Second, Assembler.Size, false);
+			Memory.MoveToRegister(Unit, Second, Settings.Size, false);
 
 			// Example:
 			// xmm0 <- 10.0
@@ -783,12 +783,12 @@ public class MoveInstruction : DualParameterInstruction
 			if (Second.Format.IsDecimal())
 			{
 				handle.Value = BitConverter.DoubleToInt64Bits((double)handle.Value);
-				handle.Format = Assembler.Format;
+				handle.Format = Settings.Format;
 			}
 			else
 			{
 				handle.Value = BitConverter.DoubleToInt64Bits((double)(long)handle.Value);
-				handle.Format = Assembler.Format;
+				handle.Format = Settings.Format;
 			}
 
 			// Example:
@@ -805,7 +805,7 @@ public class MoveInstruction : DualParameterInstruction
 					HandleType.MEMORY
 				),
 				new InstructionParameter(
-					new Result(handle, Assembler.Format),
+					new Result(handle, Settings.Format),
 					flags_second | ParameterFlag.BIT_LIMIT_64,
 					HandleType.REGISTER
 				)
@@ -833,7 +833,7 @@ public class MoveInstruction : DualParameterInstruction
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				new Result(new ConstantHandle((long)section), Assembler.Format),
+				new Result(new ConstantHandle((long)section), Settings.Format),
 				flags_second,
 				HandleType.CONSTANT,
 				HandleType.REGISTER
@@ -917,14 +917,14 @@ public class MoveInstruction : DualParameterInstruction
 
 		if (First.IsStandardRegister && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
 		{
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				Second.Value = new RegisterHandle(Unit.GetZeroRegister());
 
 				// Example: mov x0, xzr
 				Build(
 					Instructions.Shared.MOVE,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						First,
 						flags_first,
@@ -943,7 +943,7 @@ public class MoveInstruction : DualParameterInstruction
 			// Example: xor rax, rax
 			Build(
 				Instructions.X64.XOR,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					First,
 					flags_first,
@@ -965,7 +965,7 @@ public class MoveInstruction : DualParameterInstruction
 		{
 			if (First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Address) throw new ApplicationException("Destination can not be an address value");
 
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				// Prepare the destination handle, if it has a modifier
 				if (First.IsDataSectionHandle && First.Value.To<DataSectionHandle>().Modifier != DataSectionModifier.NONE)
@@ -980,8 +980,8 @@ public class MoveInstruction : DualParameterInstruction
 					var handle = First.Value.To<DataSectionHandle>();
 
 					var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
-					var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
-					var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
+					var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Settings.Format), 1);
+					var address = Memory.MoveToRegister(Unit, new Result(source, Settings.Format), Settings.Size, false);
 
 					// Since the address is evaluated the second must use it
 					First.Value = new MemoryHandle(Unit, address, (int)handle.Offset);
@@ -1034,7 +1034,7 @@ public class MoveInstruction : DualParameterInstruction
 			// Load the value from memory into a register and use the system size, because if it is smaller than the destination value size, it might not be sign extended
 			if (Second.IsMemoryAddress)
 			{
-				Memory.MoveToRegister(Unit, Second, Assembler.Size, false, Trace.For(Unit, Second));
+				Memory.MoveToRegister(Unit, Second, Settings.Size, false, Trace.For(Unit, Second));
 			}
 
 			// Examples:
@@ -1055,7 +1055,7 @@ public class MoveInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsX64 && Second.IsDataSectionHandle)
+		else if (Settings.IsX64 && Second.IsDataSectionHandle)
 		{
 			/// NOTE: Here the destination will always be a register, because memory address destinations are handled above
 			var handle = Second.Value.To<DataSectionHandle>();
@@ -1077,7 +1077,7 @@ public class MoveInstruction : DualParameterInstruction
 					// Add the handle offset
 					if (handle.Offset != 0)
 					{
-						Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Format), Assembler.Format, true), true);
+						Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Settings.Format), Settings.Format, true), true);
 					}
 
 					handle.Address = true;
@@ -1110,7 +1110,7 @@ public class MoveInstruction : DualParameterInstruction
 
 			handle.Address = address;
 		}
-		else if (Assembler.IsArm64 && Second.IsDataSectionHandle)
+		else if (Settings.IsArm64 && Second.IsDataSectionHandle)
 		{
 			var handle = Second.Value.To<DataSectionHandle>();
 
@@ -1124,8 +1124,8 @@ public class MoveInstruction : DualParameterInstruction
 				// ldr x0, [x0]
 
 				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
-				var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
-				var address = Memory.MoveToRegister(Unit, new Result(source, Assembler.Format), Assembler.Size, false);
+				var source = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Settings.Format), 1);
+				var address = Memory.MoveToRegister(Unit, new Result(source, Settings.Format), Settings.Size, false);
 
 				// Since the address is evaluated the second must use it
 				Second.Value = new MemoryHandle(Unit, address, (int)handle.Offset);
@@ -1155,7 +1155,7 @@ public class MoveInstruction : DualParameterInstruction
 				// ldr x0, [x0, :got_lo12:S0]
 
 				var intermediate = new GetRelativeAddressInstruction(Unit, handle).Add();
-				Second.Value = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Assembler.Format), 1);
+				Second.Value = new ComplexMemoryHandle(intermediate, new Result(new Lower12Bits(handle, true), Settings.Format), 1);
 
 				Build(
 					Instructions.Arm64.LOAD,
@@ -1180,13 +1180,13 @@ public class MoveInstruction : DualParameterInstruction
 				if (handle.Offset != 0)
 				{
 					// Add the handle offset
-					Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Assembler.Signed), Assembler.Format, true), true);
+					Unit.Add(new AdditionInstruction(Unit, First, new Result(new ConstantHandle(handle.Offset), Settings.Signed), Settings.Format, true), true);
 				}
 			}
 		}
 		else if (Second.IsExpression)
 		{
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				// Examples:
 				// add x0, sp, #16
@@ -1230,7 +1230,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 		else if (Second.IsMemoryAddress)
 		{
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				// Examples:
 				// ldr x0, [x20, #16]
@@ -1273,7 +1273,7 @@ public class MoveInstruction : DualParameterInstruction
 		}
 		else
 		{
-			if (Assembler.IsArm64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Bits > 16 && Second.Value.To<ConstantHandle>().Value is long constant)
+			if (Settings.IsArm64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Bits > 16 && Second.Value.To<ConstantHandle>().Value is long constant)
 			{
 				LoadConstantArm64(constant, flags_first, flags_second);
 				return;
@@ -1283,7 +1283,7 @@ public class MoveInstruction : DualParameterInstruction
 			// mov rax, 7
 			// mov rbx, rax
 			//
-			// Examples (Arm64):
+			// Examples (arm64):
 			// mov x0, #7
 			// mov x20, x0
 			//
@@ -1352,7 +1352,7 @@ public class MoveInstruction : DualParameterInstruction
 
 	private Variant? TryGetVariant()
 	{
-		var variants = Assembler.IsArm64 ? VariantsArm64 : VariantsX64;
+		var variants = Settings.IsArm64 ? VariantsArm64 : VariantsX64;
 		return variants.Where(i =>
 			i.InputDestinationFormats.Contains(Destination!.Value!.Format) &&
 			i.InputSourceFormats.Contains(Source!.Value!.Format) &&
@@ -1626,7 +1626,7 @@ public class MoveInstruction : DualParameterInstruction
 
 		var mask = source.Size.Bits == 16 ? (long)0xFFFF : (long)0xFF;
 		var mask_parameter = new InstructionParameter(
-			new Result(new ConstantHandle(mask), Assembler.Format),
+			new Result(new ConstantHandle(mask), Settings.Format),
 			ParameterFlag.NONE,
 			HandleType.CONSTANT
 		);
@@ -1639,7 +1639,7 @@ public class MoveInstruction : DualParameterInstruction
 
 	public override void OnPostBuild()
 	{
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			OnPostBuildX64();
 		}
@@ -1651,7 +1651,7 @@ public class MoveInstruction : DualParameterInstruction
 
 	public override bool Redirect(Handle handle, bool root)
 	{
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			if (Operation == Instructions.Shared.MOVE && (handle.Is(HandleType.REGISTER) || (handle.Is(HandleType.MEMORY) && !Source!.IsMemoryAddress && (!Source.IsConstant || Source.Value!.To<ConstantHandle>().Bits <= 32))))
 			{

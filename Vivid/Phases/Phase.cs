@@ -10,8 +10,6 @@ using System.Threading.Tasks;
 public abstract class Phase
 {
 	private List<Task<Status>> Tasks { get; } = new List<Task<Status>>();
-	public bool Multithread { get; set; }
-
 	public bool Failed => Tasks.Any(i => !i.IsCompleted || i.Result.IsProblematic);
 
 	/// <summary>
@@ -29,7 +27,7 @@ public abstract class Phase
 	/// Executes the phase with the given data 
 	/// </summary>
 	/// <returns>Status returned from the phase</returns>
-	public abstract Status Execute(Bundle bundle);
+	public abstract Status Execute();
 
 	/// <summary>
 	/// Executes runnable on another thread if multithreading is enabled, otherwise executes locally
@@ -81,14 +79,5 @@ public abstract class Phase
 		}
 
 		return builder.ToString();
-	}
-
-
-	/// <summary>
-	/// Aborts the execution
-	/// </summary>
-	public static void Abort()
-	{
-		Environment.Exit(1);
 	}
 }

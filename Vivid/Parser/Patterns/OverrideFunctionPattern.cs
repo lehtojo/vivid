@@ -1,70 +1,41 @@
 using System.Collections.Generic;
-using System.Linq;
 
 class OverrideFunctionPattern : Pattern
 {
-	public const int PRIORITY = 22;
-
 	public const int OVERRIDE = 0;
 	public const int FUNCTION = 1;
 
-	// Pattern 1: override $name (...) [\n] {...}
-	// Pattern 2: override $name (...) [\n] => ...
+	// Pattern: override $name (...) [\n] {...}
 	public OverrideFunctionPattern() : base
 	(
 		TokenType.KEYWORD,
 		TokenType.FUNCTION,
 		TokenType.END | TokenType.OPTIONAL
-	) { }
+	)
+	{ Priority = 22; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		if (!context.IsType || !tokens[OVERRIDE].Is(Keywords.OVERRIDE)) return false; // Override functions must be inside types
 
-		var next = Pattern.Peek(state);
-		if (next == null) return false;
-
-		if (next.Is(ParenthesisType.CURLY_BRACKETS) || next.Is(Operators.HEAVY_ARROW))
-		{
-			Pattern.Consume(state);
-			return true;
-		}
-
-		return false;
+		// Consume the function body
+		return state.ConsumeParenthesis(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
-		var blueprint = (List<Token>?)null;
-		var end = (Position?)null;
-
-		// Load the function blueprint
-		if (tokens.Last().Is(Operators.HEAVY_ARROW))
-		{
-			var position = tokens.Last().Position;
-			blueprint = Common.ConsumeBlock(state);
-			blueprint.Insert(0, new OperatorToken(Operators.HEAVY_ARROW, position));
-			if (blueprint.Any()) { end = Common.GetEndOfToken(blueprint.Last()); }
-		}
-		else
-		{
-			blueprint = tokens.Last().To<ParenthesisToken>().Tokens;
-			end = tokens.Last().To<ParenthesisToken>().End;
-		}
-
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
-		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint, descriptor.Position, end);
+		var blueprint = tokens[tokens.Count - 1].To<ParenthesisToken>();
+		var start = descriptor.Position;
+		var end = blueprint.End;
+
+		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint.Tokens, start, end);
 
 		// Parse the function parameters
 		function.Parameters.AddRange(descriptor.GetParameters(function));
 
 		// Declare the override function and return a function definition node
 		context.To<Type>().DeclareOverride(function);
-		return new FunctionDefinitionNode(function, descriptor.Position);
+		return new FunctionDefinitionNode(function, start);
 	}
 }

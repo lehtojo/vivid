@@ -48,14 +48,8 @@ public class FunctionToken : Token
 			// If there are tokens left and the next token is not a comma, it must represent a parameter type
 			if (!next.Is(Operators.COLON)) throw Errors.Get(name?.Position, "Can not understand the parameters");
 
-			#warning Update
-			var source = new Queue<Token>(tokens);
-			var parameter_type = Common.ReadType(context, source);
-
+			var parameter_type = Common.ReadType(context, tokens);
 			if (parameter_type == null) throw Errors.Get(next.Position, "Can not resolve the parameter type");
-
-			// Remove the same number of tokens as the type consumed
-			tokens.RemoveRange(0, tokens.Count - source.Count);
 
 			result.Add(new Parameter(name.To<IdentifierToken>().Value, name.Position, parameter_type));
 

@@ -3,70 +3,57 @@ using System.Linq;
 
 public class IsPattern : Pattern
 {
-	public const int PRIORITY = 16;
-
 	private const int KEYWORD = 1;
 	private const int TYPE = 2;
 
-	// Pattern: $object is [not] $type [<$1, $2, ..., $n>] [$name]
+	// Pattern: $object is [not] $type [$name]
 	public IsPattern() : base
 	(
 		TokenType.DYNAMIC | TokenType.IDENTIFIER | TokenType.FUNCTION,
 		TokenType.KEYWORD
-	) { }
+	)
+	{ Priority = 16; }
 
-	public override int GetPriority(List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
-	{
-		if (!tokens[KEYWORD].Is(Keywords.IS) && !tokens[KEYWORD].Is(Keywords.IS_NOT))
-		{
-			return false;
-		}
+		if (!tokens[KEYWORD].Is(Keywords.IS) && !tokens[KEYWORD].Is(Keywords.IS_NOT)) return false;
 
 		// Consume the type
-		if (!Common.ConsumeType(state))
-		{
-			return false;
-		}
+		if (!Common.ConsumeType(state)) return false;
 
 		// Try consuming the result variable name
-		Consume(state, TokenType.IDENTIFIER);
-
+		state.Consume(TokenType.IDENTIFIER);
 		return true;
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> formatted)
 	{
-		var negate = tokens[KEYWORD].Is(Keywords.IS_NOT);
+		var negate = formatted[KEYWORD].Is(Keywords.IS_NOT);
 
-		var source = Singleton.Parse(context, tokens.First());
-		var queue = new Queue<Token>(tokens.Skip(TYPE));
-		var type = Common.ReadType(context, queue);
+		var source = Singleton.Parse(context, formatted.First());
+		var tokens = formatted.GetRange(TYPE, formatted.Count - TYPE);
+		var type = Common.ReadType(context, tokens);
 
 		if (type == null)
 		{
-			throw Errors.Get(tokens[TYPE].Position, "Can not understand the type");
+			throw Errors.Get(formatted[TYPE].Position, "Can not understand the type");
 		}
 
 		var result = (Node?)null;
 
 		// If there is a token left in the queue, it must be the result variable name
-		if (queue.Any())
+		if (tokens.Any())
 		{
-			var name = queue.Dequeue().To<IdentifierToken>().Value;
+			var name = tokens.Pop()!.To<IdentifierToken>().Value;
 			var variable = new Variable(context, type, VariableCategory.LOCAL, name, Modifier.DEFAULT);
 
-			result = new IsNode(source, type, variable, tokens[KEYWORD].Position);
+			result = new IsNode(source, type, variable, formatted[KEYWORD].Position);
 		}
 		else
 		{
-			result = new IsNode(source, type, null, tokens[KEYWORD].Position);
+			result = new IsNode(source, type, null, formatted[KEYWORD].Position);
 		}
 
-		return negate ? new NotNode(result, result.Position) : result;
+		return negate ? new NotNode(result, false, result.Position) : result;
 	}
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 public class FunctionImplementation : Context
@@ -87,6 +86,7 @@ public class FunctionImplementation : Context
 		Metadata = metadata;
 		ReturnType = return_type;
 		TemplateArguments = Array.Empty<Type>();
+		IsLambdaContainer = true;
 
 		// Copy the name properties
 		Name = Metadata.Name;
@@ -141,10 +141,11 @@ public class FunctionImplementation : Context
 	/// </summary>
 	public virtual string GetHeader()
 	{
-		var a = Parent != null && Parent.IsType ? Parent.ToString() : string.Empty;
-		var b = $"{Metadata.Name}({string.Join(", ", Parameters.Select(i => i.ToString()).ToArray())}): " + (ReturnType == null ? "?" : ReturnType.ToString());
+		var start = Parent != null && Parent.IsType ? Parent.ToString() + '.' : string.Empty;
+		var middle = $"{Metadata.Name}({string.Join(", ", Parameters.Select(i => i.ToString()).ToArray())}): ";
+		var end = ReturnType == null ? "?" : ReturnType.ToString();
 
-		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
+		return start + middle + end;
 	}
 
 	public override string ToString()
@@ -152,45 +153,9 @@ public class FunctionImplementation : Context
 		return GetHeader();
 	}
 
-	public override bool IsLocalVariableDeclared(string name)
-	{
-		return Parameters.Any(i => i.Name == name) || base.IsLocalVariableDeclared(name);
-	}
-
-	public override bool IsVariableDeclared(string name)
-	{
-		return Parameters.Any(i => i.Name == name) || base.IsVariableDeclared(name);
-	}
-
-	public override Variable? GetVariable(string name)
-	{
-		if (Parameters.Any(i => i.Name == name))
-		{
-			return Parameters.Find(i => i.Name == name);
-		}
-
-		return base.GetVariable(name);
-	}
-
 	public override Variable? GetSelfPointer()
 	{
 		return Self;
-	}
-
-	public bool IsInlineable()
-	{
-		if (Metadata.IsOutlined || Metadata.IsImported || Node == null)
-		{
-			return false;
-		}
-
-		// Try to find nested if-statements, else-if-statements, else-statements or loop-statements, if at least one is found this function should not be inlined
-		if (Node.Find(i => i.Is(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) && i.FindParent(NodeType.IF, NodeType.ELSE_IF, NodeType.ELSE, NodeType.LOOP) != null) != null)
-		{
-			return false;
-		}
-
-		return Node.Find(i => i.Is(NodeType.FUNCTION) && i.To<FunctionNode>().Function == this) == null;
 	}
 
 	public override bool Equals(object? other)

@@ -51,27 +51,19 @@ public class LambdaNode : Node, IResolvable
 		// Try to resolve all parameter types
 		foreach (var parameter in Function.Parameters)
 		{
-			if (parameter.Type == null)
-			{
-				continue;
-			}
+			if (parameter.Type == null) continue;
 
 			if (parameter.Type.IsUnresolved)
 			{
 				// Try to resolve the parameter type
 				var type = parameter.Type.To<UnresolvedType>().ResolveOrNull(context);
 
-				if (type != null)
-				{
-					parameter.Type = type;
-				}
+				if (type != null) { parameter.Type = type; }
 			}
 		}
 
-		if (Function.Parameters.Any(i => i.Type == null || i.Type.IsUnresolved))
-		{
-			return null;
-		}
+		// Before continuing, ensure all parameters are resolved
+		if (Function.Parameters.Any(i => i.Type == null || i.Type.IsUnresolved)) return null;
 
 		Status = Status.OK;
 		Implementation = Function.Implement(Function.Parameters.Select(i => i.Type!));

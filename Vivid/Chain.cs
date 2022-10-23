@@ -15,12 +15,10 @@ public class Chain
 	/// <summary>
 	/// Executes the configured phases with the given bundle
 	/// </summary>
-	public bool Execute(Bundle bundle)
+	public bool Execute()
 	{
 		foreach (var template in Phases)
 		{
-			var multithreaded = bundle.Get("multithreaded", true);
-
 			try
 			{
 				if (Activator.CreateInstance(template) is not Phase phase)
@@ -28,12 +26,10 @@ public class Chain
 					throw new ApplicationException("Could not create the next phase");
 				}
 
-				phase.Multithread = multithreaded;
-
 				// Record the start of execution of the next phase
 				var start = DateTime.Now;
 
-				var status = phase.Execute(bundle);
+				var status = phase.Execute();
 
 				if (status.IsProblematic)
 				{
@@ -46,7 +42,7 @@ public class Chain
 				// Record the end of the execution
 				var end = DateTime.Now;
 
-				if (bundle.Get(ConfigurationPhase.OUTPUT_TIME, false))
+				if (Settings.Time)
 				{
 					Console.WriteLine($"{phase.GetName()}: {(end - start).TotalMilliseconds} ms");
 				}

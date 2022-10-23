@@ -2,8 +2,6 @@ using System.Collections.Generic;
 
 public class ListConstructionPattern : Pattern
 {
-	private const int PRIORITY = 2;
-
 	private const int LIST = 0;
 
 	// Pattern: [ $element-1, $element-2, ... ]
@@ -11,19 +9,15 @@ public class ListConstructionPattern : Pattern
 	public ListConstructionPattern() : base
 	(
 		TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 2; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[LIST].To<ParenthesisToken>().Opening == ParenthesisType.BRACKETS;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var elements = Singleton.Parse(context, tokens[LIST]);
 		var position = tokens[LIST].Position;

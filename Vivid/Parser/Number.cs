@@ -1,5 +1,6 @@
 using System;
 
+#warning Update
 public class Number : Type
 {
 	public Format Type { get; private set; }

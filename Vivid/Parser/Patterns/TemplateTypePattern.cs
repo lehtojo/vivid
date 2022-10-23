@@ -3,8 +3,6 @@ using System.Linq;
 
 public class TemplateTypePattern : Pattern
 {
-	public const int PRIORITY = 22;
-
 	public const int NAME = 0;
 	public const int TEMPLATE_PARAMETERS = 1;
 	public const int BODY = 3;
@@ -16,54 +14,35 @@ public class TemplateTypePattern : Pattern
 	public TemplateTypePattern() : base
 	(
 		TokenType.IDENTIFIER
-	) { }
+	)
+	{ Priority = 22; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Pattern: $name <$1, $2, ... $n> [\n] {}
-
-		if (!Consume(state, out Token? opening, TokenType.OPERATOR) || opening!.To<OperatorToken>().Operator != Operators.LESS_THAN)
-		{
-			return false;
-		}
+		if (!state.Consume(out Token? opening, TokenType.OPERATOR) || opening!.To<OperatorToken>().Operator != Operators.LESS_THAN) return false;
 
 		while (true)
 		{
-			if (!Consume(state, TokenType.IDENTIFIER))
-			{
-				return false;
-			}
+			if (!state.Consume(TokenType.IDENTIFIER)) return false;
 
-			if (!Consume(state, out Token? consumed, TokenType.OPERATOR))
-			{
-				return false;
-			}
+			if (!state.Consume(out Token? consumed, TokenType.OPERATOR)) return false;
 
-			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN)
-			{
-				break;
-			}
+			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN) break;
 
-			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA)
-			{
-				continue;
-			}
+			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA) continue;
 
 			return false;
 		}
 
 		// Optionally consume a line-ending
-		Consume(state, TokenType.END | TokenType.OPTIONAL);
+		state.ConsumeOptional(TokenType.END);
 
-		return Consume(state, out Token? parenthesis, TokenType.PARENTHESIS) && parenthesis!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS;
+		// Consume the body of the template type
+		return state.ConsumeParenthesis(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 		var body = tokens.Last().To<ParenthesisToken>();
@@ -74,7 +53,6 @@ public class TemplateTypePattern : Pattern
 		var blueprint = new List<Token>() { (Token)name.Clone(), (Token)body.Clone() };
 
 		var template_type = new TemplateType(context, name.Value, Modifier.DEFAULT, blueprint, template_parameters, name.Position);
-
-		return new TypeNode(template_type, name.Position) { IsDefinition = true };
+		return new TypeDefinitionNode(template_type, new List<Token>(), name.Position);
 	}
 }

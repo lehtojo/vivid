@@ -13,7 +13,7 @@ public class JumpInstruction : Instruction
 	{
 		Jumps.Clear();
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			Jumps.Add(Operators.GREATER_THAN,        new[] { Instructions.Arm64.JUMP_GREATER_THAN,           Instructions.Arm64.JUMP_GREATER_THAN });
 			Jumps.Add(Operators.GREATER_OR_EQUAL,    new[] { Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS, Instructions.Arm64.JUMP_GREATER_THAN_OR_EQUALS });
@@ -61,10 +61,10 @@ public class JumpInstruction : Instruction
 
 	public override void OnBuild()
 	{
-		var operation = Comparator == null ? (Assembler.IsArm64 ? Instructions.Arm64.JUMP_LABEL : Instructions.X64.JUMP) : Jumps[Comparator][IsSigned ? 0 : 1];
+		var operation = Comparator == null ? (Settings.IsArm64 ? Instructions.Arm64.JUMP_LABEL : Instructions.X64.JUMP) : Jumps[Comparator][IsSigned ? 0 : 1];
 		
 		Result.Value = new DataSectionHandle(Label.GetName(), true);
-		Result.Format = Assembler.Format;
+		Result.Format = Settings.Format;
 
 		Build(operation, new InstructionParameter(Result, ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS, HandleType.MEMORY));
 	}

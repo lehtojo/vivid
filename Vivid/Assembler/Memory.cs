@@ -13,11 +13,11 @@ public static class Memory
 
 		if (operand.IsMemoryAddress)
 		{
-			return Memory.CopyToRegister(unit, operand, Assembler.Size, media_register, Trace.For(unit, operand));
+			return Memory.CopyToRegister(unit, operand, Settings.Size, media_register, Trace.For(unit, operand));
 		}
 		else
 		{
-			Memory.MoveToRegister(unit, operand, Assembler.Size, media_register, Trace.For(unit, operand));
+			Memory.MoveToRegister(unit, operand, Settings.Size, media_register, Trace.For(unit, operand));
 		}
 
 		return operand;
@@ -33,7 +33,7 @@ public static class Memory
 		var exchanges = new List<ExchangeInstruction>();
 		var exchanged_indices = new SortedSet<int>();
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			for (var i = 0; i < result.Count; i++)
 			{
@@ -198,7 +198,7 @@ public static class Memory
 
 		var handle = new RegisterHandle(register);
 
-		var instruction = BitwiseInstruction.CreateXor(unit, new Result(handle, Assembler.Format), new Result(handle, Assembler.Format), Assembler.Format);
+		var instruction = BitwiseInstruction.CreateXor(unit, new Result(handle, Settings.Format), new Result(handle, Settings.Format), Settings.Format);
 		instruction.Description = "Sets the value of the destination to zero";
 
 		unit.Add(instruction);
@@ -462,7 +462,7 @@ public static class Memory
 
 			case HandleType.MEMORY:
 			{
-				if (!Assembler.IsArm64 || !result.IsDataSectionHandle) return null;
+				if (!Settings.IsArm64 || !result.IsDataSectionHandle) return null;
 
 				var handle = result.Value.To<DataSectionHandle>();
 
@@ -472,8 +472,8 @@ public static class Memory
 				// adrp x0, :got:S0
 				// ldr x0, [x0, :got_lo12:S0]
 				var intermediate = new GetRelativeAddressInstruction(unit, handle).Add();
-				var offset = new Result(new Lower12Bits(handle, true), Assembler.Format);
-				var address = Memory.MoveToRegister(unit, new Result(new ComplexMemoryHandle(intermediate, offset, 1), Assembler.Format), Assembler.Size, false);
+				var offset = new Result(new Lower12Bits(handle, true), Settings.Format);
+				var address = Memory.MoveToRegister(unit, new Result(new ComplexMemoryHandle(intermediate, offset, 1), Settings.Format), Settings.Size, false);
 
 				return new Result(new MemoryHandle(unit, address, (int)handle.Offset), result.Format);
 			}

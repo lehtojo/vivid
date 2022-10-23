@@ -7,36 +7,10 @@ using System.Text.RegularExpressions;
 
 public class ConfigurationPhase : Phase
 {
-	public const string COMPILER_VERSION = "1.0";
-
-	public const string ARGUMENTS = "arguments";
-	public const string FILES = "filenames";
-	public const string OBJECTS = "objects";
-	public const string IMPORTED_OBJECTS = "imported-objects";
-	public const string LIBRARIES = "libraries";
-
-	public const string OUTPUT_NAME = "output_name";
-	public const string OUTPUT_TYPE = "output_type";
-
-	public const string OUTPUT_TIME = "time";
-
-	public const string REBUILD_FLAG = "rebuild";
-
-	public const string SERVICE_FLAG = "service";
-
-	public const string ASSEMBLY_EXTENSION = ".asm";
-	public const string VIVID_EXTENSION = ".v";
-	public const string DEFAULT_OUTPUT = "v";
-
-	public const string ASSEMBLER_FLAG = "assembler";
-	public const string LINK_FLAG = "link";
-
 	private List<string> Folders { get; set; } = new List<string>();
 	private List<string> Libraries { get; set; } = new List<string>();
 	private List<string> Files { get; set; } = new List<string>();
 	private List<string> Objects { get; set; } = new List<string>();
-
-	private static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
 	private bool IsOptimizationEnabled { get; set; } = false;
 
@@ -45,7 +19,7 @@ public class ConfigurationPhase : Phase
 		Folders.Clear();
 		Folders.Add(Environment.CurrentDirectory.Replace('\\', '/') + '/');
 
-		if (IsLinux)
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 		{
 			// Get all folders registered to the environment variable 'PATH'
 			var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
@@ -76,7 +50,7 @@ public class ConfigurationPhase : Phase
 	{
 		foreach (var item in folder.GetFiles())
 		{
-			if (item.Extension == VIVID_EXTENSION)
+			if (item.Extension == Settings.VIVID_EXTENSION)
 			{
 				Files.Add(item.FullName);
 			}
@@ -131,7 +105,7 @@ public class ConfigurationPhase : Phase
 		}
 	};
 
-	private Status Configure(Bundle bundle, string option, Queue<string> parameters)
+	private Status Configure(string option, Queue<string> parameters)
 	{
 		// Replace sequential option characters with one
 		option = Regex.Replace(option, "-{2,}", "-");
@@ -150,14 +124,11 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-a / -assembly",									Description = "Exports the generated assembly to a file" },
 					new() { Command = "-shared / -dynamic / -dll",					Description = "Sets the output type to shared library (.dll or .so)" },
 					new() { Command = "-static",											Description = "Sets the output type to static library (.lib or .a)"},
-					new() { Command = "-st / -single-thread",							Description = "Compiles on a single thread instead of multiple threads" },
 					new() { Command = "-q / -quiet",										Description = "Suppresses the console output" },
 					new() { Command = "-v / -verbose",									Description = "Outputs more information about the compilation" },
-					new() { Command = "-f / -force / -rebuild",						Description = "Forces the compiler to compile all the source files again" },
 					new() { Command = "-t / -time",										Description = "Displays information about the length of the compilation" },
-					new() { Command = "-O, -O1, -O2",									Description = "Optimizes the output" },
 					new() { Command = "-x64",												Description = "Compile for architecture x64" },
-					new() { Command = "-arm64",											Description = "Compile for architecture Arm64" },
+					new() { Command = "-arm64",											Description = "Compile for architecture arm64" },
 					new() { Command = "-version",											Description = "Outputs the version of the compiler" },
 					new() { Command = "-s",													Description = "Creates a compiler service which waits for code analysis input from a local socket" }
 				};
@@ -169,8 +140,7 @@ public class ConfigurationPhase : Phase
 					string.Join(null, options)
 				);
 
-				Abort();
-
+				Environment.Exit(1);
 				return Status.OK;
 			}
 
@@ -200,8 +170,7 @@ public class ConfigurationPhase : Phase
 					return Status.Error("Optimization and debugging can not be enabled at the same time");
 				}
 
-				Assembler.IsDebuggingEnabled = true;
-				bundle.PutBool("debug", true);
+				Settings.IsDebuggingEnabled = true;
 				return Status.OK;
 			}
 
@@ -213,7 +182,7 @@ public class ConfigurationPhase : Phase
 					return Status.Error("Missing or invalid value for option '{0}'", option);
 				}
 
-				bundle.Put(OUTPUT_NAME, output);
+				Settings.OutputName = output;
 				return Status.OK;
 			}
 
@@ -238,15 +207,14 @@ public class ConfigurationPhase : Phase
 
 			case "-link":
 			{
-				bundle.Put(LINK_FLAG, true);
+				Settings.LinkObjects = true;
 				return Status.OK;
 			}
 
 			case "-a":
 			case "-assembly":
 			{
-				bundle.PutBool("assembly", true);
-				Assembler.IsAssemblyOutputEnabled = true;
+				Settings.IsAssemblyOutputEnabled = true;
 				return Status.OK;
 			}
 
@@ -254,104 +222,79 @@ public class ConfigurationPhase : Phase
 			case "-shared":
 			case "-dll":
 			{
-				bundle.Put(OUTPUT_TYPE, BinaryType.SHARED_LIBRARY);
+				Settings.OutputType = BinaryType.SHARED_LIBRARY;
 				return Status.OK;
 			}
 
 			case "-static":
 			{
-				bundle.Put(OUTPUT_TYPE, BinaryType.STATIC_LIBRARY);
-				return Status.OK;
-			}
-
-			case "-st":
-			case "-single-thread":
-			{
-				bundle.PutBool("multithreaded", false);
+				Settings.OutputType = BinaryType.STATIC_LIBRARY;
 				return Status.OK;
 			}
 
 			case "-t":
 			case "-time":
 			{
-				bundle.PutBool(OUTPUT_TIME, true);
+				Settings.Time = true;
 				return Status.OK;
 			}
 
 			case "-q":
 			case "-quiet":
 			{
-				Assembler.IsVerboseOutputEnabled = false;
+				Settings.IsVerboseOutputEnabled = false;
 				return Status.OK;
 			}
 
 			case "-v":
 			case "-verbose":
 			{
-				Assembler.IsVerboseOutputEnabled = true;
-				return Status.OK;
-			}
-
-			case "-f":
-			case "-force":
-			case "-rebuild":
-			{
-				bundle.PutBool(REBUILD_FLAG, true);
+				Settings.IsVerboseOutputEnabled = true;
 				return Status.OK;
 			}
 
 			case "-O":
 			case "-O1":
 			{
-				if (Assembler.IsDebuggingEnabled)
+				if (Settings.IsDebuggingEnabled)
 				{
 					return Status.Error("Optimization and debugging can not be enabled at the same time");
 				}
 
 				IsOptimizationEnabled = true;
-
-				Analysis.IsInstructionAnalysisEnabled = true;
 				Analysis.IsMathematicalAnalysisEnabled = true;
-				Analysis.IsRepetitionAnalysisEnabled = true;
-				Analysis.IsUnwrapAnalysisEnabled = true;
-				Analysis.IsFunctionInliningEnabled = false;
 
 				return Status.OK;
 			}
 
 			case "-O2":
 			{
-				if (Assembler.IsDebuggingEnabled)
+				if (Settings.IsDebuggingEnabled)
 				{
 					return Status.Error("Optimization and debugging can not be enabled at the same time");
 				}
 
 				IsOptimizationEnabled = true;
-
-				Analysis.IsInstructionAnalysisEnabled = true;
 				Analysis.IsMathematicalAnalysisEnabled = true;
-				Analysis.IsRepetitionAnalysisEnabled = true;
-				Analysis.IsUnwrapAnalysisEnabled = true;
-				Analysis.IsFunctionInliningEnabled = true;
 
 				return Status.OK;
 			}
 
 			case "-x64":
 			{
-				Assembler.Architecture = Architecture.X64;
+				Settings.Architecture = Architecture.X64;
 				return Status.OK;
 			}
 
 			case "-arm64":
 			{
-				Assembler.Architecture = Architecture.Arm64;
+				Settings.Architecture = Architecture.Arm64;
 				return Status.OK;
 			}
 
 			case "-version":
 			{
-				Console.WriteLine($"Vivid version {COMPILER_VERSION}");
+				Console.WriteLine($"Vivid version {Settings.VERSION}");
 				Environment.Exit(0);
 
 				return Status.OK;
@@ -359,7 +302,7 @@ public class ConfigurationPhase : Phase
 
 			case "-s":
 			{
-				bundle.PutBool(SERVICE_FLAG, true);
+				Settings.Service = true;
 				return Status.OK;
 			}
 
@@ -371,7 +314,7 @@ public class ConfigurationPhase : Phase
 				Size.XWORD.Identifier = "xmmword";
 				Size.YWORD.Identifier = "ymmword";
 
-				Assembler.IsLegacyAssemblyEnabled = true;
+				Settings.IsLegacyAssemblyEnabled = true;
 				Assembler.SectionDirective = ".section";
 				Assembler.SectionRelativeDirective = ".secrel";
 				Assembler.ExportDirective = ".global";
@@ -406,16 +349,11 @@ public class ConfigurationPhase : Phase
 		return element[0] == '-';
 	}
 
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
 		Initialize();
 
-		if (!bundle.Contains(ARGUMENTS))
-		{
-			return Status.Error("Could not configure settings");
-		}
-
-		var arguments = bundle.Get<string[]>(ARGUMENTS);
+		var arguments = Settings.Arguments;
 		var parameters = new Queue<string>(arguments);
 
 		while (parameters.Count > 0)
@@ -424,7 +362,7 @@ public class ConfigurationPhase : Phase
 
 			if (IsOption(element))
 			{
-				var status = Configure(bundle, element, parameters);
+				var status = Configure(element, parameters);
 
 				if (status.IsProblematic)
 				{
@@ -437,15 +375,15 @@ public class ConfigurationPhase : Phase
 
 				if (file.Exists)
 				{
-					if (file.Extension == VIVID_EXTENSION)
+					if (file.Extension == Settings.VIVID_EXTENSION)
 					{
 						Files.Add(file.FullName);
 						continue;
 					}
-					else if (file.Extension == ASSEMBLY_EXTENSION)
+					else if (file.Extension == Settings.ASSEMBLY_EXTENSION)
 					{
 						Files.Add(file.FullName);
-						bundle[ASSEMBLER_FLAG] = true;
+						Settings.TextualAssembly = true;
 						continue;
 					}
 					else if (file.Extension == AssemblyPhase.ObjectFileExtension)
@@ -455,7 +393,7 @@ public class ConfigurationPhase : Phase
 					}
 					else
 					{
-						return Status.Error($"Source file must have '{VIVID_EXTENSION}' extension");
+						return Status.Error($"Source file must have '{Settings.VIVID_EXTENSION}' extension");
 					}
 				}
 
@@ -471,21 +409,15 @@ public class ConfigurationPhase : Phase
 			}
 		}
 
-		Assembler.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
+		Settings.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
 
-		bundle.Put(FILES, Files.Distinct().ToArray());
-		bundle.Put(OBJECTS, Objects.Distinct().ToArray());
-		bundle.Put(IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
-		bundle.Put(LIBRARIES, Libraries.ToArray());
+		Settings.Filenames = Files.Distinct().ToList();
+		Settings.UserImportedObjectFiles = Objects.Distinct().ToList();
+		Settings.Libraries = Libraries;
 
-		if (!bundle.Contains(OUTPUT_NAME))
+		if (!Settings.IsX64 && !Settings.IsArm64)
 		{
-			bundle.Put(OUTPUT_NAME, DEFAULT_OUTPUT);
-		}
-
-		if (!Assembler.IsX64 && !Assembler.IsArm64)
-		{
-			return Status.Error("This compiler only supports architectures x64 and Arm64");
+			return Status.Error("This compiler only supports architectures x64 and arm64");
 		}
 
 		return Status.OK;

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Shifts the specified value with the specified amount and loads the value into the specified destination
-/// This instruction is works only on architecture Arm64
+/// This instruction is works only on architecture arm64
 /// </summary>
 public class LoadShiftedConstantInstruction : Instruction
 {
@@ -28,12 +28,12 @@ public class LoadShiftedConstantInstruction : Instruction
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				new Result(new ConstantHandle(Value), Assembler.Format),
+				new Result(new ConstantHandle(Value), Settings.Format),
 				ParameterFlag.NONE,
 				HandleType.CONSTANT
 			),
 			new InstructionParameter(
-				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{Shift}"), Assembler.Format),
+				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{Shift}"), Settings.Format),
 				ParameterFlag.NONE,
 				HandleType.MODIFIER
 			)

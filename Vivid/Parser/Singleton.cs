@@ -17,7 +17,7 @@ public static class Singleton
 			if (variable.IsStatic && !linked)
 			{
 				return new LinkNode(
-					new TypeNode((Type)variable.Context, identifier.Position),
+					new TypeNode((Type)variable.Parent, identifier.Position),
 					new VariableNode(variable, identifier.Position),
 					identifier.Position
 				);
@@ -64,14 +64,6 @@ public static class Singleton
 	}
 
 	/// <summary>
-	/// Tries to find function or constructor by name with the specified parameter types
-	/// </summary>
-	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, bool linked)
-	{
-		return GetFunctionByName(context, name, parameters, Array.Empty<Type>(), linked);
-	}
-
-	/// <summary>
 	/// Tries to find function or constructor by name with the specified template parameter types and parameter types.
 	/// </summary>
 	public static FunctionImplementation? GetFunctionByName(Context context, string name, List<Type> parameters, Type[] template_arguments, bool linked)
@@ -109,10 +101,12 @@ public static class Singleton
 		return functions.GetImplementation(parameters);
 	}
 
-	/// <summary>
-	/// Tries to build function into a node
-	/// </summary>
 	public static Node GetFunction(Context environment, Context primary, FunctionToken token, bool linked)
+	{
+		return GetFunction(environment, primary, token, Array.Empty<Type>(), linked);
+	}
+
+	public static Node GetFunction(Context environment, Context primary, FunctionToken token, Type[] template_arguments, bool linked)
 	{
 		var descriptor = (FunctionToken)token.Clone();
 		var arguments = descriptor.Parse(environment);
@@ -121,7 +115,7 @@ public static class Singleton
 
 		if (types == null)
 		{
-			return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
+			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(arguments);
 		}
 
 		if (!linked)
@@ -136,7 +130,7 @@ public static class Singleton
 			}
 		}
 
-		var function = GetFunctionByName(primary, descriptor.Name, types, linked);
+		var function = GetFunctionByName(primary, descriptor.Name, types, template_arguments, linked);
 
 		if (function != null)
 		{
@@ -178,53 +172,7 @@ public static class Singleton
 			}
 		}
 
-		return new UnresolvedFunction(descriptor.Name, descriptor.Position).SetArguments(arguments);
-	}
-
-	/// <summary>
-	/// Tries to build function into a node
-	/// </summary>
-	public static Node GetFunction(Context environment, Context primary, FunctionToken descriptor, Type[] template_arguments, bool linked)
-	{
-		var parameters = descriptor.Parse(environment);
-		var types = Resolver.GetTypes(parameters);
-
-		if (types == null || template_arguments.Any(i => i.IsUnresolved))
-		{
-			return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
-		}
-
-		var function = GetFunctionByName(primary, descriptor.Name, types, template_arguments, linked);
-
-		if (function != null)
-		{
-			var node = new FunctionNode(function, descriptor.Position).SetArguments(parameters);
-
-			if (function.IsConstructor)
-			{
-				var type = function.FindTypeParent() ?? throw new ApplicationException("Missing constructor parent type");
-
-				// Consider the following situations:
-				// Namespace.Type() <- Construction
-				// Namespace.Type<large>() <- Construction
-				// Namespace.Type.init() <- Direct call
-				// Namespace.Type<large>.init() <- Direct call
-				// Therefore, construction is only needed when the function name matches the name of the constructed type
-				return type.Identifier != descriptor.Name ? node : (Node)new ConstructionNode(node, node.Position);
-			}
-
-			if (function.IsMember && !function.IsStatic && !linked)
-			{
-				var self = Common.GetSelfPointer(environment, descriptor.Position);
-
-				return new LinkNode(self, node, descriptor.Position);
-			}
-
-			return node;
-		}
-
-		// NOTE: Template lambdas are not supported
-		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(parameters);
+		return new UnresolvedFunction(descriptor.Name, template_arguments, descriptor.Position).SetArguments(arguments);
 	}
 
 	/// <summary>
@@ -236,11 +184,11 @@ public static class Singleton
 	}
 
 	/// <summary>
-	/// Builds the specified content into a node
+	/// Builds the specified parenthesis into a node
 	/// </summary>
-	public static Node GetContent(Context context, ParenthesisToken content)
+	public static Node GetParenthesis(Context context, ParenthesisToken content)
 	{
-		var node = new ContentNode(content.Position);
+		var node = new ParenthesisNode(content.Position);
 
 		foreach (var section in content.GetSections())
 		{
@@ -257,7 +205,7 @@ public static class Singleton
 	{
 		var arguments = new Node { node };
 
-		return new UnresolvedFunction(Parser.StandardStringType, node.Position).SetArguments(arguments);
+		return new UnresolvedFunction(Parser.STANDARD_STRING_TYPE, node.Position).SetArguments(arguments);
 	}
 
 	/// <summary>
@@ -291,7 +239,7 @@ public static class Singleton
 
 			case TokenType.FUNCTION:
 			{
-				return GetFunction(environment, primary, (FunctionToken)token, environment != primary);
+				return GetFunction(environment, primary, (FunctionToken)token, Array.Empty<Type>(), environment != primary);
 			}
 
 			case TokenType.NUMBER:
@@ -301,7 +249,7 @@ public static class Singleton
 
 			case TokenType.PARENTHESIS:
 			{
-				return GetContent(primary, (ParenthesisToken)token);
+				return GetParenthesis(primary, (ParenthesisToken)token);
 			}
 
 			case TokenType.STRING:

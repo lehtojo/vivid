@@ -2,8 +2,6 @@
 
 public class AssignPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	public const int DESTINATION = 0;
 	public const int OPERATOR = 1;
 
@@ -11,20 +9,19 @@ public class AssignPattern : Pattern
 	public AssignPattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.OPERATOR
-	) { }
+	)
+	{ Priority = 19; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[OPERATOR].To<OperatorToken>().Operator == Operators.ASSIGN;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
+		// Do not remove the assign operator after building the tokens
+		state.End--;
+
 		var destination = tokens[DESTINATION].To<IdentifierToken>();
 		var name = destination.Value;
 
@@ -32,11 +29,13 @@ public class AssignPattern : Pattern
 
 		if (!context.IsVariableDeclared(name))
 		{
+			// Ensure the name is not reserved
 			if (name == Function.SELF_POINTER_IDENTIFIER || name == Lambda.SELF_POINTER_IDENTIFIER)
 			{
-				throw Errors.Get(destination.Position, $"Can not declare variable with name '{name}' since the name is reserved");
+				throw Errors.Get(destination.Position, $"Can not create variable with name '{name}' since the name is reserved");
 			}
 
+			// Determine the category and the modifiers of the variable
 			var constant = context.Parent == null;
 			var category = context.IsType ? VariableCategory.MEMBER : (constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);
 			var modifiers = Modifier.DEFAULT | (constant ? Modifier.CONSTANT : 0);
@@ -53,15 +52,17 @@ public class AssignPattern : Pattern
 
 		variable = context.GetVariable(name)!;
 
+		// Static variables must be accessed using their parent types
 		if (variable.IsStatic)
 		{
 			return new LinkNode(
-				new TypeNode((Type)variable.Context, destination.Position),
+				new TypeNode((Type)variable.Parent, destination.Position),
 				new VariableNode(variable, destination.Position),
 				destination.Position
 			);
 		}
-		else if (variable.IsMember)
+
+		if (variable.IsMember)
 		{
 			var self = Common.GetSelfPointer(context, destination.Position);
 
@@ -69,10 +70,5 @@ public class AssignPattern : Pattern
 		}
 
 		return new VariableNode(variable, destination.Position);
-	}
-
-	public override int GetEnd()
-	{
-		return 1;
 	}
 }

@@ -25,16 +25,15 @@ public class FunctionType : UnresolvedType
 
 	public override Node? Resolve(Context context)
 	{
-		var resolved = Parameters.Select(i => (i == null || !i.IsUnresolved) ? null : Resolver.Resolve(context, i)).ToArray();
-
-		for (var i = 0; i < resolved.Length; i++)
+		for (var i = 0; i < Parameters.Count; i++)
 		{
-			var iterator = resolved[i];
+			var parameter = Parameters[i];
+			if (parameter == null || parameter.IsResolved()) continue;
 
-			if (iterator != null)
-			{
-				Parameters[i] = iterator;
-			}
+			parameter = Resolver.Resolve(context, parameter);
+			if (parameter == null) continue;
+
+			Parameters[i] = parameter;
 		}
 
 		return null;
@@ -45,27 +44,17 @@ public class FunctionType : UnresolvedType
 		return Parameters.All(i => i != null && !i.IsUnresolved);
 	}
 
-	public override Type? GetOffsetType()
+	public override Type? GetAccessorType()
 	{
 		return Link.GetVariant(Primitives.CreateNumber(Primitives.U64, Format.UINT64));
 	}
 
 	public override bool Equals(object? other)
 	{
-		if (other is not FunctionType type || Parameters.Count != type.Parameters.Count)
-		{
-			return false;
-		}
+		if (other is not FunctionType type || Parameters.Count != type.Parameters.Count) return false;
+		if (!Common.Compatible(Parameters, type.Parameters)) return false;
 
-		for (var i = 0; i < Parameters.Count; i++)
-		{
-			if (Resolver.GetSharedType(Parameters[i], type.Parameters[i]) == null)
-			{
-				return false;
-			}
-		}
-
-		return ReturnType == type.ReturnType || Resolver.GetSharedType(ReturnType, type.ReturnType) != null;
+		return Common.Compatible(ReturnType, type.ReturnType);
 	}
 
 	public override int GetHashCode()
@@ -79,6 +68,6 @@ public class FunctionType : UnresolvedType
 
 	public override string ToString()
 	{
-		return $"({string.Join(", ", Parameters.Select(i => i?.ToString() ?? "_").ToArray())}) -> {ReturnType?.ToString() ?? "_"}";
+		return $"({string.Join(", ", Parameters.Select(i => i?.ToString() ?? "?").ToArray())}) -> {ReturnType?.ToString() ?? "?"}";
 	}
 }

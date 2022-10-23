@@ -9,33 +9,33 @@
 			"program": "${workspaceFolder}/bin/Debug/net6.0/Vivid.dll",
 
 			// Builds the standard library
-			//"args": [ "${workspaceFolder}/libv/", "${workspaceFolder}/libv/windows_x64", "-f", "-static" ],
+			//"args": [ "${workspaceFolder}/libv/", "${workspaceFolder}/libv/windows_x64", "-static" ],
 
 			// Builds the battleship game
-			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-f", "-a", "-st" ],
+			//"args": [ "${workspaceFolder}/Examples/Battleship.v", "${workspaceFolder}/libv/Core.v", "${workspaceFolder}/libv/String.v", "${workspaceFolder}/libv/Console.v", "${workspaceFolder}/libv/List.v", "${workspaceFolder}/libv/Array.v", "${workspaceFolder}/libv/Math.v", "-a", "-st" ],
 
 			// Launch the compiler service
 			// "args": [ "-s" ],
 
 			// Builds the stage 2 tests
-			// "args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "-o", "v", "-a", "-f", "-l", "kernel32", "-l", "v", "-verbose" ],
+			// "args": [ "C:/Users/joona/vivid-2/", "C:/Users/joona/vivid-2/tests/assert.v", "C:/Users/joona/vivid-2/entries/tests.v", "-o", "v", "-a", "-l", "kernel32", "-l", "v", "-verbose" ],
 
 			// Builds the stage 2 compiler
 			// "args": [
 			// 	"C:/Users/joona/vivid-2/",
 			// 	"C:/Users/joona/vivid-2/entries/vivid.v",
-			// 	"-o", "v", "-a", "-f", "-l", "v", "-d", "-verbose"
+			// 	"-o", "v", "-a", "-l", "v", "-d", "-verbose"
 			// ],
 
-			// "args": [
-			// 	"C:/Users/joona/vivid-2/",
-			// 	"C:/Users/joona/vivid-2/entries/vivid.v",
-			// 	"C:/Users/joona/vivid-2/optimizer/",
-			// 	"C:/Users/joona/vivid-2/libv/",
-			// 	"C:/Users/joona/vivid-2/libv/linux-x64",
-			// 	"C:/Users/joona/vivid-2/libv/allocator/allocator.v",
-			// 	"-o", "v", "-a", "-f", "-d", "-verbose", "-st"
-			// ],
+			"args": [
+				"C:/Users/joona/vivid-2/",
+				"C:/Users/joona/vivid-2/entries/vivid.v",
+				"C:/Users/joona/vivid-2/optimizer/",
+				"C:/Users/joona/vivid-2/libv/",
+				"C:/Users/joona/vivid-2/libv/windows-x64",
+				"C:/Users/joona/vivid-2/libv/allocator/allocator.v",
+				"-o", "v", "-a", "-d", "-verbose", "-l", "kernel32.dll"
+			],
 
 			// Build an assembly file
 			//"args": [ "${workspaceFolder}/Examples/main.asm" ],
@@ -67,7 +67,6 @@
 			// 	"minimum.memory.obj",
 			// 	"minimum.tests.obj",
 			// 	"-static",
-			// 	"-f",
 			// 	"-o",
 			// 	"v",
 			// 	"-a"
@@ -82,24 +81,20 @@
 			// 	"minimum.memory.o",
 			// 	"minimum.tests.o",
 			// 	"-static",
-			// 	"-f",
 			// 	"-o",
 			// 	"v",
 			// 	"-a"
 			// ],
 
-			"args": [
-				"${workspaceFolder}/Examples/main.v",
-				"minimum.math.obj",
-				"minimum.memory.obj",
-				"minimum.tests.obj",
-				"-f",
-				"-o",
-				"app",
-				"-a",
-				"-l",
-				"kernel32.dll"
-			],
+			// "args": [
+			// 	"${workspaceFolder}/Examples/main.v",
+			// 	"min.math.o",
+			// 	"min.memory.o",
+			// 	"min.tests.o",
+			// 	"-o",
+			// 	"app",
+			// 	"-a"
+			// ],
 
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",

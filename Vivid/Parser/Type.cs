@@ -84,6 +84,7 @@ public class RuntimeConfiguration
 	}
 }
 
+#warning Update
 public class Type : Context
 {
 	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
@@ -91,6 +92,7 @@ public class Type : Context
 
 	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOADS = new();
 
+	#warning Relocate
 	static Type()
 	{
 		OPERATOR_OVERLOADS.Add(Operators.ADD, "plus");
@@ -193,17 +195,6 @@ public class Type : Context
 		AddConstructor(Constructor.Empty(this, position, position));
 		AddDestructor(Destructor.Empty(this, position, position));
 
-		context.Declare(this);
-	}
-
-	public Type(Context context, string name, int modifiers) : base(context)
-	{
-		Name = name;
-		Identifier = Name;
-		Modifiers = modifiers;
-		Supertypes = new List<Type>();
-
-		Connect(context);
 		context.Declare(this);
 	}
 
@@ -445,7 +436,7 @@ public class Type : Context
 	}
 
 	/// <summary>
-	/// Declares the specfied virtual function overload
+	/// Declares the specified virtual function overload
 	/// </summary>
 	public void DeclareOverride(Function function)
 	{
@@ -510,7 +501,7 @@ public class Type : Context
 		mangle.Add(this);
 	}
 
-	public virtual Type? GetOffsetType()
+	public virtual Type? GetAccessorType()
 	{
 		return null;
 	}
@@ -528,7 +519,7 @@ public class Type : Context
 			if (!other.IsPack) return false;
 
 			// Verify the members are compatible with each other
-			return Common.Compatible(Variables.Select(i => i.Value.Type), other.Variables.Select(i => i.Value.Type));
+			return Common.Compatible(Variables.Select(i => i.Value.Type).ToList(), other.Variables.Select(i => i.Value.Type).ToList());
 		}
 
 		return Name == other.Name && Identity == other.Identity;
@@ -546,7 +537,7 @@ public class Type : Context
 
 	public override string ToString()
 	{
-		// Handle unnamed packs seperately
+		// Handle unnamed packs separately
 		if (IsUnnamedPack)
 		{
 			// Pattern: { $member-1: $type-1, $member-2: $type-2, ... }

@@ -10,7 +10,7 @@ using System;
 public class InitializeInstruction : Instruction
 {
 	public int LocalMemoryTop { get; private set; }
-	private static bool IsShadowSpaceRequired => Assembler.IsTargetWindows;
+	private static bool IsShadowSpaceRequired => Settings.IsTargetWindows;
 
 	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) { }
 
@@ -28,7 +28,7 @@ public class InitializeInstruction : Instruction
 			return 0;
 		}
 
-		return parameter_memory_offsets.Max() + Assembler.Size.Bytes;
+		return parameter_memory_offsets.Max() + Settings.Bytes;
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)
@@ -36,7 +36,7 @@ public class InitializeInstruction : Instruction
 		if (!registers.Any()) return;
 
 		var stack_pointer = Unit.GetStackPointer();
-		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
+		var bytes = (registers.Count + 1) / 2 * 2 * Settings.Bytes;
 
 		Unit.StackOffset += bytes;
 
@@ -65,7 +65,7 @@ public class InitializeInstruction : Instruction
 				}
 				else
 				{
-					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Settings.Bytes}]");
 				}
 
 				position++;
@@ -79,7 +79,7 @@ public class InitializeInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			position += 2;
@@ -98,7 +98,7 @@ public class InitializeInstruction : Instruction
 				}
 				else
 				{
-					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+					builder.AppendLine($"{Instructions.Arm64.STORE} {batch.First()}, [{stack_pointer}, #{position * Settings.Bytes}]");
 				}
 
 				i++;
@@ -113,7 +113,7 @@ public class InitializeInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.STORE_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			i += 2;
@@ -127,7 +127,7 @@ public class InitializeInstruction : Instruction
 		foreach (var register in registers)
 		{
 			builder.AppendLine($"{Instructions.X64.PUSH} {register}");
-			Unit.StackOffset += Assembler.Size.Bytes;
+			Unit.StackOffset += Settings.Bytes;
 		}
 	}
 
@@ -138,11 +138,11 @@ public class InitializeInstruction : Instruction
 
 		var builder = new StringBuilder();
 
-		if (Assembler.IsDebuggingEnabled)
+		if (Settings.IsDebuggingEnabled)
 		{
 			builder.Append(Assembler.DebugFunctionStartDirective);
 
-			if (!Assembler.IsLegacyAssemblyEnabled)
+			if (!Settings.IsLegacyAssemblyEnabled)
 			{
 				// If the legacy assembly is not enabled, write the symbol, which represents the start of the current function
 				builder.Append(' ');
@@ -153,13 +153,13 @@ public class InitializeInstruction : Instruction
 			builder.AppendLine(DebugBreakInstruction.GetPositionInstruction(Unit.Function.Metadata!.Start!));
 		}
 
-		if (Assembler.IsArm64 && calls.Any())
+		if (Settings.IsArm64 && calls.Any())
 		{
 			save_registers.Add(Unit.GetReturnAddressRegister());
 		}
 
 		// Save all used non-volatile registers
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			SaveRegistersX64(builder, save_registers);
 		}
@@ -181,7 +181,7 @@ public class InitializeInstruction : Instruction
 		Unit.StackOffset += additional_memory;
 
 		// If there are calls, it means they will also push the return address to the stack, which must be taken into account when aligning the stack
-		var total = Unit.StackOffset + (Assembler.IsX64 && calls.Any() ? Assembler.Size.Bytes : 0);
+		var total = Unit.StackOffset + (Settings.IsX64 && calls.Any() ? Settings.Bytes : 0);
 
 		if (total != 0 && total % Calls.STACK_ALIGNMENT != 0)
 		{
@@ -199,7 +199,7 @@ public class InitializeInstruction : Instruction
 		{
 			var stack_pointer = Unit.GetStackPointer();
 
-			if (Assembler.IsX64)
+			if (Settings.IsX64)
 			{
 				builder.AppendLine($"{Instructions.Shared.SUBTRACT} {stack_pointer}, {additional_memory}");
 			}
@@ -210,11 +210,11 @@ public class InitializeInstruction : Instruction
 		}
 
 		// When debugging mode is enabled, the current stack pointer should be saved to the base pointer
-		if (Assembler.IsDebuggingEnabled)
+		if (Settings.IsDebuggingEnabled)
 		{
 			builder.Append(Assembler.DebugFrameOffsetDirective);
 			builder.Append(' ');
-			builder.AppendLine((Unit.StackOffset + Assembler.Size.Bytes).ToString());
+			builder.AppendLine((Unit.StackOffset + Settings.Bytes).ToString());
 		}
 
 		Build(builder.ToString().TrimEnd());

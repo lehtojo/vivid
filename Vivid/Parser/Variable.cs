@@ -9,37 +9,27 @@ public class Variable
 	public VariableCategory Category { get; set; }
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
+	public Context Parent { get; set; }
+	public int? LocalAlignment { get; set; }
+	public bool IsSelfPointer { get; set; } = false;
+	public List<Node> Usages { get; private set; } = new List<Node>();
+	public List<Node> Writes { get; private set; } = new List<Node>();
+	public List<Node> Reads { get; private set; } = new List<Node>();
 
 	public bool IsConstant => Flag.Has(Modifiers, Modifier.CONSTANT);
-	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
 	public bool IsPublic => Flag.Has(Modifiers, Modifier.PUBLIC);
 	public bool IsProtected => Flag.Has(Modifiers, Modifier.PROTECTED);
 	public bool IsPrivate => Flag.Has(Modifiers, Modifier.PRIVATE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
-	public bool IsSelfPointer { get; set; } = false;
-
-	public Context Context { get; set; }
-
-	public int? LocalAlignment { get; set; }
-
-	public List<Node> References { get; private set; } = new List<Node>();
-	public List<Node> Writes { get; private set; } = new List<Node>();
-	public List<Node> Reads { get; private set; } = new List<Node>();
-
-	public bool IsEdited => Writes.Count > 0;
-	public bool IsRead => Reads.Count > 0;
-
-	public bool IsUnresolved => Type == null || Type.IsUnresolved;
-	public bool IsResolved => !IsUnresolved;
-
 	public bool IsGlobal => Category == VariableCategory.GLOBAL;
 	public bool IsLocal => Category == VariableCategory.LOCAL;
 	public bool IsParameter => Category == VariableCategory.PARAMETER;
 	public bool IsMember => Category == VariableCategory.MEMBER;
 	public bool IsPredictable => Category == VariableCategory.PARAMETER || Category == VariableCategory.LOCAL;
 	public bool IsHidden => Name.Contains('.');
-
 	public bool IsGenerated => Position == null;
+	public bool IsUnresolved => Type == null || Type.IsUnresolved;
+	public bool IsResolved => !IsUnresolved;
 
 	/// <summary>
 	/// Creates a new variable with the specified properties
@@ -58,7 +48,7 @@ public class Variable
 		Type = type;
 		Category = category;
 		Modifiers = modifiers;
-		Context = context;
+		Parent = context;
 
 		if (declare)
 		{
@@ -72,9 +62,9 @@ public class Variable
 	public string GetStaticName()
 	{
 		// Request the fullname in order to generate the mangled name object
-		Context.GetFullname();
+		Parent.GetFullname();
 
-		var mangle = Context.Mangled!.Clone();
+		var mangle = Parent.Mangled!.Clone();
 		var name = Name.ToLowerInvariant();
 
 		mangle += $"{Mangle.STATIC_VARIABLE_COMMAND}{name.Length}{name}";
@@ -84,17 +74,9 @@ public class Variable
 		return mangle.Value;
 	}
 
-	/// <summary>
-	/// Returns whether this variable is edited inside the specified node
-	/// </summary>
-	public bool IsEditedInside(Node node)
-	{
-		return Writes.Any(i => i.FindParent(j => j == node) != null);
-	}
-
 	public int? GetAlignment(Type parent)
 	{
-		if (Context == parent)
+		if (Parent == parent)
 		{
 			var local_alignment = LocalAlignment ?? throw new ApplicationException($"Variable '{Name}' was not aligned yet");
 
@@ -130,44 +112,9 @@ public class Variable
 		return Type.IsInlining;
 	}
 
-	/// <summary>
-	/// Returns whether this variable is copied based on its usages
-	/// </summary>
-	public bool IsCopied()
-	{
-		foreach (var usage in Reads)
-		{
-			var link = usage.FindParent(i => !i.Is(NodeType.CAST, NodeType.PARENTHESIS));
-			if (link == null) continue;
-			
-			// Only reading from this variable using links is allowed
-			if (!link.Is(NodeType.LINK)) return true;
-
-			// In the following situation the inspected member variable b is copied:
-			// x = a.b
-			// In the following situation the inspected member variable b is not copied:
-			// x = a.b.c
-			if (link.Right == usage)
-			{
-				if (link.Parent != null && !link.Parent.Is(NodeType.LINK)) return true;
-			}
-			else
-			{
-				/// NOTE: The usage must be in the left side
-				// In the following situation the inspected variable a might be copied in the member function by the self pointer
-				// a.b(c)
-				// In the following situation the inspected variable a is not copied
-				// x = a.b
-				if (!link.Right.Is(NodeType.VARIABLE)) return true;
-			}
-		}
-
-		return false;
-	}
-
 	public override string ToString()
 	{
-		var a = Context != null && Context.IsType ? Context.ToString() : string.Empty;
+		var a = Parent != null && Parent.IsType ? Parent.ToString() : string.Empty;
 		var b = (Type == null || Type.IsUnresolved) ? $"{Name}: ?" : $"{Name}: {(Type.IsUnresolved ? "?" : Type.ToString())}";
 		
 		return string.IsNullOrEmpty(a) ? b : a + '.' + b;
@@ -178,7 +125,7 @@ public class Variable
 		return base.Equals(other) || other is Variable variable &&
 			   Name == variable.Name &&
 			   Type?.Identity == variable.Type?.Identity &&
-			   Context.Identity == variable.Context.Identity &&
+			   Parent.Identity == variable.Parent.Identity &&
 			   Category == variable.Category &&
 			   Modifiers == variable.Modifiers;
 	}
@@ -190,7 +137,7 @@ public class Variable
 		hash.Add(Type?.Name);
 		hash.Add(Category);
 		hash.Add(Modifiers);
-		hash.Add(Context.Identity);
+		hash.Add(Parent.Identity);
 		return hash.ToHashCode();
 	}
 }

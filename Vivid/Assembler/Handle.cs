@@ -36,7 +36,7 @@ public class Handle
 {
 	public HandleType Type { get; protected set; }
 	public HandleInstanceType Instance { get; protected set; }
-	public Format Format { get; set; } = Assembler.Format;
+	public Format Format { get; set; } = Settings.Format;
 	public Size Size => Size.FromFormat(Format);
 	public bool IsUnsigned => Format.IsUnsigned();
 
@@ -169,12 +169,12 @@ public class DataSectionHandle : Handle
 		// If the value of the address is only required, return it
 		if (Address)
 		{
-			if (Assembler.IsX64)
+			if (Settings.IsX64)
 			{
 				if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return string.Empty;
 				if (Modifier == DataSectionModifier.PROCEDURE_LINKAGE_TABLE) return Identifier + X64_PROCEDURE_LINKAGE_TABLE;
 			}
-			else if (Assembler.IsArm64)
+			else if (Settings.IsArm64)
 			{
 				if (Modifier == DataSectionModifier.GLOBAL_OFFSET_TABLE) return ARM64_GLOBAL_OFFSET_TABLE + Identifier;
 			}
@@ -182,8 +182,8 @@ public class DataSectionHandle : Handle
 			return Identifier;
 		}
 
-		// When building for Arm64, the code below should not execute
-		if (Assembler.IsArm64) return string.Empty;
+		// When building for arm64, the code below should not execute
+		if (Settings.IsArm64) return string.Empty;
 
 		// If a modifier is attached, the offset is taken into account elsewhere
 		if (Modifier != DataSectionModifier.NONE)
@@ -267,7 +267,7 @@ public class ConstantHandle : Handle
 
 	public override string ToString()
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return '#' + ToStringShared();
 		}
@@ -398,12 +398,12 @@ public class MemoryHandle : Handle
 
 		if (start == null)
 		{
-			if (Assembler.IsArm64) return $"[xzr, #{offset.ToString(false)}]";
+			if (Settings.IsArm64) return $"[xzr, #{offset.ToString(false)}]";
 			else return $"{Size}{Assembler.MemoryAddressExtension}[{offset.ToString(false)}]";
 		}
 		else
 		{
-			if (Assembler.IsArm64) return $"[{start}, #{offset.ToString(false)}]";
+			if (Settings.IsArm64) return $"[{start}, #{offset.ToString(false)}]";
 			else {
 				var offset_text = string.Empty;
 
@@ -455,7 +455,7 @@ public class StackMemoryHandle : MemoryHandle
 {
 	public bool IsAbsolute { get; private set; }
 
-	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer()), Assembler.Format), offset)
+	public StackMemoryHandle(Unit unit, int offset, bool absolute = true) : base(unit, new Result(new RegisterHandle(unit.GetStackPointer()), Settings.Format), offset)
 	{
 		IsAbsolute = absolute;
 		Instance = HandleInstanceType.STACK_MEMORY;
@@ -534,9 +534,9 @@ public class ComplexMemoryHandle : Handle
 		Stride = stride;
 		Offset = offset;
 
-		if (Assembler.IsArm64 && offset != 0)
+		if (Settings.IsArm64 && offset != 0)
 		{
-			throw new InvalidOperationException("Arm64 does not support memory handles with multiple offsets");
+			throw new InvalidOperationException("Architecture arm64 does not support memory handles with multiple offsets");
 		}
 	}
 
@@ -662,7 +662,7 @@ public class ComplexMemoryHandle : Handle
 
 	public override string ToString()
 	{
-		if (Assembler.IsX64) return ToStringX64();
+		if (Settings.IsX64) return ToStringX64();
 		else return ToStringArm64();
 	}
 
@@ -721,14 +721,14 @@ public class ExpressionHandle : Handle
 
 	public static ExpressionHandle CreateAddition(Handle left, Handle right)
 	{
-		return new ExpressionHandle(new Result(left, Assembler.Format), 1, new Result(right, Assembler.Format), 0);
+		return new ExpressionHandle(new Result(left, Settings.Format), 1, new Result(right, Settings.Format), 0);
 	}
 
 	public static ExpressionHandle CreateMemoryAddress(Result start, int offset)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
-			return new ExpressionHandle(start, 1, new Result(new ConstantHandle((long)offset), Assembler.Format), 0);
+			return new ExpressionHandle(start, 1, new Result(new ConstantHandle((long)offset), Settings.Format), 0);
 		}
 
 		return new ExpressionHandle(start, 1, null, offset);
@@ -857,7 +857,7 @@ public class ExpressionHandle : Handle
 	{
 		if (Constant != 0 && !Multiplicand.IsConstant)
 		{
-			throw new ApplicationException("Complex expression handles are not supported on architecture Arm64");
+			throw new ApplicationException("Complex expression handles are not supported on architecture arm64");
 		}
 
 		// Examples:
@@ -900,7 +900,7 @@ public class ExpressionHandle : Handle
 	{
 		Validate();
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return ToStringArm64();
 		}
@@ -917,7 +917,7 @@ public class ExpressionHandle : Handle
 			result.Add(Multiplicand);
 		}
 
-		if (Addition != null && (Assembler.IsArm64 || !Addition.IsConstant))
+		if (Addition != null && (Settings.IsArm64 || !Addition.IsConstant))
 		{
 			result.Add(Addition);
 		}
@@ -992,7 +992,7 @@ public class StackAllocationHandle : Handle
 		var stack_pointer = Unit.GetStackPointer();
 		var offset = AbsoluteOffset;
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			if (offset >= 0) return stack_pointer.ToString() + ", #" + offset;
 			return stack_pointer.ToString() + ", #-" + (-offset);
@@ -1032,7 +1032,7 @@ public class RegisterHandle : Handle
 	{
 		if (Size == Size.NONE)
 		{
-			return Register[Assembler.Size];
+			return Register[Settings.Size];
 		}
 
 		return Register[Size];
@@ -1098,7 +1098,7 @@ public class Lower12Bits : Handle
 		copy.Modifier = DataSectionModifier.NONE;
 		copy.Address = true;
 
-		Handle = new Result(copy, Assembler.Format);
+		Handle = new Result(copy, Settings.Format);
 		GlobalOffsetTable = global_offset_table;
 	}
 

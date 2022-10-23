@@ -25,7 +25,7 @@ public static class DetailProvider
 		request.Absolute = absolute ?? -1;
 
 		// Preprocess the document
-		request.Document = request.Document.Replace(FilePhase.CARRIAGE_RETURN_CHARACTER, ' ').Replace(FilePhase.TAB_CHARACTER, ' ');
+		request.Document = request.Document.Replace('\r', ' ').Replace('\t', ' ');
 
 		if (request.Type == DocumentRequestType.OPEN)
 		{

@@ -67,7 +67,7 @@ public class TemplateFunction : Function
 		InsertArguments(blueprint, template_arguments);
 
 		// Parse the new variant
-		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template function did not have parent context"), blueprint).First;
+		var result = Parser.Parse(Parent!, blueprint, 0, Parser.MAX_PRIORITY).First;
 
 		if (result == null || !result.Is(NodeType.FUNCTION_DEFINITION))
 		{

@@ -12,8 +12,7 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override void OnMangle(Mangle mangle)
 	{
-		var function_parent = Parent!.GetImplementationParent() ?? throw Errors.Get(Metadata.Start, "Lambda does not have a parent function");
-		function_parent.OnMangle(mangle);
+		Parent!.FindLambdaContainerParent()!.OnMangle(mangle);
 
 		mangle += $"_{Name}_";
 		mangle += Parameters.Select(i => i.Type!);
@@ -71,18 +70,12 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override Variable? GetVariable(string name)
 	{
-		if (IsLocalVariableDeclared(name))
-		{
-			return base.GetVariable(name);
-		}
+		if (IsLocalVariableDeclared(name)) return base.GetVariable(name);
 
 		// If the variable is declared outside of this implementation, it may need to be captured
 		var variable = base.GetVariable(name);
 
-		if (variable == null)
-		{
-			return null;
-		}
+		if (variable == null) return null;
 
 		// The variable can be captured only if it is a local variable or a parameter and it is resolved
 		if (variable.IsPredictable && variable.IsResolved && !variable.IsConstant)
@@ -119,9 +112,6 @@ public class LambdaImplementation : FunctionImplementation
 
 	public override string GetHeader()
 	{
-		// Find the function implementation, which contains this lambda
-		var implementation = Parent!.GetImplementationParent() ?? throw Errors.Get(Metadata.Start, "Lambda does not have a parent function");
-
-		return $"{implementation.ToString()} Lambda #{Name}";
+		return $"{Parent!.FindLambdaContainerParent()!.ToString()} Lambda #{Name}";
 	}
 }

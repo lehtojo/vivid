@@ -1,5 +1,6 @@
 using System;
 
+#warning Update
 public class AccessorNode : Node, IResolvable
 {
 	public Node Start => First!;
@@ -8,7 +9,7 @@ public class AccessorNode : Node, IResolvable
 	public AccessorNode(Node start, Node offset)
 	{
 		Add(start);
-		Add(new ContentNode { offset });
+		Add(new ParenthesisNode { offset });
 		Instance = NodeType.ACCESSOR;
 	}
 
@@ -78,7 +79,7 @@ public class AccessorNode : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		return Start.TryGetType()?.GetOffsetType();
+		return Start.TryGetType()?.GetAccessorType();
 	}
 
 	public override bool Equals(object? other)

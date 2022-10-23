@@ -371,7 +371,7 @@ public static class GeneralAnalysis
 			var value = Analyzer.GetSource(write.Value);
 
 			if (value.Instance == NodeType.STACK_ADDRESS) continue;
-			if (value.Instance == NodeType.FUNCTION && value.To<FunctionNode>().Function == Parser.AllocationFunction) continue;
+			if (value.Instance == NodeType.FUNCTION && value.To<FunctionNode>().Function == Settings.AllocationFunction) continue;
 
 			return false;
 		}
@@ -557,18 +557,10 @@ public static class GeneralAnalysis
 
 			var snapshot = minimum_cost_snapshot.Clone();
 
-			if (Analysis.IsRepetitionAnalysisEnabled) 
-			{
-				snapshot = MemoryAccessAnalysis.Unrepeat(snapshot);
-			}
-
 			if (Analysis.IsMathematicalAnalysisEnabled) AssignFunctionVariables(implementation, snapshot);
 
 			// Try to optimize all comparisons found in the current snapshot
 			if (Analysis.IsMathematicalAnalysisEnabled) Analysis.OptimizeComparisons(snapshot);
-
-			// Try to unwrap conditional statements whose outcome have been resolved
-			if (Analysis.IsUnwrapAnalysisEnabled) UnwrapmentAnalysis.Start(implementation, snapshot);
 
 			// Removes all statements which are not reachable
 			ReconstructionAnalysis.RemoveUnreachableStatements(snapshot);
@@ -627,12 +619,11 @@ public static class GeneralAnalysis
 			// If the variable is a pack, do not remove it, because we might have to use it later for debugging information for instance
 			if (variable.Type!.IsPack) continue;
 
-			var context = variable.Context;
+			var context = variable.Parent;
 
 			if (context.Variables.ContainsKey(variable.Name))
 			{
 				context.Variables.Remove(variable.Name);
-				root.FindAll(NodeType.DECLARE).Cast<DeclareNode>().Where(i => i.Variable == variable).ForEach(i => i.Remove());
 			}
 		}
 	}

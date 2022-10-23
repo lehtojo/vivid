@@ -75,7 +75,7 @@ public static class GarbageCollector
 		var body = new Node()
 		{
 			new LinkNode(value.Clone(), new FunctionNode(destructor), position),
-			new FunctionNode(Parser.DeallocationFunction!, position).SetArguments(new Node {
+			new FunctionNode(Settings.DeallocationFunction!, position).SetArguments(new Node {
 				new CastNode(value.Clone(), new TypeNode(new Link())),
 			})
 		};
@@ -101,7 +101,7 @@ public static class GarbageCollector
 	/// </summary>
 	private static bool IsAllocationCall(Node node)
 	{
-		return node.Instance == NodeType.FUNCTION && node.To<FunctionNode>().Function == Parser.AllocationFunction;
+		return node.Instance == NodeType.FUNCTION && node.To<FunctionNode>().Function == Settings.AllocationFunction;
 	}
 
 	/// <summary>
@@ -477,7 +477,7 @@ public static class GarbageCollector
 		scopes.Add(root, new ScopeDestructionDescriptor());
 
 		var returns = root.FindAll(NodeType.RETURN).Cast<ReturnNode>().ToArray();
-		var controls = root.FindAll(NodeType.LOOP_CONTROL).Cast<CommandNode>().ToArray();
+		var controls = root.FindAll(NodeType.COMMAND).Cast<CommandNode>().ToArray();
 
 		// Register scopes which can not be exited
 		foreach (var statement in returns)

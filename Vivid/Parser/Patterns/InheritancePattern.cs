@@ -7,28 +7,34 @@ public class InheritancePattern : Pattern
 	public const int TEMPLATE_ARGUMENTS = 1;
 	public const int INHERITOR = 2;
 
-	public const int PRIORITY = 21;
-
 	// NOTE: There can not be an optional line break since function import return types can be consumed accidentally for example
 	// Pattern: $type [<$1, $2, ..., $n>] $type_definition
-	public InheritancePattern() : base(TokenType.IDENTIFIER) { }
+	public InheritancePattern() : base(TokenType.IDENTIFIER) { Priority = 21; IsConsumable = false; }
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Remove the consumed token
 		state.End--;
-		state.Formatted.RemoveAt(0);
+		state.Tokens.RemoveAt(0);
 
 		if (!Common.ConsumeType(state)) return false;
 
-		return Consume(state, out Token? x, TokenType.DYNAMIC) && x is DynamicToken y && y.Node is TypeNode z && z.IsDefinition;
+		// Require the next token to represent a type definition
+		var next = state.Peek();
+		if (next == null || next.Type != TokenType.DYNAMIC)return false;
+
+		var node = next.To<DynamicToken>().Node;
+		if (node.Instance != NodeType.TYPE_DEFINITION) return false;
+
+		state.Consume();
+		return true;
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
-		var inheritant_tokens = tokens.Take(tokens.Count - 1).ToArray();
+		var inheritant_tokens = tokens.Take(tokens.Count - 1).ToList();
 
-		var inheritor_node = tokens.Last().To<DynamicToken>().Node.To<TypeNode>();
+		var inheritor_node = tokens.Last().To<DynamicToken>().Node.To<TypeDefinitionNode>();
 		var inheritor = inheritor_node.Type;
 
 		if (inheritor.IsTemplateType)
@@ -37,14 +43,14 @@ public class InheritancePattern : Pattern
 
 			// If any of the inherited tokens represent a template argument, the inheritant tokens must be added to the template type
 			/// NOTE: Inherited types, which are not dependent on template arguments, can be added as a supertype directly
-			if (inheritant_tokens.Any(i => i is IdentifierToken x && template_type.TemplateParameters.Any(j => x.Value == j)))
+			if (inheritant_tokens.Any(i => i.Type == TokenType.IDENTIFIER && template_type.TemplateParameters.Contains(i.To<IdentifierToken>().Value)))
 			{
 				template_type.Inherited.InsertRange(0, inheritant_tokens);
 				return inheritor_node;
 			}
 		}
 
-		var inheritant_type = Common.ReadType(context, new Queue<Token>(inheritant_tokens));
+		var inheritant_type = Common.ReadType(context, inheritant_tokens);
 
 		if (inheritant_type == null)
 		{
@@ -58,10 +64,5 @@ public class InheritancePattern : Pattern
 
 		inheritor.Supertypes.Insert(0, inheritant_type);
 		return inheritor_node;
-	}
-
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
 	}
 }

@@ -3,8 +3,6 @@ using System.Linq;
 
 public class WhenPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	public const int VALUE = 1;
 	public const int BODY = 3;
 
@@ -15,14 +13,10 @@ public class WhenPattern : Pattern
 		TokenType.PARENTHESIS,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 19; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Ensure the keyword is the when keyword
 		if (!tokens.First().Is(Keywords.WHEN)) return false;
@@ -31,7 +25,7 @@ public class WhenPattern : Pattern
 		return tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
-	public override Node? Build(Context environment, PatternState state, List<Token> all)
+	public override Node? Build(Context environment, ParserState state, List<Token> all)
 	{
 		var position = all.First().Position;
 
@@ -41,7 +35,6 @@ public class WhenPattern : Pattern
 		
 		var tokens = all[BODY].To<ParenthesisToken>().Tokens;
 
-		Parser.RemoveLineEndingDuplications(tokens);
 		Parser.CreateFunctionTokens(tokens);
 
 		if (!tokens.Any()) throw Errors.Get(position, "When-statement can not be empty");
@@ -101,9 +94,9 @@ public class WhenPattern : Pattern
 			else
 			{
 				// Consume the section body
-				state = new PatternState(tokens);
+				state = new ParserState(tokens);
 				var result = new List<Token>();
-				if (!Common.ConsumeBlock(context, state, result)) throw Errors.Get(arrow.Position, "Could not understand the section body");
+				Common.ConsumeBlock(state, result, ListPattern.ID);
 
 				body = Parser.Parse(context, result, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 

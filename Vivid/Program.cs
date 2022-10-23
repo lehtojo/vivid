@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Globalization;
 
 public static class Program
@@ -7,6 +8,8 @@ public static class Program
 	{
 		CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 		CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+		Settings.Initialize();
 
 		// Configure the flow of the compiler
 		var chain = new Chain
@@ -21,11 +24,9 @@ public static class Program
 			typeof(AssemblyPhase)
 		);
 
-		// Pack the program arguments in the chain
-		var bundle = new Bundle();
-		bundle.Put(ConfigurationPhase.ARGUMENTS, arguments);
+		Settings.Arguments = arguments.ToList();
 
 		// Execute the chain
-		Environment.Exit(chain.Execute(bundle) ? 0 : 1);
+		Environment.Exit(chain.Execute() ? 0 : 1);
 	}
 }

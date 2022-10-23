@@ -40,17 +40,9 @@ public class IsNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		if (Type is IResolvable x)
-		{
-			var status = x.GetStatus();
+		if (Type.IsUnresolved) return Status.Error(Position, "Can not resolve the condition type");
 
-			if (status.IsProblematic)
-			{
-				return status;
-			}
-		}
-
-		return Object is IResolvable y ? y.GetStatus() : Status.OK;
+		return Object is IResolvable resolvable ? resolvable.GetStatus() : Status.OK;
 	}
 
 	public override int GetHashCode()

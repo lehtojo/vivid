@@ -1,11 +1,11 @@
 ﻿using System;
 
-public class DataPointer : Node
+public class DataPointerNode : Node
 {
 	public object Data { get; private set; }
 	public long Offset { get; private set; }
 
-	public DataPointer(object data, long offset = 0)
+	public DataPointerNode(object data, long offset = 0)
 	{
 		Data = data;
 		Offset = offset;

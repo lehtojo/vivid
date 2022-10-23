@@ -72,12 +72,12 @@ public static class ProjectLoader
 		if (source_files == null)
 		{
 			// Find all source files from the specified folder recursively
-			source_files = Directory.GetFiles(folder, $"*{ConfigurationPhase.VIVID_EXTENSION}", SearchOption.AllDirectories).ToList();
+			source_files = Directory.GetFiles(folder, $"*{Settings.VIVID_EXTENSION}", SearchOption.AllDirectories).ToList();
 		}
 
 		foreach (var path in source_files)
 		{
-			var document = File.ReadAllText(path).Replace(FilePhase.CARRIAGE_RETURN_CHARACTER, ' ').Replace(FilePhase.TAB_CHARACTER, ' ');
+			var document = File.ReadAllText(path).Replace('\r', ' ').Replace('\t', ' ');
 			var file = project.GetSourceFile(path);
 			var parse = project.GetParse(file);
 
@@ -140,11 +140,11 @@ public static class ProjectLoader
 	public static void Finalize(DocumentParse parse, Context context, Node root)
 	{
 		// Parse all types
-		var types = root.FindAll(NodeType.TYPE);
+		var types = root.FindAll(NodeType.TYPE_DEFINITION);
 
 		foreach (var i in types)
 		{
-			i.To<TypeNode>().Parse();
+			i.To<TypeDefinitionNode>().Parse();
 		}
 
 		// Parse all namespaces

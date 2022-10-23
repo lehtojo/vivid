@@ -79,7 +79,7 @@ public static class DiagnosticsProvider
 		try
 		{
 			// Preprocess the document
-			request.Document = request.Document.Replace(FilePhase.CARRIAGE_RETURN_CHARACTER, ' ').Replace(FilePhase.TAB_CHARACTER, ' ');
+			request.Document = request.Document.Replace('\r', ' ').Replace('\t', ' ');
 
 			// Tokenize the document in case of some unexpected error
 			tokens = Lexer.GetTokens(request.Document);

@@ -45,6 +45,6 @@ public class CreatePackInstruction : Instruction
 		RegisterMemberValues(Value, Type, 0);
 
 		Result.Value = Value;
-		Result.Format = Assembler.Format;
+		Result.Format = Settings.Format;
 	}
 }

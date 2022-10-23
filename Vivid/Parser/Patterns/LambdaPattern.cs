@@ -4,11 +4,8 @@ using System.Linq;
 
 public class LambdaPattern : Pattern
 {
-	private const int PRIORITY = 19;
-
 	private const int PARAMETERS = 0;
 	private const int OPERATOR = 1;
-	private const int BODY = 3;
 
 	// Pattern 1: ($1, $2, ..., $n) -> [\n] ...
 	// Pattern 2: $name -> [\n] ...
@@ -18,45 +15,20 @@ public class LambdaPattern : Pattern
 		 TokenType.PARENTHESIS | TokenType.IDENTIFIER,
 		 TokenType.OPERATOR,
 		 TokenType.END | TokenType.OPTIONAL
-	) { }
+	)
+	{ Priority = 19; }
 
-	private static bool TryConsumeBody(Context context, PatternState state)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
-		if (Common.ConsumeBody(state))
-		{
-			return true;
-		}
+		// If the parameters are added inside parenthesis, it must be a normal parenthesis
+		if (tokens[PARAMETERS].Is(TokenType.PARENTHESIS) && !tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS)) return false;
+		if (!tokens[OPERATOR].Is(Operators.ARROW)) return false;
 
-		return Consume
-		(
-			context,
-			state,
-			new List<System.Type>
-			{
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(AccessorPattern),
-				typeof(OperatorPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(ReturnPattern),
-				typeof(UnarySignPattern),
-				typeof(IsPattern)
-			}
+		// Try to consume normal curly parenthesis as the body blueprint
+		var next = state.Peek();
+		if (next != null && next.Is(ParenthesisType.CURLY_BRACKETS)) state.Consume();
 
-		).Count > 0;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
-	{
-		if ((tokens[PARAMETERS].Is(TokenType.PARENTHESIS) && !tokens[PARAMETERS].Is(ParenthesisType.PARENTHESIS)) || !tokens[OPERATOR].Is(Operators.ARROW))
-		{
-			return false;
-		}
-
-		return TryConsumeBody(context, state);
+		return true;
 	}
 
 	private static ParenthesisToken GetParameterTokens(List<Token> tokens)
@@ -66,42 +38,61 @@ public class LambdaPattern : Pattern
 			: new ParenthesisToken(tokens[PARAMETERS]);
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
-		var blueprint = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ParenthesisToken>().Tokens : tokens.Skip(BODY).ToList();
+		var blueprint = (List<Token>?)null;
+		var start = tokens[PARAMETERS].Position;
+		var end = (Position?)null;
+		var last = tokens[tokens.Count - 1];
 
-		if (!tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS))
+		// Load the function blueprint
+		if (last.Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			blueprint.Insert(0, new KeywordToken(Keywords.RETURN, tokens[OPERATOR].Position));
+			blueprint = last.To<ParenthesisToken>().Tokens;
+			end = last.To<ParenthesisToken>().End;
+		}
+		else
+		{
+			blueprint = new List<Token>();
+			var position = last.Position;
+
+			Common.ConsumeBlock(state, blueprint);
+
+			blueprint.Insert(0, new KeywordToken(Keywords.RETURN, position));
+			if (blueprint.Count > 0) { end = Common.GetEndOfToken(blueprint[blueprint.Count - 1]); }
 		}
 
-		var start = tokens[PARAMETERS].Position;
-		var end = tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS) ? tokens[BODY].To<ParenthesisToken>().End : null;
+		var environment = context.FindLambdaContainerParent();
+		if (environment == null) throw Errors.Get(start, "Can not create a lambda here");
 
-		var environment = context.GetImplementationParent() ?? throw Errors.Get(start, "Lambda must be inside a function");
 		var name = environment.CreateLambda().ToString();
 
 		// Create a function token manually since it contains some useful helper functions
-		var function = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
+		var header = new FunctionToken(new IdentifierToken(name), GetParameterTokens(tokens));
+		var function = new Lambda(context, Modifier.DEFAULT, name, blueprint, start, end);
+		environment.Declare(function);
 
-		/// NOTE: Use the current context instead of the parent function context, because we could be inside a nested scope for example and we must be able capture variables from that scope
-		var lambda = new Lambda(context, Modifier.DEFAULT, name, blueprint, start, end);
-		environment.Declare(lambda);
+		// Parse the lambda parameters
+		var parameters = header.GetParameters(function);
+		function.Parameters.AddRange(parameters);
 
-		lambda.Parameters.AddRange(function.GetParameters(lambda));
+		// The lambda can be implemented already, if all parameters are resolved
+		var implement = true;
 
-		if (lambda.Parameters.All(i => i.Type != null && !i.Type.IsUnresolved))
+		foreach (var parameter in parameters)
 		{
-			var implementation = lambda.Implement(lambda.Parameters.Select(i => i.Type!));
+			if (parameter.Type != null && parameter.Type.IsResolved()) continue;
+			implement = false;
+			break;
+		}
 
+		if (implement)
+		{
+			var types = parameters.Select(i => i.Type!).ToList();
+			var implementation = function.Implement(types);
 			return new LambdaNode(implementation, start);
 		}
 
-		return new LambdaNode(lambda, start);
-	}
-
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
+		return new LambdaNode(function, start);
 	}
 }

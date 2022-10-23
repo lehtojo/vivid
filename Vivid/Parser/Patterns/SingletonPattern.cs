@@ -3,22 +3,19 @@ using System.Linq;
 
 public class SingletonPattern : Pattern
 {
-	public const int PRIORITY = 0;
-
 	// Pattern: ...
-	public SingletonPattern() : base(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER | TokenType.STRING | TokenType.PARENTHESIS) { }
-
-	public override int GetPriority(List<Token> tokens)
+	public SingletonPattern() : base(TokenType.IDENTIFIER | TokenType.FUNCTION | TokenType.NUMBER | TokenType.STRING | TokenType.PARENTHESIS)
 	{
-		return PRIORITY;
+		Priority = 0;
+		IsConsumable = false;
 	}
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return true;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		return Singleton.Parse(context, tokens.First());
 	}

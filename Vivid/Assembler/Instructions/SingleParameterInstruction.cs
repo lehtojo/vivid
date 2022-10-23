@@ -12,7 +12,7 @@ public class SingleParameterInstruction : Instruction
 
 	public static SingleParameterInstruction Negate(Unit unit, Result first, bool is_decimal)
 	{
-		if (is_decimal && !Assembler.IsArm64)
+		if (is_decimal && !Settings.IsArm64)
 		{
 			throw new InvalidOperationException("Negating decimal value using single parameter instruction on architecture x64 is not allowed");
 		}
@@ -25,7 +25,7 @@ public class SingleParameterInstruction : Instruction
 
 	public static SingleParameterInstruction Not(Unit unit, Result target)
 	{
-		return new SingleParameterInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.NOT : Instructions.X64.NOT, target)
+		return new SingleParameterInstruction(unit, Settings.IsArm64 ? Instructions.Arm64.NOT : Instructions.X64.NOT, target)
 		{
 			Description = "Performs bitwise not operation to the target value"
 		};
@@ -44,7 +44,7 @@ public class SingleParameterInstruction : Instruction
 	{
 		Result.Format = First.Format;
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			var is_unsigned = First.Format.IsUnsigned();
 			var is_decimal = First.Format.IsDecimal();
@@ -54,7 +54,7 @@ public class SingleParameterInstruction : Instruction
 
 			Build(
 				Instruction,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					Result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -72,7 +72,7 @@ public class SingleParameterInstruction : Instruction
 
 		Build(
 			Instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				First,
 				ParameterFlag.DESTINATION | ParameterFlag.READS,

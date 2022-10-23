@@ -273,16 +273,18 @@ namespace Vivid.Unit
 		/// </summary>
 		private static string[] GetMinimumObjects()
 		{
-			return new[]
+			if (Settings.IsTargetLinux)
 			{
-				"minimum.math" + ObjectFileExtension,
-				"minimum.memory" + ObjectFileExtension,
-				"minimum.tests" + ObjectFileExtension
-			};
+				return new[] { "min.math.o", "min.memory.o", "min.system.o", "min.tests.o" };
+			}
+
+			return new[] { "minimum.math.obj", "minimum.memory.obj", "minimum.tests.obj" };
 		}
 
 		private static bool Compile(string output, params string[] source_files)
 		{
+			Settings.Initialize();
+
 			// Configure the flow of the compiler
 			var chain = new Chain
 			(
@@ -295,7 +297,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(f => Path.IsPathRooted(f) ? f : GetProjectFile(f, TESTS)).ToArray();
-			var arguments = new List<string>() { "-shared", "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-shared", "-a", "-o", Prefix + output };
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
@@ -308,23 +310,22 @@ namespace Vivid.Unit
 				arguments.Add("-O" + OptimizationLevel.ToString());
 			}
 
-			// Pack the program arguments in the chain
-			var bundle = new Bundle();
-
-			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
+			Settings.Arguments = arguments.Concat(files).Concat(new[]
 			{
 				GetProjectFile("core.v", TESTS_CORE_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal-console.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal-memory.v", PLATFORM_INTERNAL_FOLDER)
-			}).Concat(GetMinimumObjects()).ToArray());
+			}).Concat(GetMinimumObjects()).ToList();
 
 			// Execute the chain
-			return chain.Execute(bundle);
+			return chain.Execute();
 		}
 
 		private static bool CompileExecutable(string output, string[] source_files)
 		{
+			Settings.Initialize();
+
 			// Configure the flow of the compiler
 			var chain = new Chain
 			(
@@ -337,7 +338,7 @@ namespace Vivid.Unit
 			);
 
 			var files = source_files.Select(i => Path.IsPathRooted(i) ? i : GetProjectFile(i, TESTS)).ToArray();
-			var arguments = new List<string>() { "-assembly", "-f", "-o", Prefix + output };
+			var arguments = new List<string>() { "-a", "-o", Prefix + output };
 
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
@@ -352,19 +353,16 @@ namespace Vivid.Unit
 				arguments.Add("-O" + OptimizationLevel.ToString());
 			}
 
-			// Pack the program arguments in the chain
-			var bundle = new Bundle();
-
-			bundle.Put("arguments", arguments.Concat(files).Concat(new[]
+			Settings.Arguments = arguments.Concat(files).Concat(new[]
 			{
 				GetProjectFile("core.v", TESTS_CORE_FOLDER),
 				GetProjectFile("application.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal-console.v", PLATFORM_INTERNAL_FOLDER),
 				GetProjectFile("internal-memory.v", PLATFORM_INTERNAL_FOLDER)
-			}).Concat(GetMinimumObjects()).ToArray());
+			}).Concat(GetMinimumObjects()).ToList();
 
 			// Execute the chain
-			return chain.Execute(bundle);
+			return chain.Execute();
 		}
 
 		private static string Execute(string name)
@@ -1021,9 +1019,9 @@ namespace Vivid.Unit
 				Assert.Fail("Failed to compile");
 			}
 
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
-				Assert.Pass("Constant permanence is not tested on arhitecture Arm64");
+				Assert.Pass("Constant permanence is not tested on architecture arm64");
 			}
 
 			ConstantPermanenceAndArrayCopy_Test();
@@ -1096,7 +1094,7 @@ namespace Vivid.Unit
 			// There should be five 'add rsp, 40' or 'ldp' instructions
 			for (var i = 0; i < 4; i++)
 			{
-				j = assembly.IndexOf(Assembler.IsArm64 ? "ldp" : "add rsp, ", j, StringComparison.Ordinal);
+				j = assembly.IndexOf(Settings.IsArm64 ? "ldp" : "add rsp, ", j, StringComparison.Ordinal);
 
 				if (j++ == -1)
 				{
@@ -1130,7 +1128,7 @@ namespace Vivid.Unit
 				Assert.Fail("Failed to compile");
 			}
 
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				Assert.Pass("TODO");
 			}
@@ -1156,7 +1154,7 @@ namespace Vivid.Unit
 
 			var assembly = LoadAssemblyOutput("SpecialMultiplications");
 
-			if (Assembler.IsX64)
+			if (Settings.IsX64)
 			{
 				Assert.AreEqual(1, GetCountOf(assembly, "mul\\ [a-z]+"));
 				Assert.AreEqual(1, GetCountOf(assembly, "sal\\ [a-z]+"));

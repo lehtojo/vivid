@@ -38,7 +38,7 @@ public class ReorderInstruction : Instruction
 			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
 			if (register != null) continue;
 
-			overflow += Assembler.Size.Bytes;
+			overflow += Settings.Bytes;
 		}
 
 		return overflow;
@@ -60,7 +60,7 @@ public class ReorderInstruction : Instruction
 	/// </summary>
 	private void EvacuateOverflowZone(Type type)
 	{
-		var overflow = Math.Max(ComputeReturnOverflow(type), Assembler.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0);
+		var overflow = Math.Max(ComputeReturnOverflow(type), Settings.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0);
 
 		foreach (var iterator in Unit.Scope!.Variables)
 		{
@@ -83,7 +83,7 @@ public class ReorderInstruction : Instruction
 
 			// Try to get an available non-volatile register
 			var destination = (Handle?)null;
-			var destination_format = Assembler.Format;
+			var destination_format = Settings.Format;
 			var register = Memory.GetNextRegister(Unit, variable.Type!.Format.IsDecimal(), Trace.For(Unit, value));
 
 			// Use the non-volatile register, if one was found

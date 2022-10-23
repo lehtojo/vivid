@@ -39,13 +39,13 @@ public class Constructor : Function
 			}
 
 			// Find all member accesses, which do not use the self pointer but require it
-			var self = Common.GetSelfPointer(implementation, null);
+			var self_pointer_node = Common.GetSelfPointer(implementation, null);
 			var member_accessors = initialization.FindAll(i => Analysis.IsSelfPointerRequired(i));
 
 			// Add self pointer to all member accessors
 			foreach (var member in member_accessors)
 			{
-				member.Replace(new LinkNode(self.Clone(), member.Clone()));
+				member.Replace(new LinkNode(self_pointer_node.Clone(), member.Clone()));
 			}
 
 			root.Insert(root.First, initialization);

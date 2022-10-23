@@ -31,13 +31,13 @@ public class ListConstructionNode : Node, IResolvable
 		if (environment_node == null) return null;
 
 		var environment = environment_node.GetContext();
-		var list_type = environment.GetType(Parser.StandardListType);
+		var list_type = environment.GetType(Parser.STANDARD_LIST_TYPE);
 		if (list_type == null || !list_type.IsTemplateType) return null;
 
 		// Get a list type with the resolved element type
 		Type = list_type.To<TemplateType>().GetVariant(new[] { element_type });
 		Type.Constructors.GetImplementation(Array.Empty<Type>());
-		(Type.GetFunction(Parser.StandardListAdder) ?? throw new ApplicationException("Standard list is missing adder function")).GetImplementation(new[] { element_type });
+		(Type.GetFunction(Parser.STANDARD_LIST_ADDER) ?? throw new ApplicationException("Standard list is missing adder function")).GetImplementation(new[] { element_type });
 		return Type;
 	}
 

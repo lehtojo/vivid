@@ -21,18 +21,18 @@ public class CallInstruction : Instruction
 	{
 		var handle = new DataSectionHandle(function, true);
 
-		if (Assembler.UseIndirectAccessTables)
+		if (Settings.UseIndirectAccessTables)
 		{
 			handle.Modifier = DataSectionModifier.PROCEDURE_LINKAGE_TABLE;
 		}
 
-		Function = new Result(handle, Assembler.Format);
+		Function = new Result(handle, Settings.Format);
 		ReturnType = return_type;
 		Dependencies!.Add(Function);
 		Description = "Calls function " + Function;
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
-		Result.Format = return_type != null ? return_type.Format : Assembler.Format;
+		Result.Format = return_type != null ? return_type.Format : Settings.Format;
 
 		// Initialize the return pack, if the return type is a pack
 		if (ReturnType != null && ReturnType.IsPack)
@@ -50,7 +50,7 @@ public class CallInstruction : Instruction
 		Description = "Calls the function handle";
 		IsUsageAnalyzed = false; // NOTE: Fixes an issue where the build system moves the function handle to volatile register even though it is needed later
 
-		Result.Format = return_type != null ? return_type.Format : Assembler.Format;
+		Result.Format = return_type != null ? return_type.Format : Settings.Format;
 
 		// Initialize the return pack, if the return type is a pack
 		if (ReturnType != null && ReturnType.IsPack)
@@ -100,7 +100,7 @@ public class CallInstruction : Instruction
 
 			var destination = new RegisterHandle(register);
 
-			Unit.Add(new MoveInstruction(Unit, new Result(destination, Assembler.Format), result)
+			Unit.Add(new MoveInstruction(Unit, new Result(destination, Settings.Format), result)
 			{
 				Description = "Validates a call memory handle",
 				Type = MoveType.RELOCATE
@@ -137,7 +137,7 @@ public class CallInstruction : Instruction
 			{
 				value.Value = position.Finalize();
 				value.Format = member.GetRegisterFormat();
-				position.Offset += Assembler.Size.Bytes;
+				position.Offset += Settings.Bytes;
 			}
 		}
 	}
@@ -156,22 +156,22 @@ public class CallInstruction : Instruction
 
 		var locked = new List<Register>();
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			var is_address = Function.IsDataSectionHandle && Function.Value.To<DataSectionHandle>().Address;
 
 			if (!is_address)
 			{
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.For(Unit, Function));
+				Memory.MoveToRegister(Unit, Function, Settings.Size, false, Trace.For(Unit, Function));
 				locked.Add(Function.Register);
 			}
 
 			// Ensure the function handle is in the correct format
-			if (Function.Size != Assembler.Size)
+			if (Function.Size != Settings.Size)
 			{
 				locked.ForEach(i => i.Unlock());
 
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.For(Unit, Function));
+				Memory.MoveToRegister(Unit, Function, Settings.Size, false, Trace.For(Unit, Function));
 				locked.Add(Function.Register);
 			}
 
@@ -179,7 +179,7 @@ public class CallInstruction : Instruction
 			Unit.Add(new EvacuateInstruction(Unit));
 
 			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
-			if (Function.Size != Assembler.Size) throw new ApplicationException("Invalid function handle format");
+			if (Function.Size != Settings.Size) throw new ApplicationException("Invalid function handle format");
 
 			var operation = is_address ? Instructions.Arm64.CALL_LABEL : Instructions.Arm64.CALL_REGISTER;
 
@@ -193,16 +193,16 @@ public class CallInstruction : Instruction
 			}
 			else if (!Function.IsStandardRegister)
 			{
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.For(Unit, Function));
+				Memory.MoveToRegister(Unit, Function, Settings.Size, false, Trace.For(Unit, Function));
 				locked.Add(Function.Register);
 			}
 
 			// Ensure the function handle is in the correct format
-			if (Function.Size != Assembler.Size)
+			if (Function.Size != Settings.Size)
 			{
 				locked.ForEach(i => i.Unlock());
 
-				Memory.MoveToRegister(Unit, Function, Assembler.Size, false, Trace.For(Unit, Function));
+				Memory.MoveToRegister(Unit, Function, Settings.Size, false, Trace.For(Unit, Function));
 				locked.Add(Function.Register);
 			}
 
@@ -210,7 +210,7 @@ public class CallInstruction : Instruction
 			Unit.Add(new EvacuateInstruction(Unit));
 
 			// If the format of the function handle changes, it means its format is registered incorrectly somewhere
-			if (Function.Size != Assembler.Size) throw new ApplicationException("Invalid function handle format");
+			if (Function.Size != Settings.Size) throw new ApplicationException("Invalid function handle format");
 
 			Build(Instructions.X64.CALL, new InstructionParameter(Function, ParameterFlag.BIT_LIMIT_64 | ParameterFlag.ALLOW_ADDRESS, HandleType.REGISTER, HandleType.MEMORY));
 		}

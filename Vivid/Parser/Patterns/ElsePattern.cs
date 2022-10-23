@@ -3,63 +3,63 @@ using System.Linq;
 
 public class ElsePattern : Pattern
 {
-	public const int PRIORITY = 1;
-
-	public const int FORMER = 0;
-	public const int ELSE = 2;
-	public const int BODY = 4;
-
-	// Pattern: $([else] if) [\n] else [\n] [{...}]
+	// Pattern: $if/$else-if [\n] else [\n] {...}/...
 	public ElsePattern() : base
 	(
-		TokenType.DYNAMIC,
-		TokenType.END | TokenType.OPTIONAL,
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL
-	) { }
+	)
+	{ Priority = 1; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
-		return PRIORITY;
-	}
+		// Ensure there is an (else) if-statement before this else-statement
+		if (state.Start == 0) return false;
+		var token = state.All[state.Start - 1];
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
-	{
-		if (tokens[ELSE].To<KeywordToken>().Keyword != Keywords.ELSE) return false;
+		// If the previous token represents an (else) if-statement, just continue
+		if (token.Type != TokenType.DYNAMIC || !token.To<DynamicToken>().Node.Is(NodeType.IF, NodeType.ELSE_IF))
+		{
+			// The previous token must be a line ending in order for this pass function to succeed
+			if (token.Type != TokenType.END || state.Start == 1) return false;
 
-		var former = tokens[FORMER].To<DynamicToken>();
-		if (!former.Node.Is(NodeType.IF, NodeType.ELSE_IF)) return false;
+			// Now, the token before the line ending must be an (else) if-statement in order for this pass function to succeed
+			token = state.All[state.Start - 2];
+			if (token.Type != TokenType.DYNAMIC || !token.To<DynamicToken>().Node.Is(NodeType.IF, NodeType.ELSE_IF)) return false;
+		}
 
-		Try(state, () => Consume(state, out Token? body, TokenType.PARENTHESIS) && body!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS);
+		// Ensure the keyword is the else-keyword
+		if (tokens.First().To<KeywordToken>().Keyword != Keywords.ELSE) return false;
+
+		var next = state.Peek();
+		if (next == null) return false;
+		if (next.Is(ParenthesisType.CURLY_BRACKETS)) state.Consume();
 		return true;
 	}
 
-	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
+	public override Node? Build(Context environment, ParserState state, List<Token> tokens)
 	{
-		var body = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().Tokens : null;
-		
-		var start = tokens[ELSE].Position;
-		var end = tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) ? tokens.Last().To<ParenthesisToken>().End : null;
-		
+		var start = tokens.First().Position;
+		var end = (Position?)null;
+
+		var body = (List<Token>?)null;
+		var last = tokens[tokens.Count - 1];
+
 		var context = new Context(environment);
 
-		if (body == null)
+		if (last.Is(ParenthesisType.CURLY_BRACKETS))
+		{
+			body = last.To<ParenthesisToken>().Tokens;
+			end = last.To<ParenthesisToken>().End;
+		}
+		else
 		{
 			body = new List<Token>();
-
-			if (!Common.ConsumeBlock(context, state, body))
-			{
-				throw Errors.Get(tokens[ELSE].Position, "Else-statement has an empty body");
-			}
+			Common.ConsumeBlock(state, body);
 		}
 
 		var node = Parser.Parse(context, body, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY);
 
 		return new ElseNode(context, node, start, end);
-	}
-
-	public override int GetStart()
-	{
-		return 1;
 	}
 }

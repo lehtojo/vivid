@@ -76,7 +76,7 @@ public class Patterns
 
 	private static void Add(Pattern pattern)
 	{
-		Root.Grow(pattern, pattern.GetPath(), new List<int>(), 0);
+		Root.Grow(pattern, pattern.Path, new List<int>(), 0);
 	}
 
 	static Patterns()
@@ -86,7 +86,6 @@ public class Patterns
 		Add(new CommandPattern());
 		Add(new CompilesPattern());
 		Add(new ConstructorPattern());
-		Add(new ElseIfPattern());
 		Add(new ElsePattern());
 		Add(new ExtensionFunctionPattern());
 		Add(new FunctionPattern());
@@ -108,13 +107,12 @@ public class Patterns
 		Add(new OperatorPattern());
 		Add(new OverrideFunctionPattern());
 		Add(new PackConstructionPattern());
-		Add(new PostIncrementAndDecrementPattern());
-		Add(new PreIncrementAndDecrementPattern());
+		Add(new PostIncrementPattern());
+		Add(new PreIncrementPattern());
 		Add(new RangePattern());
 		Add(new ExpressionVariablePattern());
 		Add(new ReturnPattern());
 		Add(new SectionModificationPattern());
-		//Add(new ShortFunctionPattern());
 		Add(new SingletonPattern());
 		Add(new SpecificModificationPattern());
 		Add(new TemplateFunctionCallPattern());

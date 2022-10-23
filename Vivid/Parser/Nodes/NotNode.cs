@@ -1,12 +1,14 @@
 public class NotNode : Node
 {
+	public bool IsBitwise { get; set; }
 	public Node Object => First!;
 
-	public NotNode(Node target, Position? position)
+	public NotNode(Node target, bool is_bitwise, Position? position)
 	{
-		Add(target);
 		Position = position;
 		Instance = NodeType.NOT;
+		IsBitwise = is_bitwise;
+		Add(target);
 	}
 
 	public override Type? TryGetType()

@@ -92,7 +92,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 		Build(
 			Unsigned ? Instructions.X64.UNSIGNED_DIVIDE : Instructions.X64.SIGNED_DIVIDE,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				numerator,
 				flags,
@@ -122,7 +122,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 		Build(
 			Unsigned ? Instructions.X64.UNSIGNED_DIVIDE : Instructions.X64.SIGNED_DIVIDE,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				numerator,
 				(Assigns ? ParameterFlag.NO_ATTACH : ParameterFlag.NONE) | flags,
@@ -208,14 +208,14 @@ public class DivisionInstruction : DualParameterInstruction
 
 				Build(
 					Instructions.X64.SHIFT_RIGHT,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						operand,
 						ParameterFlag.DESTINATION | ParameterFlag.READS | flags,
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(count, Assembler.Format),
+						new Result(count, Settings.Format),
 						ParameterFlag.NONE,
 						HandleType.CONSTANT
 					)
@@ -295,7 +295,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 		Build(
 			Instructions.Arm64.MULTIPLY_SUBTRACT,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -331,7 +331,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 		if (!is_decimal && division != null && Common.IsPowerOfTwo(division.Number) && division.Number != 0)
 		{
-			second = new Result(new ConstantHandle((long)Math.Log2(division.Number)), Assembler.Format);
+			second = new Result(new ConstantHandle((long)Math.Log2(division.Number)), Settings.Format);
 			types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
 			instruction = Instructions.Arm64.SHIFT_RIGHT;
 		}
@@ -342,7 +342,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 			Build(
 				instruction,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -367,7 +367,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 		Build(
 			instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION,
@@ -393,7 +393,7 @@ public class DivisionInstruction : DualParameterInstruction
 			Unit.Add(new MoveInstruction(Unit, First, Result), true);
 		}
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			OnBuildX64();
 		}
@@ -426,7 +426,7 @@ public class DivisionInstruction : DualParameterInstruction
 
 	public override bool Redirect(Handle handle, bool root)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return RedirectArm64(handle);
 		}

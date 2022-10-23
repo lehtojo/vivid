@@ -3,26 +3,22 @@ using System.Linq;
 
 public class TemplateFunctionCallPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	// Pattern: $name <$1, $2, ... $n> (...)
-	public TemplateFunctionCallPattern() : base(TokenType.IDENTIFIER) { }
-
-	public override int GetPriority(List<Token> tokens)
+	public TemplateFunctionCallPattern() : base(TokenType.IDENTIFIER)
 	{
-		return PRIORITY;
+		Priority = 19;
 	}
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return Common.ConsumeTemplateFunctionCall(state);
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
 		var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>()) { Position = name.Position };
-		var template_arguments = Common.ReadTemplateArguments(context, new Queue<Token>(tokens.Skip(1)));
+		var template_arguments = Common.ReadTemplateArguments(context, tokens, 1);
 
 		return Singleton.GetFunction(context, context, descriptor, template_arguments, false);
 	}

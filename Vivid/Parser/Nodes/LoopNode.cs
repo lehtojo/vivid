@@ -11,7 +11,6 @@ public class LoopNode : Node, IResolvable, IScope
 	public Node Condition => Common.FindCondition(Initialization.Next!);
 	public Node Action => Steps.Last!;
 
-	public Scope? Scope { get; set; } = null;
 	public Label? Start { get; set; } = null;
 	public Label? Exit { get; set; } = null;
 
@@ -53,7 +52,7 @@ public class LoopNode : Node, IResolvable, IScope
 	/// <summary>
 	/// Returns all the nodes which are executed during the condition step
 	/// </summary>
-	public Node GetConditionStep()
+	public Node GetConditionContainer()
 	{
 		return Initialization.Next!;
 	}

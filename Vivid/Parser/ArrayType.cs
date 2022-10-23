@@ -3,14 +3,16 @@ using System.Collections.Generic;
 public class ArrayType : Number, IResolvable
 {
 	public Type Element { get; private set; }
+	public Type UsageType { get; private set; }
 	private List<Token> Tokens { get; set; }
 	public Node? Expression { get; private set; }
-	public long Count => (long)Expression!.To<NumberNode>().Value;
+	public long Size => (long)Expression!.To<NumberNode>().Value;
 
-	public ArrayType(Context context, Type element, ParenthesisToken count, Position? position) : base(Parser.Format, Size.QWORD.Bits, true, element.ToString() + "[]")
+	public ArrayType(Context context, Type element, ParenthesisToken count, Position? position) : base(Parser.Format, global::Size.QWORD.Bits, true, element.ToString() + "[]")
 	{
 		Modifiers = Modifier.DEFAULT | Modifier.PRIMITIVE | Modifier.INLINE;
 		Element = element;
+		UsageType = new Link(element);
 		Tokens = count.Tokens;
 		Position = position;
 		TemplateArguments = new[] { element };
@@ -39,7 +41,7 @@ public class ArrayType : Number, IResolvable
 		try { Expression = Parser.Parse(context, Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY); } catch {}
 	}
 	
-	public override Type GetOffsetType()
+	public override Type GetAccessorType()
 	{
 		return Element;
 	}
@@ -62,7 +64,7 @@ public class ArrayType : Number, IResolvable
 		if (Expression.First.Instance != NodeType.NUMBER)
 		{
 			var evaluated = Analysis.GetSimplifiedValue(Expression.First);
-			if (evaluated.Instance != NodeType.NUMBER || evaluated.To<NumberNode>().Type == Format.DECIMAL) return null;
+			if (evaluated.Instance != NodeType.NUMBER || evaluated.To<NumberNode>().Format == Format.DECIMAL) return null;
 
 			Expression.First.Replace(evaluated);
 		}

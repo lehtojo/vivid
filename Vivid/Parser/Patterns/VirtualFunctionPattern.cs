@@ -3,8 +3,6 @@ using System.Linq;
 
 public class VirtualFunctionPattern : Pattern
 {
-	public const int PRIORITY = 22;
-
 	public const int VIRTUAL = 0;
 	public const int FUNCTION = 1;
 	public const int COLON = 2;
@@ -14,14 +12,10 @@ public class VirtualFunctionPattern : Pattern
 	public VirtualFunctionPattern() : base
 	(
 		TokenType.KEYWORD, TokenType.FUNCTION, TokenType.OPERATOR | TokenType.OPTIONAL
-	) { }
+	)
+	{ Priority = 22; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		if (!tokens[VIRTUAL].Is(Keywords.VIRTUAL) || !context.IsType) return false;
 
@@ -30,17 +24,8 @@ public class VirtualFunctionPattern : Pattern
 		// If the colon token is not none, it must represent colon operator and the return type must be consumed successfully
 		if (!colon.Is(TokenType.NONE) && (!colon.Is(Operators.COLON) || !Common.ConsumeType(state))) return false;
 
-		Consume(state, TokenType.END);
-
-		// Try to consume a function body, which would be the default implementation of the virtual function
-		var next = Pattern.Peek(state);
-		if (next == null) return true;
-
-		if (next.Is(ParenthesisType.CURLY_BRACKETS) || next.Is(Operators.HEAVY_ARROW))
-		{
-			Pattern.Consume(state);
-		}
-
+		state.Consume(TokenType.END); // Optionally consume a line ending
+		state.ConsumeParenthesis(ParenthesisType.CURLY_BRACKETS); // Optionally consume a function body
 		return true;
 	}
 
@@ -55,7 +40,7 @@ public class VirtualFunctionPattern : Pattern
 
 		if (!colon.Is(TokenType.NONE))
 		{
-			return_type = Common.ReadType(context, new Queue<Token>(tokens.Skip(RETURN_TYPE)));
+			return_type = Common.ReadType(context, tokens, RETURN_TYPE);
 			if (return_type == null) throw Errors.Get(colon.Position, "Can not resolve return type of the virtual function");
 		}
 
@@ -80,7 +65,7 @@ public class VirtualFunctionPattern : Pattern
 	/// <summary>
 	/// Creates a virtual function which does have a default implementation
 	/// </summary>
-	private static Function CreateVirtualFunctionWithImplementation(Context context, PatternState state, List<Token> tokens)
+	private static Function CreateVirtualFunctionWithImplementation(Context context, ParserState state, List<Token> tokens)
 	{
 		// Try to resolve the return type
 		var return_type = (Type?)null;
@@ -88,29 +73,15 @@ public class VirtualFunctionPattern : Pattern
 
 		if (!colon.Is(TokenType.NONE))
 		{
-			return_type = Common.ReadType(context, new Queue<Token>(tokens.Skip(RETURN_TYPE)));
+			return_type = Common.ReadType(context, tokens, RETURN_TYPE);
 			if (return_type == null) throw Errors.Get(colon.Position, "Can not resolve return type of the virtual function");
 		}
 
 		// Get the default implementation of this virtual function
-		var blueprint = (List<Token>?)null;
-		var end = (Position?)null;
-
-		if (tokens.Last().Is(Operators.HEAVY_ARROW))
-		{
-			var position = tokens.Last().Position;
-			blueprint = Common.ConsumeBlock(state);
-			blueprint.Insert(0, new OperatorToken(Operators.HEAVY_ARROW, position));
-			if (blueprint.Any()) { end = Common.GetEndOfToken(blueprint.Last()); }
-		}
-		else
-		{
-			blueprint = tokens.Last().To<ParenthesisToken>().Tokens;
-			end = tokens.Last().To<ParenthesisToken>().End;
-		}
-
+		var blueprint = tokens.Last().To<ParenthesisToken>();
 		var descriptor = tokens[FUNCTION].To<FunctionToken>();
 		var start = tokens.First().Position;
+		var end = blueprint.End;
 
 		// Ensure there is no other virtual function with the same name as this virtual function
 		var type = context.FindTypeParent() ?? throw Errors.Get(start, "Missing virtual function type parent");
@@ -126,7 +97,7 @@ public class VirtualFunctionPattern : Pattern
 		virtual_function.Parameters.AddRange(parameters);
 
 		// Create the default implementation of the virtual function
-		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint, descriptor.Position, end);
+		var function = new Function(context, Modifier.DEFAULT, descriptor.Name, blueprint.Tokens, descriptor.Position, end);
 
 		// Define the parameters of the default implementation
 		function.Parameters.AddRange(descriptor.GetParameters(function));
@@ -138,11 +109,11 @@ public class VirtualFunctionPattern : Pattern
 		return virtual_function;
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var function = (Function?)null;
 
-		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS) || tokens.Last().Is(Operators.HEAVY_ARROW))
+		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS))
 		{
 			function = CreateVirtualFunctionWithImplementation(context, state, tokens);
 		}

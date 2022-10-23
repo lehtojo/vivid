@@ -4,8 +4,6 @@ using System.Linq;
 
 public class LinkPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	private const int LEFT = 0;
 	private const int OPERATOR = 2;
 	private const int RIGHT = 4;
@@ -20,47 +18,59 @@ public class LinkPattern : Pattern
 		TokenType.OPERATOR,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.FUNCTION | TokenType.IDENTIFIER | TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 19; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Ensure the operator is the dot operator
-		if (!tokens[OPERATOR].Is(Operators.DOT))
-		{
-			return false;
-		}
+		if (!tokens[OPERATOR].Is(Operators.DOT)) return false;
 
 		// Try to consume template arguments
 		if (tokens[RIGHT].Is(TokenType.IDENTIFIER))
 		{
-			Try(Common.ConsumeTemplateFunctionCall, state);
+			var backup = state.Save();
+			if (!Common.ConsumeTemplateFunctionCall(state)) state.Restore(backup);
 		}
 
 		return true;
 	}
 
-	public override Node Build(Context environment, PatternState state, List<Token> tokens)
+	private LinkNode BuildTemplateFunctionCall(Context context, List<Token> tokens, Node left)
 	{
-		var template_arguments = Array.Empty<Type>();
+		// Load the properties of the template function call
+		var name = tokens[RIGHT].To<IdentifierToken>();
+		var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>());
+		descriptor.Position = name.Position;
+		var template_arguments = Common.ReadTemplateArguments(context, tokens, RIGHT + 1);
 
-		// When there are more tokens than the standard count, it means a template function has been consumed
-		if (tokens.Count != STANDARD_TOKEN_COUNT)
+		var primary = left.TryGetType();
+		var right = (Node?)null;
+
+		if (primary != null)
 		{
-			template_arguments = Common.ReadTemplateArguments(environment, new Queue<Token>(tokens.Skip(STANDARD_TOKEN_COUNT)));
+			right = Singleton.GetFunction(context, primary, descriptor, template_arguments, true);
+			return new LinkNode(left, right, tokens[OPERATOR].Position);
 		}
 
+		right = new UnresolvedFunction(name.Value, template_arguments, descriptor.Position);
+		right.To<UnresolvedFunction>().SetArguments(descriptor.Parse(context));
+		return new LinkNode(left, right, tokens[OPERATOR].Position);
+	}
+
+	public override Node Build(Context environment, ParserState state, List<Token> tokens)
+	{
 		var left = Singleton.Parse(environment, tokens[LEFT]);
 
-		// If the right operand is a content token, this is a cast expression
+		// When there are more tokens than the standard count, it means a template function has been consumed
+		if (tokens.Count != STANDARD_TOKEN_COUNT) return BuildTemplateFunctionCall(environment, tokens, left);
+
+		// If the right operand is a parenthesis token, this is a cast expression
 		if (tokens[RIGHT].Is(TokenType.PARENTHESIS))
 		{
 			// Read the cast type from the content token
-			var type = Common.ReadType(environment, new Queue<Token>(tokens[RIGHT].To<ParenthesisToken>().Tokens));
+			var type = Common.ReadType(environment, tokens[RIGHT].To<ParenthesisToken>().Tokens);
+
 			if (type == null) throw Errors.Get(tokens[RIGHT].Position, "Can not understand the cast");
 
 			return new CastNode(left, new TypeNode(type, tokens[RIGHT].Position), tokens[OPERATOR].Position);
@@ -68,45 +78,36 @@ public class LinkPattern : Pattern
 
 		// Try to retrieve the primary context from the left token
 		var primary = left.TryGetType();
+		var right = (Node?)null;
+		var token = tokens[RIGHT];
 
-		Node? right;
-
-		// Ensure the primary context has been retrieved successfully
 		if (primary == null)
 		{
 			// Since the primary context could not be retrieved, an unresolved link node must be returned
-			if (template_arguments.Any())
+			if (token.Is(TokenType.IDENTIFIER))
 			{
-				var name = tokens[RIGHT].To<IdentifierToken>();
-				var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>()) { Position = name.Position };
-
-				right = new UnresolvedFunction(name.Value, template_arguments, name.Position).SetArguments(descriptor.Parse(environment));
+				right = new UnresolvedIdentifier(token.To<IdentifierToken>().Value, token.Position);
+			}
+			else if (token.Is(TokenType.FUNCTION))
+			{
+				right = new UnresolvedFunction(token.To<FunctionToken>().Name, token.Position).SetArguments(token.To<FunctionToken>().Parse(environment));
 			}
 			else
 			{
-				right = Singleton.GetUnresolved(environment, tokens[RIGHT]);
+				throw new ApplicationException("Could not create unresolved node");
 			}
 
 			return new LinkNode(left, right, tokens[OPERATOR].Position);
 		}
 
-		// Try to create template function call if there are any template parameters
-		if (template_arguments.Any())
-		{
-			var name = tokens[RIGHT].To<IdentifierToken>();
-			var descriptor = new FunctionToken(name, tokens.Last().To<ParenthesisToken>()) { Position = name.Position };
-
-			right = Singleton.GetFunction(environment, primary, descriptor, template_arguments, true);
-		}
-		else
-		{
-			right = Singleton.Parse(environment, primary, tokens[RIGHT]);
-		}
+		right = Singleton.Parse(environment, primary, token);
 
 		// Try to build the right node as a virtual function or lambda call
-		if (right is UnresolvedFunction function)
+		if (right.Is(NodeType.UNRESOLVED_FUNCTION))
 		{
-			var types = function.Select(i => i.TryGetType()).ToList();
+			var function = right.To<UnresolvedFunction>();
+			var types = new List<Type?>();
+			foreach (var argument in function) { types.Add(argument.TryGetType()); }
 
 			// Try to form a virtual function call
 			var position = tokens[OPERATOR].Position;

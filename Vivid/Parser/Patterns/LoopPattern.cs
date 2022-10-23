@@ -2,43 +2,29 @@
 
 public class LoopPattern : Pattern
 {
-	public const int PRIORITY = 1;
-
 	public const int KEYWORD = 0;
 	public const int STEPS = 1;
 	public const int BODY = 3;
 
-	// Example: (i < 10)
-	public const int WHILE_LOOP = 1;
-
-	// Example: (i < 10, i++)
-	public const int SHORT_FOR_LOOP = 2;
-
-	// Example: (i = 0, i < 10, i++)
-	public const int FOR_LOOP = 3;
+	public const int WHILE_LOOP = 1; // Example: (i < 10)
+	public const int SHORT_FOR_LOOP = 2; // Example: (i < 10, i++)
+	public const int FOR_LOOP = 3; // Example: (i = 0, i < 10, i++)
 
 	// Pattern: loop [(...)] [\n] {...}
 	public LoopPattern() : base
 	(
-		TokenType.KEYWORD, TokenType.PARENTHESIS | TokenType.OPTIONAL, TokenType.END | TokenType.OPTIONAL, TokenType.PARENTHESIS
-	) { }
+		TokenType.KEYWORD, TokenType.PARENTHESIS, TokenType.END | TokenType.OPTIONAL, TokenType.PARENTHESIS
+	)
+	{ Priority = 1; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[KEYWORD].To<KeywordToken>().Keyword == Keywords.LOOP && tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
 	private static Node? GetSteps(Context context, ParenthesisToken content)
 	{
-		if (content.IsEmpty)
-		{
-			return null;
-		}
+		if (content.IsEmpty) return null;
 
 		var steps = (Node?)null;
 		var sections = content.GetSections();
@@ -71,31 +57,26 @@ public class LoopPattern : Pattern
 
 			default:
 			{
-				throw Errors.Get(content.Position, "The loop has too many sections");
+				throw Errors.Get(content.Position, "Too many sections");
 			}
 		}
 
 		return steps;
 	}
 
-	public override Node Build(Context environment, PatternState state, List<Token> tokens)
+	public override Node Build(Context environment, ParserState state, List<Token> tokens)
 	{
 		var steps_context = new Context(environment);
 		var body_context = new Context(steps_context);
 
 		var steps_token = tokens[STEPS];
+		var steps = GetSteps(steps_context, steps_token.To<ParenthesisToken>());
+		if (steps == null) throw Errors.Get(tokens[0].Position, "Can not understand");
 
-		Node? steps = null;
+		var body_token = tokens[BODY].To<ParenthesisToken>();
+		var body = new ScopeNode(body_context, body_token.Position, body_token.End, false);
 
-		if (steps_token.Type != TokenType.NONE)
-		{
-			steps = GetSteps(steps_context, steps_token.To<ParenthesisToken>());
-		}
-
-		var token = tokens[BODY].To<ParenthesisToken>();
-		var body = new ScopeNode(body_context, token.Position, token.End, false);
-
-		Parser.Parse(body_context, token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(n => body.Add(n));
+		Parser.Parse(body_context, body_token.Tokens, Parser.MIN_PRIORITY, Parser.MAX_FUNCTION_BODY_PRIORITY).ForEach(i => body.Add(i));
 
 		return new LoopNode(steps_context, steps, body, tokens[KEYWORD].Position);
 	}

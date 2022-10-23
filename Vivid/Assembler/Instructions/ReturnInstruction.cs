@@ -21,7 +21,7 @@ public class ReturnInstruction : Instruction
 
 		if (Object != null) { Dependencies!.Add(Object); }
 
-		Result.Format = (ReturnType != null ? ReturnType.GetRegisterFormat() : Assembler.Format);
+		Result.Format = (ReturnType != null ? ReturnType.GetRegisterFormat() : Settings.Format);
 	}
 
 	/// <summary>
@@ -60,7 +60,7 @@ public class ReturnInstruction : Instruction
 
 		if (!registers.Any()) { return; }
 
-		var bytes = (registers.Count + 1) / 2 * 2 * Assembler.Size.Bytes;
+		var bytes = (registers.Count + 1) / 2 * 2 * Settings.Bytes;
 		var stack_pointer = Unit.GetStackPointer();
 
 		if (registers.Count == 1)
@@ -84,7 +84,7 @@ public class ReturnInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.LOAD} {media_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {media_registers.First()}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			media_registers.Pop();
@@ -102,7 +102,7 @@ public class ReturnInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[0]}, {batch[1]}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			i += 2;
@@ -118,7 +118,7 @@ public class ReturnInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.LOAD} {standard_registers.First()}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD} {standard_registers.First()}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			standard_registers.Pop();
@@ -136,7 +136,7 @@ public class ReturnInstruction : Instruction
 			}
 			else
 			{
-				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[1]}, {batch[0]}, [{stack_pointer}, #{position * Assembler.Size.Bytes}]");
+				builder.AppendLine($"{Instructions.Arm64.LOAD_REGISTER_PAIR} {batch[1]}, {batch[0]}, [{stack_pointer}, #{position * Settings.Bytes}]");
 			}
 
 			i += 2;
@@ -170,7 +170,7 @@ public class ReturnInstruction : Instruction
 		{
 			var stack_pointer = Unit.GetStackPointer();
 
-			if (Assembler.IsX64)
+			if (Settings.IsX64)
 			{
 				builder.AppendLine($"{Instructions.Shared.ADD} {stack_pointer}, {allocated_local_memory}");
 			}
@@ -181,7 +181,7 @@ public class ReturnInstruction : Instruction
 		}
 
 		// Restore all used non-volatile registers
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			RestoreRegistersX64(builder, recover_registers);
 		}

@@ -112,7 +112,7 @@ public class NumberToken : Token
 
 			if (double.IsInfinity(value))
 			{
-				throw new LexerException(position, $"Decimal number approaches infinity. Use the constants {Lexer.POSITIVE_INFINITY_CONSTANT} or {Lexer.NEGATIVE_INFINITY_CONSTANT} instead.");
+				throw new LexerException(position, $"Decimal number approaches infinity. Use the constants {Settings.POSITIVE_INFINITY_CONSTANT} or {Settings.NEGATIVE_INFINITY_CONSTANT} instead.");
 			}
 
 			Value = value;

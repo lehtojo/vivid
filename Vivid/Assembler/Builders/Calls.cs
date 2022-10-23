@@ -9,29 +9,29 @@ public static class Calls
 
 	public static string[] GetStandardParameterRegisterNames()
 	{
-		if (Assembler.IsArm64) return new[] { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
+		if (Settings.IsArm64) return new[] { "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7" };
 
-		return Assembler.IsTargetWindows ? new[] { "rcx", "rdx", "r8", "r9" } : new[] { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+		return Settings.IsTargetWindows ? new[] { "rcx", "rdx", "r8", "r9" } : new[] { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
 	}
 
 	public static int GetStandardParameterRegisterCount()
 	{
-		if (Assembler.IsArm64) return 8;
+		if (Settings.IsArm64) return 8;
 
-		return Assembler.IsTargetWindows ? 4 : 6;
+		return Settings.IsTargetWindows ? 4 : 6;
 	}
 
 	public static int GetDecimalParameterRegisterCount()
 	{
-		if (Assembler.IsArm64) return 8;
+		if (Settings.IsArm64) return 8;
 
-		return Assembler.IsTargetWindows ? 4 : 7;
+		return Settings.IsTargetWindows ? 4 : 7;
 	}
 
 	public static List<Register> GetStandardParameterRegisters(Unit unit)
 	{
 		var names = GetStandardParameterRegisterNames();
-		return unit.StandardRegisters.Where(i => names.Contains(i.Partitions.First())).ToList();
+		return names.Select(name => unit.StandardRegisters.Find(i => i.Partitions.First() == name) ?? throw new ApplicationException("Missing parameter register")).ToList();
 	}
 
 	public static List<Register> GetDecimalParameterRegisters(Unit unit)
@@ -121,7 +121,7 @@ public static class Calls
 		{
 			// Even though the destination should be the same size as the parameter, an exception should be made in case of registers since it is easier to manage when all register values can support every format
 			var destination = new RegisterHandle(register);
-			destination.Format = is_decimal ? Format.DECIMAL : Assembler.Size.ToFormat(type.Format.IsUnsigned());
+			destination.Format = is_decimal ? Format.DECIMAL : Settings.Size.ToFormat(type.Format.IsUnsigned());
 
 			destinations.Add(destination);
 		}
@@ -131,7 +131,7 @@ public static class Calls
 			position.Format = format;
 			destinations.Add(position.Finalize());
 
-			position.Offset += Assembler.Size.Bytes;
+			position.Offset += Settings.Bytes;
 		}
 
 		sources.Add(value);
@@ -156,12 +156,12 @@ public static class Calls
 		var sources = new List<Result>();
 
 		// On Windows x64 a 'shadow space' is allocated for the first four parameters
-		var position = new StackMemoryHandle(unit, Assembler.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
+		var position = new StackMemoryHandle(unit, Settings.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
 
 		if (self_pointer != null)
 		{
 			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
-			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, self_type!, Assembler.Format);
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, self_type!, Settings.Format);
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
@@ -250,7 +250,7 @@ public static class Calls
 			unit.Add(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 
 			// Windows: Even though the first parameters are passed in registers, they still require their own stack memory (shadow space)
-			if (register != null && !Assembler.IsTargetWindows) continue;
+			if (register != null && !Settings.IsTargetWindows) continue;
 
 			// Normal parameters consume one stack unit
 			stack_position.Offset += Parser.Bytes;
@@ -281,7 +281,7 @@ public static class Calls
 			unit.Add(new MoveInstruction(unit, destination, source) { Type = MoveType.RELOCATE });
 
 			// Windows: Even though the first parameters are passed in registers, they still need their own stack memory (shadow space)
-			if (!Assembler.IsTargetWindows) return;
+			if (!Settings.IsTargetWindows) return;
 		}
 
 		// Normal parameters consume one stack unit
@@ -296,7 +296,7 @@ public static class Calls
 	{
 		var standard_parameter_registers = GetStandardParameterRegisters(unit);
 		var decimal_parameter_registers = GetDecimalParameterRegisters(unit);
-		var stack_position = new StackMemoryHandle(unit, Assembler.IsArm64 ? 0 : Parser.Bytes);
+		var stack_position = new StackMemoryHandle(unit, Settings.IsArm64 ? 0 : Parser.Bytes);
 
 		var parameters = new List<Variable>(unit.Function.Parameters);
 

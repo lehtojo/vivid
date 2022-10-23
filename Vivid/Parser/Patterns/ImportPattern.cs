@@ -7,8 +7,6 @@ public class ImportPattern : Pattern
 	public const string CPP_LANGUAGE_TAG_2 = "c++";
 	public const string VIVID_LANGUAGE_TAG = "vivid";
 
-	private const int PRIORITY = 22;
-
 	private const int IMPORT = 0;
 	private const int LANGUAGE = 1;
 	private const int FUNCTION = 2;
@@ -21,14 +19,10 @@ public class ImportPattern : Pattern
 	public ImportPattern() : base
 	(
 		TokenType.KEYWORD
-	) { }
+	)
+	{ Priority = 22; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Ensure the first token contains import modifier
 		/// NOTE: Multiple modifiers are packed into one token
@@ -38,7 +32,7 @@ public class ImportPattern : Pattern
 		var modifiers = modifier_keyword.To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
 		if (!Flag.Has(modifiers, Modifier.IMPORTED)) return false;
 
-		var next = Peek(state);
+		var next = state.Peek();
 
 		// Pattern: import $1.$2. ... .$n
 		if (next != null && next.Is(TokenType.IDENTIFIER))
@@ -48,21 +42,21 @@ public class ImportPattern : Pattern
 
 		// Pattern: import ['$language'] $name (...) [: $type]
 		// Optionally consume a language identifier
-		Consume(state, TokenType.STRING | TokenType.OPTIONAL);
+		state.ConsumeOptional(TokenType.STRING);
 
-		if (!Consume(state, out Token? descriptor, TokenType.FUNCTION)) return false;
+		if (!state.Consume(out Token? descriptor, TokenType.FUNCTION)) return false;
 
-		// Ensure the context is a type when importing a constructor or a destructor
-		var name = descriptor!.To<FunctionToken>().Name;
+		next = state.Peek();
 
 		// Try to consume the return type
-		if (Try(state, () => Consume(state, out Token? token, TokenType.OPERATOR) && token!.Is(Operators.COLON)))
+		if (next != null && next.Is(Operators.COLON))
 		{
+			state.Consume();
 			return Common.ConsumeType(state);
 		}
 
 		// There is no return type, so add an empty token
-		state.Formatted.Add(new Token(TokenType.NONE));
+		state.Tokens.Add(new Token(TokenType.NONE));
 		return true;
 	}
 
@@ -98,7 +92,7 @@ public class ImportPattern : Pattern
 		// If the colon operator is present, it means there is a return type in the tokens
 		if (tokens[COLON].Is(Operators.COLON))
 		{
-			return_type = Common.ReadType(environment, new Queue<Token>(tokens.Skip(COLON + 1))) ?? throw Errors.Get(tokens[COLON].Position, "Can not resolve the return type");
+			return_type = Common.ReadType(environment, tokens, COLON + 1) ?? throw Errors.Get(tokens[COLON].Position, "Can not resolve the return type");
 		}
 
 		var function = (Function?)null;
@@ -118,16 +112,12 @@ public class ImportPattern : Pattern
 			function = new Function(environment, modifiers, descriptor.Name, descriptor.Position, null);
 		}
 
+		function.Modifiers |= Modifier.IMPORTED;
+		function.ReturnType = return_type;
 		function.Language = language;
 
 		var parameters = descriptor.GetParameters(function);
 		function.Parameters.AddRange(parameters);
-
-		var implementation = new FunctionImplementation(function, parameters, return_type, environment);
-		implementation.IsImported = true;
-		function.Implementations.Add(implementation);
-
-		implementation.Implement(function.Blueprint);
 
 		// Declare the function in the environment
 		if (descriptor.Name == Keywords.INIT.Identifier && environment.IsType)
@@ -151,13 +141,13 @@ public class ImportPattern : Pattern
 	/// </summary>
 	private static Node? ImportNamespace(Context environment, List<Token> tokens)
 	{
-		var import = Common.ReadType(environment, new Queue<Token>(tokens.Skip(1)));
-		if (import == null) throw Errors.Get(tokens.First().Position, "Can not resolve the import");
-		environment.Imports.Add(import);
+		var imported_namespace = Common.ReadType(environment, tokens, 1);
+		if (imported_namespace == null) throw Errors.Get(tokens.First().Position, "Can not resolve the import");
+		environment.Imports.Add(imported_namespace);
 		return null;
 	}
 
-	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
+	public override Node? Build(Context environment, ParserState state, List<Token> tokens)
 	{
 		return IsFunctionImport(tokens) ? ImportFunction(environment, tokens) : ImportNamespace(environment, tokens);
 	}

@@ -111,9 +111,9 @@ public class ServicePhase : Phase
 {
 	private const bool DEBUG = false;
 
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
-		if (!bundle.Get(ConfigurationPhase.SERVICE_FLAG, false)) return Status.OK;
+		if (!Settings.Service) return Status.OK;
 
 		var detail_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DetailProvider.DebugPort : 0);
 		var diagnostics_provider_socket = new TcpListener(IPAddress.Loopback, DEBUG ? DiagnosticsProvider.DebugPort : 0);

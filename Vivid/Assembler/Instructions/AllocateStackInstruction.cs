@@ -17,6 +17,6 @@ public class AllocateStackInstruction : Instruction
 	public override void OnBuild()
 	{
 		Result.Value = new StackAllocationHandle(Unit, Bytes, Identity);
-		Result.Format = Assembler.Format;
+		Result.Format = Settings.Format;
 	}
 }

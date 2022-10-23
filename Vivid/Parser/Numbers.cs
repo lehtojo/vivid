@@ -6,9 +6,9 @@ public static class Numbers
 {
 	private static Dictionary<Format, Number> Values { get; } = new Dictionary<Format, Number>();
 
-	public static Number Get(Format type)
+	public static Number Get(Format format)
 	{
-		return Values[type];
+		return Values[format];
 	}
 
 	private static void Define(Number number)

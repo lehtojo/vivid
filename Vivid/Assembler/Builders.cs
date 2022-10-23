@@ -52,17 +52,6 @@ public static class Builders
 				throw new ApplicationException("Decrement operations should not be passed to the back end");
 			}
 
-			case NodeType.DECLARE:
-			{
-				var declaration = (DeclareNode)node;
-
-				// Do not declare the variable twice
-				if (unit.IsInitialized(declaration.Variable)) return new Result();
-
-				var result = new DeclareInstruction(unit, declaration.Variable, declaration.Registerize).Add();
-				return new SetVariableInstruction(unit, declaration.Variable, result).Add();
-			}
-
 			case NodeType.JUMP:
 			{
 				return Jumps.Build(unit, (JumpNode)node);
@@ -123,7 +112,7 @@ public static class Builders
 				return new LabelInstruction(unit, node.To<LabelNode>().Label).Add();
 			}
 
-			case NodeType.LOOP_CONTROL:
+			case NodeType.COMMAND:
 			{
 				return Loops.BuildCommand(unit, (CommandNode)node);
 			}

@@ -88,7 +88,7 @@ public class Unit
 		Function = function;
 		Self = Function.GetSelfPointer();
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			LoadArchitectureX64();
 		}
@@ -117,7 +117,7 @@ public class Unit
 		Function = null!;
 		Registers = new List<Register>();
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			LoadArchitectureX64();
 		}
@@ -143,7 +143,7 @@ public class Unit
 
 	private void LoadArchitectureX64()
 	{
-		var volatility_flag = Assembler.IsTargetWindows ? RegisterFlag.NONE : RegisterFlag.VOLATILE;
+		var volatility_flag = Settings.IsTargetWindows ? RegisterFlag.NONE : RegisterFlag.VOLATILE;
 
 		Registers.AddRange(new List<Register>()
 		{
@@ -728,7 +728,7 @@ public class Unit
 
 	public bool AddDebugPosition(Position? position)
 	{
-		if (!Assembler.IsDebuggingEnabled) return true;
+		if (!Settings.IsDebuggingEnabled) return true;
 		if (position == null) return false;
 
 		Add(new DebugBreakInstruction(this, position));

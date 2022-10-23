@@ -27,33 +27,6 @@ public class ParserPhase : Phase
 {
 	public const string ROOT_CONTEXT_IDENTITY = "0";
 
-	public const string OUTPUT = "parse";
-
-	/// <summary>
-	/// Parses all types under the specified root node
-	/// </summary>
-	public void ParseTypes(Node root)
-	{
-		var types = root.FindAll(NodeType.TYPE).Cast<TypeNode>().ToArray();
-
-		foreach (var type in types)
-		{
-			Run(() =>
-			{
-				try
-				{
-					type.Parse();
-				}
-				catch (Exception e)
-				{
-					return Status.Error(e.Message);
-				}
-
-				return Status.OK;
-			});
-		}
-	}
-
 	/// <summary>
 	/// Ensures that exported functions and virtual functions are implemented
 	/// </summary>
@@ -166,82 +139,53 @@ public class ParserPhase : Phase
 		return Status.OK;
 	}
 
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
-		if (!bundle.Contains(LexerPhase.OUTPUT))
-		{
-			return Status.Error("Nothing to parse");
-		}
+		var files = Settings.SourceFiles;
+		var context = (Context?)null;
+		var root = (Node?)null;
 
-		var files = bundle.Get<List<SourceFile>>(LexerPhase.OUTPUT);
-
-		// Form the 'hull' of the code
 		for (var i = 0; i < files.Count; i++)
 		{
-			var index = i;
+			var file = files[i];
 
-			Run(() =>
+			context = Parser.CreateRootContext(i);
+			root = new ScopeNode(context, null, null, false);
+
+			try
 			{
-				var file = files[index];
-				var context = Parser.CreateRootContext(index);
-				var root = new ScopeNode(context, null, null, false);
-
-				try
-				{
-					Parser.Parse(root, context, file.Tokens);
-				}
-				catch (Exception e)
-				{
-					return Status.Error(e.Message);
-				}
-
-				file.Root = root;
-				file.Context = context;
-
-				return Status.OK;
-			});
-		}
-
-		Sync();
-
-		if (Failed)
-		{
-			return Status.Error(GetTaskErrors());
-		}
-
-		// Parse types, subtypes and their members
-		for (var i = 0; i < files.Count; i++)
-		{
-			var index = i;
-
-			Run(() =>
+				Parser.Parse(root, context, file.Tokens);
+			}
+			catch (Exception e)
 			{
-				ParseTypes(files[index].Root!);
-				return Status.OK;
-			});
+				return Status.Error(e.Message);
+			}
+
+			file.Root = root;
+			file.Context = context;
 		}
 
-		Sync();
-
-		if (Failed)
+		// Parse all types and their members
+		foreach (var file in files)
 		{
-			return Status.Error(GetTaskErrors());
+			var types = file.Root!.FindAll(NodeType.TYPE_DEFINITION).Cast<TypeDefinitionNode>().ToList();
+			foreach (var type in types) { type.Parse(); }
 		}
 
 		// Merge all parsed files
-		var context = new Context(ROOT_CONTEXT_IDENTITY);
-		var root = Parser.CreateRootNode(context);
-		
-		// Prepare for importing libraries
-		Importer.Initialize();
+		context = Parser.CreateRootContext(ROOT_CONTEXT_IDENTITY);
+		root = Parser.CreateRootNode(context);
 
 		// Import all the specified libraries
-		var libraries = bundle.Get(ConfigurationPhase.LIBRARIES, Array.Empty<string>());
-		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
+		var libraries = Settings.Libraries;
+		var object_files = Settings.ObjectFiles;
 
 		foreach (var library in libraries)
 		{
-			Importer.Import(context, library, files, object_files);
+			if (library.EndsWith(".lib") || library.EndsWith(".a"))
+			{
+				StaticLibraryImporter.Import(context, library, files, object_files);
+			}
 		}
 
 		// Now merge all the parsed source files
@@ -254,26 +198,14 @@ public class ParserPhase : Phase
 		// Parse all the namespaces since all code has been merged
 		foreach (var iterator in root.FindAll(NodeType.NAMESPACE).Cast<NamespaceNode>())
 		{
-			Run(() =>
+			try
 			{
-				try
-				{
-					iterator.Parse(context);
-				}
-				catch (Exception e)
-				{
-					return Status.Error(e.Message);
-				}
-
-				return Status.OK;
-			});
-		}
-
-		Sync();
-
-		if (Failed)
-		{
-			return Status.Error(GetTaskErrors());
+				iterator.Parse(context);
+			}
+			catch (Exception e)
+			{
+				return Status.Error(e.Message);
+			}
 		}
 
 		// Applies all the extension functions
@@ -294,7 +226,7 @@ public class ParserPhase : Phase
 		Evaluator.Evaluate(context, root);
 		
 		// Implement the entry function if the output type does not represent library
-		if (bundle.Get(ConfigurationPhase.OUTPUT_TYPE, BinaryType.EXECUTABLE) != BinaryType.STATIC_LIBRARY)
+		if (Settings.OutputType != BinaryType.STATIC_LIBRARY)
 		{
 			var function = context.GetFunction(Keywords.INIT.Identifier);
 
@@ -307,7 +239,7 @@ public class ParserPhase : Phase
 		}
 
 		// Save the parsed result
-		bundle.Put(OUTPUT, new Parse(context, root));
+		Settings.Parse = new Parse(context, root);
 
 		return Status.OK;
 	}

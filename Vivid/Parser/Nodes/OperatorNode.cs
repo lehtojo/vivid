@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 
+#warning Update
 public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
@@ -26,21 +27,34 @@ public class OperatorNode : Node, IResolvable
 		return this;
 	}
 
+	/// <summary>
+	/// Returns whether the user is attempting to modify a memory address
+	/// </summary>
+	private bool IsAddressModification(Type? left_type, Type? right_type)
+	{
+		if (left_type == null || right_type == null) return false;
+
+		// Allow plus, minus, and multiply operations on memory addresses
+		if (Operator != Operators.ADD && Operator != Operators.SUBTRACT && Operator != Operators.MULTIPLY) return false;
+
+		// The right operand must be an integer type
+		if (!right_type.IsNumber || right_type.Format == Format.DECIMAL) return false;
+
+		// Allow links and array types as left operands
+		return Primitives.IsPrimitive(left_type, Primitives.LINK) || left_type is ArrayType;
+	}
+
 	private Type? GetClassicType()
 	{
 		var left = Left.TryGetType();
 		var right = Right.TryGetType();
 
-		// Return the left type only if it represents a link and it is modified with a number type
-		if ((left is Link || left is ArrayType) && right is Number && !right.Format.IsDecimal() && (Operator == Operators.ADD || Operator == Operators.SUBTRACT || Operator == Operators.MULTIPLY))
-		{
-			return left;
-		}
+		if (IsAddressModification(left, right)) return left;
 
 		return Resolver.GetSharedType(left, right);
 	}
 
-	private Type? GetActionType()
+	private Type? GetAssignmentType()
 	{
 		return Left.TryGetType();
 	}
@@ -51,12 +65,13 @@ public class OperatorNode : Node, IResolvable
 		{
 			OperatorType.CLASSIC => GetClassicType(),
 			OperatorType.COMPARISON => Primitives.CreateBool(),
-			OperatorType.ASSIGNMENT => GetActionType(),
+			OperatorType.ASSIGNMENT => GetAssignmentType(),
 			OperatorType.LOGICAL => Primitives.CreateBool(),
 			_ => throw new Exception("Independent operator should not be processed here")
 		};
 	}
 
+	#warning Update
 	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node arguments)
 	{
 		var argument_types = Resolver.GetTypes(arguments);
@@ -108,13 +123,10 @@ public class OperatorNode : Node, IResolvable
 		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.ACCESSOR))
 		{
 			var result = TryResolveAsIndexedSetter();
-
-			if (result != null)
-			{
-				return result;
-			}
+			if (result != null) return result;
 		}
 
+		// Try to resolve this operator node as an operator overload function call
 		var type = Left.TryGetType();
 		if (type == null) return null;
 

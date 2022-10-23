@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Diagnostics;
@@ -7,8 +6,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System;
-using System.Threading.Tasks;
-using System.Threading;
 
 public class AssemblyBuilder
 {
@@ -20,12 +17,12 @@ public class AssemblyBuilder
 
 	public AssemblyBuilder()
 	{
-		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled) { Text = new StringBuilder(); }
+		if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) { Text = new StringBuilder(); }
 	}
 
 	public AssemblyBuilder(string text)
 	{
-		if (Assembler.IsAssemblyOutputEnabled || Assembler.IsLegacyAssemblyEnabled) { Text = new StringBuilder(text); }
+		if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) { Text = new StringBuilder(text); }
 	}
 
 	public void Add(SourceFile file, List<Instruction> instructions)
@@ -124,30 +121,7 @@ public static class Assembler
 	public const string X64_COMMENT = "#";
 	public const string SEPARATOR = "\n\n";
 
-	public static Function? AllocationFunction { get; set; }
-	public static Function? DeallocationFunction { get; set; }
-	public static FunctionImplementation? InitializationFunction { get; set; }
-
-	public static Size Size { get; set; } = Size.QWORD;
-	public static Format Format => Size.ToFormat();
-	public static Format Signed => Format.INT64;
-	public static OSPlatform Target { get; set; } = OSPlatform.Windows;
-	public static Architecture Architecture { get; set; } = RuntimeInformation.ProcessArchitecture;
-
-	public static string DefaultEntryPoint => IsTargetWindows ? "main" : "_start";
-
-	public static bool IsTargetWindows => Target == OSPlatform.Windows;
-	public static bool IsTargetLinux => Target == OSPlatform.Linux;
-
-	public static bool IsArm64 => Architecture == Architecture.Arm64;
-	public static bool IsX64 => Architecture == Architecture.X64;
-
-	public static bool UseIndirectAccessTables { get; set; } = false;
-
-	public static bool IsAssemblyOutputEnabled { get; set; } = false;
-	public static bool IsDebuggingEnabled { get; set; } = false;
-	public static bool IsLegacyAssemblyEnabled { get; set; } = false;
-	public static bool IsVerboseOutputEnabled { get; set; } = false;
+	public static string DefaultEntryPoint => Settings.IsTargetWindows ? "main" : "_start";
 
 	public static string SectionDirective { get; set; } = ".section";
 	public static string SectionRelativeDirective { get; set; } = ".section_relative";
@@ -196,7 +170,7 @@ public static class Assembler
 		unit.Add(new LabelInstruction(unit, new Label(fullname + Mangle.VIRTUAL_FUNCTION_POSTFIX)));
 
 		// Do not try to convert the self pointer, if it is not used
-		if (unit.Self!.References.Count == 0) return;
+		if (unit.Self!.Usages.Count == 0) return;
 
 		var from = implementation.VirtualFunction!.FindTypeParent() ?? throw new ApplicationException("Virtual function missing its parent type");
 		var to = implementation.FindTypeParent() ?? throw new ApplicationException("Virtual function implementation missing its parent type");
@@ -209,10 +183,10 @@ public static class Assembler
 		if (alignment != 0)
 		{
 			var self = References.GetVariable(unit, unit.Self ?? throw new ApplicationException("Missing self pointer"), AccessMode.WRITE);
-			var offset = References.GetConstant(unit, new NumberNode(Signed, (long)alignment));
+			var offset = References.GetConstant(unit, new NumberNode(Settings.Signed, (long)alignment));
 
 			// Convert the self pointer to the type 'to' by offsetting it by the alignment
-			unit.Add(new SubtractionInstruction(unit, self, offset, Signed, true));
+			unit.Add(new SubtractionInstruction(unit, self, offset, Settings.Signed, true));
 		}
 	}
 
@@ -300,7 +274,7 @@ public static class Assembler
 			parameters.AddRange(Common.GetPackProxies(parameter));
 		}
 
-		if (Assembler.IsDebuggingEnabled)
+		if (Settings.IsDebuggingEnabled)
 		{
 			Calls.MoveParametersToStack(unit);
 		}
@@ -351,7 +325,7 @@ public static class Assembler
 	/// <summary>
 	/// Assembles all functions inside the specified context and returns the generated assembly grouped by the corresponding source files
 	/// </summary>
-	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context, SourceFile[] files)
+	private static Dictionary<SourceFile, AssemblyBuilder> GetTextSections(Context context, List<SourceFile> files)
 	{
 		var all = Common.GetAllFunctionImplementations(context, false);
 
@@ -371,10 +345,10 @@ public static class Assembler
 			var builder = new AssemblyBuilder();
 
 			// Add the debug label, which indicates the start of debuggable code
-			if (Assembler.IsDebuggingEnabled)
+			if (Settings.IsDebuggingEnabled)
 			{
 				var label = string.Format(Debug.FORMAT_COMPILATION_UNIT_START, file.Index);
-				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
+				if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
@@ -384,7 +358,7 @@ public static class Assembler
 				{
 					if (implementation.IsImported) continue;
 
-					if (Assembler.IsVerboseOutputEnabled)
+					if (Settings.IsVerboseOutputEnabled)
 					{
 						Console.WriteLine($"[{index + 1}/{all.Length}]: Assembling {implementation.ToString()}");
 					}
@@ -397,10 +371,10 @@ public static class Assembler
 			}
 
 			// Add the debug label, which indicates the end of debuggable code
-			if (Assembler.IsDebuggingEnabled)
+			if (Settings.IsDebuggingEnabled)
 			{
 				var label = string.Format(Debug.FORMAT_COMPILATION_UNIT_END, file.Index);
-				if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
+				if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) builder.WriteLine(label + ':');
 				builder.Add(file, new LabelInstruction(null!, new Label(label)));
 			}
 
@@ -422,7 +396,7 @@ public static class Assembler
 
 		builder.AppendLine(ExportDirective + ' ' + name);
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			builder.AppendLine($"{PowerOfTwoAlignment} 3");
 		}
@@ -448,7 +422,7 @@ public static class Assembler
 
 			if (slice.Length > 0)
 			{
-				if (IsLegacyAssemblyEnabled) builder.AppendLine($"{CharactersAllocator} \"{slice}\"");
+				if (Settings.IsLegacyAssemblyEnabled) builder.AppendLine($"{CharactersAllocator} \"{slice}\"");
 				else builder.AppendLine($"{CharactersAllocator} \'{slice}\'");
 			}
 
@@ -509,9 +483,9 @@ public static class Assembler
 			// Align the position and declare the constant
 			var name = constant.Identifier;
 
-			if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
+			if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 			{
-				builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+				builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 				builder.WriteLine($"{name}:");
 			}
 
@@ -566,7 +540,7 @@ public static class Assembler
 			builder.WriteLine(ExportDirective + ' ' + table.Name); // Export the table
 
 			// Align the table
-			if (Assembler.IsArm64) builder.WriteLine($"{PowerOfTwoAlignment} 3");
+			if (Settings.IsArm64) builder.WriteLine($"{PowerOfTwoAlignment} 3");
 
 			builder.WriteLine(table.Name + ':');
 		}
@@ -583,8 +557,8 @@ public static class Assembler
 				int c => $"{Size.DWORD.Allocator} {c}",
 				short d => $"{Size.WORD.Allocator} {d}",
 				byte e => $"{Size.BYTE.Allocator} {e}",
-				Table f => $"{Size.Allocator} {f.Name}",
-				Label g => $"{Size.Allocator} {g.GetName()}",
+				Table f => $"{Size.QWORD.Allocator} {f.Name}",
+				Label g => $"{Size.QWORD.Allocator} {g.GetName()}",
 				Offset h => $"{Size.DWORD.Allocator} {h.To.Name} - {h.From.Name}",
 				TableLabel i => AddTableLabel(i),
 				_ => throw new ApplicationException("Invalid table item")
@@ -624,7 +598,7 @@ public static class Assembler
 				{
 					if (!variable.IsStatic) continue;
 
-					if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) builder.WriteLine(AllocateStaticVariable(variable));
+					if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) builder.WriteLine(AllocateStaticVariable(variable));
 					DataEncoder.AddStaticVariable(builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), variable);
 				}
 
@@ -647,7 +621,7 @@ public static class Assembler
 				// 4. Unnamed packs are not processed
 				if (type.Configuration == null || type.IsImported || (type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) continue;
 
-				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry, TableMarker.TextualAssembly);
+				if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled) AddTable(builder, type.Configuration.Entry, TableMarker.TextualAssembly);
 				DataEncoder.AddTable(builder, builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier), type.Configuration.Entry, TableMarker.DataEncoder);
 			}
 		}
@@ -668,16 +642,16 @@ public static class Assembler
 				var name = node.Identifier;
 				if (name == null) continue;
 
-				if (Assembler.IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
+				if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 				{
-					builder.WriteLine(!Assembler.IsLegacyAssemblyEnabled || Assembler.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+					builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
 					builder.WriteLine($"{name}:");
 					builder.WriteLine(AllocateString(node.Text));
 				}
 
 				var module = builder.GetDataSection(iterator.Key, Assembler.DataSectionIdentifier);
 
-				DataEncoder.Align(module, Assembler.IsArm64 ? 8 : 16);
+				DataEncoder.Align(module, Settings.IsArm64 ? 8 : 16);
 
 				module.CreateLocalSymbol(name, module.Position);
 				module.String(node.Text);
@@ -703,7 +677,7 @@ public static class Assembler
 	public static Dictionary<SourceFile, AssemblyBuilder> GetDebugSections(Context context)
 	{
 		var builders = new Dictionary<SourceFile, AssemblyBuilder>();
-		if (!Assembler.IsDebuggingEnabled) return builders;
+		if (!Settings.IsDebuggingEnabled) return builders;
 
 		var functions = Common.GetAllFunctionImplementations(context).Where(i => i.Metadata.Start != null)
 			.GroupBy(i => i.Metadata!.Start!.File ?? throw new ApplicationException("Missing declaration file"));
@@ -747,9 +721,9 @@ public static class Assembler
 		return builders;
 	}
 
-	public static Dictionary<SourceFile, string> Assemble(Bundle bundle, Context context, SourceFile[] files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
+	public static Dictionary<SourceFile, string> Assemble(Context context, List<SourceFile> files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			CommentSpecifier = ARM64_COMMENT;
 
@@ -762,7 +736,7 @@ public static class Assembler
 
 		Keywords.Definitions.Clear(); // Remove all keywords for parsing assembly
 
-		Assembler.UseIndirectAccessTables = !Assembler.IsTargetWindows && output_type == BinaryType.SHARED_LIBRARY && Assembler.IsLegacyAssemblyEnabled;
+		Settings.UseIndirectAccessTables = !Settings.IsTargetWindows && output_type == BinaryType.SHARED_LIBRARY && Settings.IsLegacyAssemblyEnabled;
 
 		var result = new Dictionary<SourceFile, string>();
 
@@ -773,17 +747,17 @@ public static class Assembler
 		{
 			entry_function_file = entry_function.Metadata.Start?.File ?? throw new ApplicationException("Entry function declaration file missing");
 		}
-	
-		var object_files = bundle.Get(ConfigurationPhase.IMPORTED_OBJECTS, new Dictionary<SourceFile, BinaryObjectFile>());
+
+		var object_files = Settings.ObjectFiles;
 		var standard_library_object_file = new SourceFile(AssemblyPhase.StandardLibrary, string.Empty, files.Max(i => i.Index) + 1);
 
 		// Import user defined object files
-		var user_imported_object_files = bundle.Get(ConfigurationPhase.OBJECTS, Array.Empty<string>());
+		var user_imported_object_files = Settings.UserImportedObjectFiles;
 
 		foreach (var object_file in user_imported_object_files)
 		{
 			var file = new SourceFile(object_file, string.Empty, -1);
-			object_files.Add(file, IsTargetWindows ? PeFormat.Import(object_file) : ElfFormat.Import(object_file));
+			object_files.Add(file, Settings.IsTargetWindows ? PeFormat.Import(object_file) : ElfFormat.Import(object_file));
 		}
 
 		var text_sections = GetTextSections(context, files);
@@ -795,12 +769,12 @@ public static class Assembler
 			var builder = new AssemblyBuilder();
 
 			// Legacy assembly requires the syntax to be specified
-			if (Assembler.IsX64 && Assembler.IsLegacyAssemblyEnabled) builder.WriteLine(LEGACY_ASSEMBLY_SYNTAX_SPECIFIER);
+			if (Settings.IsX64 && Settings.IsLegacyAssemblyEnabled) builder.WriteLine(LEGACY_ASSEMBLY_SYNTAX_SPECIFIER);
 
 			// Start the text section
 			builder.WriteLine(SectionDirective + ' ' + TextSectionIdentifier);
 
-			if (Assembler.IsDebuggingEnabled)
+			if (Settings.IsDebuggingEnabled)
 			{
 				var fullname = file.Fullname;
 
@@ -813,7 +787,7 @@ public static class Assembler
 					fullname = fullname.Insert(0, "./");
 				}
 
-				if (IsLegacyAssemblyEnabled)
+				if (Settings.IsLegacyAssemblyEnabled)
 				{
 					builder.WriteLine(DebugFileDirective + " 1 " + $"\"{fullname.Replace('\\', '/')}\"");
 				}
@@ -831,7 +805,7 @@ public static class Assembler
 				var template = FORMAT_WINDOWS_TEXT_SECTION_HEADER;
 				var instructions = string.Empty;
 				
-				if (IsTargetLinux)
+				if (Settings.IsTargetLinux)
 				{
 					if (output_type == BinaryType.SHARED_LIBRARY)
 					{
@@ -840,40 +814,40 @@ public static class Assembler
 					}
 					else
 					{
-						template = Assembler.IsArm64 ? FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
+						template = Settings.IsArm64 ? FORMAT_ARM64_LINUX_TEXT_SECTION_HEADER : FORMAT_X64_LINUX_TEXT_SECTION_HEADER;
 					}
 				}
 
 				var function = entry_function;
 
 				// Load the stack pointer as the first parameter
-				if (Assembler.InitializationFunction != null)
+				if (Settings.InitializationFunction != null)
 				{
-					if (Assembler.IsX64)
+					if (Settings.IsX64)
 					{
-						if (IsTargetWindows) { instructions = "mov rcx, rsp\n"; }
+						if (Settings.IsTargetWindows) { instructions = "mov rcx, rsp\n"; }
 						else { instructions = "mov rdi, rsp\n"; }
 					}
 					else { instructions = "mov x0, sp\n"; }
 
-					function = Assembler.InitializationFunction;
+					function = Settings.InitializationFunction;
 				}
 
 				// Now determine the instruction, which will call the first function
-				if (Assembler.IsTargetWindows || output_type == BinaryType.SHARED_LIBRARY)
+				if (Settings.IsTargetWindows || output_type == BinaryType.SHARED_LIBRARY)
 				{
-					if (Assembler.IsX64) { instructions += $"jmp {function.GetFullname()}"; }
+					if (Settings.IsX64) { instructions += $"jmp {function.GetFullname()}"; }
 					else { instructions += $"b {function.GetFullname()}"; }
 				}
 				else
 				{
-					if (Assembler.IsX64) { instructions += $"call {function.GetFullname()}"; }
+					if (Settings.IsX64) { instructions += $"call {function.GetFullname()}"; }
 					else { instructions += $"bl {function.GetFullname()}"; }
 				}
 
 				builder.WriteLine(string.Format(template, ExportDirective, instructions));
 
-				if (!Assembler.IsLegacyAssemblyEnabled)
+				if (!Settings.IsLegacyAssemblyEnabled)
 				{
 					var parser = new AssemblyParser();
 					parser.Parse(file, string.Format(template, ExportDirective, instructions));
@@ -905,13 +879,13 @@ public static class Assembler
 
 			exports[file] = builder.Exports.ToList();
 
-			if (IsAssemblyOutputEnabled || IsLegacyAssemblyEnabled)
+			if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 			{
 				result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
 			}
 
 			// Skip using the new system if requested
-			if (IsLegacyAssemblyEnabled) continue;
+			if (Settings.IsLegacyAssemblyEnabled) continue;
 
 			// Load all the section modules
 			var modules = builder.Modules.GetValueOrDefault(file, new List<DataEncoderModule>());
@@ -919,7 +893,7 @@ public static class Assembler
 			// Ensure there are no duplicated sections
 			if (modules.Count != modules.Select(i => i.Name).Distinct().Count()) throw new ApplicationException("Duplicated sections are not allowed");
 
-			var output = InstructionEncoder.Encode(builder.Instructions.GetValueOrDefault(file, new List<Instruction>()), IsDebuggingEnabled ? file.Fullname : null);
+			var output = InstructionEncoder.Encode(builder.Instructions.GetValueOrDefault(file, new List<Instruction>()), Settings.IsDebuggingEnabled ? file.Fullname : null);
 			var object_text_section = output.Section;
 			var object_data_sections = modules.Select(i => i.Export()).ToList();
 			var object_debug_lines = output.Lines?.Export();
@@ -931,7 +905,7 @@ public static class Assembler
 			sections.AddRange(object_data_sections);
 			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
-			var object_file = IsTargetWindows
+			var object_file = Settings.IsTargetWindows
 				? PeFormat.Create(file.Fullname, sections, builder.Exports)
 				: ElfFormat.Create(file.Fullname, sections, builder.Exports);
 
@@ -945,18 +919,18 @@ public static class Assembler
 			throw new ApplicationException("Failed to create the static library");
 		}
 
-		if (!Assembler.IsLegacyAssemblyEnabled)
+		if (!Settings.IsLegacyAssemblyEnabled)
 		{
 			var postfix = output_type == BinaryType.EXECUTABLE ? AssemblyPhase.ExecutableExtension : AssemblyPhase.SharedLibraryExtension;
 
-			var linked_binary = IsTargetWindows
+			var linked_binary = Settings.IsTargetWindows
 				? PeFormat.Link(object_files.Values.ToList(), imports, DefaultEntryPoint, output_name + postfix, output_type == BinaryType.EXECUTABLE)
 				: Linker.Link(object_files.Values.ToList(), DefaultEntryPoint, output_type == BinaryType.EXECUTABLE);
 
 			File.WriteAllBytes(output_name + postfix, linked_binary);
 
 			// Make the produced binary executable
-			if (IsTargetLinux)
+			if (Settings.IsTargetLinux)
 			{
 				var process = Process.Start(new ProcessStartInfo("bash", $"-c \"chmod +x '{output_name + postfix}'\"")
 				{

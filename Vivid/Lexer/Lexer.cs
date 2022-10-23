@@ -43,9 +43,6 @@ public static class Lexer
 {
 	public static Size Size { get; set; } = Size.QWORD;
 
-	public const string POSITIVE_INFINITY_CONSTANT = "POSITIVE_INFINITY";
-	public const string NEGATIVE_INFINITY_CONSTANT = "NEGATIVE_INFINITY";
-
 	public const char LINE_ENDING = '\n';
 	public const char COMMENT = '#';
 	public const string MULTILINE_COMMENT = "###";

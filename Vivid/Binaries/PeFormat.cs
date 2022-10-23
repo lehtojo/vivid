@@ -950,8 +950,8 @@ public static class PeFormat
 				import_address_section_builder.Relocations.Add(new BinaryRelocation(import_symbol, import_address_section_builder.Position, 0, BinaryRelocationType.BASE_RELATIVE_32));
 				import_address_section_builder.WriteInt64(0);
 
-				#warning Support Arm64
-				if (Assembler.IsArm64) throw new NotImplementedException("Import code generation is not implemented for Arm64");
+				#warning Support arm64
+				if (Settings.IsArm64) throw new NotImplementedException("Import code generation is not implemented for arm64");
 
 				// Create a label, which defines the imported function so that the other code can jump indirectly to the actual implementation
 				// Instruction: <function>:

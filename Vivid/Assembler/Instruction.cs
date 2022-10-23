@@ -72,7 +72,7 @@ public class InstructionParameter
 	public InstructionParameter(Handle handle, int flags)
 	{
 		Flags = flags;
-		Result = new Result(handle, Assembler.Format);
+		Result = new Result(handle, Settings.Format);
 		Value = handle;
 		Types = new[] { handle.Type };
 	}
@@ -115,7 +115,7 @@ public class InstructionParameter
 		{
 			var handle = Result.Value.To<DataSectionHandle>();
 
-			if (Assembler.IsArm64) return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
+			if (Settings.IsArm64) return Flag.Has(Flags, ParameterFlag.ALLOW_ADDRESS) && handle.Address;
 
 			// Using the address value can be allowed, if the bit limit has been raised to 64-bit
 			return Flag.Has(Flags, ParameterFlag.BIT_LIMIT_64) || !handle.Address;
@@ -235,7 +235,7 @@ public class Instruction
 		{
 			if (!iterator.IsStandardRegister)
 			{
-				Memory.MoveToRegister(Unit, iterator, Assembler.Size, false, Trace.For(Unit, iterator));
+				Memory.MoveToRegister(Unit, iterator, Settings.Size, false, Trace.For(Unit, iterator));
 			}
 
 			var register = iterator.Register;

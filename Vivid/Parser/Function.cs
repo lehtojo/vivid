@@ -14,7 +14,6 @@ public class Parameter
 	public string Name { get; set; }
 	public Position? Position { get; set; }
 	public Type? Type { get; set; }
-	public bool IsMemberParameter => Name.StartsWith(Function.SELF_POINTER_IDENTIFIER + '-');
 
 	public Parameter(string name, Type? type = null)
 	{
@@ -128,26 +127,6 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Declares a self pointer inside this function
-	/// </summary>
-	public void DeclareSelfPointer()
-	{
-		Self = new Variable(this, FindTypeParent(), VariableCategory.PARAMETER, SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
-		{
-			IsSelfPointer = true,
-			Position = Start
-		};
-	}
-
-	/// <summary>
-	/// Implements the function with the specified parameter type
-	/// </summary>
-	public FunctionImplementation Implement(Type type)
-	{
-		return Implement(new[] { type });
-	}
-
-	/// <summary>
 	/// Implements the function with parameter types
 	/// </summary>
 	/// <returns>Function implementation</returns>
@@ -158,9 +137,8 @@ public class Function : Context
 
 		// Create a function implementation
 		var implementation = new FunctionImplementation(this, parameters, null, Parent ?? throw new ApplicationException("Missing function parent"));
-
-		// Force the return type, if user added it
-		implementation.ReturnType = ReturnType;
+		implementation.IsImported = IsImported;
+		implementation.ReturnType = ReturnType; // Force the return type, if user added it
 
 		// Add the created implementation to the list
 		Implementations.Add(implementation);
@@ -207,23 +185,12 @@ public class Function : Context
 	}
 
 	/// <summary>
-	/// Tries to find function implementation with the specified parameter type
-	/// </summary>
-	public FunctionImplementation? Get(Type type)
-	{
-		return Get(new[] { type });
-	}
-
-	/// <summary>
 	/// Tries to find function implementation with the specified parameters
 	/// </summary>
 	public virtual FunctionImplementation? Get(IEnumerable<Type> parameters)
 	{
 		// Implementation should not be made if any of the parameters has a fixed type but it is unresolved
-		if (Parameters.Any(i => i.Type != null && i.Type.IsUnresolved))
-		{
-			return null;
-		}
+		if (Parameters.Any(i => i.Type != null && i.Type.IsUnresolved)) return null;
 
 		var types = Parameters.Zip(parameters).Select(i => i.First.Type ?? i.Second).ToList();
 		var implementation = Implementations.Find(i => i.ParameterTypes.SequenceEqual(types));

@@ -11,7 +11,7 @@ public class CommandNode : Node, IResolvable
 	{
 		Instruction = instruction;
 		Position = position;
-		Instance = NodeType.LOOP_CONTROL;
+		Instance = NodeType.COMMAND;
 
 		if (Instruction != Keywords.CONTINUE) { Finished = true; }
 	}
@@ -21,7 +21,7 @@ public class CommandNode : Node, IResolvable
 		Instruction = instruction;
 		Finished = finished;
 		Position = position;
-		Instance = NodeType.LOOP_CONTROL;
+		Instance = NodeType.COMMAND;
 	}
 
 	public Node? Resolve(Context context)

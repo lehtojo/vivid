@@ -29,7 +29,7 @@ public static class ProjectBuilder
 
 		// Merge all parsed files
 		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY);
-		root = Parser.CreateRootNode(context);
+		root = new ScopeNode(context, null, null, false);
 
 		// Now merge all the parsed source files
 		foreach (var file in files.Values)
@@ -39,8 +39,6 @@ public static class ProjectBuilder
 			context.Merge(file.Context, false);
 			root.Merge(file.Root.Clone());
 		}
-
-		context.Update();
 
 		// Applies all the extension functions
 		ParserPhase.ApplyExtensionFunctions(context, root);

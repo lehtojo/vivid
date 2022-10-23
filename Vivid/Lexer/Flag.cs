@@ -1,5 +1,10 @@
 public static class Flag
 {
+	public static bool Has(long mask, long flag)
+	{
+		return (mask & flag) == flag;
+	}
+
 	public static bool Has(int mask, int flag)
 	{
 		return (mask & flag) == flag;

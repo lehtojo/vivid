@@ -2,8 +2,6 @@
 
 public class AccessorPattern : Pattern
 {
-	private const int PRIORITY = 19;
-
 	private const int OBJECT = 0;
 	private const int ARGUMENTS = 1;
 
@@ -11,19 +9,15 @@ public class AccessorPattern : Pattern
 	public AccessorPattern() : base
 	(
 		TokenType.OBJECT, TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 19; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[ARGUMENTS].To<ParenthesisToken>().Opening == ParenthesisType.BRACKETS;
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var source = Singleton.Parse(context, tokens[OBJECT]);
 		var arguments = Singleton.Parse(context, tokens[ARGUMENTS]);

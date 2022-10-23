@@ -16,8 +16,6 @@ public class TemplateTypeVariant
 
 public class TemplateType : Type
 {
-	private const int NAME = 0;
-
 	public List<string> TemplateParameters { get; private set; }
 	public List<Token> Inherited { get; private set; } = new List<Token>();
 
@@ -28,19 +26,6 @@ public class TemplateType : Type
 	{
 		Blueprint = blueprint;
 		TemplateParameters = template_parameters;
-	}
-
-	public TemplateType(Context context, string name, int modifiers, int argument_count) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE)
-	{
-		// Create an empty type with the specified name using tokens
-		Blueprint = new List<Token> { new IdentifierToken(name), new ParenthesisToken() { Opening = ParenthesisType.CURLY_BRACKETS } };
-		TemplateParameters = new List<string>();
-
-		// Generate the template arguments
-		for (var i = 0; i < argument_count; i++)
-		{
-			TemplateParameters.Add($"T{i}");
-		}
 	}
 
 	private Type? TryGetVariant(Type[] arguments)
@@ -62,11 +47,7 @@ public class TemplateType : Type
 			if (tokens[i].Type == TokenType.IDENTIFIER)
 			{
 				var j = TemplateParameters.IndexOf(tokens[i].To<IdentifierToken>().Value);
-
-				if (j == -1)
-				{
-					continue;
-				}
+				if (j == -1) continue;
 
 				var position = tokens[i].To<IdentifierToken>().Position;
 
@@ -92,22 +73,22 @@ public class TemplateType : Type
 		var tokens = Inherited.Select(i => (Token)i.Clone()).ToList();
 
 		var blueprint = Blueprint.Select(i => (Token)i.Clone()).ToList();
-		blueprint[NAME].To<IdentifierToken>().Value = Name + $"<{identifier}>";
+		blueprint.First().To<IdentifierToken>().Value = Name + $"<{identifier}>";
 
 		tokens.AddRange(blueprint);
 
 		InsertArguments(tokens, arguments);
 
 		// Parse the new variant
-		var result = Parser.Parse(Parent ?? throw new ApplicationException("Template type did not have parent context"), tokens).First;
+		var result = Parser.Parse(Parent!, tokens, 0, Parser.MAX_PRIORITY).First;
 
-		if (result == null || !result.Is(NodeType.TYPE))
+		if (result == null || !result.Is(NodeType.TYPE_DEFINITION))
 		{
 			throw new ApplicationException("Tried to parse a new variant from template type but the result was not a new type");
 		}
 
 		// Register the new variant
-		var variant = result.To<TypeNode>().Type;
+		var variant = result.To<TypeDefinitionNode>().Type;
 		variant.Identifier = Name;
 		variant.Modifiers = Modifiers & (~Modifier.IMPORTED); // Remove the imported modifier, because new variants are not imported
 		variant.TemplateArguments = arguments;
@@ -115,7 +96,7 @@ public class TemplateType : Type
 		Variants.Add(identifier, new TemplateTypeVariant(variant, arguments));
 
 		// Parse the body of the type
-		result.To<TypeNode>().Parse();
+		result.To<TypeDefinitionNode>().Parse();
 
 		// Finally, add the inherited supertypes to the variant
 		variant.Supertypes.AddRange(Supertypes);

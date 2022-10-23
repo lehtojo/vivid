@@ -4,13 +4,13 @@ using System.Globalization;
 
 public class NumberNode : Node, ICloneable
 {
-	public Format Type { get; private set; }
+	public Format Format { get; private set; }
 	public object Value { get; set; }
 	public int Bits => Common.GetBits(Value);
 
-	public NumberNode(Format type, object value)
+	public NumberNode(Format format, object value)
 	{
-		Type = type;
+		Format = format;
 		Value = value;
 		Instance = NodeType.NUMBER;
 
@@ -20,9 +20,9 @@ public class NumberNode : Node, ICloneable
 		}
 	}
 
-	public NumberNode(Format type, object value, Position? position)
+	public NumberNode(Format format, object value, Position? position)
 	{
-		Type = type;
+		Format = format;
 		Value = value;
 		Position = position;
 		Instance = NodeType.NUMBER;
@@ -38,18 +38,18 @@ public class NumberNode : Node, ICloneable
 		if (format == Format.DECIMAL)
 		{
 			Value = System.Convert.ToDouble(Value);
-			Type = format;
+			Format = format;
 		}
 		else
 		{
 			Value = System.Convert.ToInt64(Value);
-			Type = format;
+			Format = format;
 		}
 	}
 
 	public NumberNode Negate()
 	{
-		if (Type == Format.DECIMAL)
+		if (Format == Format.DECIMAL)
 		{
 			Value = -(double)Value;
 		}
@@ -63,25 +63,25 @@ public class NumberNode : Node, ICloneable
 
 	public override Type? TryGetType()
 	{
-		return Numbers.Get(Type);
+		return Numbers.Get(Format);
 	}
 
 	public new object Clone()
 	{
-		return new NumberNode(Type, Value, Position?.Clone());
+		return new NumberNode(Format, Value, Position?.Clone());
 	}
 
 	public override bool Equals(object? other)
 	{
 		return other is NumberNode node &&
 				base.Equals(other) &&
-				Type == node.Type &&
+				Format == node.Format &&
 				EqualityComparer<object>.Default.Equals(Value, node.Value);
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Instance, Position, Type, Value);
+		return HashCode.Combine(Instance, Position, Format, Value);
 	}
 
 	public override string ToString() => $"Number {Value}";

@@ -23,7 +23,7 @@ public class GetVariableInstruction : Instruction
 		// If the result represents a static variable, it might be needed to load it into a register
 		if (Variable.IsStatic && Mode == AccessMode.READ)
 		{
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Result.Format.IsDecimal(), Trace.For(Unit, Result));
+			Memory.MoveToRegister(Unit, Result, Settings.Size, Result.Format.IsDecimal(), Trace.For(Unit, Result));
 		}
 	}
 }

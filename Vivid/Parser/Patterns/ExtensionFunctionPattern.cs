@@ -3,53 +3,48 @@ using System;
 
 public class ExtensionFunctionPattern : Pattern
 {
-	public const int PRIORITY = 23;
-
 	private const int PARAMETERS_OFFSET = 2;
 	private const int BODY_OFFSET = 0;
 
 	private const int TEMPLATE_FUNCTION_EXTENSION_TEMPLATE_ARGUMENTS_END_OFFSET = PARAMETERS_OFFSET + 1;
 	private const int STANDARD_FUNCTION_EXTENSION_LAST_DOT_OFFSET = PARAMETERS_OFFSET + 1;
 
-	// Examples:
-	// Player.spawn(position: Vector) [\n] {...}
-
-	// Pattern 1: $T1.$T2. ... .$Tn.$name [<$T1, $T2, ..., $Tn>] () [\n] {...}
+	// Pattern: $T1.$T2. ... .$Tn.$name [<$T1, $T2, ..., $Tn>] () [\n] {...}
 	public ExtensionFunctionPattern() : base
 	(
-	   TokenType.IDENTIFIER
-	) { }
+		TokenType.IDENTIFIER
+	)
+	{ Priority = 23; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Optionally consume template arguments
-		Try(Common.ConsumeTemplateArguments, state);
+		var backup = state.Save();
+		if (!Common.ConsumeTemplateArguments(state)) state.Restore(backup);
 
 		// Ensure the first operator is a dot operator
-		if (!Consume(state, out Token? consumed, TokenType.OPERATOR) || !consumed!.Is(Operators.DOT)) return false;
+		if (!state.Consume(out Token? consumed, TokenType.OPERATOR) || !consumed!.Is(Operators.DOT)) return false;
 
 		while (true)
 		{
 			// If there is a function token after the dot operator, this is the function to be added
-			if (Consume(state, TokenType.FUNCTION)) break;
+			if (state.Consume(TokenType.FUNCTION)) break;
 
 			// Consume a normal type or a template type
-			if (!Consume(state, TokenType.IDENTIFIER)) return false;
-			Try(Common.ConsumeTemplateArguments, state);
+			if (!state.Consume(TokenType.IDENTIFIER)) return false;
 
-			if (Consume(state, out consumed, TokenType.OPERATOR))
+			// Optionally consume template arguments
+			backup = state.Save();
+			if (!Common.ConsumeTemplateArguments(state)) state.Restore(backup);
+
+			if (state.Consume(out consumed, TokenType.OPERATOR))
 			{
 				// If an operator was consumed, it must be a dot operator
 				if (!consumed!.Is(Operators.DOT)) return false;
 				continue;
 			}
 
-			if (Consume(state, out consumed, TokenType.PARENTHESIS))
+			if (state.Consume(out consumed, TokenType.PARENTHESIS))
 			{
 				// If parenthesis were consumed, it must be standard parenthesis
 				if (!consumed!.Is(ParenthesisType.PARENTHESIS)) return false;
@@ -61,10 +56,10 @@ public class ExtensionFunctionPattern : Pattern
 		}
 
 		// Optionally consume a line ending
-		Consume(state, TokenType.END | TokenType.OPTIONAL);
+		state.ConsumeOptional(TokenType.END);
 
 		// The last token must be the body of the function
-		return Consume(state, out consumed, TokenType.PARENTHESIS) && consumed!.Is(ParenthesisType.CURLY_BRACKETS);
+		return state.Consume(out consumed, TokenType.PARENTHESIS) && consumed!.Is(ParenthesisType.CURLY_BRACKETS);
 	}
 
 	private static bool IsTemplateFunction(List<Token> tokens)
@@ -100,8 +95,7 @@ public class ExtensionFunctionPattern : Pattern
 
 		// Collect all the tokens before the name of the extension function
 		// NOTE: This excludes the dot operator
-		var queue = new Queue<Token>(tokens.GetRange(0, i - 2));
-		var destination = Common.ReadType(environment, queue);
+		var destination = Common.ReadType(environment, tokens.GetRange(0, i - 2));
 
 		if (destination == null) throw new ApplicationException("Invalid template function extension");
 
@@ -120,9 +114,7 @@ public class ExtensionFunctionPattern : Pattern
 
 	private static Node? CreateStandardFunctionExtension(Context environment, List<Token> tokens)
 	{
-		var queue = new Queue<Token>(tokens.GetRange(0, tokens.Count - 1 - STANDARD_FUNCTION_EXTENSION_LAST_DOT_OFFSET));
-		var destination = Common.ReadType(environment, queue);
-
+		var destination = Common.ReadType(environment, tokens.GetRange(0, tokens.Count - 1 - STANDARD_FUNCTION_EXTENSION_LAST_DOT_OFFSET));
 		if (destination == null) throw new ApplicationException("Invalid template function extension");
 
 		var descriptor = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<FunctionToken>();
@@ -131,7 +123,7 @@ public class ExtensionFunctionPattern : Pattern
 		return new ExtensionFunctionNode(destination, descriptor, body.Tokens, descriptor.Position, body.End);
 	}
 
-	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
+	public override Node? Build(Context environment, ParserState state, List<Token> tokens)
 	{
 		if (IsTemplateFunction(tokens))
 		{

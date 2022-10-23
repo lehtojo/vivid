@@ -3,8 +3,6 @@ using System.Linq;
 
 public class VariableDeclarationPattern : Pattern
 {
-	public const int PRIORITY = 19;
-
 	public const int NAME = 0;
 	public const int COLON = 1;
 
@@ -13,19 +11,15 @@ public class VariableDeclarationPattern : Pattern
 	public VariableDeclarationPattern() : base
 	(
 		TokenType.IDENTIFIER, TokenType.OPERATOR
-	) { }
+	)
+	{ Priority = 19; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[COLON].Is(Operators.COLON) && Common.ConsumeType(state);
 	}
 
-	public override Node Build(Context context, PatternState state, List<Token> tokens)
+	public override Node Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var name = tokens[NAME].To<IdentifierToken>();
 
@@ -36,10 +30,10 @@ public class VariableDeclarationPattern : Pattern
 
 		if (name.Value == Function.SELF_POINTER_IDENTIFIER || name.Value == Lambda.SELF_POINTER_IDENTIFIER)
 		{
-			throw Errors.Get(name.Position, $"Can not declare variable called '{name.Value}' since the name is reserved");
+			throw Errors.Get(name.Position, "Can not create variable with name " + name.Value);
 		}
 
-		var type = Common.ReadType(context, new Queue<Token>(tokens.Skip(COLON + 1)));
+		var type = Common.ReadType(context, tokens, COLON + 1);
 
 		var constant = context.Parent == null;
 		var category = context.IsType ? VariableCategory.MEMBER : (constant ? VariableCategory.GLOBAL : VariableCategory.LOCAL);

@@ -16,7 +16,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	private static bool IsConstantValidForExtendedMultiplication(long x)
 	{
-		return Common.IsPowerOfTwo(x) && x <= (Assembler.IsX64 ? Instructions.X64.EVALUATE_MAX_MULTIPLIER : 1L << 32);
+		return Common.IsPowerOfTwo(x) && x <= (Settings.IsX64 ? Instructions.X64.EVALUATE_MAX_MULTIPLIER : 1L << 32);
 	}
 
 	private class ConstantMultiplication
@@ -48,7 +48,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			Unit.Add(new MoveInstruction(Unit, First, Result), true);
 		}
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			OnBuildX64();
 		}
@@ -107,7 +107,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 				Build(
 					Instructions.X64.EVALUATE,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						Result,
 						ParameterFlag.DESTINATION,
@@ -131,14 +131,14 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 				Build(
 					Instructions.X64.SHIFT_LEFT,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						operand,
 						ParameterFlag.READS | flags,
 						HandleType.REGISTER
 					),
 					new InstructionParameter(
-						new Result(count, Assembler.Format),
+						new Result(count, Settings.Format),
 						ParameterFlag.NONE,
 						HandleType.CONSTANT
 					)
@@ -168,7 +168,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 				Build(
 					Instructions.X64.EVALUATE,
-					Assembler.Size,
+					Settings.Size,
 					new InstructionParameter(
 						destination,
 						ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | (Assigns ? ParameterFlag.NO_ATTACH : ParameterFlag.NONE),
@@ -189,7 +189,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		Build(
 			Instructions.X64.SIGNED_MULTIPLY,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				operand,
 				ParameterFlag.READS | flags,
@@ -221,7 +221,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 			Build(
 				Instructions.Shared.ADD,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -238,7 +238,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 					HandleType.REGISTER
 				),
 				new InstructionParameter(
-					new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Assembler.Format),
+					new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Settings.Format),
 					ParameterFlag.NONE,
 					HandleType.MODIFIER
 				)
@@ -251,7 +251,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		Build(
 			Instructions.Shared.ADD,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -268,7 +268,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Assembler.Format),
+				new Result(new ModifierHandle($"{Instructions.Arm64.SHIFT_LEFT} #{shift}"), Settings.Format),
 				ParameterFlag.NONE,
 				HandleType.MODIFIER
 			)
@@ -292,7 +292,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 			if (Common.IsPowerOfTwo(multiplication.Constant))
 			{
 				first = multiplication.Multiplicand;
-				second = new Result(new ConstantHandle((long)Math.Log2(multiplication.Constant)), Assembler.Format);
+				second = new Result(new ConstantHandle((long)Math.Log2(multiplication.Constant)), Settings.Format);
 				types = is_decimal ? new[] { HandleType.CONSTANT, HandleType.MEDIA_REGISTER } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
 				instruction = Instructions.Arm64.SHIFT_LEFT;
 			}
@@ -310,7 +310,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 			Build(
 				instruction,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -335,7 +335,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 		Build(
 			instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -373,7 +373,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 			var expression = new ExpressionHandle
 			(
-				new Result(first.Value!, Assembler.Format),
+				new Result(first.Value!, Settings.Format),
 				(int)Math.Pow(2, shift),
 				null,
 				0
@@ -432,7 +432,7 @@ public class MultiplicationInstruction : DualParameterInstruction
 
 	public override bool Redirect(Handle handle, bool root)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return RedirectArm64(handle);
 		}

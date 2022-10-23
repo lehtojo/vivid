@@ -130,11 +130,10 @@ public static class Arithmetic
 	{
 		var type = node.Object.GetType();
 
-		if (Primitives.IsPrimitive(type, Primitives.BOOL))
+		if (!node.IsBitwise)
 		{
 			var value = References.Get(unit, node.Object);
-
-			return BitwiseInstruction.CreateXor(unit, value, new Result(new ConstantHandle(1L), Assembler.Format), value.Format).Add();
+			return BitwiseInstruction.CreateXor(unit, value, new Result(new ConstantHandle(1L), Settings.Format), value.Format).Add();
 		}
 
 		return SingleParameterInstruction.Not(unit, References.Get(unit, node.Object)).Add();
@@ -147,7 +146,7 @@ public static class Arithmetic
 	{
 		var is_decimal = node.GetType().Format.IsDecimal();
 
-		if (Assembler.IsX64 && is_decimal)
+		if (Settings.IsX64 && is_decimal)
 		{
 			// Define a constant which negates decimal values
 			var negator_constant = BitConverter.GetBytes(0x8000000000000000).Concat(BitConverter.GetBytes(0x8000000000000000)).ToArray();
@@ -231,7 +230,7 @@ public static class Arithmetic
 		var is_unsigned = operation.Left.GetType().Format.IsUnsigned();
 		var type = operation.GetType().To<Number>().Type;
 
-		if (Assembler.IsX64 && !is_unsigned && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
+		if (Settings.IsX64 && !is_unsigned && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
 			return BuildConstantDivision(unit, operation.Left, (long)operation.Right.To<NumberNode>().Value, assigns);
 		}
@@ -287,7 +286,7 @@ public static class Arithmetic
 	/// </summary>
 	private static Result BuildAssignOperator(Unit unit, OperatorNode node)
 	{
-		if (Assembler.IsDebuggingEnabled) return BuildDebugAssignOperator(unit, node);
+		if (Settings.IsDebuggingEnabled) return BuildDebugAssignOperator(unit, node);
 
 		var left = (Result?)null;
 		var right = (Result?)null;
@@ -381,22 +380,22 @@ public static class Arithmetic
 
 		var multiplication = (Result?)null;
 
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
-			multiplication = new MultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), left.GetType().Format, false).Add();
+			multiplication = new MultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Settings.Format), left.GetType().Format, false).Add();
 		}
 		else
 		{
-			multiplication = new LongMultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Assembler.Format), left.GetType().Format.IsUnsigned()).Add();
+			multiplication = new LongMultiplicationInstruction(unit, dividend, new Result(new ConstantHandle((long)reciprocal.Low), Settings.Format), left.GetType().Format.IsUnsigned()).Add();
 		}
 
 		// The following offset fixes the result of the division when the result is negative by setting the offset's value to one if the result is negative, otherwise zero
-		var offset = BitwiseInstruction.CreateShiftRight(unit, multiplication, new Result(new ConstantHandle(63L), Assembler.Format), multiplication.Format, true).Add();
+		var offset = BitwiseInstruction.CreateShiftRight(unit, multiplication, new Result(new ConstantHandle(63L), Settings.Format), multiplication.Format, true).Add();
 
 		if (padding > 0)
 		{
 			// Shift the result to the right by the padding
-			BitwiseInstruction.CreateShiftRight(unit, multiplication, new Result(new ConstantHandle((long)padding), Assembler.Format), Assembler.Signed, false, true).Add();
+			BitwiseInstruction.CreateShiftRight(unit, multiplication, new Result(new ConstantHandle((long)padding), Settings.Format), Settings.Signed, false, true).Add();
 		}
 
 		// Fix the division by adding the offset to the multiplication
@@ -407,7 +406,7 @@ public static class Arithmetic
 		{
 			var local = TryGetLocalVariable(unit, destination);
 
-			if (local != null && !Assembler.IsDebuggingEnabled)
+			if (local != null && !Settings.IsDebuggingEnabled)
 			{
 				return new SetVariableInstruction(unit, local, addition).Add();
 			}

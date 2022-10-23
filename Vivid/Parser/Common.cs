@@ -6,10 +6,10 @@ using System.Linq;
 public struct InlineContainer
 {
 	public Node Destination { get; private set; }
-	public InlineNode Node { get; private set; }
+	public Node Node { get; private set; }
 	public Variable Result { get; private set; }
 
-	public InlineContainer(Node destination, InlineNode node, Variable result)
+	public InlineContainer(Node destination, Node node, Variable result)
 	{
 		Destination = destination;
 		Node = node;
@@ -22,11 +22,46 @@ public static class Common
 	/// <summary>
 	/// Returns whether the specified actual types are compatible with the specified expected types, that is whether the actual types can be casted to match the expected types. This function also requires that the actual parameters are all resolved, otherwise this function returns false.
 	/// </summary>
-	public static bool Compatible(IEnumerable<Type?> expected, IEnumerable<Type?> actual)
+	public static bool Compatible(List<Type?> expected_types, List<Type?> actual_types)
 	{
-		if (expected.Count() != actual.Count()) return false;
+		if (expected_types.Count() != actual_types.Count()) return false;
 
-		return expected.Zip(actual).All(i => i.Second != null && (i.First == null || i.First.Is(i.Second)));
+		for (var i = 0; i < expected_types.Count; i++)
+		{
+			var expected = expected_types[i];
+			if (expected == null) continue;
+
+			var actual = actual_types[i];
+			if (actual == null) return false;
+
+			if (Equals(expected, actual)) continue;
+
+			if (!expected.IsPrimitive || !actual.IsPrimitive)
+			{
+				if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
+			}
+			else if (Resolver.GetSharedType(expected, actual) == null) return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Returns whether the specified actual types are compatible with the specified expected types, that is whether the actual types can be casted to match the expected types. This function also requires that the actual parameters are all resolved, otherwise this function returns false.
+	/// </summary>
+	public static bool Compatible(Type? expected, Type? actual)
+	{
+		if (expected == null || actual == null || expected.IsUnresolved || actual.IsUnresolved) return false;
+
+		if (Equals(expected, actual)) return true;
+
+		if (!expected.IsPrimitive || !actual.IsPrimitive)
+		{
+			if (!expected.IsTypeInherited(actual) && !actual.IsTypeInherited(expected)) return false;
+		}
+		else if (Resolver.GetSharedType(expected, actual) == null) return false;
+
+		return true;
 	}
 
 	/// <summary>
@@ -183,22 +218,42 @@ public static class Common
 	/// Consumes template parameters
 	/// Pattern: <$1, $2, ... $n>
 	/// </summary>
-	public static bool ConsumeTemplateArguments(PatternState state)
+	public static bool ConsumeTemplateArguments(ParserState state)
 	{
 		// Next there must be the opening of the template parameters
-		if (!Pattern.Consume(state, out Token? opening, TokenType.OPERATOR) || opening!.To<OperatorToken>().Operator != Operators.LESS_THAN)
-		{
-			return false;
-		}
+		var next = state.Peek();
+		if (next == null || !next.Is(Operators.LESS_THAN)) return false;
+		state.Consume();
+
+		// Keep track whether at least one argument has been consumed
+		var is_argument_consumed = false;
 
 		while (true)
 		{
-			Pattern.Try(ConsumeType, state);
+			next = state.Peek();
+			if (next == null) return false;
 
-			if (!Pattern.Consume(state, out Token? consumed, TokenType.OPERATOR)) return false;
-			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN) return true;
-			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA) continue;
+			// If the consumed operator is a greater than operator, it means the template arguments have ended
+			if (next.Is(Operators.GREATER_THAN))
+			{
+				state.Consume();
+				return is_argument_consumed;
+			}
 
+			// If the operator is a comma, it means the template arguments have not ended
+			if (next.Is(Operators.COMMA))
+			{
+				state.Consume();
+				continue;
+			}
+
+			if (ConsumeType(state))
+			{
+				is_argument_consumed = true;
+				continue;
+			}
+
+			// The template arguments must be invalid
 			return false;
 		}
 	}
@@ -207,13 +262,13 @@ public static class Common
 	/// Consumes a function type
 	/// Pattern: (...) -> $type
 	/// </summary>
-	public static bool ConsumeFunctionType(PatternState state)
+	public static bool ConsumeFunctionType(ParserState state)
 	{
 		// Consume a normal parenthesis token
-		if (!Pattern.Consume(state, out Token? parameters, TokenType.PARENTHESIS) || !parameters!.Is(ParenthesisType.PARENTHESIS)) return false;
+		if (!state.Consume(out Token? parameters, TokenType.PARENTHESIS) || !parameters!.Is(ParenthesisType.PARENTHESIS)) return false;
 
 		// Consume an arrow operator
-		if (!Pattern.Consume(state, out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW)) return false;
+		if (!state.Consume(out Token? arrow, TokenType.OPERATOR) || !arrow!.Is(Operators.ARROW)) return false;
 
 		// Consume the return type
 		return ConsumeType(state);
@@ -223,10 +278,10 @@ public static class Common
 	/// Consumes a pack type.
 	/// Pattern: { $member-1: $type, $member-2: $type, ... }
 	/// </summary>
-	public static bool ConsumePackType(PatternState state)
+	public static bool ConsumePackType(ParserState state)
 	{
 		// Consume curly brackets
-		if (!Pattern.Consume(state, out Token? brackets, TokenType.PARENTHESIS) || !brackets!.Is(ParenthesisType.CURLY_BRACKETS)) return false;
+		if (!state.Consume(out Token? brackets, TokenType.PARENTHESIS) || !brackets!.Is(ParenthesisType.CURLY_BRACKETS)) return false;
 
 		// Verify the curly brackets contain pack members using sections
 		// Pattern: { $member-1: $type, $member-2: $type, ... }
@@ -247,32 +302,32 @@ public static class Common
 		return true;
 	}
 
-	public static void ConsumeTypeEnd(PatternState state)
+	public static void ConsumeTypeEnd(ParserState state)
 	{
 		var next = (Token?)null;
 
 		// Consume pointers
 		while (true)
 		{
-			next = Pattern.Peek(state);
+			next = state.Peek();
 			if (next == null) return;
 
 			if (!next.Is(Operators.MULTIPLY)) break;
-			Pattern.Consume(state);
+			state.Consume();
 		}
 
 		// Do not allow creating nested arrays
 		if (next.Is(ParenthesisType.BRACKETS))
 		{
-			Pattern.Consume(state);
+			state.Consume();
 		}
 	}
 
-	public static bool ConsumeType(PatternState state)
+	public static bool ConsumeType(ParserState state)
 	{
-		if (!Pattern.Consume(state, TokenType.IDENTIFIER))
+		if (!state.Consume(TokenType.IDENTIFIER))
 		{
-			var next = Pattern.Peek(state);
+			var next = state.Peek();
 			if (next == null) return false;
 
 			if (next.Is(ParenthesisType.CURLY_BRACKETS))
@@ -293,13 +348,13 @@ public static class Common
 
 		while (true)
 		{
-			var next = Pattern.Peek(state);
+			var next = state.Peek();
 			if (next == null) return true;
 
 			if (next.Is(Operators.DOT))
 			{
-				Pattern.Consume(state);
-				if (!Pattern.Consume(state, TokenType.IDENTIFIER)) return false;
+				state.Consume();
+				if (!state.Consume(TokenType.IDENTIFIER)) return false;
 			}
 			else if (next.Is(Operators.LESS_THAN))
 			{
@@ -319,7 +374,7 @@ public static class Common
 	/// Consumes a template function call except the name in the beginning
 	/// Pattern: <$1, $2, ... $n> (...)
 	/// </summary>
-	public static bool ConsumeTemplateFunctionCall(PatternState state)
+	public static bool ConsumeTemplateFunctionCall(ParserState state)
 	{
 		// Consume pattern: <$1, $2, ... $n>
 		if (!ConsumeTemplateArguments(state))
@@ -328,22 +383,22 @@ public static class Common
 		}
 
 		// Now there must be function parameters next
-		return Pattern.Consume(state, out Token? parameters, TokenType.PARENTHESIS) && parameters!.To<ParenthesisToken>().Opening == ParenthesisType.PARENTHESIS;
+		return state.Consume(out Token? parameters, TokenType.PARENTHESIS) && parameters!.To<ParenthesisToken>().Opening == ParenthesisType.PARENTHESIS;
 	}
 
 	/// <summary>
 	/// Reads a type which represents a function from the specified tokens.
 	/// Pattern: ($type-1, $type-2, ... $type-n) -> $type
 	/// </summary>
-	private static FunctionType? ReadFunctionType(Context context, Queue<Token> tokens, Position? position)
+	private static FunctionType? ReadFunctionType(Context context, List<Token> tokens, Position? position)
 	{
-		// Dequeue the parameter types
-		var parameters = tokens.Dequeue().To<ParenthesisToken>();
+		// Pop the parameter types
+		var parameters = tokens.Pop()!.To<ParenthesisToken>();
 
-		// Dequeue the arrow operator
-		if (!tokens.TryDequeue(out _)) return null;
+		// Pop the arrow operator
+		if (tokens.Pop() == null) return null;
 
-		// Dequeues the return type
+		// Pop the return type
 		var return_type = ReadType(context, tokens);
 
 		// The return type must exist
@@ -351,21 +406,14 @@ public static class Common
 
 		// Read all the parameter types
 		var parameter_types = new List<Type>();
-		tokens = new Queue<Token>(parameters.Tokens);
+		tokens = new List<Token>(parameters.Tokens);
 
 		while (tokens.Count > 0)
 		{
 			var parameter_type = Common.ReadType(context, tokens);
 			if (parameter_type == null) throw Errors.Get(tokens.First().Position, "Could not understand the parameter type");
-
 			parameter_types.Add(parameter_type);
-
-			if (tokens.Count == 0) break;
-
-			var next = tokens.Dequeue();
-			if (next.Is(Operators.COMMA)) continue;
-
-			throw Errors.Get(next.Position, "Expected a comma");
+			tokens.Pop();
 		}
 
 		return new FunctionType(parameter_types!, return_type, position);
@@ -375,10 +423,10 @@ public static class Common
 	/// Creates an unnamed pack type from the specified tokens.
 	/// Pattern: { $member-1: $type-1, $member-2: $type-2, ... }
 	/// </summary>
-	private static Type? ReadPackType(Context context, Queue<Token> tokens, Position? position)
+	private static Type? ReadPackType(Context context, List<Token> tokens, Position? position)
 	{
-		var pack = context.DeclareHiddenPack(position);
-		var sections = tokens.Dequeue().To<ParenthesisToken>().GetSections();
+		var pack = context.DeclareUnnamedPack(position);
+		var sections = tokens.Pop()!.To<ParenthesisToken>().GetSections();
 
 		// We are not going to feed the sections straight to the parser while using the pack type as context, because it would allow defining whole member functions
 		foreach (var section in sections)
@@ -386,7 +434,7 @@ public static class Common
 			// Determine the member name and its type
 			var member = section.First().To<IdentifierToken>().Value;
 
-			var type = ReadType(context, new Queue<Token>(section.Skip(2)));
+			var type = ReadType(context, new List<Token>(section.Skip(2)));
 			if (type == null) return null;
 
 			// Create the member using the determined properties
@@ -399,11 +447,11 @@ public static class Common
 	/// <summary>
 	/// Reads a type component from the tokens and returns it
 	/// </summary>
-	public static UnresolvedTypeComponent ReadTypeComponent(Context context, Queue<Token> tokens)
+	public static UnresolvedTypeComponent ReadTypeComponent(Context context, List<Token> tokens)
 	{
-		var name = tokens.Dequeue().To<IdentifierToken>().Value;
+		var name = tokens.Pop()!.To<IdentifierToken>().Value;
 
-		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
+		if (tokens.Any() && tokens.First().Is(Operators.LESS_THAN))
 		{
 			var template_arguments = ReadTemplateArguments(context, tokens);
 
@@ -414,14 +462,14 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Reads a type from the next tokens inside the specified queue
+	/// Reads a type from the next tokens inside the specified list
 	/// Pattern: $name [<$1, $2, ... $n>]
 	/// </summary>
-	public static Type? ReadType(Context context, Queue<Token> tokens)
+	public static Type? ReadType(Context context, List<Token> tokens)
 	{
 		if (!tokens.Any()) return null;
 
-		var next = tokens.Peek();
+		var next = tokens.First();
 
 		if (next.Is(TokenType.PARENTHESIS))
 		{
@@ -443,9 +491,9 @@ public static class Common
 			components.Add(ReadTypeComponent(context, tokens));
 
 			// Stop collecting type components if there are no tokens left or if the next token is not a dot operator
-			if (!tokens.Any() || !tokens.Peek().Is(Operators.DOT)) break;
+			if (!tokens.Any() || !tokens.First().Is(Operators.DOT)) break;
 
-			tokens.Dequeue();
+			tokens.Pop();
 		}
 
 		var type = new UnresolvedType(components.ToArray());
@@ -455,11 +503,11 @@ public static class Common
 		if (!tokens.Any()) return type.ResolveOrThis(context);
 
 		// Array types:
-		next = tokens.Peek();
+		next = tokens.First();
 
 		if (next.Is(ParenthesisType.BRACKETS))
 		{
-			tokens.Dequeue();
+			tokens.Pop();
 
 			type.Size = next.To<ParenthesisToken>();
 			return type.ResolveOrThis(context);
@@ -472,14 +520,23 @@ public static class Common
 			if (!tokens.Any()) break;
 
 			// Expect a multiplication token (pointer)
-			if (!tokens.Peek().Is(Operators.MULTIPLY)) break;
-			tokens.Dequeue();
+			if (!tokens.First().Is(Operators.MULTIPLY)) break;
+			tokens.Pop();
 
 			// Wrap the current type around a pointer
 			type.Pointers++;
 		}
 
 		return type.ResolveOrThis(context);
+	}
+
+	/// <summary>
+	/// Reads a type from the next tokens inside the specified list
+	/// Pattern: $name [<$1, $2, ... $n>]
+	/// </summary>
+	public static Type? ReadType(Context context, List<Token> tokens, int start)
+	{
+		return ReadType(context, tokens.GetRange(start, tokens.Count - start));
 	}
 
 	/// <summary>
@@ -492,39 +549,13 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Reads a type from the next tokens inside the specified queue
-	/// Pattern: $name [<$1, $2, ... $n>]
-	/// </summary>
-	public static List<Token>? ReadTypeArgumentTokens(Queue<Token> tokens)
-	{
-		if (!tokens.Any() || !tokens.Peek().Is(TokenType.IDENTIFIER))
-		{
-			return null;
-		}
-
-		var name = tokens.Dequeue().To<IdentifierToken>();
-		var result = new List<Token> { name };
-
-		if (tokens.Any() && tokens.Peek().Is(Operators.LESS_THAN))
-		{
-			result.AddRange(ReadTemplateArgumentTokens(tokens));
-		}
-
-		return result;
-	}
-
-	/// <summary>
-	/// Reads template parameters from the next tokens inside the specified queue
+	/// Reads template parameters from the next tokens inside the specified list
 	/// Pattern: <$1, $2, ... $n>
 	/// </summary>
-	public static Type[] ReadTemplateArguments(Context context, Queue<Token> tokens)
+	public static Type[] ReadTemplateArguments(Context context, List<Token> tokens)
 	{
-		var opening = tokens.Dequeue().To<OperatorToken>();
-
-		if (opening.Operator != Operators.LESS_THAN)
-		{
-			throw Errors.Get(opening.Position, "Can not understand the template arguments");
-		}
+		var opening = tokens.Pop()!.To<OperatorToken>();
+		if (opening.Operator != Operators.LESS_THAN) throw Errors.Get(opening.Position, "Can not understand the template arguments");
 
 		var parameters = new List<Type>();
 
@@ -536,56 +567,22 @@ public static class Common
 			parameters.Add(parameter);
 
 			// Consume the next token, if it is a comma
-			if (tokens.First().Is(Operators.COMMA)) tokens.Dequeue();
+			if (tokens.First().Is(Operators.COMMA)) tokens.Pop();
 		}
 
-		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
-		{
-			throw Errors.Get(opening.Position, "Can not understand the template arguments");
-		}
+		var next = tokens.Pop();
+		if (!next!.Is(Operators.GREATER_THAN)) throw Errors.Get(opening.Position, "Can not understand the template arguments");
 
 		return parameters.ToArray();
 	}
 
 	/// <summary>
-	/// Reads template parameters from the next tokens inside the specified queue
+	/// Reads template parameters from the next tokens inside the specified list
 	/// Pattern: <$1, $2, ... $n>
 	/// </summary>
-	public static List<Token> ReadTemplateArgumentTokens(Queue<Token> tokens)
+	public static Type[] ReadTemplateArguments(Context context, List<Token> tokens, int start)
 	{
-		var opening = tokens.Dequeue().To<OperatorToken>();
-		var result = new List<Token> { opening };
-
-		if (opening.Operator != Operators.LESS_THAN)
-		{
-			throw Errors.Get(opening.Position, "Can not understand the template arguments");
-		}
-
-		while (true)
-		{
-			var type_argument_tokens = ReadTypeArgumentTokens(tokens);
-
-			if (type_argument_tokens == null)
-			{
-				break;
-			}
-
-			result.AddRange(type_argument_tokens);
-
-			if (tokens.Any() && tokens.Peek().Is(Operators.COMMA))
-			{
-				result.Add(tokens.Dequeue());
-			}
-		}
-
-		if (!tokens.TryDequeue(out Token? closing) || !closing.Is(Operators.GREATER_THAN))
-		{
-			throw Errors.Get(opening.Position, "Can not understand the template arguments");
-		}
-
-		result.Add(closing);
-
-		return result;
+		return ReadTemplateArguments(context, tokens.GetRange(start, tokens.Count - start));
 	}
 
 	/// <summary>
@@ -610,81 +607,97 @@ public static class Common
 		return template_parameters;
 	}
 
-	/// <summary>
-	/// Consumes a block of code which is considered to be a part of code which collapses into one dynamic token
-	/// </summary>
-	public static bool ConsumeBlock(Context context, PatternState state, List<Token> destination)
+	public static void ConsumeBlock(ParserState from, List<Token> destination)
 	{
-		var consumed = Parser.Consume(
-			context,
-			state,
-			new List<System.Type>()
-			{
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(CompilesPattern),
-				typeof(HasPattern),
-				typeof(IsPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(AccessorPattern),
-				typeof(OperatorPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(RangePattern),
-				typeof(ReturnPattern),
-				typeof(TemplateFunctionCallPattern),
-				typeof(TypeInspectionPattern),
-				typeof(UnarySignPattern),
-			}
-		);
-
-		destination.AddRange(consumed);
-		return consumed.Any();
+		ConsumeBlock(from, destination, 0);
 	}
 
-	/// <summary>
-	/// Consumes a block of code which is considered to be a part of code which collapses into one dynamic token
-	/// </summary>
-	public static List<Token> ConsumeBlock(PatternState state)
+	public static void ConsumeBlock(ParserState from, List<Token> destination, long disabled)
 	{
-		return Parser.Consume(
-			new Context(string.Empty),
-			state,
-			new List<System.Type>()
-			{
-				typeof(AssignPattern),
-				typeof(CastPattern),
-				typeof(CommandPattern),
-				typeof(CompilesPattern),
-				typeof(HasPattern),
-				typeof(IfPattern),
-				typeof(IsPattern),
-				typeof(IterationLoopPattern),
-				typeof(LoopPattern),
-				typeof(LinkPattern),
-				typeof(NotPattern),
-				typeof(AccessorPattern),
-				typeof(OperatorPattern),
-				typeof(PostIncrementAndDecrementPattern),
-				typeof(PreIncrementAndDecrementPattern),
-				typeof(RangePattern),
-				typeof(ReturnPattern),
-				typeof(SingletonPattern),
-				typeof(TemplateFunctionCallPattern),
-				typeof(TypeInspectionPattern),
-				typeof(UnarySignPattern),
-				typeof(WhenPattern)
-			}
-		);
-	}
+		// Return an empty list, if there is nothing to be consumed
+		if (from.End >= from.All.Count) return;
 
-	/// <summary>
-	/// Consumes curly brackets
-	/// </summary>
-	public static bool ConsumeBody(PatternState state)
-	{
-		return Pattern.Try(state, () => Pattern.Consume(state, out Token? body, TokenType.PARENTHESIS) && body!.To<ParenthesisToken>().Opening == ParenthesisType.CURLY_BRACKETS);
+		// Clone the tokens from the specified state
+		var tokens = from.All.GetRange(from.End, from.All.Count - from.End).Select(i => (Token)i.Clone()).ToList();
+
+		var state = new ParserState();
+		state.All = tokens;
+
+		var consumptions = new List<Pair<DynamicToken, int>>();
+		var context = new Context("0") { IsLambdaContainer = true };
+
+		for (var priority = Parser.MAX_FUNCTION_BODY_PRIORITY; priority >= Parser.MIN_PRIORITY; priority--)
+		{
+			while (true)
+			{
+				if (!Parser.NextConsumable(context, tokens, priority, 0, state, disabled)) break;
+
+				var node = state.Pattern!.Build(context, state, state.Tokens);
+
+				var length = state.End - state.Start;
+				var consumed = 0;
+
+				while (length-- > 0)
+				{
+					var token = tokens[state.Start];
+					var area = 1;
+
+					if (token.Type == TokenType.DYNAMIC)
+					{
+						// Look for the consumption, which is related to the current dynamic token, and increment the consumed tokens by the number of tokens it once consumed
+						foreach (var consumption in consumptions)
+						{
+							if (consumption.First != token) continue;
+							area = consumption.Second;
+							break;
+						}
+					}
+
+					consumed += area;
+					tokens.RemoveAt(state.Start);
+				}
+
+				if (node == null)
+				{
+					throw new ApplicationException("Block consumption does not accept patterns returning nothing");
+				}
+
+				var result = new DynamicToken(node);
+				tokens.Insert(state.Start, result);
+				consumptions.Add(new Pair<DynamicToken, int>(result, consumed));
+			}
+		}
+
+		var next = tokens.First();
+
+		if (next.Type == TokenType.DYNAMIC)
+		{
+			var consumed = 1;
+
+			// Determine how many tokens the next dynamic token consumed
+			foreach (var consumption in consumptions)
+			{
+				if (consumption.First != next) continue;
+				consumed = consumption.Second;
+				break;
+			}
+
+			// Read the consumed tokens from the source state
+			var source = from.All;
+			var end = from.End;
+
+			for (var i = 0; i < consumed; i++)
+			{
+				destination.Add(source[end + i]);
+			}
+
+			from.End += consumed;
+			return;
+		}
+
+		// Just consume the first token
+		from.End++;
+		destination.Add(next);
 	}
 
 	/// <summary>
@@ -728,13 +741,13 @@ public static class Common
 		 return offset + Parser.Bytes;
 	}
 
-	public static KeyValuePair<Type, DataPointer>[] CopyTypeDescriptors(Type type, List<Type> supertypes)
+	public static KeyValuePair<Type, DataPointerNode>[] CopyTypeDescriptors(Type type, List<Type> supertypes)
 	{
-		if (type.Configuration == null) return Array.Empty<KeyValuePair<Type, DataPointer>>();
+		if (type.Configuration == null) return Array.Empty<KeyValuePair<Type, DataPointerNode>>();
 
 		var configuration = type.Configuration;
 		var descriptor_count = type.Supertypes.Any() ? supertypes.Count : supertypes.Count + 1;
-		var descriptors = new KeyValuePair<Type, DataPointer>[descriptor_count];
+		var descriptors = new KeyValuePair<Type, DataPointerNode>[descriptor_count];
 
 		if (!configuration.IsCompleted)
 		{
@@ -749,7 +762,7 @@ public static class Common
 		{
 			// Even though there are no supertypes inherited, an instance of this type can be created and casted to a link.
 			// It should be possible to check whether the link represents this type or another
-			descriptors[^1] = new KeyValuePair<Type, DataPointer>(type, new DataPointer(configuration.Entry));
+			descriptors[^1] = new KeyValuePair<Type, DataPointerNode>(type, new DataPointerNode(configuration.Entry));
 		}
 
 		var offset = Parser.Bytes;
@@ -774,7 +787,7 @@ public static class Common
 			// Types should not inherited types which do not have runtime configurations such as standard integers
 			if (supertype.Configuration == null) throw new ApplicationException("Type inherited a type which did not have runtime configuration");
 
-			descriptors[i] = new KeyValuePair<Type, DataPointer>(supertype, new DataPointer(configuration.Entry, offset));
+			descriptors[i] = new KeyValuePair<Type, DataPointerNode>(supertype, new DataPointerNode(configuration.Entry, offset));
 			offset += Parser.Bytes;
 
 			// Iterate all virtual functions of this supertype and connect their implementations
@@ -795,18 +808,18 @@ public static class Common
 	/// </summary>
 	public static InlineContainer CreateHeapConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var container = CreateInlineContainer(type, construction);
+		var container = CreateInlineContainer(type, construction, true);
 		var position = construction.Position;
 
 		var size = Math.Max(1L, type.ContentSize);
-		var arguments = new Node { new NumberNode(Assembler.Signed, size, position) };
+		var arguments = new Node { new NumberNode(Settings.Signed, size, position) };
 		
 		// The following example creates an instance of a type called Object
 		// Example: instance = allocate(sizeof(Object)) as Object
 		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
 			new VariableNode(container.Result, position),
 			new CastNode(
-				new FunctionNode(Parser.AllocationFunction!, position).SetArguments(arguments),
+				new FunctionNode(Settings.AllocationFunction!, position).SetArguments(arguments),
 				new TypeNode(type, position),
 				position
 			)
@@ -854,7 +867,7 @@ public static class Common
 	/// </summary>
 	public static InlineContainer CreateStackConstruction(Type type, Node construction, FunctionNode constructor)
 	{
-		var container = CreateInlineContainer(type, construction);
+		var container = CreateInlineContainer(type, construction, true);
 		var position = construction.Position;
 
 		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
@@ -902,7 +915,7 @@ public static class Common
 	/// <summary>
 	/// Determines the variable which will store the result and the node that should contain the inlined content
 	/// </summary>
-	public static InlineContainer CreateInlineContainer(Type type, Node node)
+	public static InlineContainer CreateInlineContainer(Type type, Node node, bool is_value_returned)
 	{
 		var editor = Analyzer.TryGetEditor(node);
 
@@ -917,10 +930,10 @@ public static class Common
 		}
 
 		var environment = node.GetParentContext();
-		var inline = new ContextInlineNode(new Context(environment), node.Position);
-		var instance = inline.Context.DeclareHidden(type);
+		var container = new ScopeNode(new Context(environment), node.Position, null, is_value_returned);
+		var instance = container.Context.DeclareHidden(type);
 		
-		return new InlineContainer(node, inline, instance);
+		return new InlineContainer(node, container, instance);
 	}
 
 	/// <summary>
@@ -1164,7 +1177,7 @@ public static class Common
 		if (type is ArrayType array)
 		{
 			result.AddRange(GetTokens(array.Element, position));
-			result.Add(new ParenthesisToken(ParenthesisType.BRACKETS, new NumberToken(array.Count)));
+			result.Add(new ParenthesisToken(ParenthesisType.BRACKETS, new NumberToken(array.Size)));
 			return result.ToArray();
 		}
 
@@ -1211,7 +1224,7 @@ public static class Common
 	/// </summary>
 	public static int GetBits(object value)
 	{
-		if (value is double) return Parser.Size.Bits;
+		if (value is double) return Parser.Bits;
 
 		var x = (long)value;
 
@@ -1320,7 +1333,7 @@ public static class Common
 		// If we are accessing a pack proxy, no need to add dot to the name
 		var prefix = pack.Name.StartsWith('.') ? pack.Name : ('.' + pack.Name);
 
-		return GetPackProxies(pack.Context, prefix, pack.Type!, pack.Category);
+		return GetPackProxies(pack.Parent, prefix, pack.Type!, pack.Category);
 	}
 
 	/// <summary>

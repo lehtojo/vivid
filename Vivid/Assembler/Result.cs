@@ -3,7 +3,7 @@ using System.Collections.Generic;
 public class Result
 {
 	public Handle Value { get; set; }
-	public Format Format { get; set; } = Assembler.Size.ToFormat();
+	public Format Format { get; set; } = Settings.Size.ToFormat();
 	public Lifetime Lifetime { get; set; } = new Lifetime();
 	public Size Size => Size.FromFormat(Format);
 
@@ -31,7 +31,7 @@ public class Result
 	public Result()
 	{
 		Value = new Handle();
-		Format = Assembler.Format;
+		Format = Settings.Format;
 	}
 
 	public bool IsActive()

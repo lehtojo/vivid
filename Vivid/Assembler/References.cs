@@ -36,7 +36,7 @@ public static class References
 			case VariableCategory.LOCAL:
 			{
 				return variable.IsInlined()
-					? new StackAllocationHandle(unit, variable.Type!.AllocationSize, variable.Context.Identity + '.' + variable.Name)
+					? new StackAllocationHandle(unit, variable.Type!.AllocationSize, variable.Parent.Identity + '.' + variable.Name)
 					: new StackVariableHandle(unit, variable);
 			}
 
@@ -64,7 +64,7 @@ public static class References
 
 				var handle = new DataSectionHandle(variable.GetStaticName());
 
-				if (Assembler.UseIndirectAccessTables)
+				if (Settings.UseIndirectAccessTables)
 				{
 					handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 				}
@@ -90,7 +90,7 @@ public static class References
 
 	public static Result GetVariable(Unit unit, Variable variable, AccessMode mode)
 	{
-		if (Assembler.IsDebuggingEnabled) return GetVariableDebug(unit, variable, mode);
+		if (Settings.IsDebuggingEnabled) return GetVariableDebug(unit, variable, mode);
 
 		if (variable.IsStatic || variable.IsInlined())
 		{
@@ -102,45 +102,45 @@ public static class References
 
 	public static Result GetConstant(Unit unit, NumberNode node)
 	{
-		return new GetConstantInstruction(unit, node.Value, node.Type.IsUnsigned(), node.Type.IsDecimal()).Add();
+		return new GetConstantInstruction(unit, node.Value, node.Format.IsUnsigned(), node.Format.IsDecimal()).Add();
 	}
 
 	public static Result GetString(Unit unit, StringNode node)
 	{
 		var handle = new DataSectionHandle(node.GetIdentifier(unit), true);
 
-		if (Assembler.UseIndirectAccessTables)
+		if (Settings.UseIndirectAccessTables)
 		{
 			handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 		}
 
-		return new Result(handle, Assembler.Format);
+		return new Result(handle, Settings.Format);
 	}
 
-	public static Result GetDataPointer(DataPointer node)
+	public static Result GetDataPointer(DataPointerNode node)
 	{
 		if (node.Data is FunctionImplementation implementation)
 		{
 			var handle = new DataSectionHandle(implementation.GetFullname(), node.Offset, true);
 			
-			if (Assembler.UseIndirectAccessTables)
+			if (Settings.UseIndirectAccessTables)
 			{
 				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 			}
 
-			return new Result(handle, Assembler.Format);
+			return new Result(handle, Settings.Format);
 		}
 
 		if (node.Data is Table table)
 		{
 			var handle = new DataSectionHandle(table.Name, node.Offset, true);
 
-			if (Assembler.UseIndirectAccessTables)
+			if (Settings.UseIndirectAccessTables)
 			{
 				handle.Modifier = DataSectionModifier.GLOBAL_OFFSET_TABLE;
 			}
 
-			return new Result(handle, Assembler.Format);
+			return new Result(handle, Settings.Format);
 		}
 
 		throw new ApplicationException("Could not build data pointer");
@@ -152,7 +152,7 @@ public static class References
 		{
 			case NodeType.DATA_POINTER:
 			{
-				return GetDataPointer((DataPointer)node);
+				return GetDataPointer((DataPointerNode)node);
 			}
 
 			case NodeType.VARIABLE:

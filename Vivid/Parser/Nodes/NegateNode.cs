@@ -20,6 +20,7 @@ public class NegateNode : Node, IResolvable
 		return null;
 	}
 
+	#warning Investigate
 	public Status GetStatus()
 	{
 		// Ensure the object is a number

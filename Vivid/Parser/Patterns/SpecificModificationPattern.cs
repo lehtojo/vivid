@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 
+#warning Continue
 public class SpecificModificationPattern : Pattern
 {
 	public const int MODIFIER = 0;
@@ -11,18 +12,19 @@ public class SpecificModificationPattern : Pattern
 		TokenType.KEYWORD,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.DYNAMIC
-	) { }
+	)
+	{ Priority = Parser.PRIORITY_ALL; }
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		var modifier = tokens[MODIFIER].To<KeywordToken>();
 		if (modifier.Keyword.Type != KeywordType.MODIFIER) return false;
 
 		var node = tokens[OBJECT].To<DynamicToken>().Node;
-		return node.Is(NodeType.CONSTRUCTION, NodeType.VARIABLE, NodeType.FUNCTION_DEFINITION, NodeType.TYPE) || (node.Is(NodeType.LINK) && node.Right.Is(NodeType.CONSTRUCTION));
+		return node.Is(NodeType.CONSTRUCTION, NodeType.VARIABLE, NodeType.FUNCTION_DEFINITION, NodeType.TYPE_DEFINITION) || (node.Is(NodeType.LINK) && node.Right.Is(NodeType.CONSTRUCTION));
 	}
 
-	public override Node? Build(Context context, PatternState state, List<Token> tokens)
+	public override Node? Build(Context context, ParserState state, List<Token> tokens)
 	{
 		var modifiers = tokens[MODIFIER].To<KeywordToken>().Keyword.To<ModifierKeyword>().Modifier;
 		var destination = tokens[OBJECT].To<DynamicToken>().Node;
@@ -48,9 +50,9 @@ public class SpecificModificationPattern : Pattern
 				break;
 			}
 
-			case NodeType.TYPE:
+			case NodeType.TYPE_DEFINITION:
 			{
-				var type = destination.To<TypeNode>().Type;
+				var type = destination.To<TypeDefinitionNode>().Type;
 				type.Modifiers = Modifier.Combine(type.Modifiers, modifiers);
 				break;
 			}
@@ -73,10 +75,5 @@ public class SpecificModificationPattern : Pattern
 		}
 
 		return destination;
-	}
-
-	public override int GetPriority(List<Token> tokens)
-	{
-		return Parser.PRIORITY_ALL;
 	}
 }

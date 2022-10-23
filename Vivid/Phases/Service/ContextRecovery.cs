@@ -77,7 +77,7 @@ public class ContextRecovery
 
 		foreach (var variable in variables)
 		{
-			Variables.TryAdd(variable.Context!.Identity + '.' + variable.Name, new ContextVariableRecovery(variable));
+			Variables.TryAdd(variable.Parent!.Identity + '.' + variable.Name, new ContextVariableRecovery(variable));
 		}
 	}
 
@@ -145,7 +145,7 @@ public class ContextRecovery
 
 		foreach (var variable in variables)
 		{
-			if (Variables.TryGetValue(variable.Context!.Identity + '.' + variable.Name, out var recovery))
+			if (Variables.TryGetValue(variable.Parent!.Identity + '.' + variable.Name, out var recovery))
 			{
 				recovery.Recover(variable);
 			}

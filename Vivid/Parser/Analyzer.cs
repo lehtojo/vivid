@@ -111,7 +111,7 @@ public static class Analyzer
 		root.FindAll(NodeType.VARIABLE)
 			.Select(i => i.To<VariableNode>().Variable)
 			.Distinct()
-			.ForEach(i => { i.References.Clear(); i.Writes.Clear(); i.Reads.Clear(); });
+			.ForEach(i => { i.Usages.Clear(); i.Writes.Clear(); i.Reads.Clear(); });
 	}
 
 	private static void ResetVariableUsages(Context context)
@@ -124,7 +124,7 @@ public static class Analyzer
 
 		foreach (var variable in context.Variables.Values)
 		{
-			variable.References.Clear();
+			variable.Usages.Clear();
 			variable.Writes.Clear();
 			variable.Reads.Clear();
 		}
@@ -163,7 +163,7 @@ public static class Analyzer
 		// Reset all parameters and locals
 		foreach (var variable in implementation.GetAllVariables())
 		{
-			variable.References.Clear();
+			variable.Usages.Clear();
 			variable.Writes.Clear();
 			variable.Reads.Clear();
 		}
@@ -172,7 +172,7 @@ public static class Analyzer
 
 		if (self != null)
 		{
-			self.References.Clear();
+			self.Usages.Clear();
 			self.Writes.Clear();
 			self.Reads.Clear();
 		}
@@ -187,7 +187,7 @@ public static class Analyzer
 			if (IsEdited(usage)) { variable.Writes.Add(usage); }
 			else { variable.Reads.Add(usage); }
 
-			variable.References.Add(usage);
+			variable.Usages.Add(usage);
 		}
 	}
 
@@ -198,14 +198,14 @@ public static class Analyzer
 	{
 		if (clear)
 		{
-			variable.References.Clear();
+			variable.Usages.Clear();
 			variable.Writes.Clear();
 			variable.Reads.Clear();
 		}
 
 		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>().Where(i => i.Variable == variable))
 		{
-			variable.References.Add(iterator);
+			variable.Usages.Add(iterator);
 
 			if (IsEdited(iterator))
 			{
@@ -227,7 +227,7 @@ public static class Analyzer
 		variable.Writes.Clear();
 		variable.Reads.Clear();
 
-		foreach (var usage in variable.References)
+		foreach (var usage in variable.Usages)
 		{
 			var access = TryGetAccessType(usage);
 
@@ -256,7 +256,7 @@ public static class Analyzer
 	{
 		foreach (var iterator in root.FindAll(NodeType.VARIABLE).Cast<VariableNode>())
 		{
-			iterator.Variable.References.Add(iterator);
+			iterator.Variable.Usages.Add(iterator);
 
 			if (IsEdited(iterator))
 			{
@@ -274,9 +274,9 @@ public static class Analyzer
 		// Update all constants in the current context
 		foreach (var variable in context.Variables.Values)
 		{
-			if (variable.IsConstant && variable.References.Any() && !variable.Writes.Any() && !variable.Reads.Any())
+			if (variable.IsConstant && variable.Usages.Any() && !variable.Writes.Any() && !variable.Reads.Any())
 			{
-				foreach (var reference in variable.References)
+				foreach (var reference in variable.Usages)
 				{
 					if (IsEdited(reference.To<VariableNode>()))
 					{

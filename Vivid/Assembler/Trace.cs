@@ -117,7 +117,7 @@ public class Trace
 			}
 		}
 
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			for (var i = start; i <= end; i++)
 			{

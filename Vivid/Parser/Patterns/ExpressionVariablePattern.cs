@@ -3,8 +3,6 @@ using System.Linq;
 
 public class ExpressionVariablePattern : Pattern
 {
-	public const int PRIORITY = 21;
-
 	public const int ARROW = 1;
 
 	// Pattern: $name => ...
@@ -12,29 +10,24 @@ public class ExpressionVariablePattern : Pattern
 	(
 		TokenType.IDENTIFIER,
 		TokenType.OPERATOR
-	) { }
+	)
+	{ Priority = 21; IsConsumable = false; }
 
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return (context.IsType || context.IsNamespace) && tokens[ARROW].Is(Operators.HEAVY_ARROW);
 	}
 
-	public override Node? Build(Context type, PatternState state, List<Token> tokens)
+	public override Node? Build(Context type, ParserState state, List<Token> tokens)
 	{
 		var name = tokens.First().To<IdentifierToken>();
 
 		// Create function which has the name of the property but has no parameters
 		var function = new Function(type, Modifier.DEFAULT, name.Value, name.Position, null);
-		function.DeclareSelfPointer();
 
-		// Collect the tokens of the body
-		// Add the heavy arrow operator token to the start of the blueprint to represent a return statement
 		var blueprint = new List<Token> { new KeywordToken(Keywords.RETURN, tokens[ARROW].Position)};
 
-		if (!Common.ConsumeBlock(function, state, blueprint))
-		{
-			throw Errors.Get(name.Position, $"Can not resolve the body of the property '{name.Value}'");
-		}
+		Common.ConsumeBlock(state, blueprint);
 
 		// Save the blueprint
 		function.Blueprint.AddRange(blueprint);
@@ -43,10 +36,5 @@ public class ExpressionVariablePattern : Pattern
 		type.Declare(function);
 
 		return new FunctionDefinitionNode(function, name.Position);
-	}
-
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
 	}
 }

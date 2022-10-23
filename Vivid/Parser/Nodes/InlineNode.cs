@@ -2,8 +2,6 @@
 
 public class InlineNode : Node
 {
-	public bool IsContext { get; protected set; } = false;
-
 	public InlineNode(Position? position = null)
 	{
 		Position = position;
@@ -17,7 +15,7 @@ public class InlineNode : Node
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Instance, Position, IsContext);
+		return HashCode.Combine(Instance, Position);
 	}
 
 	public override string ToString() => "Inline";

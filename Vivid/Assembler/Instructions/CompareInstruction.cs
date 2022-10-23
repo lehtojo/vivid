@@ -4,7 +4,7 @@
 /// </summary>
 public class CompareInstruction : DualParameterInstruction
 {
-	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Assembler.Format, InstructionType.COMPARE)
+	public CompareInstruction(Unit unit, Result first, Result second) : base(unit, first, second, Settings.Format, InstructionType.COMPARE)
 	{
 		Description = "Compares two values";
 	}
@@ -15,7 +15,7 @@ public class CompareInstruction : DualParameterInstruction
 		{
 			var instruction = Instructions.X64.DOUBLE_PRECISION_COMPARE;
 
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				instruction = Instructions.Arm64.DECIMAL_COMPARE;
 			}
@@ -34,7 +34,7 @@ public class CompareInstruction : DualParameterInstruction
 				)
 			);
 		}
-		else if (Assembler.IsX64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
+		else if (Settings.IsX64 && Second.IsConstant && Second.Value.To<ConstantHandle>().Value.Equals(0L))
 		{
 			Build(
 				Instructions.X64.TEST,
@@ -53,17 +53,17 @@ public class CompareInstruction : DualParameterInstruction
 		}
 		else
 		{
-			var types = Assembler.IsX64 ? new[] { HandleType.CONSTANT, HandleType.REGISTER, HandleType.MEMORY } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
+			var types = Settings.IsX64 ? new[] { HandleType.CONSTANT, HandleType.REGISTER, HandleType.MEMORY } : new[] { HandleType.CONSTANT, HandleType.REGISTER };
 			var flags_second = ParameterFlag.NONE;
 
-			if (Assembler.IsArm64)
+			if (Settings.IsArm64)
 			{
 				flags_second |= ParameterFlag.CreateBitLimit(8);
 			}
 
 			Build(
 				Instructions.Shared.COMPARE,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					First,
 					ParameterFlag.NONE,

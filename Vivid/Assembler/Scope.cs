@@ -159,7 +159,7 @@ public class Scope
 			Variables[variable] = result;
 		}
 
-		if (Id == ENTRY && !Assembler.IsDebuggingEnabled)
+		if (Id == ENTRY && !Settings.IsDebuggingEnabled)
 		{
 			// Move all parameters to their expected registers since this is the first scope
 			var standard_parameter_registers = Calls.GetStandardParameterRegisters(Unit);

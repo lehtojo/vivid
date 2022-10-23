@@ -218,7 +218,7 @@ public static class Conditionals
 		var replacement = new OperatorNode(Operators.NOT_EQUALS, condition.Position);
 		condition.Replace(replacement);
 
-		replacement.SetOperands(condition, new NumberNode(Assembler.Format, 0L, replacement.Position));
+		replacement.SetOperands(condition, new NumberNode(Settings.Format, 0L, replacement.Position));
 
 		return BuildCondition(unit, replacement, success, failure);
 	}

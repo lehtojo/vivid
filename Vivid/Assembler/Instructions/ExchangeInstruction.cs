@@ -13,7 +13,7 @@ public class ExchangeInstruction : DualParameterInstruction
 	{
 		Build(
 			Instructions.X64.EXCHANGE,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				First,
 				ParameterFlag.DESTINATION | ParameterFlag.RELOCATE_TO_SOURCE | ParameterFlag.READS | ParameterFlag.WRITE_ACCESS,

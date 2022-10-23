@@ -86,6 +86,6 @@ public class Register
 
 	public override string ToString()
 	{
-		return Partitions[Partitions.Length - 1 - (int)Math.Log2(Assembler.Size.Bytes)];
+		return Partitions[Partitions.Length - 1 - (int)Math.Log2(Settings.Bytes)];
 	}
 }

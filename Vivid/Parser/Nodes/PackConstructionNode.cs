@@ -71,7 +71,7 @@ public class PackConstructionNode : Node, IResolvable
 		if (!ValidateMemberNames()) return null;
 
 		// Create a new pack type in order to construct the pack later
-		Type = context.DeclareHiddenPack(Position);
+		Type = context.DeclareUnnamedPack(Position);
 
 		// Declare the pack members
 		for (var i = 0; i < Members.Count; i++)

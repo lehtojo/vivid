@@ -12,7 +12,7 @@
 			// Pattern:
 			// index = offset * stride
 			// => [start + index]
-			var index = new MultiplicationInstruction(unit, offset, new Result(new ConstantHandle((long)stride), Assembler.Format), Assembler.Format, false).Add();
+			var index = new MultiplicationInstruction(unit, offset, new Result(new ConstantHandle((long)stride), Settings.Format), Settings.Format, false).Add();
 
 			return new GetMemoryAddressInstruction(unit, mode, node.GetType(), node.GetFormat(), start, index, 1).Add();
 		}

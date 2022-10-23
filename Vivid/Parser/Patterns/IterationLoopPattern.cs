@@ -2,8 +2,6 @@ using System.Collections.Generic;
 
 public class IterationLoopPattern : Pattern
 {
-	public const int PRIORITY = 2;
-
 	public const int LOOP = 0;
 	public const int ITERATOR = 1;
 	public const int IN = 2;
@@ -23,14 +21,10 @@ public class IterationLoopPattern : Pattern
 		TokenType.OBJECT,
 		TokenType.END | TokenType.OPTIONAL,
 		TokenType.PARENTHESIS
-	) { }
+	)
+	{ Priority = 2; IsConsumable = false; }
 
-	public override int GetPriority(List<Token> tokens)
-	{
-		return PRIORITY;
-	}
-
-	public override bool Passes(Context context, PatternState state, List<Token> tokens)
+	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		return tokens[LOOP].Is(Keywords.LOOP) && tokens[IN].Is(Keywords.IN) && tokens[BODY].Is(ParenthesisType.CURLY_BRACKETS);
 	}
@@ -38,19 +32,12 @@ public class IterationLoopPattern : Pattern
 	private static Variable GetIterator(Context context, List<Token> tokens)
 	{
 		var identifier = tokens[ITERATOR].To<IdentifierToken>().Value;
-
-		if (context.IsLocalVariableDeclared(identifier))
-		{
-			return context.GetVariable(identifier)!;
-		}
-
 		var iterator = context.Declare(null, VariableCategory.LOCAL, identifier);
 		iterator.Position = tokens[ITERATOR].Position;
-
 		return iterator;
 	}
 
-	public override Node? Build(Context environment, PatternState state, List<Token> tokens)
+	public override Node? Build(Context environment, ParserState state, List<Token> tokens)
 	{
 		var iterator = environment.DeclareHidden(null);
 		var iterator_position = tokens[ITERATOR].Position;

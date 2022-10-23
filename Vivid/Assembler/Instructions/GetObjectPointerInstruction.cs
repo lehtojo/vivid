@@ -30,7 +30,7 @@ public class GetObjectPointerInstruction : Instruction
 			OutputPack(Pack, 0);
 
 			Result.Value = Pack;
-			Result.Format = Assembler.Format;
+			Result.Format = Settings.Format;
 			return;
 		}
 	}
@@ -83,7 +83,7 @@ public class GetObjectPointerInstruction : Instruction
 	{
 		// Ensure the start value is a constant or in a register
 		if (Start.IsConstant || Start.IsStackAllocation || Start.IsStandardRegister) return;
-		Memory.MoveToRegister(Unit, Start, Assembler.Size, false, Trace.For(Unit, Start));
+		Memory.MoveToRegister(Unit, Start, Settings.Size, false, Trace.For(Unit, Start));
 	}
 
 	public override void OnBuild()
@@ -94,7 +94,7 @@ public class GetObjectPointerInstruction : Instruction
 		{
 			OutputPack(Pack, 0);
 			Result.Value = Pack;
-			Result.Format = Assembler.Format;
+			Result.Format = Settings.Format;
 			return;
 		}
 
@@ -110,7 +110,7 @@ public class GetObjectPointerInstruction : Instruction
 			Result.Value = new MemoryHandle(Unit, Start, Offset);
 			Result.Format = Variable.Type!.Format;
 
-			Memory.MoveToRegister(Unit, Result, Assembler.Size, Variable.GetRegisterFormat().IsDecimal(), Trace.For(Unit, Result));
+			Memory.MoveToRegister(Unit, Result, Settings.Size, Variable.GetRegisterFormat().IsDecimal(), Trace.For(Unit, Result));
 		}
 		else
 		{

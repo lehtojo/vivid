@@ -15,7 +15,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public override void OnBuild()
 	{
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			OnBuildX64();
 		}
@@ -81,7 +81,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 		Build(
 			Instructions.Shared.SUBTRACT,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				First,
 				ParameterFlag.DESTINATION | ParameterFlag.READS,
@@ -115,7 +115,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 			Build(
 				instruction,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -140,7 +140,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 		Build(
 			instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -202,7 +202,7 @@ public class SubtractionInstruction : DualParameterInstruction
 
 	public override bool Redirect(Handle handle, bool root)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return RedirectArm64(handle);
 		}

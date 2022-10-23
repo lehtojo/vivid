@@ -5,17 +5,12 @@ using System.Collections.Generic;
 
 public class AssemblerPhase : Phase
 {
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
-		if (!bundle.Get(ConfigurationPhase.ASSEMBLER_FLAG, false)) return Status.OK;
+		if (!Settings.TextualAssembly) return Status.OK;
 
-		var files = bundle.Get(FilePhase.OUTPUT, new List<SourceFile>());
+		var files = Settings.SourceFiles;
 		if (files.Count == 0) return Status.Error("Nothing to assembly");
-
-		var link = bundle.Get(ConfigurationPhase.LINK_FLAG, false);
-
-		// Determine the output name of the object file
-		var output_name = bundle.Get(ConfigurationPhase.OUTPUT_NAME, ConfigurationPhase.DEFAULT_OUTPUT);
 
 		// Initialize the target architecture
 		Instructions.X64.Initialize();
@@ -27,7 +22,7 @@ public class AssemblerPhase : Phase
 
 		try
 		{
-			if (link)
+			if (Settings.LinkObjects)
 			{
 				var object_files = new List<BinaryObjectFile>();
 
@@ -50,11 +45,11 @@ public class AssemblerPhase : Phase
 					object_files.Add(ElfFormat.Create(file.Filename, sections, parser.Exports));
 				}
 
-				var result = Assembler.IsTargetWindows
-					? PeFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, output_name, true)
+				var result = Settings.IsTargetWindows
+					? PeFormat.Link(object_files, new List<string>(), Assembler.DefaultEntryPoint, Settings.OutputName, true)
 					: Linker.Link(object_files, Assembler.DefaultEntryPoint, true);
 
-				File.WriteAllBytes(output_name, result);
+				File.WriteAllBytes(Settings.OutputName, result);
 			}
 			else
 			{
@@ -74,11 +69,11 @@ public class AssemblerPhase : Phase
 					sections.AddRange(data_sections);
 					if (debug_lines_section != null) sections.Add(debug_lines_section);
 
-					var object_file = Assembler.IsTargetWindows
+					var object_file = Settings.IsTargetWindows
 						? PeFormat.Build(sections, parser.Exports)
 						: ElfFormat.Build(sections, parser.Exports);
 
-					File.WriteAllBytes($"{output_name}.{file.GetFilenameWithoutExtension()}{AssemblyPhase.ObjectFileExtension}", object_file);
+					File.WriteAllBytes($"{Settings.OutputName}.{file.GetFilenameWithoutExtension()}{AssemblyPhase.ObjectFileExtension}", object_file);
 				}
 			}
 		}

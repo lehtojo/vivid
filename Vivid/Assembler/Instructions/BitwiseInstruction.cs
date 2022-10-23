@@ -19,7 +19,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public static BitwiseInstruction CreateXor(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			if (format.IsDecimal()) return new BitwiseInstruction(unit, Instructions.X64.DOUBLE_PRECISION_XOR, first, second, format, assigns);
 
@@ -33,19 +33,19 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public static BitwiseInstruction CreateOr(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.OR : Instructions.X64.OR, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Settings.IsArm64 ? Instructions.Arm64.OR : Instructions.X64.OR, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction CreateShiftLeft(Unit unit, Result first, Result second, Format format, bool assigns = false)
 	{
-		return new BitwiseInstruction(unit, Assembler.IsArm64 ? Instructions.Arm64.SHIFT_LEFT : Instructions.X64.SHIFT_LEFT, first, second, format, assigns);
+		return new BitwiseInstruction(unit, Settings.IsArm64 ? Instructions.Arm64.SHIFT_LEFT : Instructions.X64.SHIFT_LEFT, first, second, format, assigns);
 	}
 
 	public static BitwiseInstruction CreateShiftRight(Unit unit, Result first, Result second, Format format, bool is_unsigned, bool assigns = false)
 	{
 		var instruction = string.Empty;
 
-		if (Assembler.IsX64) { instruction = is_unsigned ? Instructions.X64.SHIFT_RIGHT_UNSIGNED : Instructions.X64.SHIFT_RIGHT; }
+		if (Settings.IsX64) { instruction = is_unsigned ? Instructions.X64.SHIFT_RIGHT_UNSIGNED : Instructions.X64.SHIFT_RIGHT; }
 		else { instruction = is_unsigned ? Instructions.Arm64.SHIFT_RIGHT_UNSIGNED : Instructions.Arm64.SHIFT_RIGHT; }
 
 		return new BitwiseInstruction(unit, instruction, first, second, format, is_unsigned, assigns);
@@ -68,7 +68,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public override void OnBuild()
 	{
-		if (Assembler.IsX64)
+		if (Settings.IsX64)
 		{
 			OnBuildX64();
 		}
@@ -201,7 +201,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 		Build(
 			Instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				First,
 				ParameterFlag.READS | flags,
@@ -230,7 +230,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 			Build(
 				Instruction,
-				Assembler.Size,
+				Settings.Size,
 				new InstructionParameter(
 					result,
 					ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS | ParameterFlag.NO_ATTACH,
@@ -256,7 +256,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 		Build(
 			Instruction,
-			Assembler.Size,
+			Settings.Size,
 			new InstructionParameter(
 				Result,
 				ParameterFlag.DESTINATION | ParameterFlag.WRITE_ACCESS,
@@ -300,7 +300,7 @@ public class BitwiseInstruction : DualParameterInstruction
 
 	public override bool Redirect(Handle handle, bool root)
 	{
-		if (Assembler.IsArm64)
+		if (Settings.IsArm64)
 		{
 			return RedirectArm64(handle);
 		}

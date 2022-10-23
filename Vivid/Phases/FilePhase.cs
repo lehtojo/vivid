@@ -40,48 +40,29 @@ public class SourceFile
 
 public class FilePhase : Phase
 {
-	public const string OUTPUT = "files";
-
-	public const char CARRIAGE_RETURN_CHARACTER = '\r';
-	public const char TAB_CHARACTER = '\t';
-
-	public override Status Execute(Bundle bundle)
+	public override Status Execute()
 	{
-		var filenames = bundle.Get(ConfigurationPhase.FILES, Array.Empty<string>());
+		var filenames = Settings.Filenames;
+		if (!filenames.Any()) return Status.Error("Please enter input files");
 
-		if (!filenames.Any())
+		var files = new List<SourceFile>();
+
+		for (var i = 0; i < filenames.Count; i++)
 		{
-			return Status.Error("Please enter input files");
-		}
+			var filename = filenames[i];
 
-		var files = new SourceFile[filenames.Length];
-
-		for (var i = 0; i < filenames.Length; i++)
-		{
-			var index = i;
-
-			Run(() =>
+			try
 			{
-				var filename = filenames[index];
-
-				try
-				{
-					var content = File.ReadAllText(filename).Replace(CARRIAGE_RETURN_CHARACTER, ' ').Replace(TAB_CHARACTER, ' ');
-					files[index] = new SourceFile(filename, content, index + 1);
-				}
-				catch
-				{
-					return Status.Error("Could not load file '{0}'", filename);
-				}
-
-				return Status.OK;
-			});
+				var content = File.ReadAllText(filename).Replace('\r', ' ').Replace('\t', ' ');
+				files.Add(new SourceFile(filename, content, i + 1));
+			}
+			catch
+			{
+				return Status.Error("Could not load file '{0}'", filename);
+			}
 		}
 
-		Sync();
-
-		bundle.Put(OUTPUT, files.ToList());
-
+		Settings.SourceFiles = files;
 		return Status.OK;
 	}
 }

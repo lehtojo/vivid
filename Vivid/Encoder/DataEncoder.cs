@@ -388,14 +388,14 @@ public static class DataEncoder
 			builder.Export(table.Name); // Export the table
 
 			// Align the table
-			if (Assembler.IsArm64) DataEncoder.Align(module, 16);
+			if (Settings.IsArm64) DataEncoder.Align(module, 16);
 
 			// Define the table as a symbol
 			module.CreateLocalSymbol(table.Name, module.Position);
 		}
 
 		// Align tables if the platform is ARM
-		if (Assembler.IsArm64) Align(module, 8);
+		if (Settings.IsArm64) Align(module, 8);
 
 		var subtables = new List<Table>();
 
@@ -458,7 +458,7 @@ public static class DataEncoder
 		module.CreateLocalSymbol(name, module.Position, true);
 
 		// Align tables if the platform is ARM
-		if (Assembler.IsArm64) Align(module, 8);
+		if (Settings.IsArm64) Align(module, 8);
 
 		module.Zero(size);
 	}

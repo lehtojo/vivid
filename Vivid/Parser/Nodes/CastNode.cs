@@ -22,7 +22,11 @@ public class CastNode : Node, IResolvable
 		var a = from.GetSupertypeBaseOffset(to);
 		var b = to.GetSupertypeBaseOffset(from);
 
-		return (a == null && b == null) || (a == 0 || b == 0);
+		// 1. Return true if both of the types have nothing in common: a == null && b == null
+		// 2. If either a or b is zero, no offset is required, so the cast is free: a == 0 || b == 0
+		// Result: (a == null && b == null) || (a == 0 || b == 0)
+		if (a == null) return b == null || b == 0;
+		return a == 0 || b == 0;
 	}
 
 	public override Type? TryGetType()
