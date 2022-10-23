@@ -10,7 +10,6 @@ public enum InstructionType
 	COMPARE,
 	CONVERT,
 	CREATE_PACK,
-	DECLARE,
 	DIVISION,
 	EVACUATE,
 	EXCHANGE,

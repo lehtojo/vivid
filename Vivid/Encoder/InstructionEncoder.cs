@@ -341,7 +341,7 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Returns whether the specified register can be overriden to represent another register using the REX-prefix
+	/// Returns whether the specified register can be overridden to represent another register using the REX-prefix
 	/// </summary>
 	public static bool IsOverridableRegister(int register, int size)
 	{
@@ -349,7 +349,7 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Returns whether the specified register can be overriden to represent another register using the REX-prefix
+	/// Returns whether the specified register can be overridden to represent another register using the REX-prefix
 	/// </summary>
 	public static bool IsOverridableRegister(Register register, int size)
 	{
@@ -541,8 +541,8 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes register and memort address operands
-	/// </summmary>
+	/// Writes register and memory address operands
+	/// </summary>
 	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, int offset)
 	{
 		#warning The register might also be the second operand
@@ -579,8 +579,8 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes register and memort address operands
-	/// </summmary>
+	/// Writes register and memory address operands
+	/// </summary>
 	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register start, Register index, int scale, int offset)
 	{
 		// Convert [start+index*0+offset] => [start+offset]
@@ -617,8 +617,8 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes register and memort address operands
-	/// </summmary>
+	/// Writes register and memory address operands
+	/// </summary>
 	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, Register index, int scale, int offset)
 	{
 		// Convert [index*0+offset] => [offset]
@@ -646,8 +646,8 @@ public static class InstructionEncoder
 	}
 
 	/// <summary>
-	/// Writes register and memort address operands
-	/// </summmary>
+	/// Writes register and memory address operands
+	/// </summary>
 	public static void WriteRegisterAndMemoryAddress(EncoderModule module, InstructionEncoding encoding, int first, int offset)
 	{
 		var force = encoding.Modifier == 0 && IsOverridableRegister(first, encoding.InputSizeOfFirst);
@@ -1321,7 +1321,7 @@ public static class InstructionEncoder
 			var start = descriptor.Module.Index;
 			var end = module.Index;
 
-			// Start          Distace 0     Distance 1         Distance n - 1      Distance n        End
+			// Start          Distance 0    Distance 1         Distance n - 1      Distance n        End
 			// [ ... L0: ...............] [  Module 1  ] ... [  Module n - 1  ] [ ............ Jump L0 ]
 			var distance = 0;
 			distance += descriptor.Module.Position - descriptor.Position; // Distance 0

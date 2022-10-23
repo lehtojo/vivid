@@ -11,7 +11,7 @@ public class AssemblyParser
 	public const string DWORD_SPECIFIER = "dword";
 	public const string QWORD_SPECIFIER = "qword";
 	public const string XWORD_SPECIFIER = "xword";
-	public const string OWORD_SPECIFIER = "yword";
+	public const string YWORD_SPECIFIER = "yword";
 	public const string SECTION_RELATIVE_SPECIFIER = "section_relative";
 
 	public const string ALIGN_DIRECTIVE = "align";
@@ -79,7 +79,7 @@ public class AssemblyParser
 			DWORD_SPECIFIER => 4, // Pattern: .dword $to - $from
 			QWORD_SPECIFIER => 8, // Pattern: .qword $to - $from
 			XWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Please use smaller allocators"),
-			OWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Please use smaller allocators"),
+			YWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Please use smaller allocators"),
 			_ => throw Errors.Get(tokens[1].Position, "Unknown allocator")
 		};
 
@@ -108,7 +108,7 @@ public class AssemblyParser
 			DWORD_SPECIFIER => 4, // Pattern: .dword $symbol
 			QWORD_SPECIFIER => 8, // Pattern: .qword $symbol
 			XWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
-			OWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
+			YWORD_SPECIFIER => throw Errors.Get(tokens[1].Position, "Only 32-bit and 64-bit symbol references are currently supported"),
 			_ => throw Errors.Get(tokens[1].Position, "Unknown allocator")
 		};
 
@@ -277,7 +277,7 @@ public class AssemblyParser
 			case DWORD_SPECIFIER: { Data!.WriteInt32(value); break; } // Pattern: .dword $value
 			case QWORD_SPECIFIER: { Data!.WriteInt64(value); break; } // Pattern: .qword $value
 			case XWORD_SPECIFIER:
-			case OWORD_SPECIFIER: throw Errors.Get(tokens[1].Position, "Please use smaller allocators");
+			case YWORD_SPECIFIER: throw Errors.Get(tokens[1].Position, "Please use smaller allocators");
 			default: return false;
 		}
 
@@ -379,7 +379,7 @@ public class AssemblyParser
 
 	/// <summary>
 	/// Tries to form a instruction parameter handle from the specified tokens starting at the specified offset.
-	/// Instrucion parameters are registers, memory addresses and numbers for instance.
+	/// Instruction parameters are registers, memory addresses and numbers for instance.
 	/// </summary>
 	private Handle ParseInstructionParameter(List<Token> all, int i)
 	{
@@ -400,7 +400,7 @@ public class AssemblyParser
 				DWORD_SPECIFIER => 4,
 				QWORD_SPECIFIER => 8,
 				XWORD_SPECIFIER => 16,
-				OWORD_SPECIFIER => 32,
+				YWORD_SPECIFIER => 32,
 				_ => 0
 			};
 

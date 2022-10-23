@@ -267,7 +267,9 @@ public class Unit
 		scope.AddOutput(variable, input);
 	}
 
-	// Summary: Tries to return the current value of the specified variable
+	/// <summary>
+	/// Tries to return the current value of the specified variable
+	/// </summary>
 	public Result GetVariableValue(Variable variable)
 	{
 		if (Scope == null) throw new ApplicationException("Missing scope");

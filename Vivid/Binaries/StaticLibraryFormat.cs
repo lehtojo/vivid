@@ -61,7 +61,7 @@ public static class StaticLibraryFormat
 	public const string DEFAULT_FILEMODE = "100666";
 	public const string END_COMMAND = "\x60\n";
 
-	public const byte FILEHEADER_LENGTH = FILENAME_LENGTH + TIMESTAMP_LENGTH + IDENTITY_LENGTH * 2 + FILEMODE_LENGTH + SIZE_LENGTH + 2;
+	public const byte FILE_HEADER_LENGTH = FILENAME_LENGTH + TIMESTAMP_LENGTH + IDENTITY_LENGTH * 2 + FILEMODE_LENGTH + SIZE_LENGTH + 2;
 
 	public const int FILENAME_LENGTH = 16;
 	public const int TIMESTAMP_LENGTH = 12;
@@ -187,7 +187,7 @@ public static class StaticLibraryFormat
 
 			contents.Write(bytes);
 
-			position += FILEHEADER_LENGTH + (uint)bytes.Length;
+			position += FILE_HEADER_LENGTH + (uint)bytes.Length;
 
 			// Align the position to 2 bytes
 			if (position % 2 == 0) continue;
@@ -205,7 +205,7 @@ public static class StaticLibraryFormat
 		var export_table_size = sizeof(int) + symbol_count * sizeof(int) + symbol_buffer.Length;
 
 		// Compute the offset which must be applied to all the file positions
-		var offset = SIGNATURE.Length + FILEHEADER_LENGTH + export_table_size + filename_table.Length;
+		var offset = SIGNATURE.Length + FILE_HEADER_LENGTH + export_table_size + filename_table.Length;
 		files.ForEach(i => i.Position += (uint)offset);
 
 		// Write the export table file header

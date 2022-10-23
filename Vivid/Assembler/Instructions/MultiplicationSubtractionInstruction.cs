@@ -8,26 +8,26 @@ public class MultiplicationSubtractionInstruction : Instruction
 {
 	public Result Multiplicand { get; private set; }
 	public Result Multiplier { get; private set; }
-	public Result Minued { get; private set; }
+	public Result Minuend { get; private set; }
 	public Format Format { get; private set; }
 
 	public bool Assigns { get; private set; }
 
-	public MultiplicationSubtractionInstruction(Unit unit, Result multiplicand, Result multiplier, Result minued, Format format, bool assigns) : base(unit, InstructionType.MULTIPLICATION_SUBTRACTION)
+	public MultiplicationSubtractionInstruction(Unit unit, Result multiplicand, Result multiplier, Result minuend, Format format, bool assigns) : base(unit, InstructionType.MULTIPLICATION_SUBTRACTION)
 	{
 		Multiplicand = multiplicand;
 		Multiplier = multiplier;
-		Minued = minued;
+		Minuend = minuend;
 		Assigns = assigns;
 		Format = format;
-		Dependencies = new List<Result> { Multiplicand, Multiplier, Minued, Result };
+		Dependencies = new List<Result> { Multiplicand, Multiplier, Minuend, Result };
 	}
 
 	public override void OnBuild()
 	{
 		if (Assigns)
 		{
-			var result = Memory.LoadOperand(Unit, Minued, false, Assigns);
+			var result = Memory.LoadOperand(Unit, Minuend, false, Assigns);
 
 			Build(
 				Instructions.Arm64.MULTIPLY_SUBTRACT,
@@ -54,9 +54,9 @@ public class MultiplicationSubtractionInstruction : Instruction
 				)
 			);
 
-			if (Minued.IsMemoryAddress)
+			if (Minuend.IsMemoryAddress)
 			{
-				Unit.Add(new MoveInstruction(Unit, Minued, result), true);
+				Unit.Add(new MoveInstruction(Unit, Minuend, result), true);
 			}
 
 			Result.Format = Format;
@@ -84,7 +84,7 @@ public class MultiplicationSubtractionInstruction : Instruction
 				HandleType.REGISTER
 			),
 			new InstructionParameter(
-				Minued,
+				Minuend,
 				ParameterFlag.NONE,
 				HandleType.REGISTER
 			)

@@ -28,7 +28,7 @@ public static class Keywords
 	public static readonly Keyword PRIVATE = new ModifierKeyword("private", Modifier.PRIVATE);
 	public static readonly Keyword PROTECTED = new ModifierKeyword("protected", Modifier.PROTECTED);
 	public static readonly Keyword PUBLIC = new ModifierKeyword("public", Modifier.PUBLIC);
-	public static readonly Keyword READABLE = new ModifierKeyword("readable", Modifier.READONLY);
+	public static readonly Keyword READABLE = new ModifierKeyword("readable", Modifier.READABLE);
 	public static readonly Keyword RETURN = new("return", KeywordType.FLOW);
 	public static readonly Keyword SHARED = new ModifierKeyword("shared", Modifier.STATIC);
 	public static readonly Keyword STOP = new("stop", KeywordType.FLOW);

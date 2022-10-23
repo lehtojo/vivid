@@ -156,7 +156,7 @@ public static class Linker
 	}
 
 	/// <summary>
-	/// Creates the program headers, meaning the specified section will get their own virtual addreses and be loaded into memory when the created executable is loaded
+	/// Creates the program headers, meaning the specified section will get their own virtual addresses and be loaded into memory when the created executable is loaded
 	/// </summary>
 	public static int CreateProgramHeaders(List<BinarySection> sections, List<BinarySection> fragments, List<ElfProgramHeader> headers, ulong virtual_address)
 	{

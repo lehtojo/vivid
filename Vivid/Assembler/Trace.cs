@@ -169,7 +169,9 @@ public class Trace
 		return directives;
 	}
 
-	// Summary: Returns whether the specified result lives through at least one call
+	/// <summary>
+	/// Returns whether the specified result lives through at least one call
+	/// </summary>
 	public static bool IsUsedAfterCall(Unit unit, Result result)
 	{
 		var usages = result.Lifetime.Usages;
@@ -199,7 +201,9 @@ public class Trace
 		return false;
 	}
 
-	// Summary: Returns whether the specified result stays constant during the lifetime of the specified parent
+	/// <summary>
+	/// Returns whether the specified result stays constant during the lifetime of the specified parent
+	/// </summary>
 	public static bool IsLoadingRequired(Unit unit, Result result)
 	{
 		var usages = result.Lifetime.Usages;

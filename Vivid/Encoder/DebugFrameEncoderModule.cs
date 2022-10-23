@@ -21,7 +21,7 @@ public class DebugFrameEncoderModule : DataEncoderModule
 		Write('z');
 		Write('R');
 		Write(0); // Augmentation
-		WriteULEB128(1); // Code aligment factor
+		WriteULEB128(1); // Code alignment factor
 		WriteSLEB128(-8); // Data alignment factor
 		WriteULEB128(16); // Return address register
 		Write(1);

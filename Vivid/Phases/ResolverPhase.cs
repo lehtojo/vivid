@@ -313,8 +313,8 @@ public class ResolverPhase : Phase
 		var access = requester == owner ? Modifier.PRIVATE : (requester != null && requester.IsTypeInherited(owner) ? Modifier.PROTECTED : Modifier.PUBLIC);
 
 		// If the access level is private and the object is read, it can always be accessed
-		// If the access level is private and the object is edited, it can be accessed if it is not private and readonly
-		if (access == Modifier.PRIVATE) return reads || !Flag.Has(modifiers, Modifier.READONLY | Modifier.PRIVATE);
+		// If the access level is private and the object is edited, it can be accessed if it is not private and readable
+		if (access == Modifier.PRIVATE) return reads || !Flag.Has(modifiers, Modifier.READABLE | Modifier.PRIVATE);
 
 		if (access == Modifier.PROTECTED)
 		{
@@ -327,13 +327,13 @@ public class ResolverPhase : Phase
 
 			// If the access level is protected and the object is edited:
 			// 1. The object can be accessed if it is public
-			// 2. The object can be accessed if it is protected and it is not readonly
-			return Flag.Has(modifiers, Modifier.PUBLIC) || (Flag.Has(modifiers, Modifier.PROTECTED) && !Flag.Has(modifiers, Modifier.READONLY));
+			// 2. The object can be accessed if it is protected and it is not readable
+			return Flag.Has(modifiers, Modifier.PUBLIC) || (Flag.Has(modifiers, Modifier.PROTECTED) && !Flag.Has(modifiers, Modifier.READABLE));
 		}
 
 		// If the access level is public and the object is read, it can be accessed if it is public
-		// If the access level is public and the object is edited, it can be accessed if it is public and not readonly
-		return Flag.Has(modifiers, Modifier.PUBLIC) && (reads || !Flag.Has(modifiers, Modifier.READONLY));
+		// If the access level is public and the object is edited, it can be accessed if it is public and not readable
+		return Flag.Has(modifiers, Modifier.PUBLIC) && (reads || !Flag.Has(modifiers, Modifier.READABLE));
 	}
 
 	/// <summary>

@@ -855,7 +855,7 @@ public static class PeFormat
 
 				if (!symbols.Contains(relocation.Symbol.Name)) continue;
 
-				// Ensure the external symbol is not defined in multiple libraries, because this could cause weird behaviour depending on the order of the imported libraries
+				// Ensure the external symbol is not defined in multiple libraries, because this could cause weird behavior depending on the order of the imported libraries
 				if (library != null) throw new ApplicationException($"Symbol {relocation.Symbol.Name} is defined in both {library} and {imports[i]}");
 
 				library = imports[i];

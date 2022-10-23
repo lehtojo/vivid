@@ -41,7 +41,9 @@ public class ParserState
 		End++;
 	}
 
-	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	/// <summary>
+	/// Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	/// </summary>
 	public bool Consume(long types)
 	{
 		if (End >= All.Count) return false;
@@ -52,7 +54,9 @@ public class ParserState
 		return true;
 	}
 
-	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	/// <summary>
+	/// Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise false.
+	/// </summary>
 	public bool Consume(out Token? next, long types)
 	{
 		next = null;
@@ -64,7 +68,9 @@ public class ParserState
 		return true;
 	}
 
-	// Summary: Consumes the next token if it exists and it represents the specified operator
+	/// <summary>
+	/// Consumes the next token if it exists and it represents the specified operator
+	/// </summary>
 	public bool ConsumeOperator(Operator operation)
 	{
 		if (End >= All.Count) return false;
@@ -75,7 +81,9 @@ public class ParserState
 		return true;
 	}
 
-	// Summary: Consumes the next token if it exists and it represents the specified parenthesis
+	/// <summary>
+	/// Consumes the next token if it exists and it represents the specified parenthesis
+	/// </summary>
 	public bool ConsumeParenthesis(ParenthesisType type)
 	{
 		if (End >= All.Count) return false;
@@ -86,7 +94,9 @@ public class ParserState
 		return true;
 	}
 
-	// Summary: Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise an empty token is consumed and false is returned.
+	/// <summary>
+	/// Consumes the next token, if its type is contained in the specified types. This function returns true, if the next token is consumed, otherwise an empty token is consumed and false is returned.
+	/// </summary>
 	public bool ConsumeOptional(long types)
 	{
 		if (End >= All.Count)
@@ -204,7 +214,9 @@ public static class Parser
 		Add(new WhenPattern());
 	}
 
-	// Summary: Returns whether the specified pattern can be built at the specified position
+	/// <summary>
+	/// Returns whether the specified pattern can be built at the specified position
+	/// </summary>
 	public static bool Fits(Pattern pattern, List<Token> tokens, int start, ParserState state)
 	{
 		var path = pattern.Path;
@@ -259,7 +271,9 @@ public static class Parser
 		return true;
 	}
 
-	// Summary: Tries to find the next pattern from the specified tokens, which has the specified priority
+	/// <summary>
+	/// Tries to find the next pattern from the specified tokens, which has the specified priority
+	/// </summary>
 	public static bool Next(Context context, List<Token> tokens, int priority, int start, ParserState state)
 	{
 		var all = Patterns[priority];
@@ -277,7 +291,9 @@ public static class Parser
 		return false;
 	}
 
-	// Summary: Tries to find the next pattern from the specified tokens, which has the specified priority
+	/// <summary>
+	/// Tries to find the next pattern from the specified tokens, which has the specified priority
+	/// </summary>
 	public static bool NextConsumable(Context context, List<Token> tokens, int priority, int start, ParserState state, long disabled)
 	{
 		var all = Patterns[priority];
@@ -304,7 +320,9 @@ public static class Parser
 		Parse(root, context, tokens, Parser.MIN_PRIORITY, Parser.MAX_PRIORITY);
 	}
 
-	// Summary: Forms function tokens from the specified tokens
+	/// <summary>
+	/// Forms function tokens from the specified tokens
+	/// </summary>
 	public static void CreateFunctionTokens(List<Token> tokens)
 	{
 		if (tokens.Count < 2) return;
@@ -380,9 +398,10 @@ public static class Parser
 		return section;
 	}
 
-	// Summary:
-	// Returns the first section from the specified tokens that consumes all the lines below it.
-	// If such section can not be found, none is returned.
+	/// <summary>
+	/// Returns the first section from the specified tokens that consumes all the lines below it.
+	/// If such section can not be found, none is returned.
+	/// </summary>
 	public static List<Token>? FindConsumingSection(List<Token> tokens)
 	{
 		for (var i = 0; i < tokens.Count; i++)

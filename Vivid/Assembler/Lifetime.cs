@@ -9,7 +9,9 @@ public class Lifetime
 		Usages.Clear();
 	}
 
-	// Summary: Returns whether this lifetime is active
+	/// <summary>
+	/// Returns whether this lifetime is active
+	/// </summary>
 	public bool IsActive()
 	{
 		var started = false;
@@ -41,7 +43,9 @@ public class Lifetime
 		return false;
 	}
 
-	// Summary: Returns true if the lifetime is active and is not starting or ending
+	/// <summary>
+	/// Returns true if the lifetime is active and is not starting or ending
+	/// </summary>
 	public bool IsOnlyActive()
 	{
 		var started = false;
@@ -68,7 +72,9 @@ public class Lifetime
 		return false;
 	}
 
-	// Summary: Returns true if the lifetime is expiring
+	/// <summary>
+	/// Returns true if the lifetime is expiring
+	/// </summary>
 	public bool IsDeactivating()
 	{
 		var building = false;

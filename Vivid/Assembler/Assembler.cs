@@ -191,7 +191,7 @@ public static class Assembler
 	}
 
 	/// <summary>
-	/// Summary: Connects the specified scope to the destination scope.
+	/// Connects the specified scope to the destination scope.
 	/// </summary>
 	public static void ConnectBackwardsJump(Unit unit, Scope from, Scope to)
 	{

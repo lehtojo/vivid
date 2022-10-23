@@ -8,121 +8,6 @@ using System;
 /// </summary>
 public static class ObjectExporter
 {
-	#warning Investigate exporting of member parameters (constructors)
-
-	/// <summary>
-	/// Creates a mangled text which describes the specified virtual function and appends it to the specified mangle object
-	/// </summary>
-	private static void ExportVirtualFunction(Mangle mangle, VirtualFunction function)
-	{
-		mangle += Mangle.START_MEMBER_VIRTUAL_FUNCTION_COMMAND;
-		mangle += $"{function.Name}{function.Name}";
-
-		/// NOTE: All parameters must have a type since that is a requirement for virtual functions
-		mangle += function.Parameters.Select(i => i.Type!);
-		
-		if (!Primitives.IsPrimitive(function.ReturnType, Primitives.UNIT))
-		{
-			mangle += Mangle.START_RETURN_TYPE_COMMAND;
-			mangle += function.ReturnType ?? throw new ApplicationException("Virtual function missing return type");
-		}
-
-		mangle += Mangle.END_COMMAND;
-	}
-
-	/// <summary>
-	/// Creates a mangled text which describes the specified type and appends it to the specified builder
-	/// </summary>
-	public static string? ExportType(AssemblyBuilder builder, Type type)
-	{
-		// 1. Skip template types since they will be exported in a different way (not variants)
-		// 2. Unnamed packs are not exported
-		if ((type.IsTemplateType && !type.IsTemplateTypeVariant) || type.IsUnnamedPack) return null;
-
-		var mangle = new Mangle(Mangle.EXPORT_TYPE_TAG);
-		mangle.Add(type);
-
-		var member_variables = type.Variables.Values.Where(i => !i.IsStatic && !i.IsConstant && !i.IsHidden).ToArray();
-		var virtual_functions = type.Virtuals.Values.ToArray();
-
-		var public_member_variables = member_variables.Where(i => i.IsPublic).ToArray();
-		var public_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPublic).ToArray();
-
-		var private_member_variables = member_variables.Where(i => i.IsPrivate).ToArray();
-		var private_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsPrivate).ToArray();
-
-		var protected_member_variables = member_variables.Where(i => i.IsProtected).ToArray();
-		var protected_virtual_functions = virtual_functions.SelectMany(i => i.Overloads).Where(i => i.IsProtected).ToArray();
-
-		// Export all public member variables
-		foreach (var variable in public_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all public virtual functions
-		foreach (var function in public_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-
-		var is_private_section_empty = !private_member_variables.Any() && !private_virtual_functions.Any();
-		var is_protected_section_empty = !protected_member_variables.Any() && !protected_virtual_functions.Any();
-
-		if (is_private_section_empty && is_protected_section_empty)
-		{
-			builder.WriteLine($"{Assembler.ExportDirective} {mangle.Value}");
-			builder.WriteLine($"{mangle.Value}:");
-			return mangle.Value;
-		}
-
-		mangle += Mangle.END_COMMAND;
-
-		// Export all private member variables
-		foreach (var variable in private_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all private virtual functions
-		foreach (var function in private_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-
-		if (is_protected_section_empty)
-		{
-			builder.WriteLine($"{Assembler.ExportDirective} {mangle.Value}");
-			builder.WriteLine($"{mangle.Value}:");
-			return mangle.Value;
-		}
-
-		mangle += Mangle.END_COMMAND;
-
-		// Export all protected member variables
-		foreach (var variable in protected_member_variables)
-		{
-			mangle += Mangle.START_MEMBER_VARIABLE_COMMAND;
-			mangle += $"{variable.Name.Length}{variable.Name}";
-			mangle += variable.Type!;
-		}
-
-		// Export all protected virtual functions
-		foreach (var function in protected_virtual_functions)
-		{
-			ExportVirtualFunction(mangle, (VirtualFunction)function);
-		}
-		
-		builder.WriteLine($"{Assembler.ExportDirective} {mangle.Value}");
-		builder.WriteLine($"{mangle.Value}:");
-
-		return mangle.Value;
-	}
-
 	/// <summary>
 	/// Creates a template name by combining the specified name and the template argument names together
 	/// </summary>
@@ -140,7 +25,7 @@ public static class ObjectExporter
 		if (Flag.Has(modifiers, Modifier.PRIVATE)) result.Add(Keywords.PRIVATE.Identifier);
 		if (Flag.Has(modifiers, Modifier.PROTECTED)) result.Add(Keywords.PROTECTED.Identifier);
 		if (Flag.Has(modifiers, Modifier.STATIC)) result.Add(Keywords.SHARED.Identifier);
-		if (Flag.Has(modifiers, Modifier.READONLY)) result.Add(Keywords.READABLE.Identifier);
+		if (Flag.Has(modifiers, Modifier.READABLE)) result.Add(Keywords.READABLE.Identifier);
 		if (Flag.Has(modifiers, Modifier.EXPORTED)) result.Add(Keywords.EXPORT.Identifier);
 		if (Flag.Has(modifiers, Modifier.CONSTANT)) result.Add(Keywords.CONSTANT.Identifier);
 		if (Flag.Has(modifiers, Modifier.OUTLINE)) result.Add(Keywords.OUTLINE.Identifier);

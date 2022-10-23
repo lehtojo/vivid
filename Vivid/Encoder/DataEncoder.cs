@@ -333,25 +333,24 @@ public class DataEncoderModule
 
 public static class DataEncoder
 {
-	public const int SYSTEM_ADDRESS_SIZE = 8;
-
 	/// <summary>
 	/// Ensures the specified module is aligned as requested
 	/// </summary>
 	public static void Align(DataEncoderModule module, int alignment)
 	{
+		// By choosing the largest alignment, it is guaranteed that all the alignments are correct even after the linker relocates all sections
+		module.Alignment = Math.Max(module.Alignment, alignment);
+
 		var padding = alignment - module.Position % alignment;
 		if (padding == alignment) return;
 
-		// By choosing the largest alignment, it is guaranteed that all the alignments are correct even after the linker relocates all sections
-		module.Alignment = Math.Max(module.Alignment, alignment);
 		module.Zero(padding);
 	}
 
 	/// <summary>
 	/// Adds the specified table label into the specified module
 	/// </summary>
-	public static void AddTableLable(DataEncoderModule module, TableLabel label)
+	public static void AddTableLabel(DataEncoderModule module, TableLabel label)
 	{
 		if (label.Declare)
 		{
@@ -394,7 +393,7 @@ public static class DataEncoder
 			module.CreateLocalSymbol(table.Name, module.Position);
 		}
 
-		// Align tables if the platform is ARM
+		// Align tables if the platform is arm64
 		if (Settings.IsArm64) Align(module, 8);
 
 		var subtables = new List<Table>();
@@ -411,7 +410,7 @@ public static class DataEncoder
 
 				case Table f:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE64, SYSTEM_ADDRESS_SIZE));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(f.Name), module.Position, 0, BinaryRelocationType.ABSOLUTE64, Settings.Bytes));
 					module.WriteInt64(0);
 
 					subtables.Add(f);
@@ -420,7 +419,7 @@ public static class DataEncoder
 
 				case Label g:
 				{
-					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE64, SYSTEM_ADDRESS_SIZE));
+					module.Relocations.Add(new BinaryRelocation(module.GetLocalOrCreateExternalSymbol(g.GetName()), module.Position, 0, BinaryRelocationType.ABSOLUTE64, Settings.Bytes));
 					module.WriteInt64(0);
 					break;
 				}
@@ -435,7 +434,7 @@ public static class DataEncoder
 
 				case TableLabel i:
 				{
-					AddTableLable(module, i);
+					AddTableLabel(module, i);
 					break;
 				}
 
@@ -457,7 +456,7 @@ public static class DataEncoder
 		// Define the static variable as a symbol
 		module.CreateLocalSymbol(name, module.Position, true);
 
-		// Align tables if the platform is ARM
+		// Align tables if the platform is arm64
 		if (Settings.IsArm64) Align(module, 8);
 
 		module.Zero(size);

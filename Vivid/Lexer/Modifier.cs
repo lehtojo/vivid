@@ -6,7 +6,7 @@ public static class Modifier
 	public const int PROTECTED = 4;
 	public const int STATIC = 8;
 	public const int IMPORTED = 16;
-	public const int READONLY = 32;
+	public const int READABLE = 32;
 	public const int EXPORTED = 64;
 	public const int CONSTANT = 128;
 	public const int TEMPLATE_TYPE = 256;

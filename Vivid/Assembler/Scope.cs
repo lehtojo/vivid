@@ -63,7 +63,9 @@ public class Scope
 		return input;
 	}
 
-	// Summary: Assigns a register or a stack address for the specified parameter depending on the situation
+	/// <summary>
+	/// Assigns a register or a stack address for the specified parameter depending on the situation
+	/// </summary>
 	public void ReceiveParameter(List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, Variable parameter)
 	{
 		if (parameter.Type!.IsPack)

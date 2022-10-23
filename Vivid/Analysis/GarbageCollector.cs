@@ -495,7 +495,7 @@ public static class GarbageCollector
 			var scope = statement.FindParent(i => ReconstructionAnalysis.IsScope(i)) ?? throw new ApplicationException("Return statement did not have a parent scope");
 			var context = ((IScope)scope).GetContext();
 
-			// Collect all unlinkable variables and destructable allocations in the scope
+			// Collect all unlinkable variables and destructible allocations in the scope
 			var linkables = new List<Variable>();
 			var unlinkables = GetUnlinkableVariables(flow, assignment_descriptors, context, statement);
 			var allocations = scopes[scope].Allocations;
@@ -566,7 +566,7 @@ public static class GarbageCollector
 
 	/// <summary>
 	/// Returns whether specified variable can be initialized (not always) at the specified position.
-	/// Variable is considered initialized at the specified perspective, if it can be reached from a definining assignment directly (not indirectly) without hitting undefining assignments.
+	/// Variable is considered initialized at the specified perspective, if it can be reached from a defining assignment directly (not indirectly) without hitting undefining assignments.
 	/// </summary>
 	private static bool IsInitializedBefore(StatementFlow flow, int position, VariableAssignmentDescriptor descriptor)
 	{

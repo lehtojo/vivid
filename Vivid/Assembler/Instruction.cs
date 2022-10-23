@@ -110,7 +110,7 @@ public class InstructionParameter
 			return bits <= ParameterFlag.GetBitLimit(Flags);
 		}
 
-		// Datasection handles should be moved into a register
+		// Data section handles should be moved into a register
 		if (Result.Value.Is(HandleInstanceType.DATA_SECTION) || Result.Value.Is(HandleInstanceType.CONSTANT_DATA_SECTION))
 		{
 			var handle = Result.Value.To<DataSectionHandle>();

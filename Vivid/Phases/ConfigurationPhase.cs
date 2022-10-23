@@ -331,7 +331,7 @@ public class ConfigurationPhase : Phase
 				Assembler.DebugFrameOffsetDirective = ".cfi_def_cfa_offset";
 				Assembler.DebugFunctionEndDirective = ".cfi_endproc";
 
-				Debug.DebugAbbrevationTable = ".debug_abbrev";
+				Debug.DebugAbbreviationTable = ".debug_abbrev";
 				Debug.DebugInformationTable = ".debug_info";
 				Debug.DebugLineTable = ".debug_line";
 				return Status.OK;

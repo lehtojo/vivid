@@ -15,9 +15,10 @@ public class Table
 	public string Name { get; private set; }
 	public Label Start { get; private set; }
 
-	// Summary:
-	// This is used to determine whether the table has been processed.
-	// Bool is not enough, because there can be multiple runs and we do not want to reset all the tables before each run.
+	/// <summary>
+	/// This is used to determine whether the table has been processed.
+	/// Bool is not enough, because there can be multiple runs and we do not want to reset all the tables before each run.
+	/// </summary>
 	public TableMarker Marker { get; set; } = TableMarker.None;
 
 	public bool IsSection { get; set; } = false;
