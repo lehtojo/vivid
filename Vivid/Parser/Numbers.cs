@@ -13,7 +13,7 @@ public static class Numbers
 
 	private static void Define(Number number)
 	{
-		Values.Add(number.Type, number);
+		Values.Add(number.Format, number);
 	}
 
 	static Numbers()

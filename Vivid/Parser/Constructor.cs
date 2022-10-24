@@ -22,7 +22,7 @@ public class Constructor : Function
 		var root = implementation.Node!;
 		var parent = (Type)Parent!;
 
-		for (var i = parent.Initialization.Length - 1; i >= 0; i--)
+		for (var i = parent.Initialization.Count - 1; i >= 0; i--)
 		{
 			var initialization = parent.Initialization[i].Clone();
 

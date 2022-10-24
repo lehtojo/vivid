@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-#warning Continue
 public class SpecificModificationPattern : Pattern
 {
 	public const int MODIFIER = 0;
@@ -35,6 +34,9 @@ public class SpecificModificationPattern : Pattern
 			{
 				var variable = destination.To<VariableNode>().Variable;
 				variable.Modifiers = Modifier.Combine(variable.Modifiers, modifiers);
+
+				// Static variables are categorized as global variables
+				if (Flag.Has(modifiers, Modifier.STATIC)) { variable.Category = VariableCategory.GLOBAL; }
 				break;
 			}
 

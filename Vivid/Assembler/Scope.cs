@@ -13,8 +13,8 @@ public class Scope
 	public Dictionary<Variable, Result> Inputs { get; set; } = new();
 	public Dictionary<Variable, bool> Outputs { get; set; } = new();
 
-	public RequireVariablesInstruction Inputter;
-	public RequireVariablesInstruction Outputter;
+	public RequireVariablesInstruction Inputter { get; set; }
+	public RequireVariablesInstruction Outputter { get; set; }
 
 	public Scope(Unit unit, string id)
 	{

@@ -1765,7 +1765,7 @@ public static class ReconstructionAnalysis
 	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
-	public static void Reconstruct(FunctionImplementation implementation, Node root)
+	public static void Reconstruct(Node root)
 	{
 		StripLinks(root);
 		RemoveRedundantParentheses(root);
@@ -1795,7 +1795,7 @@ public static class ReconstructionAnalysis
 	/// <summary>
 	/// Simplifies the specified node tree
 	/// </summary>
-	public static void Simplify(FunctionImplementation implementation, Node root)
+	public static void Simplify(Node root)
 	{
 		StripLinks(root);
 		RemoveRedundantParentheses(root);

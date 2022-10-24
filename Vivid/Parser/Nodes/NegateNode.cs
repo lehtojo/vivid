@@ -20,10 +20,8 @@ public class NegateNode : Node, IResolvable
 		return null;
 	}
 
-	#warning Investigate
 	public Status GetStatus()
 	{
-		// Ensure the object is a number
 		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the negation operation");
 	}
 

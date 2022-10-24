@@ -24,7 +24,7 @@ public static class Common
 	/// </summary>
 	public static bool Compatible(List<Type?> expected_types, List<Type?> actual_types)
 	{
-		if (expected_types.Count() != actual_types.Count()) return false;
+		if (expected_types.Count != actual_types.Count) return false;
 
 		for (var i = 0; i < expected_types.Count; i++)
 		{

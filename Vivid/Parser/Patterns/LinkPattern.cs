@@ -36,7 +36,7 @@ public class LinkPattern : Pattern
 		return true;
 	}
 
-	private LinkNode BuildTemplateFunctionCall(Context context, List<Token> tokens, Node left)
+	private static LinkNode BuildTemplateFunctionCall(Context context, List<Token> tokens, Node left)
 	{
 		// Load the properties of the template function call
 		var name = tokens[RIGHT].To<IdentifierToken>();

@@ -47,7 +47,7 @@ public class AvoidRegistersDirective : Directive
 	}
 }
 
-public class Trace
+public static class Trace
 {
 	public static List<Directive> For(Unit unit, Result result)
 	{

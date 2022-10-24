@@ -85,33 +85,23 @@ public class RuntimeConfiguration
 	}
 }
 
-#warning Update
 public class Type : Context
 {
-	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
-	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
-
-	public static readonly Dictionary<Operator, string> OPERATOR_OVERLOADS = new();
-
-	#warning Relocate
-	static Type()
-	{
-		OPERATOR_OVERLOADS.Add(Operators.ADD, "plus");
-		OPERATOR_OVERLOADS.Add(Operators.SUBTRACT, "minus");
-		OPERATOR_OVERLOADS.Add(Operators.MULTIPLY, "times");
-		OPERATOR_OVERLOADS.Add(Operators.DIVIDE, "divide");
-		OPERATOR_OVERLOADS.Add(Operators.MODULUS, "remainder");
-		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_ADD, "assign_plus");
-		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
-		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
-		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
-		OPERATOR_OVERLOADS.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
-		OPERATOR_OVERLOADS.Add(Operators.EQUALS, "equals");
-	}
-
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
+	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();
 
+	public List<Node> Initialization { get; set; } = new();
+
+	public FunctionList Constructors { get; } = new FunctionList();
+	public FunctionList Destructors { get; } = new FunctionList();
+	public List<Type> Supertypes { get; } = new List<Type>();
+	public Dictionary<string, FunctionList> Virtuals { get; } = new Dictionary<string, FunctionList>();
+	public Dictionary<string, FunctionList> Overrides { get; } = new Dictionary<string, FunctionList>();
+
+	public RuntimeConfiguration? Configuration { get; set; }
+
+	public Format Format => GetFormat();
 	public bool IsInlining => Flag.Has(Modifiers, Modifier.INLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
@@ -128,22 +118,9 @@ public class Type : Context
 	public bool IsUnnamedPack => IsPack && Name.IndexOf('.') != -1;
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
-	public Format Format => GetFormat();
-
 	public int ReferenceSize => GetReferenceSize(); // Reference size describes how many bytes it requires to refer to an instance of this type
 	public int AllocationSize => GetAllocationSize(); // Allocation size describes how many bytes this type requires from its container
 	public int ContentSize => GetContentSize(); // Allocation size describes how many bytes this type contains
-
-	public RuntimeConfiguration? Configuration { get; set; }
-
-	public List<Type> Supertypes { get; } = new List<Type>();
-	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();
-	public Dictionary<string, FunctionList> Virtuals { get; } = new Dictionary<string, FunctionList>();
-	public Dictionary<string, FunctionList> Overrides { get; } = new Dictionary<string, FunctionList>();
-	public FunctionList Constructors { get; } = new FunctionList();
-	public FunctionList Destructors { get; } = new FunctionList();
-
-	public OperatorNode[] Initialization { get; set; } = Array.Empty<OperatorNode>();
 
 	/// <summary>
 	/// Adds the specified constructor to this type
@@ -209,7 +186,6 @@ public class Type : Context
 	public void AddRuntimeConfiguration()
 	{
 		if (Configuration != null) return;
-
 		Configuration = new RuntimeConfiguration(this);
 	}
 
@@ -253,31 +229,20 @@ public class Type : Context
 
 	public bool IsOperatorOverloaded(Operator operation)
 	{
-		return OPERATOR_OVERLOADS.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
+		return Operators.Overloads.TryGetValue(operation, out var name) && (IsLocalFunctionDeclared(name) || IsSuperFunctionDeclared(name));
 	}
 
 	public int? GetSupertypeBaseOffset(Type type)
 	{
 		var position = 0;
-
-		if (type == this)
-		{
-			return position;
-		}
+		if (type == this) return position;
 
 		foreach (var supertype in Supertypes)
 		{
-			if (supertype == type)
-			{
-				return position;
-			}
+			if (supertype == type) return position;
 
-			var local_base_offset = supertype.GetSupertypeBaseOffset(type);
-
-			if (local_base_offset != null)
-			{
-				return position + local_base_offset;
-			}
+			var offset = supertype.GetSupertypeBaseOffset(type);
+			if (offset != null) return position + offset;
 
 			position += supertype.ContentSize;
 		}
@@ -426,7 +391,7 @@ public class Type : Context
 		{
 			if (Supertypes.Any(i => i.IsVirtualFunctionDeclared(function.Name)))
 			{
-				throw new InvalidOperationException("Tried to declare a virtual function with a name which was taken by one of supertypes");
+				throw new InvalidOperationException("Virtual function was already declared in supertypes");
 			}
 
 			entry = new FunctionList();
@@ -481,20 +446,18 @@ public class Type : Context
 		var inheritant_supertypes = inheritant.GetAllSupertypes();
 		if (inheritant_supertypes.Contains(this)) return false;
 
-		// Deny the inheritance if supertypes already contain the inheritant or if any supertype would be duplicated
 		var inheritor_supertypes = GetAllSupertypes();
 
-		return !inheritor_supertypes.Contains(inheritant) && !inheritant_supertypes.Any(i => inheritor_supertypes.Contains(i));
+		// The inheritor may not inherit the same type multiple times
+		if (inheritor_supertypes.Contains(inheritant)) return false;
+
+		// Look for conflicts between the supertypes of the inheritor and the inheritant
+		return !inheritant_supertypes.Any(i => inheritor_supertypes.Contains(i));
 	}
 
 	public virtual Format GetFormat()
 	{
 		return Size.FromBytes(ReferenceSize).ToFormat();
-	}
-
-	public bool Is(Type other)
-	{
-		return Equals(this, other) || Supertypes.Any(i => i.Is(other));
 	}
 
 	public override void OnMangle(Mangle mangle)

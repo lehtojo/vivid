@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-#warning Update
 public class OperatorNode : Node, IResolvable
 {
 	public Operator Operator { get; }
@@ -71,29 +70,12 @@ public class OperatorNode : Node, IResolvable
 		};
 	}
 
-	#warning Update
 	private LinkNode CreateOperatorFunctionCall(Node target, string function, Node arguments)
 	{
-		var argument_types = Resolver.GetTypes(arguments);
-
-		// If the parameter type list is null, it means that one or more of the arguments could not be resolved
-		if (argument_types == null)
-		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(arguments), Position);
-		}
-
-		var operator_functions = target.GetType().GetFunction(function) ?? throw new InvalidOperationException("Tried to create an operator function call but the function did not exist");
-		var operator_function = operator_functions.GetImplementation(argument_types);
-
-		if (operator_function == null)
-		{
-			return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(arguments), Position);
-		}
-
-		return new LinkNode(target, new FunctionNode(operator_function, Position).SetArguments(arguments), Position);
+		return new LinkNode(target, new UnresolvedFunction(function, Position).SetArguments(arguments), Position);
 	}
 
-	private Node? TryResolveAsIndexedSetter()
+	private Node? TryResolveAsSetterAccessor()
 	{
 		if (!Equals(Operator, Operators.ASSIGN)) return null;
 
@@ -101,8 +83,7 @@ public class OperatorNode : Node, IResolvable
 		var target = Left.First!;
 		var type = target.TryGetType();
 
-		if (type == null) return null;
-		if (!type.IsLocalFunctionDeclared(Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER)) return null;
+		if (type == null || !type.IsLocalFunctionDeclared(Operators.INDEXED_ACCESSOR_SETTER_IDENTIFIER)) return null;
 
 		// Since the left node represents an accessor its last node must represent its arguments
 		var arguments = Left.Last!;
@@ -110,7 +91,7 @@ public class OperatorNode : Node, IResolvable
 		// Since the current node is the assign-operator the right node must represent the assigned value which should be the last parameter
 		arguments.Add(Right);
 
-		return CreateOperatorFunctionCall(target, Type.INDEXED_ACCESSOR_SETTER_IDENTIFIER, arguments);
+		return CreateOperatorFunctionCall(target, Operators.INDEXED_ACCESSOR_SETTER_IDENTIFIER, arguments);
 	}
 
 	public virtual Node? Resolve(Context context)
@@ -122,7 +103,7 @@ public class OperatorNode : Node, IResolvable
 		// Check if the left node represents an indexed accessor and if it is being assigned a value
 		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.ACCESSOR))
 		{
-			var result = TryResolveAsIndexedSetter();
+			var result = TryResolveAsSetterAccessor();
 			if (result != null) return result;
 		}
 
@@ -133,7 +114,7 @@ public class OperatorNode : Node, IResolvable
 		if (!type.IsOperatorOverloaded(Operator)) return null;
 
 		// Retrieve the function name corresponding to the operator of this node
-		var overload = Type.OPERATOR_OVERLOADS[Operator];
+		var overload = Operators.Overloads[Operator];
 		var arguments = new Node { Right };
 
 		return CreateOperatorFunctionCall(Left, overload, arguments);
@@ -141,12 +122,7 @@ public class OperatorNode : Node, IResolvable
 
 	private Status GetActionStatus(Type left, Type right)
 	{
-		// Assign operator is a special operator since it is a little bit unsafe
-		if (Operator == Operators.ASSIGN)
-		{
-			return Status.OK;
-		}
-
+		if (Operator == Operators.ASSIGN) return Status.OK;
 		return GetClassicStatus(left, right);
 	}
 
@@ -154,7 +130,7 @@ public class OperatorNode : Node, IResolvable
 	{
 		if (left is not Number)
 		{
-			// Allow operations such as comparing whether an object is a null pointer or not
+			// Allow operations such as comparing whether an object is none or not
 			if (right is not Number && Operator != Operators.EQUALS && Operator != Operators.NOT_EQUALS && Operator != Operators.ABSOLUTE_EQUALS && Operator != Operators.ABSOLUTE_NOT_EQUALS)
 			{
 				return Status.Error(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
@@ -168,16 +144,8 @@ public class OperatorNode : Node, IResolvable
 
 	private Status GetLogicStatus(Type left, Type right)
 	{
-		if (!Primitives.IsPrimitive(left, Primitives.BOOL))
-		{
-			return Status.Error(Left.Position, $"The type of the operand must be '{Primitives.BOOL}' since its parent is a logical operator");
-		}
-
-		if (!Primitives.IsPrimitive(right, Primitives.BOOL))
-		{
-			return Status.Error(Right.Position, $"The type of the operand must be '{Primitives.BOOL}' since its parent is a logical operator");
-		}
-
+		if (!Primitives.IsPrimitive(left, Primitives.BOOL)) return Status.Error(Left.Position, "Operand must be a bool");
+		if (!Primitives.IsPrimitive(right, Primitives.BOOL)) return Status.Error(Right.Position, "Operand must be a bool");
 		return Status.OK;
 	}
 

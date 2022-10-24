@@ -914,7 +914,7 @@ public static class Assembler
 
 		if (output_type == BinaryType.STATIC_LIBRARY)
 		{
-			if (!StaticLibraryFormat.Export(context, exports, object_files, output_name).IsProblematic) return result;
+			if (!StaticLibraryFormat.Export(context, object_files, output_name).IsProblematic) return result;
 
 			throw new ApplicationException("Failed to create the static library");
 		}

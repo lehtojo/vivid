@@ -1,24 +1,23 @@
 using System;
 
-#warning Update
 public class Number : Type
 {
-	public Format Type { get; private set; }
+	private new Format Format { get; set; }
 	public bool IsUnsigned { get; private set; }
 	public int Bits { get; private set; }
 
 	public int Bytes => Bits / 8;
 
-	public Number(Format type, int bits, bool unsigned, string name) : base(name, Modifier.DEFAULT | Modifier.PRIMITIVE)
+	public Number(Format format, int bits, bool unsigned, string name) : base(name, Modifier.DEFAULT | Modifier.PRIMITIVE)
 	{
-		Type = type;
+		Format = format;
 		Bits = bits;
 		IsUnsigned = unsigned;
 	}
 
 	public override Format GetFormat()
 	{
-		return Type;
+		return Format;
 	}
 
 	public override int GetReferenceSize()
@@ -33,11 +32,11 @@ public class Number : Type
 
 	public override bool Equals(object? other)
 	{
-		return other is Number number && number.IsPrimitive && Identifier == number.Identifier && Bytes == number.Bytes && Type == number.Type;
+		return other is Number number && number.IsPrimitive && Identifier == number.Identifier && Bytes == number.Bytes && Format == number.Format;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Identifier, Bytes, Type);
+		return HashCode.Combine(Identifier, Bytes, Format);
 	}
 }

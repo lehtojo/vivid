@@ -2,6 +2,9 @@ using System.Collections.Generic;
 
 public static class Operators
 {
+	public const string INDEXED_ACCESSOR_SETTER_IDENTIFIER = "set";
+	public const string INDEXED_ACCESSOR_GETTER_IDENTIFIER = "get";
+
 	public static readonly IndependentOperator COLON = new(":");
 	public static readonly ClassicOperator POWER = new("^", 15);
 	public static readonly ClassicOperator MULTIPLY = new("*", 12);
@@ -48,7 +51,9 @@ public static class Operators
 	public static readonly ClassicOperator ASSIGN_EXCHANGE_ADD = new("<+>", 11);
 
 	public static readonly Dictionary<string, Operator> All = new();
-	public static readonly Dictionary<string, AssignmentOperator> AssignmentOperators = new();
+	public static readonly Dictionary<string, AssignmentOperator> Assignments = new();
+
+	public static readonly Dictionary<Operator, string> Overloads = new();
 
 	private static void Add(Operator operation)
 	{
@@ -56,14 +61,15 @@ public static class Operators
 
 		if (operation.Type == OperatorType.ASSIGNMENT && operation.To<AssignmentOperator>().Operator != null && operation.To<AssignmentOperator>().Operator!.Identifier.Length > 0)
 		{
-			AssignmentOperators.Add(((AssignmentOperator)operation).Operator!.Identifier, operation.To<AssignmentOperator>());
+			Assignments.Add(((AssignmentOperator)operation).Operator!.Identifier, operation.To<AssignmentOperator>());
 		}
 	}
 
 	public static void Initialize()
 	{
 		All.Clear();
-		AssignmentOperators.Clear();
+		Assignments.Clear();
+		Overloads.Clear();
 
 		Add(POWER);
 		Add(MULTIPLY);
@@ -107,6 +113,18 @@ public static class Operators
 		Add(COLON);
 		Add(END);
 		Add(ASSIGN_EXCHANGE_ADD);
+
+		Overloads.Add(Operators.ADD, "plus");
+		Overloads.Add(Operators.SUBTRACT, "minus");
+		Overloads.Add(Operators.MULTIPLY, "times");
+		Overloads.Add(Operators.DIVIDE, "divide");
+		Overloads.Add(Operators.MODULUS, "remainder");
+		Overloads.Add(Operators.ASSIGN_ADD, "assign_plus");
+		Overloads.Add(Operators.ASSIGN_SUBTRACT, "assign_minus");
+		Overloads.Add(Operators.ASSIGN_MULTIPLY, "assign_times");
+		Overloads.Add(Operators.ASSIGN_DIVIDE, "assign_divide");
+		Overloads.Add(Operators.ASSIGN_MODULUS, "assign_remainder");
+		Overloads.Add(Operators.EQUALS, "equals");
 	}
 
 	public static Operator Get(string text)
@@ -121,7 +139,7 @@ public static class Operators
 
 	public static AssignmentOperator? GetAssignmentOperator(Operator operation)
 	{
-		if (AssignmentOperators.TryGetValue(operation.Identifier, out AssignmentOperator? action)) return action;
+		if (Assignments.TryGetValue(operation.Identifier, out AssignmentOperator? action)) return action;
 		return null;
 	}
 

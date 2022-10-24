@@ -118,7 +118,7 @@ public static class Arithmetic
 	{
 		var left = References.Get(unit, operation.Left, AccessMode.WRITE);
 		var right = References.Get(unit, operation.Right);
-		var format = operation.GetType().To<Number>().Type;
+		var format = operation.GetType().To<Number>().Format;
 
 		return new AtomicExchangeAdditionInstruction(unit, left, right, format).Add();
 	}
@@ -168,7 +168,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var type = operation.GetType().To<Number>().Type;
+		var type = operation.GetType().To<Number>().Format;
 
 		return new AdditionInstruction(unit, left, right, type, assigns).Add();
 	}
@@ -182,7 +182,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var type = operation.GetType().To<Number>().Type;
+		var type = operation.GetType().To<Number>().Format;
 
 		return new SubtractionInstruction(unit, left, right, type, assigns).Add();
 	}
@@ -196,7 +196,7 @@ public static class Arithmetic
 
 		var left = References.Get(unit, operation.Left, access);
 		var right = References.Get(unit, operation.Right);
-		var type = operation.GetType().To<Number>().Type;
+		var type = operation.GetType().To<Number>().Format;
 
 		return new MultiplicationInstruction(unit, left, right, type, assigns).Add();
 	}
@@ -206,7 +206,7 @@ public static class Arithmetic
 	/// </summary>
 	private static bool IsNonPowerOfTwoIntegerDivisionPossible(OperatorNode operation)
 	{
-		var format = operation.GetType().To<Number>().Type;
+		var format = operation.GetType().To<Number>().Format;
 
 		// 1. This algorithm is only responsible for integer divisions
 		// 2. This divisor must be a constant integer
@@ -228,7 +228,7 @@ public static class Arithmetic
 	private static Result BuildDivisionOperator(Unit unit, bool modulus, OperatorNode operation, bool assigns = false)
 	{
 		var is_unsigned = operation.Left.GetType().Format.IsUnsigned();
-		var type = operation.GetType().To<Number>().Type;
+		var type = operation.GetType().To<Number>().Format;
 
 		if (Settings.IsX64 && !is_unsigned && !modulus && IsNonPowerOfTwoIntegerDivisionPossible(operation))
 		{
@@ -320,7 +320,7 @@ public static class Arithmetic
 	{
 		var left = References.Get(unit, operation.Left, assigns ? AccessMode.WRITE : AccessMode.READ);
 		var right = References.Get(unit, operation.Right);
-		var type = operation.GetType().To<Number>().Type;
+		var type = operation.GetType().To<Number>().Format;
 
 		var result = (Result?)null;
 

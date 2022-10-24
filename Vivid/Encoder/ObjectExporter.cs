@@ -190,7 +190,7 @@ public static class ObjectExporter
 		return node.Instance switch
 		{
 			NodeType.CAST => $"{ToString(node.First!)} as {node.To<CastNode>().GetType().ToString()}",
-			NodeType.NUMBER => node.To<NumberNode>().Value.ToString()!.ToLower(),
+			NodeType.NUMBER => node.To<NumberNode>().Value.ToString()!.ToLowerInvariant(),
 			NodeType.STRING => $"'{node.To<StringNode>().Text}'",
 			_ => throw Errors.Get(node.Position, "Exporter does not support this constant value")
 		};

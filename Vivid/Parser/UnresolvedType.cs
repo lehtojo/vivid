@@ -150,6 +150,11 @@ public class UnresolvedType : Type, IResolvable
 		return false;
 	}
 
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(base.GetHashCode(), Components, Pointers);
+	}
+
 	public Status GetStatus()
 	{
 		return Status.Error(Position, $"Can not resolve type '{this}'");

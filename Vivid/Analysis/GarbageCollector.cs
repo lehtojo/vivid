@@ -301,7 +301,6 @@ public static class GarbageCollector
 	/// </summary>
 	private static void ProcessScopeWithoutReturnValue(
 		StatementFlow flow,
-		Context[] contexts,
 		Dictionary<Variable, VariableAssignmentDescriptor> initializations,
 		Context context,
 		Context until,
@@ -327,7 +326,7 @@ public static class GarbageCollector
 	/// </summary>
 	/// <param name="scopes">Information regarding garbage collection about scopes</param>
 	/// <param name="scope">The scope to process</param>
-	private static void ProcessScopeWithoutReturnValue(StatementFlow flow, Dictionary<Node, ScopeDestructionDescriptor> scopes, Context[] contexts, Dictionary<Variable, VariableAssignmentDescriptor> initializations, Node scope, ScopeDestructionDescriptor descriptor)
+	private static void ProcessScopeWithoutReturnValue(StatementFlow flow, Context[] contexts, Dictionary<Variable, VariableAssignmentDescriptor> initializations, Node scope, ScopeDestructionDescriptor descriptor)
 	{
 		// Since the scope has a return value and complex expressions are extracted from it,
 		// we can safely unlink all the variables and destruct all the stack allocations before it
@@ -348,7 +347,7 @@ public static class GarbageCollector
 	/// </summary>
 	/// <param name="scopes">Information regarding garbage collection about scopes</param>
 	/// <param name="scope">The scope to process</param>
-	private static void ProcessScopeWithReturnValue(StatementFlow flow, Dictionary<Node, ScopeDestructionDescriptor> scopes, Context[] contexts, Dictionary<Variable, VariableAssignmentDescriptor> initializations, Node scope, ScopeDestructionDescriptor descriptor)
+	private static void ProcessScopeWithReturnValue(StatementFlow flow, Context[] contexts, Dictionary<Variable, VariableAssignmentDescriptor> initializations, Node scope, ScopeDestructionDescriptor descriptor)
 	{
 		// Since the scope has a return value and complex expressions are extracted from it,
 		// we can safely unlink all the variables and destruct all the stack allocations before it
@@ -545,7 +544,7 @@ public static class GarbageCollector
 			var context = ((IScope)scope).GetContext();
 
 			var container = new Node();
-			ProcessScopeWithoutReturnValue(flow, contexts, assignment_descriptors, context, until, control, scopes[scope], container);
+			ProcessScopeWithoutReturnValue(flow, assignment_descriptors, context, until, control, scopes[scope], container);
 
 			// Insert the generated nodes before the control statement
 			control.InsertChildren(container);
@@ -559,8 +558,8 @@ public static class GarbageCollector
 			// Skip scopes which are terminated by a return statement
 			if (descriptor.IsTerminated) continue;
 
-			if (scope.IsValueReturned) ProcessScopeWithReturnValue(flow, scopes, contexts, assignment_descriptors, scope, descriptor);
-			else ProcessScopeWithoutReturnValue(flow, scopes, contexts, assignment_descriptors, scope, descriptor);
+			if (scope.IsValueReturned) ProcessScopeWithReturnValue(flow, contexts, assignment_descriptors, scope, descriptor);
+			else ProcessScopeWithoutReturnValue(flow, contexts, assignment_descriptors, scope, descriptor);
 		}
 	}
 

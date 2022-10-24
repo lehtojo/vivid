@@ -1102,7 +1102,7 @@ public static class Analysis
 			}
 			
 			// Reconstruct necessary nodes in the function implementation
-			ReconstructionAnalysis.Reconstruct(implementation, implementation.Node!);
+			ReconstructionAnalysis.Reconstruct(implementation.Node!);
 		}
 
 		// Optimize all function implementations
@@ -1154,7 +1154,7 @@ public static class Analysis
 			// Adds garbage collecting
 			GarbageCollector.Generate(implementation);
 
-			ReconstructionAnalysis.Simplify(implementation, implementation.Node!);
+			ReconstructionAnalysis.Simplify(implementation.Node!);
 
 			// Do a safety check
 			CaptureContextLeaks(implementation, implementation.Node!);

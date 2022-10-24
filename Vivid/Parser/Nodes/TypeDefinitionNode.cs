@@ -25,7 +25,7 @@ public class TypeDefinitionNode : Node, IScope
 		Blueprint.Clear();
 
 		// Add all member initializations
-		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>().ToArray();
+		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).ToList();
 
 		// Add member initialization to the constructors that have been created before loading the member initializations
 		foreach (var constructor in Type.Constructors.Overloads)

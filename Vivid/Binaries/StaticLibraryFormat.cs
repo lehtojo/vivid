@@ -278,7 +278,7 @@ public static class StaticLibraryFormat
 		return Status.OK;
 	}
 
-	public static Status Export(Context context, Dictionary<SourceFile, List<string>> exports, Dictionary<SourceFile, BinaryObjectFile> object_files, string output_name)
+	public static Status Export(Context context, Dictionary<SourceFile, BinaryObjectFile> object_files, string output_name)
 	{
 		try
 		{

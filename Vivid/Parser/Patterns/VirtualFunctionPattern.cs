@@ -65,7 +65,7 @@ public class VirtualFunctionPattern : Pattern
 	/// <summary>
 	/// Creates a virtual function which does have a default implementation
 	/// </summary>
-	private static Function CreateVirtualFunctionWithImplementation(Context context, ParserState state, List<Token> tokens)
+	private static Function CreateVirtualFunctionWithImplementation(Context context, List<Token> tokens)
 	{
 		// Try to resolve the return type
 		var return_type = (Type?)null;
@@ -115,7 +115,7 @@ public class VirtualFunctionPattern : Pattern
 
 		if (tokens.Last().Is(ParenthesisType.CURLY_BRACKETS))
 		{
-			function = CreateVirtualFunctionWithImplementation(context, state, tokens);
+			function = CreateVirtualFunctionWithImplementation(context, tokens);
 		}
 		else
 		{
