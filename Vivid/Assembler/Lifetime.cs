@@ -82,8 +82,7 @@ public class Lifetime
 		for (var i = 0; i < Usages.Count; i++)
 		{
 			// Look for usage, which is being built
-			#warning: Should be Usages[i].State == InstructionState.BUILDING
-			if (true)
+			if (Usages[i].State == InstructionState.BUILDING)
 			{
 				building = true;
 				break;
