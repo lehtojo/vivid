@@ -145,7 +145,7 @@ A {
 
 export assign_addition_1(a: large, b: large, i: A, j: large) {
 	a += b
-	i.b.x += j
+	i.b.x = j + i.b.x
 	i.b.y += j
 	i.b.z += j
 	return a
@@ -161,7 +161,7 @@ export assign_subtraction_1(a: large, b: large, i: A, j: large) {
 
 export assign_multiplication_1(a: large, b: large, i: A, j: large) {
 	a *= b
-	i.b.x *= j
+	i.b.x = j * i.b.x
 	i.b.y *= j
 	i.b.z *= j
 	return a
@@ -185,7 +185,7 @@ export assign_remainder_1(a: large, b: large, i: A, j: large) {
 
 export assign_bitwise_and_1(a: large, b: large, i: A, j: large) {
 	a &= b
-	i.b.x &= j
+	i.b.x = j & i.b.x
 	i.b.y &= j
 	# Bitwise operations are not defined for decimal values
 	return a
@@ -193,7 +193,7 @@ export assign_bitwise_and_1(a: large, b: large, i: A, j: large) {
 
 export assign_bitwise_or_1(a: large, b: large, i: A, j: large) {
 	a |= b
-	i.b.x |= j
+	i.b.x = j | i.b.x
 	i.b.y |= j
 	# Bitwise operations are not defined for decimal values
 	return a
@@ -201,7 +201,7 @@ export assign_bitwise_or_1(a: large, b: large, i: A, j: large) {
 
 export assign_bitwise_xor_1(a: large, b: large, i: A, j: large) {
 	a ¤= b
-	i.b.x ¤= j
+	i.b.x = j ¤ i.b.x
 	i.b.y ¤= j
 	# Bitwise operations are not defined for decimal values
 	return a

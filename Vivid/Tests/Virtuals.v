@@ -87,6 +87,10 @@ InheritantOne InheritantTwo InheritantThree VirtualTypeFour {
 	override baz(x: tiny, y: small) {
 		return a / b + x / y
 	}
+
+	open qux(): decimal {
+		return 22.0 / 7
+	}
 }
 
 execute_virtual_type_four() {
@@ -101,6 +105,8 @@ execute_virtual_type_four() {
 	(x as InheritantOne).foo()
 	(x as InheritantTwo).bar()
 	console.write_line((x as InheritantThree).baz(0, 1)) # -1
+
+	console.write_line(x.qux())
 }
 
 init() {

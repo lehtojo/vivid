@@ -120,13 +120,13 @@ export can_use(entity: Entity, usable: Usable) {
 export get_reliable_vehicles(usables: Array<Usable>, min_reliability: large) {
 	vehicles = List<Vehicle>()
 
-	loop (i = 0, i < usables.count, i++) {
+	loop (i = 0, i < usables.size, i++) {
 		if usables[i] is Vehicle {
 			vehicles.add(usables[i] as Vehicle)
 		}
 	}
 
-	loop (i = vehicles.size() - 1, i >= 0, i--) {
+	loop (i = vehicles.size - 1, i >= 0, i--) {
 		if vehicles[i].reliability() < min_reliability {
 			vehicles.remove_at(i)
 		}
@@ -147,7 +147,7 @@ export choose_vehicle(entity: Entity, vehicles: List<Vehicle>, distance: decimal
 	chosen_vehicle = vehicles[0]
 	minimum_time = vehicles[0].time(distance)
 
-	loop (i = 1, i < vehicles.size(), i++) {
+	loop (i = 1, i < vehicles.size, i++) {
 		vehicle = vehicles[i]
 		time = vehicle.time(distance)
 

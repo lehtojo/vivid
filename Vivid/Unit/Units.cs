@@ -133,7 +133,12 @@ public class Units
 		Run("Iteration", AssemblerTests.Iteration);
 		Run("Lambdas", AssemblerTests.Lambdas);
 		//Run("Is", AssemblerTests.Is);
-		//Run("Whens", AssemblerTests.Whens);
+		Run("Whens", AssemblerTests.Whens);
+		Run("Self-returning functions", AssemblerTests.SelfReturningFunctions);
+		Run("String-objects", AssemblerTests.StringObjects);
+		Run("Has-expressions", AssemblerTests.HasExpressions);
+		Run("Cancelling-expressions", AssemblerTests.CancellingExpressions);
+		Run("Escapes", AssemblerTests.Escapes);
 
 		EndSection();
 
@@ -194,8 +199,13 @@ public class Units
 		Run("Expression variables", AssemblerTests.ExpressionVariables);
 		Run("Iteration", AssemblerTests.Iteration);
 		Run("Lambdas", AssemblerTests.Lambdas);
-		Run("Is", AssemblerTests.Is);
+		//Run("Is", AssemblerTests.Is);
 		Run("Whens", AssemblerTests.Whens);
+		Run("Self-returning functions", AssemblerTests.SelfReturningFunctions);
+		Run("String-objects", AssemblerTests.StringObjects);
+		Run("Has-expressions", AssemblerTests.HasExpressions);
+		Run("Cancelling-expressions", AssemblerTests.CancellingExpressions);
+		Run("Escapes", AssemblerTests.Escapes);
 
 		EndSection();
 

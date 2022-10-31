@@ -196,12 +196,12 @@ export write_file(filename: link, text: String) {
 # Summary: Writes the specified byte array to the specified file
 export write_file(filename: link, bytes: Array<byte>) {
 	# Try to open the specified file
-	file = internal.CreateFileA(filename, internal.GENERIC_WRITE, internal.FILE_SHARE_READ, none, internal.CREATE_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none)
+	file = internal.CreateFileA(filename, internal.GENERIC_WRITE, internal.FILE_SHARE_READ, none as link, internal.CREATE_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none as link)
 	if file == none return false
 
 	# Write the specified byte array to the opened file
 	written: large[1]
-	result = internal.WriteFile(file, bytes.data, bytes.size, written as large*, none)
+	result = internal.WriteFile(file, bytes.data, bytes.size, written as large*, none as link)
 
 	# Finally, release the handle
 	internal.CloseHandle(file)
@@ -217,7 +217,7 @@ export read_file(filename: String) {
 # Summary: Opens the specified file and returns its contents
 export read_file(filename: link) {
 	# Try to open the specified file
-	file = internal.CreateFileA(filename, internal.GENERIC_READ, internal.FILE_SHARE_READ, none, internal.OPEN_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none)
+	file = internal.CreateFileA(filename, internal.GENERIC_READ, internal.FILE_SHARE_READ, none as link, internal.OPEN_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none as link)
 	if file == none return Optional<Array<byte>>()
 
 	# Try to get the size of the opened file
@@ -230,7 +230,7 @@ export read_file(filename: link) {
 	
 	buffer = Array<byte>(size[])
 
-	if internal.ReadFile(file, buffer.data, buffer.size, size as large*, none) == 0 {
+	if internal.ReadFile(file, buffer.data, buffer.size, size as large*, none as link) == 0 {
 		internal.CloseHandle(file)
 		return Optional<Array<byte>>()
 	}
@@ -290,7 +290,7 @@ export size(path: link) {
 	}
 
 	# Try to open the specified file
-	file = internal.CreateFileA(path, internal.GENERIC_READ, internal.FILE_SHARE_READ, none, internal.OPEN_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none)
+	file = internal.CreateFileA(path, internal.GENERIC_READ, internal.FILE_SHARE_READ, none as link, internal.OPEN_ALWAYS, internal.FILE_ATTRIBUTE_NORMAL, none as link)
 	
 	if file == none return -1
 
@@ -395,7 +395,7 @@ export get_process_filename() {
 	filename = allocate(size)
 
 	loop {
-		length = internal.GetModuleFileNameA(none, filename, size)
+		length = internal.GetModuleFileNameA(none as link, filename, size)
 		if length == 0 return none as String
 
 		# The length of the filename must be at least one character shorter than the size of the buffer, so that the string terminator can be stored as well

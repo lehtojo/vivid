@@ -709,15 +709,6 @@ public static class Analysis
 	#region Nodes
 
 	/// <summary>
-	/// Returns whether the specified node is primitive that is whether it contains only operators, numbers, parameter- or local variables
-	/// </summary>
-	/// <returns>True if the definition is primitive, otherwise false</returns>
-	public static bool IsPrimitive(Node node)
-	{
-		return node.Find(i => !(i.Is(NodeType.NUMBER) || i.Is(NodeType.OPERATOR) || i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsPredictable)) == null;
-	}
-
-	/// <summary>
 	/// Finds the branch which contains the specified node
 	/// </summary>
 	private static Node? GetBranch(Node node)
@@ -783,25 +774,6 @@ public static class Analysis
 		}
 
 		return denylist;
-	}
-
-	/// <summary>
-	/// Returns whether the specified variable will be used in the future starting from the specified node perspective
-	/// NOTE: Usually the perspective node is a branch but it is not counted as one.
-	/// This behavior is required for determining active variables when there is an if-statement followed by an else-if-statement and both of the conditions use same variables.
-	/// </summary>
-	public static bool IsUsedLater(Variable variable, Node perspective, bool self = false)
-	{
-		// Get a denylist which describes which sections of the node tree have not been executed in the past or will not be executed in the future
-		var denylist = GetDenylist(perspective);
-
-		// If the it is allowed to count the perspective as a branch as well, append the other branches to the denylist
-		if (self) DenyOtherBranches(denylist, perspective);
-
-		// If any of the references is placed after the specified perspective, the variable is needed
-		if (variable.Usages.Any(i => !denylist.Any(j => i.IsUnder(j)) && i.IsAfter(perspective))) return true;
-
-		return perspective.FindParent(NodeType.LOOP) != null;
 	}
 
 	/// <summary>

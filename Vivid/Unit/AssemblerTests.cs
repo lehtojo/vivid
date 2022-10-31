@@ -2264,5 +2264,105 @@ namespace Vivid.Unit
 
 			UnnamedPacks_Test();
 		}
+
+		private static void SelfReturningFunctions_Test()
+		{
+			var actual = Execute("SelfReturningFunctions").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("self-returning-functions.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void SelfReturningFunctions()
+		{
+			if (!CompileExecutable("SelfReturningFunctions", new[] { "self-returning-functions.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			SelfReturningFunctions_Test();
+		}
+
+		private static void StringObjects_Test()
+		{
+			var actual = Execute("StringObjects").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("string-objects.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void StringObjects()
+		{
+			if (!CompileExecutable("StringObjects", new[] { "string-objects.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			StringObjects_Test();
+		}
+
+		private static void HasExpressions_Test()
+		{
+			var actual = Execute("HasExpressions").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("has-expressions.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void HasExpressions()
+		{
+			if (!CompileExecutable("HasExpressions", new[] { "has-expressions.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			HasExpressions_Test();
+		}
+
+		private static void CancellingExpressions_Test()
+		{
+			var actual = Execute("CancellingExpressions").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("cancelling-expressions.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+
+			var test_1 = LoadAssemblyFunction("CancellingExpressions.cancelling-expressions", "_V6test_1ii_ri");
+			var test_2 = LoadAssemblyFunction("CancellingExpressions.cancelling-expressions", "_V6test_2ii_ri");
+			var test_3 = LoadAssemblyFunction("CancellingExpressions.cancelling-expressions", "_V6test_3ii_ri");
+			var test_4 = LoadAssemblyFunction("CancellingExpressions.cancelling-expressions", "_V6test_4ii_ri");
+
+			Assert.AreEqual(1, test_1.Split("neg").Length);
+			Assert.AreEqual(1, test_2.Split("not").Length);
+			Assert.AreEqual(2, test_3.Split("neg").Length);
+			Assert.AreEqual(2, test_4.Split("not").Length);
+		}
+
+		public static void CancellingExpressions()
+		{
+			if (!CompileExecutable("CancellingExpressions", new[] { "cancelling-expressions.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			CancellingExpressions_Test();
+		}
+
+		private static void Escapes_Test()
+		{
+			var actual = Execute("Escapes").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("escapes.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void Escapes()
+		{
+			if (!CompileExecutable("Escapes", new[] { "escapes.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			Escapes_Test();
+		}
 	}
 }

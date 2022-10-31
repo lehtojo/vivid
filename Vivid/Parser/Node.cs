@@ -118,25 +118,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 		return types.Contains(Parent.Instance) ? Parent : Parent.FindParent(types);
 	}
 
-	public List<Node> FindParents(Predicate<Node> filter)
-	{
-		var result = new List<Node>();
-
-		if (Parent == null)
-		{
-			return result;
-		}
-
-		if (filter(Parent))
-		{
-			result.Add(Parent);
-		}
-
-		result.AddRange(Parent.FindParents(filter));
-
-		return result;
-	}
-
 	public IScope FindContext()
 	{
 		return (IScope)FindParent(i => i is IScope)!;
@@ -266,24 +247,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 			{
 				nodes.AddRange(iterator.FindTop(filter));
 			}
-		}
-
-		return nodes;
-	}
-
-	public List<Node> FindChildren(Predicate<Node> filter)
-	{
-		var nodes = new List<Node>();
-		var iterator = First;
-
-		while (iterator != null)
-		{
-			if (filter(iterator))
-			{
-				nodes.Add(iterator);
-			}
-
-			iterator = iterator.Next;
 		}
 
 		return nodes;
@@ -503,36 +466,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 		Last = null;
 	}
 
-	public void RemoveChildren()
-	{
-		First = null;
-		Last = null;
-	}
-
-	public static Node? GetSharedNode(Node a, Node b, bool c = true)
-	{
-		var x = a.Path.Reverse().ToArray();
-		var y = b.Path.Reverse().ToArray();
-
-		var i = 0;
-		var count = Math.Min(x.Length, y.Length);
-
-		for (; i < count; i++)
-		{
-			if (x[i] != y[i])
-			{
-				break;
-			}
-		}
-
-		if (i == 0 || (c && i == count))
-		{
-			return null;
-		}
-
-		return x[i - 1];
-	}
-
 	public static Node[]? GetNodesUnderSharedParent(Node a, Node b)
 	{
 		var x = a.Path.Reverse().ToArray();
@@ -658,14 +591,6 @@ public class Node : IEnumerable, IEnumerable<Node>
 		}
 
 		return iterator == node;
-	}
-
-	/// <summary>
-	/// Returns whether this node is between the two specified nodes in the node tree
-	/// </summary>
-	public bool IsBetween(Node start, Node end)
-	{
-		return IsBefore(end) && IsAfter(start);
 	}
 
 	public Node? GetLeftWhile(Predicate<Node> filter)

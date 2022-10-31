@@ -35,52 +35,6 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
-	/// Returns the first position where a statement can be placed outside the scope of the specified node
-	/// </summary>
-	public static Node GetInsertPosition(Node reference, Node scope)
-	{
-		var iterator = reference.Parent!;
-		var position = reference;
-
-		while (iterator != scope)
-		{
-			position = iterator;
-			iterator = iterator.Parent!;
-		}
-
-		// If the position happens to become a conditional statement, the insert position should become before it
-		if (position.Is(NodeType.ELSE_IF))
-		{
-			position = position.To<ElseIfNode>().GetRoot();
-		}
-		else if (position.Is(NodeType.ELSE))
-		{
-			position = position.To<ElseNode>().GetRoot();
-		}
-
-		return position;
-	}
-
-	/// <summary>
-	/// Finds the most inner scope that covers all of the specified nodes
-	/// </summary>
-	public static Node? GetSharedScope(Node[] nodes)
-	{
-		if (!nodes.Any()) return null;
-		if (nodes.Length == 1) return nodes.First().FindParent(NodeType.SCOPE);
-
-		var shared = nodes[0];
-
-		for (var i = 1; i < nodes.Length; i++)
-		{
-			shared = Node.GetSharedNode(shared, nodes[i], false);
-			if (shared == null) return null;
-		}
-
-		return shared.Is(NodeType.SCOPE) ? shared : shared.FindParent(NodeType.SCOPE);
-	}
-
-	/// <summary>
 	/// Tries to build an action operator out of the specified edit
 	/// Examples:
 	/// x++ => x += 1
@@ -248,42 +202,41 @@ public static class ReconstructionAnalysis
 	/// Removes redundant parentheses in the specified node tree
 	/// Example: x = x * (((x + 1)))
 	/// </summary>
-	private static void RemoveRedundantParentheses(Node root)
+	private static void RemoveRedundantParentheses(Node node)
 	{
-		if (root.Is(NodeType.PARENTHESIS) || root.Is(NodeType.LIST))
+		// Look for parentheses that have exactly one child
+		if (node.Instance == NodeType.PARENTHESIS && node.First != null && ReferenceEquals(node.First, node.Last))
 		{
-			foreach (var iterator in root)
+			// Do not remove parentheses that are indices of accessor nodes
+			if (node.Parent != null && (node.Parent.Instance != NodeType.ACCESSOR || node.Next != null))
 			{
-				if (iterator is ParenthesisNode parenthesis && parenthesis.Count() == 1)
-				{
-					iterator.Replace(iterator.First!);
-				}
-			}
+				// Replace the parentheses with its child
+				var value = node.First;
+				node.Replace(value);
 
-			// Remove all parentheses, which block logical operators
-			if (root.First is OperatorNode x && x.Operator.Type == OperatorType.LOGICAL)
-			{
-				root.Replace(root.First!);
+				// Process the child node next
+				node = value;
 			}
 		}
 
-		root.ForEach(RemoveRedundantParentheses);
+		foreach (var child in node) { RemoveRedundantParentheses(child); }
 	}
 
 	/// <summary>
 	/// Removes negation nodes which cancel each other out.
 	/// Example: x = -(-a)
 	/// </summary>
-	private static void RemoveCancellingNegations(Node root)
+	private static void RemoveCancellingNegations(Node node)
 	{
-		if (root is NegateNode x && x.Object is NegateNode y)
+		if (node.Instance == NodeType.NEGATE && node.First!.Instance == NodeType.NEGATE)
 		{
-			root.Replace(y.Object);
-			RemoveCancellingNegations(y.Object);
+			var value = node.First.First!;
+			node.Replace(value);
+			RemoveCancellingNegations(value);
 			return;
 		}
 
-		foreach (var iterator in root)
+		foreach (var iterator in node)
 		{
 			RemoveCancellingNegations(iterator);
 		}
@@ -293,16 +246,17 @@ public static class ReconstructionAnalysis
 	/// Removes not nodes which cancel each other out.
 	/// Example: x = !!a
 	/// </summary>
-	private static void RemoveCancellingNots(Node root)
+	private static void RemoveCancellingNots(Node node)
 	{
-		if (root is NotNode x && x.Object is NotNode y)
+		if (node.Instance == NodeType.NOT && node.First!.Instance == NodeType.NOT)
 		{
-			root.Replace(y.Object);
-			RemoveCancellingNegations(y.Object);
+			var value = node.First.First!;
+			node.Replace(value);
+			RemoveCancellingNots(value);
 			return;
 		}
 
-		foreach (var iterator in root)
+		foreach (var iterator in node)
 		{
 			RemoveCancellingNots(iterator);
 		}
@@ -767,7 +721,7 @@ public static class ReconstructionAnalysis
 	/// x = 2 * x => x *= 2
 	/// this.a = this.a % 2 => this.a %= 2
 	/// </summary>
-	private static void ConstructActionOperations(Node root)
+	private static void ConstructAssignmentOperations(Node root)
 	{
 		var assignments = root.FindTop(i => i.Is(Operators.ASSIGN)).Cast<OperatorNode>();
 
@@ -1812,7 +1766,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	public static void Finish(Node root)
 	{
-		ConstructActionOperations(root);
+		ConstructAssignmentOperations(root);
 		RemoveRedundantInlineNodes(root);
 		RewriteRemainderOperations(root);
 
