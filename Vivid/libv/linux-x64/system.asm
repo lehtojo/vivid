@@ -83,6 +83,12 @@ mov rax, 87 # System call: sys_unlink
 syscall
 ret
 
+.export system_read_link
+system_read_link:
+mov rax, 89 # System call: sys_readlink
+syscall
+ret
+
 .export system_get_directory_entries
 system_get_directory_entries:
 mov rax, 217 # System call: sys_getdents
