@@ -27,3 +27,29 @@ export folder(path: String) {
 
 	return path
 }
+
+# Summary:
+# - Replaces all `\\` with `/`
+# - Replaces all sequential `/` with a single `/`
+export normalise(path: String) {
+	result = StringBuilder(path.replace(`\\`, `/`))
+
+	loop (i = 0, i < result.length, i++) {
+		if result[i] !== `/` continue
+
+		# Find the index of the next character that is not a slash
+		j = i + 1
+		loop (j < result.length and result[j] === `/`, j++) {}
+
+		# Remove all slashes after the current slash
+		result.remove(i + 1, j)
+	}
+
+	return result.string()
+}
+
+# Summary:
+# Corresponds to: path.normalise(first + second)
+export join(first: String, second: String) {
+	return path.normalise(first + second)
+}

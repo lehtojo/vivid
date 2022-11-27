@@ -127,14 +127,15 @@ export get_folder_items(folder: String, all: bool) {
 	iterator = inline internal.FileIterator()
 
 	filename: char[internal.MAXIMUM_PATH_LENGTH]
+	zero(filename as link, internal.MAXIMUM_PATH_LENGTH)
 	
 	# Ensure the folder ends with a separator
 	if not folder.ends_with('/') and not folder.ends_with('\\') {
 		folder = folder + '/'
 	}
 
-	filter = folder + '*'
-	copy(filter.data, internal.MAXIMUM_PATH_LENGTH, filename as link)
+	copy(folder.data, folder.length, filename as link)
+	filename[folder.length] = `*`
 
 	file = internal.FindFirstFileA(filename as link, iterator)
 	items = List<FolderItem>()

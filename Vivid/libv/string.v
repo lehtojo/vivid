@@ -156,26 +156,63 @@ export String {
 
 	# Summary: Puts the specified character into the specified position without removing any other characters and returns a new string
 	insert(index: large, character: char) {
+		data: link = this.data
+		length: large = this.length
 		require(index >= 0 and index <= length)
-		a = length
 
-		# Reserve memory for the current characters plus the new character and the zero byte
-		memory = allocate(a + 2)
+		# Reserve memory for the current characters, the new character and the terminator
+		memory = allocate(length + 2)
 
-		# Copy the first segment before the index to the buffer
+		# Copy all the characters before the specified index
 		copy(data, index, memory)
-		# Copy the second segment after the index to the buffer, leaving space for the character
-		offset_copy(data, a - index, memory, index + 1)
 
-		# Insert the character and the terminator
+		# Insert the character
 		memory[index] = character
-		memory[a + 1] = 0
+
+		# Copy the rest of the characters from the original string
+		copy(data + index, length - index, memory + index + 1)
 
 		# Create a new string from the buffer
 		result = String()
 		result.data = memory
-		result.length = a + 1
+		result.length = length + 1
 		return result
+	}
+
+	# Summary: Puts the specified string into the specified position without removing any other characters and returns a new string
+	insert(index: large, string: link, string_length: large) {
+		data: link = this.data
+		length: large = this.length
+
+		require(index >= 0 and index <= length)
+
+		# Reserve memory for the current characters, the specified string and the terminator
+		memory = allocate(length + string_length + 1)
+
+		# Copy all the characters before the specified index
+		copy(data, index, memory)
+
+		# Copy the specified string into the buffer
+		copy(string, string_length, memory + index)
+
+		# Copy the rest of the characters after the inserted string
+		copy(data + index, length - index, memory + index + string_length)
+
+		# Create a new string from the buffer
+		result = String()
+		result.data = memory
+		result.length = length + string_length
+		return result
+	}
+
+	# Summary: Puts the specified string into the specified position without removing any other characters and returns a new string
+	insert(index: large, string: link) {
+		return insert(index, string, length_of(string))
+	}
+
+	# Summary: Puts the specified string into the specified position without removing any other characters and returns a new string
+	insert(index: large, string: String) {
+		return insert(index, string.data, string.length)
 	}
 
 	# Summary: Returns whether the first characters match the specified string
@@ -249,6 +286,80 @@ export String {
 		}
 
 		return result
+	}
+
+	# Summary: Replaces all the occurrences of the specified string with the specified replacement
+	replace(old: link, old_length: large, new: link, new_length: large) {
+		length: large = this.length
+
+		# Compute the number of characters the length of the result string changes per occurrence
+		length_change = new_length - old_length
+
+		# Compute the length of the result string:
+		result_length = length
+
+		# Keep track of the position inside the original string
+		position = 0
+
+		loop {
+			# Find the index of the next occurrence
+			index = index_of(old, old_length, position)
+			if index < 0 stop
+
+			# Skip the occurrence and update the length of the result string
+			position = index + old_length
+			result_length += length_change
+		}
+
+		# Allocate memory for the result string and keep track of the position inside it
+		result_data = allocate(result_length + 1)
+		result_position = 0
+
+		# Keep track of the position inside the original string
+		data: link = this.data
+		position = 0
+
+		loop {
+			# Find the index of the next occurrence
+			index = index_of(old, old_length, position)
+
+			# Stop when no more occurrences can be found
+			if index < 0 {
+				# Copy the rest of the characters from the original string
+				copy(data + position, length - position, result_data + result_position)
+
+				# Return the result as a string
+				result = String()
+				result.data = result_data
+				result.length = result_length
+				return result
+			}
+
+			# Copy the all characters between the current position and the index of the next occurrence to the result
+			copy(data + position, index - position, result_data + result_position)
+
+			# Move the result position over the copied characters
+			result_position += index - position
+
+			# Copy the replacement string to the result
+			copy(new, new_length, result_data + result_position)
+
+			# Move the result position over the replacement
+			result_position += new_length
+
+			# Move the current position over the occurrence and continue
+			position = index + old_length
+		}
+	}
+
+	# Summary: Replaces all the occurrences of the specified string with the specified replacement
+	replace(old: link, new: link) {
+		return replace(old, length_of(old), new, length_of(new))
+	}
+
+	# Summary: Replaces all the occurrences of the specified string with the specified replacement
+	replace(old: String, new: String) {
+		return replace(old.data, old.length, new.data, new.length)
 	}
 
 	# Summary: Returns the index of the first occurrence of the specified character

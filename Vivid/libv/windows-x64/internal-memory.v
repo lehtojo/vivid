@@ -10,7 +10,7 @@ import 'C' VirtualAlloc(address: link, size: large, type: large, protect: bool):
 import 'C' VirtualFree(address: link, size: large, type: large)
 
 export allocate(size: large) {
-	return VirtualAlloc(0 as link, size, MEMORY_COMMIT | MEMORY_RESERVE, PAGE_READWRITE)
+	return VirtualAlloc(none as link, size, MEMORY_COMMIT | MEMORY_RESERVE, PAGE_READWRITE)
 }
 
 export deallocate(address: link, size: large) {

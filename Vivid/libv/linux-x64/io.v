@@ -28,7 +28,6 @@ export internal_init(root: link) {
 
 	io.internal.arguments = arguments
 	io.internal.environment_variables = environment_variables
-	io.internal.executable = arguments[]
 
 	# Call the actual init function here
 	return init()
@@ -37,7 +36,6 @@ export internal_init(root: link) {
 namespace io
 
 namespace internal {
-	executable: String
 	arguments: List<String>
 	environment_variables: List<String>
 
@@ -75,6 +73,9 @@ namespace internal {
 
 	# Summary: Deletes a name and possibly the file it refers to
 	import 'C' system_unlink(path: link): large
+
+	# Summary: Reads the value of the specified symbolic link
+	import 'C' system_read_link(path: link, buffer: link, size: large): large
 
 	plain SignalInformation {
 		signal_number: normal
@@ -255,7 +256,7 @@ export read_file(filename: link) {
 		available = size - position
 		result = internal.system_read(file_descriptor, buffer + position, available)
 
-		# If the resutl is -1, it means the read failed
+		# If the result is -1, it means the read failed
 		if result < 0 {
 			deallocate(buffer)
 			internal.system_close(file_descriptor)
@@ -333,7 +334,7 @@ export delete(path: String) {
 	return delete(path.data)
 }
 
-# TODO: Seperate files?
+# TODO: Separate files?
 # Processes:
 start_process(executable: String, command_line_arguments: List<String>, working_folder: String) {
 	result = internal.system_fork()
@@ -342,7 +343,7 @@ start_process(executable: String, command_line_arguments: List<String>, working_
 	if result == 0 {
 		# Executes in the child process:
 
-		# If a seperate working folder is defined, change the current folder to it
+		# If a separate working folder is defined, change the current folder to it
 		if working_folder != none internal.system_change_folder(working_folder.data)
 
 		# Linux needs the internal data pointers of the specified command line argument strings
@@ -388,7 +389,7 @@ shell(command: String, working_folder: String) {
 	if result == 0 {
 		# Executes in the child process:
 
-		# If a seperate working folder is defined, change the current folder to it
+		# If a separate working folder is defined, change the current folder to it
 		if working_folder != none internal.system_change_folder(working_folder.data)
 
 		# Linux needs the internal data pointers of the specified command line argument strings
@@ -419,12 +420,12 @@ shell(command: String) {
 # Summary: Waits for the specified process to exit
 wait_for_exit(pid: large) {
 	information = inline internal.SignalInformation()
-	internal.system_wait_id(internal.ID_TYPE_PID, pid, information, internal.WAIT_OPTIONS_EXITED, none)
+	internal.system_wait_id(internal.ID_TYPE_PID, pid, information, internal.WAIT_OPTIONS_EXITED, none as link)
 	return information.status
 }
 
 # Command line:
-# Summary: Tries to find the specified enviroment variable and return its value, on failure none is returned.
+# Summary: Tries to find the specified environment variable and return its value, on failure none is returned.
 export get_environment_variable(name: link) {
 	start = String.from(name, length_of(name)) + '='
 
@@ -437,17 +438,22 @@ export get_environment_variable(name: link) {
 
 # Summary: Returns the filename of the currently running process executable
 export get_process_filename() {
-	return internal.executable
+	path: char[1000]
+
+	length = internal.system_read_link('/proc/self/exe', path as link, 1000)
+	if length < 0 or length >= 1000 return none as String
+
+	return String(path as link, length)
 }
 
 # Summary: Returns the folder which contains the current process executable
 export get_process_folder() {
 	filename = get_process_filename()
-	if filename as link == none return none as String
+	if filename === none return none as String
 
 	# Find the index of the last separator
 	i = filename.last_index_of(`/`)
-	if i == -1 return none as String
+	if i < 0 return String(`/`)
 	
 	# Include the separator to the folder path
 	return filename.slice(0, i + 1)

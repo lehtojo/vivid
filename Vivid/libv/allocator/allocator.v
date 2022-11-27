@@ -46,8 +46,7 @@ namespace internal.allocator {
 
 				# NOTE: Debug mode only
 				# Set the bit for this slab
-				offset = (result - start) as large
-				index = offset / capacityof(T)
+				index = (result - start) as u64 / capacityof(T)
 				states[index / 8] |= 1 <| (index % 8)
 
 				next = result.(link*)[]
@@ -90,7 +89,7 @@ namespace internal.allocator {
 		}
 
 		deallocate(address: link) {
-			offset = (address - start) as large
+			offset = (address - start) as u64
 			index = offset / capacityof(T)
 			require(offset - index * capacityof(T) == 0, 'Address did not point to the start of an allocated area')
 
