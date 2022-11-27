@@ -396,7 +396,8 @@ public static class Analyzer
 		var evaluation = (Node?)null;
 
 		// Evaluate the dependencies
-		foreach (var dependency in dependencies) {
+		foreach (var dependency in dependencies)
+		{
 			// If the evaluation of the dependency fails, the whole evaluation fails as well
 			evaluation = EvaluateConstant(dependency.To<VariableNode>().Variable, trace);
 			if (evaluation == null) return null;
@@ -408,6 +409,9 @@ public static class Analyzer
 			// Replace the dependency with its value
 			destination.Replace(evaluation);
 		}
+
+		// Update the value, because it might have been replaced
+		value = Analyzer.GetSource(write.Last!);
 
 		// Since all of the dependencies were evaluated successfully, we can try evaluating the value of the specified constant
 		evaluation = Analysis.GetSimplifiedValue(value);

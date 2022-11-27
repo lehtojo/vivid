@@ -42,6 +42,7 @@
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
+		<PublishAot>true</PublishAot>
 	</PropertyGroup>
 
 	<ItemGroup>
