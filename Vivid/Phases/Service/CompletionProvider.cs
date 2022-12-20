@@ -53,19 +53,33 @@ public class CompletionItem
 public static class CompletionProvider
 {
 	/// <summary>
+	/// Attempts to find the token the cursor is over and the token after it.
+	/// </summary>
+	public static (DocumentToken?, DocumentToken?) FindUnmarkedCursorSurroundings(DocumentParse parse, int absolute)
+	{
+		foreach (var blueprint in parse.Blueprints.Values)
+		{
+			// Try to find the token which surrounds the cursor
+			var left = CursorInformationProvider.FindUnmarkedCursorToken(blueprint, absolute, out DocumentToken? right);
+			if (left == null) continue;
+
+			return (left, right);
+		}
+
+		return (null, null);
+	}
+
+	/// <summary>
 	/// Finds the token from the specified tokens, which should be marked as the cursor using the request information.
 	/// This can return a filter string which can be used to filter the completion items.
 	/// </summary>
-	public static string? MarkCompletionToken(DocumentRequest request, List<Token> tokens)
+	public static string? MarkCompletionToken(DocumentRequest request, DocumentParse parse, List<Token> tokens)
 	{
-		// Find the tokens that surround the cursor
-		var surroundings = CursorInformationProvider.GetCursorSurroundings(request.Document, tokens, request.Absolute);
-		if (surroundings == null) return null;
+		var (left, right) = FindUnmarkedCursorSurroundings(parse, request.Absolute);
+		if (left == null) return null;
 
 		Lexer.Postprocess(tokens);
 
-		var left = surroundings[0];
-		var right = surroundings[1];
 		var position = (Position?)null;
 
 		if (left != null)
@@ -154,7 +168,7 @@ public static class CompletionProvider
 
 		var changed = project.Update(request.Uri, document);
 
-		var filter = MarkCompletionToken(request, changed);
+		var filter = MarkCompletionToken(request, parse, changed);
 		if (filter == null) return new CompletionProviderLoadInformation();
 
 		// Find the function that contains the cursor

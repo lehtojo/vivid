@@ -1,21 +1,5 @@
-using System.Collections.Generic;
-
 public static class DefinitionProvider
 {
-	/// <summary>
-	/// Marks the token targeted by the cursor in the specified tokens.
-	/// </summary>
-	public static bool MarkCursorToken(List<Token> tokens, int absolute)
-	{
-		// Try to find the token which surrounds the cursor
-		var cursor = CursorInformationProvider.FindUnmarkedCursorToken(tokens, absolute);
-		if (cursor == null) return false;
-
-		// Mark the token as the cursor
-		cursor.Position.IsCursor = true;
-		return true;
-	}
-
 	/// <summary>
 	/// Unmarks all cursor tokens in blueprints in the specified parse
 	/// </summary>

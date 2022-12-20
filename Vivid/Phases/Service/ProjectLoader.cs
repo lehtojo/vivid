@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using System;
 
 public static class ProjectLoader
 {
@@ -122,7 +121,7 @@ public static class ProjectLoader
 		Lexer.Postprocess(tokens);
 		Lexer.RegisterFile(tokens, file);
 
-		parse.Tokens = new List<Token>(tokens);
+		parse.Tokens = tokens.Select(i => (Token)i.Clone()).ToList();
 
 		// Parse the document
 		var context = Parser.CreateRootContext(file.Index);
