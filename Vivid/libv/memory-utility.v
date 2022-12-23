@@ -61,6 +61,6 @@ export outline copy<T>(destination: T*, source: T*, size: large) {
 
 export outline zero<T>(destination: T*, size: large) {
 	loop (i = 0, i < size, i++) {
-		destination[i] = 0
+		destination[i] = 0 as T
 	}
 }

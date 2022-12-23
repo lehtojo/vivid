@@ -22,8 +22,8 @@ export plain MapIterator<K, V> {
 
 		if first < 0 return
 
-		slot.key = none
-		slot.value = none
+		slot.key = none as K
+		slot.value = none as V
 		slot.next = first + 1
 		slot.previous = 0
 	}
@@ -41,8 +41,8 @@ export plain MapIterator<K, V> {
 	}
 
 	reset() {
-		slot.key = none
-		slot.value = none
+		slot.key = none as K
+		slot.value = none as V
 		slot.next = first + 1
 		slot.previous = 0
 	}
@@ -234,8 +234,8 @@ export Map<K, V> {
 				removed++
 
 				# Free the slot
-				slot.key = none
-				slot.value = none
+				slot.key = none as K
+				slot.value = none as V
 				slot.next = REMOVED_SLOT_MARKER
 				slot.previous = REMOVED_SLOT_MARKER
 				slots[index] = slot

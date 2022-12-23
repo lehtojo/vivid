@@ -1212,9 +1212,6 @@ public static class ReconstructionAnalysis
 				continue;
 			}
 
-			// If the left operand represents a pack and the right operands is zero, we should not do anything, since this is a special case
-			if (to.IsPack && Common.IsZero(assignment.Right)) continue;
-
 			// Remove the right operand from the assignment
 			var value = assignment.Right;
 			value.Remove();
@@ -1435,11 +1432,13 @@ public static class ReconstructionAnalysis
 	private static List<Node> CreatePackMemberAccessors(Node root, Type type, Position position)
 	{
 		var result = new List<Node>();
-		var is_none = Common.IsZero(root);
 
 		foreach (var member in type.Variables.Values)
 		{
-			var accessor = is_none ? root.Clone() : new LinkNode(root.Clone(), new VariableNode(member), position);
+			// Do not initialize static or constant member variables
+			if (member.IsStatic || member.IsConstant) continue;
+
+			var accessor = new LinkNode(root.Clone(), new VariableNode(member), position);
 
 			if (member.Type!.IsPack)
 			{
@@ -1717,6 +1716,76 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Creates a pack construction where all members are initialized with zeroes. Nested packs are supported.
+	/// Example:
+	/// pack Size { width: decimal, height: decimal }
+	/// pack Object { name: u8*, x: i32, y: i32, size: Size }
+	///
+	/// object = 0 as Object
+	/// =>
+	/// object = pack { name: 0, x: 0, y: 0, size: pack { width: 0, height: 0 } as Size } as Object
+	/// </summary>
+	public static PackConstructionNode CreateZeroInitializedPack(Type type, Position? position)
+	{
+		var members = new List<string>();
+		var arguments = new List<Node>();
+
+		foreach (var iterator in type.Variables)
+		{
+			var member = iterator.Value;
+
+			// Do not initialize static or constant member variables
+			if (member.IsStatic || member.IsConstant) continue;
+
+			var argument = (Node?)null;
+
+			// If the member is a pack, create a zero initialized construction for it
+			if (member.Type!.IsPack)
+			{
+				argument = CreateZeroInitializedPack(member.Type, position);
+			}
+			else
+			{
+				// Initialize the member with zero
+				argument = new NumberNode(Settings.Format, 0L, position);
+			}
+
+			members.Add(member.Name);
+			arguments.Add(argument);
+		}
+
+		var construction = new PackConstructionNode(members, arguments, position);
+		construction.Type = type;
+
+		return construction;
+	}
+
+	/// <summary>
+	/// Rewrites expressions that create packs with all members initialized with zero.
+	/// Example:
+	/// pack Size { width: decimal, height: decimal }
+	/// pack Object { name: u8*, x: i32, y: i32, size: Size }
+	///
+	/// object = 0 as Object
+	/// =>
+	/// object = pack { name: 0, x: 0, y: 0, size: pack { width: 0, height: 0 } as Size } as Object
+	/// </summary>
+	public static void RewriteZeroInitializedPacks(Node root)
+	{
+		var casts = root.FindAll(NodeType.CAST);
+
+		foreach (var cast in casts)
+		{
+			var type = cast.GetType();
+
+			// Look for expressions that cast zeroes into packs
+			if (!(type.IsPack && Common.IsZero(cast.First))) continue;
+
+			cast.Replace(CreateZeroInitializedPack(type, cast.Position));
+		}
+	}
+
+	/// <summary>
 	/// Rewrites nodes under the specified node to match the requirements to be analyzed and passed to the back end
 	/// </summary>
 	public static void Reconstruct(Node root)
@@ -1728,6 +1797,7 @@ public static class ReconstructionAnalysis
 		RemoveRedundantCasts(root);
 		RewriteDiscardedIncrements(root);
 		RewriteSelfReturningFunctions(root);
+		RewriteZeroInitializedPacks(root);
 		ExtractExpressions(root);
 		AddAssignmentCasts(root);
 		RewriteSuperAccessors(root);

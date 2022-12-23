@@ -144,7 +144,7 @@ export List<T> {
 		require(at >= 0 and at < size, 'Invalid removal index')
 
 		# Reset the element at the specified index
-		data[at] = 0
+		data[at] = 0 as T
 
 		offset = (at + 1) * sizeof(T)
 		bytes = (size - at - 1) * sizeof(T)

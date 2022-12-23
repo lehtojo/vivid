@@ -702,13 +702,23 @@ public static class Common
 
 	/// <summary>
 	/// Tries to find the override for the specified virtual function and registers it to the specified runtime configuration.
-	/// This function returns the offset after registering the override function.
+	/// If no override can be found, address of zero is registered.
+	/// This function returns the next offset after registering the override function.
 	/// </summary>
 	private static int TryRegisterVirtualFunctionImplementation(Type type, VirtualFunction virtual_function, RuntimeConfiguration configuration, int offset)
 	{
+		// If the configuration is already completed, no need to do anything
+		if (configuration.IsCompleted) return offset + Parser.Bytes;
+
 		// Find all possible implementations of the virtual function inside the specified type
 		var overloads = type.GetOverride(virtual_function.Name)?.Overloads;
-		if (overloads == null) return offset;
+
+		if (overloads == null)
+		{
+			// It seems there is no implementation for this virtual function, register address of zero
+			configuration.Entry.Add(0L);
+			return offset + Parser.Bytes;
+		}
 
 		// Retrieve all parameter types of the virtual function declaration
 		var expected = virtual_function.Parameters.Select(i => i.Type).ToList();
@@ -728,17 +738,13 @@ public static class Common
 
 		if (implementation == null)
 		{
-			// It seems there is no implementation for this virtual function
-			return offset;
+			// It seems there is no implementation for this virtual function, register address of zero
+			configuration.Entry.Add(0L);
+			return offset + Parser.Bytes;
 		}
 
-		// Append configuration information only if it is not generated
-		if (!configuration.IsCompleted)
-		{
-			configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
-		}
-
-		 return offset + Parser.Bytes;
+		configuration.Entry.Add(new Label(implementation.GetFullname() + "_v"));
+		return offset + Parser.Bytes;
 	}
 
 	public static KeyValuePair<Type, DataPointerNode>[] CopyTypeDescriptors(Type type, List<Type> supertypes)

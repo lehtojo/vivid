@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 		<WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 		<GenerateProgramFile>false</GenerateProgramFile>
 	</PropertyGroup>
@@ -42,7 +42,6 @@
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
-		<PublishAot>true</PublishAot>
 	</PropertyGroup>
 
 	<ItemGroup>
