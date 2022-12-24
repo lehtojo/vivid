@@ -27,7 +27,7 @@ public enum TextType
 	COMMENT,
 	STRING,
 	CHARACTER,
-	HEXADECIMAL,
+	NUMBER_WITH_BASE,
 	END
 }
 
@@ -54,6 +54,8 @@ public static class Lexer
 	public const char EXPONENT_SEPARATOR = 'e';
 	public const char SIGNED_TYPE_SEPARATOR = 'i';
 	public const char UNSIGNED_TYPE_SEPARATOR = 'u';
+	public const char BINARY_BASE_IDENTIFIER = 'b';
+	public const char HEXADECIMAL_BASE_IDENTIFIER = 'x';
 
 	/// <summary>
 	/// Returns whether the specified character is an operator
@@ -95,11 +97,11 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Returns whether the characters represent a start of a hexadecimal number
+	/// Returns whether the characters represent a start of a number with base
 	/// </summary>
-	private static bool IsStartOfHexadecimal(char current, char next)
+	private static bool IsNumberWithBase(char current, char next)
 	{
-		return current == '0' && next == 'x';
+		return current == '0' && (next == BINARY_BASE_IDENTIFIER || next == HEXADECIMAL_BASE_IDENTIFIER);
 	}
 
 	/// <summary>
@@ -156,7 +158,7 @@ public static class Lexer
 	private static TextType GetType(char current, char next)
 	{
 		if (IsText(current)) return TextType.TEXT;
-		if (IsStartOfHexadecimal(current, next)) return TextType.HEXADECIMAL;
+		if (IsNumberWithBase(current, next)) return TextType.NUMBER_WITH_BASE;
 		if (IsDigit(current)) return TextType.NUMBER;
 		if (IsParenthesis(current)) return TextType.PARENTHESIS;
 		if (IsOperator(current)) return TextType.OPERATOR;
@@ -178,10 +180,10 @@ public static class Lexer
 
 		switch (previous_type)
 		{
-			case TextType.TEXT: return current_type == TextType.NUMBER || current_type == TextType.HEXADECIMAL;
+			case TextType.TEXT: return current_type == TextType.NUMBER || current_type == TextType.NUMBER_WITH_BASE;
 
-			case TextType.HEXADECIMAL: return current_type == TextType.NUMBER || 
-				(previous == '0' && current == 'x') ||
+			case TextType.NUMBER_WITH_BASE: return current_type == TextType.NUMBER || 
+				(previous == '0' && (current == BINARY_BASE_IDENTIFIER || current == HEXADECIMAL_BASE_IDENTIFIER)) ||
 				(current >= 'a' && current <= 'f') || (current >= 'A' && current <= 'F');
 
 			case TextType.NUMBER:
@@ -547,13 +549,27 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Parses the specified hexadecimal
+	/// Parses the specified number with custom base
 	/// </summary>
-	private static long ParseHexadecimal(TextArea area)
+	private static long ParseNumberWithBase(TextArea area)
 	{
-		if (long.TryParse(area.Text.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value)) return value;
+		try
+		{
+			// Extract the digits from the whole number that contains the base as well
+			var digits = area.Text.Substring(2);
 
-		throw new LexerException(area.Start, $"Can not understand the hexadecimal '{area.Text}'");
+			// Parse the number based on its base
+			return area.Text[1] switch
+			{
+				BINARY_BASE_IDENTIFIER => Convert.ToInt64(digits, 2),
+				HEXADECIMAL_BASE_IDENTIFIER => Convert.ToInt64(digits, 16),
+				_ => throw new Exception("Unsupported base")
+			};
+	}
+		catch
+		{
+			throw new LexerException(area.Start, $"Can not understand the following number '{area.Text}'");
+		}
 	}
 
 	/// <summary>
@@ -570,7 +586,7 @@ public static class Lexer
 			TextType.PARENTHESIS => new ParenthesisToken(area.Text, area.Start, area.End),
 			TextType.END => new Token(TokenType.END),
 			TextType.STRING => new StringToken(area.Text),
-			TextType.HEXADECIMAL => new NumberToken(ParseHexadecimal(area)),
+			TextType.NUMBER_WITH_BASE => new NumberToken(ParseNumberWithBase(area)),
 			_ => throw new LexerException(area.Start, $"Unknown token '{area.Text}'"),
 		};
 	}

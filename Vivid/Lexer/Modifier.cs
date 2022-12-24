@@ -1,9 +1,9 @@
 public static class Modifier
 {
-	/// NOTE: Do not change the order, since the importer, for example, is dependent on it
+	// NOTE: Access levels must be sorted
 	public const int PUBLIC = 1;
-	public const int PRIVATE = 2;
-	public const int PROTECTED = 4;
+	public const int PROTECTED = 2;
+	public const int PRIVATE = 4;
 	public const int STATIC = 8;
 	public const int IMPORTED = 16;
 	public const int READABLE = 32;
@@ -19,6 +19,7 @@ public static class Modifier
 	public const int SELF = 524288;
 
 	public const int DEFAULT = PUBLIC;
+	public const int ACCESS_LEVEL_MASK = 0b111;
 
 	private static int GetExcluder(int modifiers)
 	{

@@ -197,14 +197,6 @@ public class ResolverPhase : Phase
 				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
 				diagnostics.Add(new DocumentDiagnostic(iterator.Position, $"Can not understand the {name}", DocumentDiagnosticSeverity.ERROR));
 			}
-
-			nodes = implementation.Node.FindAll(NodeType.LINK);
-
-			foreach (var iterator in nodes)
-			{
-				if (IsAccessible(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
-				diagnostics.Add(new DocumentDiagnostic(iterator.Right.Position, "Can not access the member here", DocumentDiagnosticSeverity.ERROR));
-			}
 		}
 
 		// Look for variables which are not resolved
@@ -292,51 +284,6 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
-	/// Returns whether the specified object is accessible based on the specified environment
-	/// </summary>
-	public static bool IsAccessible(FunctionImplementation environment, LinkNode link, bool reads)
-	{
-		// Only variables and function calls can be checked
-		if (!link.Right.Is(NodeType.VARIABLE, NodeType.FUNCTION)) return true;
-
-		var context = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Parent : link.Right.To<FunctionNode>().Function.Parent;
-		if (context == null || !context.IsType) return true;
-
-		// Determine which type owns the accessed object
-		var owner = (Type)context;
-
-		// Determine the modifiers of the accessed object
-		var modifiers = link.Right.Is(NodeType.VARIABLE) ? link.Right.To<VariableNode>().Variable.Modifiers : link.Right.To<FunctionNode>().Function.Metadata.Modifiers;
-		
-		// Determine the access level of the requester
-		var requester = environment.FindTypeParent();
-		var access = requester == owner ? Modifier.PRIVATE : (requester != null && requester.IsTypeInherited(owner) ? Modifier.PROTECTED : Modifier.PUBLIC);
-
-		// If the access level is private and the object is read, it can always be accessed
-		// If the access level is private and the object is edited, it can be accessed if it is not private and readable
-		if (access == Modifier.PRIVATE) return reads || !Flag.Has(modifiers, Modifier.READABLE | Modifier.PRIVATE);
-
-		if (access == Modifier.PROTECTED)
-		{
-			if (reads)
-			{
-				// If the access level is protected and the object is read:
-				// 1. The object can be accessed if it is public or protected
-				return Flag.Has(modifiers, Modifier.PUBLIC) || Flag.Has(modifiers, Modifier.PROTECTED);
-			}
-
-			// If the access level is protected and the object is edited:
-			// 1. The object can be accessed if it is public
-			// 2. The object can be accessed if it is protected and it is not readable
-			return Flag.Has(modifiers, Modifier.PUBLIC) || (Flag.Has(modifiers, Modifier.PROTECTED) && !Flag.Has(modifiers, Modifier.READABLE));
-		}
-
-		// If the access level is public and the object is read, it can be accessed if it is public
-		// If the access level is public and the object is edited, it can be accessed if it is public and not readable
-		return Flag.Has(modifiers, Modifier.PUBLIC) && (reads || !Flag.Has(modifiers, Modifier.READABLE));
-	}
-
-	/// <summary>
 	/// Returns a string which describes the state of the specified function implementation
 	/// </summary>
 	public static string GetFunctionReport(FunctionImplementation implementation)
@@ -386,14 +333,6 @@ public class ResolverPhase : Phase
 
 				var name = iterator.Is(NodeType.INCREMENT) ? "increment" : "decrement";
 				errors.Add(Status.Error(iterator.Position, $"Can not understand the {name}"));
-			}
-
-			nodes = implementation.Node.FindAll(NodeType.LINK);
-
-			foreach (var iterator in nodes)
-			{
-				if (IsAccessible(implementation, iterator.To<LinkNode>(), !Analyzer.IsEdited(iterator))) continue;
-				errors.Add(Status.Error(iterator.Right.Position, "Can not access the member here"));
 			}
 		}
 
