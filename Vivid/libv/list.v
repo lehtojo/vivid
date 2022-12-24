@@ -5,7 +5,7 @@ export List<T> {
 	readable size: large
 
 	private shared allocate_elements(size: large) {
-		if size > 0 return allocate(size * sizeof(T)) as T*
+		if size > 0 return allocate(size * strideof(T)) as T*
 		return none as T*
 	}
 
@@ -60,8 +60,8 @@ export List<T> {
 	grow(to: large) {
 		if to <= 0 { to = 1 }
 
-		memory = allocate(to * sizeof(T))
-		copy(data, size * sizeof(T), memory)
+		memory = allocate(to * strideof(T))
+		copy(data, size * strideof(T), memory)
 
 		# Free the old data
 		if data !== none {
@@ -91,7 +91,7 @@ export List<T> {
 		}
 
 		# Copy the new elements to the memory after the already existing elements
-		copy<T>(data + size * sizeof(T), other.data, count)
+		copy<T>(data + size * strideof(T), other.data, count)
 		size += count
 	}
 
@@ -106,8 +106,8 @@ export List<T> {
 		count = size - at
 
 		if count > 0 {
-			start = data + at * sizeof(T)
-			move(start, start + sizeof(T), count * sizeof(T))
+			start = data + at * strideof(T)
+			move(start, start + strideof(T), count * strideof(T))
 		}
 
 		data[at] = element
@@ -129,11 +129,11 @@ export List<T> {
 		}
 
 		# Determine the address where the new elements should be inserted
-		start = data + at * sizeof(T)
+		start = data + at * strideof(T)
 
 		# Determine how many elements must be slid to the right
 		slide = size - at
-		if slide > 0 move(start, start + count * sizeof(T), slide * sizeof(T))
+		if slide > 0 move(start, start + count * strideof(T), slide * strideof(T))
 
 		copy<T>(start, other.data, count)
 		size += count
@@ -146,11 +146,11 @@ export List<T> {
 		# Reset the element at the specified index
 		data[at] = 0 as T
 
-		offset = (at + 1) * sizeof(T)
-		bytes = (size - at - 1) * sizeof(T)
+		offset = (at + 1) * strideof(T)
+		bytes = (size - at - 1) * strideof(T)
 
 		if bytes > 0 {
-			destination = data + at * sizeof(T)
+			destination = data + at * strideof(T)
 			move(data, offset, destination, bytes)
 		}
 
@@ -180,10 +180,10 @@ export List<T> {
 		if count == 0 return
 
 		# Reset the elements at the specified range
-		zero<T>(data + start * sizeof(T), count)
+		zero<T>(data + start * strideof(T), count)
 
 		slide = size - end
-		move(data + end * sizeof(T), data + start * sizeof(T), slide * sizeof(T))
+		move(data + end * strideof(T), data + start * strideof(T), slide * strideof(T))
 
 		size -= count
 	}
@@ -238,7 +238,7 @@ export List<T> {
 		size: large = end - start
 		if size == 0 return List<T>()
 
-		return List<T>(data + start * sizeof(T), size)
+		return List<T>(data + start * strideof(T), size)
 	}
 
 	# Summary: Returns all the elements starting from the specified index
@@ -249,7 +249,7 @@ export List<T> {
 		size: large = this.size - start
 		if size == 0 return List<T>()
 
-		return List<T>(data + start * sizeof(T), size)
+		return List<T>(data + start * strideof(T), size)
 	}
 
 	# Summary: Reverses the order of the elements
@@ -317,7 +317,7 @@ export List<T> {
 
 		# Copy the other list into the result list
 		if other.data !== none {
-			copy<T>(result.data + size * sizeof(T), other.data, other.size)
+			copy<T>(result.data + size * strideof(T), other.data, other.size)
 		}
 
 		return result

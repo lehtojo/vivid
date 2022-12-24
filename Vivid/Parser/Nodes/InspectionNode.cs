@@ -4,7 +4,7 @@ public enum InspectionType
 {
 	NAME,
 	SIZE,
-	CAPACITY
+	STRIDE
 }
 
 public class InspectionNode : Node, IResolvable

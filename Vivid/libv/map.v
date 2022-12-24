@@ -80,7 +80,7 @@ export Map<K, V> {
 		index = first
 
 		# Allocate the new slots
-		slots = allocate(to * sizeof(MapSlot<K, V>))
+		slots = allocate(to * strideof(MapSlot<K, V>))
 		capacity = to
 		first = -1
 		last = -1
@@ -351,7 +351,7 @@ export Map<K, V> {
 
 		loop (index >= 0) {
 			slot = slots[index]
-			pair = (slots + index * sizeof(MapSlot<K, V>)) as KeyValuePair<K, V>
+			pair = (slots + index * strideof(MapSlot<K, V>)) as KeyValuePair<K, V>
 			result.add(mapper(pair))
 
 			index = slot.next - 1

@@ -101,3 +101,9 @@ mov rax, 247 # System call: sys_waitid
 mov r10, rcx
 syscall
 ret
+
+.export system_clock_get_time
+system_clock_get_time:
+mov rax, 228 # System call: sys_clock_gettime
+syscall
+ret

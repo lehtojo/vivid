@@ -4,10 +4,10 @@ using System.Linq;
 public class TypeInspectionPattern : Pattern
 {
 	public const string SIZE_INSPECTION_IDENTIFIER = "sizeof";
-	public const string CAPACITY_INSPECTION_IDENTIFIER = "capacityof";
+	public const string STRIDE_INSPECTION_IDENTIFIER = "strideof";
 	public const string NAME_INSPECTION_IDENTIFIER = "nameof";
 
-	// Pattern: sizeof(...)/capacityof(...)/nameof(...)
+	// Pattern: sizeof(...)/strideof(...)/nameof(...)
 	public TypeInspectionPattern() : base(TokenType.FUNCTION)
 	{
 		Priority = 18;
@@ -17,7 +17,7 @@ public class TypeInspectionPattern : Pattern
 	{
 		var descriptor = tokens.First().To<FunctionToken>();
 
-		if (descriptor.Name != SIZE_INSPECTION_IDENTIFIER && descriptor.Name != CAPACITY_INSPECTION_IDENTIFIER && descriptor.Name != NAME_INSPECTION_IDENTIFIER) return false;
+		if (descriptor.Name != SIZE_INSPECTION_IDENTIFIER && descriptor.Name != STRIDE_INSPECTION_IDENTIFIER && descriptor.Name != NAME_INSPECTION_IDENTIFIER) return false;
 
 		// Create a temporary state which in order to check whether the parameters contains a type
 		state = new ParserState(descriptor.Parameters.Tokens);
@@ -39,9 +39,9 @@ public class TypeInspectionPattern : Pattern
 			return new InspectionNode(InspectionType.NAME, new TypeNode(type));
 		}
 
-		if (descriptor.Name == CAPACITY_INSPECTION_IDENTIFIER)
+		if (descriptor.Name == STRIDE_INSPECTION_IDENTIFIER)
 		{
-			return new InspectionNode(InspectionType.CAPACITY, new TypeNode(type));
+			return new InspectionNode(InspectionType.STRIDE, new TypeNode(type));
 		}
 
 		return new InspectionNode(InspectionType.SIZE, new TypeNode(type));

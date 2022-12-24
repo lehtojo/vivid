@@ -39,11 +39,11 @@ partition<T>(elements, low, high) {
 		# If the current element is smaller than the pivot, then update the pivot
 		if elements[j] < pivot {
 			i++ # Update the pivot
-			swap(elements + i * sizeof(T), elements + j * sizeof(T))
+			swap(elements + i * strideof(T), elements + j * strideof(T))
 		}
 	}
 
-	swap(elements + (i + 1) * sizeof(T), elements + high * sizeof(T))
+	swap(elements + (i + 1) * strideof(T), elements + high * strideof(T))
 	return i + 1
 }
 
@@ -55,11 +55,11 @@ partition<T>(elements, low, high, comparator) {
 		# If the current element is smaller than the pivot, then update the pivot
 		if comparator(elements[j], pivot) < 0 {
 			i++ # Update the pivot
-			swap(elements + i * sizeof(T), elements + j * sizeof(T))
+			swap(elements + i * strideof(T), elements + j * strideof(T))
 		}
 	}
 
-	swap(elements + (i + 1) * sizeof(T), elements + high * sizeof(T))
+	swap(elements + (i + 1) * strideof(T), elements + high * strideof(T))
 	return i + 1
 }
 

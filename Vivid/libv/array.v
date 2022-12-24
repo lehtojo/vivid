@@ -11,7 +11,7 @@ export Array<T> {
 	init(size: large) {
 		require(size >= 0, 'Array size can not be negative')
 		
-		this.data = allocate(size * sizeof(T))
+		this.data = allocate(size * strideof(T))
 		this.size = size
 	}
 
@@ -20,7 +20,7 @@ export Array<T> {
 		require(data != none, 'Invalid array data')
 		require(size >= 0, 'Array size can not be negative')
 
-		this.data = allocate(size * sizeof(T))
+		this.data = allocate(size * strideof(T))
 		this.size = size
 		copy<T>(this.data, data, size)
 	}
@@ -54,7 +54,7 @@ export Array<T> {
 		require(end >= 0 and end <= size, 'Invalid end index')
 		require(start <= end, 'Start index can not be greater than end index')
 
-		return Array<T>(data + start * sizeof(T), end - start)
+		return Array<T>(data + start * strideof(T), end - start)
 	}
 
 	# Summary: Returns an iterator that can be used to inspect this array

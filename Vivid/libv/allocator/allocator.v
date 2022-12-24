@@ -18,7 +18,7 @@ namespace internal.allocator {
 	export plain SlabAllocator<T> {
 		slabs: normal
 		start: link
-		end => start + slabs * capacityof(T)
+		end => start + slabs * sizeof(T)
 
 		# Stores the states of all the slabs as bits. This should only be used for debugging.
 		states: link
@@ -46,7 +46,7 @@ namespace internal.allocator {
 
 				# NOTE: Debug mode only
 				# Set the bit for this slab
-				index = (result - start) as u64 / capacityof(T)
+				index = (result - start) as u64 / sizeof(T)
 				states[index / 8] |= 1 <| (index % 8)
 
 				next = result.(link*)[]
@@ -55,12 +55,12 @@ namespace internal.allocator {
 				allocations++
 				used++
 
-				zero(result, capacityof(T))
+				zero(result, sizeof(T))
 				return result
 			}
 
 			if position < slabs {
-				result = start + position * capacityof(T)
+				result = start + position * sizeof(T)
 
 				# NOTE: Debug mode only
 				# Set the bit for this slab
@@ -71,7 +71,7 @@ namespace internal.allocator {
 				allocations++
 				used++
 
-				zero(result, capacityof(T))
+				zero(result, sizeof(T))
 				return result
 			}
 
@@ -90,8 +90,8 @@ namespace internal.allocator {
 
 		deallocate(address: link) {
 			offset = (address - start) as u64
-			index = offset / capacityof(T)
-			require(offset - index * capacityof(T) == 0, 'Address did not point to the start of an allocated area')
+			index = offset / sizeof(T)
+			require(offset - index * sizeof(T) == 0, 'Address did not point to the start of an allocated area')
 
 			# NOTE: Debug mode only
 			# Ensure the slab is not already deallocated
@@ -104,7 +104,7 @@ namespace internal.allocator {
 		}
 
 		dispose() {
-			internal.deallocate(start, slabs * capacityof(T))
+			internal.deallocate(start, slabs * sizeof(T))
 			internal.deallocate(states, slabs / 8)
 		}
 	}
@@ -118,8 +118,8 @@ namespace internal.allocator {
 		slabs: normal
 
 		init(slabs: normal) {
-			this.allocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * sizeof(T))
-			this.deallocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * sizeof(T))
+			this.allocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * strideof(T))
+			this.deallocators = internal.allocate(ESTIMATED_MAX_ALLOCATORS * strideof(T))
 			this.slabs = slabs
 		}
 
@@ -131,16 +131,16 @@ namespace internal.allocator {
 			if size >= capacity {
 				# Allocate new allocator and deallocator lists
 				new_capacity = size * 2
-				new_allocators = internal.allocate(new_capacity * sizeof(T))
-				new_deallocators = internal.allocate(new_capacity * sizeof(T))
+				new_allocators = internal.allocate(new_capacity * strideof(T))
+				new_deallocators = internal.allocate(new_capacity * strideof(T))
 
 				# Copy the contents of the old allocator and deallocator lists to the new ones
-				copy(allocators, size * sizeof(T), new_allocators)
-				copy(deallocators, size * sizeof(T), new_deallocators)
+				copy(allocators, size * strideof(T), new_allocators)
+				copy(deallocators, size * strideof(T), new_deallocators)
 
 				# Deallocate the old allocator and deallocator lists
-				internal.deallocate(allocators, capacity * sizeof(T))
-				internal.deallocate(deallocators, capacity * sizeof(T))
+				internal.deallocate(allocators, capacity * strideof(T))
+				internal.deallocate(deallocators, capacity * strideof(T))
 
 				capacity = new_capacity
 				allocators = new_allocators
@@ -148,9 +148,9 @@ namespace internal.allocator {
 			}
 
 			# Create a new allocator with its own memory
-			memory = internal.allocate(slabs * capacityof(S))
+			memory = internal.allocate(slabs * sizeof(S))
 
-			allocator = internal.allocate(capacityof(T)) as T
+			allocator = internal.allocate(sizeof(T)) as T
 			allocator.init(memory, slabs)
 
 			# Add the new allocator
@@ -179,16 +179,16 @@ namespace internal.allocator {
 			deallocator.dispose()
 
 			# Remove deallocator from the list
-			copy(deallocators + (i + 1) * sizeof(T), (size - i - 1) * sizeof(T), deallocators + i * sizeof(T))
-			zero(deallocators + (size - 1) * sizeof(T), sizeof(T))
+			copy(deallocators + (i + 1) * strideof(T), (size - i - 1) * strideof(T), deallocators + i * strideof(T))
+			zero(deallocators + (size - 1) * strideof(T), strideof(T))
 
 			# Find the corresponding allocator from the allocator list linearly, because we can not assume the list is sorted in any way
 			loop (j = 0, j < size, j++) {
 				if allocators[j] != deallocator continue
 
 				# Remove allocator from the list
-				copy(allocators + (j + 1) * sizeof(T), (size - j - 1) * sizeof(T), allocators + j * sizeof(T))
-				zero(allocators + (size - 1) * sizeof(T), sizeof(T))
+				copy(allocators + (j + 1) * strideof(T), (size - j - 1) * strideof(T), allocators + j * strideof(T))
+				zero(allocators + (size - 1) * strideof(T), strideof(T))
 				stop
 			}
 
@@ -215,13 +215,13 @@ namespace internal.allocator {
 	}
 
 	initialize() {
-		s16 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[16]>, byte[16]>)) as Allocators<SlabAllocator<byte[16]>, byte[16]>
-		s32 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[32]>, byte[32]>)) as Allocators<SlabAllocator<byte[32]>, byte[32]>
-		s64 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[64]>, byte[64]>)) as Allocators<SlabAllocator<byte[64]>, byte[64]>
-		s128 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[128]>, byte[128]>)) as Allocators<SlabAllocator<byte[128]>, byte[128]>
-		s256 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[256]>, byte[256]>)) as Allocators<SlabAllocator<byte[256]>, byte[256]>
-		s512 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[512]>, byte[512]>)) as Allocators<SlabAllocator<byte[512]>, byte[512]>
-		s1024 = internal.allocate(capacityof(Allocators<SlabAllocator<byte[1024]>, byte[1024]>)) as Allocators<SlabAllocator<byte[1024]>, byte[1024]>
+		s16 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[16]>, byte[16]>)) as Allocators<SlabAllocator<byte[16]>, byte[16]>
+		s32 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[32]>, byte[32]>)) as Allocators<SlabAllocator<byte[32]>, byte[32]>
+		s64 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[64]>, byte[64]>)) as Allocators<SlabAllocator<byte[64]>, byte[64]>
+		s128 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[128]>, byte[128]>)) as Allocators<SlabAllocator<byte[128]>, byte[128]>
+		s256 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[256]>, byte[256]>)) as Allocators<SlabAllocator<byte[256]>, byte[256]>
+		s512 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[512]>, byte[512]>)) as Allocators<SlabAllocator<byte[512]>, byte[512]>
+		s1024 = internal.allocate(sizeof(Allocators<SlabAllocator<byte[1024]>, byte[1024]>)) as Allocators<SlabAllocator<byte[1024]>, byte[1024]>
 
 		s16.init(5000000)
 		s32.init(5000000 / 2)
@@ -242,13 +242,13 @@ export outline allocate(bytes: large) {
 	if bytes <= 512 return internal.allocator.s512.allocate()
 	if bytes <= 1024 return internal.allocator.s1024.allocate()
 
-	bytes += sizeof(large)
+	bytes += strideof(large)
 	address = internal.allocate(bytes)
 	if address == none internal.allocator.panic('Out of memory')
 
 	# Store the size of the allocation at the beginning of the allocated memory
 	address.(large*)[] = bytes
-	return address + sizeof(large)
+	return address + strideof(large)
 }
 
 
@@ -262,7 +262,7 @@ export outline deallocate(address: link) {
 	if internal.allocator.s1024.deallocate(address) return
 
 	# Load the size of the allocation and deallocate the memory
-	address -= sizeof(large)
+	address -= strideof(large)
 	bytes = address.(large*)[]
 	internal.deallocate(address, bytes)
 }
@@ -281,7 +281,7 @@ import offset_copy(source: link, bytes: large, destination: link, offset: large)
 none = 0
 
 outline allocate<T>(count: large) {
-	return allocate(count * sizeof(T)) as T*
+	return allocate(count * strideof(T)) as T*
 }
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0
