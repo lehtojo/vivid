@@ -548,7 +548,7 @@ public static class ReconstructionAnalysis
 		{
 			// Find the root of the expression
 			var root = (Node)candidate;
-			while (root.Parent!.Instance == NodeType.PARENTHESIS) { root = root.Parent!; }
+			while (root.Parent!.Is(NodeType.PARENTHESIS, NodeType.INLINE)) { root = root.Parent!; }
 
 			if (IsCondition(root)) return false;
 
