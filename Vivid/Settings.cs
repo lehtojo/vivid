@@ -1,11 +1,14 @@
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System;
 
 public enum BinaryType
 {
 	EXECUTABLE,
 	SHARED_LIBRARY,
-	STATIC_LIBRARY
+	STATIC_LIBRARY,
+	OBJECTS,
+	RAW
 }
 
 public static class Settings
@@ -86,6 +89,6 @@ public static class Settings
 		DeallocationFunction = null;
 		InheritanceFunction = null;
 		InitializationFunction = null;
-		IncludedFolders = new();
+		IncludedFolders = new List<string> { Environment.CurrentDirectory };
 	}
 }

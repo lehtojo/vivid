@@ -1060,14 +1060,12 @@ public static class Common
 		var type_functions = types.SelectMany(i => i.Functions.Values.SelectMany(j => j.Overloads));
 		var type_constructors = types.SelectMany(i => i.Constructors.Overloads);
 		var type_destructors = types.SelectMany(i => i.Destructors.Overloads);
-		var type_virtuals = types.SelectMany(i => i.Virtuals.Values.SelectMany(j => j.Overloads));
 		var type_overrides = types.SelectMany(i => i.Overrides.Values.SelectMany(j => j.Overloads));
 		var context_functions = context.Functions.Values.SelectMany(i => i.Overloads);
 
 		var implementations = type_functions
 			.Concat(type_constructors)
 			.Concat(type_destructors)
-			.Concat(type_virtuals)
 			.Concat(type_overrides)
 			.Concat(context_functions)
 			.SelectMany(i => i.Implementations).ToArray();

@@ -77,7 +77,8 @@ public static class Trace
 		{
 			var instruction = instructions[i];
 
-			if (instruction.Type == InstructionType.CALL)
+			// If the value is used after a call, add non-volatility directive
+			if (instruction.Type == InstructionType.CALL && i < end)
 			{
 				directives.Add(new NonVolatilityDirective());
 				continue;

@@ -721,6 +721,25 @@ public static class Assembler
 		return builders;
 	}
 
+	/// <summary>
+	/// Builds an object file from the specified properties and writes it into a file
+	/// </summary>
+	public static void OutputObjectFile(string output, List<BinarySection> sections, HashSet<string> exports)
+	{
+		var binary = (byte[]?)null;
+
+		if (Settings.IsTargetWindows)
+		{
+			binary = PeFormat.Build(sections, exports);
+		}
+		else
+		{
+			binary = ElfFormat.Build(sections, exports);
+		}
+
+		File.WriteAllBytes(output, binary);
+	}
+
 	public static Dictionary<SourceFile, string> Assemble(Context context, List<SourceFile> files, List<string> imports, Dictionary<SourceFile, List<string>> exports, string output_name, BinaryType output_type)
 	{
 		if (Settings.IsArm64)
@@ -738,7 +757,7 @@ public static class Assembler
 
 		Settings.UseIndirectAccessTables = !Settings.IsTargetWindows && output_type == BinaryType.SHARED_LIBRARY && Settings.IsLegacyAssemblyEnabled;
 
-		var result = new Dictionary<SourceFile, string>();
+		var assemblies = new Dictionary<SourceFile, string>();
 
 		var entry_function = context.GetFunction(Keywords.INIT.Identifier)?.Overloads.FirstOrDefault()?.Implementations.FirstOrDefault();
 		var entry_function_file = (SourceFile?)null;
@@ -798,7 +817,7 @@ public static class Assembler
 			}
 
 			// Add the text section header only if the output type represents executable
-			if (output_type != BinaryType.STATIC_LIBRARY && entry_function_file == file)
+			if (output_type != BinaryType.OBJECTS && entry_function_file == file)
 			{
 				if (entry_function == null) throw new ApplicationException("Missing entry function");
 
@@ -881,7 +900,7 @@ public static class Assembler
 
 			if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 			{
-				result.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
+				assemblies.Add(file, Regex.Replace(builder.ToString().Replace("\r\n", "\n"), "\n{3,}", "\n\n"));
 			}
 
 			// Skip using the new system if requested
@@ -905,6 +924,12 @@ public static class Assembler
 			sections.AddRange(object_data_sections);
 			if (object_debug_lines != null) sections.Add(object_debug_lines);
 
+			if (output_type == BinaryType.OBJECTS)
+			{
+				OutputObjectFile(file.GetFilenameWithoutExtension() + AssemblyPhase.ObjectFileExtension, sections, builder.Exports);
+				continue;
+			}
+
 			var object_file = Settings.IsTargetWindows
 				? PeFormat.Create(file.Fullname, sections, builder.Exports)
 				: ElfFormat.Create(file.Fullname, sections, builder.Exports);
@@ -912,9 +937,20 @@ public static class Assembler
 			object_files.Add(file, object_file);
 		}
 
+		if (output_type == BinaryType.RAW)
+		{
+			File.WriteAllBytes(output_name, ElfFormat.BuildBinaryFile(object_files.Values.ToList()));
+			return assemblies;
+		}
+
+		if (output_type == BinaryType.OBJECTS)
+		{
+			return assemblies;
+		}
+
 		if (output_type == BinaryType.STATIC_LIBRARY)
 		{
-			if (!StaticLibraryFormat.Export(context, object_files, output_name).IsProblematic) return result;
+			if (!StaticLibraryFormat.Export(context, object_files, output_name).IsProblematic) return assemblies;
 
 			throw new ApplicationException("Failed to create the static library");
 		}
@@ -944,6 +980,6 @@ public static class Assembler
 			}
 		}
 
-		return result;
+		return assemblies;
 	}
 }

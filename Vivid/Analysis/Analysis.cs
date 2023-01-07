@@ -951,8 +951,11 @@ public static class Analysis
 	{
 		if (!IsGarbageCollectorEnabled) return;
 		if (type.IsNamespace) return;
-		
-		foreach (var destructor in type.Destructors.Overloads.SelectMany(i => i.Implementations))
+
+		var destructors = type.GetOverride(GarbageCollector.DESTRUCTOR);
+		if (destructors == null) return;
+
+		foreach (var destructor in destructors.Overloads.SelectMany(i => i.Implementations))
 		{
 			var root = destructor.Node ?? throw new ApplicationException("Destructor was not implemented");
 			var self = destructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
@@ -975,6 +978,11 @@ public static class Analysis
 					root.Add(GarbageCollector.UnlinkObject(destructor, member_access));
 				}
 			}
+
+			// Deallocate the object at the end
+			root.Add(new FunctionNode(Settings.DeallocationFunction!).SetArguments(new Node {
+				new CastNode(new VariableNode(self), new TypeNode(new Link()))
+			}));
 		}
 	}
 

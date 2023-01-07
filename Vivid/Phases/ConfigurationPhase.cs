@@ -21,14 +21,12 @@ public class ConfigurationPhase : Phase
 
 		if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 		{
-			// Get all folders registered to the environment variable 'PATH'
 			var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
 			Folders.AddRange(path.Split(':').Where(i => !string.IsNullOrEmpty(i)).Select(i => i.Replace('\\', '/')));
 		}
 		else
 		{
-			// Get all folders registered to the environment variable 'Path'
-			var path = Environment.GetEnvironmentVariable("Path") ?? string.Empty;
+			var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
 			Folders.AddRange(path.Split(';').Where(i => !string.IsNullOrEmpty(i)).Select(i => i.Replace('\\', '/')));
 		}
 
@@ -130,7 +128,9 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-x64",												Description = "Compile for architecture x64" },
 					new() { Command = "-arm64",											Description = "Compile for architecture arm64" },
 					new() { Command = "-version",											Description = "Outputs the version of the compiler" },
-					new() { Command = "-s",													Description = "Creates a compiler service which waits for code analysis input from a local socket" }
+					new() { Command = "-s",													Description = "Creates a compiler service which waits for code analysis input from a local socket" },
+					new() { Command = "-objects",											Description = "Outputs all compiled source files as object files" },
+					new() { Command = "-binary",											Description = "Outputs a raw executable binary file" }
 				};
 
 				Console.WriteLine
@@ -303,6 +303,18 @@ public class ConfigurationPhase : Phase
 			case "-s":
 			{
 				Settings.Service = true;
+				return Status.OK;
+			}
+
+			case "-objects":
+			{
+				Settings.OutputType = BinaryType.OBJECTS;
+				return Status.OK;
+			}
+
+			case "-binary":
+			{
+				Settings.OutputType = BinaryType.RAW;
 				return Status.OK;
 			}
 

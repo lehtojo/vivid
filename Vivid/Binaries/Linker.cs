@@ -160,20 +160,34 @@ public static class Linker
 	/// </summary>
 	public static int CreateProgramHeaders(List<BinarySection> sections, List<BinarySection> fragments, List<ElfProgramHeader> headers, ulong virtual_address)
 	{
-		var header = new ElfProgramHeader();
-		header.Type = ElfSegmentType.LOADABLE;
-		header.Flags = ElfSegmentFlag.READ;
-		header.Offset = 0;
-		header.VirtualAddress = virtual_address;
-		header.PhysicalAddress = virtual_address;
-		header.SegmentFileSize = SegmentAlignment;
-		header.SegmentMemorySize = SegmentAlignment;
-		header.Alignment = SegmentAlignment;
+		return CreateProgramHeaders(sections, fragments, headers, virtual_address, true);
+	}
 
-		headers.Add(header);
+	/// <summary>
+	/// Creates the program headers, meaning the specified section will get their own virtual addresses and be loaded into memory when the created executable is loaded
+	/// </summary>
+	public static int CreateProgramHeaders(List<BinarySection> sections, List<BinarySection> fragments, List<ElfProgramHeader> headers, ulong virtual_address, bool executable)
+	{
+		var file_position = 0;
 
-		var file_position = (int)SegmentAlignment;
-		virtual_address += SegmentAlignment;
+		// If we are building an executable, create a program header for the ELF-headers as well
+		if (executable)
+		{
+			var header = new ElfProgramHeader();
+			header.Type = ElfSegmentType.LOADABLE;
+			header.Flags = ElfSegmentFlag.READ;
+			header.Offset = 0;
+			header.VirtualAddress = virtual_address;
+			header.PhysicalAddress = virtual_address;
+			header.SegmentFileSize = SegmentAlignment;
+			header.SegmentMemorySize = SegmentAlignment;
+			header.Alignment = SegmentAlignment;
+
+			headers.Add(header);
+
+			file_position = (int)SegmentAlignment;
+			virtual_address += SegmentAlignment;
+		}
 
 		foreach (var section in sections)
 		{
@@ -216,7 +230,7 @@ public static class Linker
 				_ => ElfSegmentFlag.READ
 			};
 
-			header = new ElfProgramHeader();
+			var header = new ElfProgramHeader();
 			header.Type = ElfSegmentType.LOADABLE;
 			header.Flags = flags;
 			header.Offset = (uint)file_position;

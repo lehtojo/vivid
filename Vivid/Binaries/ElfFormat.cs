@@ -383,22 +383,36 @@ public static class ElfFormat
 			}
 
 			section.Offset = file_position;
-			header.Offset = (ulong)file_position;
+
+			if (section.Type == BinarySectionType.NONE)
+			{
+				header.Alignment = 0;
+				header.Offset = 0;
+			}
+			else
+			{
+				header.Offset = (ulong)file_position;
+			}
 
 			file_position += section.VirtualSize;
 
 			headers.Add(header);
 		}
 
+		// Align the file position
+		var aligned_file_position = (file_position + 16 - 1) & (-16);
+
 		var string_table_section_name = string_table.Add(SECTION_HEADER_STRING_TABLE_SECTION);
+
 		var string_table_section = new BinarySection(SECTION_HEADER_STRING_TABLE_SECTION, BinarySectionType.STRING_TABLE, string_table.Export());
+		string_table_section.Margin = aligned_file_position - file_position;
+		string_table_section.Offset = aligned_file_position;
+
 		var string_table_header = new ElfSectionHeader();
-
-		string_table_section.Offset = file_position;
-
 		string_table_header.Name = string_table_section_name;
 		string_table_header.Type = ElfSectionType.STRING_TABLE;
 		string_table_header.Flags = 0;
+		string_table_section.Offset = aligned_file_position;
 		string_table_header.Offset = (ulong)file_position;
 		string_table_header.SectionFileSize = (ulong)string_table_section.Data.Length;
 
@@ -563,6 +577,25 @@ public static class ElfFormat
 	}
 
 	/// <summary>
+	/// Aligns the specified sections
+	/// </summary>
+	public static void AlignSections(List<BinarySection> sections, long file_position)
+	{
+		foreach (var section in sections)
+		{
+			if (section.Type == BinarySectionType.NONE) continue;
+
+			var alignment = Math.Max(section.Alignment, 16);
+			var aligned_file_position = (file_position + alignment - 1) & (-alignment);
+
+			section.Margin = (int)(aligned_file_position - file_position);
+			section.Alignment = alignment;
+
+			file_position = aligned_file_position + section.Data.Length;
+		}
+	}
+
+	/// <summary>
 	/// Creates an object file from the specified sections and converts it to binary format
 	/// </summary>
 	public static byte[] Build(List<BinarySection> sections, HashSet<string> exports)
@@ -591,20 +624,26 @@ public static class ElfFormat
 		header.FileHeaderSize = ElfFileHeader.Size;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 
+		AlignSections(sections, ElfFileHeader.Size);
 		var section_headers = CreateSectionHeaders(sections, symbols);
 
 		// Now that section positions are set, compute offsets
 		BinaryUtility.ComputeOffsets(sections, symbols);
 
-		var section_bytes = sections.Sum(i => i.Data.Length);
+		// Compute the location of the first section header
+		header.SectionHeaderOffset = ElfFileHeader.Size;
+
+		foreach (var section in sections)
+		{
+			header.SectionHeaderOffset += (ulong)(section.Margin + section.Data.Length);
+		}
 
 		// Save the location of the section header table
-		header.SectionHeaderOffset = (ulong)(ElfFileHeader.Size + section_bytes);
 		header.SectionHeaderTableEntryCount = (short)section_headers.Count;
 		header.SectionHeaderSize = ElfSectionHeader.Size;
 		header.SectionNameEntryIndex = (short)(section_headers.Count - 1);
 
-		var bytes = ElfFileHeader.Size + section_bytes + section_headers.Count * ElfSectionHeader.Size;
+		var bytes = (int)header.SectionHeaderOffset + section_headers.Count * ElfSectionHeader.Size;
 		var result = new byte[bytes];
 
 		// Write the file header
@@ -623,6 +662,57 @@ public static class ElfFormat
 		{
 			BinaryUtility.Write(result, position, section_header);
 			position += ElfSectionHeader.Size;
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// Packs the sections of the specified objects into a raw binary file 
+	/// </summary>
+	public static byte[] BuildBinaryFile(List<BinaryObjectFile> objects)
+	{
+		// Index all the specified object files
+		for (var i = 0; i < objects.Count; i++) { objects[i].Index = i; }
+
+		// Make all hidden symbols unique by using their object file indices
+		Linker.MakeLocalSymbolsUnique(objects);
+
+		// Resolves are unresolved symbols and returns all symbols as a list
+		var symbols = Linker.ResolveSymbols(objects);
+
+		// Ensure sections are ordered so that sections of same type are next to each other
+		var fragments = objects.SelectMany(i => i.Sections).Where(i => Linker.IsLoadableSection(i)).ToList();
+
+		// Load all the relocations from all the sections
+		var relocations = objects.SelectMany(i => i.Sections).SelectMany(i => i.Relocations).ToList();
+
+		// Ensure are relocations are resolved
+		foreach (var relocation in relocations)
+		{
+			if (!relocation.Symbol.External) continue;
+			throw new ApplicationException("Symbol " + relocation.Symbol.Name + " is not defined locally or externally");
+		}
+
+		// Create sections, which cover the fragmented sections
+		var overlays = Linker.CreateLoadableSections(fragments);
+
+		// Compute virtual addresses for the sections
+		Linker.CreateProgramHeaders(overlays, fragments, new List<ElfProgramHeader>(), 0x1000, false);
+
+		// Now that sections have their virtual addresses relocations can be computed
+		Linker.ComputeRelocations(relocations, 0);
+
+		// Compute the number of bytes sections take up
+		var bytes = 0;
+		foreach (var overlay in overlays) { bytes += overlay.Margin + overlay.VirtualSize; }
+
+		var result = new byte[bytes];
+
+		// Write the fragments
+		foreach (var fragment in fragments)
+		{
+			Buffer.BlockCopy(fragment.Data, 0, result, fragment.Offset, fragment.Data.Length);
 		}
 
 		return result;

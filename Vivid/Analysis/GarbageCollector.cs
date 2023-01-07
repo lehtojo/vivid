@@ -32,6 +32,8 @@ public struct VariableAssignmentDescriptor
 
 public static class GarbageCollector
 {
+	public const string DESTRUCTOR = "destruct";
+
 	/// <summary>
 	/// Generates a node tree for linking the specified object
 	/// </summary>
@@ -67,23 +69,17 @@ public static class GarbageCollector
 		);
 
 		var type = value.GetType();
-		var destructor = type.Destructors.GetImplementation() ?? throw new ApplicationException("Missing destructor for type " + type.Name);
 
 		// Body:
-		// value.deinit()
-		// deallocate(value as link)
-		var body = new Node()
-		{
-			new LinkNode(value.Clone(), new FunctionNode(destructor), position),
-			new FunctionNode(Settings.DeallocationFunction!, position).SetArguments(new Node {
-				new CastNode(value.Clone(), new TypeNode(new Link())),
-			})
-		};
+		// value.destruct()
+		var destruction = Common.TryGetVirtualFunctionCall(value, type, GarbageCollector.DESTRUCTOR, new Node(), new List<Type?>(), position);
+		if (destruction == null) throw new ApplicationException("Failed to unlink object");
+
+		var body = new Node() { destruction };
 
 		// Result:
 		// if value != 0 and unlink(value) == 0 {
-		//   value.deinit()
-		//   deallocate(value as link)
+		//   value.destruct()
 		// }
 		return new IfNode(new Context(environment), condition, body, position, null);
 	}
@@ -93,15 +89,7 @@ public static class GarbageCollector
 	/// </summary>
 	public static bool IsTypeLinkable(Type type)
 	{
-		return type.IsUserDefined && !type.IsPack && !type.IsPlain;
-	}
-
-	/// <summary>
-	/// Returns whether the specified node calls the standard allocator function
-	/// </summary>
-	private static bool IsAllocationCall(Node node)
-	{
-		return node.Instance == NodeType.FUNCTION && node.To<FunctionNode>().Function == Settings.AllocationFunction;
+		return type.IsUserDefined && !type.IsPack && !type.IsPlain && (!type.IsTemplateType || type.IsTemplateTypeVariant);
 	}
 
 	/// <summary>
@@ -184,7 +172,7 @@ public static class GarbageCollector
 	{
 		foreach (var allocation in allocations)
 		{
-			var implementation = allocation.Type.Destructors.GetImplementation() ?? throw new ApplicationException("Missing destructor");
+			var implementation = allocation.Type.GetOverride(GarbageCollector.DESTRUCTOR)?.GetImplementation() ?? throw new ApplicationException("Missing destructor");
 
 			// Do not call the destructor if it is empty
 			if (implementation.IsEmpty) continue;
@@ -198,7 +186,7 @@ public static class GarbageCollector
 	/// </summary>
 	public static void Destruct(Node destination, Node value, Type type)
 	{
-		var implementation = type.Destructors.GetImplementation() ?? throw new ApplicationException("Missing destructor");
+		var implementation = type.GetOverride(GarbageCollector.DESTRUCTOR)?.GetImplementation() ?? throw new ApplicationException("Missing destructor");
 
 		// Do not call the destructor if it is empty
 		if (implementation.IsEmpty) return;
@@ -212,7 +200,7 @@ public static class GarbageCollector
 	public static void DestructStackAllocations(Node root, Dictionary<Node, ScopeDestructionDescriptor> scopes)
 	{
 		// Find all the stack allocations inside the specified node
-		var allocations = root.FindAll(NodeType.STACK_ADDRESS).Distinct();
+		var allocations = root.FindAll(NodeType.STACK_ADDRESS).Where(i => IsTypeLinkable(i.To<StackAddressNode>().Type)).Distinct();
 
 		foreach (var allocation in allocations)
 		{
@@ -864,7 +852,23 @@ public static class GarbageCollector
 			// Create the destructor of the current type if it is linkable
 			if (type.IsStatic || !IsTypeLinkable(type)) continue;
 
-			type.Destructors.GetImplementation();
+			// Ensure base types have virtual destructors
+			if (!type.Supertypes.Any() && !type.Virtuals.ContainsKey(GarbageCollector.DESTRUCTOR))
+			{
+				var destructor = new VirtualFunction(type, GarbageCollector.DESTRUCTOR, Primitives.CreateUnit(), type.Position, null);
+				type.Declare(destructor);
+			}
+
+			// Create a default implementation for the destructor
+			if (!type.Overrides.ContainsKey(GarbageCollector.DESTRUCTOR))
+			{
+				// Create the default implementation of the virtual function
+				var destructor = new Function(type, Modifier.DEFAULT, GarbageCollector.DESTRUCTOR, new List<Token>(), type.Position, null);
+				type.DeclareOverride(destructor);
+
+				// Implement the default destructor
+				destructor.Implement(Enumerable.Empty<Type>());
+			}
 		}
 	}
 }
