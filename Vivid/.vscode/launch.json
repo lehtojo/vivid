@@ -6,7 +6,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Build",
-			"program": "${workspaceFolder}/bin/Debug/net6.0/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Debug/net7.0/Vivid.dll",
 
 			// Builds the standard library
 			//"args": [ "${workspaceFolder}/libv/", "${workspaceFolder}/libv/windows_x64", "-static" ],
@@ -108,7 +108,7 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "Units",
-			"program": "${workspaceFolder}/bin/Units/net6.0/Vivid.dll",
+			"program": "${workspaceFolder}/bin/Units/net7.0/Vivid.dll",
 			"cwd": "${workspaceFolder}",
 			"console": "internalConsole",
 			"args": [],
