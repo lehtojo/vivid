@@ -699,6 +699,35 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Processes using-expressions by:
+	/// - Extracting the allocators
+	/// - Replacing the using-expressions with the allocated objects
+	/// - Saving the extracted allocators into the allocated objects
+	/// Example:
+	/// Foo() using Allocator
+	/// = Using { Construction { Foo() }, Allocator.allocate(sizeof(Foo)) }
+	/// => Construction { Allocator.allocate(sizeof(Foo)), Foo() }
+	/// </summary>
+	public static void AssignAllocatorsConstructions(Node root)
+	{
+		var expressions = root.FindAll(NodeType.USING);
+
+		foreach (var expression in expressions)
+		{
+			// Find the construction node
+			var allocated = expression.Left;
+			if (allocated.Instance == NodeType.LINK) { allocated = allocated.Right; }
+
+			// Extract the allocator provided using the expression
+			var allocator = expression.Right;
+
+			expression.Replace(expression.Left);
+
+			allocated.Left.Insert(allocator);
+		}
+	}
+
+	/// <summary>
 	/// Ensures all edits under the specified node are assignments
 	/// </summary>
 	private static void RewriteEditsAsAssignments(Node root)
@@ -1424,6 +1453,22 @@ public static class ReconstructionAnalysis
 		}
 	}
 
+	public static Node GetAllocator(ConstructionNode construction, Position? position, int size)
+	{
+		if (!construction.HasAllocator)
+		{
+			var arguments = new Node();
+			arguments.Add(new NumberNode(Parser.Signed, (long)size, position));
+
+			return new FunctionNode(Settings.AllocationFunction!, position).SetArguments(arguments);
+		}
+
+		var allocator = construction.Allocator;
+		allocator.Remove();
+
+		return allocator;
+	}
+
 	/// <summary>
 	/// Creates all member accessors that represent all non-pack members
 	/// Example (root = object.pack, type = { a: large, other: { b: large, c: large } })
@@ -1796,6 +1841,7 @@ public static class ReconstructionAnalysis
 		RemoveCancellingNots(root);
 		RemoveRedundantCasts(root);
 		RewriteDiscardedIncrements(root);
+		AssignAllocatorsConstructions(root);
 		RewriteSelfReturningFunctions(root);
 		RewriteZeroInitializedPacks(root);
 		ExtractExpressions(root);

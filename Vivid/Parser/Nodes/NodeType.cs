@@ -49,5 +49,6 @@ public enum NodeType
 	NORMAL,
 	WHEN,
 	OBJECT_LINK,
-	OBJECT_UNLINK
+	OBJECT_UNLINK,
+	USING
 }

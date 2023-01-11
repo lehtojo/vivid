@@ -32,6 +32,7 @@ public static class Keywords
 	public static readonly Keyword RETURN = new("return", KeywordType.FLOW);
 	public static readonly Keyword SHARED = new ModifierKeyword("shared", Modifier.STATIC);
 	public static readonly Keyword STOP = new("stop", KeywordType.FLOW);
+	public static readonly Keyword USING = new("using", KeywordType.NORMAL);
 	public static readonly Keyword VIRTUAL = new("open", KeywordType.NORMAL);
 	public static readonly Keyword WHEN = new("when", KeywordType.FLOW);
 
@@ -66,6 +67,7 @@ public static class Keywords
 		Definitions.Add(RETURN.Identifier, RETURN);
 		Definitions.Add(SHARED.Identifier, SHARED);
 		Definitions.Add(STOP.Identifier, STOP);
+		// Do not reserve using-keyword
 		Definitions.Add(VIRTUAL.Identifier, VIRTUAL);
 		Definitions.Add(WHEN.Identifier, WHEN);
 	}

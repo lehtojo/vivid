@@ -812,23 +812,19 @@ public static class Common
 	/// <summary>
 	/// Constructs an object using heap memory
 	/// </summary>
-	public static InlineContainer CreateHeapConstruction(Type type, Node construction, FunctionNode constructor)
+	public static InlineContainer CreateHeapConstruction(Type type, ConstructionNode construction, FunctionNode constructor)
 	{
 		var container = CreateInlineContainer(type, construction, true);
 		var position = construction.Position;
 
-		var size = Math.Max(1L, type.ContentSize);
-		var arguments = new Node { new NumberNode(Settings.Signed, size, position) };
+		var size = Math.Max(1, type.ContentSize);
+		var allocator = ReconstructionAnalysis.GetAllocator(construction, construction.Position, size);
 		
 		// The following example creates an instance of a type called Object
 		// Example: instance = allocate(sizeof(Object)) as Object
 		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
 			new VariableNode(container.Result, position),
-			new CastNode(
-				new FunctionNode(Settings.AllocationFunction!, position).SetArguments(arguments),
-				new TypeNode(type, position),
-				position
-			)
+			new CastNode(allocator, new TypeNode(type, position), position)
 		));
 
 		var supertypes = type.GetAllSupertypes();

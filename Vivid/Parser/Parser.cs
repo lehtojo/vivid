@@ -143,6 +143,7 @@ public static class Parser
 	public const string STANDARD_LIST_TYPE = "List";
 	public const string STANDARD_LIST_ADDER = "add";
 	public const string STANDARD_STRING_TYPE = "String";
+	public const string STANDARD_ALLOCATOR_FUNCTION = "allocate";
 
 	public static List<Pattern> GetPatterns(int priority)
 	{
@@ -212,6 +213,7 @@ public static class Parser
 		Add(new HasPattern());
 		Add(new ExtensionFunctionPattern());
 		Add(new WhenPattern());
+		Add(new UsingPattern());
 	}
 
 	/// <summary>
