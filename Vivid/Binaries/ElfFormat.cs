@@ -146,8 +146,9 @@ public enum ElfSymbolType
 	NONE = 0x00,
 	ABSOLUTE64 = 0x01,
 	PROGRAM_COUNTER_RELATIVE = 0x02,
-	ABSOLUTE32 = 0x0A,
-	BASE_RELATIVE_64 = 0x08
+	PLT32 = 0x04,
+	BASE_RELATIVE_64 = 0x08,
+	ABSOLUTE32 = 0x0A
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -445,6 +446,7 @@ public static class ElfFormat
 		return type switch
 		{
 			ElfSymbolType.PROGRAM_COUNTER_RELATIVE => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
+			ElfSymbolType.PLT32 => BinaryRelocationType.PROGRAM_COUNTER_RELATIVE,
 			ElfSymbolType.ABSOLUTE64 => BinaryRelocationType.ABSOLUTE64,
 			ElfSymbolType.ABSOLUTE32 => BinaryRelocationType.ABSOLUTE32,
 			_ => BinaryRelocationType.ABSOLUTE32

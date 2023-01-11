@@ -57,7 +57,11 @@ public class Link : Number
 
 	public override bool Equals(object? other)
 	{
-		return other is Link link && Name == link.Name && Identifier == link.Identifier && Equals(GetAccessorType(), link.GetAccessorType());
+		if (other is not Link link) return false;
+
+		var a = GetAccessorType();
+		var b = link.GetAccessorType();
+		return a.Name == b.Name && a.Identity == b.Identity;
 	}
 
 	public override int GetHashCode()
