@@ -67,9 +67,16 @@ public class GetMemoryAddressInstruction : Instruction
 				// 2. Ensure the pack member is used, so we do not move it to a register unnecessarily
 				if (Unit.Mode == UnitMode.BUILD && !value.IsDeactivating())
 				{
-					// Since we are in build mode and the member is required, we need to output a register value
-					value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
-					Memory.MoveToRegister(Unit, value, Size.FromFormat(value.Format), value.Format.IsDecimal(), Trace.For(Unit, value));
+					if (member.IsInlined())
+					{
+						value.Value = new ExpressionHandle(Offset, Stride, Start, position);
+					}
+					else
+					{
+						// Since we are in build mode and the member is required, we need to output a register value
+						value.Value = new ComplexMemoryHandle(Start, Offset, Stride, position);
+						Memory.MoveToRegister(Unit, value, Size.FromFormat(value.Format), value.Format == Format.DECIMAL, Trace.For(Unit, value));
+					}
 				}
 				else
 				{
