@@ -33,9 +33,6 @@ public class OperatorNode : Node, IResolvable
 	{
 		if (left_type == null || right_type == null) return false;
 
-		// Allow plus, minus, and multiply operations on memory addresses
-		if (Operator != Operators.ADD && Operator != Operators.SUBTRACT && Operator != Operators.MULTIPLY) return false;
-
 		// The right operand must be an integer type
 		if (!right_type.IsNumber || right_type.Format == Format.DECIMAL) return false;
 

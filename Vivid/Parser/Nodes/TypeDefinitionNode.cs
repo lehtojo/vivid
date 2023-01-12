@@ -25,7 +25,22 @@ public class TypeDefinitionNode : Node, IScope
 		Blueprint.Clear();
 
 		// Add all member initializations
-		Type.Initialization = FindTop(i => i.Is(Operators.ASSIGN)).ToList();
+		var assignments = FindTop(i => i.Is(Operators.ASSIGN)).ToList();
+
+		// Remove all constant and static variable assignments
+		for (var i = assignments.Count - 1; i >= 0; i--)
+		{
+			var assignment = assignments[i];
+			var destination = assignment.Left;
+			if (destination.Instance != NodeType.VARIABLE) continue;
+
+			var variable = destination.To<VariableNode>().Variable;
+			if (!variable.IsStatic && !variable.IsConstant) continue;
+
+			assignments.RemoveAt(i);
+		}
+
+		Type.Initialization = assignments;
 
 		// Add member initialization to the constructors that have been created before loading the member initializations
 		foreach (var constructor in Type.Constructors.Overloads)
