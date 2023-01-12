@@ -84,7 +84,7 @@ public static class Calls
 	/// <summary>
 	/// Passes the specified disposable pack by passing its member one by one
 	/// </summary>
-	public static void PassPack(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack)
+	public static void PassPack(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack, bool shadow)
 	{
 		foreach (var iterator in pack.Members)
 		{
@@ -93,11 +93,11 @@ public static class Calls
 
 			if (member.Type!.IsPack)
 			{
-				PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
+				PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>(), shadow);
 			}
 			else
 			{
-				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.Type!, member.GetRegisterFormat());
+				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.Type!, member.GetRegisterFormat(), shadow);
 			}
 		}
 	}
@@ -105,11 +105,11 @@ public static class Calls
 	/// <summary>
 	/// Passes the specified argument using a register or the specified stack position depending on the situation
 	/// </summary>
-	public static void PassArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Type type, Format format)
+	public static void PassArgument(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, Result value, Type type, Format format, bool shadow)
 	{
 		if (value.Value.Instance == HandleInstanceType.DISPOSABLE_PACK)
 		{
-			PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>());
+			PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>(), shadow);
 			return;
 		}
 
@@ -124,6 +124,8 @@ public static class Calls
 			destination.Format = is_decimal ? Format.DECIMAL : Settings.Size.ToFormat(type.Format.IsUnsigned());
 
 			destinations.Add(destination);
+
+			if (shadow) { position.Offset += Settings.Bytes; }
 		}
 		else
 		{
@@ -141,7 +143,7 @@ public static class Calls
 	/// Passes the specified parameters to the function using the specified calling convention
 	/// </summary>
 	/// <returns>Returns the amount of parameters moved to stack</returns>
-	private static void PassArguments(Unit unit, CallInstruction call, Result? self_pointer, Type? self_type, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types)
+	private static void PassArguments(Unit unit, CallInstruction call, Result? self_pointer, Type? self_type, bool is_self_pointer_required, Node[] parameters, List<Type> parameter_types, bool shadow)
 	{
 		var standard_parameter_registers = GetStandardParameterRegisters(unit);
 		var decimal_parameter_registers = GetDecimalParameterRegisters(unit);
@@ -154,14 +156,12 @@ public static class Calls
 
 		var destinations = new List<Handle>();
 		var sources = new List<Result>();
-
-		// On Windows x64 a 'shadow space' is allocated for the first four parameters
-		var position = new StackMemoryHandle(unit, Settings.IsTargetWindows ? SHADOW_SPACE_SIZE : 0, false);
+		var position = new StackMemoryHandle(unit, 0, false);
 
 		if (self_pointer != null)
 		{
 			if (self_type == null) throw new InvalidOperationException("Missing self pointer type");
-			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, self_type!, Settings.Format);
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, self_pointer, self_type!, Settings.Format, shadow);
 		}
 
 		for (var i = 0; i < parameters.Length; i++)
@@ -171,7 +171,7 @@ public static class Calls
 			var type = parameter_types[i];
 
 			value = Casts.Cast(unit, value, parameter.GetType(), type);
-			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, type.GetRegisterFormat());
+			PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, type.GetRegisterFormat(), shadow);
 		}
 
 		call.Destinations.AddRange(destinations);
@@ -211,7 +211,7 @@ public static class Calls
 		var self_type = self == null ? null : implementation.FindTypeParent();
 
 		// Pass the parameters to the function and then execute it
-		PassArguments(unit, call, self, self_type, false, CollectParameters(parameters), implementation.ParameterTypes);
+		PassArguments(unit, call, self, self_type, false, CollectParameters(parameters), implementation.ParameterTypes, Settings.IsTargetWindows);
 
 		return call.Add();
 	}
@@ -221,7 +221,7 @@ public static class Calls
 		var call = new CallInstruction(unit, function, return_type);
 
 		// Pass the parameters to the function and then execute it
-		PassArguments(unit, call, self, self_type, true, CollectParameters(parameters), parameter_types);
+		PassArguments(unit, call, self, self_type, true, CollectParameters(parameters), parameter_types, Settings.IsTargetWindows);
 
 		return call.Add();
 	}
@@ -231,7 +231,7 @@ public static class Calls
 		var call = new CallInstruction(unit, function, return_type);
 
 		// Pass the parameters to the function and then execute it
-		PassArguments(unit, call, (Result?)null, (Type?)null, false, CollectParameters(parameters), parameter_types);
+		PassArguments(unit, call, (Result?)null, (Type?)null, false, CollectParameters(parameters), parameter_types, Settings.IsTargetWindows);
 
 		return call.Add();
 	}

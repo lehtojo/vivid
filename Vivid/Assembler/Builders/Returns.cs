@@ -17,7 +17,7 @@ public static class Returns
 
 		// Pass the first value using the stack just above the return address
 		var position = new StackMemoryHandle(unit, Settings.IsX64 ? Settings.Bytes : 0);
-		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, Settings.Format);
+		Calls.PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value, type, Settings.Format, false);
 
 		unit.Add(new ReorderInstruction(unit, destinations, sources, unit.Function.ReturnType!));
 	}

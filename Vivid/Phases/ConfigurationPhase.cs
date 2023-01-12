@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -130,7 +131,9 @@ public class ConfigurationPhase : Phase
 					new() { Command = "-version",											Description = "Outputs the version of the compiler" },
 					new() { Command = "-s",													Description = "Creates a compiler service which waits for code analysis input from a local socket" },
 					new() { Command = "-objects",											Description = "Outputs all compiled source files as object files" },
-					new() { Command = "-binary",											Description = "Outputs a raw executable binary file" }
+					new() { Command = "-binary",											Description = "Outputs a raw executable binary file" },
+					new() { Command = "-base <address>",								Description = "Sets where the executable binary and data is loaded into memory" },
+					new() { Command = "-system",											Description = "Enables the system mode" },
 				};
 
 				Console.WriteLine
@@ -346,6 +349,21 @@ public class ConfigurationPhase : Phase
 				Debug.DebugAbbreviationTable = ".debug_abbrev";
 				Debug.DebugInformationTable = ".debug_info";
 				Debug.DebugLineTable = ".debug_line";
+				return Status.OK;
+			}
+
+			case "-base":
+			{
+				if (!parameters.TryDequeue(out var argument)) return Status.Error("Expected a value for the base address");
+				if (!ulong.TryParse(argument, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var base_address)) return Status.Error("Invalid base address");
+
+				Settings.BaseAddress = base_address;
+				return Status.OK;
+			}
+
+			case "-system":
+			{
+				Settings.IsSystemModeEnabled = true;
 				return Status.OK;
 			}
 
