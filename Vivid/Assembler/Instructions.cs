@@ -850,9 +850,9 @@ public static class Instructions
 
 				// sar m64, cl | sar m32, cl | sar m16, cl | sar m8, cl
 				new InstructionEncoding(0xD2, 7, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
-				new InstructionEncoding(0xD3, 7, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xD3, 7, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
-				new InstructionEncoding(0xD3, 7, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
+				new InstructionEncoding(0xD3, 7, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xD3, 7, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
+				new InstructionEncoding(0xD3, 7, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
 			};
 
 			DualParameterEncodings[_MOVZX] = new List<InstructionEncoding>()
@@ -1322,15 +1322,15 @@ public static class Instructions
 
 				// shr r64, cl | shr r32, cl | shr r16, cl | shr r8, cl
 				new InstructionEncoding(0xD2, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.R, false, EncodingFilterType.REGISTER, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.R, true, EncodingFilterType.REGISTER, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
 
 				// shr m64, cl | shr m32, cl | shr m16, cl | shr m8, cl
 				new InstructionEncoding(0xD2, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 1, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 2, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 4),
-				new InstructionEncoding(0xD3, 5, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 8),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 2, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1, InstructionEncoder.OPERAND_SIZE_OVERRIDE),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.M, false, EncodingFilterType.MEMORY_ADDRESS, 0, 4, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
+				new InstructionEncoding(0xD3, 5, EncodingRoute.M, true, EncodingFilterType.MEMORY_ADDRESS, 0, 8, EncodingFilterType.SPECIFIC_REGISTER, Instructions.X64.RCX, 1),
 			};
 
 			DualParameterEncodings[_CMOVA] = CreateConditionalMoveEncoding(0x470F);
