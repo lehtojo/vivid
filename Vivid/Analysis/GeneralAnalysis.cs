@@ -322,22 +322,28 @@ public static class GeneralAnalysis
 	}
 
 	/// <summary>
-	/// Returns whether the assignment is assignable
+	/// Returns whether the value of the specified assignment can be inlined safely
 	/// </summary>
 	private static bool IsAssignable(Node assignment)
 	{
-		// 1. True if the node is simple and does not represent assignment
-		// 2. True if the node represent a free cast
-		return assignment.Find(i => {
-			if (!(i.Is(NodeType.VARIABLE, NodeType.NUMBER, NodeType.DATA_POINTER, NodeType.TYPE, NodeType.OPERATOR, NodeType.STACK_ADDRESS) && !i.Is(OperatorType.ASSIGNMENT)) &&
-				 !(i.Is(NodeType.CAST) && i.To<CastNode>().IsFree()))
-			{
-				return true;
-			}
+		// Assignable if does not contain:
+		// - Function calls
+		// - Memory accesses
+		// - Assignment operators
+		// - Non-predictable variables (members and static variables)
+		// - Non-free casts
+		// - Stack allocations (prevents indirect usage of allocated objects, this is crucial for functions that remove unused allocations)
+		var unallowed = assignment.Find(node =>
+		{
+			if (node.Instance == NodeType.VARIABLE) return !node.To<VariableNode>().Variable.IsPredictable;
+			if (node.Instance == NodeType.OPERATOR) return node.To<OperatorNode>().Operator.Type == OperatorType.ASSIGNMENT;
+			if (node.Instance == NodeType.CAST) return !node.To<CastNode>().IsFree();
 
-			// If the node is a variable, it can not represent a static variable
-			return i.Is(NodeType.VARIABLE) && i.To<VariableNode>().Variable.IsStatic;
-		}) == null;
+			var allowed = new[] { NodeType.DATA_POINTER, NodeType.NEGATE, NodeType.NOT, NodeType.NUMBER, NodeType.PARENTHESIS, NodeType.STRING, NodeType.TYPE };
+			return !node.Is(allowed);
+		});
+
+		return unallowed == null;
 	}
 
 	/// <summary>
@@ -370,7 +376,13 @@ public static class GeneralAnalysis
 		{
 			var value = Analyzer.GetSource(write.Value);
 
+			// NOTE:
+			// It is assumed that stack allocation nodes can not be duplicated and
+			// thus the stack allocation can only be accessed using the variable that owns it.
+			// This means that if the specified variable is only used for writing, 
+			// it must be unused, because the stack memory is represents can not be accessed any other way.
 			if (value.Instance == NodeType.STACK_ADDRESS) continue;
+
 			if (value.Instance == NodeType.FUNCTION && value.To<FunctionNode>().Function == Settings.AllocationFunction) continue;
 
 			return false;
