@@ -15,26 +15,42 @@ public static class Builders
 		return result ?? new Result();
 	}
 
+	public static Result BuildCall(Unit unit, CallNode node)
+	{
+		unit.AddDebugPosition(node.Position);
+
+		var function_pointer = (Result?)null;
+		var self_type = (Type?)null;
+
+		// If the self argument is "empty", do not pass it
+		if (node.Self.Instance == NodeType.NORMAL)
+		{
+			function_pointer = References.Get(unit, node.Pointer, AccessMode.READ);
+
+			return Calls.Build(unit, function_pointer, node.Descriptor.ReturnType, node.Parameters, node.Descriptor.Parameters!);
+		}
+	
+		var call = (CallNode)node;
+		var self = References.Get(unit, call.Self);
+
+		if (call.Descriptor.Self != null)
+		{
+			self = Casts.Cast(unit, self, call.Self.GetType(), call.Descriptor.Self);
+		}
+
+		function_pointer = References.Get(unit, call.Pointer);
+		self_type = call.Descriptor.Self ?? call.Self.GetType();
+
+		return Calls.Build(unit, self, self_type, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+	}
+
 	public static Result Build(Unit unit, Node node)
 	{
 		switch (node.Instance)
 		{
 			case NodeType.CALL:
 			{
-				unit.AddDebugPosition(node.Position);
-
-				var call = (CallNode)node;
-				var self = References.Get(unit, call.Self);
-
-				if (call.Descriptor.Self != null)
-				{
-					self = Casts.Cast(unit, self, call.Self.GetType(), call.Descriptor.Self);
-				}
-
-				var function_pointer = References.Get(unit, call.Pointer);
-				var self_type = call.Descriptor.Self ?? call.Self.GetType();
-
-				return Calls.Build(unit, self, self_type, function_pointer, call.Descriptor.ReturnType, call.Parameters, call.Descriptor.Parameters!);
+				return BuildCall(unit, (CallNode)node);
 			}
 
 			case NodeType.FUNCTION:

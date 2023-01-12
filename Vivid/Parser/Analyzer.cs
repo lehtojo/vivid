@@ -33,7 +33,7 @@ public static class Analyzer
 	public static AccessType TryGetAccessType(Node node)
 	{
 		var parent = node.FindParent(i => !i.Is(NodeType.CAST));
-		if (parent == null) return AccessType.UNKNOWN;
+		if (parent == null) return AccessType.READ;
 
 		if (parent.Is(OperatorType.ASSIGNMENT))
 		{

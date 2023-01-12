@@ -167,7 +167,7 @@ public class Scope
 			var standard_parameter_registers = Calls.GetStandardParameterRegisters(Unit);
 			var decimal_parameter_registers = Calls.GetDecimalParameterRegisters(Unit);
 
-			if ((Unit.Function.IsMember && !Unit.Function.IsStatic) || Unit.Function.IsLambdaImplementation)
+			if (Unit.Self != null)
 			{
 				ReceiveParameter(standard_parameter_registers, decimal_parameter_registers, Unit.Self!);
 			}

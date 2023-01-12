@@ -700,7 +700,7 @@ public static class ElfFormat
 		var overlays = Linker.CreateLoadableSections(fragments);
 
 		// Compute virtual addresses for the sections
-		Linker.CreateProgramHeaders(overlays, fragments, new List<ElfProgramHeader>(), 0x1000, false);
+		Linker.CreateProgramHeaders(overlays, fragments, new List<ElfProgramHeader>(), Settings.BaseAddress, false);
 
 		// Now that sections have their virtual addresses relocations can be computed
 		Linker.ComputeRelocations(relocations, 0);

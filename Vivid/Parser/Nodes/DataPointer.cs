@@ -5,11 +5,12 @@ public class DataPointerNode : Node
 	public object Data { get; private set; }
 	public long Offset { get; private set; }
 
-	public DataPointerNode(object data, long offset = 0)
+	public DataPointerNode(object data, long offset = 0, Position? position = null)
 	{
 		Data = data;
 		Offset = offset;
 		Instance = NodeType.DATA_POINTER;
+		Position = position;
 	}
 
 	public override Type TryGetType()

@@ -495,6 +495,7 @@ public class StackMemoryHandle : MemoryHandle
 public class TemporaryMemoryHandle : StackMemoryHandle
 {
 	public string Identity { get; private set; }
+	public int Bytes => Size.Bytes;
 
 	public TemporaryMemoryHandle(Unit unit) : base(unit, 0)
 	{

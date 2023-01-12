@@ -42,12 +42,28 @@ public static class Translator
 			.ToList();
 	}
 
-	private static List<StackAllocationHandle> GetAllInlineHandles(Unit unit)
+	private static List<StackAllocationHandle> GetAllStackAllocationHandles(Unit unit)
 	{
 		return GetAllHandles(unit)
 			.Where(i => i.Is(HandleInstanceType.STACK_ALLOCATION))
 			.Cast<StackAllocationHandle>()
 			.ToList();
+	}
+
+	/// <summary>
+   /// Computes the amount of required stack memory from the specified handles
+   /// </summary>
+	public static int ComputeAllocatedMemoryByHandles(List<TemporaryMemoryHandle> handles)
+	{
+		return handles.DistinctBy(i => i.Identity).Sum(i => i.Bytes);
+	}
+
+	/// <summary>
+   /// Computes the amount of required stack memory from the specified handles
+   /// </summary>
+	public static int ComputeAllocatedMemoryByHandles(List<StackAllocationHandle> handles)
+	{
+		return handles.DistinctBy(i => i.Identity).Sum(i => i.Bytes);
 	}
 
 	private static List<ConstantDataSectionHandle> GetAllConstantDataSectionHandles(Unit unit)
@@ -120,11 +136,14 @@ public static class Translator
 		var registers = GetAllUsedNonVolatileRegisters(unit);
 		var local_variables = GetAllSavedLocalVariables(unit);
 		var temporary_handles = GetAllTemporaryMemoryHandles(unit);
-		var inline_handles = GetAllInlineHandles(unit);
+		var stack_allocation_handles = GetAllStackAllocationHandles(unit);
 		var constant_handles = GetAllConstantDataSectionHandles(unit);
 
 		// Determine how much additional memory must be allocated at the start based on the generated code
-		var required_local_memory = local_variables.Sum(i => i.Type!.AllocationSize) + temporary_handles.Sum(i => i.Size.Bytes) + inline_handles.Distinct().Sum(i => i.Bytes);
+		var required_local_memory = local_variables.Sum(i => i.Type!.AllocationSize);
+		required_local_memory += ComputeAllocatedMemoryByHandles(temporary_handles);
+		required_local_memory += ComputeAllocatedMemoryByHandles(stack_allocation_handles);
+
 		var local_memory_top = 0;
 
 		// Append a return instruction at the end if there is no return instruction present
@@ -179,7 +198,7 @@ public static class Translator
 		registers.Reverse();
 
 		// Align all used local variables
-		Aligner.AlignLocalMemory(unit.Function, local_variables, temporary_handles.ToList(), inline_handles, local_memory_top);
+		Aligner.AlignLocalMemory(unit.Function, local_variables, temporary_handles.ToList(), stack_allocation_handles, local_memory_top);
 
 		AllocateConstantDataHandles(unit, new List<ConstantDataSectionHandle>(constant_handles));
 

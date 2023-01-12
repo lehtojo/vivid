@@ -31,6 +31,7 @@ public static class Settings
 	public static bool UseIndirectAccessTables { get; set; } = false;
 	public static bool IsAssemblyOutputEnabled { get; set; } = false;
 	public static bool IsLegacyAssemblyEnabled { get; set; } = false;
+	public static bool IsSystemModeEnabled { get; set; } = false;
 	public static Parse? Parse { get; set; } = null;
 	public static List<string> Arguments { get; set; } = new();
 	public static Dictionary<SourceFile, BinaryObjectFile> ObjectFiles { get; set; } = new Dictionary<SourceFile, BinaryObjectFile>(); // Stores all imported objects (compiler and user)
@@ -45,6 +46,7 @@ public static class Settings
 	public static bool Service { get; set; } = false; // Whether to start a compiler service for code completion
 	public static List<string> Filenames { get; set; } = new(); // Stores the user-defined source files to load
 	public static bool TextualAssembly { get; set; } = false; // Stores whether textual assembly mode is enabled
+	public static ulong BaseAddress { get; set; } = 0x1000UL; // Stores the base address used in binary mode
 
 	public static FunctionImplementation? AllocationFunction { get; set; }
 	public static FunctionImplementation? DeallocationFunction { get; set; }

@@ -1268,11 +1268,27 @@ public static class ReconstructionAnalysis
 			var type = implementation.Type!;
 
 			var container = Common.CreateInlineContainer(type, construction, true);
+			var function_pointer_assignment = (OperatorNode?)null;
+
+			// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+			if (Settings.IsSystemModeEnabled)
+			{
+				function_pointer_assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands(
+					new VariableNode(container.Result),
+					new DataPointerNode(implementation, 0, position)
+				);
+
+				container.Node.Add(function_pointer_assignment);
+				container.Node.Add(new VariableNode(container.Result));
+				container.Destination.Replace(container.Node);
+				continue;
+			}
+
 			var allocator = (Node?)null;
 
 			if (IsStackConstructionPreferred(root, construction))
 			{
-				allocator = new CastNode(new StackAddressNode(environment, type), new TypeNode(type), position);
+				allocator = new CastNode(new StackAddressNode(environment, type, position), new TypeNode(type), position);
 			}
 			else
 			{
@@ -1292,7 +1308,7 @@ public static class ReconstructionAnalysis
 
 			container.Node.Add(allocation);
 
-			var function_pointer_assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands
+			function_pointer_assignment = new OperatorNode(Operators.ASSIGN, position).SetOperands
 			(
 				new LinkNode(new CastNode(new VariableNode(container.Result), new TypeNode(type)), new VariableNode(implementation.Function!), position),
 				new DataPointerNode(implementation)
@@ -1453,10 +1469,13 @@ public static class ReconstructionAnalysis
 		}
 	}
 
-	public static Node GetAllocator(ConstructionNode construction, Position? position, int size)
+	public static Node GetAllocator(Type type, ConstructionNode construction, Position? position, int size)
 	{
 		if (!construction.HasAllocator)
 		{
+			// If system mode is enabled, constructions without allocators use the stack
+			if (Settings.IsSystemModeEnabled) return new StackAddressNode(construction.GetParentContext(), type, position);
+
 			var arguments = new Node();
 			arguments.Add(new NumberNode(Parser.Signed, (long)size, position));
 

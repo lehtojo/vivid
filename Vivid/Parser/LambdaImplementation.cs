@@ -27,12 +27,12 @@ public class LambdaImplementation : FunctionImplementation
 
 	public void Seal()
 	{
+		// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+		if (Settings.IsSystemModeEnabled) return;
+
 		// 1. If the type is not created, it means that this lambda is not used, therefore this lambda can be skipped
 		// 2. If the function is already created, this lambda is sealed
-		if (Type == null || Function != null)
-		{
-			return;
-		}
+		if (Type == null || Function != null) return;
 
 		Self = new Variable(this, Type, VariableCategory.PARAMETER, Lambda.SELF_POINTER_IDENTIFIER, Modifier.DEFAULT)
 		{
@@ -80,6 +80,9 @@ public class LambdaImplementation : FunctionImplementation
 		// The variable can be captured only if it is a local variable or a parameter and it is resolved
 		if (variable.IsPredictable && variable.IsResolved && !variable.IsConstant)
 		{
+			// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+			if (Settings.IsSystemModeEnabled) return null;
+
 			var captured = CapturedVariable.Create(this, variable);
 			Captures.Add(captured);
 
@@ -94,11 +97,20 @@ public class LambdaImplementation : FunctionImplementation
 	/// </summary>
 	public override void Implement(List<Token> blueprint)
 	{
-		Type = new Type(GetRoot(), Identity.Replace('.', '_'), Modifier.DEFAULT, Metadata.Start);
-		Type.AddRuntimeConfiguration();
+		// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+		if (Settings.IsSystemModeEnabled)
+		{
+			Type = Link.GetVariant(Primitives.CreateNumber(Primitives.U64, Format.UINT64));
+		}
+		else
+		{
+			Type = new Type(GetRoot(), Identity.Replace('.', '_'), Modifier.DEFAULT, Metadata.Start);
+			Type.AddRuntimeConfiguration();
 
-		Type.AddConstructor(Constructor.Empty(Type, Metadata.Start, Metadata.End));
-		Type.AddDestructor(Destructor.Empty(Type, Metadata.Start, Metadata.End));
+			// Add the default constructor and destructor
+			Type.AddConstructor(Constructor.Empty(Type, Metadata.Start, Metadata.End));
+			Type.AddDestructor(Destructor.Empty(Type, Metadata.Start, Metadata.End));
+		}
 
 		Node = new ScopeNode(this, Metadata.Start, Metadata.End, false);
 

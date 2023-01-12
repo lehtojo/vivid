@@ -6,7 +6,7 @@ public class StackAddressNode : Node
 	public string Identity { get; set; }
 	public int Bytes => Math.Max(Type.ContentSize, 1);
 
-	public StackAddressNode(Context context, Type type)
+	public StackAddressNode(Context context, Type type, Position? position)
 	{
 		Type = type;
 		Identity = context.CreateStackAddress();

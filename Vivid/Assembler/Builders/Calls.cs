@@ -226,6 +226,16 @@ public static class Calls
 		return call.Add();
 	}
 
+	public static Result Build(Unit unit, Result function, Type? return_type, Node parameters, List<Type> parameter_types)
+	{
+		var call = new CallInstruction(unit, function, return_type);
+
+		// Pass the parameters to the function and then execute it
+		PassArguments(unit, call, (Result?)null, (Type?)null, false, CollectParameters(parameters), parameter_types);
+
+		return call.Add();
+	}
+
 	private static void MovePackToStack(Unit unit, Variable parameter, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle stack_position)
 	{
 		foreach (var proxy in Common.GetPackProxies(parameter))
@@ -300,7 +310,7 @@ public static class Calls
 
 		var parameters = new List<Variable>(unit.Function.Parameters);
 
-		if ((unit.Function.IsMember && !unit.Function.IsStatic) || unit.Function.IsLambdaImplementation)
+		if (unit.Self != null)
 		{
 			parameters.Insert(0, unit.Self ?? throw new ApplicationException("Missing self pointer"));
 		}

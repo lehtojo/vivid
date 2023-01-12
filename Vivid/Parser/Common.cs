@@ -141,19 +141,28 @@ public static class Common
 	/// <summary>
 	/// Tries to build a lambda call which is stored inside a specified owner
 	/// </summary>
-	public static CallNode? TryGetLambdaCall(Context primary, Node left, string name, Node parameters, List<Type?> parameter_types)
+	public static CallNode? TryGetLambdaCall(Context primary, Node left, string name, Node arguments, List<Type?> parameter_types)
 	{
 		if (!primary.IsVariableDeclared(name)) return null;
 
 		var variable = primary.GetVariable(name)!;
 
+		// Require the variable to represent a function
 		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types))) return null;
 
+		var position = left.Position;
 		var self = new LinkNode(left, new VariableNode(variable));
+
+		// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+		if (Settings.IsSystemModeEnabled) return new CallNode(new Node(), self, arguments, properties, position);
+
+		// Determine where the function pointer is located
 		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
+
+		// Load the function pointer using the offset
 		var function_pointer = new AccessorNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
-		return new CallNode(self, function_pointer, parameters, properties);
+		return new CallNode(self, function_pointer, arguments, properties);
 	}
 
 	/// <summary>
@@ -170,21 +179,17 @@ public static class Common
 	/// <summary>
 	/// Tries to build a lambda call which is stored inside the current scope or in the self pointer
 	/// </summary>
-	public static CallNode? TryGetLambdaCall(Context environment, string name, Node parameters, List<Type?> parameter_types)
+	public static CallNode? TryGetLambdaCall(Context environment, string name, Node arguments, List<Type?> argument_types)
 	{
-		if (!environment.IsVariableDeclared(name))
-		{
-			return null;
-		}
+		if (!environment.IsVariableDeclared(name)) return null;
 
 		var variable = environment.GetVariable(name)!;
 
-		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, parameter_types)))
-		{
-			return null;
-		}
+		// Require that the specified argument types pass the required parameter types
+		if (!(variable.Type is FunctionType properties && Compatible(properties.Parameters, argument_types))) return null;
 
-		Node? self;
+		var self = (Node?)null;
+		var position = arguments.Position;
 
 		if (variable.IsMember)
 		{
@@ -196,11 +201,17 @@ public static class Common
 		{
 			self = new VariableNode(variable);
 		}
+		
+		// If system mode is enabled, lambdas are just function pointers and capturing variables is not allowed
+		if (Settings.IsSystemModeEnabled) return new CallNode(new Node(), self, arguments, properties, position);
 
+		// Determine where the function pointer is located
 		var offset = Analysis.IsGarbageCollectorEnabled ? 2L : 1L;
+
+		// Load the function pointer using the offset
 		var function_pointer = new AccessorNode(self.Clone(), new NumberNode(Parser.Format, offset));
 
-		return new CallNode(self, function_pointer, parameters, properties);
+		return new CallNode(self, function_pointer, arguments, properties);
 	}
 
 	/// <summary>
@@ -818,7 +829,7 @@ public static class Common
 		var position = construction.Position;
 
 		var size = Math.Max(1, type.ContentSize);
-		var allocator = ReconstructionAnalysis.GetAllocator(construction, construction.Position, size);
+		var allocator = ReconstructionAnalysis.GetAllocator(type, construction, construction.Position, size);
 		
 		// The following example creates an instance of a type called Object
 		// Example: instance = allocate(sizeof(Object)) as Object
@@ -874,7 +885,7 @@ public static class Common
 
 		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
 			new VariableNode(container.Result, position),
-			new CastNode(new StackAddressNode(construction.GetParentContext(), type), new TypeNode(type, position))
+			new CastNode(new StackAddressNode(construction.GetParentContext(), type, position), new TypeNode(type, position))
 		));
 
 		var supertypes = type.GetAllSupertypes();
