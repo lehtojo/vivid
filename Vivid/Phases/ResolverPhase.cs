@@ -654,6 +654,14 @@ public class ResolverPhase : Phase
 		// Analyze the output
 		Analyzer.Analyze(parse.Node, context);
 
+		// Report warnings at this point, because variables usages are now updated and we have the most information here before reconstruction
+		var warnings = Warnings.Analyze(context);
+
+		foreach (var warning in warnings)
+		{
+			Console.WriteLine(warning.Description);
+		}
+
 		// Apply analysis to the functions
 		Analysis.Analyze(context);
 

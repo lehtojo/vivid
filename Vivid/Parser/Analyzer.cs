@@ -457,14 +457,6 @@ public static class Analyzer
 		AnalyzeVariableUsages(root, context);
 		ConfigureStaticVariables(context);
 
-		// Report warnings at this point, because variables usages are now updated and we have the most information here before reconstruction
-		var warnings = Warnings.Analyze(context);
-
-		foreach (var warning in warnings)
-		{
-			Console.WriteLine(warning.Description);
-		}
-
 		// Apply the values of constant variables
 		ApplyConstants(context);
 	}
