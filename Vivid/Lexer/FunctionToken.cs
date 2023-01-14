@@ -28,7 +28,7 @@ public class FunctionToken : Token
 	/// </summary>
 	public List<Parameter> GetParameters(Context context)
 	{
-		var tokens = new List<Token>(Parameters.Tokens);
+		var tokens = Parameters.Tokens.Where(i => i.Type != TokenType.END).ToList();
 		var result = new List<Parameter>();
 
 		while (tokens.Any())
