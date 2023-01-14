@@ -98,6 +98,20 @@ public static class Resolver
 	{
 		var functions = Common.GetAllVisibleFunctions(context);
 		foreach (var function in functions) { Resolve(function); }
+	
+		// Resolve imports
+		for (var i = 0; i < context.Imports.Count; i++)
+		{
+			// Skip resolved imports
+			var imported = context.Imports[i];
+			if (imported.IsResolved()) continue;
+
+			// Try to resolve the import
+			var resolved = Resolve(context, imported);
+			if (resolved == null) continue;
+
+			context.Imports[i] = resolved;
+		}
 
 		var types = Common.GetAllTypes(context);
 

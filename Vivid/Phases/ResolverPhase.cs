@@ -364,6 +364,16 @@ public class ResolverPhase : Phase
 			variables.AppendLine();
 		}
 
+		var imports = new StringBuilder();
+
+		// Report unresolved imports
+		foreach (var imported in context.Imports)
+		{
+			if (imported.IsResolved()) continue;
+			imports.AppendLine(Errors.Format(imported.Position, "Can not resolve the import"));
+		}
+
+		// Report errors in defined types
 		var types = new StringBuilder();
 
 		foreach (var type in context.Types.Values)
@@ -410,6 +420,7 @@ public class ResolverPhase : Phase
 			types.AppendLine();
 		}
 
+		// Report errors in defined functions
 		var functions = new StringBuilder();
 
 		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads))
@@ -452,18 +463,13 @@ public class ResolverPhase : Phase
 		}
 
 		var builder = new StringBuilder(variables.ToString());
+		if (variables.Length > 0) builder.AppendLine();
 
-		if (builder.Length > 0)
-		{
-			builder.AppendLine();
-		}
+		builder.Append(imports);
+		if (imports.Length > 0) builder.AppendLine();
 
 		builder.Append(types);
-
-		if (builder.Length > 0)
-		{
-			builder.AppendLine();
-		}
+		if (types.Length > 0) builder.AppendLine();
 
 		builder.Append(functions);
 

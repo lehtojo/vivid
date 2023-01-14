@@ -460,6 +460,10 @@ public class Context : IComparable<Context>
 		context.Subcontexts.ForEach(i => i.Parent = this);
 		Subcontexts.AddRange(context.Subcontexts.Where(i => !Subcontexts.Any(j => ReferenceEquals(i, j))).ToArray());
 
+		// Add all imports
+		// TODO: Import list should be converted into a set, because imports should not be duplicated
+		Imports.AddRange(context.Imports);
+
 		context.Destroy();
 	}
 
@@ -672,9 +676,10 @@ public class Context : IComparable<Context>
 	{
 		if (Types.ContainsKey(name)) return Types[name];
 
-		foreach (var import in Imports)
+		// Try to find the type from imports
+		foreach (var imported in Imports)
 		{
-			if (import.Types.ContainsKey(name)) return import.Types[name];
+			if (imported.Types.ContainsKey(name)) return imported.Types[name];
 		}
 		
 		if (Parent != null) return Parent.GetType(name);
@@ -689,9 +694,10 @@ public class Context : IComparable<Context>
 	{
 		if (Functions.ContainsKey(name)) return Functions[name];
 
-		foreach (var import in Imports)
+		// Try to find the function from imports
+		foreach (var imported in Imports)
 		{
-			if (import.Functions.ContainsKey(name)) return import.Functions[name];
+			if (imported.Functions.ContainsKey(name)) return imported.Functions[name];
 		}
 
 		if (Parent != null) return Parent.GetFunction(name);
@@ -706,9 +712,10 @@ public class Context : IComparable<Context>
 	{
 		if (Variables.ContainsKey(name)) return Variables[name];
 
-		foreach (var import in Imports)
+		// Try to find the variable from imports
+		foreach (var imported in Imports)
 		{
-			if (import.Variables.ContainsKey(name)) return import.Variables[name];
+			if (imported.Variables.ContainsKey(name)) return imported.Variables[name];
 		}
 
 		if (Parent != null) return Parent.GetVariable(name);

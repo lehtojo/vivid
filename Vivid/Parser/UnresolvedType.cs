@@ -55,10 +55,9 @@ public class UnresolvedType : Type, IResolvable
 		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
 	}
 
-	public UnresolvedType(UnresolvedTypeComponent[] components, ParenthesisToken? size = null) : base(string.Empty, Modifier.DEFAULT)
+	public UnresolvedType(UnresolvedTypeComponent[] components, Position? position) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Components = components;
-		Size = size;
 	}
 
 	public override bool IsResolved()

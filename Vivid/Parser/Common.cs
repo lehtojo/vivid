@@ -480,6 +480,7 @@ public static class Common
 	{
 		if (!tokens.Any()) return null;
 
+		var position = tokens.First().Position;
 		var next = tokens.First();
 
 		if (next.Is(TokenType.PARENTHESIS))
@@ -507,7 +508,7 @@ public static class Common
 			tokens.Pop();
 		}
 
-		var type = new UnresolvedType(components.ToArray());
+		var type = new UnresolvedType(components.ToArray(), position);
 		type.Position = next.Position;
 
 		// If there are no more tokens, return the type

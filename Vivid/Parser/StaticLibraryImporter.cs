@@ -177,7 +177,7 @@ public static class StaticLibraryImporter
 
 				if (components.Count > 1)
 				{
-					environment = new UnresolvedType(components.GetRange(0, components.Count - 1).ToArray()).ResolveOrNull(context);
+					environment = new UnresolvedType(components.GetRange(0, components.Count - 1).ToArray(), null).ResolveOrNull(context);
 					if (environment == null) throw new ApplicationException("Could not import template function variant: " + template_variant_text);
 				}
 
