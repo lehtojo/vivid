@@ -1323,6 +1323,9 @@ public static class Common
 
 		foreach (var member in type.Variables.Values)
 		{
+			// Do not process static or constant member variables
+			if (member.IsStatic || member.IsConstant) continue;
+
 			var name = prefix + '.' + member.Name;
 
 			// Create proxies for each member, even for nested pack members
@@ -1351,6 +1354,25 @@ public static class Common
 		var prefix = pack.Name.StartsWith('.') ? pack.Name : ('.' + pack.Name);
 
 		return GetPackProxies(pack.Parent, prefix, pack.Type!, pack.Category);
+	}
+
+	/// <summary>
+	/// Returns all non-static members from the specified type
+	/// </summary>
+	public static List<Variable> GetNonStaticMembers(Type type)
+	{
+		var result = new List<Variable>();
+
+		foreach (var iterator in type.Variables)
+		{
+			// Skip static and constant member variables
+			var member = iterator.Value;
+			if (member.IsStatic || member.IsConstant) continue;
+
+			result.Add(member);
+		}
+
+		return result;
 	}
 
 	/// <summary>

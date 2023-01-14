@@ -84,20 +84,25 @@ public static class Calls
 	/// <summary>
 	/// Passes the specified disposable pack by passing its member one by one
 	/// </summary>
-	public static void PassPack(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack, bool shadow)
+	public static void PassPack(Unit unit, List<Handle> destinations, List<Result> sources, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers, StackMemoryHandle position, DisposablePackHandle pack, Type type, bool shadow)
 	{
-		foreach (var iterator in pack.Members)
-		{
-			var member = iterator.Key;
-			var value = iterator.Value;
+		var source_members = pack.Members.ToList();
+		var destination_members = Common.GetNonStaticMembers(type);
 
-			if (member.Type!.IsPack)
+		for (var i = 0; i < source_members.Count; i++)
+		{
+			var source_member = source_members[i].Key;
+			var source_value = source_members[i].Value;
+			var destination_member = destination_members[i];
+			var destination_type = destination_members[i].Type!;
+
+			if (destination_type.IsPack)
 			{
-				PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>(), shadow);
+				PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source_value.Value.To<DisposablePackHandle>(), destination_type, shadow);
 			}
 			else
 			{
-				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, iterator.Value, member.Type!, member.GetRegisterFormat(), shadow);
+				PassArgument(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, source_value, destination_type, destination_type.GetRegisterFormat(), shadow);
 			}
 		}
 	}
@@ -109,7 +114,7 @@ public static class Calls
 	{
 		if (value.Value.Instance == HandleInstanceType.DISPOSABLE_PACK)
 		{
-			PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>(), shadow);
+			PassPack(unit, destinations, sources, standard_parameter_registers, decimal_parameter_registers, position, value.Value.To<DisposablePackHandle>(), type, shadow);
 			return;
 		}
 
