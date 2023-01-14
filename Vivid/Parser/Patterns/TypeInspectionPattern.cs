@@ -10,7 +10,7 @@ public class TypeInspectionPattern : Pattern
 	// Pattern: sizeof(...)/strideof(...)/nameof(...)
 	public TypeInspectionPattern() : base(TokenType.FUNCTION)
 	{
-		Priority = 18;
+		Priority = 19;
 	}
 
 	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
