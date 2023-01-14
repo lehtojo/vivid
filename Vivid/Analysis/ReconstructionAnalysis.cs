@@ -1162,6 +1162,58 @@ public static class ReconstructionAnalysis
 	}
 
 	/// <summary>
+	/// Applies a cast to a pack node by changing the inner type
+	/// </summary>
+	public static bool ApplyPackCast(Node cast, Type from, Type to)
+	{
+		if (!from.IsPack && !to.IsPack) return false;
+
+		// Verify the casted value is a packer and that the value type and target type are compatible
+		var value = cast.Left;
+		if (value.Instance != NodeType.PACK || !to.Equals(from)) throw new SourceException(value.Position, "Can not cast the value to a pack");
+
+		// Replace the internal type of the packer with the target type
+		value.To<PackNode>().Type = to;
+		return true;
+	}
+
+	/// <summary>
+	/// Applies a cast to a number node by converting the inner value
+	/// </summary>
+	public static bool ApplyNumberCast(Node cast, Type from, Type to)
+	{
+		// Both of the types must be numbers
+		if (!from.IsNumber || !to.IsNumber) return false;
+
+		// The casted node must be a number node
+		var value = cast.Left;
+		if (value.Instance != NodeType.NUMBER) return false;
+
+		// Convert the value to the target type
+		value.To<NumberNode>().Convert(to.To<Number>().Format);
+		return true;
+	}
+
+	/// <summary>
+	/// Finds casts and tries to apply them by changing the casted value
+	/// </summary>
+	public static void ApplyCasts(Node root)
+	{
+		var casts = root.FindAll(NodeType.CAST);
+		casts.Reverse();
+
+		foreach (var cast in casts)
+		{
+			var from = cast.Left.GetType();
+			var to = cast.GetType();
+
+			if (ReferenceEquals(from, to)) continue;
+			if (ApplyPackCast(cast, from, to)) continue;
+			if (ApplyNumberCast(cast, from, to)) continue;
+		}
+	}
+
+	/// <summary>
 	/// Casts called objects to match the expected self pointer type
 	/// </summary>
 	public static void CastMemberCalls(Node root)
@@ -1697,23 +1749,6 @@ public static class ReconstructionAnalysis
 		{
 			placeholder.Key.Replace(placeholder.Value);
 		}
-
-		// Find all pack casts and apply them
-		var casts = root.FindAll(NodeType.CAST).Cast<CastNode>().Where(i => i.GetType().IsPack).ToList();
-
-		foreach (var cast in casts)
-		{
-			var from = cast.Object.GetType();
-			var to = cast.GetType();
-
-			// Verify the casted value is a packer and that the value type and target type are compatible
-			if (cast.Object.Instance != NodeType.PACK || !Equals(from, to)) throw Errors.Get(cast.Position, "Can not cast the value to a pack");
-
-			var value = cast.Object.To<PackNode>();
-
-			// Replace the internal type of the packer with the target type
-			value.Type = to;
-		}
 	}
 
 	/// <summary>
@@ -1870,15 +1905,17 @@ public static class ReconstructionAnalysis
 		RewriteIsExpressions(root);
 		RewriteLambdaConstructions(root);
 		RewriteListConstructions(root);
+		RewriteHasExpressions(root);
+		RewriteZeroInitializedPacks(root); // Rewrite zero initialized packs once again, because other rewriters may have generated these
 		RewritePackConstructions(root);
 		RewriteConstructions(root);
-		RewriteHasExpressions(root);
 		ExtractBoolValues(root);
 		RewriteEditsAsAssignments(root);
 		RewriteRemainderOperations(root);
 		CastMemberCalls(root);
 		RewritePackComparisons(root);
 		RemoveRedundantInlineNodes(root);
+		ApplyCasts(root);
 	}
 
 	/// <summary>
@@ -1894,6 +1931,7 @@ public static class ReconstructionAnalysis
 		AddAssignmentCasts(root);
 		RewriteEditsAsAssignments(root);
 		RemoveRedundantInlineNodes(root);
+		ApplyCasts(root);
 	}
 
 	/// <summary>
