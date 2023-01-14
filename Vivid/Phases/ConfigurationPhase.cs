@@ -393,50 +393,52 @@ public class ConfigurationPhase : Phase
 			if (IsOption(element))
 			{
 				var status = Configure(element, parameters);
-
-				if (status.IsProblematic)
-				{
-					return status;
-				}
+				if (status.IsProblematic) return status;
+				continue;
 			}
-			else
+
+			// Clean up the specified path before adding it
+			element = Path.GetFullPath(element);
+
+ 			// Verify the specified path exists before adding it
+			var file = new FileInfo(element);
+
+			if (file.Exists)
 			{
-				var file = new FileInfo(element);
-
-				if (file.Exists)
+				// Ensure the source file ends with the primary file extension
+				if (file.Extension == Settings.VIVID_EXTENSION)
 				{
-					if (file.Extension == Settings.VIVID_EXTENSION)
-					{
-						Files.Add(file.FullName);
-						continue;
-					}
-					else if (file.Extension == Settings.ASSEMBLY_EXTENSION)
-					{
-						Files.Add(file.FullName);
-						Settings.TextualAssembly = true;
-						continue;
-					}
-					else if (file.Extension == AssemblyPhase.ObjectFileExtension)
-					{
-						Objects.Add(file.FullName);
-						continue;
-					}
-					else
-					{
-						return Status.Error($"Source file must have '{Settings.VIVID_EXTENSION}' extension");
-					}
-				}
-
-				var directory = new DirectoryInfo(element);
-
-				if (directory.Exists)
-				{
-					Collect(directory, false);
+					Files.Add(file.FullName);
 					continue;
 				}
-
-				return Status.Error("Invalid source file or folder '{0}'", element);
+				else if (file.Extension == Settings.ASSEMBLY_EXTENSION)
+				{
+					Files.Add(file.FullName);
+					Settings.TextualAssembly = true;
+					continue;
+				}
+				else if (file.Extension == AssemblyPhase.ObjectFileExtension)
+				{
+					Objects.Add(file.FullName);
+					continue;
+				}
+				else
+				{
+					return Status.Error("Source files must end with the language extension");
+				}
 			}
+
+			// Verify the specified path exists before adding it
+			var folder = new DirectoryInfo(element);
+
+			if (folder.Exists)
+			{
+				// Collect source files from the specified folder
+				Collect(folder, false);
+				continue;
+			}
+
+			return Status.Error("Invalid source file or folder '{0}'", element);
 		}
 
 		Settings.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
