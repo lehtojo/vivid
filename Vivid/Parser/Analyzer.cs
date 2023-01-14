@@ -452,9 +452,20 @@ public static class Analyzer
 
 	public static void Analyze(Node root, Context context)
 	{
+		// Update variable usages, because they are needed for analyzing
 		ResetVariableUsages(root, context);
 		AnalyzeVariableUsages(root, context);
 		ConfigureStaticVariables(context);
+
+		// Report warnings at this point, because variables usages are now updated and we have the most information here before reconstruction
+		var warnings = Warnings.Analyze(context);
+
+		foreach (var warning in warnings)
+		{
+			Console.WriteLine(warning.Description);
+		}
+
+		// Apply the values of constant variables
 		ApplyConstants(context);
 	}
 }

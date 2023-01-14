@@ -832,13 +832,17 @@ public static class Common
 
 		var size = Math.Max(1, type.ContentSize);
 		var allocator = ReconstructionAnalysis.GetAllocator(type, construction, construction.Position, size);
-		
+
+		// Cast the allocation to the construction type if needed
+		if (allocator.GetType() != type)
+		{
+			var casted = new CastNode(allocator, new TypeNode(type, position), position);
+			allocator = casted;
+		}
+
 		// The following example creates an instance of a type called Object
 		// Example: instance = allocate(sizeof(Object)) as Object
-		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(
-			new VariableNode(container.Result, position),
-			new CastNode(allocator, new TypeNode(type, position), position)
-		));
+		container.Node.Add(new OperatorNode(Operators.ASSIGN, position).SetOperands(new VariableNode(container.Result, position), allocator));
 
 		var supertypes = type.GetAllSupertypes();
 
