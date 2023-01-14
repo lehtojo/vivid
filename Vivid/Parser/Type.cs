@@ -89,6 +89,7 @@ public class Type : Context
 {
 	public int Modifiers { get; set; }
 	public Position? Position { get; set; }
+	public Format Format { get; set; } = Settings.Format;
 	public Type[] TemplateArguments { get; set; } = Array.Empty<Type>();
 
 	public List<Node> Initialization { get; set; } = new();
@@ -101,7 +102,6 @@ public class Type : Context
 
 	public RuntimeConfiguration? Configuration { get; set; }
 
-	public Format Format => GetFormat();
 	public bool IsInlining => Flag.Has(Modifiers, Modifier.INLINE);
 	public bool IsStatic => Flag.Has(Modifiers, Modifier.STATIC);
 	public bool IsImported => Flag.Has(Modifiers, Modifier.IMPORTED);
@@ -118,9 +118,9 @@ public class Type : Context
 	public bool IsUnnamedPack => IsPack && Name.IndexOf('.') != -1;
 	public bool IsTemplateTypeVariant => Name.IndexOf('<') != -1;
 
-	public int ReferenceSize => GetReferenceSize(); // Reference size describes how many bytes it requires to refer to an instance of this type
-	public int AllocationSize => GetAllocationSize(); // Allocation size describes how many bytes this type requires from its container
-	public int ContentSize => GetContentSize(); // Allocation size describes how many bytes this type contains
+	public int DefaultAllocationSize { get; set; } = Settings.Bytes;
+	public int AllocationSize => GetAllocationSize();
+	public int ContentSize => GetContentSize();
 
 	/// <summary>
 	/// Adds the specified constructor to this type
@@ -194,19 +194,23 @@ public class Type : Context
 		return true;
 	}
 
-	public virtual int GetReferenceSize()
-	{
-		return Parser.Bytes;
-	}
-
+	/// <summary>
+	/// Returns how many bytes are required to store this type inside something such as a function.
+	/// Some types only require the address of the actual memory to be stored so in those cases the allocation size is the address size.
+	/// </summary>
 	public virtual int GetAllocationSize()
 	{
 		if (IsPack) return Supertypes.Select(i => i.GetAllocationSize()).Sum() + Variables.Values.Where(i => !i.IsStatic && !i.IsConstant).Sum(i => i.Type!.AllocationSize);
-		return GetReferenceSize();
+		return DefaultAllocationSize;
 	}
 
+	/// <summary>
+	/// Returns how many bytes this type contains
+	/// </summary>
 	public virtual int GetContentSize()
 	{
+		if (IsPrimitive) return GetAllocationSize();
+
 		var bytes = 0;
 
 		foreach (var member in Variables.Values)
@@ -453,11 +457,6 @@ public class Type : Context
 
 		// Look for conflicts between the supertypes of the inheritor and the inheritant
 		return !inheritant_supertypes.Any(i => inheritor_supertypes.Contains(i));
-	}
-
-	public virtual Format GetFormat()
-	{
-		return Size.FromBytes(ReferenceSize).ToFormat();
 	}
 
 	public override void OnMangle(Mangle mangle)

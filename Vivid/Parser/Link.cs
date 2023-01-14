@@ -50,11 +50,6 @@ public class Link : Number
 		return TemplateArguments.FirstOrDefault() ?? Primitives.CreateNumber(Primitives.U8, Format.UINT8);
 	}
 
-	public override int GetContentSize()
-	{
-		return GetAccessorType().ReferenceSize;
-	}
-
 	public override bool Equals(object? other)
 	{
 		// Require the other type to be a link
