@@ -57,8 +57,12 @@ public class Link : Number
 
 	public override bool Equals(object? other)
 	{
+		// Require the other type to be a link
 		if (other is not Link link) return false;
 
+		// Use name and identity to compare the accessor types.
+		// Do not use this function recursively, because it would lead to a lot of calls 
+		// and possibly to infinite recursion when a type contains a link to itself.
 		var a = GetAccessorType();
 		var b = link.GetAccessorType();
 		return a.Name == b.Name && a.Identity == b.Identity;

@@ -788,6 +788,7 @@ public static class Common
 		// Look for default implementations of virtual functions in the specified type
 		foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
 		{
+			// Register an implementation for the current virtual function.
 			offset = TryRegisterVirtualFunctionImplementation(type, virtual_function, configuration, offset);
 		}
 
@@ -802,7 +803,7 @@ public static class Common
 				configuration.Entry.Add(configuration.Descriptor);
 			}
 
-			// Types should not inherited types which do not have runtime configurations such as standard integers
+			// Types should not inherit types which do not have runtime configurations such as standard integers
 			if (supertype.Configuration == null) throw new ApplicationException("Type inherited a type which did not have runtime configuration");
 
 			descriptors[i] = new KeyValuePair<Type, DataPointerNode>(supertype, new DataPointerNode(configuration.Entry, offset));
