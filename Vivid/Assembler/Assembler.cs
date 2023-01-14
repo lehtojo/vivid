@@ -398,7 +398,7 @@ public static class Assembler
 
 		if (Settings.IsArm64)
 		{
-			builder.AppendLine($"{PowerOfTwoAlignment} 3");
+			builder.AppendLine($"{PowerOfTwoAlignment} 4");
 		}
 
 		builder.AppendLine($"{name}:");
@@ -485,7 +485,7 @@ public static class Assembler
 
 			if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 			{
-				builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+				builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 4" : $"{ByteAlignmentDirective} 16");
 				builder.WriteLine($"{name}:");
 			}
 
@@ -540,7 +540,7 @@ public static class Assembler
 			builder.WriteLine(ExportDirective + ' ' + table.Name); // Export the table
 
 			// Align the table
-			if (Settings.IsArm64) builder.WriteLine($"{PowerOfTwoAlignment} 3");
+			if (Settings.IsArm64) builder.WriteLine($"{PowerOfTwoAlignment} 4");
 
 			builder.WriteLine(table.Name + ':');
 		}
@@ -644,7 +644,7 @@ public static class Assembler
 
 				if (Settings.IsAssemblyOutputEnabled || Settings.IsLegacyAssemblyEnabled)
 				{
-					builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 3" : $"{ByteAlignmentDirective} 16");
+					builder.WriteLine(!Settings.IsLegacyAssemblyEnabled || Settings.IsArm64 ? $"{PowerOfTwoAlignment} 4" : $"{ByteAlignmentDirective} 16");
 					builder.WriteLine($"{name}:");
 					builder.WriteLine(AllocateString(node.Text));
 				}
