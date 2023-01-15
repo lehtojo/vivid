@@ -783,6 +783,9 @@ public static class Assembler
 		var data_sections = GetDataSections(context);
 		var debug_sections = GetDebugSections(context);
 
+		// Static libraries and object files do not have entry points
+		var is_entry_point_needed = output_type == BinaryType.EXECUTABLE || output_type == BinaryType.SHARED_LIBRARY;
+
 		foreach (var file in files)
 		{
 			var builder = new AssemblyBuilder();
@@ -816,8 +819,8 @@ public static class Assembler
 				}
 			}
 
-			// Add the text section header only if the output type represents executable
-			if (output_type != BinaryType.OBJECTS && entry_function_file == file)
+			// Add the entry header if the output type must have a entry point and we are processing the right file
+			if (is_entry_point_needed && entry_function_file == file)
 			{
 				if (entry_function == null) throw new ApplicationException("Missing entry function");
 
