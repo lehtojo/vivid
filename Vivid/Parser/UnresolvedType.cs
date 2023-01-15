@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 
 public class UnresolvedTypeComponent
 {
@@ -50,14 +51,10 @@ public class UnresolvedType : Type, IResolvable
 		Components = new[] { new UnresolvedTypeComponent(identifier) };
 	}
 
-	public UnresolvedType(string identifier, Type[] arguments) : base(string.Empty, Modifier.DEFAULT)
-	{
-		Components = new[] { new UnresolvedTypeComponent(identifier, arguments) };
-	}
-
 	public UnresolvedType(UnresolvedTypeComponent[] components, Position? position) : base(string.Empty, Modifier.DEFAULT)
 	{
 		Components = components;
+		Position = position;
 	}
 
 	public override bool IsResolved()
@@ -161,6 +158,14 @@ public class UnresolvedType : Type, IResolvable
 
 	public override string ToString()
 	{
-		return string.Join('.', (object[])Components) + (Size != null ? "[]" : string.Empty);
+		var result = new StringBuilder(string.Join('.', (object[])Components));
+
+		// Add the array specifier to the type if it exists
+		if (Size != null) { result.Append(Size.ToString()); }
+
+		// Add pointers to the end of the type
+		result.Append('*', Pointers);
+
+		return result.ToString();
 	}
 }
