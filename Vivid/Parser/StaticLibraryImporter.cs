@@ -10,9 +10,10 @@ public static class StaticLibraryImporter
 	public const int STATIC_LIBRARY_SYMBOL_TABLE_FIRST_LOCATION_ENTRY_OFFSET = STATIC_LIBRARY_SYMBOL_TABLE_OFFSET + sizeof(int);
 
 	/// <summary>
-	/// Iterates through the specified sections which represent template exports and imports them
+	/// Iterates through the specified headers and looks for an export file and imports it.
+	/// Export files contain exported source code such as template types and functions.
 	/// </summary>
-	private static bool ImportTemplates(Context context, byte[] bytes, List<StaticLibraryFormatFileHeader> headers, string library, List<SourceFile> files)
+	private static bool ImportExportFile(Context context, byte[] bytes, List<StaticLibraryFormatFileHeader> headers, string library, List<SourceFile> files)
 	{
 		for (var i = 0; i < headers.Count; i++)
 		{
@@ -20,7 +21,7 @@ public static class StaticLibraryImporter
 			var header = headers[i];
 
 			// Ensure the file ends with the extension of this language
-			if (!header.Filename.EndsWith(Settings.VIVID_EXTENSION)) continue;
+			if (!header.Filename.EndsWith(".exports")) continue;
 
 			var start = header.PointerOfData;
 			var end = start + header.Size;
@@ -214,7 +215,7 @@ public static class StaticLibraryImporter
 		var headers = LoadFileHeaders(bytes);
 		if (!headers.Any()) return false;
 
-		ImportTemplates(context, bytes, headers, file, files);
+		ImportExportFile(context, bytes, headers, file, files);
 		ImportObjectFilesFromStaticLibrary(file, headers, bytes, object_files);
 		ImportTemplateTypeVariants(context, headers, bytes);
 		ImportTemplateFunctionVariants(context, headers, bytes);

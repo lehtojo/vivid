@@ -353,7 +353,7 @@ public static class Resolver
 			Resolve(variable);
 		}
 
-		foreach (var subcontext in context.Subcontexts)
+		foreach (var subcontext in context.Subcontexts.ToArray())
 		{
 			ResolveVariables(subcontext);
 		}
