@@ -45,16 +45,31 @@ public static class Resolver
 	/// </summary>
 	public static void Resolve(Function function)
 	{
-		// Resolve the parameters
+		// Resolve parameter types
 		foreach (var parameter in function.Parameters)
 		{
+			// Skip resolved and template parameters
 			var type = parameter.Type;
 			if (type == null || type.IsResolved()) continue;
 
+			// Attempt to resolve the current parameter type
 			type = Resolve(function, type);
 			if (type == null) continue;
 
+			// Update the parameter type
 			parameter.Type = type;
+		}
+
+		// Resolve the return type
+		if (function.ReturnType != null && function.ReturnType.IsUnresolved)
+		{
+			var type = Resolve(function, function.ReturnType);
+
+			if (type != null)
+			{
+				// Update the return type
+				function.ReturnType = type;
+			}
 		}
 	}
 

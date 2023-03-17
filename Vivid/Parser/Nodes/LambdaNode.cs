@@ -32,12 +32,11 @@ public class LambdaNode : Node, IResolvable
 
 	public override Type? TryGetType()
 	{
-		if (Implementation != null && Implementation.ReturnType != null)
-		{
-			return new FunctionType(Function.Parameters.Select(i => i.Type).ToList(), Implementation.ReturnType, Position);
-		}
+		// Before returning the type, verify the lambda is implemented and the return type is resolved
+		if (Implementation == null || Implementation.ReturnType == null || Implementation.ReturnType.IsUnresolved) return null;
 
-		return null;
+		// Note: Parameter types are resolved, because the implementation can not exist without them
+		return new FunctionType(Function.Parameters.Select(i => i.Type).ToList(), Implementation.ReturnType, Position);
 	}
 
 	public Node? Resolve(Context context)

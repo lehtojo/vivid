@@ -116,7 +116,7 @@ public class ResolverPhase : Phase
 		var types = type.Supertypes.FindAll(i => i.Constructors.GetOverload() == null);
 		if (!types.Any()) return diagnostics;
 
-		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations))
+		foreach (var constructor in type.Constructors.Overloads.SelectMany(i => i.Implementations).ToList())
 		{
 			var links = constructor.Node!.FindAll(NodeType.LINK);
 			var supertypes = new HashSet<Type>(type.Supertypes.Where(i => !i.IsUnresolved));
@@ -215,21 +215,21 @@ public class ResolverPhase : Phase
 		var diagnostics = new List<DocumentDiagnostic>();
 
 		// Go through all the variables which are unresolved
-		foreach (var variable in context.Variables.Values.Where(i => i.IsUnresolved))
+		foreach (var variable in context.Variables.Values.Where(i => i.IsUnresolved).ToList())
 		{
 			diagnostics.Add(new DocumentDiagnostic(variable.Position, $"Can not resolve the type of variable '{variable}'", DocumentDiagnosticSeverity.ERROR));
 		}
 
-		foreach (var type in context.Types.Values)
+		foreach (var type in context.Types.Values.ToList())
 		{
 			diagnostics.AddRange(FindUnconstructedSupertypes(type));
 
-			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
+			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved).ToList())
 			{
 				diagnostics.Add(new DocumentDiagnostic(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance", DocumentDiagnosticSeverity.ERROR));
 			}
 
-			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>().ToList())
 			{
 				if (virtual_function.ReturnType != null && !virtual_function.ReturnType.IsUnresolved) continue;
 				diagnostics.Add(new DocumentDiagnostic(virtual_function.Start, "Can not resolve virtual function return type", DocumentDiagnosticSeverity.ERROR));
@@ -244,14 +244,14 @@ public class ResolverPhase : Phase
 			diagnostics.AddRange(GetDiagnostics(type));
 		}
 
-		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads))
+		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads).ToList())
 		{
 			if (overload.Parameters.All(i => i.Type == null || !i.Type.IsUnresolved))
 			{
 				continue;
 			}
 
-			foreach (var parameter in overload.Parameters)
+			foreach (var parameter in overload.Parameters.ToList())
 			{
 				diagnostics.Add(new DocumentDiagnostic(parameter.Position, $"Can not resolve the type of the parameter '{parameter.Name}'", DocumentDiagnosticSeverity.ERROR));
 			}
@@ -303,8 +303,13 @@ public class ResolverPhase : Phase
 		// Look for errors under the implementation node
 		if (!Equals(implementation.Node, null))
 		{
-			errors.AddRange(implementation.Node.FindAll(i => i is IResolvable)
-				.Cast<IResolvable>().Select(i => i.GetStatus()).Where(i => i.IsProblematic).ToList()
+			errors.AddRange(
+				implementation.Node
+					.FindAll(i => i is IResolvable)
+					.Cast<IResolvable>()
+					.Select(i => i.GetStatus())
+					.Where(i => i.IsProblematic)
+					.ToList()
 			);
 
 			// Ensure assignments are used properly
@@ -358,7 +363,7 @@ public class ResolverPhase : Phase
 		var variables = new StringBuilder();
 
 		// Go through all the variables which are unresolved
-		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUnresolved))
+		foreach (var variable in context.Variables.Values.Where(variable => variable.IsUnresolved).ToList())
 		{
 			variables.Append(Errors.Format(variable.Position, $"Can not resolve the type of variable '{variable}'"));
 			variables.AppendLine();
@@ -367,7 +372,7 @@ public class ResolverPhase : Phase
 		var imports = new StringBuilder();
 
 		// Report unresolved imports
-		foreach (var imported in context.Imports)
+		foreach (var imported in context.Imports.ToList())
 		{
 			if (imported.IsResolved()) continue;
 			imports.AppendLine(Errors.Format(imported.Position, "Can not resolve the import"));
@@ -376,7 +381,7 @@ public class ResolverPhase : Phase
 		// Report errors in defined types
 		var types = new StringBuilder();
 
-		foreach (var type in context.Types.Values)
+		foreach (var type in context.Types.Values.ToList())
 		{
 			// TODO: Support pack supertypes
 			if (type.IsPack && type.Supertypes.Any())
@@ -389,19 +394,19 @@ public class ResolverPhase : Phase
 				types.AppendLine(diagnostic.Description);
 			}
 
-			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved))
+			foreach (var supertype in type.Supertypes.Where(i => i.IsUnresolved).ToList())
 			{
 				types.AppendLine(Errors.Format(type.Position, $"Type '{type}' can not inherit type '{supertype}' since either it was not found or it would have caused a cyclic inheritance"));
 			}
 
-			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>())
+			foreach (var virtual_function in type.Virtuals.Values.SelectMany(i => i.Overloads).Cast<VirtualFunction>().ToList())
 			{
 				if (virtual_function.ReturnType != null && !virtual_function.ReturnType.IsUnresolved) continue;
 				types.AppendLine(Errors.Format(virtual_function.Start, "Can not resolve virtual function return type"));
 			}
 
 			// Look for override functions, which do not override anything
-			foreach (var override_function in type.Overrides.Values.SelectMany(i => i.Overloads))
+			foreach (var override_function in type.Overrides.Values.SelectMany(i => i.Overloads).ToList())
 			{
 				if (override_function.Implementations.Count > 0) continue;
 				types.AppendLine(Errors.Format(override_function.Start, "Override function has no matching virtual function"));
@@ -423,7 +428,7 @@ public class ResolverPhase : Phase
 		// Report errors in defined functions
 		var functions = new StringBuilder();
 
-		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads))
+		foreach (var overload in context.Functions.Values.SelectMany(i => i.Overloads).ToList())
 		{
 			if (overload.Parameters.All(i => i.Type == null || !i.Type.IsUnresolved)) continue;
 
@@ -437,7 +442,7 @@ public class ResolverPhase : Phase
 
 			functions.AppendLine($"Function {overload}:");
 
-			foreach (var parameter in overload.Parameters)
+			foreach (var parameter in overload.Parameters.ToList())
 			{
 				functions.AppendLine(Errors.Format(parameter.Position, $"Can not resolve the type of the parameter '{parameter.Name}'"));
 			}

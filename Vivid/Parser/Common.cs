@@ -76,7 +76,7 @@ public static class Common
 
 		// Try to find a virtual function with the parameter types
 		var overload = (VirtualFunction?)self_type.GetVirtualFunction(name)!.GetOverload(parameter_types!);
-		if (overload == null || overload.ReturnType == null) return null;
+		if (overload == null || overload.ReturnType == null || overload.ReturnType.IsUnresolved) return null;
 
 		var required_self_type = overload.FindTypeParent() ?? throw new ApplicationException("Could not retrieve virtual function parent type");
 		if (required_self_type.Configuration == null) return null;
