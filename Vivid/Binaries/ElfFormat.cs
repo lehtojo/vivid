@@ -414,7 +414,7 @@ public static class ElfFormat
 		string_table_header.Type = ElfSectionType.STRING_TABLE;
 		string_table_header.Flags = 0;
 		string_table_section.Offset = aligned_file_position;
-		string_table_header.Offset = (ulong)file_position;
+		string_table_header.Offset = (ulong)aligned_file_position;
 		string_table_header.SectionFileSize = (ulong)string_table_section.Data.Length;
 
 		sections.Add(string_table_section);
