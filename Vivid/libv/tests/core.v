@@ -18,7 +18,7 @@ outline allocate(bytes: large) {
 }
 
 outline deallocate(address: link) {
-	address = none # Dummy usage of address to avoid warning
+	address = none as link # Dummy usage of address to avoid warning
 }
 
 TYPE_DESCRIPTOR_FULLNAME_OFFSET = 0

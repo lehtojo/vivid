@@ -51,5 +51,6 @@ public enum NodeType
 	OBJECT_LINK,
 	OBJECT_UNLINK,
 	USING,
+	ERROR,
 	CONTEXT
 }

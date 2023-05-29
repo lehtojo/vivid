@@ -122,7 +122,13 @@ public class OperatorNode : Node, IResolvable
 
 	private Status GetActionStatus(Type left, Type right)
 	{
-		if (Operator == Operators.ASSIGN) return Status.OK;
+		if (Operator == Operators.ASSIGN)
+		{
+			if (!Common.Compatible(left, right)) return Status.Error(Position, "Destination and source types are not compatible");
+
+			return Status.OK;
+		}
+
 		return GetClassicStatus(left, right);
 	}
 

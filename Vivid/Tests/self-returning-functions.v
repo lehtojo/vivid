@@ -22,7 +22,7 @@ pack CustomList {
 	destroy() {
 		deallocate(memory)
 
-		memory = 0
+		memory = 0 as i32*
 		size = 0
 		position = 0
 	}

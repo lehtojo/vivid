@@ -103,7 +103,6 @@ public static class ProjectBuilder
 			else
 			{
 				// Try to resolve any problems in the node tree
-				ParserPhase.ApplyExtensionFunctions(context, root);
 				ParserPhase.ImplementFunctions(context, all ? null : filter, true);
 
 				Resolver.ResolveContext(context);

@@ -374,6 +374,62 @@ public class ResolverPhase : Phase
 	}
 
 	/// <summary>
+	/// Returns whether the specified type contains a member of the target type that causes an illegal cycle.
+	/// </summary>
+	public static bool FindIllegalCyclicMember(Type type, Type target, HashSet<Type> trace)
+	{
+		// Remember that the current type has been visited, so that we do not get stuck in a loop
+		trace.Add(type);
+
+		foreach (var iterator in type.Variables)
+		{
+			var member_type = iterator.Value.Type;
+
+			// If the member is the target type, return true
+			if (ReferenceEquals(member_type, target)) return true;
+
+			// If the member is not a pack or inlining type, skip it
+			if (member_type == null || !(member_type.IsPack || member_type.IsInlining)) continue;
+
+			// If the member has already been visited, skip it
+			if (trace.Contains(member_type)) continue;
+
+			// If the member is a pack or inlining type, check it recursively
+			if (FindIllegalCyclicMember(member_type, target, trace)) return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Reports the specified type if it is illegally cyclic
+	/// </summary>
+	public static void ReportIllegalCyclicType(Type type, List<Status> errors)
+	{
+		// Only packs and inlining types might have illegal cycles
+		if (!(type.IsPack || type.IsInlining)) return;
+
+		// Attempt to find a member of the type that causes an illegal cycle
+		if (!FindIllegalCyclicMember(type, type, new HashSet<Type>())) return;
+
+		errors.Add(Status.Error(type.Position, "Illegal cyclic type"));
+	}
+
+	/// <summary>
+	/// Reports the specified type if it is illegally cyclic
+	/// </summary>
+	public static void ReportIllegalCyclicType(Type type, StringBuilder builder)
+	{
+		var errors = new List<Status>();
+		ReportIllegalCyclicType(type, errors);
+
+		foreach (var error in errors)
+		{
+			builder.AppendLine(error.Description);
+		}
+	}
+
+	/// <summary>
 	/// Returns a string which describes the state of the specified context
 	/// </summary>
 	public static string GetReport(Context context)
@@ -401,6 +457,8 @@ public class ResolverPhase : Phase
 
 		foreach (var type in context.Types.Values)
 		{
+			ReportIllegalCyclicType(type, types);
+
 			// TODO: Support pack supertypes
 			if (type.IsPack && type.Supertypes.Any())
 			{
@@ -638,7 +696,6 @@ public class ResolverPhase : Phase
 		{
 			var previous = report;
 
-			ParserPhase.ApplyExtensionFunctions(context, parse.Node);
 			ParserPhase.ImplementFunctions(context, null);
 			GarbageCollector.CreateAllRequiredOverloads(context);
 			

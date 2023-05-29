@@ -99,9 +99,11 @@ public class ParserPhase : Phase
 	{
 		var extensions = root.FindAll(NodeType.EXTENSION_FUNCTION);
 
-		foreach (var extension in extensions)
+		foreach (var extension in extensions.Cast<ExtensionFunctionNode>())
 		{
-			Resolver.Resolve(context, extension);
+			var result = extension.Resolve(context) ?? new ErrorNode(extension.GetStatus());
+
+			extension.Replace(result);
 		}
 	}
 

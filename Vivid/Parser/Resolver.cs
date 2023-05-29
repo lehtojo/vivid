@@ -428,13 +428,14 @@ public static class Resolver
 			// Find all overrides with the same name as the virtual function
 			var result = type.GetOverride(virtual_function.Name);
 			if (result == null) continue;
-			var virtual_function_overloads = result.Overloads;
+
+			var override_function_overloads = result.Overloads;
 
 			// Take out the expected parameter types
 			var expected = new List<Type?>();
 			foreach (var parameter in virtual_function.Parameters) { expected.Add(parameter.Type); }
 
-			foreach (var overload in virtual_function_overloads)
+			foreach (var overload in override_function_overloads)
 			{
 				// Ensure the actual parameter types match the expected types
 				var actual = overload.Parameters.Select(i => i.Type).ToList();
