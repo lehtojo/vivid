@@ -1,135 +1,123 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ExtensionFunctionPattern : Pattern
 {
-	private const int PARAMETERS_OFFSET = 2;
-	private const int BODY_OFFSET = 0;
-
-	private const int TEMPLATE_FUNCTION_EXTENSION_TEMPLATE_ARGUMENTS_END_OFFSET = PARAMETERS_OFFSET + 1;
-	private const int STANDARD_FUNCTION_EXTENSION_LAST_DOT_OFFSET = PARAMETERS_OFFSET + 1;
-
-	// Pattern: $T1.$T2. ... .$Tn.$name [<$T1, $T2, ..., $Tn>] () [\n] {...}
-	public ExtensionFunctionPattern() : base
-	(
-		TokenType.IDENTIFIER
-	)
-	{ Priority = 23; IsConsumable = false; }
+	// Pattern: ($type) . $name [<$T1, $T2, ..., $Tn>] () [: $return-type] [\n] {...}
+	public ExtensionFunctionPattern() : base(TokenType.PARENTHESIS)
+	{
+		Priority = 23;
+		IsConsumable = false;
+	}
 
 	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
-		// Optionally consume template arguments
-		var backup = state.Save();
-		if (!Common.ConsumeTemplateArguments(state)) state.Restore(backup);
+		// Consume a dot operator
+		if (!state.ConsumeOperator(Operators.DOT)) return false;
 
-		// Ensure the first operator is a dot operator
-		if (!state.Consume(out Token? consumed, TokenType.OPERATOR) || !consumed!.Is(Operators.DOT)) return false;
-
-		while (true)
+		// Attempt to consume a function token. If that fails, we expect a template function extension.
+		if (!state.Consume(TokenType.FUNCTION))
 		{
-			// If there is a function token after the dot operator, this is the function to be added
-			if (state.Consume(TokenType.FUNCTION)) break;
-
-			// Consume a normal type or a template type
+			// Consume the name
 			if (!state.Consume(TokenType.IDENTIFIER)) return false;
 
-			// Optionally consume template arguments
-			backup = state.Save();
-			if (!Common.ConsumeTemplateArguments(state)) state.Restore(backup);
+			// Consume the template parameters
+			if (!Common.ConsumeTemplateParameters(state)) return false;
 
-			if (state.Consume(out consumed, TokenType.OPERATOR))
-			{
-				// If an operator was consumed, it must be a dot operator
-				if (!consumed!.Is(Operators.DOT)) return false;
-				continue;
-			}
+			// Consume parenthesis
+			if (!state.Consume(TokenType.PARENTHESIS)) return false;
+		}
 
-			if (state.Consume(out consumed, TokenType.PARENTHESIS))
-			{
-				// If parenthesis were consumed, it must be standard parenthesis
-				if (!consumed!.Is(ParenthesisType.PARENTHESIS)) return false;
-				break;
-			}
-
-			// There is an unexpected token
-			return false;
+		// Look for a return type
+		if (state.ConsumeOperator(Operators.COLON))
+		{
+			// Expected: ($type).$name [<$T1, $T2, ..., $Tn>] () : $return-type [\n] {...}
+			if (!Common.ConsumeType(state)) return false;
 		}
 
 		// Optionally consume a line ending
 		state.ConsumeOptional(TokenType.END);
 
 		// The last token must be the body of the function
-		return state.Consume(out consumed, TokenType.PARENTHESIS) && consumed!.Is(ParenthesisType.CURLY_BRACKETS);
-	}
-
-	private static bool IsTemplateFunction(List<Token> tokens)
-	{
-		return !tokens[tokens.Count - 1 - PARAMETERS_OFFSET].Is(TokenType.FUNCTION);
-	}
-
-	private static int FindTemplateArgumentsStart(List<Token> tokens)
-	{
-		var i = tokens.Count - 1 - TEMPLATE_FUNCTION_EXTENSION_TEMPLATE_ARGUMENTS_END_OFFSET;
-		var j = 0;
-
-		while (i >= 0)
-		{
-			var token = tokens[i];
-
-			if (token.Is(Operators.LESS_THAN)) j--;
-			else if (token.Is(Operators.GREATER_THAN)) j++;
-
-			if (j == 0) break;
-
-			i--;
-		}
-
-		return i;
-	}
-
-	private static Node CreateTemplateFunctionExtension(Context environment, List<Token> tokens)
-	{
-		// Find the starting index of the template arguments
-		var i = FindTemplateArgumentsStart(tokens);
-		if (i < 0) throw new ApplicationException("Invalid template function extension");
-
-		// Collect all the tokens before the name of the extension function
-		// NOTE: This excludes the dot operator
-		var destination = Common.ReadType(environment, tokens.GetRange(0, i - 2));
-
-		if (destination == null) throw new ApplicationException("Invalid template function extension");
-
-		var template_parameters_start = i + 1;
-		var template_parameters_end = tokens.Count - 1 - TEMPLATE_FUNCTION_EXTENSION_TEMPLATE_ARGUMENTS_END_OFFSET;
-		var template_parameters = Common.GetTemplateParameters(tokens.GetRange(template_parameters_start, template_parameters_end - template_parameters_start), tokens[i].Position);
+		var next = state.Peek();
+		if (next == null || !next.Is(ParenthesisType.CURLY_BRACKETS)) return false;
 		
-		var name = tokens[i - 1].To<IdentifierToken>();
-		var parameters = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<ParenthesisToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ParenthesisToken>();
-
-		var descriptor = new FunctionToken(name, parameters) { Position = name.Position };
-
-		return new ExtensionFunctionNode(destination, descriptor, template_parameters, body.Tokens, descriptor.Position, body.End);
+		state.Consume();
+		return true;
 	}
 
-	private static Node? CreateStandardFunctionExtension(Context environment, List<Token> tokens)
+	private static bool IsTemplateFunctionExtension(List<Token> tokens)
 	{
-		var destination = Common.ReadType(environment, tokens.GetRange(0, tokens.Count - 1 - STANDARD_FUNCTION_EXTENSION_LAST_DOT_OFFSET));
-		if (destination == null) throw new ApplicationException("Invalid template function extension");
-
-		var descriptor = tokens[tokens.Count - 1 - PARAMETERS_OFFSET].To<FunctionToken>();
-		var body = tokens[tokens.Count - 1 - BODY_OFFSET].To<ParenthesisToken>();
-
-		return new ExtensionFunctionNode(destination, descriptor, body.Tokens, descriptor.Position, body.End);
+		return tokens[2].Type != TokenType.FUNCTION;
 	}
 
-	public override Node? Build(Context environment, ParserState state, List<Token> tokens)
+	private static int GetTemplateParameters(List<Token> tokens, List<string> parameters)
 	{
-		if (IsTemplateFunction(tokens))
+		var i = 4; // Pattern: ($type) . $name < $T1, $T2, ..., $Tn > () [: $return-type] [\n] {...}
+
+		for (; i + 1 < tokens.Count; i += 2)
 		{
-			return CreateTemplateFunctionExtension(environment, tokens);
+			parameters.Add(tokens[i].To<IdentifierToken>().Value);
+			if (tokens[i + 1].Is(Operators.GREATER_THAN)) return i + 2;
 		}
 
-		return CreateStandardFunctionExtension(environment, tokens);
+		throw new ApplicationException("Failed to find the end of template parameters");
+	}
+
+	private static Node CreateTemplateFunctionExtension(Context environment, Type destination, ParserState state, List<Token> tokens, List<Token> body)
+	{
+		// Extract the extension function name
+		var name = tokens[2].To<IdentifierToken>();
+
+		// Extract the template parameters and the index of the parameters
+		var template_parameters = new List<string>();
+		var parameters_index = GetTemplateParameters(tokens, template_parameters);
+
+		// Create a function token from the name and parameters (helper object)
+		var descriptor = new FunctionToken(new IdentifierToken(name.Value), tokens[parameters_index].To<ParenthesisToken>(), name.Position);
+
+		// Extract the return type if it is specified
+		var return_type_tokens = new List<Token>();
+		var colon_index = parameters_index + 1;
+
+		if (tokens[colon_index].Is(Operators.COLON))
+		{
+			var return_type_start = colon_index;
+			var return_type_end = tokens.Count - 2;
+			return_type_tokens = tokens.GetRange(return_type_start, return_type_end - return_type_start);
+		}
+
+		return new ExtensionFunctionNode(destination, descriptor, template_parameters, return_type_tokens, body, tokens.First().Position, tokens[tokens.Count - 1].To<ParenthesisToken>().End);
+	}
+
+	private static Node CreateStandardFunctionExtension(Context environment, Type destination, ParserState state, List<Token> tokens, List<Token> body)
+	{
+		// // Pattern: ($type) . function() [: $return-type] [\n] {...}
+		var descriptor = tokens[2].To<FunctionToken>();
+
+		// Extract the return type if it is specified
+		var return_type_tokens = new List<Token>();
+		var colon_index = 3;
+
+		if (tokens[colon_index].Is(Operators.COLON))
+		{
+			var return_type_start = colon_index;
+			var return_type_end = tokens.Count - 2;
+			return_type_tokens = tokens.GetRange(return_type_start, return_type_end - return_type_start);
+		}
+
+		return new ExtensionFunctionNode(destination, descriptor, return_type_tokens, body, tokens[0].Position, tokens[tokens.Count - 1].To<ParenthesisToken>().End);
+	}
+
+	public override Node Build(Context environment, ParserState state, List<Token> tokens)
+	{
+		var destination = Common.ReadType(environment, tokens[0].To<ParenthesisToken>().Tokens) ?? throw Errors.Get(tokens[0].Position, "Can not resolve the destination type");
+
+		// Extract the body tokens
+		var body = tokens[tokens.Count - 1].To<ParenthesisToken>().Tokens;
+
+		if (IsTemplateFunctionExtension(tokens)) return CreateTemplateFunctionExtension(environment, destination, state, tokens, body);
+		return CreateStandardFunctionExtension(environment, destination, state, tokens, body);
 	}
 }

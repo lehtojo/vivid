@@ -209,7 +209,7 @@ public class Type : Context
 	/// </summary>
 	public virtual int GetContentSize()
 	{
-		if (IsPrimitive) return GetAllocationSize();
+		if (IsPrimitive || this is ArrayType) return GetAllocationSize();
 
 		var bytes = 0;
 

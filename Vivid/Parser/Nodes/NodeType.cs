@@ -50,5 +50,6 @@ public enum NodeType
 	WHEN,
 	OBJECT_LINK,
 	OBJECT_UNLINK,
-	USING
+	USING,
+	CONTEXT
 }

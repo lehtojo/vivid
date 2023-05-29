@@ -811,12 +811,16 @@ public static class PeFormat
 	// ...
 	// <import-address-table-n>:
 	/// </summary>
-	public static BinarySection CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments)
+	public static BinarySection? CreateDynamicLinkage(List<BinaryRelocation> relocations, List<string> imports, List<BinarySection> fragments)
 	{
 		// Only dynamic libraries are inspected here
 		imports = imports.Where(i => i.EndsWith(AssemblyPhase.SharedLibraryExtension)).ToList();
 
+		// If there are no relocations, do not create import tables
 		var externals = relocations.Where(i => i.Symbol.External).ToList();
+		if (externals.Count == 0) return null;
+
+		// Load exported symbols from the imported libraries
 		var exports = imports.Select(LoadExportedSymbols).ToArray();
 
 		// There can be multiple relocations, which refer to the same symbol but the symbol object instances are different (relocations can be in different objects).

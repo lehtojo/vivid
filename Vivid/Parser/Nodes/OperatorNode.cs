@@ -97,6 +97,9 @@ public class OperatorNode : Node, IResolvable
 		Resolver.Resolve(context, Left);
 		Resolver.Resolve(context, Right);
 
+		// Process implicit conversions
+		ImplicitConvertor.Process(context, this);
+
 		// Check if the left node represents an indexed accessor and if it is being assigned a value
 		if (Operator.Type == OperatorType.ASSIGNMENT && Left.Is(NodeType.ACCESSOR))
 		{

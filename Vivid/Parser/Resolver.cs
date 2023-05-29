@@ -56,6 +56,15 @@ public static class Resolver
 
 			parameter.Type = type;
 		}
+
+		// Resolve the return type
+		var return_type = function.ReturnType;
+
+		if (return_type != null && return_type.IsUnresolved)
+		{
+			return_type = Resolve(function, return_type);
+			if (return_type != null) { function.ReturnType = return_type; }
+		}
 	}
 
 	/// <summary>

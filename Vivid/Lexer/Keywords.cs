@@ -9,6 +9,7 @@ public static class Keywords
 	public static readonly Keyword DEINIT = new("deinit");
 	public static readonly Keyword ELSE = new("else", KeywordType.FLOW);
 	public static readonly Keyword EXPORT = new ModifierKeyword("export", Modifier.EXPORTED);
+	public static readonly Keyword GLOBAL = new("global", KeywordType.NORMAL);
 	public static readonly Keyword HAS = new("has", KeywordType.NORMAL);
 	public static readonly Keyword HAS_NOT = new("has not", KeywordType.NORMAL);
 	public static readonly Keyword IF = new("if", KeywordType.FLOW);
@@ -46,6 +47,7 @@ public static class Keywords
 		Definitions.Add(CONTINUE.Identifier, CONTINUE);
 		Definitions.Add(ELSE.Identifier, ELSE);
 		Definitions.Add(EXPORT.Identifier, EXPORT);
+		Definitions.Add(GLOBAL.Identifier, GLOBAL);
 		Definitions.Add(HAS.Identifier, HAS);
 		Definitions.Add(HAS_NOT.Identifier, HAS_NOT);
 		Definitions.Add(IF.Identifier, IF);

@@ -288,10 +288,6 @@ public class ResolverPhase : Phase
 	/// </summary>
 	public static string GetFunctionReport(FunctionImplementation implementation)
 	{
-		var builder = new StringBuilder();
-
-		builder.Append($"Function {implementation.GetHeader()}:\n");
-
 		var errors = new List<Status>();
 
 		// Report if the return type is not resolved
@@ -339,15 +335,42 @@ public class ResolverPhase : Phase
 		// Look for variables which are not resolved
 		errors.AddRange(implementation.Locals.Where(i => i.IsUnresolved).Select(i => Status.Error(i.Position, $"Can not resolve type of local variable '{i.Name}'")));
 
-		// Build the report if there are errors
-		if (!errors.Any()) return string.Empty;
+		if (errors.Count == 0) return string.Empty;
 
-		foreach (var error in errors)
+		return $"Function {implementation.GetHeader()}:\n" + string.Join('\n', errors.Select(i => i.Description));
+	}
+
+	/// <summary>
+	/// Returns a string which describes the state of the specified function
+	/// </summary>
+	public static string GetFunctionReport(Function function)
+	{
+		var errors = new List<Status>();
+		if (function.IsTemplateFunction) return string.Empty;
+
+		foreach (var parameter in function.Parameters)
 		{
-			builder.Append($"{error.Description}\n");
+			// Explicit parameter types are optional, but they must be resolved if specified
+			if (parameter.Type == null || parameter.Type.IsResolved()) continue;
+			errors.Add(Status.Error(parameter.Position, "Can not resolve the type of the parameter " + parameter.Name));
 		}
 
-		return builder.ToString();
+		// Explicit return types are optional, but they must be resolved if specified
+		if (function.ReturnType != null)
+		{
+			if (function.ReturnType.IsUnresolved)
+			{
+				errors.Add(Status.Error(function.Start, "Can not resolve the return type"));
+			}
+			else if (function.ReturnType is ArrayType)
+			{
+				errors.Add(Status.Error(function.Start, "Array type is not allowed as a return type"));
+			}
+		}
+
+		if (errors.Count == 0) return string.Empty;
+
+		return $"Function {function}:\n" + string.Join('\n', errors.Select(i => i.Description));
 	}
 
 	/// <summary>
@@ -441,6 +464,12 @@ public class ResolverPhase : Phase
 			{
 				functions.AppendLine(Errors.Format(parameter.Position, $"Can not resolve the type of the parameter '{parameter.Name}'"));
 			}
+		}
+
+		// Report errors in function headers
+		foreach (var function in Common.GetAllVisibleFunctions(context))
+		{
+			functions.Append(GetFunctionReport(function));
 		}
 
 		foreach (var implementation in Common.GetLocalFunctionImplementations(context))

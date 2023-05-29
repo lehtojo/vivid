@@ -117,6 +117,7 @@ public class Patterns
 		Add(new SpecificModificationPattern());
 		Add(new TemplateFunctionCallPattern());
 		Add(new TemplateFunctionPattern());
+		Add(new TemplateTypeMemberAccessPattern());
 		Add(new TemplateTypePattern());
 		Add(new TypeInspectionPattern());
 		Add(new TypePattern());

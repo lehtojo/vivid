@@ -20,7 +20,7 @@ public class LinkNode : OperatorNode
 		Resolver.Resolve(environment, Left);
 
 		// The type of the left node is required
-		var primary = Left.TryGetType();
+		var primary = Common.GetContext(Left);
 
 		// Do not try to resolve the right node without the type of the left
 		if (primary == null) return null;
@@ -30,27 +30,28 @@ public class LinkNode : OperatorNode
 			var function = Right.To<UnresolvedFunction>();
 
 			// First, try to resolve the function normally
-			var resolved = function.Resolve(environment, primary);
+			var result = function.Resolve(environment, primary);
 
-			if (resolved != null)
+			if (result != null)
 			{
-				Right.Replace(resolved);
+				Right.Replace(result);
 				return null;
 			}
 
 			var types = function.Select(i => i.TryGetType()).ToList();
 
 			// Try to form a virtual function call
-			resolved = Common.TryGetVirtualFunctionCall(Left, primary, function.Name, function, types, Position);
-			if (resolved != null) return resolved;
+			if (primary.IsType) { result = Common.TryGetVirtualFunctionCall(Left, primary.To<Type>(), function.Name, function, types, Position); }
+
+			if (result != null) return result;
 
 			// Try to form a lambda function call
-			resolved = Common.TryGetLambdaCall(primary, Left, function.Name, function, types);
+			result = Common.TryGetLambdaCall(primary, Left, function.Name, function, types);
 
-			if (resolved != null)
+			if (result != null)
 			{
-				resolved.Position = Position;
-				return resolved;
+				result.Position = Position;
+				return result;
 			}
 		}
 		else if (Right.Is(NodeType.UNRESOLVED_IDENTIFIER))

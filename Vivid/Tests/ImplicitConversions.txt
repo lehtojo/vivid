@@ -1,0 +1,5 @@
+1 == 1
+49 == 49
+1 == 1
+a is not greater than b == a is not greater than b
+Hello there :^) == Hello there :^)

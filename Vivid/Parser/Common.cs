@@ -226,7 +226,18 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Consumes template parameters
+	/// Attempts to return the context of the specified node. If there is no context, none is returned.
+	/// </summary>
+	public static Context? GetContext(Node node)
+	{
+		// If the node is a special context node (global scope syntax for example), return its context
+		if (node.Instance == NodeType.CONTEXT) return node.To<ContextNode>().Context;
+
+		// If the node has a type, return the type as a context
+		return node.TryGetType();
+	}
+
+	/// <summary>
 	/// Pattern: <$1, $2, ... $n>
 	/// </summary>
 	public static bool ConsumeTemplateArguments(ParserState state)
@@ -265,6 +276,37 @@ public static class Common
 			}
 
 			// The template arguments must be invalid
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Pattern: <T1, T2, ..., Tn>
+	/// </summary>
+	public static bool ConsumeTemplateParameters(ParserState state)
+	{
+		// Next there must be the opening of the template parameters
+		if (!state.ConsumeOperator(Operators.LESS_THAN)) return false;
+
+		// Keep track whether at least one parameter has been consumed
+		var is_parameter_consumed = false;
+
+		while (true)
+		{
+			// If the next token is a greater than operator, it means the template parameters have ended
+			if (state.ConsumeOperator(Operators.GREATER_THAN)) return is_parameter_consumed;
+
+			// If the next token is a comma, it means the template parameters have not ended
+			if (state.ConsumeOperator(Operators.COMMA)) continue;
+
+			// Now we expect a template parameter name
+			if (state.Consume(TokenType.IDENTIFIER))
+			{
+				is_parameter_consumed = true;
+				continue;
+			}
+
+			// The template parameters must be invalid
 			return false;
 		}
 	}
@@ -473,6 +515,26 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Reads type components from the specified tokens
+	/// </summary>
+	public static List<UnresolvedTypeComponent> ReadTypeComponents(Context context, List<Token> tokens)
+	{
+		var components = new List<UnresolvedTypeComponent>();
+
+		while (true)
+		{
+			components.Add(ReadTypeComponent(context, tokens));
+
+			// Stop collecting type components if there are no tokens left or if the next token is not a dot operator
+			if (!tokens.Any() || !tokens.First().Is(Operators.DOT)) break;
+
+			tokens.Pop();
+		}
+
+		return components;
+	}
+
+	/// <summary>
 	/// Reads a type from the next tokens inside the specified list
 	/// Pattern: $name [<$1, $2, ... $n>]
 	/// </summary>
@@ -496,20 +558,8 @@ public static class Common
 		// Self return type:
 		if (next.To<IdentifierToken>().Value == Function.SELF_POINTER_IDENTIFIER) return Primitives.SELF;
 
-		var components = new List<UnresolvedTypeComponent>();
-
-		while (true)
-		{
-			components.Add(ReadTypeComponent(context, tokens));
-
-			// Stop collecting type components if there are no tokens left or if the next token is not a dot operator
-			if (!tokens.Any() || !tokens.First().Is(Operators.DOT)) break;
-
-			tokens.Pop();
-		}
-
+		var components = ReadTypeComponents(context, tokens);
 		var type = new UnresolvedType(components.ToArray(), position);
-		type.Position = next.Position;
 
 		// If there are no more tokens, return the type
 		if (!tokens.Any()) return type.ResolveOrThis(context);
@@ -598,25 +648,20 @@ public static class Common
 	}
 
 	/// <summary>
-	/// Reads template parameter names
-	/// Pattern: <A, B, C, ...>
-	/// Returns: { A, B, C, ... }
+	/// Returns the template parameters from the specified tokens.
 	/// </summary>
-	public static List<string> GetTemplateParameters(List<Token> template_parameter_tokens, Position template_parameters_start)
+	public static List<string> GetTemplateParameters(List<Token> tokens, Position position)
 	{
-		var template_parameters = new List<string>();
+		var parameters = new List<string>();
 
-		for (var i = 0; i < template_parameter_tokens.Count; i++)
+		for (var i = 0; i < tokens.Count; i += 2)
 		{
-			if (i % 2 != 0) continue;
-			if (!template_parameter_tokens[i].Is(TokenType.IDENTIFIER)) throw Errors.Get(template_parameters_start, "Template type argument list is invalid");
+			if (!tokens[i].Is(TokenType.IDENTIFIER)) throw Errors.Get(position, "Template parameter tokens were invalid");
 
-			template_parameters.Add(template_parameter_tokens[i].To<IdentifierToken>().Value);
+			parameters.Add(tokens[i].To<IdentifierToken>().Value);
 		}
 
-		if (template_parameters.Count == 0) throw Errors.Get(template_parameters_start, "Template type argument list can not be empty");
-
-		return template_parameters;
+		return parameters;
 	}
 
 	public static void ConsumeBlock(ParserState from, List<Token> destination)

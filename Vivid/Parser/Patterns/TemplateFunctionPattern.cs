@@ -15,24 +15,7 @@ public class TemplateFunctionPattern : Pattern
 	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Pattern: $name <$1, $2, ... $n> (...) [\n] {}
-		if (!state.ConsumeOperator(Operators.LESS_THAN)) return false;
-
-		while (true)
-		{
-			// Expect template parameter
-			if (!state.Consume(TokenType.IDENTIFIER)) return false;
-
-			// Expect an operator, either a comma or the end of the template parameters
-			if (!state.Consume(out Token? consumed, TokenType.OPERATOR)) return false;
-
-			// Stop if we reached the end of template parameters
-			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN) break;
-
-			// If we consumed a comma, expect another template parameter
-			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA) continue;
-
-			return false;
-		}
+		if (!Common.ConsumeTemplateParameters(state)) return false;
 
 		// Now there must be function parameters next
 		if (!state.ConsumeParenthesis(ParenthesisType.PARENTHESIS)) return false;

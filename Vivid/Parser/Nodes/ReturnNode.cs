@@ -14,6 +14,9 @@ public class ReturnNode : Node, IResolvable
 	public Node? Resolve(Context context)
 	{
 		if (First != null) Resolver.Resolve(context, First);
+
+		// Process implicit conversions
+		ImplicitConvertor.Process(context, this);
 		return null;
 	}
 

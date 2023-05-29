@@ -278,7 +278,7 @@ namespace Vivid.Unit
 				return new[] { "min.math.o", "min.memory.o", "min.system.o", "min.tests.o" };
 			}
 
-			return new[] { "minimum.math.obj", "minimum.memory.obj", "minimum.tests.obj" };
+			return new[] { "min.math.obj", "min.memory.obj", "min.tests.obj" };
 		}
 
 		private static bool Compile(string output, params string[] source_files)
@@ -2363,6 +2363,42 @@ namespace Vivid.Unit
 			}
 
 			Escapes_Test();
+		}
+
+		private static void GlobalScopeAccess_Test()
+		{
+			var actual = Execute("GlobalScopeAccess").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("GlobalScopeAccess.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void GlobalScopeAccess()
+		{
+			if (!CompileExecutable("GlobalScopeAccess", new[] { "GlobalScopeAccess.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			GlobalScopeAccess_Test();
+		}
+
+		private static void ImplicitConversions_Test()
+		{
+			var actual = Execute("ImplicitConversions").ReplaceLineEndings();
+			var expected = File.ReadAllText(GetProjectFile("ImplicitConversions.txt", TESTS)).ReplaceLineEndings();
+
+			Assert.AreEqual(expected, actual);
+		}
+
+		public static void ImplicitConversions()
+		{
+			if (!CompileExecutable("ImplicitConversions", new[] { "ImplicitConversions.v" }.Concat(StandardLibraryUtility).ToArray()))
+			{
+				Assert.Fail("Failed to compile");
+			}
+
+			ImplicitConversions_Test();
 		}
 	}
 }

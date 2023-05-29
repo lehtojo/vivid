@@ -20,20 +20,7 @@ public class TemplateTypePattern : Pattern
 	public override bool Passes(Context context, ParserState state, List<Token> tokens, int priority)
 	{
 		// Pattern: $name <$1, $2, ... $n> [\n] {}
-		if (!state.Consume(out Token? opening, TokenType.OPERATOR) || opening!.To<OperatorToken>().Operator != Operators.LESS_THAN) return false;
-
-		while (true)
-		{
-			if (!state.Consume(TokenType.IDENTIFIER)) return false;
-
-			if (!state.Consume(out Token? consumed, TokenType.OPERATOR)) return false;
-
-			if (consumed!.To<OperatorToken>().Operator == Operators.GREATER_THAN) break;
-
-			if (consumed!.To<OperatorToken>().Operator == Operators.COMMA) continue;
-
-			return false;
-		}
+		if (!Common.ConsumeTemplateParameters(state)) return false;
 
 		// Optionally consume a line-ending
 		state.ConsumeOptional(TokenType.END);

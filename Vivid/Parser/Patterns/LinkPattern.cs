@@ -44,7 +44,7 @@ public class LinkPattern : Pattern
 		descriptor.Position = name.Position;
 		var template_arguments = Common.ReadTemplateArguments(context, tokens, RIGHT + 1);
 
-		var primary = left.TryGetType();
+		var primary = Common.GetContext(left);
 		var right = (Node?)null;
 
 		if (primary != null)
@@ -77,7 +77,7 @@ public class LinkPattern : Pattern
 		}
 
 		// Try to retrieve the primary context from the left token
-		var primary = left.TryGetType();
+		var primary = Common.GetContext(left);
 		var right = (Node?)null;
 		var token = tokens[RIGHT];
 
@@ -109,9 +109,11 @@ public class LinkPattern : Pattern
 			var types = new List<Type?>();
 			foreach (var argument in function) { types.Add(argument.TryGetType()); }
 
-			// Try to form a virtual function call
 			var position = tokens[OPERATOR].Position;
-			var result = Common.TryGetVirtualFunctionCall(left, primary, function.Name, function, types, position);
+
+			// Try to form a virtual function call
+			var result = (Node?)null;
+			if (primary.IsType) { result = Common.TryGetVirtualFunctionCall(left, primary.To<Type>(), function.Name, function, types, position); }
 
 			if (result != null) return result;
 
