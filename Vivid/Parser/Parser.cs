@@ -214,6 +214,7 @@ public static class Parser
 		Add(new ExtensionFunctionPattern());
 		Add(new WhenPattern());
 		Add(new UsingPattern());
+		Add(new GlobalScopeAccessPattern());
 	}
 
 	/// <summary>
