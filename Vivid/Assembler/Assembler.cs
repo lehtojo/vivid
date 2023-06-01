@@ -753,7 +753,7 @@ public static class Assembler
 			Instructions.X64.Initialize();
 		}
 
-		Keywords.Definitions.Clear(); // Remove all keywords for parsing assembly
+		Keywords.All.Clear(); // Remove all keywords for parsing assembly
 
 		Settings.UseIndirectAccessTables = !Settings.IsTargetWindows && output_type == BinaryType.SHARED_LIBRARY && Settings.IsLegacyAssemblyEnabled;
 

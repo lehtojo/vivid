@@ -10,11 +10,11 @@ public class AssemblerPhase : Phase
 		if (!Settings.TextualAssembly) return Status.OK;
 
 		var files = Settings.SourceFiles;
-		if (files.Count == 0) return Status.Error("Nothing to assembly");
+		if (files.Count == 0) return new Status("Nothing to assembly");
 
 		// Initialize the target architecture
 		Instructions.X64.Initialize();
-		Keywords.Definitions.Clear();
+		Keywords.All.Clear();
 		Operators.All.Remove(Operators.AND.Identifier);
 		Operators.All.Remove(Operators.OR.Identifier);
 
@@ -85,6 +85,6 @@ public class AssemblerPhase : Phase
 
 		if (succeeded) Environment.Exit(0);
 
-		return Status.Error("Assembler failed");
+		return new Status("Assembler failed");
 	}
 }

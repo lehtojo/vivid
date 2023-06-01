@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,23 +23,23 @@ public static class Warnings
 				if ((!to.IsPrimitive || Primitives.IsPrimitive(to, Primitives.LINK)) && source.Instance == NodeType.NUMBER && Equals(source.To<NumberNode>().Value, 0L)) continue;
 
 				var message = $"Unsafe cast from '{from}' to '{to}'";
-				diagnostics.Add(Status.Warning(assignment.Position, message));
+				diagnostics.Add(new Status(assignment.Position, message));
 			}
 			else if (assignment.Right.Is(NodeType.NUMBER))
 			{
 				if (from.Format.IsDecimal() && !to.Format.IsDecimal())
 				{
 					var message = $"Possible loss of information while converting the number to type '{to}'";
-					diagnostics.Add(Status.Warning(assignment.Position, message));
+					diagnostics.Add(new Status(assignment.Position, message));
 				}
 				else if (assignment.Right.To<NumberNode>().Bits > Size.FromFormat(to.Format).Bits)
 				{
 					var message = $"Possible loss of information while converting the number to type '{to}'";
-					diagnostics.Add(Status.Warning(assignment.Right.Position, message));
+					diagnostics.Add(new Status(assignment.Right.Position, message));
 				}
 				else if (Numbers.IsNegative(assignment.Right.To<NumberNode>().To<NumberNode>().Value) && to.Format.IsUnsigned())
 				{
-					diagnostics.Add(Status.Warning(assignment.Position, "Converting signed number into unsigned format"));
+					diagnostics.Add(new Status(assignment.Position, "Converting signed number into unsigned format"));
 				}
 			}
 		}
@@ -80,23 +81,23 @@ public static class Warnings
 					if ((!expected.IsPrimitive || Primitives.IsPrimitive(expected, Primitives.LINK)) && source.Instance == NodeType.NUMBER && Equals(source.To<NumberNode>().Value, 0L)) continue;
 
 					var message = $"Unsafe cast from '{actual}' to '{expected}'";
-					diagnostics.Add(Status.Warning(argument.Position, message));
+					diagnostics.Add(new Status(argument.Position, message));
 				}
 				else if (argument.Is(NodeType.NUMBER))
 				{
 					if (actual.Format.IsDecimal() && !expected.Format.IsDecimal())
 					{
 						var message = $"Possible loss of information while converting the number to type '{expected}'";
-						diagnostics.Add(Status.Warning(argument.Position, message));
+						diagnostics.Add(new Status(argument.Position, message));
 					}
 					else if (argument.To<NumberNode>().Bits > Size.FromFormat(expected.Format).Bits)
 					{
 						var message = $"Possible loss of information while converting the number to type '{expected}'";
-						diagnostics.Add(Status.Warning(argument.Position, message));
+						diagnostics.Add(new Status(argument.Position, message));
 					}
 					else if (Numbers.IsNegative(argument.To<NumberNode>().Value) && expected.Format.IsUnsigned())
 					{
-						diagnostics.Add(Status.Warning(argument.Position, "Converting signed number into unsigned format"));
+						diagnostics.Add(new Status(argument.Position, "Converting signed number into unsigned format"));
 					}
 				}
 			}
@@ -126,7 +127,7 @@ public static class Warnings
 			if (iterator.IsParameter && implementation.VirtualFunction != null) continue;
 
 			var message = iterator.IsParameter ? $"Unused parameter '{iterator.Name}'" : $"Unused local variable '{iterator.Name}'";
-			diagnostics.Add(Status.Warning(iterator.Position, message));
+			diagnostics.Add(new Status(iterator.Position, message));
 		}
 	}
 
@@ -146,13 +147,20 @@ public static class Warnings
 	/// <summary>
 	/// Analyzes the specified context and returns warnings concerning the functions and types in it
 	/// </summary>
-	public static List<Status> Analyze(Context context)
+	public static List<Status> Report(Context context)
 	{
 		var diagnostics = new List<Status>();
 
 		foreach (var implementation in Common.GetAllFunctionImplementations(context))
 		{
 			Analyze(diagnostics, implementation);
+		}
+
+		foreach (var diagnostic in diagnostics)
+		{
+			Console.Write(Errors.FormatPosition(diagnostic.Position));
+			Console.Write(": \x1b[1;33mWarning\x1b[0m: ");
+			Console.WriteLine(diagnostic.Message);
 		}
 
 		return diagnostics;

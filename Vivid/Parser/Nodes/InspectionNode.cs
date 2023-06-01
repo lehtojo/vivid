@@ -29,7 +29,7 @@ public class InspectionNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		var type = TryGetType();
-		return type == null || type.IsUnresolved ? Status.Error(Position, "Can not resolve the type of the inspected object") : Status.OK;
+		return type == null || type.IsUnresolved ? new Status(Position, "Can not resolve the type of the inspected object") : Status.OK;
 	}
 
 	public override Type? TryGetType()

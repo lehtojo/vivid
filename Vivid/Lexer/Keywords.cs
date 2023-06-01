@@ -37,50 +37,50 @@ public static class Keywords
 	public static readonly Keyword VIRTUAL = new("open", KeywordType.NORMAL);
 	public static readonly Keyword WHEN = new("when", KeywordType.FLOW);
 
-	public static Dictionary<string, Keyword> Definitions { get; } = new Dictionary<string, Keyword>();
+	public static Dictionary<string, Keyword> All { get; } = new Dictionary<string, Keyword>();
 
 	public static void Initialize()
 	{
-		Definitions.Add(AS.Identifier, AS);
-		Definitions.Add(COMPILES.Identifier, COMPILES);
-		Definitions.Add(CONSTANT.Identifier, CONSTANT);
-		Definitions.Add(CONTINUE.Identifier, CONTINUE);
-		Definitions.Add(ELSE.Identifier, ELSE);
-		Definitions.Add(EXPORT.Identifier, EXPORT);
-		Definitions.Add(GLOBAL.Identifier, GLOBAL);
-		Definitions.Add(HAS.Identifier, HAS);
-		Definitions.Add(HAS_NOT.Identifier, HAS_NOT);
-		Definitions.Add(IF.Identifier, IF);
-		Definitions.Add(IN.Identifier, IN);
-		Definitions.Add(INLINE.Identifier, INLINE);
-		Definitions.Add(IS.Identifier, IS);
-		Definitions.Add(IMPORT.Identifier, IMPORT);
-		Definitions.Add(LOOP.Identifier, LOOP);
-		Definitions.Add(NAMESPACE.Identifier, NAMESPACE);
-		Definitions.Add(NOT.Identifier, NOT);
-		Definitions.Add(OUTLINE.Identifier, OUTLINE);
-		Definitions.Add(OVERRIDE.Identifier, OVERRIDE);
-		Definitions.Add(PACK.Identifier, PACK);
-		Definitions.Add(PLAIN.Identifier, PLAIN);
-		Definitions.Add(PRIVATE.Identifier, PRIVATE);
-		Definitions.Add(PROTECTED.Identifier, PROTECTED);
-		Definitions.Add(PUBLIC.Identifier, PUBLIC);
-		Definitions.Add(READABLE.Identifier, READABLE);
-		Definitions.Add(RETURN.Identifier, RETURN);
-		Definitions.Add(SHARED.Identifier, SHARED);
-		Definitions.Add(STOP.Identifier, STOP);
+		All.Add(AS.Identifier, AS);
+		All.Add(COMPILES.Identifier, COMPILES);
+		All.Add(CONSTANT.Identifier, CONSTANT);
+		All.Add(CONTINUE.Identifier, CONTINUE);
+		All.Add(ELSE.Identifier, ELSE);
+		All.Add(EXPORT.Identifier, EXPORT);
+		All.Add(GLOBAL.Identifier, GLOBAL);
+		All.Add(HAS.Identifier, HAS);
+		All.Add(HAS_NOT.Identifier, HAS_NOT);
+		All.Add(IF.Identifier, IF);
+		All.Add(IN.Identifier, IN);
+		All.Add(INLINE.Identifier, INLINE);
+		All.Add(IS.Identifier, IS);
+		All.Add(IMPORT.Identifier, IMPORT);
+		All.Add(LOOP.Identifier, LOOP);
+		All.Add(NAMESPACE.Identifier, NAMESPACE);
+		All.Add(NOT.Identifier, NOT);
+		All.Add(OUTLINE.Identifier, OUTLINE);
+		All.Add(OVERRIDE.Identifier, OVERRIDE);
+		All.Add(PACK.Identifier, PACK);
+		All.Add(PLAIN.Identifier, PLAIN);
+		All.Add(PRIVATE.Identifier, PRIVATE);
+		All.Add(PROTECTED.Identifier, PROTECTED);
+		All.Add(PUBLIC.Identifier, PUBLIC);
+		All.Add(READABLE.Identifier, READABLE);
+		All.Add(RETURN.Identifier, RETURN);
+		All.Add(SHARED.Identifier, SHARED);
+		All.Add(STOP.Identifier, STOP);
 		// Do not reserve using-keyword
-		Definitions.Add(VIRTUAL.Identifier, VIRTUAL);
-		Definitions.Add(WHEN.Identifier, WHEN);
+		All.Add(VIRTUAL.Identifier, VIRTUAL);
+		All.Add(WHEN.Identifier, WHEN);
 	}
 
 	public static bool Exists(string name)
 	{
-		return Definitions.ContainsKey(name);
+		return All.ContainsKey(name);
 	}
 
 	public static Keyword Get(string text)
 	{
-		return Definitions[text];
+		return All[text];
 	}
 }

@@ -43,13 +43,13 @@ public class ReturnNode : Node, IResolvable
 
 		if (has_return_type == has_return_value)
 		{
-			if (has_return_type && !Common.Compatible(return_value_type, implementation.ReturnType)) return Status.Error(Position, "Type of the returned value is not compatible with the return type");
+			if (has_return_type && !Common.Compatible(return_value_type, implementation.ReturnType)) return new Status(Position, "Type of the returned value is not compatible with the return type");
 
 			return Status.OK;
 		}
 
-		if (has_return_type) return Status.Error(Position, "Can not return without a value, because the function has a return type");
-		return Status.Error(Position, "Can not return with a value, because the function does not return a value");
+		if (has_return_type) return new Status(Position, "Can not return without a value, because the function has a return type");
+		return new Status(Position, "Can not return with a value, because the function does not return a value");
 	}
 
 	public override string ToString() => "Return";

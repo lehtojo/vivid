@@ -28,8 +28,8 @@ public static class ProjectBuilder
 		var context = (Context?)null;
 
 		// Merge all parsed files
-		context = new Context(ParserPhase.ROOT_CONTEXT_IDENTITY);
-		root = new ScopeNode(context, null, null, false);
+		context = Parser.CreateRootContext(ParserPhase.ROOT_CONTEXT_IDENTITY);
+		root = Parser.CreateRootNode(context);
 
 		// Now merge all the parsed source files
 		foreach (var file in files.Values)
@@ -43,8 +43,6 @@ public static class ProjectBuilder
 		// Applies all the extension functions
 		ParserPhase.ApplyExtensionFunctions(context, root);
 
-		// TODO: Shell validation
-
 		// Empty out all other function implementations other than the function filter
 		if (function_filter != null)
 		{
@@ -56,26 +54,37 @@ public static class ProjectBuilder
 			}
 
 			var parse = files[filter];
-			function_filter.Blueprint = parse.Blueprints[function_filter];
+			var blueprint = parse.Blueprints[function_filter];
+	
+			if (function_filter.IsTemplateFunction)
+			{
+				// Template functions save the function header in the blueprint: function() {...},
+				// so add the tokens into the body.
+				function_filter.Blueprint.Last().To<ParenthesisToken>().Tokens = blueprint;
+			}
+			else
+			{
+				function_filter.Blueprint = blueprint;
+			}
 		}
 
 		// Preprocess the 'hull' of the code before creating functions
 		Evaluator.Evaluate(context, root);
 
-		var report = ResolverPhase.GetReport(context);
+		var current = Resolver.GetReport(context, root);
 		var evaluated = false;
 
 		// Try to resolve as long as errors change -- errors do not always decrease since the program may expand each cycle
 		while (true)
 		{
-			var previous = report;
+			var previous = current;
 
 			Resolver.ResolveContext(context);
 			Resolver.Resolve(context, root);
 
-			report = ResolverPhase.GetReport(context);
+			current = Resolver.GetReport(context, root);
 
-			if (report == previous) break;
+			if (current.SequenceEqual(previous)) break;
 		}
 
 		if (function_filter != null)
@@ -86,33 +95,26 @@ public static class ProjectBuilder
 			function_filter.Implement(parameter_types!);
 		}
 
-		report = ResolverPhase.GetReport(context);
+		current = Resolver.GetReport(context, root);
 
 		// Try to resolve as long as errors change -- errors do not always decrease since the program may expand each cycle
 		while (true)
 		{
-			var previous = report;
+			var previous = current;
 
-			if (function_filter != null)
+			if (function_filter == null)
 			{
-				foreach (var implementation in function_filter!.Implementations)
-				{
-					Resolver.ResolveImplementation(implementation);
-				}
-			}
-			else
-			{
-				// Try to resolve any problems in the node tree
 				ParserPhase.ImplementFunctions(context, all ? null : filter, true);
-
-				Resolver.ResolveContext(context);
-				Resolver.Resolve(context, root);
-
-				report = ResolverPhase.GetReport(context);
+				GarbageCollector.CreateAllRequiredOverloads(context);
 			}
+
+			Resolver.ResolveContext(context);
+			Resolver.Resolve(context, root);
+
+			current = Resolver.GetReport(context, root);
 
 			// Try again only if the errors have changed
-			if (report != previous) continue;
+			if (!current.SequenceEqual(previous)) continue;
 			if (evaluated) break;
 
 			Evaluator.Evaluate(context);

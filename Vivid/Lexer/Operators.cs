@@ -52,7 +52,6 @@ public static class Operators
 
 	public static readonly Dictionary<string, Operator> All = new();
 	public static readonly Dictionary<string, AssignmentOperator> Assignments = new();
-
 	public static readonly Dictionary<Operator, string> Overloads = new();
 
 	private static void Add(Operator operation)
@@ -127,6 +126,12 @@ public static class Operators
 		Overloads.Add(Operators.EQUALS, "equals");
 	}
 
+	public static AssignmentOperator? GetAssignmentOperator(Operator operation)
+	{
+		if (Assignments.TryGetValue(operation.Identifier, out AssignmentOperator? action)) return action;
+		return null;
+	}
+
 	public static Operator Get(string text)
 	{
 		if (All.TryGetValue(text, out Operator? operation))
@@ -135,12 +140,6 @@ public static class Operators
 		}
 
 		throw new System.Exception($"Unknown operator '{text}'");
-	}
-
-	public static AssignmentOperator? GetAssignmentOperator(Operator operation)
-	{
-		if (Assignments.TryGetValue(operation.Identifier, out AssignmentOperator? action)) return action;
-		return null;
 	}
 
 	public static bool Exists(string identifier)

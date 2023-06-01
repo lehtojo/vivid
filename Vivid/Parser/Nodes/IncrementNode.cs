@@ -27,7 +27,7 @@ public class IncrementNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		// Ensure the object is a number
-		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the increment operation");
+		return TryGetType() is Number ? Status.OK : new Status(Position, "Can not resolve the increment operation");
 	}
 
 	public override bool Equals(object? other)
@@ -39,10 +39,7 @@ public class IncrementNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Post);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Post);
 	}
 
 	public override string ToString() => "Increment";

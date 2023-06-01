@@ -130,7 +130,15 @@ public static class CursorInformationProvider
 		foreach (var implementation in function.Implementations)
 		{
 			var cursor = implementation.Node!.Find(i => i.Position != null && i.Position.IsCursor);
-			if (cursor != null) return cursor;
+
+			if (cursor != null)
+			{
+				// If the cursor is a link node and the right operand is a cursor as well, switch to it.
+				// Note: We do this, because expressions such as "member" expand to "this.member" and we want the right operand.
+				if (cursor.Instance == NodeType.LINK && cursor.Right.Position?.IsCursor == true) { cursor = cursor.Right; }
+
+				return cursor;
+			}
 		}
 
 		return null;

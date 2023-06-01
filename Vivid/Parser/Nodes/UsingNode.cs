@@ -75,19 +75,19 @@ public class UsingNode : Node, IResolvable
 		// 1. Verify the allocated object is a construction
 		if (!(Left.Instance == NodeType.CONSTRUCTION) && !(Left.Instance == NodeType.LINK && Left.Right.Instance == NodeType.CONSTRUCTION))
 		{
-			return Status.Error(Position, "Left side must be a construction");
+			return new Status(Position, "Left side must be a construction");
 		}
 
 		// 2. Verify the allocator has an allocation function
 		var allocator_type = Right.TryGetType();
-		if (allocator_type == null || allocator_type.IsUnresolved) return Status.Error(Position, "Can not resolve the type of the allocator");
+		if (allocator_type == null || allocator_type.IsUnresolved) return new Status(Position, "Can not resolve the type of the allocator");
 
 		// If the allocator is an integer or a link, treat it as an address where the object should be allocated
 		if ((allocator_type.IsNumber && allocator_type.Format != Format.DECIMAL) || allocator_type is Link) return Status.OK;
 
 		if (!allocator_type.IsFunctionDeclared(Parser.STANDARD_ALLOCATOR_FUNCTION) && !allocator_type.IsVirtualFunctionDeclared(Parser.STANDARD_ALLOCATOR_FUNCTION))
 		{
-			return Status.Error(Position, "Allocator does not have allocation function: allocate(size: i64): link");
+			return new Status(Position, "Allocator does not have allocation function: allocate(size: i64): link");
 		}
 
 		return Status.OK;

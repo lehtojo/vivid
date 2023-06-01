@@ -65,7 +65,7 @@ public class Link : Number
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Name, Identifier, GetAccessorType());
+		return GetAccessorType().GetHashCode() + 1;
 	}
 
 	public override string ToString()

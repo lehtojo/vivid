@@ -54,7 +54,7 @@ public class CommandNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		if (Finished && Container != null) return Status.OK;
-		return Status.Error(Position, $"Keyword '{Instruction.Identifier}' must be used inside a loop");
+		return new Status(Position, $"Keyword '{Instruction.Identifier}' must be used inside a loop");
 	}
 
 	public override bool Equals(object? other)
@@ -66,9 +66,6 @@ public class CommandNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Instruction);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Instruction);
 	}
 }

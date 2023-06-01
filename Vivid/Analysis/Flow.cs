@@ -1,46 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-
-public class NodeReferenceEqualityComparer : IEqualityComparer<Node>
-{
-	public bool Equals(Node? x, Node? y)
-	{
-		return ReferenceEquals(x, y);
-	}
-
-	public int GetHashCode(Node x)
-	{
-		return HashCode.Combine(x);
-	}
-}
-
-public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
-{
-	public bool Equals(T? x, T? y)
-	{
-		return ReferenceEquals(x, y);
-	}
-
-	public int GetHashCode(T x)
-	{
-		return HashCode.Combine(x);
-	}
-}
-
-public class HashlessReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
-{
-	public bool Equals(T? x, T? y)
-	{
-		return ReferenceEquals(x, y);
-	}
-
-	public int GetHashCode(T x)
-	{
-		return 0;
-	}
-}
 
 public class LoopDescriptor
 {
@@ -57,11 +17,11 @@ public class LoopDescriptor
 public class StatementFlow
 {
 	public List<Node?> Nodes { get; private set; } = new List<Node?>();
-	private Dictionary<Node, int> Indices { get; set; } = new Dictionary<Node, int>(new NodeReferenceEqualityComparer());
-	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new NodeReferenceEqualityComparer());
+	private Dictionary<Node, int> Indices { get; set; } = new Dictionary<Node, int>(new ReferenceEqualityComparer<Node>());
+	public Dictionary<JumpNode, int> Jumps { get; private set; } = new Dictionary<JumpNode, int>(new ReferenceEqualityComparer<Node>());
 	public Dictionary<Label, int> Labels { get; private set; } = new Dictionary<Label, int>(new ReferenceEqualityComparer<Label>());
 	public Dictionary<Label, List<JumpNode>> Paths { get; private set; } = new Dictionary<Label, List<JumpNode>>(new ReferenceEqualityComparer<Label>());
-	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new NodeReferenceEqualityComparer());
+	public Dictionary<LoopNode, LoopDescriptor> Loops { get; private set; } = new Dictionary<LoopNode, LoopDescriptor>(new ReferenceEqualityComparer<Node>());
 	public Label End { get; private set; }
 	public int LabelIdentity { get; private set; } = 0;
 

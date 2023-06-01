@@ -165,6 +165,6 @@ public class FunctionImplementation : Context
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Name, Identity, Parameters, ReturnType);
+		return HashCode.Combine(Name, Identity);
 	}
 }

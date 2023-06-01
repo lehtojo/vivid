@@ -292,7 +292,7 @@ public class InstructionEncoderCoreTest
 
 		// Initialize the target architecture
 		Instructions.X64.Initialize();
-		Keywords.Definitions.Clear();
+		Keywords.All.Clear();
 		Operators.Initialize();
 		Operators.All.Remove(Operators.AND.Identifier);
 		Operators.All.Remove(Operators.OR.Identifier);

@@ -12,7 +12,7 @@ public class LambdaNode : Node, IResolvable
 	{
 		Function = lambda;
 		Position = position;
-		Status = Status.Error(Position, "Can not resolve parameter types of this lambda");
+		Status = new Status(Position, "Can not resolve parameter types of this lambda");
 		Instance = NodeType.LAMBDA;
 	}
 
@@ -78,6 +78,6 @@ public class LambdaNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Instance, Position, Function);
+		return HashCode.Combine(Instance, Position, Function.Identity);
 	}
 }

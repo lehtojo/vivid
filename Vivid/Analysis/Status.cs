@@ -1,72 +1,48 @@
-using System.Globalization;
-
 public class Status
 {
 	public static readonly Status OK = new("OK", false);
 
-	public string Description { get; }
+	public Position? Position { get; } = null;
+	public string Message { get; } = string.Empty;
+	public bool IsProblematic { get; private set; } = false;
 
-	public bool IsProblematic { get; private set; }
-
-	private Status(string description, bool problematic)
+	public Status(string message, bool problematic)
 	{
-		Description = description;
+		Message = message;
 		IsProblematic = problematic;
 	}
 
-	public static Status Error(string format, params object[] arguments)
+	public Status(string message)
 	{
-		return new Status(string.Format(format, arguments), true);
+		Position = null;
+		Message = message;
+		IsProblematic = true;
 	}
 
-	public static Status Error(string description)
+	public Status(string format, params string[] arguments)
 	{
-		return new Status(description, true);
+		Position = null;
+		Message = string.Format(format, arguments);
+		IsProblematic = true;
 	}
 
-	public static Status Error(Position? position, string description)
+	public Status(Position? position, string message)
 	{
-		var location = string.Empty;
-
-		if (position != null)
-		{
-			var fullname = Errors.UNKNOWN_FILE;
-
-			if (position.File != null)
-			{
-				fullname = position.File.Fullname;
-			}
-
-			location = $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}";
-		}
-		else
-		{
-			location = Errors.UNKNOWN_LOCATION;
-		}
-
-		return Status.Error($"{location}: {Errors.ERROR_BEGIN}Error{Errors.ERROR_END}: {description}");
+		Position = position;
+		Message = message;
+		IsProblematic = true;
 	}
 
-	public static Status Warning(Position? position, string description)
+	public override bool Equals(object? other)
 	{
-		var location = string.Empty;
+		if (other is not Status status) return false;
 
-		if (position != null)
-		{
-			var fullname = Errors.UNKNOWN_FILE;
+		if (Message != status.Message) return false;
+		return Equals(Position, status.Position);
+	}
 
-			if (position.File != null)
-			{
-				fullname = position.File.Fullname;
-			}
-
-			location = $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}";
-		}
-		else
-		{
-			location = Errors.UNKNOWN_LOCATION;
-		}
-
-		return Status.Error($"{location}: {Errors.WARNING_BEGIN}Warning{Errors.WARNING_END}: {description}");
+	public static Status Warning(Position? position, string message)
+	{
+		return new Status(position, message);
 	}
 }

@@ -254,15 +254,6 @@ public class Function : Context
 
 	public override int GetHashCode()
 	{
-		HashCode hash = new();
-		hash.Add(Subcontexts);
-		hash.Add(Variables);
-		hash.Add(Functions);
-		hash.Add(Types);
-		hash.Add(Labels);
-		hash.Add(Modifiers);
-		hash.Add(Parameters);
-		hash.Add(Implementations);
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Identity);
 	}
 }

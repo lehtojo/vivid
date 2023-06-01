@@ -21,12 +21,14 @@
 		Absolute = 0;
 	}
 
-	public Position(int line = 0, int character = 0, int local = 0, int absolute = 0)
+	public Position(SourceFile? file = null, int line = 0, int character = 0, int local = 0, int absolute = 0, bool cursor = false)
 	{
+		File = file;
 		Line = line;
 		Character = character;
 		Local = local;
 		Absolute = absolute;
+		IsCursor = cursor;
 	}
 
 	public Position NextLine()
@@ -48,11 +50,11 @@
 
 	public Position Translate(int characters)
 	{
-		return new Position(Line, Character + characters, Local + characters, Absolute + characters);
+		return new Position(File, Line, Character + characters, Local + characters, Absolute + characters, IsCursor);
 	}
 
 	public Position Clone()
 	{
-		return new Position(Line, Character, Local, Absolute);
+		return new Position(File, Line, Character, Local, Absolute, IsCursor);
 	}
 }

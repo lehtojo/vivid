@@ -7,13 +7,13 @@ public class ParenthesisType
 	public static readonly ParenthesisType BRACKETS = new('[', ']');
 	public static readonly ParenthesisType CURLY_BRACKETS = new('{', '}');
 
-	private static Dictionary<char, ParenthesisType> Map { get; } = new Dictionary<char, ParenthesisType>();
+	private static Dictionary<char, ParenthesisType> All { get; } = new Dictionary<char, ParenthesisType>();
 
 	static ParenthesisType()
 	{
-		Map.Add(PARENTHESIS.Opening, PARENTHESIS);
-		Map.Add(BRACKETS.Opening, BRACKETS);
-		Map.Add(CURLY_BRACKETS.Opening, CURLY_BRACKETS);
+		All.Add(PARENTHESIS.Opening, PARENTHESIS);
+		All.Add(BRACKETS.Opening, BRACKETS);
+		All.Add(CURLY_BRACKETS.Opening, CURLY_BRACKETS);
 	}
 
 	public char Opening { get; private set; }
@@ -27,7 +27,7 @@ public class ParenthesisType
 
 	public static ParenthesisType Get(char opening)
 	{
-		return Map[opening];
+		return All[opening];
 	}
 
 	public override bool Equals(object? other)

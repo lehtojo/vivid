@@ -143,7 +143,7 @@ public class UnresolvedIdentifier : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position, $"Can not resolve identifier '{Value}'");
+		return new Status(Position, $"Can not resolve identifier '{Value}'");
 	}
 
 	public override bool Equals(object? other)

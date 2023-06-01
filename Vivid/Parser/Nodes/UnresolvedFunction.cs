@@ -215,7 +215,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 		descriptor += $"({string.Join(", ", ((IEnumerable<Node>)this).Select(p => p.TryGetType()?.ToString() ?? "?"))})";
 
-		return Status.Error(Position, $"Can not find function '{descriptor}'");
+		return new Status(Position, $"Can not find function '{descriptor}'");
 	}
 
 	public override bool Equals(object? other)
@@ -227,10 +227,7 @@ public class UnresolvedFunction : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Name);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Name);
 	}
 
 	public override string ToString() => $"Unresolved Function {Name}";

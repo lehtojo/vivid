@@ -87,7 +87,7 @@ public class ExtensionFunctionNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return Status.Error(Position!, "Can not resolve the extension function");
+		return new Status(Position!, "Can not resolve the extension function");
 	}
 
 	public override int GetHashCode()

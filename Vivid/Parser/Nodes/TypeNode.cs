@@ -42,10 +42,7 @@ public class TypeNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Type.Identity);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Type.Identity);
 	}
 
 	public Status GetStatus()
@@ -55,7 +52,7 @@ public class TypeNode : Node, IResolvable
 			return Status.OK;
 		}
 
-		return Status.Error(Position, "Can not understand");
+		return new Status(Position, "Can not understand");
 	}
 
 	public override string ToString() => $"Type {Type}";

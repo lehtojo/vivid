@@ -6,29 +6,19 @@ public class NumberToken : Token
 {
 	public object Value { get; private set; }
 	public Format Format { get; private set; }
-	public int Bits { get; private set; }
 	public Position? End { get; private set; }
-	public int Bytes => Bits / 8;
-
-	private static bool IsDecimal(string text)
-	{
-		return text.Contains('.');
-	}
 
 	private static string GetNumberPart(string text)
 	{
-		return new string(text.TakeWhile(c => char.IsDigit(c) || c == Lexer.DECIMAL_SEPARATOR).ToArray());
+		return new string(text.TakeWhile(i => char.IsDigit(i) || i == Lexer.DECIMAL_SEPARATOR).ToArray());
 	}
 
-	private static void GetType(string text, out int bits, out bool unsigned)
+	private static Format GetNumberFormat(string text)
 	{
 		var index = text.IndexOf(Lexer.SIGNED_TYPE_SEPARATOR);
+		var unsigned = false;
 
-		if (index != -1)
-		{
-			unsigned = false;
-		}
-		else
+		if (index == -1)
 		{
 			index = text.IndexOf(Lexer.UNSIGNED_TYPE_SEPARATOR);
 
@@ -38,37 +28,26 @@ public class NumberToken : Token
 			}
 			else
 			{
-				unsigned = false;
-				bits = Lexer.Size.Bits;
-				return;
+				return Format.INT64;
 			}
 		}
 
-		var size = new string(text.Skip(index + 1).TakeWhile(c => char.IsDigit(c)).ToArray());
+		// Take all the digits, which represent the bit size
+		var size = new string(text.Skip(index + 1).TakeWhile(i => char.IsDigit(i)).ToArray());
 
-		if (int.TryParse(size, out int result))
-		{
-			bits = result;
-		}
-		else
-		{
-			bits = Lexer.Size.Bits;
-		}
+		// If digits were captured and the number can be parsed, return a format, which matches it
+		if (int.TryParse(size, out int bits)) return Size.FromBytes(bits / 8).ToFormat(unsigned);
+
+		// Return the default format
+		return Size.FromBytes(Settings.Bytes).ToFormat(unsigned);
 	}
 
 	private int GetExponent(string text)
 	{
 		var index = text.IndexOf(Lexer.EXPONENT_SEPARATOR);
+		if (index == -1) return 0;
 
-		if (index == -1)
-		{
-			return 0;
-		}
-
-		if (text.Length == ++index)
-		{
-			throw new LexerException(Position, "Invalid number exponent");
-		}
+		if (text.Length == ++index) throw new LexerException(Position, "Invalid number exponent");
 
 		var sign = 1;
 
@@ -84,10 +63,7 @@ public class NumberToken : Token
 
 		var exponent = new string(text.Skip(index).TakeWhile(i => char.IsDigit(i)).ToArray());
 
-		if (int.TryParse(exponent, out int result))
-		{
-			return sign * result;
-		}
+		if (int.TryParse(exponent, out int result)) return sign * result;
 
 		throw new LexerException(Position, "Invalid number exponent");
 	}
@@ -99,7 +75,7 @@ public class NumberToken : Token
 
 		var exponent = GetExponent(text);
 
-		if (IsDecimal(text))
+		if (text.Contains(Lexer.DECIMAL_SEPARATOR))
 		{
 			// Calculate the value
 			if (!double.TryParse(GetNumberPart(text), NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
@@ -117,7 +93,6 @@ public class NumberToken : Token
 
 			Value = value;
 			Format = Format.DECIMAL;
-			Bits = Lexer.Size.Bytes * 8;
 		}
 		else
 		{
@@ -136,42 +111,31 @@ public class NumberToken : Token
 				if (value <= previous) throw new LexerException(position, "Too large or too small integer");
 			}
 
-			// Get the format of the number
-			GetType(text, out int bits, out bool unsigned);
-
 			Value = value;
-			Format = Size.TryGetFromBytes(bits / 8)?.ToFormat(unsigned) ?? throw new LexerException(Position, $"Invalid number format");
-			Bits = bits;
+			Format = GetNumberFormat(text);
 		}
 	}
 
-	public NumberToken(long number) : base(TokenType.NUMBER)
+	public NumberToken(long value) : base(TokenType.NUMBER)
 	{
-		Value = number;
-		Format = Lexer.Size.ToFormat(false);
-		Bits = Lexer.Size.Bytes * 8;
+		Value = value;
+		Format = Settings.Signed;
 	}
 
-	public NumberToken(int number) : base(TokenType.NUMBER)
+	public NumberToken(int value) : base(TokenType.NUMBER)
 	{
-		Value = (long)number;
-		Format = Lexer.Size.ToFormat(false);
-		Bits = Lexer.Size.Bytes * 8;
+		Value = (long)value;
+		Format = Settings.Signed;
 	}
 
 	public override bool Equals(object? other)
 	{
-		return other is NumberToken token &&
-			   base.Equals(other) &&
-			   (long)Value == (long)token.Value &&
-			   Format == token.Format &&
-			   Bits == token.Bits &&
-			   Bytes == token.Bytes;
+		return other is NumberToken token && base.Equals(other) && (long)Value == (long)token.Value && Format == token.Format;
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(base.GetHashCode(), Value, Format, Bits, Bytes);
+		return HashCode.Combine(base.GetHashCode(), Value, Format);
 	}
 
 	public override object Clone()

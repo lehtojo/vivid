@@ -97,7 +97,7 @@ public class Units
 		StartSection("Assembler");
 
 		Instructions.X64.Initialize();
-		Keywords.Definitions.Clear();
+		Keywords.All.Clear();
 		Operators.Initialize();
 
 		Run("Arithmetic", AssemblerTests.Arithmetic);

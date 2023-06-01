@@ -85,13 +85,13 @@ public class PackConstructionNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		// Ensure that all member names are unique
-		if (!ValidateMemberNames()) return Status.Error(Position, "All pack members must be named differently");
-		if (Type == null) return Status.Error(Position, "Can not resolve the types of the pack members");
-		if (Type.IsUnresolved) return Status.Error(Position, "Can not resolve the target type");
-		if (!Type.IsPack) return Status.Error(Position, "Target type must be a pack type");
+		if (!ValidateMemberNames()) return new Status(Position, "All pack members must be named differently");
+		if (Type == null) return new Status(Position, "Can not resolve the types of the pack members");
+		if (Type.IsUnresolved) return new Status(Position, "Can not resolve the target type");
+		if (!Type.IsPack) return new Status(Position, "Target type must be a pack type");
 
 		var missing = CaptureMissingMember();
-		if (missing != null) return Status.Error(Position, $"Missing value for member {missing.Name}");
+		if (missing != null) return new Status(Position, $"Missing value for member {missing.Name}");
 
 		return Status.OK;
 	}

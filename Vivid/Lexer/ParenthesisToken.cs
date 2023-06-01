@@ -4,27 +4,21 @@ using System.Linq;
 
 public class ParenthesisToken : Token
 {
-	private const int OPENING = 0;
-	private const int EMPTY = 2;
-
 	public ParenthesisType Opening { get; set; }
-	public List<Token> Tokens { get; private set; } = new List<Token>();
+	public List<Token> Tokens { get; set; } = new List<Token>();
 	public Position? End { get; private set; }
 
 	public bool IsEmpty => Tokens.Count == 0;
 
-	public ParenthesisToken(string raw, Position start, Position end) : base(TokenType.PARENTHESIS)
+	public ParenthesisToken(string text, Position start, Position end) : base(TokenType.PARENTHESIS)
 	{
 		Position = start;
 		End = end;
-		Opening = ParenthesisType.Get(raw[OPENING]);
+		Opening = ParenthesisType.Get(text.First());
 
-		if (raw.Length == EMPTY)
-		{
-			return;
-		}
+		if (text.Length == 2) return;
 
-		Tokens = Lexer.GetTokens(raw[1..^1], start.Clone().NextCharacter());
+		Tokens = Lexer.GetTokens(text[1..^1], start.Clone().NextCharacter());
 	}
 
 	public ParenthesisToken() : base(TokenType.PARENTHESIS)

@@ -40,19 +40,19 @@ public class HasNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		var type = Source.TryGetType();
-		if (type == null || type.IsUnresolved) return Status.Error(Source.Position, "Can not resolve the type of the inspected object");
+		if (type == null || type.IsUnresolved) return new Status(Source.Position, "Can not resolve the type of the inspected object");
 
 		var has_value_function_overloads = type.GetFunction(ReconstructionAnalysis.RUNTIME_HAS_VALUE_FUNCTION_IDENTIFIER);
-		if (has_value_function_overloads == null) return Status.Error(Source.Position, "Inspected object does not have a \'has_value(): bool\' function");
+		if (has_value_function_overloads == null) return new Status(Source.Position, "Inspected object does not have a \'has_value(): bool\' function");
 
 		var has_value_function = has_value_function_overloads.GetImplementation();
-		if (has_value_function == null || !Primitives.IsPrimitive(has_value_function.ReturnType, Primitives.BOOL)) return Status.Error(Source.Position, "Inspected object does not have a \'has_value(): bool\' function");
+		if (has_value_function == null || !Primitives.IsPrimitive(has_value_function.ReturnType, Primitives.BOOL)) return new Status(Source.Position, "Inspected object does not have a \'has_value(): bool\' function");
 
 		var get_value_function_overloads = type.GetFunction(ReconstructionAnalysis.RUNTIME_GET_VALUE_FUNCTION_IDENTIFIER);
-		if (get_value_function_overloads == null) return Status.Error(Source.Position, "Inspected object does not have a \'get_value(): any\' function");
+		if (get_value_function_overloads == null) return new Status(Source.Position, "Inspected object does not have a \'get_value(): any\' function");
 
 		var get_value_function = get_value_function_overloads.GetImplementation();
-		if (get_value_function == null || get_value_function.ReturnType == null || get_value_function.ReturnType.IsUnresolved) return Status.Error(Source.Position, "Inspected object does not have a \'get_value(): any\' function");
+		if (get_value_function == null || get_value_function.ReturnType == null || get_value_function.ReturnType.IsUnresolved) return new Status(Source.Position, "Inspected object does not have a \'get_value(): any\' function");
 
 		return Status.OK;
 	}

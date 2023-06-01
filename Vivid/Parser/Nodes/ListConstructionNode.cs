@@ -53,7 +53,7 @@ public class ListConstructionNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		if (Type == null) return Status.Error(Position, "Can not resolve the shared type between the elements");
+		if (Type == null) return new Status(Position, "Can not resolve the shared type between the elements");
 
 		return Status.OK;
 	}

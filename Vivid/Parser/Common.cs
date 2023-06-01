@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 
 public struct InlineContainer
@@ -14,6 +13,19 @@ public struct InlineContainer
 		Destination = destination;
 		Node = node;
 		Result = result;
+	}
+}
+
+public class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class
+{
+	public bool Equals(T? x, T? y)
+	{
+		return ReferenceEquals(x, y);
+	}
+
+	public int GetHashCode(T x)
+	{
+		return HashCode.Combine(x);
 	}
 }
 
@@ -1101,7 +1113,7 @@ public static class Common
 				.Concat(type.Functions.Values.SelectMany(i => i.Overloads))
 				.Concat(type.Overrides.Values.SelectMany(i => i.Overloads))
 				.SelectMany(i => i.Implementations)
-				.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>()).ToArray();
+				.Distinct(new ReferenceEqualityComparer<FunctionImplementation>()).ToArray();
 		}
 
 		return context.Functions.Values.SelectMany(i => i.Overloads).SelectMany(i => i.Implementations).ToArray();
@@ -1131,7 +1143,7 @@ public static class Common
 		// Combine all functions with lambdas, which can be found inside the collected functions
 		return implementations
 			.Concat(implementations.SelectMany(i => GetAllFunctionImplementations(i)))
-			.Distinct(new HashlessReferenceEqualityComparer<FunctionImplementation>())
+			.Distinct(new ReferenceEqualityComparer<FunctionImplementation>())
 			.Where(i => include_imported || !i.IsImported)
 			.ToArray();
 	}
@@ -1426,5 +1438,21 @@ public static class Common
 	public static bool IsZero(Node? node)
 	{
 		return node != null && node.Is(NodeType.NUMBER) && Numbers.IsZero(node.To<NumberNode>().Value);
+	}
+
+	/// <summary>
+	/// Reports the specified error to the user
+	/// </summary>
+	public static void Report(Status error)
+	{
+		Console.WriteLine(Errors.Format(error));
+	}
+
+	/// <summary>
+	/// Reports the specified errors to the user
+	/// </summary>
+	public static void Report(List<Status> errors)
+	{
+		foreach (var error in errors) { Report(error); }
 	}
 }

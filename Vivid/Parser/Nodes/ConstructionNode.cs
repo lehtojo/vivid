@@ -29,8 +29,8 @@ public class ConstructionNode : Node, IResolvable
 		var type = TryGetType();
 		if (type == null) return Status.OK;
 
-		if (type.IsStatic) return Status.Error(Position, "Namespaces can not be created as objects");
-		if (type.IsTemplateType && !type.IsTemplateTypeVariant) return Status.Error(Position, "Can not create template type without template arguments");
+		if (type.IsStatic) return new Status(Position, "Namespaces can not be created as objects");
+		if (type.IsTemplateType && !type.IsTemplateTypeVariant) return new Status(Position, "Can not create template type without template arguments");
 
 		return Status.OK;
 	}

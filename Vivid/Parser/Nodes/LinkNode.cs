@@ -136,8 +136,8 @@ public class LinkNode : OperatorNode
 
 		var reads = !Analyzer.IsEdited(this);
 
-		if (!IsAccessible(environment, reads)) return Status.Error(Right.Position, "Can not access the member here");
-		if (IsIllegalStaticAccess(environment)) return Status.Error(Right.Position, "Can not access non-shared member this way");
+		if (!IsAccessible(environment, reads)) return new Status(Right.Position, "Can not access the member here");
+		if (IsIllegalStaticAccess(environment)) return new Status(Right.Position, "Can not access non-shared member this way");
 
 		return Status.OK;
 	}

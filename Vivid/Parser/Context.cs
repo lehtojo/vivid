@@ -828,16 +828,7 @@ public class Context : IComparable<Context>
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(Name);
-		hash.Add(Subcontexts);
-		hash.Add(IsType);
-		hash.Add(IsImplementation);
-		hash.Add(Variables);
-		hash.Add(Functions);
-		hash.Add(Types);
-		hash.Add(Labels);
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Identity);
 	}
 
 	public int CompareTo(Context? other)

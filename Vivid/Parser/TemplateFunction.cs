@@ -4,9 +4,9 @@ using System.Linq;
 
 public class TemplateFunction : Function
 {
-	public List<string> TemplateParameters { get; private set; }
 	private FunctionToken Header { get; set; }
-	private Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
+	public List<string> TemplateParameters { get; private set; }
+	public Dictionary<string, Function> Variants { get; set; } = new Dictionary<string, Function>();
 
 	public TemplateFunction(Context context, int modifiers, string name, List<string> template_parameters, List<Token> parameter_tokens, Position? start, Position? end) : base(context, modifiers | Modifier.TEMPLATE_FUNCTION, name, start, end)
 	{

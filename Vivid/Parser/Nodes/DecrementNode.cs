@@ -27,7 +27,7 @@ public class DecrementNode : Node, IResolvable
 	public Status GetStatus()
 	{
 		// Ensure the object is a number
-		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the decrement operation");
+		return TryGetType() is Number ? Status.OK : new Status(Position, "Can not resolve the decrement operation");
 	}
 
 	public override bool Equals(object? other)
@@ -39,10 +39,7 @@ public class DecrementNode : Node, IResolvable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		hash.Add(Post);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Post);
 	}
 
 	public override string ToString() => "Decrement";

@@ -4,8 +4,82 @@ using System.Linq;
 
 public static class Resolver
 {
-	private const string YELLOW = "\x1B[1;33m";
-	private const string RESET = "\x1B[0m";
+	/// <summary>
+	/// Returns the number type that should be the outcome when using the two given numbers together
+	/// </summary>
+	private static Type GetSharedNumber(Number a, Number b)
+	{
+		var bits = Math.Max(a.Bits, b.Bits);
+		var signed = !a.IsUnsigned || !b.IsUnsigned;
+		var is_decimal = a.Format.IsDecimal() || b.Format.IsDecimal();
+		return Primitives.CreateNumber(bits, signed, is_decimal);
+	}
+
+	/// <summary>
+	/// Returns the shared type between the types
+	/// </summary>
+	/// <returns>Success: Shared type between the types, Failure: null</returns>
+	public static Type? GetSharedType(Type? expected, Type? actual)
+	{
+		if (expected == null || actual == null) return null;
+		if (Equals(expected, actual)) return expected;
+
+		// Do not allow implicit conversions between links and non-links
+		if ((expected is Link) ^ (actual is Link)) return null;
+
+		if (expected is Number && actual is Number)
+		{
+			return GetSharedNumber(expected.To<Number>(), actual.To<Number>());
+		}
+
+		var expected_all_types = expected.GetAllSupertypes();
+		var actual_all_types = actual.GetAllSupertypes();
+
+		expected_all_types.Insert(0, expected);
+		actual_all_types.Insert(0, actual);
+
+		foreach (var type in expected_all_types)
+		{
+			if (actual_all_types.Contains(type)) return type;
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Returns the shared type between the types
+	/// </summary>
+	/// <returns>Success: Shared type between the types, Failure: null</returns>
+	public static Type? GetSharedType(IReadOnlyList<Type?> types)
+	{
+		if (types.Count == 0) return null;
+		var shared_type = types[0];
+
+		for (var i = 1; i < types.Count; i++)
+		{
+			shared_type = GetSharedType(shared_type, types[i]);
+			if (shared_type == null) return null;
+		}
+
+		return shared_type;
+	}
+
+	/// <summary>
+	/// Returns the types of the child nodes, only if all have types
+	/// </summary>
+	public static List<Type>? GetTypes(Node node)
+	{
+		var result = new List<Type>();
+
+		foreach (var iterator in node)
+		{
+			var type = iterator.TryGetType();
+			if (type == null) return null;
+			result.Add(type);
+		}
+
+		return result;
+	}
 
 	/// <summary>
 	/// Tries to resolve the specified array type
@@ -68,6 +142,26 @@ public static class Resolver
 	}
 
 	/// <summary>
+	/// Resolves imports in the specified context
+	/// </summary>
+	public static void ResolveImports(Context context)
+	{
+		// Resolve imports
+		for (var i = 0; i < context.Imports.Count; i++)
+		{
+			// Skip resolved imports
+			var imported = context.Imports[i];
+			if (imported.IsResolved()) continue;
+
+			// Try to resolve the import
+			var resolved = Resolve(context, imported);
+			if (resolved == null) continue;
+
+			context.Imports[i] = resolved;
+		}
+	}
+
+	/// <summary>
 	/// Tries to resolve supertypes which were not found previously
 	/// </summary>
 	public static void ResolveSupertypes(Context context, Type type)
@@ -107,26 +201,16 @@ public static class Resolver
 	{
 		var functions = Common.GetAllVisibleFunctions(context);
 		foreach (var function in functions) { Resolve(function); }
-	
-		// Resolve imports
-		for (var i = 0; i < context.Imports.Count; i++)
-		{
-			// Skip resolved imports
-			var imported = context.Imports[i];
-			if (imported.IsResolved()) continue;
 
-			// Try to resolve the import
-			var resolved = Resolve(context, imported);
-			if (resolved == null) continue;
-
-			context.Imports[i] = resolved;
-		}
+		// Resolve imports in the current context
+		ResolveImports(context);
 
 		var types = Common.GetAllTypes(context);
 
 		// Resolve all the types
 		foreach (var type in types)
 		{
+			ResolveImports(type);
 			ResolveSupertypes(context, type);
 
 			// Resolve all member variables
@@ -152,11 +236,7 @@ public static class Resolver
 		// Resolve all implementation variables and node trees
 		foreach (var implementation in implementations)
 		{
-			ResolveReturnType(implementation);
-			ResolveVariables(implementation);
-
-			if (implementation.Node == null) continue;
-			ResolveTree(implementation, implementation.Node);
+			ResolveImplementation(implementation);
 		}
 
 		// Resolve constants
@@ -177,7 +257,7 @@ public static class Resolver
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine($"{YELLOW}Internal{RESET}: {e.Message}");
+				Console.WriteLine(Errors.Format(null, e.Message));
 			}
 
 			return null;
@@ -189,110 +269,6 @@ public static class Resolver
 		}
 
 		return null;
-	}
-
-	/// <summary>
-	/// Returns the number type that should be the outcome when using the two given numbers together
-	/// </summary>
-	private static Type GetSharedNumber(Number a, Number b)
-	{
-		var bits = Math.Max(a.Bits, b.Bits);
-		var signed = !a.IsUnsigned || !b.IsUnsigned;
-		var is_decimal = a.Format.IsDecimal() || b.Format.IsDecimal();
-		return Primitives.CreateNumber(bits, signed, is_decimal);
-	}
-
-	/// <summary>
-	/// Return all supertypes of the specified type and output them to the specified supertype list.
-	/// The output supertypes are in priority order.
-	/// </summary>
-	public static List<Type> GetAllTypes(Type type)
-	{
-		var batch = new List<Type>(type.Supertypes);
-		var supertypes = new List<Type>(type.Supertypes);
-
-		while (batch.Any())
-		{
-			var copy = new List<Type>(batch);
-
-			batch.Clear();
-			batch.AddRange(copy.SelectMany(i => i.Supertypes));
-
-			supertypes.AddRange(batch);
-		}
-
-		supertypes.Insert(0, type);
-
-		return supertypes;
-	}
-
-	/// <summary>
-	/// Returns the shared type between the types
-	/// </summary>
-	/// <returns>Success: Shared type between the types, Failure: null</returns>
-	public static Type? GetSharedType(Type? expected, Type? actual)
-	{
-		if (expected == null || actual == null) return null;
-		if (Equals(expected, actual)) return expected;
-
-		// Do not allow implicit conversions between links and non-links
-		if ((expected is Link) ^ (actual is Link)) return null;
-
-		if (expected is Number && actual is Number)
-		{
-			return GetSharedNumber(expected.To<Number>(), actual.To<Number>());
-		}
-
-		var expected_all_types = GetAllTypes(expected);
-		var actual_all_types = GetAllTypes(actual);
-
-		foreach (var supertype in expected_all_types)
-		{
-			if (actual_all_types.Contains(supertype)) return supertype;
-		}
-
-		return null;
-	}
-
-	/// <summary>
-	/// Returns the shared type between the types
-	/// </summary>
-	/// <returns>Success: Shared type between the types, Failure: null</returns>
-	public static Type? GetSharedType(IReadOnlyList<Type?> types)
-	{
-		if (types.Count == 0) return null;
-		if (types.Count == 1) return types[0];
-
-		var current = types[0];
-
-		for (var i = 1; i < types.Count; i++)
-		{
-			if (current == null) break;
-			current = GetSharedType(current, types[i]);
-		}
-
-		return current;
-	}
-
-	/// <summary>
-	/// Returns the types of the child nodes of the given node
-	/// </summary>
-	/// <returns>Success: Types of the child nodes, Failure: null</returns>
-	public static List<Type>? GetTypes(Node node)
-	{
-		var types = new List<Type>();
-		var iterator = node.First;
-
-		while (iterator != null)
-		{
-			var type = iterator.TryGetType();
-			if (type == null) return null;
-			types.Add(type);
-
-			iterator = iterator.Next;
-		}
-
-		return types;
 	}
 
 	/// <summary>
@@ -346,10 +322,10 @@ public static class Resolver
 		}
 
 		// Get the shared type between the references
-		var shared = GetSharedType(types);
-		if (shared == null) return;
+		var shared_type = GetSharedType(types);
+		if (shared_type == null) return;
 
-		variable.Type = shared;
+		variable.Type = shared_type;
 	}
 
 	/// <summary>
@@ -456,6 +432,299 @@ public static class Resolver
 				// Now the current overload must be the default implementation for the virtual function
 				virtual_function.ReturnType = overload.Implementations.First().ReturnType;
 				break;
+			}
+		}
+	}
+
+	private static List<Status> GetTreeStatuses(Node root)
+	{
+		var result = new List<Status>();
+
+		foreach (var child in root)
+		{
+			result.AddRange(GetTreeStatuses(child));
+
+			var status = child is IResolvable resolvable ? resolvable.GetStatus() : Status.OK;
+			if (!status.IsProblematic) continue;
+
+			result.Add(status);
+		}
+
+		return result;
+	}
+
+	private static List<Status> GetTreeReport(Node root)
+	{
+		var errors = new List<Status>();
+		if (root == null) return errors;
+
+		foreach (var status in GetTreeStatuses(root))
+		{
+			if (status == null || !status.IsProblematic) continue;
+			errors.Add(status);
+		}
+
+		return errors;
+	}
+
+	// Summary: Reports unresolved imports
+	private static void GetImportReport(Context context, List<Status> errors)
+	{
+		// Report unresolved imports
+		foreach (var imported in context.Imports)
+		{
+			if (imported.IsResolved()) continue;
+			errors.Add(new Status(imported.Position, "Can not resolve the import"));
+		}
+	}
+
+	/// <summary>
+	/// Returns whether the specified type contains a member of the target type that causes an illegal cycle.
+	/// </summary>
+	private static bool FindIllegalCyclicMember(Type type, Type target, HashSet<Type> trace)
+	{
+		// Remember that the current type has been visited, so that we do not get stuck in a loop
+		trace.Add(type);
+
+		foreach (var iterator in type.Variables)
+		{
+			var member_type = iterator.Value.Type;
+
+			// If the member is the target type, return true
+			if (ReferenceEquals(member_type, target)) return true;
+
+			// If the member is not a pack or inlining type, skip it
+			if (member_type == null || !(member_type.IsPack || member_type.IsInlining)) continue;
+
+			// If the member has already been visited, skip it
+			if (trace.Contains(member_type)) continue;
+
+			// If the member is a pack or inlining type, check it recursively
+			if (FindIllegalCyclicMember(member_type, target, trace)) return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Reports the specified type if it is illegally cyclic
+	/// </summary>
+	private static void ReportIllegalCyclicType(Type type, List<Status> errors)
+	{
+		// Only packs and inlining types might have illegal cycles
+		if (!(type.IsPack || type.IsInlining)) return;
+
+		// Attempt to find a member of the type that causes an illegal cycle
+		if (!FindIllegalCyclicMember(type, type, new HashSet<Type>())) return;
+
+		errors.Add(new Status(type.Position, "Illegal cyclic type"));
+	}
+
+	private static List<Status> GetTypeReport(Type type)
+	{
+		var errors = new List<Status>();
+
+		// Report unresolved imports
+		GetImportReport(type, errors);
+
+		if (type.Parent != null && !(type.Parent.IsGlobal || type.Parent.IsNamespace))
+		{
+			errors.Add(new Status(type.Position, "Types must be created in global scope or namespace"));
+		}
+
+		ReportIllegalCyclicType(type, errors);
+
+		foreach (var variable in type.Variables.Values)
+		{
+			if (variable.IsResolved) continue;
+			errors.Add(new Status(variable.Position, "Can not resolve the type of the member variable"));
+		}
+
+		foreach (var initialization in type.Initialization)
+		{
+			errors.AddRange(GetTreeReport(initialization));
+		}
+
+		foreach (var supertype in type.Supertypes)
+		{
+			if (supertype.IsResolved()) continue;
+			errors.Add(new Status(type.Position, "Can not inherit the supertype"));
+		}
+
+		return errors;
+	}
+
+	private static List<Status> GetFunctionReport(Function function)
+	{
+		var errors = new List<Status>();
+		if (function.IsTemplateFunction) return errors;
+
+		foreach (var parameter in function.Parameters)
+		{
+			// Explicit parameter types are optional, but they must be resolved if specified
+			if (parameter.Type == null || parameter.Type.IsResolved()) continue;
+			errors.Add(new Status(parameter.Position, "Can not resolve the type of the parameter " + parameter.Name));
+		}
+
+		// Explicit return types are optional, but they must be resolved if specified
+		if (function.ReturnType != null)
+		{
+			if (function.ReturnType.IsUnresolved)
+			{
+				errors.Add(new Status(function.Start, "Can not resolve the return type"));
+			}
+			else if (function.ReturnType is ArrayType)
+			{
+				errors.Add(new Status(function.Start, "Array type is not allowed as a return type"));
+			}
+		}
+
+		return errors;
+	}
+
+	private static List<Status> GetFunctionReport(FunctionImplementation implementation)
+	{
+		var errors = new List<Status>();
+
+		foreach (var variable in implementation.Locals)
+		{
+			if (variable.IsResolved) continue;
+			errors.Add(new Status(variable.Position, "Can not resolve the type of the variable " + variable.Name));
+		}
+
+		if (implementation.ReturnType == null || implementation.ReturnType.IsUnresolved)
+		{
+			errors.Add(new Status(implementation.Metadata.Start, "Can not resolve the return type"));
+		}
+		else if (implementation.ReturnType is ArrayType)
+		{
+			errors.Add(new Status(implementation.Metadata.Start, "Array type is not allowed as a return type"));
+		}
+
+		errors.AddRange(GetTreeReport(implementation.Node!));
+		return errors;
+	}
+
+	public static List<Status> GetReport(Context context, Node root)
+	{
+		var errors = new List<Status>();
+
+		// Report unresolved imports
+		GetImportReport(context, errors);
+
+		// Report errors in defined types
+		var types = Common.GetAllTypes(context);
+
+		foreach (var type in types)
+		{
+			errors.AddRange(GetTypeReport(type));
+		}
+
+		// Report errors in function headers
+		var functions = Common.GetAllVisibleFunctions(context);
+
+		foreach (var function in functions)
+		{
+			errors.AddRange(GetFunctionReport(function));
+		}
+
+		// Report errors in defined functions
+		var implementations = Common.GetAllFunctionImplementations(context);
+
+		foreach (var implementation in implementations)
+		{
+			errors.AddRange(GetFunctionReport(implementation));
+		}
+
+		errors.AddRange(GetTreeReport(root));
+		return errors;
+	}
+
+	/// <summary>
+	/// Finds all static member assignments which should be executed before the entry function
+	/// </summary>
+	private static List<Node> CollectStaticInitializers(Context context)
+	{
+		var types = Common.GetAllTypes(context);
+		var initializers = types.SelectMany(i => i.Initialization).Select(i => i.Clone()).ToList();
+
+		for (var i = initializers.Count - 1; i >= 0; i--)
+		{
+			// Look for static member assignments
+			var initializer = initializers[i];
+			var edited = Analyzer.GetEdited(initializer);
+
+			// Ensure the edited node is a variable node
+			if (edited.Instance == NodeType.VARIABLE)
+			{
+				var member = edited.To<VariableNode>().Variable;
+
+				// Ensure the member variable is static
+				if (member.IsStatic)
+				{
+					edited.Replace(new LinkNode(
+						new TypeNode(member.Parent.To<Type>(), member.Position),
+						edited.Clone(),
+						member.Position
+					));
+
+					continue;
+				}
+			}
+
+			// Remove the initializer, since it is not a static member assignment
+			initializers.RemoveAt(i);
+		}
+
+		return initializers;
+	}
+
+	/// <summary>
+	/// Finds the implementations of the allocation and the inheritance functions and registers them to be used
+	/// </summary>
+	public static void RegisterDefaultFunctions(Context context)
+	{
+		var allocation_function = context.GetFunction("allocate") ?? throw new ApplicationException("Missing the allocation function, please implement it or include the standard library");
+		var deallocation_function = context.GetFunction("deallocate") ?? throw new ApplicationException("Missing the deallocation function, please implement it or include the standard library");
+		var inheritance_function = context.GetFunction("internal_is") ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
+		var initialization_function = context.GetFunction("internal_init");
+
+		Settings.AllocationFunction = allocation_function.GetImplementation(Primitives.CreateNumber(Primitives.LARGE, Format.INT64)) ?? throw new ApplicationException("Missing the allocation function, please implement it or include the standard library");
+		Settings.DeallocationFunction = deallocation_function.GetImplementation(new Link()) ?? throw new ApplicationException("Missing the deallocation function, please implement it or include the standard library");
+		Settings.InheritanceFunction = inheritance_function.GetImplementation(new Link(), new Link()) ?? throw new ApplicationException("Missing the inheritance function, please implement it or include the standard library");
+
+		// Find all the static member assignments and add them to the application initialization function
+		var static_initializers = CollectStaticInitializers(context);
+
+		if (initialization_function != null)
+		{
+			Settings.InitializationFunction = initialization_function.GetImplementation(new Link()) ?? initialization_function.GetImplementation();
+		}
+		else if (static_initializers.Any())
+		{
+			// Application initialization function calls the entry function: init()
+			var initialization_function_blueprint = new List<Token>()
+			{
+				new FunctionToken(new IdentifierToken(Keywords.INIT.Identifier), new ParenthesisToken())
+			};
+
+			// Create an application initialization function, which calls the entry function, so that the static member assignments can be executed
+			var initialization_function_metadata = new Function(context, Modifier.EXPORTED, "internal_init", initialization_function_blueprint, Settings.AllocationFunction!.Metadata.Start, null);
+			context.Declare(initialization_function_metadata);
+	
+			Settings.InitializationFunction = initialization_function_metadata.Get(Array.Empty<Type>());
+		}
+
+		if (static_initializers.Any())
+		{
+			if (Settings.InitializationFunction == null) throw new ApplicationException("Missing the application initialization function");
+
+			// Add the static initializers to the application initialization function
+			for (var i = static_initializers.Count - 1; i >= 0; i--)
+			{
+				var initializer = static_initializers[i];
+				var initializer_destination = Settings.InitializationFunction!.Node!.First;
+				Settings.InitializationFunction.Node!.Insert(initializer_destination, initializer);
 			}
 		}
 	}

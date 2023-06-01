@@ -19,7 +19,7 @@ public class ParenthesisNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return First != null ? Status.OK : Status.Error(Position, "Empty parenthesis are not allowed");
+		return First != null ? Status.OK : new Status(Position, "Empty parenthesis are not allowed");
 	}
 
 	public override string ToString() => "Parenthesis";

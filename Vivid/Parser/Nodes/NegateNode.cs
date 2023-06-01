@@ -22,7 +22,7 @@ public class NegateNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		return TryGetType() is Number ? Status.OK : Status.Error(Position, "Can not resolve the negation operation");
+		return TryGetType() is Number ? Status.OK : new Status(Position, "Can not resolve the negation operation");
 	}
 
 	public override string ToString() => "Negate";

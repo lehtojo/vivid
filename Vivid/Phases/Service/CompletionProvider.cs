@@ -186,7 +186,7 @@ public static class CompletionProvider
 	/// </summary>
 	private static List<CompletionItem> GetCommonCompletionItems()
 	{
-		return Keywords.Definitions.Select(i => new CompletionItem(i.Key, CompletionItemType.Keyword)).ToList();
+		return Keywords.All.Select(i => new CompletionItem(i.Key, CompletionItemType.Keyword)).ToList();
 	}
 
 	/// <summary>

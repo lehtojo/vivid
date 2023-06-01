@@ -11,5 +11,5 @@ public class ErrorNode : Node, IResolvable
 	public Node? Resolve(Context context) => null;
 	public Status GetStatus() => Error;
 
-	public override string ToString() => "Error " + Error.Description;
+	public override string ToString() => "Error " + Error.Message;
 }

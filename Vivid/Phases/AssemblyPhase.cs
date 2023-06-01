@@ -98,16 +98,16 @@ public class AssemblyPhase : Phase
 				output = $"Output:\n{standard_output}\n\n\nError(s):\n{standard_error}";
 			}
 
-			return process.ExitCode == EXIT_CODE_OK ? Status.OK : Status.Error(ERROR + "\n" + output);
+			return process.ExitCode == EXIT_CODE_OK ? Status.OK : new Status(ERROR + "\n" + output);
 		}
 		catch
 		{
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !Linux_IsInstalled(executable))
 			{
-				return Status.Error($"Is the application '{executable}' installed and visible to this application?");
+				return new Status($"Is the application '{executable}' installed and visible to this application?");
 			}
 
-			return Status.Error(ERROR);
+			return new Status(ERROR);
 		}
 	}
 
@@ -177,7 +177,7 @@ public class AssemblyPhase : Phase
 		}
 		else if (output_type == BinaryType.STATIC_LIBRARY)
 		{
-			return Status.Error("Static libraries should be passed to the link function");
+			return new Status("Static libraries should be passed to the link function");
 		}
 		else
 		{
@@ -203,7 +203,7 @@ public class AssemblyPhase : Phase
 
 		if (output_type == BinaryType.STATIC_LIBRARY)
 		{
-			return Status.Error("Static libraries should be passed to the link function");
+			return new Status("Static libraries should be passed to the link function");
 		}
 
 		List<string>? arguments;
@@ -276,7 +276,7 @@ public class AssemblyPhase : Phase
 		}
 		catch (Exception e)
 		{
-			return Status.Error(e.Message);
+			return new Status(e.Message);
 		}
 
 		try
@@ -294,7 +294,7 @@ public class AssemblyPhase : Phase
 		}
 		catch
 		{
-			return Status.Error("Could not move generated assembly into a file");
+			return new Status("Could not move generated assembly into a file");
 		}
 
 		// Skip using the legacy system if it is not required

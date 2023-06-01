@@ -40,7 +40,7 @@ public class IsNode : Node, IResolvable
 
 	public Status GetStatus()
 	{
-		if (Type.IsUnresolved) return Status.Error(Position, "Can not resolve the condition type");
+		if (Type.IsUnresolved) return new Status(Position, "Can not resolve the condition type");
 
 		return Object is IResolvable resolvable ? resolvable.GetStatus() : Status.OK;
 	}

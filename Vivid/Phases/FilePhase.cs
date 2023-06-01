@@ -43,7 +43,7 @@ public class FilePhase : Phase
 	public override Status Execute()
 	{
 		var filenames = Settings.Filenames;
-		if (!filenames.Any()) return Status.Error("Please enter input files");
+		if (!filenames.Any()) return new Status("Please enter input files");
 
 		var files = new List<SourceFile>();
 
@@ -58,7 +58,7 @@ public class FilePhase : Phase
 			}
 			catch
 			{
-				return Status.Error("Could not load file '{0}'", filename);
+				return new Status("Could not load file '{0}'", filename);
 			}
 		}
 

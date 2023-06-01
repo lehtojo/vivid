@@ -124,7 +124,7 @@ public class OperatorNode : Node, IResolvable
 	{
 		if (Operator == Operators.ASSIGN)
 		{
-			if (!Common.Compatible(left, right)) return Status.Error(Position, "Destination and source types are not compatible");
+			if (!Common.Compatible(left, right)) return new Status(Position, "Destination and source types are not compatible");
 
 			return Status.OK;
 		}
@@ -139,19 +139,19 @@ public class OperatorNode : Node, IResolvable
 			// Allow operations such as comparing whether an object is none or not
 			if (right is not Number && Operator != Operators.EQUALS && Operator != Operators.NOT_EQUALS && Operator != Operators.ABSOLUTE_EQUALS && Operator != Operators.ABSOLUTE_NOT_EQUALS)
 			{
-				return Status.Error(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
+				return new Status(Left.Position, $"Type '{left}' does not have an operator overload for operator '{Operator.Identifier}' with argument type '{right}'");
 			}
 
 			return Status.OK;
 		}
 
-		return right is Number ? Status.OK : Status.Error(Position, "Can not resolve the type of the operation");
+		return right is Number ? Status.OK : new Status(Position, "Can not resolve the type of the operation");
 	}
 
 	private Status GetLogicStatus(Type left, Type right)
 	{
-		if (!Primitives.IsPrimitive(left, Primitives.BOOL)) return Status.Error(Left.Position, "Operand must be a bool");
-		if (!Primitives.IsPrimitive(right, Primitives.BOOL)) return Status.Error(Right.Position, "Operand must be a bool");
+		if (!Primitives.IsPrimitive(left, Primitives.BOOL)) return new Status(Left.Position, "Operand must be a bool");
+		if (!Primitives.IsPrimitive(right, Primitives.BOOL)) return new Status(Right.Position, "Operand must be a bool");
 		return Status.OK;
 	}
 
@@ -162,7 +162,7 @@ public class OperatorNode : Node, IResolvable
 
 		if (left == null || right == null)
 		{
-			return Status.Error(Position, "Can not resolve the type of the operation");
+			return new Status(Position, "Can not resolve the type of the operation");
 		}
 
 		return Operator.Type switch

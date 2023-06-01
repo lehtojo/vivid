@@ -4,7 +4,7 @@ public class StringToken : Token
 {
 	public string Text { get; set; }
 	public char Opening { get; set; }
-	public Position End => Position.Translate(Text.Length);
+	public Position End => Position.Translate(Text.Length + 2);
 
 	public StringToken(string text) : base(TokenType.STRING)
 	{

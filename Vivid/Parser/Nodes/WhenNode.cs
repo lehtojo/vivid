@@ -62,7 +62,7 @@ public class WhenNode : Node, IResolvable
 		var inspected_type = Value.TryGetType();
 		Inspected.Variable.Type = inspected_type;
 
-		if (inspected_type == null) return Status.Error(Inspected.Position, "Can not resolve the type of the inspected value");
+		if (inspected_type == null) return new Status(Inspected.Position, "Can not resolve the type of the inspected value");
 
 		var types = new List<Type>();
 
@@ -71,15 +71,15 @@ public class WhenNode : Node, IResolvable
 			var body = GetSectionBody(section);
 			var value = body.Last;
 
-			if (value == null) return Status.Error(Position, "When-statement has an empty section");
+			if (value == null) return new Status(Position, "When-statement has an empty section");
 
 			var type = value.TryGetType();
-			if (type == null) return Status.Error(value.Position, "Can not resolve the section return type");
+			if (type == null) return new Status(value.Position, "Can not resolve the section return type");
 			
 			types.Add(type);
 		}
 
-		if (Resolver.GetSharedType(types) == null) return Status.Error(Position, "Sections do not have a shared return type");
+		if (Resolver.GetSharedType(types) == null) return new Status(Position, "Sections do not have a shared return type");
 		return Status.OK;
 	}
 

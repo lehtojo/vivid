@@ -272,7 +272,7 @@ public static class StaticLibraryFormat
 		}
 		catch (Exception e)
 		{
-			return Status.Error(e.Message);
+			return new Status(e.Message);
 		}
 
 		return Status.OK;
@@ -323,7 +323,7 @@ public static class StaticLibraryFormat
 		}
 		catch (Exception e)
 		{
-			return Status.Error(e.Message);
+			return new Status(e.Message);
 		}
 
 		return Status.OK;

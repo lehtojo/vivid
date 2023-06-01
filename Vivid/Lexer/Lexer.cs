@@ -41,8 +41,6 @@ public class TextArea
 
 public static class Lexer
 {
-	public static Size Size { get; set; } = Size.QWORD;
-
 	public const char LINE_ENDING = '\n';
 	public const char COMMENT = '#';
 	public const string MULTILINE_COMMENT = "###";
@@ -155,7 +153,7 @@ public static class Lexer
 	/// <summary>
 	/// Returns the type of the character
 	/// </summary>
-	private static TextType GetType(char current, char next)
+	private static TextType GetTextType(char current, char next)
 	{
 		if (IsText(current)) return TextType.TEXT;
 		if (IsNumberWithBase(current, next)) return TextType.NUMBER_WITH_BASE;
@@ -273,7 +271,7 @@ public static class Lexer
 	/// </summary>
 	private static bool IsMultilineComment(string text, Position start)
 	{
-		return start.Local + MULTILINE_COMMENT.Length * 2 + 1 <= text.Length && text[start.Local..(start.Local + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Local + MULTILINE_COMMENT.Length] != COMMENT;
+		return start.Local + MULTILINE_COMMENT.Length * 2 < text.Length && text[start.Local..(start.Local + MULTILINE_COMMENT.Length)] == MULTILINE_COMMENT && text[start.Local + MULTILINE_COMMENT.Length] != COMMENT;
 	}
 
 	/// <summary>
@@ -297,26 +295,27 @@ public static class Lexer
 			var last_line_ending = comment.LastIndexOf(LINE_ENDING);
 
 			// If the 'multiline comment' is actually expressed in a single line, handle it separately
-			if (last_line_ending == -1) return new Position(start.Line + lines, start.Character + comment.Length, end, start.Absolute + comment.Length);
+			if (last_line_ending == -1) return new Position(start.File, start.Line + lines, start.Character + comment.Length, end, start.Absolute + comment.Length);
 
 			last_line_ending += start.Local; // The index must be relative to the whole text
 			last_line_ending++; // Skip the line ending
 
-			return new Position(start.Line + lines, end - last_line_ending, end, start.Absolute + comment.Length);
+			return new Position(start.File, start.Line + lines, end - last_line_ending, end, start.Absolute + comment.Length);
 		}
 
 		var i = text.IndexOf(LINE_ENDING, start.Local);
+		var length = 0;
 
 		if (i != -1)
 		{
-			var length = i - start.Local;
-			return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
+			length = i - start.Local;
 		}
 		else
 		{
-			var length = text.Length - start.Local;
-			return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
+			length = text.Length - start.Local;
 		}
+
+		return start.Translate(length);
 	}
 
 	/// <summary>
@@ -331,7 +330,7 @@ public static class Lexer
 			if (current == closure)
 			{
 				var length = (i + 1) - start.Local;
-				return new Position(start.Line, start.Character + length, start.Local + length, start.Absolute + length);
+				return start.Translate(length);
 			}
 
 			if (current == ESCAPER)
@@ -353,6 +352,43 @@ public static class Lexer
 	private static Position SkipCharacterValue(string text, Position start)
 	{
 		return SkipClosures(CHARACTER, text, start, "Can not find the end of the character value");
+	}
+
+	/// <summary>
+	/// Converts the specified character value text to hexadecimal character value text
+	/// </summary>
+	private static string? FormatSpecialCharacter(string text)
+	{
+		// Return if the text is empty
+		if (text.Length == 0) return null;
+
+		// Do nothing if the text does not start with an escape character
+		if (text[0] != ESCAPER) return text;
+
+		// Expect at least one character after the escape character
+		if (text.Length < 2) return null;
+
+		var command = text[1];
+
+		// Just return the text if it is already in hexadecimal format
+		if (command == 'x' || command == 'u' || command == 'U') return text;
+
+		var value = command switch
+		{
+			'a' => "\\x07",
+			'b' => "\\x08",
+			't' => "\\x09",
+			'n' => "\\x0A",
+			'v' => "\\x0B",
+			'f' => "\\x0C",
+			'r' => "\\x0D",
+			'e' => "\\x1B",
+			'\"' => "\\x22",
+			'\'' => "\\x27",
+			_ => null
+		};
+
+		return value != null ? value : text.Substring(1);
 	}
 
 	/// <summary>
@@ -416,31 +452,6 @@ public static class Lexer
 	}
 
 	/// <summary>
-	/// Returns how many bits the specified number requires
-	/// </summary>
-	public static int GetBits(object value)
-	{
-		if (value is double) return Lexer.Size.Bits;
-
-		var x = (long)value;
-
-		if (x < 0)
-		{
-			if (x < int.MinValue) return 64;
-			else if (x < short.MinValue) return 32;
-			else if (x < byte.MinValue) return 16;
-		}
-		else
-		{
-			if (x > int.MaxValue) return 64;
-			else if (x > short.MaxValue) return 32;
-			else if (x > byte.MaxValue) return 16;
-		}
-
-		return 8;
-	}
-
-	/// <summary>
 	/// Returns the next token area in the text
 	/// </summary>
 	public static TextArea? GetNextToken(string text, Position start)
@@ -457,7 +468,7 @@ public static class Lexer
 		var area = new TextArea
 		{
 			Start = position.Clone(),
-			Type = GetType(current, next)
+			Type = GetTextType(current, next)
 		};
 
 		switch (area.Type)
@@ -496,7 +507,7 @@ public static class Lexer
 				area.Type = TextType.NUMBER;
 
 				var value = (long)GetCharacterValue(area.Start, text[area.Start.Local..area.End.Local]);
-				var bits = GetBits(value);
+				var bits = Common.GetBits(value);
 
 				area.Text = value.ToString() + SIGNED_TYPE_SEPARATOR + bits.ToString();
 				return area;
@@ -512,10 +523,8 @@ public static class Lexer
 			current = next;
 			next = position.Local + 1 < text.Length ? text[position.Local + 1] : (char)0;
 
-			if (IsParenthesis(current)) break;
-
 			// Determine what area type the current character represents
-			var type = GetType(current, next);
+			var type = GetTextType(current, next);
 
 			if (!IsPartOf(area.Type, type, previous, current, next)) break;
 
@@ -534,18 +543,9 @@ public static class Lexer
 	/// <returns>Text as a token</returns>
 	private static Token ParseTextToken(string text)
 	{
-		if (Operators.Exists(text))
-		{
-			return new OperatorToken(text);
-		}
-		else if (Keywords.Exists(text))
-		{
-			return new KeywordToken(text);
-		}
-		else
-		{
-			return new IdentifierToken(text);
-		}
+		if (Operators.Exists(text)) return new OperatorToken(text);
+		if (Keywords.Exists(text)) return new KeywordToken(text);
+		return new IdentifierToken(text);
 	}
 
 	/// <summary>
@@ -555,21 +555,17 @@ public static class Lexer
 	{
 		try
 		{
-			// Extract the digits from the whole number that contains the base as well
+			// Extract the base and digits from the text
+			var number_base = area.Text[1];
 			var digits = area.Text.Substring(2);
 
 			// Parse the number based on its base
-			return area.Text[1] switch
-			{
-				BINARY_BASE_IDENTIFIER => Convert.ToInt64(digits, 2),
-				HEXADECIMAL_BASE_IDENTIFIER => Convert.ToInt64(digits, 16),
-				_ => throw new Exception("Unsupported base")
-			};
-	}
-		catch
-		{
-			throw new LexerException(area.Start, $"Can not understand the following number '{area.Text}'");
+			if (number_base == BINARY_BASE_IDENTIFIER) return Convert.ToInt64(digits, 2);
+			if (number_base == HEXADECIMAL_BASE_IDENTIFIER) return Convert.ToInt64(digits, 16);
 		}
+		catch {}
+
+		throw new LexerException(area.Start, $"Can not understand the following number '{area.Text}'");
 	}
 
 	/// <summary>
@@ -599,19 +595,25 @@ public static class Lexer
 		for (var i = tokens.Count - 2; i >= 0; i--)
 		{
 			// Require both the current and the next tokens to be modifier keywords
-			var a = tokens[i];
-			var b = tokens[i + 1];
+			var left_token = tokens[i];
+			var right_token = tokens[i + 1];
 
-			if (a.Type != TokenType.KEYWORD || b.Type != TokenType.KEYWORD) continue;
+			if (left_token.Type != TokenType.KEYWORD || right_token.Type != TokenType.KEYWORD) continue;
 
-			var x = a.To<KeywordToken>().Keyword;
-			var y = b.To<KeywordToken>().Keyword;
+			var left_keyword = left_token.To<KeywordToken>().Keyword;
+			var right_keyword = right_token.To<KeywordToken>().Keyword;
 
-			if (x.Type != KeywordType.MODIFIER || y.Type != KeywordType.MODIFIER) continue;
+			if (left_keyword.Type != KeywordType.MODIFIER || right_keyword.Type != KeywordType.MODIFIER) continue;
 
-			// Combine the two modifiers into one token, and remove the second token
-			var modifiers = x.To<ModifierKeyword>().Modifier | y.To<ModifierKeyword>().Modifier;
-			a.To<KeywordToken>().Keyword = new ModifierKeyword(string.Empty, modifiers);
+			var left_modifier = left_keyword.To<ModifierKeyword>();
+			var right_modifier = right_keyword.To<ModifierKeyword>();
+
+			// Combine the two modifiers into one token
+			var identifier = left_modifier.Identifier + ' ' + right_modifier.Identifier;
+			var modifiers = left_modifier.Modifier | right_modifier.Modifier;
+			left_token.To<KeywordToken>().Keyword = new ModifierKeyword(identifier, modifiers);
+
+			// Remove the right keyword, because it is combined into the left keyword
 			tokens.RemoveAt(i + 1);
 		}
 	}
@@ -657,43 +659,6 @@ public static class Lexer
 	{
 		JoinSequentialModifiers(tokens);
 		NegateKeywords(tokens);
-	}
-
-	/// <summary>
-	/// Converts the specified character value text to hexadecimal character value text
-	/// </summary>
-	private static string? FormatSpecialCharacter(string text)
-	{
-		// Return if the text is empty
-		if (text.Length == 0) return null;
-
-		// Do nothing if the text does not start with an escape character
-		if (text[0] != ESCAPER) return text;
-
-		// Expect at least one character after the escape character
-		if (text.Length < 2) return null;
-
-		var command = text[1];
-
-		// Just return the text if it is already in hexadecimal format
-		if (command == 'x' || command == 'u' || command == 'U') return text;
-
-		var value = command switch
-		{
-			'a' => "\\x07",
-			'b' => "\\x08",
-			't' => "\\x09",
-			'n' => "\\x0A",
-			'v' => "\\x0B",
-			'f' => "\\x0C",
-			'r' => "\\x0D",
-			'e' => "\\x1B",
-			'\"' => "\\x22",
-			'\'' => "\\x27",
-			_ => null
-		};
-
-		return value != null ? value : text.Substring(1);
 	}
 
 	/// <summary>
@@ -772,7 +737,7 @@ public static class Lexer
 	public static List<Token> GetTokens(string text, Position anchor, bool postprocess = true)
 	{
 		var tokens = new List<Token>();
-		var position = new Position(anchor.Line, anchor.Character, 0, anchor.Absolute);
+		var position = new Position(anchor.File, anchor.Line, anchor.Character, 0, anchor.Absolute);
 
 		while (position.Local < text.Length)
 		{

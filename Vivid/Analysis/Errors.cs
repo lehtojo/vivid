@@ -14,56 +14,35 @@ public class SourceException : Exception
 
 public static class Errors
 {
-	public const string UNKNOWN_FILE = "<Source>";
-	public const string UNKNOWN_LOCATION = "<Source>:<Line>:<Character>";
+	public const string UNKNOWN_FILE = "<unknown>";
 	public const string ERROR_BEGIN = "\x1B[1;31m";
 	public const string ERROR_END = "\x1B[0m";
 	public const string WARNING_BEGIN = "\x1B[1;33m";
 	public const string WARNING_END = "\x1B[0m";
 
-	public static Exception Get(Position? position, string description)
+	public static string FormatPosition(Position? position)
 	{
-		if (position == null)
-		{
-			return new SourceException(null, $"{ERROR_BEGIN}Error{ERROR_END}: {description}");
-		}
+		if (position == null) return UNKNOWN_FILE;
 
-		var fullname = UNKNOWN_FILE;
+		var file = position.File != null ? position.File.Fullname : UNKNOWN_FILE;
 
-		if (position.File != null)
-		{
-			fullname = position.File.Fullname;
-		}
-
-		return new SourceException(position, $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}Error{ERROR_END}: {description}");
+		return $"{file}:{position.FriendlyLine}:{position.FriendlyCharacter}";
 	}
 
-	public static string Format(Position? position, string description)
+	public static string Format(Position? position, string message)
 	{
-		if (position == null)
-		{
-			return $"{ERROR_BEGIN}Error{ERROR_END}: {description}";
-		}
+		if (position == null) return $"{ERROR_BEGIN}Error{ERROR_END}: {message}";
 
-		var fullname = UNKNOWN_FILE;
-
-		if (position.File != null)
-		{
-			fullname = position.File.Fullname;
-		}
-
-		return $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}: {ERROR_BEGIN}Error{ERROR_END}: {description}";
+		return $"{FormatPosition(position)}: {ERROR_BEGIN}Error{ERROR_END}: {message}";
 	}
 
-	public static string FormatPosition(Position position)
+	public static string Format(Status status)
 	{
-		var fullname = UNKNOWN_FILE;
+		return Format(status.Position, status.Message);
+	}
 
-		if (position.File != null)
-		{
-			fullname = position.File.Fullname;
-		}
-
-		return $"{fullname}:{position.FriendlyLine}:{position.FriendlyCharacter}";
+	public static Exception Get(Position? position, string message)
+	{
+		return new SourceException(position, Format(position, message));
 	}
 }

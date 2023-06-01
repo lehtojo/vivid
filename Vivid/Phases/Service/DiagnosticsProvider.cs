@@ -64,9 +64,18 @@ public static class DiagnosticsProvider
 		foreach (var iterator in parse.Blueprints)
 		{
 			var function = iterator.Key;
-			var blueprint = iterator.Value;
-
-			function.Blueprint = blueprint.Select(i => (Token)i.Clone()).ToList();
+			var blueprint = iterator.Value.Select(i => (Token)i.Clone()).ToList();
+	
+			if (function.IsTemplateFunction)
+			{
+				// Template functions save the function header in the blueprint: function() {...},
+				// so add the tokens into the body.
+				function.Blueprint.Last().To<ParenthesisToken>().Tokens = blueprint;
+			}
+			else
+			{
+				function.Blueprint = blueprint;
+			}
 		}
 	}
 

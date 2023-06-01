@@ -132,12 +132,6 @@ public class Variable
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(Name);
-		hash.Add(Type?.Name);
-		hash.Add(Category);
-		hash.Add(Modifiers);
-		hash.Add(Parent.Identity);
-		return hash.ToHashCode();
+		return HashCode.Combine(Name, Type?.Name, Parent.Identity);
 	}
 }

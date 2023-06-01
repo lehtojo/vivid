@@ -59,11 +59,7 @@ public class FunctionType : UnresolvedType
 
 	public override int GetHashCode()
 	{
-		var hash = new HashCode();
-		hash.Add(base.GetHashCode());
-		foreach (var parameter in Parameters) hash.Add(parameter);
-		hash.Add(ReturnType);
-		return hash.ToHashCode();
+		return HashCode.Combine(base.GetHashCode(), Parameters, ReturnType);
 	}
 
 	public override string ToString()

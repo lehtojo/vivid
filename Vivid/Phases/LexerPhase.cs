@@ -1,13 +1,12 @@
 using System;
 using System.Linq;
-using System.Collections.Generic;
 
 public class LexerPhase : Phase
 {
 	public override Status Execute()
 	{
 		var files = Settings.SourceFiles;
-		if (!files.Any()) return Status.Error("Nothing to tokenize");
+		if (!files.Any()) return new Status("Nothing to tokenize");
 
 		foreach (var file in files)
 		{
@@ -19,11 +18,11 @@ public class LexerPhase : Phase
 			catch (LexerException e)
 			{
 				e.Position.File = file;
-				return Status.Error(e.Position, e.Description);
+				return new Status(e.Position, e.Description);
 			}
 			catch (Exception e)
 			{
-				return Status.Error(e.Message);
+				return new Status(e.Message);
 			}
 		}
 

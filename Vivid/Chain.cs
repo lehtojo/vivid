@@ -33,7 +33,7 @@ public class Chain
 
 				if (status.IsProblematic)
 				{
-					Console.Error.WriteLine($"Terminated: {status.Description}");
+					Console.Error.WriteLine($"Terminated: {status.Message}");
 					return false;
 				}
 
@@ -49,7 +49,7 @@ public class Chain
 
 				if (status.IsProblematic)
 				{
-					Console.Error.WriteLine($"Terminated: {status.Description}");
+					Console.Error.WriteLine($"Terminated: {status.Message}");
 					return false;
 				}
 				else if (phase.Failed)

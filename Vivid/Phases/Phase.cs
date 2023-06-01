@@ -42,7 +42,7 @@ public abstract class Phase
 		}
 		catch (Exception e)
 		{
-			status = Status.Error(e.Message);
+			status = new Status(e.Message);
 		}
 
 		Tasks.Add(Task.FromResult(status));
@@ -74,7 +74,7 @@ public abstract class Phase
 		{
 			if (task.Result.IsProblematic)
 			{
-				builder.Append(task.Result.Description).Append('\n');
+				builder.Append(task.Result.Message).Append('\n');
 			}
 		}
 

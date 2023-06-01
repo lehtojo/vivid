@@ -104,7 +104,7 @@ public class Size
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Identifier, Allocator, Bytes, Bits);
+		return HashCode.Combine(Bytes);
 	}
 
 	public override string ToString()

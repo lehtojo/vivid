@@ -152,12 +152,12 @@ public class ConfigurationPhase : Phase
 			{
 				if (!parameters.TryDequeue(out var folder) || IsOption(folder))
 				{
-					return Status.Error("Missing or invalid value for option '{0}'", option);
+					return new Status("Missing or invalid value for option '{0}'", option);
 				}
 
 				if (!Directory.Exists(folder))
 				{
-					return Status.Error("Could not find folder '{0}'", folder);
+					return new Status("Could not find folder '{0}'", folder);
 				}
 
 				Collect(new DirectoryInfo(folder), true);
@@ -170,7 +170,7 @@ public class ConfigurationPhase : Phase
 			{
 				if (IsOptimizationEnabled)
 				{
-					return Status.Error("Optimization and debugging can not be enabled at the same time");
+					return new Status("Optimization and debugging can not be enabled at the same time");
 				}
 
 				Settings.IsDebuggingEnabled = true;
@@ -182,7 +182,7 @@ public class ConfigurationPhase : Phase
 			{
 				if (!parameters.TryDequeue(out var output) || IsOption(output))
 				{
-					return Status.Error("Missing or invalid value for option '{0}'", option);
+					return new Status("Missing or invalid value for option '{0}'", option);
 				}
 
 				Settings.OutputName = output;
@@ -194,14 +194,14 @@ public class ConfigurationPhase : Phase
 			{
 				if (!parameters.TryDequeue(out var library) || IsOption(library))
 				{
-					return Status.Error("Missing or invalid value for option '{0}'", option);
+					return new Status("Missing or invalid value for option '{0}'", option);
 				}
 
 				var filename = FindLibrary(library);
 
 				if (filename == null)
 				{
-					return Status.Error($"Can not find the specified library '{library}'. If the library name is correct, make sure the library is visible to this compiler.");
+					return new Status($"Can not find the specified library '{library}'. If the library name is correct, make sure the library is visible to this compiler.");
 				}
 
 				Libraries.Add(filename);
@@ -261,7 +261,7 @@ public class ConfigurationPhase : Phase
 			{
 				if (Settings.IsDebuggingEnabled)
 				{
-					return Status.Error("Optimization and debugging can not be enabled at the same time");
+					return new Status("Optimization and debugging can not be enabled at the same time");
 				}
 
 				IsOptimizationEnabled = true;
@@ -274,7 +274,7 @@ public class ConfigurationPhase : Phase
 			{
 				if (Settings.IsDebuggingEnabled)
 				{
-					return Status.Error("Optimization and debugging can not be enabled at the same time");
+					return new Status("Optimization and debugging can not be enabled at the same time");
 				}
 
 				IsOptimizationEnabled = true;
@@ -354,8 +354,8 @@ public class ConfigurationPhase : Phase
 
 			case "-base":
 			{
-				if (!parameters.TryDequeue(out var argument)) return Status.Error("Expected a value for the base address");
-				if (!ulong.TryParse(argument, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var base_address)) return Status.Error("Invalid base address");
+				if (!parameters.TryDequeue(out var argument)) return new Status("Expected a value for the base address");
+				if (!ulong.TryParse(argument, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var base_address)) return new Status("Invalid base address");
 
 				Settings.BaseAddress = base_address;
 				return Status.OK;
@@ -369,7 +369,7 @@ public class ConfigurationPhase : Phase
 
 			default:
 			{
-				return Status.Error($"Unknown option '{option}'");
+				return new Status($"Unknown option '{option}'");
 			}
 		}
 	}
@@ -424,7 +424,7 @@ public class ConfigurationPhase : Phase
 				}
 				else
 				{
-					return Status.Error("Source files must end with the language extension");
+					return new Status("Source files must end with the language extension");
 				}
 			}
 
@@ -438,7 +438,7 @@ public class ConfigurationPhase : Phase
 				continue;
 			}
 
-			return Status.Error("Invalid source file or folder '{0}'", element);
+			return new Status("Invalid source file or folder '{0}'", element);
 		}
 
 		Settings.Target = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? OSPlatform.Linux : OSPlatform.Windows;
@@ -449,7 +449,7 @@ public class ConfigurationPhase : Phase
 
 		if (!Settings.IsX64 && !Settings.IsArm64)
 		{
-			return Status.Error("This compiler only supports architectures x64 and arm64");
+			return new Status("This compiler only supports architectures x64 and arm64");
 		}
 
 		return Status.OK;

@@ -20,7 +20,7 @@ public class TemplateType : Type
 	public List<Token> Inherited { get; private set; } = new List<Token>();
 
 	public List<Token> Blueprint { get; private set; }
-	private Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
+	public Dictionary<string, TemplateTypeVariant> Variants { get; set; } = new Dictionary<string, TemplateTypeVariant>();
 
 	public TemplateType(Context context, string name, int modifiers, List<Token> blueprint, List<string> template_parameters, Position position) : base(context, name, modifiers | Modifier.TEMPLATE_TYPE, position)
 	{

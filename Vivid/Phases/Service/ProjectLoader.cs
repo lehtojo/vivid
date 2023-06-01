@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System;
 
 public static class ProjectLoader
 {
@@ -103,11 +104,36 @@ public static class ProjectLoader
 		// Remove any previous blueprints
 		parse.Blueprints.Clear();
 
+		// Count the number of functions whose blueprints do not get extracted
+		var skipped = 0;
+
 		foreach (var function in functions)
 		{
-			parse.Blueprints[function] = function.Blueprint;
-			function.Blueprint = new List<Token>();
+			// Do not extract tokens from functions whose return type we do not know, because we need to figure it out.
+			// Note: The return type of constructors and destructors is always known.
+			var remove = (function.IsConstructor || function.IsDestructor) || function.ReturnType != null;
+			skipped += remove ? 0 : 1;
+
+			var blueprint = function.Blueprint;
+
+			if (function.IsTemplateFunction)
+			{
+				// Template functions save the function header in the blueprint: function() {...},
+				// so remove the tokens from the body.
+				var body = blueprint.Last().To<ParenthesisToken>();
+				blueprint = body.Tokens;
+				if (remove) body.Tokens = new List<Token>();
+			}
+			else if (remove)
+			{
+				function.Blueprint = new List<Token>();
+			}
+
+			// Save the blueprint so that it can be attached later if needed
+			parse.Blueprints[function] = blueprint;
 		}
+
+		Console.WriteLine($"Left tokens to {skipped} function(s)");
 	}
 
 	/// <summary>
@@ -125,7 +151,7 @@ public static class ProjectLoader
 
 		// Parse the document
 		var context = Parser.CreateRootContext(file.Index);
-		var root = new ScopeNode(context, null, null, false);
+		var root = Parser.CreateRootNode(context);
 
 		Parser.Parse(root, context, tokens);
 

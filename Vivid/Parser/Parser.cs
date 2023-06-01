@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 public class ParserState
 {
@@ -223,53 +222,75 @@ public static class Parser
 	public static bool Fits(Pattern pattern, List<Token> tokens, int start, ParserState state)
 	{
 		var path = pattern.Path;
-		var result = new List<Token>();
+		var consumed = 0;
 
-		var i = 0;
-		var j = 0;
-
-		for (; i < path.Count; i++)
+		// First, attempt fitting the pattern without collecting tokens, because most patterns fail
+		for (var path_index = 0; path_index < path.Count; path_index++)
 		{
-			var types = path[i];
+			var types = path[path_index];
+			var token_index = start + consumed;
 
 			// Ensure there is a token available
-			if (start + j >= tokens.Count)
+			if (token_index >= tokens.Count)
 			{
 				// If the token type is optional on the path, we can add a none token even though there are no tokens available
-				if (Flag.Has(types, TokenType.OPTIONAL))
-				{
-					result.Add(new Token(TokenType.NONE));
-					continue;
-				}
+				if (Flag.Has(types, TokenType.OPTIONAL)) continue;
 
 				return false;
 			}
 
-			var token = tokens[start + j];
-			var type = token.Type;
+			var type = tokens[token_index].Type;
 
 			// Add the token if the allowed types contains its type
 			if (Flag.Has(types, type))
 			{
-				result.Add(token);
-				j++;
+				consumed++;
+				continue;
 			}
-			else if (Flag.Has(types, TokenType.OPTIONAL))
+
+			// If the allowed types contain optional, we can just ignore the current token
+			if (Flag.Has(types, TokenType.OPTIONAL))
 			{
-				result.Add(new Token(TokenType.NONE));
 				// NOTE: Do not skip the current token, since it was not consumed
+				continue;
 			}
-			else
-			{
-				result.Clear();
-				return false;
-			}
+
+			return false;
 		}
 
-		state.Tokens = result;
+		// Since we ended up here, it means the pattern was successfully consumed.
+		// Now collect the tokens that were consumed by the pattern.
+		var consumed_tokens = new List<Token>();
+
+		consumed = 0;
+
+		for (var path_index = 0; path_index < path.Count; path_index++)
+		{
+			var types = path[path_index];
+			var token_index = start + consumed;
+
+			if (token_index >= tokens.Count)
+			{
+				consumed_tokens.Add(new Token(TokenType.NONE));
+				continue;
+			}
+
+			var token = tokens[token_index];
+
+			if (!Flag.Has(types, token.Type)) 
+			{
+				consumed_tokens.Add(new Token(TokenType.NONE));
+				continue;
+			}
+
+			consumed_tokens.Add(token);
+			consumed++;
+		}
+
+		state.Tokens = consumed_tokens;
 		state.Pattern = pattern;
 		state.Start = start;
-		state.End = start + j;
+		state.End = start + consumed;
 
 		return true;
 	}

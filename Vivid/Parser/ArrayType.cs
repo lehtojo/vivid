@@ -80,7 +80,7 @@ public class ArrayType : Number, IResolvable
 
 	public Status GetStatus()
 	{
-		return IsUnresolved ? Status.Error(Position, "Can not convert the size of the array to a constant number") : Status.OK;
+		return IsUnresolved ? new Status(Position, "Can not convert the size of the array to a constant number") : Status.OK;
 	}
 
 	public override string ToString()
