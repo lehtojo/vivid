@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 public class ParserState
@@ -624,5 +625,19 @@ public static class Parser
 		var result = new Node();
 		Parse(result, context, tokens, min, max);
 		return result;
+	}
+
+	public static int Print(Node node, int identation = 0, int total = 0)
+	{
+		var padding = new string(' ', identation * 2 + 1);
+
+		Console.Write(padding);
+		Console.WriteLine(node.ToString());
+
+		total++;
+
+		foreach (var child in node) { total += Print(child, identation + 1, 0); }
+
+		return total;
 	}
 }

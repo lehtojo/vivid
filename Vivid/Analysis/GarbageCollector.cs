@@ -72,10 +72,15 @@ public static class GarbageCollector
 
 		// Body:
 		// value.destruct()
-		var destruction = Common.TryGetVirtualFunctionCall(value, type, GarbageCollector.DESTRUCTOR, new Node(), new List<Type?>(), position);
+		var destruction = Common.TryGetVirtualFunctionCall(value.Clone(), type, GarbageCollector.DESTRUCTOR, new Node(), new List<Type?>(), position);
 		if (destruction == null) throw new ApplicationException("Failed to unlink object");
 
-		var body = new Node() { destruction };
+		var deallocation = new FunctionNode(Settings.DeallocationFunction!).SetArguments
+		(
+			new Node { new CastNode(value.Clone(), new TypeNode(new Link())) }
+		);
+
+		var body = new Node() { destruction, deallocation };
 
 		// Result:
 		// if value != 0 and unlink(value) == 0 {
@@ -97,7 +102,7 @@ public static class GarbageCollector
 	/// </summary>
 	private static List<Context> FindSubcontextsExcept(Context context, Context[] except)
 	{
-		var contexts = context.Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction).Except(except).ToList();
+		var contexts = context.Subcontexts.Where(i => !i.IsImplementation && !i.IsFunction && !i.IsType).Except(except).ToList();
 		var temporary = new List<Context>();
 
 		foreach (var iterator in contexts)
@@ -184,14 +189,14 @@ public static class GarbageCollector
 	/// <summary>
 	/// Generates code that destructs the specified node based on the specified type
 	/// </summary>
-	public static void Destruct(Node destination, Node value, Type type)
+	public static void DestructInlined(Node destination, Node value, Type type)
 	{
 		var implementation = type.GetOverride(GarbageCollector.DESTRUCTOR)?.GetImplementation() ?? throw new ApplicationException("Missing destructor");
 
 		// Do not call the destructor if it is empty
 		if (implementation.IsEmpty) return;
 
-		destination.Add(new LinkNode(value, new FunctionNode(implementation)));
+		destination.Add(new LinkNode(value.Clone(), new FunctionNode(implementation)));
 	}
 
 	/// <summary>
@@ -228,7 +233,18 @@ public static class GarbageCollector
 	/// <param name="terminator">The return statement to process</param>
 	/// <param name="unlinkables">List of unlinkable variables that must be unlinked before returning</param>
 	/// <param name="allocations">List of allocations that must be destructed before returning</param>
-	private static void ProcessReturnTermination(Context context, Node scope, Dictionary<Node, ScopeDestructionDescriptor> scopes, ReturnNode terminator, List<Variable> linkables, List<Variable> unlinkables, List<StackAddressNode> allocations)
+	/// Todo: Too many parameters :^D! Maybe we could reduce complexity here and maybe elsewhere as well?
+	private static void ProcessReturnTermination(
+		StatementFlow flow,
+		Dictionary<Variable, VariableAssignmentDescriptor> assignment_descriptors,
+		Context context,
+		Node scope,
+		Dictionary<Node, ScopeDestructionDescriptor> scopes,
+		ReturnNode terminator,
+		List<Variable> linkables,
+		List<Variable> unlinkables,
+		List<StackAddressNode> allocations
+	)
 	{
 		var value = terminator.Value!;
 		var type = value.GetType();
@@ -244,12 +260,13 @@ public static class GarbageCollector
 			if (is_value_function_call || !IsTypeLinkable(type)) return;
 
 			// Link the returned value
-			terminator.Insert(LinkObject(context, value));
+			if (!IsUninitializedLocalVariable(flow, assignment_descriptors, value))
+			{
+				terminator.Insert(LinkObject(context, value));
+			}
+
 			return;
 		}
-
-		// Remove the value from the return statement
-		value.Remove();
 
 		// Load the return value into a temporary variable
 		var variable = context.DeclareHidden(type);
@@ -257,15 +274,22 @@ public static class GarbageCollector
 		// Create a temporary node where the generated nodes will be placed
 		var container = new Node();
 
-		container.Add(new OperatorNode(Operators.ASSIGN).SetOperands(new VariableNode(variable), value));
+		// Note: Clone the variable node instead of just using it, because IsUninitializedLocalVariable below is dependent on the value remaining in place
+		container.Add(new OperatorNode(Operators.ASSIGN).SetOperands(new VariableNode(variable), value.Clone()));
 
 		// 1. Function calls can not be linked, because their return values are already linked
 		// 2. Ensure the returned value is linkable
 		if (!is_value_function_call && IsTypeLinkable(type))
 		{
 			// Link the returned value
-			container.Add(LinkObject(context, value));
+			if (!IsUninitializedLocalVariable(flow, assignment_descriptors, value))
+			{
+				container.Add(LinkObject(context, value));
+			}
 		}
+
+		// Remove the value from the return statement
+		value.Remove();
 
 		// Link returned variables
 		LinkAll(context, container, linkables);
@@ -496,7 +520,7 @@ public static class GarbageCollector
 
 				if (is_complex)
 				{
-					ProcessReturnTermination(context, scope, scopes, statement, linkables, unlinkables, allocations);
+					ProcessReturnTermination(flow, assignment_descriptors, context, scope, scopes, statement, linkables, unlinkables, allocations);
 					continue;
 				}
 			}
@@ -673,12 +697,13 @@ public static class GarbageCollector
 	/// </summary>
 	public static bool IsUninitializedLocalVariable(StatementFlow flow, Dictionary<Variable, VariableAssignmentDescriptor> assignment_descriptors, Node value)
 	{
-		// 1. Ensure the value is a local variable
-		var is_local_variable = value.Instance == NodeType.VARIABLE && value.To<VariableNode>().Variable.IsPredictable;
-		if (!is_local_variable) return false;
+		if (value.Instance != NodeType.VARIABLE) return false;
 
-		// 2. Ensure the variable is not initialized at its position
+		// 1. Require local variable
 		var variable = value.To<VariableNode>().Variable;
+		if (!variable.IsPredictable) return false;
+
+		// 2. Uninitialized local variable
 		var position = flow.IndexOf(value);
 		var assignment_descriptor = assignment_descriptors[variable];
 
@@ -750,6 +775,12 @@ public static class GarbageCollector
 			// Skip if the destination is not linkable
 			if (!IsTypeLinkable(destination_type)) continue;
 
+			// Detect broken assignment where the source is casted from non-linkable to a linkable type
+			if (!(source.Instance == NodeType.FUNCTION && source.To<FunctionNode>().Function == Settings.AllocationFunction) && !Common.IsZero(source) && !IsTypeLinkable(source.GetType()))
+			{
+				throw Errors.Get(source.Position, "Found an assignment where source value is casted from non-linkable to a linkable type");
+			}
+
 			var environment = assignment.GetParentContext();
 
 			// Case 3:
@@ -800,7 +831,12 @@ public static class GarbageCollector
 
 			// Case 1:
 			// 1. Create the statement, which links the source: link(b)
-			assignment.Insert(LinkObject(environment, source));
+
+			// Do not link the source if it is an uninitialized local variable
+			if (!IsUninitializedLocalVariable(flow, assignment_descriptors, source))
+			{
+				assignment.Insert(LinkObject(environment, source));
+			}
 
 			// Do not unlink the destination if it is a local variable and it is not initialized
 			if (IsUninitializedLocalVariable(flow, assignment_descriptors, destination)) continue;
@@ -834,7 +870,9 @@ public static class GarbageCollector
 	/// </summary>
 	public static void Generate(FunctionImplementation implementation)
 	{
-		#warning TODO: Unlink discarded objects
+		// Skip destructors, because they are generated
+		if (implementation.Name == DESTRUCTOR && implementation.VirtualFunction != null) return;
+
 		CreateAllScopeUnlinkers(implementation);
 		CreateAllScopeLinkers(implementation);
 		LinkEditedParameters(implementation);

@@ -880,7 +880,7 @@ public static class ReconstructionAnalysis
 	/// </summary>
 	private static void ExtractExpressions(Node root)
 	{
-		var nodes = root.FindAll(NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.ACCESSOR, NodeType.WHEN);
+		var nodes = root.FindAll(NodeType.ACCESSOR, NodeType.CALL, NodeType.CONSTRUCTION, NodeType.FUNCTION, NodeType.HAS, NodeType.LINK, NodeType.LAMBDA, NodeType.LIST_CONSTRUCTION, NodeType.PACK_CONSTRUCTION, NodeType.WHEN);
 		nodes.AddRange(FindBoolValues(root));
 
 		for (var i = 0; i < nodes.Count; i++)
@@ -890,7 +890,14 @@ public static class ReconstructionAnalysis
 
 			// Calls should always have a parent node
 			if (parent == null) continue;
-			
+
+			// When the node is a link or accessor, extract when it is: argument, return value
+			if (node.Is(NodeType.ACCESSOR, NodeType.LINK))
+			{
+				var extract = Common.IsCallArgument(node) || Common.IsReturnValue(node);
+				if (!extract) continue;
+			}
+
 			// Skip values which are assigned to hidden local variables
 			if (parent.Is(Operators.ASSIGN) && ReferenceEquals(parent.Right, node) && parent.Left.Is(NodeType.VARIABLE) && parent.Left.To<VariableNode>().Variable.IsPredictable) continue;
 

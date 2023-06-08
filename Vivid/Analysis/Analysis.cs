@@ -960,6 +960,14 @@ public static class Analysis
 			var root = destructor.Node ?? throw new ApplicationException("Destructor was not implemented");
 			var self = destructor.GetSelfPointer() ?? throw new ApplicationException("Missing self pointer");
 
+			// Call the user destructor (deinit) if it is not empty
+			var user_destructor = type.GetFunction(Keywords.DEINIT.Identifier)?.GetImplementation();
+
+			if (user_destructor != null && !user_destructor.Node!.IsEmpty)
+			{
+				root.Add(new LinkNode(new VariableNode(self), new FunctionNode(user_destructor)));
+			}
+
 			foreach (var member in type.Variables.Values)
 			{
 				// If the member is not destructible, it is not unlinkable, so skip it
@@ -970,7 +978,7 @@ public static class Analysis
 				if (member.IsInlined())
 				{
 					// Inlined members can not be unlinked, they are destroyed when the parent object is destroyed, therefore we can call the destructor now
-					GarbageCollector.Destruct(root, member_access, member.Type!);
+					GarbageCollector.DestructInlined(root, member_access, member.Type!);
 				}
 				else
 				{
@@ -978,11 +986,6 @@ public static class Analysis
 					root.Add(GarbageCollector.UnlinkObject(destructor, member_access));
 				}
 			}
-
-			// Deallocate the object at the end
-			root.Add(new FunctionNode(Settings.DeallocationFunction!).SetArguments(new Node {
-				new CastNode(new VariableNode(self), new TypeNode(new Link()))
-			}));
 		}
 	}
 

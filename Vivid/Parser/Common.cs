@@ -1043,6 +1043,16 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Returns whether the specified node is a return value
+	/// </summary>
+	public static bool IsReturnValue(Node node)
+	{
+		var result = node.FindParent(i => !i.Is(NodeType.PARENTHESIS, NodeType.CAST));
+
+		return result != null && result.Is(NodeType.RETURN);
+	}
+
+	/// <summary>
 	/// Returns the self pointer of the specified context
 	/// </summary>
 	public static Node GetSelfPointer(Context context, Position? position)
