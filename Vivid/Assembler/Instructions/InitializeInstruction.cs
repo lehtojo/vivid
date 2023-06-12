@@ -10,25 +10,12 @@ using System;
 public class InitializeInstruction : Instruction
 {
 	public int LocalMemoryTop { get; private set; }
-	private static bool IsShadowSpaceRequired => Settings.IsTargetWindows;
 
-	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) { }
+	public InitializeInstruction(Unit unit) : base(unit, InstructionType.INITIALIZE) {}
 
-	private static int GetRequiredCallMemory(CallInstruction[] calls)
+	private int GetRequiredCallMemory(CallInstruction[] calls)
 	{
-		if (!calls.Any()) return 0;
-
-		// Find all parameter move instructions which move the source value into memory
-		var parameter_memory_offsets = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
-
-		if (!parameter_memory_offsets.Any())
-		{
-			// Even though no instruction writes to memory, on Windows there is a requirement to allocate so called 'shadow space' for the first four parameters
-			if (IsShadowSpaceRequired) return Calls.SHADOW_SPACE_SIZE;
-			return 0;
-		}
-
-		return parameter_memory_offsets.Max() + Settings.Bytes;
+		return Math.Max(Common.ComputeParameterOverflow(calls), Common.ComputeReturnOverflow(Unit, calls));
 	}
 
 	private void SaveRegistersArm64(StringBuilder builder, List<Register> registers)

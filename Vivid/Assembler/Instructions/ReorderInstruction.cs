@@ -20,47 +20,11 @@ public class ReorderInstruction : Instruction
 	}
 
 	/// <summary>
-	/// Returns how many bytes of the specified type are returned using the stack
-	/// </summary>
-	private int ComputeReturnOverflow(Type type, int overflow, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers)
-	{
-		foreach (var iterator in type.Variables)
-		{
-			var member = iterator.Value;
-
-			if (member.Type!.IsPack)
-			{
-				overflow = ComputeReturnOverflow(member.Type, overflow, standard_parameter_registers, decimal_parameter_registers);
-				continue;
-			}
-
-			// First, drain out the registers
-			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
-			if (register != null) continue;
-
-			overflow += Settings.Bytes;
-		}
-
-		return overflow;
-	}
-
-	/// <summary>
-	/// Returns how many bytes of the specified type are returned using the stack
-	/// </summary>
-	private int ComputeReturnOverflow(Type type)
-	{
-		var standard_parameter_registers = Calls.GetStandardParameterRegisters(Unit);
-		var decimal_parameter_registers = Calls.GetDecimalParameterRegisters(Unit);
-
-		return ComputeReturnOverflow(type, 0, decimal_parameter_registers, standard_parameter_registers);
-	}
-
-	/// <summary>
 	/// Evacuates variables that are located at the overflow zone of the stack
 	/// </summary>
 	private void EvacuateOverflowZone(Type type)
 	{
-		var overflow = Math.Max(ComputeReturnOverflow(type), Settings.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0);
+		var overflow = Math.Max(Common.ComputeReturnOverflow(Unit, type), Settings.IsTargetWindows ? Calls.SHADOW_SPACE_SIZE : 0);
 
 		foreach (var iterator in Unit.Scope!.Variables)
 		{

@@ -1443,6 +1443,83 @@ public static class Common
 	}
 
 	/// <summary>
+	/// Computes the number of bytes of stack memory required to pass parameters to calls
+	/// </summary>
+	public static int ComputeParameterOverflow(CallInstruction[] calls)
+	{
+		if (!calls.Any()) return 0;
+
+		// Find all parameter move instructions which move the source value into memory
+		var parameter_memory_offsets = calls.SelectMany(i => i.Destinations).Where(i => i.Is(HandleType.MEMORY)).Select(i => i.To<MemoryHandle>().Offset).ToArray();
+
+		if (!parameter_memory_offsets.Any())
+		{
+			// Even though no instruction writes to memory, on Windows there is a requirement to allocate so called 'shadow space' for the first four parameters
+			if (Settings.IsTargetWindows) return Calls.SHADOW_SPACE_SIZE;
+			return 0;
+		}
+
+		return parameter_memory_offsets.Max() + Settings.Bytes;
+	}
+
+	/// <summary>
+	/// Computes the number of bytes of stack memory required to receive the specified pack type as return value
+	/// </summary>
+	public static int ComputeReturnOverflow(Type type, int overflow, List<Register> standard_parameter_registers, List<Register> decimal_parameter_registers)
+	{
+		foreach (var iterator in type.Variables)
+		{
+			var member = iterator.Value;
+			
+			// Do not process static or constant member variables
+			if (member.IsStatic || member.IsConstant) continue;
+
+			if (member.Type!.IsPack)
+			{
+				overflow = ComputeReturnOverflow(member.Type, overflow, standard_parameter_registers, decimal_parameter_registers);
+				continue;
+			}
+
+			// First, drain out the registers
+			var register = member.Type!.Format.IsDecimal() ? decimal_parameter_registers.Pop() : standard_parameter_registers.Pop();
+			if (register != null) continue;
+
+			overflow += Settings.Bytes;
+		}
+
+		return overflow;
+	}
+
+	/// <summary>
+	/// Computes the number of bytes of stack memory to receive the specified pack type as return value
+	/// </summary>
+	public static int ComputeReturnOverflow(Unit unit, Type type)
+	{
+		var standard_parameter_registers = Calls.GetStandardParameterRegisters(unit);
+		var decimal_parameter_registers = Calls.GetDecimalParameterRegisters(unit);
+
+		return ComputeReturnOverflow(type, 0, standard_parameter_registers, decimal_parameter_registers);
+	}
+
+	/// <summary>
+	/// Computes the number of bytes of stack memory to receive the return values from the specified calls
+	/// </summary>
+	public static int ComputeReturnOverflow(Unit unit, CallInstruction[] calls)
+	{
+		var overflow = 0;
+
+		foreach (var call in calls)
+		{
+			// Note: Non-pack types will not require any stack memory
+			if (call.ReturnType == null || !call.ReturnType.IsPack) continue;
+
+			overflow = Math.Max(overflow, ComputeReturnOverflow(unit, call.ReturnType));
+		}
+
+		return overflow;
+	}
+
+	/// <summary>
 	/// Returns true if the specified node represents integer zero
 	/// </summary>
 	public static bool IsZero(Node? node)
