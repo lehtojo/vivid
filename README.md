@@ -1,6 +1,8 @@
 # Vivid
 Small self-hosted and dependency-free compiler for a programming language focusing on comfortability with a nice mix of powerful features.
 
+**Note: This is the project for the first compiler version and there's a [self-hosted](https://github.com/lehtojo/vivid-2) version with more capabilities** 
+
 ## Installation
 
 ### Precompiled binaries
