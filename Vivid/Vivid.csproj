@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<WarningsAsErrors>CS8600;CS8602;CS8603;CS8604</WarningsAsErrors>
 		<GenerateProgramFile>false</GenerateProgramFile>
 	</PropertyGroup>
@@ -17,6 +16,7 @@
 		<GenerateProgramFile>false</GenerateProgramFile>
 		<NoWarn>CA1028;CA1305;CA1050;CA1701;CA1702;CA1707;CA1062;CA1303;CA1720;IDE1006;CA1721;CA1716;CA1307;CA1043;CA1031;CA1819;CA1724;CA1308;CA1815;CA2227</NoWarn>
 		<Optimize>false</Optimize>
+		<DefaultItemExcludes>$(DefaultItemExcludes);Unit/**</DefaultItemExcludes>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Units|AnyCPU'">
@@ -42,20 +42,21 @@
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<DebugType>none</DebugType>
 		<DebugSymbols>false</DebugSymbols>
+		<DefaultItemExcludes>$(DefaultItemExcludes);Unit/**</DefaultItemExcludes>
 	</PropertyGroup>
 
-	<ItemGroup>
-	<PackageReference Include="coverlet.msbuild" Version="3.1.0">
-	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  <PrivateAssets>all</PrivateAssets>
-	</PackageReference>
-	<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
-		<PrivateAssets>all</PrivateAssets>
+	<ItemGroup Condition="'$(Configuration)|$(Platform)'=='Units|AnyCPU'">
+		<PackageReference Include="coverlet.msbuild" Version="3.1.0">
 		<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	</PackageReference>
+		<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(Configuration)|$(Platform)'=='Units|AnyCPU'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
 		<PackageReference Include="MSTest.TestAdapter" Version="2.1.1" />
 		<PackageReference Include="MSTest.TestFramework" Version="2.1.1" />
